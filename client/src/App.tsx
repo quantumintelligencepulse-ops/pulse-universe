@@ -1335,31 +1335,136 @@ function CodePlayground() {
     }, 10000);
   }, [prepareJSCode]);
 
+  const SERVER_ONLY_PACKAGES = new Set([
+    "discord", "discord.py", "spacy", "tensorflow", "torch", "pytorch",
+    "flask", "django", "fastapi", "uvicorn", "gunicorn", "celery",
+    "psycopg2", "mysqlclient", "redis", "pymongo", "sqlalchemy",
+    "scrapy", "selenium", "playwright", "opencv-python", "cv2",
+    "tkinter", "pygame", "kivy", "pyqt5", "pyside2", "wxpython",
+    "dask", "ray", "airflow", "kafka", "boto3", "grpc", "grpcio",
+    "socket", "asyncio", "multiprocessing", "threading", "subprocess",
+    "ctypes", "cffi", "cython", "numba",
+  ]);
+
+  const PYODIDE_INSTALLABLE = new Set([
+    "numpy", "pandas", "scipy", "matplotlib", "scikit-learn", "sklearn",
+    "pillow", "pil", "sympy", "networkx", "regex", "pyyaml", "yaml",
+    "beautifulsoup4", "bs4", "lxml", "html5lib", "jsonschema",
+    "requests", "micropip", "packaging", "six", "certifi", "charset-normalizer",
+    "idna", "urllib3", "pytz", "dateutil", "python-dateutil",
+  ]);
+
   const runPython = useCallback(async (src: string) => {
     setOutput(["Loading Python runtime..."]);
     try {
       const pyodide = await loadPyodide();
-      setOutput(["Running Python..."]);
+
+      const importMatches = src.match(/^\s*(?:import|from)\s+(\w+)/gm) || [];
+      const requestedModules = importMatches.map(m => m.replace(/^\s*(?:import|from)\s+/, "").trim());
+
+      const serverOnly = requestedModules.filter(m => SERVER_ONLY_PACKAGES.has(m.toLowerCase()));
+      if (serverOnly.length > 0) {
+        setOutput([
+          `⚠ Cannot run in browser: ${serverOnly.join(", ")}`,
+          "",
+          "These packages require a real server environment:",
+          ...serverOnly.map(m => `  • ${m} - needs native OS / network access`),
+          "",
+          "What you can do:",
+          "  1. Remove those imports to test the rest of your logic",
+          "  2. Use the AI Coder chat to get help with server-side code",
+          "  3. Mock the imports to test your code structure",
+          "",
+          "The playground runs Python via Pyodide (WebAssembly).",
+          "It supports: math, json, re, collections, itertools, functools,",
+          "datetime, random, string, typing, dataclasses, enum, abc,",
+          "and installable: numpy, pandas, scipy, matplotlib, scikit-learn,",
+          "sympy, networkx, beautifulsoup4, pillow, regex, pyyaml, and more.",
+          "",
+          "Running remaining code without blocked imports...",
+        ]);
+
+        const cleanedSrc = src.replace(
+          new RegExp(`^\\s*(?:import|from)\\s+(?:${serverOnly.join("|")})\\b.*$`, "gm"),
+          (match) => `# [SKIPPED - server only] ${match.trim()}`
+        );
+
+        setOutput(prev => [...prev, "", "--- Running cleaned code ---", ""]);
+        src = cleanedSrc;
+      }
+
+      const installable = requestedModules.filter(m =>
+        PYODIDE_INSTALLABLE.has(m.toLowerCase()) && !serverOnly.includes(m)
+      );
+      if (installable.length > 0) {
+        setOutput(prev => [...prev, `Installing packages: ${installable.join(", ")}...`]);
+        try {
+          await pyodide.loadPackagesFromImports(src);
+        } catch {
+          try {
+            const micropip = pyodide.pyimport("micropip");
+            for (const pkg of installable) {
+              try { await micropip.install(pkg); } catch {}
+            }
+          } catch {}
+        }
+      }
+
+      setOutput(prev => [...prev, "Running Python..."]);
       pyodide.runPython(`import sys; from io import StringIO; sys.stdout = StringIO(); sys.stderr = StringIO()`);
       const startTime = performance.now();
+
       try {
         pyodide.runPython(src);
       } catch (e: any) {
-        const stderr = pyodide.runPython(`sys.stderr.getvalue()`);
-        const stdout = pyodide.runPython(`sys.stdout.getvalue()`);
-        pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`);
+        let stdout = "", stderr = "";
+        try { stdout = pyodide.runPython(`sys.stdout.getvalue()`); } catch {}
+        try { stderr = pyodide.runPython(`sys.stderr.getvalue()`); } catch {}
+        try { pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`); } catch {}
         const outLines = stdout ? stdout.split("\n").filter((l: string) => l) : [];
         const errMsg = e.message || "";
-        const lastLine = errMsg.split("\n").filter((l: string) => l.trim()).pop() || errMsg;
-        setOutput([...outLines, `ERROR: ${lastLine}`, ...(stderr ? [`STDERR: ${stderr}`] : [])]);
+
+        const moduleMatch = errMsg.match(/No module named '(\w+)'/);
+        if (moduleMatch) {
+          const missingMod = moduleMatch[1];
+          const isSvrOnly = SERVER_ONLY_PACKAGES.has(missingMod.toLowerCase());
+          setOutput(prev => [...prev, ...outLines,
+            `ERROR: No module named '${missingMod}'`,
+            "",
+            isSvrOnly
+              ? `'${missingMod}' is a server-side package that needs native OS access.`
+              : `'${missingMod}' is not available in the browser Python runtime.`,
+            "",
+            "Suggestions:",
+            "  • Remove or mock the import to test your logic",
+            "  • Use standard library alternatives",
+            "  • Test in the AI Coder chat for full server guidance",
+          ]);
+        } else {
+          const errLines = errMsg.split("\n");
+          const lastLine = errLines.filter((l: string) => l.trim()).pop() || errMsg;
+          const tbLine = errLines.find((l: string) => /line \d+/.test(l));
+          setOutput(prev => [...prev, ...outLines,
+            `ERROR: ${lastLine}`,
+            ...(tbLine ? [`  at ${tbLine.trim()}`] : []),
+            ...(stderr ? [`STDERR: ${stderr}`] : []),
+          ]);
+        }
         setIsRunning(false);
         return;
       }
-      const stdout = pyodide.runPython(`v = sys.stdout.getvalue(); sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__; v`);
+
+      let stdout = "";
+      try {
+        stdout = pyodide.runPython(`v = sys.stdout.getvalue(); sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__; v`);
+      } catch { try { pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`); } catch {} }
       const elapsed = (performance.now() - startTime).toFixed(1);
       const lines = stdout ? stdout.split("\n").filter((l: string) => l !== "") : [];
       if (lines.length === 0) lines.push("(no output - add print() statements to see results)");
-      setOutput([...lines, "", `✓ Executed in ${elapsed}ms`]);
+      setOutput(prev => {
+        const cleaned = prev.filter(l => l !== "Running Python..." && l !== "Loading Python runtime...");
+        return [...cleaned, ...lines, "", `✓ Executed in ${elapsed}ms`];
+      });
     } catch (e: any) {
       setOutput([`ERROR: ${e.message}`, "", "Tip: Python runtime loads on first use. Try running again."]);
     }
