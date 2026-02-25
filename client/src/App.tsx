@@ -1232,33 +1232,42 @@ function CodePlayground() {
       iframe.sandbox.add("allow-scripts");
       iframe.style.display = "none";
       document.body.appendChild(iframe);
-      const logs: string[] = [];
       const startTime = performance.now();
-      try {
-        const html = `<html><body><script>
-          const _l = []; const _origLog = console.log;
-          console.log = function(...a) { _l.push(a.map(x => typeof x === 'object' ? JSON.stringify(x,null,2) : String(x)).join(' ')); };
-          console.error = function(...a) { _l.push('ERROR: ' + a.join(' ')); };
-          try { ${code} } catch(e) { _l.push('ERROR: ' + e.message); }
-          parent.postMessage({ type: 'output', logs: _l }, '*');
-        <\/script></body></html>`;
-        const handler = (e: MessageEvent) => {
-          if (e.data?.type === 'output') {
-            const elapsed = (performance.now() - startTime).toFixed(1);
-            setOutput([...e.data.logs, `\n✓ Executed in ${elapsed}ms`]);
-            window.removeEventListener("message", handler);
-            document.body.removeChild(iframe);
-          }
-        };
-        window.addEventListener("message", handler);
-        iframe.srcdoc = html;
-        setTimeout(() => { window.removeEventListener("message", handler); try { document.body.removeChild(iframe); } catch {} setIsRunning(false); }, 5000);
-      } catch (e: any) {
-        logs.push(`ERROR: ${e.message}`);
-        setOutput(logs);
-        try { document.body.removeChild(iframe); } catch {}
-      }
-      setTimeout(() => setIsRunning(false), 100);
+      const encodedCode = btoa(unescape(encodeURIComponent(code)));
+      const runnerHtml = `<!DOCTYPE html><html><body><script>
+        var _l = [];
+        console.log = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
+        console.error = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('ERROR: ' + a.join(' ')); };
+        console.warn = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('WARN: ' + a.join(' ')); };
+        try {
+          var _code = decodeURIComponent(escape(atob("${encodedCode}")));
+          var _fn = new Function(_code);
+          _fn();
+        } catch(e) { _l.push('ERROR: ' + e.message); }
+        parent.postMessage({ type: 'pg_output', logs: _l }, '*');
+      <\/script></body></html>`;
+      let done = false;
+      const handler = (e: MessageEvent) => {
+        if (e.data?.type === 'pg_output' && !done) {
+          done = true;
+          const elapsed = (performance.now() - startTime).toFixed(1);
+          setOutput([...e.data.logs, "", "✓ Executed in " + elapsed + "ms"]);
+          setIsRunning(false);
+          window.removeEventListener("message", handler);
+          try { document.body.removeChild(iframe); } catch {}
+        }
+      };
+      window.addEventListener("message", handler);
+      iframe.srcdoc = runnerHtml;
+      setTimeout(() => {
+        if (!done) {
+          done = true;
+          setOutput(prev => [...prev, "ERROR: Execution timed out (5s limit)"]);
+          setIsRunning(false);
+          window.removeEventListener("message", handler);
+          try { document.body.removeChild(iframe); } catch {}
+        }
+      }, 5000);
     } else if (lang === "html") {
       setShowPreview(true);
       setOutput(["✓ HTML rendered in preview panel"]);
