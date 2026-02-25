@@ -19,11 +19,53 @@ import {
   Braces, Database, Lock, TestTube, Smartphone, Cloud,
   ChevronDown, ChevronUp, Settings2, Brackets, FlaskConical, Rocket,
   Mic, MicOff, SplitSquareVertical, Wand2, Brain, Scan, Square,
-  SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle
+  SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle,
+  ExternalLink, CreditCard, Crown
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message } from "@shared/schema";
 import logo from "@assets/MyAiGpt_1772000395528.webp";
+
+const MESSAGE_LIMIT = 9;
+const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
+
+function getMessageCount(): number {
+  try { return parseInt(localStorage.getItem("myaigpt_msg_count") || "0", 10); } catch { return 0; }
+}
+function incrementMessageCount(): number {
+  const count = getMessageCount() + 1;
+  localStorage.setItem("myaigpt_msg_count", String(count));
+  return count;
+}
+function isLimitReached(): boolean { return getMessageCount() >= MESSAGE_LIMIT; }
+
+function StripePaywall() {
+  const paywallRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (paywallRef.current && !paywallRef.current.querySelector("stripe-buy-button")) {
+      const btn = document.createElement("stripe-buy-button");
+      btn.setAttribute("buy-button-id", "buy_btn_1T4l1iB1ElS3CRgPLlvxieIS");
+      btn.setAttribute("publishable-key", "pk_live_51LN4UmB1ElS3CRgPDMJle5JfwZh9iwzDtD900oHDTcPQfPaoGSKEUMhq3MYsFv9SfR1e8Ox5FOpDIALB7MIpEdVo0033Y4vBii");
+      paywallRef.current.appendChild(btn);
+    }
+  }, []);
+  return (
+    <div className="flex flex-col items-center justify-center p-6 max-w-md mx-auto text-center" data-testid="paywall-section">
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg">
+        <Crown size={28} className="text-white" />
+      </div>
+      <h3 className="text-lg font-bold text-foreground mb-1">Upgrade to Pro</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        You've used your {MESSAGE_LIMIT} free messages. Upgrade to unlock unlimited access to My Ai Gpt and My Ai Coder.
+      </p>
+      <div ref={paywallRef} className="mb-4" />
+      <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer"
+        className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 mt-2" data-testid="link-discord-paywall">
+        <ExternalLink size={11} /> Join our Discord for support
+      </a>
+    </div>
+  );
+}
 
 // ─── THEME CONTEXT (#1 - Code theme system) ─────────────────────────────────
 
@@ -797,7 +839,15 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, isThinking]);
 
+  const [limitReached, setLimitReached] = useState(isLimitReached());
+  const [msgCount, setMsgCount] = useState(getMessageCount());
+
   const handleSend = useCallback(async (content: string) => {
+    if (isLimitReached()) { setLimitReached(true); return; }
+    const newCount = incrementMessageCount();
+    setMsgCount(newCount);
+    if (newCount >= MESSAGE_LIMIT) { setLimitReached(true); }
+
     let targetChatId = chatId;
     setLocalMessages(prev => [...prev, { role: "user", content }]);
     setIsThinking(true);
@@ -986,8 +1036,17 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4 md:px-8">
-        <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
-          placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
+        {limitReached ? (
+          <StripePaywall />
+        ) : (
+          <>
+            <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
+              placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
+            <div className="text-center mt-1.5">
+              <span className="text-[10px] text-muted-foreground/40">{msgCount}/{MESSAGE_LIMIT} free messages used</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1108,6 +1167,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Playground</span>
             <span className="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">IDE</span>
           </Link>
+          <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" data-testid="link-discord-invite"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group text-foreground/70 hover:bg-indigo-50 hover:text-indigo-600">
+            <div className="p-1 rounded-lg bg-indigo-500/10"><ExternalLink size={14} className="text-indigo-500" /></div>
+            <span className="flex-1">Join Discord</span>
+            <span className="text-[9px] bg-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">NEW</span>
+          </a>
         </div>
 
         <div className="px-2.5 py-1">

@@ -1,0 +1,120 @@
+Billy, I’ve got you — and I’m going to give you the **exact Replit prompt + logic** you need so your site:
+
+- Limits users to **20 messages**
+- Shows a clean **“Upgrade to unlock full access”** message
+- Uses your **Stripe Buy Button** exactly as you pasted it
+- Works with your existing frontend setup
+
+No backend, no database, no Stripe webhooks yet — just a clean, simple **front‑end usage gate** that works TODAY.
+
+Below is the **copy‑ready code** you can paste directly into your Replit project.
+
+---
+
+# ✅ **1. Add your Stripe Buy Button anywhere on your page**
+You already have this:
+
+```html
+<script async src="https://js.stripe.com/v3/buy-button.js"></script>
+
+<stripe-buy-button
+  buy-button-id="buy_btn_1T4l1iB1ElS3CRgPLlvxieIS"
+  publishable-key="pk_live_51LN4UmB1ElS3CRgPDMJle5JfwZh9iwzDtD900oHDTcPQfPaoGSKEUMhq3MYsFv9SfR1e8Ox5FOpDIALB7MIpEdVo0033Y4vBii"
+>
+</stripe-buy-button>
+```
+
+Put this **inside a div** called `upgrade-section` so we can show/hide it:
+
+```html
+<div id="upgrade-section" style="display:none; margin-top:20px;">
+  <h3>Upgrade to unlock unlimited access</h3>
+  <p>You've reached your free 20‑message limit.</p>
+
+  <stripe-buy-button
+    buy-button-id="buy_btn_1T4l1iB1ElS3CRgPLlvxieIS"
+    publishable-key="pk_live_51LN4UmB1ElS3CRgPDMJle5JfwZh9iwzDtD900oHDTcPQfPaoGSKEUMhq3MYsFv9SfR1e8Ox5FOpDIALB7MIpEdVo0033Y4vBii"
+  >
+  </stripe-buy-button>
+</div>
+```
+
+---
+
+# ✅ **2. Add this JavaScript to enforce the 20‑message limit**
+Paste this at the bottom of your HTML or in your main JS file:
+
+```javascript
+let messageCount = 0;
+const MESSAGE_LIMIT = 20;
+
+function handleUserMessage() {
+  messageCount++;
+
+  if (messageCount >= MESSAGE_LIMIT) {
+    document.getElementById("upgrade-section").style.display = "block";
+    document.getElementById("chat-input").disabled = true;
+
+    addBotMessage("You've reached your free 20‑message limit. Upgrade to unlock unlimited access.");
+    return false;
+  }
+
+  return true;
+}
+```
+
+---
+
+# ✅ **3. Wrap your send‑message function**
+Wherever you send the message to your AI, wrap it like this:
+
+```javascript
+async function sendMessage() {
+  if (!handleUserMessage()) return;
+
+  const userInput = document.getElementById("chat-input").value;
+
+  // your existing AI call here
+}
+```
+
+---
+
+# ✅ **4. Add a helper to show the bot’s upgrade message**
+If you don’t already have a function that adds bot messages:
+
+```javascript
+function addBotMessage(text) {
+  const chat = document.getElementById("chat-box");
+  const msg = document.createElement("div");
+  msg.className = "bot-message";
+  msg.innerText = text;
+  chat.appendChild(msg);
+}
+```
+
+---
+
+# 🎉 **What this gives you**
+- Users get **20 free messages**
+- On message 21:
+  - Chat input locks  
+  - Upgrade box appears  
+  - Stripe Buy Button shows  
+  - Bot sends:  
+    **“You've reached your free 20‑message limit. Upgrade to unlock unlimited access.”**
+
+This is the cleanest, fastest way to launch your paid tier TODAY.
+
+---
+
+# ⚡ Want the next level?
+I can generate:
+
+- The **full backend subscription checker**
+- The **Stripe webhook handler**
+- The **“active subscriber = unlimited”** logic
+- The **database structure**
+- The **auto‑unlock after payment** system
+
+Just tell me when you want to evolve it.
