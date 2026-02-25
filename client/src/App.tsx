@@ -1165,7 +1165,7 @@ const PG_LANGUAGES = [
   { id: "html", name: "HTML", icon: Globe, color: "text-orange-400", canRun: true },
   { id: "css", name: "CSS", icon: Palette, color: "text-purple-400", canRun: true },
   { id: "python", name: "Python", icon: Terminal, color: "text-green-400", canRun: true },
-  { id: "typescript", name: "TypeScript", icon: Braces, color: "text-blue-400", canRun: false },
+  { id: "typescript", name: "TypeScript", icon: Braces, color: "text-blue-400", canRun: true },
   { id: "sql", name: "SQL", icon: Database, color: "text-cyan-400", canRun: false },
   { id: "json", name: "JSON", icon: Brackets, color: "text-yellow-300", canRun: false },
   { id: "bash", name: "Bash", icon: Terminal, color: "text-green-300", canRun: false },
@@ -1213,7 +1213,6 @@ function CodePlayground() {
   const [isReviewing, setIsReviewing] = useState(false);
 
   const langInfo = PG_LANGUAGES.find(l => l.id === lang)!;
-  const canRun = langInfo?.canRun;
 
   const switchLang = (newLang: string) => {
     setLang(newLang);
@@ -1223,105 +1222,199 @@ function CodePlayground() {
     setReviewResult(null);
   };
 
+  const detectLang = useCallback((src: string): string | null => {
+    const t = src.trim();
+    if (/^\s*(def |class |import |from \w+ import|print\(|elif |if __name__|#!.*python)/m.test(t)) return "python";
+    if (/^\s*<!DOCTYPE|^\s*<html|^\s*<div|^\s*<head/im.test(t)) return "html";
+    if (/^\s*[.#@][\w-]+\s*\{|^\s*:root\s*\{|^\s*body\s*\{|^\s*@media/m.test(t)) return "css";
+    return null;
+  }, []);
+
+  const prepareJSCode = useCallback((src: string): string => {
+    let c = src;
+    c = c.replace(/^\s*import\s+.*?from\s+['"].*?['"];?\s*$/gm, "");
+    c = c.replace(/^\s*import\s+['"].*?['"];?\s*$/gm, "");
+    c = c.replace(/^\s*import\s*\{[^}]*\}\s*from\s*['"].*?['"];?\s*$/gm, "");
+    c = c.replace(/^\s*import\s+\*\s+as\s+\w+\s+from\s*['"].*?['"];?\s*$/gm, "");
+    c = c.replace(/^\s*export\s+default\s+/gm, "");
+    c = c.replace(/^\s*export\s+/gm, "");
+    c = c.replace(/:\s*(string|number|boolean|any|void|never|null|undefined|object|unknown)(\[\])?\s*(;|,|\)|\}|=|\n|$)/g, "$3");
+    c = c.replace(/:\s*(string|number|boolean|any|void|never|null|undefined|object|unknown)(\[\])?\s*(\{)/g, " $3");
+    c = c.replace(/<\w+(\s*,\s*\w+)*>/g, "");
+    c = c.replace(/\bas\s+\w+/g, "");
+    c = c.replace(/^\s*interface\s+\w+\s*\{[\s\S]*?\n\}\s*$/gm, "");
+    c = c.replace(/^\s*type\s+\w+\s*=\s*[\s\S]*?;\s*$/gm, "");
+    c = c.replace(/^\s*declare\s+.*$/gm, "");
+    c = c.replace(/^\s*@\w+(\(.*?\))?\s*$/gm, "");
+    c = c.replace(/^\s*#\w+/gm, (match) => match.replace("#", "// private: "));
+    return c;
+  }, []);
+
+  const loadPyodide = useCallback(async () => {
+    if ((window as any)._pyodide) return (window as any)._pyodide;
+    if ((window as any)._pyodideLoading) {
+      return new Promise((resolve, reject) => {
+        const check = setInterval(() => {
+          if ((window as any)._pyodide) { clearInterval(check); resolve((window as any)._pyodide); }
+          if (!(window as any)._pyodideLoading) { clearInterval(check); reject(new Error("Load failed")); }
+        }, 500);
+      });
+    }
+    (window as any)._pyodideLoading = true;
+    return new Promise((resolve, reject) => {
+      if (!(window as any).loadPyodide) {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+        script.onload = async () => {
+          try {
+            const py = await (window as any).loadPyodide();
+            (window as any)._pyodide = py;
+            (window as any)._pyodideLoading = false;
+            setPyodideReady(true);
+            resolve(py);
+          } catch (e) { (window as any)._pyodideLoading = false; reject(e); }
+        };
+        script.onerror = () => { (window as any)._pyodideLoading = false; reject(new Error("Failed to load Pyodide")); };
+        document.head.appendChild(script);
+      } else {
+        (window as any).loadPyodide().then((py: any) => {
+          (window as any)._pyodide = py; (window as any)._pyodideLoading = false; setPyodideReady(true); resolve(py);
+        }).catch((e: any) => { (window as any)._pyodideLoading = false; reject(e); });
+      }
+    });
+  }, []);
+
+  const runJS = useCallback((src: string) => {
+    const iframe = document.createElement("iframe");
+    iframe.sandbox.add("allow-scripts");
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+    const startTime = performance.now();
+    const cleaned = prepareJSCode(src);
+    const encoded = btoa(unescape(encodeURIComponent(cleaned)));
+    const html = `<!DOCTYPE html><html><body><script>
+      var _l=[], _e=0;
+      function _fmt(v){if(v===null)return"null";if(v===undefined)return"undefined";if(typeof v==="object")try{return JSON.stringify(v,null,2)}catch(e){return String(v)}return String(v)}
+      console.log=function(){var a=[];for(var i=0;i<arguments.length;i++)a.push(_fmt(arguments[i]));_l.push(a.join(" "))};
+      console.error=function(){var a=[];for(var i=0;i<arguments.length;i++)a.push(_fmt(arguments[i]));_l.push("ERROR: "+a.join(" "));_e++};
+      console.warn=function(){var a=[];for(var i=0;i<arguments.length;i++)a.push(_fmt(arguments[i]));_l.push("WARN: "+a.join(" "))};
+      console.info=function(){var a=[];for(var i=0;i<arguments.length;i++)a.push(_fmt(arguments[i]));_l.push(a.join(" "))};
+      console.table=function(d){_l.push(_fmt(d))};
+      console.dir=function(o){_l.push(_fmt(o))};
+      console.assert=function(c){if(!c){var a=["Assertion failed:"];for(var i=1;i<arguments.length;i++)a.push(_fmt(arguments[i]));_l.push("ERROR: "+a.join(" "));_e++}};
+      console.clear=function(){_l=[]};
+      console.time=function(l){this._t=this._t||{};this._t[l||"default"]=performance.now()};
+      console.timeEnd=function(l){var k=l||"default";if(this._t&&this._t[k]){_l.push(k+": "+(performance.now()-this._t[k]).toFixed(3)+"ms");delete this._t[k]}};
+      console.count=function(l){var k=l||"default";this._c=this._c||{};this._c[k]=(this._c[k]||0)+1;_l.push(k+": "+this._c[k])};
+      window.onerror=function(m,s,l,c,e){_l.push("ERROR: "+m);parent.postMessage({type:"pg_output",logs:_l,errors:_e+1},"*");return true};
+      window.onunhandledrejection=function(e){_l.push("ERROR: Unhandled Promise: "+(_fmt(e.reason&&e.reason.message||e.reason)));_e++};
+      try{
+        var _code=decodeURIComponent(escape(atob("${encoded}")));
+        var _result=(0,eval)(_code);
+        if(_result!==undefined&&_l.length===0)_l.push("=> "+_fmt(_result));
+      }catch(e){_l.push("ERROR: "+e.message);_e++}
+      setTimeout(function(){parent.postMessage({type:"pg_output",logs:_l,errors:_e},"*")},10);
+    <\/script></body></html>`;
+    let done = false;
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "pg_output" && !done) {
+        done = true;
+        const elapsed = (performance.now() - startTime).toFixed(1);
+        const logs = e.data.logs || [];
+        const errors = e.data.errors || 0;
+        setOutput([...logs, "", errors > 0 ? `⚠ Completed with ${errors} error(s) in ${elapsed}ms` : `✓ Executed successfully in ${elapsed}ms`]);
+        setIsRunning(false);
+        window.removeEventListener("message", handler);
+        try { document.body.removeChild(iframe); } catch {}
+      }
+    };
+    window.addEventListener("message", handler);
+    iframe.srcdoc = html;
+    setTimeout(() => {
+      if (!done) { done = true; setOutput(p => [...p, "ERROR: Timed out (10s limit)"]); setIsRunning(false); window.removeEventListener("message", handler); try { document.body.removeChild(iframe); } catch {} }
+    }, 10000);
+  }, [prepareJSCode]);
+
+  const runPython = useCallback(async (src: string) => {
+    setOutput(["Loading Python runtime..."]);
+    try {
+      const pyodide = await loadPyodide();
+      setOutput(["Running Python..."]);
+      pyodide.runPython(`import sys; from io import StringIO; sys.stdout = StringIO(); sys.stderr = StringIO()`);
+      const startTime = performance.now();
+      try {
+        pyodide.runPython(src);
+      } catch (e: any) {
+        const stderr = pyodide.runPython(`sys.stderr.getvalue()`);
+        const stdout = pyodide.runPython(`sys.stdout.getvalue()`);
+        pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`);
+        const outLines = stdout ? stdout.split("\n").filter((l: string) => l) : [];
+        const errMsg = e.message || "";
+        const lastLine = errMsg.split("\n").filter((l: string) => l.trim()).pop() || errMsg;
+        setOutput([...outLines, `ERROR: ${lastLine}`, ...(stderr ? [`STDERR: ${stderr}`] : [])]);
+        setIsRunning(false);
+        return;
+      }
+      const stdout = pyodide.runPython(`v = sys.stdout.getvalue(); sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__; v`);
+      const elapsed = (performance.now() - startTime).toFixed(1);
+      const lines = stdout ? stdout.split("\n").filter((l: string) => l !== "") : [];
+      if (lines.length === 0) lines.push("(no output - add print() statements to see results)");
+      setOutput([...lines, "", `✓ Executed in ${elapsed}ms`]);
+    } catch (e: any) {
+      setOutput([`ERROR: ${e.message}`, "", "Tip: Python runtime loads on first use. Try running again."]);
+    }
+    setIsRunning(false);
+  }, [loadPyodide]);
+
   const runCode = useCallback(async () => {
     setOutput([]);
     setIsRunning(true);
 
-    if (lang === "javascript") {
-      const iframe = document.createElement("iframe");
-      iframe.sandbox.add("allow-scripts");
-      iframe.style.display = "none";
-      document.body.appendChild(iframe);
-      const startTime = performance.now();
-      const strippedCode = code.replace(/^\s*import\s+.*?[;\n]/gm, "").replace(/^\s*export\s+(default\s+)?/gm, "");
-      const encodedCode = btoa(unescape(encodeURIComponent(strippedCode)));
-      const runnerHtml = `<!DOCTYPE html><html><body><script>
-        var _l = [];
-        console.log = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
-        console.error = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('ERROR: ' + a.join(' ')); };
-        console.warn = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('WARN: ' + a.join(' ')); };
-        console.info = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
-        try {
-          var _code = decodeURIComponent(escape(atob("${encodedCode}")));
-          var _fn = new Function(_code);
-          _fn();
-        } catch(e) { _l.push('ERROR: ' + e.message); }
-        parent.postMessage({ type: 'pg_output', logs: _l }, '*');
-      <\/script></body></html>`;
-      let done = false;
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type === 'pg_output' && !done) {
-          done = true;
-          const elapsed = (performance.now() - startTime).toFixed(1);
-          setOutput([...e.data.logs, "", "✓ Executed in " + elapsed + "ms"]);
-          setIsRunning(false);
-          window.removeEventListener("message", handler);
-          try { document.body.removeChild(iframe); } catch {}
-        }
-      };
-      window.addEventListener("message", handler);
-      iframe.srcdoc = runnerHtml;
-      setTimeout(() => {
-        if (!done) {
-          done = true;
-          setOutput(prev => [...prev, "ERROR: Execution timed out (5s limit)"]);
-          setIsRunning(false);
-          window.removeEventListener("message", handler);
-          try { document.body.removeChild(iframe); } catch {}
-        }
-      }, 5000);
-    } else if (lang === "html") {
+    let effectiveLang = lang;
+    const detected = detectLang(code);
+    if (detected && detected !== lang) {
+      if (detected === "python" && (lang === "javascript" || lang === "typescript")) {
+        effectiveLang = "python";
+        setLang("python");
+        setOutput(["Auto-detected Python code. Switching language..."]);
+      } else if (detected === "html" && lang !== "html") {
+        effectiveLang = "html";
+        setLang("html");
+      } else if (detected === "css" && lang !== "css") {
+        effectiveLang = "css";
+        setLang("css");
+      }
+    }
+
+    if (effectiveLang === "javascript" || effectiveLang === "typescript") {
+      runJS(code);
+    } else if (effectiveLang === "html") {
       setShowPreview(true);
       setOutput(["✓ HTML rendered in preview panel"]);
       setIsRunning(false);
-    } else if (lang === "css") {
+    } else if (effectiveLang === "css") {
       setShowPreview(true);
       setOutput(["✓ CSS applied to preview panel"]);
       setIsRunning(false);
-    } else if (lang === "python") {
-      if (!(window as any).loadPyodide) {
-        if (!pyodideLoading) {
-          setPyodideLoading(true);
-          setOutput(["Loading Python runtime (Pyodide)... This may take a moment on first use."]);
-          const script = document.createElement("script");
-          script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
-          script.onload = async () => {
-            try {
-              (window as any)._pyodide = await (window as any).loadPyodide();
-              setPyodideReady(true);
-              setPyodideLoading(false);
-              setOutput(prev => [...prev, "✓ Python runtime loaded! Click Run again."]);
-            } catch (e: any) {
-              setOutput(["ERROR: Failed to load Python runtime: " + e.message]);
-              setPyodideLoading(false);
-            }
-          };
-          document.head.appendChild(script);
-        }
-        setIsRunning(false);
-        return;
-      }
-      try {
-        const pyodide = (window as any)._pyodide;
-        pyodide.runPython(`import sys; from io import StringIO; _captured = StringIO(); sys.stdout = _captured`);
-        const startTime = performance.now();
-        try {
-          pyodide.runPython(code);
-        } catch (e: any) {
-          setOutput([`ERROR: ${e.message}`]);
-          setIsRunning(false);
-          return;
-        }
-        const captured = pyodide.runPython(`sys.stdout = sys.__stdout__; _captured.getvalue()`);
-        const elapsed = (performance.now() - startTime).toFixed(1);
-        const lines = captured ? captured.split("\n").filter((l: string) => l !== "") : [];
-        setOutput([...lines, `\n✓ Executed in ${elapsed}ms`]);
-      } catch (e: any) {
-        setOutput([`ERROR: ${e.message}`]);
-      }
+    } else if (effectiveLang === "python") {
+      await runPython(code);
+    } else {
+      setOutput([
+        `Language: ${effectiveLang}`,
+        "",
+        "This language requires a server-side runtime.",
+        "To run this code, use the AI Coder chat to get help executing it,",
+        "or switch to JavaScript/Python/HTML/CSS for in-browser execution.",
+        "",
+        "Supported runnable languages:",
+        "  JavaScript/TypeScript - Full execution with console capture",
+        "  Python - Full execution via Pyodide (WebAssembly)",
+        "  HTML - Live preview rendering",
+        "  CSS - Live style preview",
+      ]);
       setIsRunning(false);
     }
-  }, [code, lang, pyodideLoading]);
+  }, [code, lang, detectLang, runJS, runPython]);
 
   const handleSave = async () => {
     const fn = `playground_${Date.now()}.${getExt(lang)}`;
@@ -1463,12 +1556,10 @@ function CodePlayground() {
         <div className="h-5 w-px bg-border/30" />
 
         {/* Action buttons */}
-        {canRun && (
-          <button onClick={runCode} disabled={isRunning} data-testid="button-run-playground"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isRunning ? "bg-amber-500 text-white" : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm"}`}>
-            {isRunning ? <><StopCircle size={12} /> Running...</> : <><Play size={12} /> Run</>}
-          </button>
-        )}
+        <button onClick={runCode} disabled={isRunning} data-testid="button-run-playground"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isRunning ? "bg-amber-500 text-white" : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm"}`}>
+          {isRunning ? <><StopCircle size={12} /> Running...</> : <><Play size={12} /> Run</>}
+        </button>
         <button onClick={handleSave} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground" title="Save"><Download size={14} /></button>
         <button onClick={() => { setCode(""); setOutput([]); }} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground" title="Clear"><Eraser size={14} /></button>
 
@@ -1583,7 +1674,7 @@ function CodePlayground() {
                 <div className="text-zinc-700 text-center py-8">
                   <Terminal size={24} className="mx-auto mb-2 text-zinc-800" />
                   <div className="text-xs">
-                    {canRun ? <>Press <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 mx-0.5">Run</kbd> or <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 mx-0.5">Ctrl+Enter</kbd></> : "Display mode - this language runs on a server"}
+                    <>Press <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 mx-0.5">Run</kbd> or <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 mx-0.5">Ctrl+Enter</kbd> to execute<br/><span className="text-zinc-800 mt-1 block">Auto-detects Python, HTML, CSS. Strips imports/types for JS/TS.</span></>
                   </div>
                 </div>
               ) : (
