@@ -147,8 +147,14 @@ export async function registerRoutes(
         : "You are My Ai Gpt, a helpful assistant.";
 
       let fullSystemPrompt = systemPrompt;
-      if (discordKnowledge) {
-        fullSystemPrompt += `\n\nExtra Knowledge base from our channels:\n${discordKnowledge}`;
+      // Truncate discord knowledge if too large
+      const maxKnowledgeLength = 2000;
+      const truncatedDiscordKnowledge = discordKnowledge.length > maxKnowledgeLength 
+        ? discordKnowledge.substring(0, maxKnowledgeLength) + "..."
+        : discordKnowledge;
+
+      if (truncatedDiscordKnowledge) {
+        fullSystemPrompt += `\n\nExtra Knowledge base from our channels:\n${truncatedDiscordKnowledge}`;
       }
       if (searchContext) {
         fullSystemPrompt += `\n\nWeb Search Context:\n${searchContext}`;
