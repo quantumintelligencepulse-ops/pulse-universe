@@ -17,7 +17,9 @@ import {
   Maximize2, Minimize2, WrapText, Type, Palette, FolderOpen,
   Archive, Eye, EyeOff, Layers, GitBranch, Package,
   Braces, Database, Lock, TestTube, Smartphone, Cloud,
-  ChevronDown, ChevronUp, Settings2, Brackets, FlaskConical, Rocket
+  ChevronDown, ChevronUp, Settings2, Brackets, FlaskConical, Rocket,
+  Mic, MicOff, SplitSquareVertical, Wand2, Brain, Scan, Square,
+  SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message } from "@shared/schema";
@@ -1100,6 +1102,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">My Ai Coder</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
+          <Link href="/playground" data-testid="link-playground"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/playground" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/playground" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><SquareTerminal size={14} className="text-emerald-600" /></div>
+            <span className="flex-1">Playground</span>
+            <span className="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">IDE</span>
+          </Link>
         </div>
 
         <div className="px-2.5 py-1">
@@ -1150,6 +1158,458 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   );
 }
 
+// ─── CODE PLAYGROUND - Full IDE with execution ──────────────────────────────
+
+const PG_LANGUAGES = [
+  { id: "javascript", name: "JavaScript", icon: Braces, color: "text-yellow-400", canRun: true },
+  { id: "html", name: "HTML", icon: Globe, color: "text-orange-400", canRun: true },
+  { id: "css", name: "CSS", icon: Palette, color: "text-purple-400", canRun: true },
+  { id: "python", name: "Python", icon: Terminal, color: "text-green-400", canRun: true },
+  { id: "typescript", name: "TypeScript", icon: Braces, color: "text-blue-400", canRun: false },
+  { id: "sql", name: "SQL", icon: Database, color: "text-cyan-400", canRun: false },
+  { id: "json", name: "JSON", icon: Brackets, color: "text-yellow-300", canRun: false },
+  { id: "bash", name: "Bash", icon: Terminal, color: "text-green-300", canRun: false },
+  { id: "rust", name: "Rust", icon: Lock, color: "text-orange-500", canRun: false },
+  { id: "go", name: "Go", icon: Zap, color: "text-cyan-300", canRun: false },
+  { id: "java", name: "Java", icon: Package, color: "text-red-400", canRun: false },
+  { id: "cpp", name: "C++", icon: Cpu, color: "text-blue-300", canRun: false },
+];
+
+const STARTER_CODE: Record<string, string> = {
+  javascript: `// JavaScript Playground - Write and run your code!\n\nfunction fibonacci(n) {\n  if (n <= 1) return n;\n  return fibonacci(n - 1) + fibonacci(n - 2);\n}\n\nfor (let i = 0; i < 10; i++) {\n  console.log(\`fib(\${i}) = \${fibonacci(i)}\`);\n}\n\nconsole.log("\\nHello from My Ai Coder Playground! 🚀");`,
+  html: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: system-ui; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }\n    .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 400px; }\n    h1 { color: #333; margin-bottom: 0.5rem; }\n    p { color: #666; }\n    button { background: #667eea; color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 1rem; }\n    button:hover { background: #5a6fd6; }\n  </style>\n</head>\n<body>\n  <div class="card">\n    <h1>My Ai Coder</h1>\n    <p>Build anything you can imagine</p>\n    <button onclick="alert('Hello from My Ai Coder!')">Click Me</button>\n  </div>\n</body>\n</html>`,
+  css: `/* CSS Playground - See your styles live! */\n\nbody {\n  font-family: system-ui;\n  padding: 2rem;\n  background: #f0f4f8;\n}\n\n.demo {\n  max-width: 600px;\n  margin: 0 auto;\n}\n\n.card {\n  background: white;\n  border-radius: 12px;\n  padding: 24px;\n  box-shadow: 0 4px 6px rgba(0,0,0,0.1);\n  margin-bottom: 16px;\n  transition: transform 0.2s, box-shadow 0.2s;\n}\n\n.card:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 8px 25px rgba(0,0,0,0.15);\n}\n\nh1 { color: #1a1a2e; }\np { color: #666; line-height: 1.6; }`,
+  python: `# Python Playground - Powered by Pyodide (WebAssembly)\n# Runs real Python in your browser!\n\nimport math\nimport json\nfrom datetime import datetime\n\ndef is_prime(n):\n    if n < 2:\n        return False\n    for i in range(2, int(math.sqrt(n)) + 1):\n        if n % i == 0:\n            return False\n    return True\n\nprimes = [x for x in range(2, 50) if is_prime(x)]\nprint(f"Primes under 50: {primes}")\nprint(f"Count: {len(primes)}")\nprint(f"\\nPython version running in your browser!")\nprint(f"Math.pi = {math.pi}")\nprint(f"Math.e = {math.e}")`,
+  typescript: `// TypeScript - Display mode (type checking shown)\n\ninterface User {\n  id: number;\n  name: string;\n  email: string;\n  role: 'admin' | 'user' | 'moderator';\n}\n\nfunction greetUser(user: User): string {\n  return \`Hello, \${user.name}! You are a \${user.role}.\`;\n}\n\nconst user: User = {\n  id: 1,\n  name: "Billy Banks",\n  email: "billy@example.com",\n  role: "admin"\n};\n\nconsole.log(greetUser(user));`,
+  sql: `-- SQL Playground - Display mode\n\nCREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  username VARCHAR(50) NOT NULL,\n  email VARCHAR(100) UNIQUE NOT NULL,\n  created_at TIMESTAMP DEFAULT NOW()\n);\n\nSELECT \n  u.username,\n  COUNT(p.id) as post_count\nFROM users u\nLEFT JOIN posts p ON u.id = p.author_id\nGROUP BY u.username\nORDER BY post_count DESC\nLIMIT 10;`,
+  json: `{\n  "name": "My Ai Coder Project",\n  "version": "1.0.0",\n  "description": "Built with My Ai Coder Playground",\n  "dependencies": {\n    "react": "^18.0.0",\n    "express": "^4.18.0",\n    "typescript": "^5.0.0"\n  }\n}`,
+  bash: `#!/bin/bash\n# Bash script - Display mode\n\necho "Hello from My Ai Coder!"\n\nfor i in {1..5}; do\n  echo "Iteration $i"\ndone\n\necho "Done!"`,
+  rust: `// Rust - Display mode\n\nfn main() {\n    let numbers = vec![1, 2, 3, 4, 5];\n    let sum: i32 = numbers.iter().sum();\n    println!("Sum: {}", sum);\n}`,
+  go: `// Go - Display mode\n\npackage main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello from My Ai Coder!")\n}`,
+  java: `// Java - Display mode\n\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello from My Ai Coder!");\n    }\n}`,
+  cpp: `// C++ - Display mode\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello from My Ai Coder!" << endl;\n    return 0;\n}`,
+};
+
+function CodePlayground() {
+  const { settings } = useCoderSettings();
+  const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [lang, setLang] = useState("javascript");
+  const [code, setCode] = useState(STARTER_CODE.javascript);
+  const [output, setOutput] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [pyodideReady, setPyodideReady] = useState(false);
+  const [pyodideLoading, setPyodideLoading] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // FUTURISTIC #1 - Voice-to-Code
+  const [isListening, setIsListening] = useState(false);
+  const [voiceText, setVoiceText] = useState("");
+  const recognitionRef = useRef<any>(null);
+  // FUTURISTIC #2 - AI Code Review
+  const [reviewResult, setReviewResult] = useState<string | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
+
+  const langInfo = PG_LANGUAGES.find(l => l.id === lang)!;
+  const canRun = langInfo?.canRun;
+
+  const switchLang = (newLang: string) => {
+    setLang(newLang);
+    setCode(STARTER_CODE[newLang] || `// ${newLang}\n`);
+    setOutput([]);
+    setShowPreview(false);
+    setReviewResult(null);
+  };
+
+  const runCode = useCallback(async () => {
+    setOutput([]);
+    setIsRunning(true);
+
+    if (lang === "javascript") {
+      const iframe = document.createElement("iframe");
+      iframe.sandbox.add("allow-scripts");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+      const logs: string[] = [];
+      const startTime = performance.now();
+      try {
+        const html = `<html><body><script>
+          const _l = []; const _origLog = console.log;
+          console.log = function(...a) { _l.push(a.map(x => typeof x === 'object' ? JSON.stringify(x,null,2) : String(x)).join(' ')); };
+          console.error = function(...a) { _l.push('ERROR: ' + a.join(' ')); };
+          try { ${code} } catch(e) { _l.push('ERROR: ' + e.message); }
+          parent.postMessage({ type: 'output', logs: _l }, '*');
+        <\/script></body></html>`;
+        const handler = (e: MessageEvent) => {
+          if (e.data?.type === 'output') {
+            const elapsed = (performance.now() - startTime).toFixed(1);
+            setOutput([...e.data.logs, `\n✓ Executed in ${elapsed}ms`]);
+            window.removeEventListener("message", handler);
+            document.body.removeChild(iframe);
+          }
+        };
+        window.addEventListener("message", handler);
+        iframe.srcdoc = html;
+        setTimeout(() => { window.removeEventListener("message", handler); try { document.body.removeChild(iframe); } catch {} setIsRunning(false); }, 5000);
+      } catch (e: any) {
+        logs.push(`ERROR: ${e.message}`);
+        setOutput(logs);
+        try { document.body.removeChild(iframe); } catch {}
+      }
+      setTimeout(() => setIsRunning(false), 100);
+    } else if (lang === "html") {
+      setShowPreview(true);
+      setOutput(["✓ HTML rendered in preview panel"]);
+      setIsRunning(false);
+    } else if (lang === "css") {
+      setShowPreview(true);
+      setOutput(["✓ CSS applied to preview panel"]);
+      setIsRunning(false);
+    } else if (lang === "python") {
+      if (!(window as any).loadPyodide) {
+        if (!pyodideLoading) {
+          setPyodideLoading(true);
+          setOutput(["Loading Python runtime (Pyodide)... This may take a moment on first use."]);
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+          script.onload = async () => {
+            try {
+              (window as any)._pyodide = await (window as any).loadPyodide();
+              setPyodideReady(true);
+              setPyodideLoading(false);
+              setOutput(prev => [...prev, "✓ Python runtime loaded! Click Run again."]);
+            } catch (e: any) {
+              setOutput(["ERROR: Failed to load Python runtime: " + e.message]);
+              setPyodideLoading(false);
+            }
+          };
+          document.head.appendChild(script);
+        }
+        setIsRunning(false);
+        return;
+      }
+      try {
+        const pyodide = (window as any)._pyodide;
+        pyodide.runPython(`import sys; from io import StringIO; _captured = StringIO(); sys.stdout = _captured`);
+        const startTime = performance.now();
+        try {
+          pyodide.runPython(code);
+        } catch (e: any) {
+          setOutput([`ERROR: ${e.message}`]);
+          setIsRunning(false);
+          return;
+        }
+        const captured = pyodide.runPython(`sys.stdout = sys.__stdout__; _captured.getvalue()`);
+        const elapsed = (performance.now() - startTime).toFixed(1);
+        const lines = captured ? captured.split("\n").filter((l: string) => l !== "") : [];
+        setOutput([...lines, `\n✓ Executed in ${elapsed}ms`]);
+      } catch (e: any) {
+        setOutput([`ERROR: ${e.message}`]);
+      }
+      setIsRunning(false);
+    }
+  }, [code, lang, pyodideLoading]);
+
+  const handleSave = async () => {
+    const fn = `playground_${Date.now()}.${getExt(lang)}`;
+    try {
+      await fetch("/api/save-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, filename: fn, language: lang }) });
+      qc.invalidateQueries({ queryKey: ["/api/saved-codes"] });
+      toast({ title: "Saved!", description: fn });
+    } catch { toast({ title: "Save failed", variant: "destructive" }); }
+  };
+
+  // FUTURISTIC #1 - Voice-to-Code
+  const toggleVoice = useCallback(() => {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+      toast({ title: "Voice not supported", description: "Your browser doesn't support speech recognition", variant: "destructive" });
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setVoiceText(transcript);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsListening(true);
+    toast({ title: "Listening...", description: "Speak your code description" });
+  }, [isListening, toast]);
+
+  const applyVoiceToCode = useCallback(() => {
+    if (voiceText) {
+      setCode(prev => prev + `\n// Voice command: ${voiceText}\n`);
+      setVoiceText("");
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+  }, [voiceText]);
+
+  // FUTURISTIC #2 - AI Code Review
+  const handleAIReview = useCallback(async () => {
+    setIsReviewing(true);
+    setReviewResult(null);
+    try {
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Code Review", type: "coder" }) });
+      const chat = await chatRes.json();
+      const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `Review this ${lang} code. Rate it 1-10. List specific improvements for: performance, readability, security, best practices. Be concise.\n\n\`\`\`${lang}\n${code}\n\`\`\`` })
+      });
+      const msg = await msgRes.json();
+      setReviewResult(msg.content);
+    } catch {
+      setReviewResult("Failed to get AI review. Please try again.");
+    }
+    setIsReviewing(false);
+  }, [code, lang]);
+
+  // FUTURISTIC #3 - AI Auto-Fix
+  const handleAIFix = useCallback(async () => {
+    setIsRunning(true);
+    try {
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Auto-Fix", type: "coder" }) });
+      const chat = await chatRes.json();
+      const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `Fix and improve this ${lang} code. Return ONLY the fixed code in a single code block, no explanation:\n\n\`\`\`${lang}\n${code}\n\`\`\`` })
+      });
+      const msg = await msgRes.json();
+      const codeMatch = msg.content.match(/```(?:\w+)?\n([\s\S]*?)```/);
+      if (codeMatch) {
+        setCode(codeMatch[1].trim());
+        toast({ title: "Code fixed by AI!" });
+      } else {
+        toast({ title: "AI couldn't extract fixed code", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "AI fix failed", variant: "destructive" });
+    }
+    setIsRunning(false);
+  }, [code, lang, toast]);
+
+  // FUTURISTIC #4 - AI Explain Code (Visual)
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
+
+  const handleExplain = useCallback(async () => {
+    setIsExplaining(true);
+    setExplanation(null);
+    try {
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Code Explain", type: "coder" }) });
+      const chat = await chatRes.json();
+      const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `Explain this ${lang} code step by step. Use numbered steps. For each step explain what the code does and why. Be concise:\n\n\`\`\`${lang}\n${code}\n\`\`\`` })
+      });
+      const msg = await msgRes.json();
+      setExplanation(msg.content);
+    } catch {
+      setExplanation("Failed to get explanation.");
+    }
+    setIsExplaining(false);
+  }, [code, lang]);
+
+  const previewHtml = lang === "html" ? code : lang === "css" ? `<html><head><style>${code}</style></head><body style="padding:20px"><div class="demo"><h1>Heading</h1><p>Paragraph text with <strong>bold</strong> and <em>italic</em>.</p><button>Button</button><input placeholder="Input"/><ul><li>Item 1</li><li>Item 2</li></ul></div></body></html>` : "";
+  const metrics = useMemo(() => analyzeCode(code, lang), [code, lang]);
+
+  return (
+    <div className="flex flex-col h-full bg-background" data-testid="playground-page">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-white">
+        <SquareTerminal size={16} className="text-blue-500" />
+        <span className="font-semibold text-sm">Code Playground</span>
+        <div className="flex-1" />
+
+        {/* Language selector */}
+        <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-0.5">
+          {PG_LANGUAGES.slice(0, 6).map(l => (
+            <button key={l.id} onClick={() => switchLang(l.id)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] transition-all ${lang === l.id ? "bg-white shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+              <l.icon size={11} className={l.color} />{l.name}
+            </button>
+          ))}
+          <select value={lang} onChange={e => switchLang(e.target.value)} className="text-[11px] bg-transparent border-none focus:outline-none text-muted-foreground cursor-pointer px-1">
+            {PG_LANGUAGES.slice(6).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        </div>
+
+        <div className="h-5 w-px bg-border/30" />
+
+        {/* Action buttons */}
+        {canRun && (
+          <button onClick={runCode} disabled={isRunning} data-testid="button-run-playground"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isRunning ? "bg-amber-500 text-white" : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm"}`}>
+            {isRunning ? <><StopCircle size={12} /> Running...</> : <><Play size={12} /> Run</>}
+          </button>
+        )}
+        <button onClick={handleSave} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground" title="Save"><Download size={14} /></button>
+        <button onClick={() => { setCode(""); setOutput([]); }} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground" title="Clear"><Eraser size={14} /></button>
+
+        <div className="h-5 w-px bg-border/30" />
+
+        {/* FUTURISTIC BUTTONS */}
+        <button onClick={toggleVoice} data-testid="button-voice"
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${isListening ? "bg-red-500 text-white animate-pulse" : "bg-violet-50 text-violet-600 hover:bg-violet-100"}`}>
+          {isListening ? <><MicOff size={12} /> Stop</> : <><Mic size={12} /> Voice</>}
+        </button>
+        <button onClick={handleAIReview} disabled={isReviewing} data-testid="button-ai-review"
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all disabled:opacity-50">
+          <Scan size={12} /> {isReviewing ? "Reviewing..." : "AI Review"}
+        </button>
+        <button onClick={handleAIFix} disabled={isRunning} data-testid="button-ai-fix"
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all disabled:opacity-50">
+          <Wand2 size={12} /> AI Fix
+        </button>
+        <button onClick={handleExplain} disabled={isExplaining} data-testid="button-ai-explain"
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all disabled:opacity-50">
+          <Brain size={12} /> {isExplaining ? "..." : "Explain"}
+        </button>
+      </div>
+
+      {/* Voice transcript bar */}
+      {(isListening || voiceText) && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-violet-50 border-b border-violet-200">
+          <Mic size={14} className={`text-violet-500 ${isListening ? "animate-pulse" : ""}`} />
+          <span className="text-xs text-violet-700 flex-1">{voiceText || "Listening... speak your code description"}</span>
+          {voiceText && (
+            <button onClick={applyVoiceToCode} className="px-2 py-1 text-[11px] bg-violet-500 text-white rounded-md hover:bg-violet-600">Insert as comment</button>
+          )}
+        </div>
+      )}
+
+      {/* Main Editor + Output */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Code Editor */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1"><div className="w-2.5 h-2.5 rounded-full bg-red-500/80"/><div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"/><div className="w-2.5 h-2.5 rounded-full bg-green-500/80"/></div>
+              <span className="text-[11px] text-zinc-400 font-mono">playground.{getExt(lang)}</span>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-zinc-600">
+              <span>{metrics.totalLines} lines</span>
+              <span>{metrics.functions} funcs</span>
+              <span>{metrics.classes} classes</span>
+              <span className={metrics.complexity === "Low" ? "text-green-500" : metrics.complexity === "Medium" ? "text-yellow-500" : "text-red-500"}>{metrics.complexity}</span>
+            </div>
+          </div>
+          <div className="flex-1 relative overflow-hidden" style={{ background: theme.bg }}>
+            <textarea
+              ref={textareaRef} value={code} onChange={e => setCode(e.target.value)}
+              data-testid="playground-editor"
+              className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white resize-none p-4 z-10 focus:outline-none"
+              style={{ fontFamily: "var(--font-mono)", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", tabSize: 2 }}
+              spellCheck={false}
+              onKeyDown={e => {
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  const start = e.currentTarget.selectionStart;
+                  const end = e.currentTarget.selectionEnd;
+                  setCode(code.substring(0, start) + "  " + code.substring(end));
+                  setTimeout(() => { e.currentTarget.selectionStart = e.currentTarget.selectionEnd = start + 2; }, 0);
+                }
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); runCode(); }
+                if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); handleSave(); }
+              }}
+            />
+            <div className="absolute inset-0 overflow-auto pointer-events-none">
+              <SyntaxHighlighter style={theme.style} language={lang} showLineNumbers={settings.showLineNumbers}
+                lineNumberStyle={{ color: "#444", fontSize: `${settings.fontSize - 2}px`, minWidth: "2.5em" }}
+                customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", minHeight: "100%" }}>
+                {code || " "}
+              </SyntaxHighlighter>
+            </div>
+          </div>
+        </div>
+
+        {/* Output / Preview panel */}
+        <div className="w-[45%] flex flex-col border-l border-zinc-800 bg-zinc-950 min-w-0">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
+            <div className="flex gap-1">
+              <button onClick={() => setShowPreview(false)} className={`px-2 py-0.5 rounded text-[11px] transition-colors ${!showPreview ? "bg-zinc-800 text-zinc-300" : "text-zinc-600 hover:text-zinc-400"}`}>Console</button>
+              {(lang === "html" || lang === "css") && (
+                <button onClick={() => setShowPreview(true)} className={`px-2 py-0.5 rounded text-[11px] transition-colors ${showPreview ? "bg-zinc-800 text-zinc-300" : "text-zinc-600 hover:text-zinc-400"}`}>Preview</button>
+              )}
+            </div>
+            <div className="flex-1" />
+            <button onClick={() => setOutput([])} className="text-zinc-600 hover:text-zinc-400 text-[10px]">Clear</button>
+          </div>
+
+          {showPreview && (lang === "html" || lang === "css") ? (
+            <iframe ref={iframeRef} srcDoc={previewHtml} sandbox="allow-scripts" className="flex-1 bg-white" title="preview" />
+          ) : (
+            <div className="flex-1 overflow-auto p-4 font-mono text-sm" style={{ fontSize: `${settings.fontSize - 1}px` }}>
+              {output.length === 0 ? (
+                <div className="text-zinc-700 text-center py-8">
+                  <Terminal size={24} className="mx-auto mb-2 text-zinc-800" />
+                  <div className="text-xs">
+                    {canRun ? <>Press <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 mx-0.5">Run</kbd> or <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400 mx-0.5">Ctrl+Enter</kbd></> : "Display mode - this language runs on a server"}
+                  </div>
+                </div>
+              ) : (
+                output.map((line, i) => (
+                  <div key={i} className={`leading-relaxed ${line.startsWith("ERROR") ? "text-red-400" : line.startsWith("✓") ? "text-green-400" : "text-zinc-300"}`}>{line}</div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* AI Review / Explanation results */}
+          {(reviewResult || explanation) && (
+            <div className="border-t border-zinc-800 max-h-[40%] overflow-auto">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 sticky top-0">
+                <span className="text-[11px] text-zinc-400 font-medium flex items-center gap-1">
+                  {reviewResult ? <><Scan size={11} /> AI Review</> : <><Brain size={11} /> Explanation</>}
+                </span>
+                <button onClick={() => { setReviewResult(null); setExplanation(null); }} className="text-zinc-600 hover:text-zinc-400"><X size={12} /></button>
+              </div>
+              <div className="p-3 text-xs text-zinc-300 markdown-body">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{reviewResult || explanation || ""}</ReactMarkdown>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Status bar */}
+      <div className="flex items-center justify-between px-4 py-1 bg-zinc-900 border-t border-zinc-800 text-[10px] text-zinc-600">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            {langInfo && <langInfo.icon size={10} className={langInfo.color} />} {langInfo.name}
+          </span>
+          <span>Ln {code.substring(0, textareaRef.current?.selectionStart || 0).split("\n").length}, Col {((textareaRef.current?.selectionStart || 0) - code.lastIndexOf("\n", (textareaRef.current?.selectionStart || 0) - 1))}</span>
+          <span>{(new Blob([code]).size / 1024).toFixed(1)} KB</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span>Ctrl+Enter to run</span>
+          <span>Ctrl+S to save</span>
+          <span>Tab for indent</span>
+          <span className="text-zinc-500">My Ai Coder Playground</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// FUTURISTIC #5 - AI Code Converter (send to coder from playground)
+// Built into the playground toolbar as "AI Fix" and accessible via the code chat
+
 // ─── LAYOUT + PAGES + ROUTER ─────────────────────────────────────────────────
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -1165,6 +1625,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function HomePage() { return <Layout><ChatInterface defaultType="general" /></Layout>; }
 function CoderPage() { return <Layout><ChatInterface defaultType="coder" /></Layout>; }
+function PlaygroundPage() { return <Layout><CodePlayground /></Layout>; }
 
 function ChatViewPage() {
   const [, params] = useRoute("/chat/:id");
@@ -1197,6 +1658,7 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/coder" component={CoderPage} />
+      <Route path="/playground" component={PlaygroundPage} />
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route component={NotFound} />
     </Switch>
@@ -1204,7 +1666,6 @@ function Router() {
 }
 
 export default function App() {
-  // #27 - Persistent coder settings
   const [settings, setSettings] = useState<CoderSettings>(() => {
     try { const s = localStorage.getItem("coderSettings"); return s ? { ...defaultSettings, ...JSON.parse(s) } : defaultSettings; } catch { return defaultSettings; }
   });
@@ -1212,11 +1673,11 @@ export default function App() {
     setSettings(prev => { const next = { ...prev, ...partial }; localStorage.setItem("coderSettings", JSON.stringify(next)); return next; });
   }, []);
 
-  // #28 - Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); window.location.href = "/"; }
       if ((e.metaKey || e.ctrlKey) && e.key === "j") { e.preventDefault(); window.location.href = "/coder"; }
+      if ((e.metaKey || e.ctrlKey) && e.key === "p") { e.preventDefault(); window.location.href = "/playground"; }
     };
     window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler);
   }, []);

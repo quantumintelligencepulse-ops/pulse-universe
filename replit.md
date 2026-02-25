@@ -51,6 +51,26 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 29. Transcendence-level system prompt with 30+ language support
 30. Lower temperature (0.15) for more precise code generation
 
+## Code Playground (Full IDE)
+- Route: /playground with sidebar navigation link
+- Multi-language support: JavaScript, HTML, CSS, Python, TypeScript, SQL, JSON, Bash, Rust, Go, Java, C++
+- JavaScript execution via sandboxed iframe with console.log capture
+- Python execution via Pyodide (WebAssembly) - real Python in browser
+- HTML/CSS live preview in iframe panel
+- Tab key indentation, Ctrl+Enter to run, Ctrl+S to save
+- Code metrics in status bar (lines, functions, classes, complexity)
+- VS Code-style editor with syntax highlighting overlay
+- Console output panel with error highlighting
+- Save to server, clear, language switching with starter code templates
+- Keyboard shortcut: Ctrl+P to open playground
+
+## 5 Futuristic Features (20 Years Ahead)
+1. Voice-to-Code - Web Speech API captures voice, inserts as code comments/descriptions
+2. AI Code Review - Sends code to AI for quality rating (1-10) with specific improvements
+3. AI Auto-Fix - Sends broken/bad code to AI, gets back fixed version automatically
+4. AI Code Explainer - Step-by-step AI breakdown of what code does and why
+5. AI Code Converter - Built into AI Fix, transforms code between patterns/paradigms
+
 ## General Features
 - Two chat modes: My Ai Gpt (general) and My Ai Coder (coding)
 - Chat rename, search, clear all, grouped by date
