@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema } from "@shared/schema";
 import Groq from "groq-sdk";
 import { search } from "duck-duck-scrape";
 import { Client, GatewayIntentBits } from "discord.js";
@@ -979,6 +980,287 @@ If you have live data provided in this prompt, USE IT and present it confidently
         return res.status(400).json({ message: err.errors[0].message });
       }
       res.status(500).json({ message: "Something went wrong. Please try again." });
+    }
+  });
+
+  // ═══════ SOCIAL API ROUTES ═══════
+
+  app.post("/api/social/profiles", async (req, res) => {
+    try {
+      const data = insertSocialProfileSchema.parse(req.body);
+      const existing = await storage.getSocialProfileByUsername(data.username!);
+      if (existing) return res.status(409).json({ message: "Username already taken" });
+      const profile = await storage.createSocialProfile(data);
+      res.status(201).json(profile);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Failed to create profile" });
+    }
+  });
+
+  app.get("/api/social/profiles/search/:query", async (req, res) => {
+    try {
+      const profiles = await storage.searchSocialProfiles(req.params.query);
+      res.json(profiles);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.get("/api/social/profiles/:username", async (req, res) => {
+    try {
+      const profile = await storage.getSocialProfileByUsername(req.params.username);
+      if (!profile) return res.status(404).json({ message: "Profile not found" });
+      const [followerCount, followingCount, posts] = await Promise.all([
+        storage.getSocialFollowerCount(profile.id),
+        storage.getSocialFollowingCount(profile.id),
+        storage.getSocialPostsByProfile(profile.id, 1, 1000),
+      ]);
+      res.json({ ...profile, followerCount, followingCount, postCount: posts.length });
+    } catch {
+      res.status(500).json({ message: "Failed to get profile" });
+    }
+  });
+
+  app.patch("/api/social/profiles/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const profile = await storage.updateSocialProfile(id, req.body);
+      if (!profile) return res.status(404).json({ message: "Profile not found" });
+      res.json(profile);
+    } catch {
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.post("/api/social/posts", async (req, res) => {
+    try {
+      const data = insertSocialPostSchema.parse(req.body);
+      const post = await storage.createSocialPost(data);
+      res.status(201).json(post);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  app.get("/api/social/feed", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = 20;
+      const posts = await storage.getSocialFeed(page, limit);
+      res.json({ posts, page, hasMore: posts.length === limit });
+    } catch {
+      res.json({ posts: [], page: 1, hasMore: false });
+    }
+  });
+
+  app.get("/api/social/feed/trending", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = 20;
+      const posts = await storage.getTrendingSocialPosts(page, limit);
+      res.json({ posts, page, hasMore: posts.length === limit });
+    } catch {
+      res.json({ posts: [], page: 1, hasMore: false });
+    }
+  });
+
+  app.get("/api/social/feed/following", async (req, res) => {
+    try {
+      const profileId = parseInt(req.query.profileId as string);
+      if (!profileId) return res.status(400).json({ message: "profileId required" });
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = 20;
+      const posts = await storage.getFollowingFeed(profileId, page, limit);
+      res.json({ posts, page, hasMore: posts.length === limit });
+    } catch {
+      res.json({ posts: [], page: 1, hasMore: false });
+    }
+  });
+
+  app.get("/api/social/posts/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const post = await storage.getSocialPost(id);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      await storage.incrementPostViews(id);
+      const comments = await storage.getSocialCommentsByPost(id);
+      res.json({ ...post, comments });
+    } catch {
+      res.status(500).json({ message: "Failed to get post" });
+    }
+  });
+
+  app.delete("/api/social/posts/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const post = await storage.getSocialPost(id);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const profileId = parseInt(req.query.profileId as string);
+      if (post.profileId !== profileId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteSocialPost(id);
+      res.status(204).send();
+    } catch {
+      res.status(500).json({ message: "Failed to delete post" });
+    }
+  });
+
+  app.post("/api/social/posts/:id/like", async (req, res) => {
+    try {
+      const postId = Number(req.params.id);
+      const { profileId } = req.body;
+      if (!profileId) return res.status(400).json({ message: "profileId required" });
+      const liked = await storage.toggleSocialLike(postId, profileId);
+      const likeCount = await storage.getSocialLikeCount(postId);
+      res.json({ liked, likeCount });
+    } catch {
+      res.status(500).json({ message: "Failed to toggle like" });
+    }
+  });
+
+  app.post("/api/social/posts/:id/bookmark", async (req, res) => {
+    try {
+      const postId = Number(req.params.id);
+      const { profileId } = req.body;
+      if (!profileId) return res.status(400).json({ message: "profileId required" });
+      const bookmarked = await storage.toggleSocialBookmark(postId, profileId);
+      res.json({ bookmarked });
+    } catch {
+      res.status(500).json({ message: "Failed to toggle bookmark" });
+    }
+  });
+
+  app.post("/api/social/posts/:id/repost", async (req, res) => {
+    try {
+      const postId = Number(req.params.id);
+      await storage.incrementPostReposts(postId);
+      const post = await storage.getSocialPost(postId);
+      res.json({ reposts: post?.reposts || 0 });
+    } catch {
+      res.status(500).json({ message: "Failed to repost" });
+    }
+  });
+
+  app.get("/api/social/posts/:id/comments", async (req, res) => {
+    try {
+      const comments = await storage.getSocialCommentsByPost(Number(req.params.id));
+      res.json(comments);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.post("/api/social/posts/:id/comments", async (req, res) => {
+    try {
+      const data = insertSocialCommentSchema.parse({
+        ...req.body,
+        postId: Number(req.params.id),
+      });
+      const comment = await storage.createSocialComment(data);
+      res.status(201).json(comment);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Failed to add comment" });
+    }
+  });
+
+  app.post("/api/social/follow/:profileId", async (req, res) => {
+    try {
+      const followingId = Number(req.params.profileId);
+      const { followerId } = req.body;
+      if (!followerId) return res.status(400).json({ message: "followerId required" });
+      if (followerId === followingId) return res.status(400).json({ message: "Cannot follow yourself" });
+      const following = await storage.toggleSocialFollow(followerId, followingId);
+      res.json({ following });
+    } catch {
+      res.status(500).json({ message: "Failed to toggle follow" });
+    }
+  });
+
+  app.get("/api/social/followers/:profileId", async (req, res) => {
+    try {
+      const followers = await storage.getSocialFollowers(Number(req.params.profileId));
+      res.json(followers);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.get("/api/social/following/:profileId", async (req, res) => {
+    try {
+      const following = await storage.getSocialFollowing(Number(req.params.profileId));
+      res.json(following);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.get("/api/social/bookmarks/:profileId", async (req, res) => {
+    try {
+      const posts = await storage.getSocialBookmarkedPosts(Number(req.params.profileId));
+      res.json(posts);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.get("/api/social/post-count", async (_req, res) => {
+    try {
+      const count = await storage.getSocialPostCount();
+      res.json({ count });
+    } catch {
+      res.json({ count: 0 });
+    }
+  });
+
+  app.get("/api/social/suggestions", async (req, res) => {
+    try {
+      const profileId = parseInt(req.query.profileId as string);
+      const allProfiles = await storage.searchSocialProfiles("");
+      if (!profileId) return res.json(allProfiles.slice(0, 5));
+      const following = await storage.getSocialFollowing(profileId);
+      const followingIds = new Set(following.map(f => f.id));
+      followingIds.add(profileId);
+      const suggestions = allProfiles.filter(p => !followingIds.has(p.id)).slice(0, 5);
+      res.json(suggestions);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.post("/api/social/posts/:id/pin", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const post = await storage.togglePinSocialPost(id);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      res.json(post);
+    } catch {
+      res.status(500).json({ message: "Failed to toggle pin" });
+    }
+  });
+
+  app.get("/api/social/is-following", async (req, res) => {
+    try {
+      const followerId = parseInt(req.query.followerId as string);
+      const followingId = parseInt(req.query.followingId as string);
+      if (!followerId || !followingId) return res.json({ following: false });
+      const following = await storage.isSocialFollowing(followerId, followingId);
+      res.json({ following });
+    } catch {
+      res.json({ following: false });
+    }
+  });
+
+  app.get("/api/social/is-liked", async (req, res) => {
+    try {
+      const postId = parseInt(req.query.postId as string);
+      const profileId = parseInt(req.query.profileId as string);
+      if (!postId || !profileId) return res.json({ liked: false });
+      const liked = await storage.isSocialLiked(postId, profileId);
+      res.json({ liked });
+    } catch {
+      res.json({ liked: false });
     }
   });
 

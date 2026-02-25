@@ -20,10 +20,11 @@ import {
   ChevronDown, ChevronUp, Settings2, Brackets, FlaskConical, Rocket,
   Mic, MicOff, SplitSquareVertical, Wand2, Brain, Scan, Square,
   SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle,
-  ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight
+  ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight,
+  Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
-import type { Chat, Message, FeedComment } from "@shared/schema";
+import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
 import logo from "@assets/MyAiGpt_1772000395528.webp";
 
 const MESSAGE_LIMIT = 9;
@@ -1178,6 +1179,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
             <span className="flex-1">Feed</span>
             <span className="text-[9px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">LIVE</span>
+          </Link>
+          <Link href="/social" data-testid="link-social"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/social" || location.startsWith("/social") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/social" || location.startsWith("/social") ? "bg-purple-500/15" : "bg-purple-500/5"}`}><Users size={14} className="text-purple-600" /></div>
+            <span className="flex-1">Social</span>
+            <span className="text-[9px] bg-purple-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">SOCIAL</span>
           </Link>
         </div>
 
@@ -2699,6 +2706,931 @@ function NewsFeed() {
   );
 }
 
+// ─── SOCIAL PAGE ─────────────────────────────────────────────────────────────
+
+type SocialPostWithProfile = SocialPost & { profile?: SocialProfile };
+
+function socialTimeAgo(dateStr: string | Date): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return `${secs}s`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function socialAbsoluteTime(dateStr: string | Date): string {
+  return new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function renderSocialContent(content: string, onProfileClick?: (username: string) => void) {
+  const parts = content.split(/(@\w+|#\w+|https?:\/\/[^\s]+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("@")) {
+      return <span key={i} className="text-purple-500 cursor-pointer hover:underline font-medium" data-testid={`mention-${part}`} onClick={() => onProfileClick?.(part.slice(1))}>{part}</span>;
+    }
+    if (part.startsWith("#")) {
+      return <span key={i} className="text-blue-500 font-medium" data-testid={`hashtag-${part}`}>{part}</span>;
+    }
+    if (part.match(/^https?:\/\//)) {
+      return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all" data-testid={`link-${i}`}>{part}</a>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function SocialAvatar({ src, name, size = "md", verified }: { src?: string; name: string; size?: "sm" | "md" | "lg" | "xl"; verified?: boolean }) {
+  const sizeClasses = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-14 h-14 text-lg", xl: "w-20 h-20 text-2xl" };
+  const badgeSize = { sm: 10, md: 12, lg: 14, xl: 16 };
+  const initial = name?.charAt(0)?.toUpperCase() || "?";
+  const colors = ["bg-purple-500", "bg-blue-500", "bg-pink-500", "bg-emerald-500", "bg-amber-500", "bg-cyan-500"];
+  const colorIdx = name ? name.charCodeAt(0) % colors.length : 0;
+  return (
+    <div className="relative inline-flex shrink-0">
+      {src ? (
+        <img src={src} alt={name} className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white shadow-sm`} />
+      ) : (
+        <div className={`${sizeClasses[size]} rounded-full ${colors[colorIdx]} text-white flex items-center justify-center font-bold border-2 border-white shadow-sm`}>{initial}</div>
+      )}
+      {verified && (
+        <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5" data-testid="badge-verified">
+          <CheckCircle2 size={badgeSize[size]} className="text-blue-500 fill-blue-500" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CreateProfileModal({ isOpen, onClose, onCreated }: { isOpen: boolean; onClose: () => void; onCreated: (profile: SocialProfile) => void }) {
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+  const { toast } = useToast();
+
+  const handleCreate = async () => {
+    if (!username.trim() || !displayName.trim()) { setError("Username and display name are required"); return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) { setError("Username can only contain letters, numbers, and underscores"); return; }
+    setCreating(true); setError("");
+    try {
+      const r = await fetch("/api/social/profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.toLowerCase(), displayName, bio, avatar }) });
+      if (!r.ok) { const data = await r.json().catch(() => ({})); throw new Error(data.message || "Failed to create profile"); }
+      const profile = await r.json();
+      localStorage.setItem("social_profile_id", String(profile.id));
+      localStorage.setItem("social_username", profile.username);
+      onCreated(profile);
+      toast({ title: "Profile created!", description: `Welcome, @${profile.username}` });
+    } catch (e: any) { setError(e.message); }
+    setCreating(false);
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-md p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="p-1.5 rounded-lg bg-purple-500/10"><Users size={18} className="text-purple-500" /></div>
+          <h2 className="font-bold text-lg">Create Your Profile</h2>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Username</label>
+            <div className="relative">
+              <AtSign size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+              <input value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="your_username"
+                className="w-full pl-8 pr-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-username" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
+            <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your Name"
+              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-displayname" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Bio</label>
+            <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell us about yourself..."
+              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300 resize-none" rows={2} data-testid="input-social-bio" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Avatar URL</label>
+            <input value={avatar} onChange={e => setAvatar(e.target.value)} placeholder="https://example.com/avatar.jpg"
+              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-avatar" />
+          </div>
+          {error && <p className="text-xs text-red-500" data-testid="text-social-error">{error}</p>}
+          <button onClick={handleCreate} disabled={creating} data-testid="button-create-profile"
+            className="w-full py-2.5 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 disabled:opacity-50 transition-colors">
+            {creating ? "Creating..." : "Create Profile"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditProfileModal({ isOpen, onClose, profile, onUpdated }: { isOpen: boolean; onClose: () => void; profile: SocialProfile; onUpdated: (p: SocialProfile) => void }) {
+  const [displayName, setDisplayName] = useState(profile.displayName);
+  const [bio, setBio] = useState(profile.bio || "");
+  const [avatar, setAvatar] = useState(profile.avatar || "");
+  const [coverImage, setCoverImage] = useState(profile.coverImage || "");
+  const [location, setLocationVal] = useState(profile.location || "");
+  const [website, setWebsite] = useState(profile.website || "");
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-bold text-lg flex items-center gap-2"><Edit3 size={16} /> Edit Profile</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50"><X size={18} /></button>
+        </div>
+        <div className="space-y-3">
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
+            <input value={displayName} onChange={e => setDisplayName(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-displayname" /></div>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Bio</label>
+            <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300 resize-none" rows={2} data-testid="input-edit-bio" /></div>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Avatar URL</label>
+            <input value={avatar} onChange={e => setAvatar(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-avatar" /></div>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Cover Image URL</label>
+            <input value={coverImage} onChange={e => setCoverImage(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-cover" /></div>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Location</label>
+            <input value={location} onChange={e => setLocationVal(e.target.value)} placeholder="City, Country" className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-location" /></div>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Website</label>
+            <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-website" /></div>
+          <button onClick={async () => {
+            setSaving(true);
+            try {
+              const r = await fetch(`/api/social/profiles/${profile.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ displayName, bio, avatar, coverImage, location, website }) });
+              if (r.ok) { const updated = await r.json(); onUpdated(updated); toast({ title: "Profile updated!" }); onClose(); }
+            } catch { toast({ title: "Update failed", variant: "destructive" }); }
+            setSaving(false);
+          }} disabled={saving} data-testid="button-save-profile"
+            className="w-full py-2.5 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 disabled:opacity-50 transition-colors">
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FollowListModal({ isOpen, onClose, profileId, type, onProfileClick }: { isOpen: boolean; onClose: () => void; profileId: number; type: "followers" | "following"; onProfileClick: (username: string) => void }) {
+  const [profiles, setProfiles] = useState<SocialProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoading(true);
+    fetch(`/api/social/${type}/${profileId}`).then(r => r.json()).then(data => { setProfiles(data); setLoading(false); }).catch(() => setLoading(false));
+  }, [isOpen, profileId, type]);
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-sm max-h-[70vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+          <h3 className="font-semibold text-base capitalize">{type}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50"><X size={18} /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="p-4 space-y-3">{[1,2,3].map(i => <div key={i} className="h-12 bg-muted/30 rounded-lg animate-pulse" />)}</div>
+          ) : profiles.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground/50">No {type} yet</div>
+          ) : profiles.map(p => (
+            <button key={p.id} onClick={() => { onProfileClick(p.username); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors text-left" data-testid={`follow-list-${p.username}`}>
+              <SocialAvatar src={p.avatar || undefined} name={p.displayName} size="sm" verified={p.verified || false} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate">{p.displayName}</div>
+                <div className="text-xs text-muted-foreground">@{p.username}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PostComposer({ profileId, onPosted }: { profileId: number; onPosted: () => void }) {
+  const [content, setContent] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaType, setMediaType] = useState("");
+  const [showMedia, setShowMedia] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const { toast } = useToast();
+  const charLimit = 280;
+  const charLeft = charLimit - content.length;
+  const charColor = charLeft > 50 ? "text-green-500" : charLeft > 20 ? "text-yellow-500" : "text-red-500";
+
+  const handlePost = async () => {
+    if (!content.trim() || content.length > charLimit) return;
+    setPosting(true);
+    try {
+      const body: any = { profileId, content };
+      if (mediaUrl) { body.mediaUrl = mediaUrl; body.mediaType = mediaType || "image"; }
+      const r = await fetch("/api/social/posts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (r.ok) { setContent(""); setMediaUrl(""); setMediaType(""); setShowMedia(false); onPosted(); toast({ title: "Post published!" }); }
+    } catch { toast({ title: "Failed to post", variant: "destructive" }); }
+    setPosting(false);
+  };
+
+  return (
+    <div className="bg-white border border-border/30 rounded-xl p-4" data-testid="post-composer">
+      <textarea value={content} onChange={e => { if (e.target.value.length <= charLimit + 10) setContent(e.target.value); }}
+        placeholder="What's happening?" className="w-full resize-none border-0 text-sm focus:outline-none placeholder:text-muted-foreground/40 leading-relaxed" rows={3} data-testid="input-post-content" />
+      {showMedia && (
+        <div className="flex items-center gap-2 mt-2 p-2 bg-muted/20 rounded-lg">
+          <input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} placeholder="Media URL" className="flex-1 text-xs px-2 py-1.5 border border-border/30 rounded-md focus:outline-none focus:border-purple-300" data-testid="input-media-url" />
+          <select value={mediaType} onChange={e => setMediaType(e.target.value)} className="text-xs px-2 py-1.5 border border-border/30 rounded-md bg-white" data-testid="select-media-type">
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+            <option value="link">Link</option>
+          </select>
+          <button onClick={() => { setShowMedia(false); setMediaUrl(""); setMediaType(""); }} className="text-muted-foreground hover:text-foreground"><X size={14} /></button>
+        </div>
+      )}
+      {mediaUrl && mediaType === "image" && (
+        <div className="mt-2 rounded-lg overflow-hidden border border-border/20">
+          <img src={mediaUrl} alt="Preview" className="w-full max-h-48 object-cover" onError={e => (e.currentTarget.style.display = "none")} />
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
+        <div className="flex items-center gap-1">
+          <button onClick={() => { setShowMedia(true); setMediaType("image"); }} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-purple-500 hover:bg-purple-50 transition-colors" title="Add image" data-testid="button-add-image"><Image size={16} /></button>
+          <button onClick={() => { setShowMedia(true); setMediaType("video"); }} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-purple-500 hover:bg-purple-50 transition-colors" title="Add video" data-testid="button-add-video"><Video size={16} /></button>
+          <button onClick={() => { setShowMedia(true); setMediaType("link"); }} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-purple-500 hover:bg-purple-50 transition-colors" title="Add link" data-testid="button-add-link"><Link2 size={16} /></button>
+        </div>
+        <div className="flex items-center gap-3">
+          {content.length > 0 && <span className={`text-xs font-mono ${charColor}`} data-testid="text-char-count">{charLeft}</span>}
+          <button onClick={handlePost} disabled={posting || !content.trim() || content.length > charLimit} data-testid="button-publish-post"
+            className="px-4 py-1.5 bg-purple-500 text-white rounded-full text-sm font-medium hover:bg-purple-600 disabled:opacity-40 transition-colors">
+            {posting ? "Posting..." : "Post"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SocialPostCard({ post, currentProfileId, onProfileClick, onRefresh }: { post: SocialPostWithProfile; currentProfileId: number | null; onProfileClick: (username: string) => void; onRefresh: () => void }) {
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(post.likes || 0);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<(SocialComment & { profile?: SocialProfile })[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [likeAnimating, setLikeAnimating] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
+  const { toast } = useToast();
+  const isOwner = currentProfileId === post.profileId;
+
+  useEffect(() => {
+    if (!currentProfileId) return;
+    fetch(`/api/social/posts/${post.id}/liked?profileId=${currentProfileId}`).then(r => r.json()).then(data => { if (data.liked) setLiked(true); }).catch(() => {});
+    fetch(`/api/social/posts/${post.id}/bookmarked?profileId=${currentProfileId}`).then(r => r.json()).then(data => { if (data.bookmarked) setBookmarked(true); }).catch(() => {});
+  }, [post.id, currentProfileId]);
+
+  const handleLike = async () => {
+    if (!currentProfileId) return;
+    setLikeAnimating(true);
+    setTimeout(() => setLikeAnimating(false), 500);
+    try {
+      const r = await fetch(`/api/social/posts/${post.id}/like`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
+      if (r.ok) { const data = await r.json(); setLiked(data.liked); setLikeCount(data.likes); }
+    } catch {}
+  };
+
+  const handleBookmark = async () => {
+    if (!currentProfileId) return;
+    try {
+      const r = await fetch(`/api/social/posts/${post.id}/bookmark`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
+      if (r.ok) { const data = await r.json(); setBookmarked(data.bookmarked); toast({ title: data.bookmarked ? "Bookmarked" : "Removed bookmark" }); }
+    } catch {}
+  };
+
+  const handleRepost = async () => {
+    if (!currentProfileId) return;
+    try {
+      const r = await fetch(`/api/social/posts/${post.id}/repost`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
+      if (r.ok) { toast({ title: "Reposted!" }); onRefresh(); }
+    } catch {}
+  };
+
+  const handleDelete = async () => {
+    try {
+      await fetch(`/api/social/posts/${post.id}`, { method: "DELETE" });
+      toast({ title: "Post deleted" }); onRefresh();
+    } catch {}
+    setShowDeleteConfirm(false);
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/social?post=${post.id}`);
+    toast({ title: "Link copied to clipboard!" });
+  };
+
+  const loadComments = async () => {
+    try {
+      const r = await fetch(`/api/social/posts/${post.id}/comments`);
+      if (r.ok) setComments(await r.json());
+    } catch {}
+  };
+
+  const handlePostComment = async () => {
+    if (!currentProfileId || !newComment.trim()) return;
+    setPostingComment(true);
+    try {
+      const r = await fetch(`/api/social/posts/${post.id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId, content: newComment }) });
+      if (r.ok) { setNewComment(""); await loadComments(); }
+    } catch {}
+    setPostingComment(false);
+  };
+
+  useEffect(() => { if (showComments) loadComments(); }, [showComments]);
+
+  const profile = post.profile;
+  const isVideoEmbed = post.mediaType === "video" && post.mediaUrl;
+  const getVideoEmbedUrl = (url: string) => {
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+    return url;
+  };
+
+  return (
+    <div className="bg-white border border-border/30 rounded-xl p-4 transition-all" data-testid={`post-card-${post.id}`}>
+      <div className="flex items-start gap-3">
+        <button onClick={() => profile && onProfileClick(profile.username)} data-testid={`post-avatar-${post.id}`}>
+          <SocialAvatar src={profile?.avatar || undefined} name={profile?.displayName || "User"} size="md" verified={profile?.verified || false} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button onClick={() => profile && onProfileClick(profile.username)} className="font-semibold text-sm hover:underline" data-testid={`post-displayname-${post.id}`}>{profile?.displayName || "User"}</button>
+            {profile?.verified && <CheckCircle2 size={14} className="text-blue-500 fill-blue-500 shrink-0" />}
+            <span className="text-xs text-muted-foreground">@{profile?.username || "unknown"}</span>
+            <span className="text-xs text-muted-foreground/40">·</span>
+            <span className="text-xs text-muted-foreground/60 hover:underline cursor-default" title={socialAbsoluteTime(post.createdAt)} data-testid={`post-time-${post.id}`}>{socialTimeAgo(post.createdAt)}</span>
+            {post.pinned && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-medium" data-testid={`post-pinned-${post.id}`}>Pinned</span>}
+          </div>
+
+          <div className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap break-words" data-testid={`post-content-${post.id}`}>
+            {renderSocialContent(post.content, onProfileClick)}
+          </div>
+
+          {post.mediaUrl && post.mediaType === "image" && (
+            <div className="mt-3 rounded-xl overflow-hidden border border-border/20 cursor-pointer" onClick={() => setLightbox(true)} data-testid={`post-image-${post.id}`}>
+              <img src={post.mediaUrl} alt="Post media" className="w-full max-h-80 object-cover hover:opacity-95 transition-opacity" />
+            </div>
+          )}
+
+          {isVideoEmbed && (
+            <div className="mt-3 rounded-xl overflow-hidden border border-border/20 aspect-video" data-testid={`post-video-${post.id}`}>
+              <iframe src={getVideoEmbedUrl(post.mediaUrl!)} className="w-full h-full" allowFullScreen title="Video" />
+            </div>
+          )}
+
+          {post.mediaUrl && post.mediaType === "link" && (
+            <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block border border-border/30 rounded-xl p-3 hover:bg-muted/20 transition-colors" data-testid={`post-link-${post.id}`}>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><Link2 size={12} /><span className="truncate">{post.mediaUrl}</span></div>
+              {post.linkPreview && <p className="text-xs text-foreground/70 mt-1">{post.linkPreview}</p>}
+            </a>
+          )}
+
+          <div className="flex items-center gap-1 mt-3 -ml-2">
+            <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-blue-500 hover:bg-blue-50 transition-colors text-xs" data-testid={`button-comment-${post.id}`}>
+              <MessageCircle size={15} /><span>{comments.length || ""}</span>
+            </button>
+            <button onClick={handleRepost} className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-green-500 hover:bg-green-50 transition-colors text-xs" data-testid={`button-repost-${post.id}`}>
+              <Repeat2 size={15} /><span>{post.reposts || ""}</span>
+            </button>
+            <button onClick={handleLike} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full transition-all text-xs ${liked ? "text-red-500" : "text-muted-foreground hover:text-red-500 hover:bg-red-50"}`} data-testid={`button-like-${post.id}`}>
+              <Heart size={15} className={`transition-transform ${likeAnimating ? "scale-125" : ""} ${liked ? "fill-red-500" : ""}`} /><span>{likeCount || ""}</span>
+            </button>
+            <button onClick={handleBookmark} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full transition-colors text-xs ${bookmarked ? "text-purple-500" : "text-muted-foreground hover:text-purple-500 hover:bg-purple-50"}`} data-testid={`button-bookmark-${post.id}`}>
+              <Bookmark size={15} className={bookmarked ? "fill-purple-500" : ""} />
+            </button>
+            <button onClick={handleShare} className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-blue-500 hover:bg-blue-50 transition-colors text-xs" data-testid={`button-share-${post.id}`}>
+              <Share2 size={15} />
+            </button>
+            {(post.views || 0) > 0 && <span className="text-[10px] text-muted-foreground/40 ml-auto flex items-center gap-1" data-testid={`post-views-${post.id}`}><Eye size={12} />{post.views}</span>}
+
+            <div className="relative ml-auto">
+              <button onClick={() => setShowMore(!showMore)} className="p-1.5 rounded-full text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors" data-testid={`button-more-${post.id}`}>
+                <MoreHorizontal size={15} />
+              </button>
+              {showMore && (
+                <div className="absolute right-0 top-full mt-1 bg-white border border-border/30 rounded-xl shadow-xl py-1 min-w-[160px] z-50">
+                  {isOwner && (
+                    <>
+                      <button onClick={() => { setShowMore(false); setShowDeleteConfirm(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors" data-testid={`button-delete-post-${post.id}`}>
+                        <Trash2 size={13} /> Delete post
+                      </button>
+                      <button onClick={async () => {
+                        setShowMore(false);
+                        try {
+                          await fetch(`/api/social/posts/${post.id}/pin`, { method: "POST" });
+                          onRefresh();
+                          toast({ title: post.pinned ? "Unpinned" : "Pinned to profile" });
+                        } catch {}
+                      }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground/70 hover:bg-muted/30 transition-colors" data-testid={`button-pin-${post.id}`}>
+                        <MapPin size={13} /> {post.pinned ? "Unpin" : "Pin to profile"}
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => { setShowMore(false); toast({ title: "Post reported" }); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground/70 hover:bg-muted/30 transition-colors" data-testid={`button-report-${post.id}`}>
+                    <Flag size={13} /> Report
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {showComments && (
+            <div className="mt-3 pt-3 border-t border-border/20 space-y-3" data-testid={`comments-section-${post.id}`}>
+              {currentProfileId && (
+                <div className="flex items-center gap-2">
+                  <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Write a comment..."
+                    className="flex-1 px-3 py-1.5 text-xs border border-border/30 rounded-full focus:outline-none focus:border-purple-300 bg-muted/10" data-testid={`input-comment-${post.id}`}
+                    onKeyDown={e => e.key === "Enter" && handlePostComment()} />
+                  <button onClick={handlePostComment} disabled={postingComment || !newComment.trim()} data-testid={`button-post-comment-${post.id}`}
+                    className="px-3 py-1.5 text-xs font-medium bg-purple-500 text-white rounded-full hover:bg-purple-600 disabled:opacity-40 transition-colors">
+                    {postingComment ? "..." : "Reply"}
+                  </button>
+                </div>
+              )}
+              {comments.length === 0 ? (
+                <p className="text-xs text-muted-foreground/40 text-center py-2">No comments yet</p>
+              ) : comments.map(c => (
+                <div key={c.id} className="flex gap-2" data-testid={`comment-${c.id}`}>
+                  <SocialAvatar src={c.profile?.avatar || undefined} name={c.profile?.displayName || "User"} size="sm" />
+                  <div className="flex-1 bg-muted/20 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold">{c.profile?.displayName || "User"}</span>
+                      <span className="text-[10px] text-muted-foreground/40">{socialTimeAgo(c.createdAt)}</span>
+                    </div>
+                    <p className="text-xs text-foreground/80 mt-0.5">{c.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[110] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <h3 className="font-bold text-base mb-2">Delete post?</h3>
+            <p className="text-sm text-muted-foreground mb-4">This action cannot be undone.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2 border border-border/40 rounded-lg text-sm hover:bg-muted/20 transition-colors" data-testid="button-cancel-delete">Cancel</button>
+              <button onClick={handleDelete} className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors" data-testid="button-confirm-delete">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {lightbox && post.mediaUrl && post.mediaType === "image" && (
+        <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center p-4 cursor-pointer" onClick={() => setLightbox(false)} data-testid={`lightbox-${post.id}`}>
+          <img src={post.mediaUrl} alt="Full size" className="max-w-full max-h-full object-contain rounded-lg" />
+          <button className="absolute top-4 right-4 p-2 text-white/80 hover:text-white"><X size={24} /></button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileView({ username, currentProfileId, onProfileClick, onBack }: { username: string; currentProfileId: number | null; onProfileClick: (username: string) => void; onBack: () => void }) {
+  const [profile, setProfile] = useState<SocialProfile | null>(null);
+  const [posts, setPosts] = useState<SocialPostWithProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [following, setFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [postCount, setPostCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<"posts" | "likes" | "media">("posts");
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
+  const isOwn = profile && currentProfileId === profile.id;
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/social/profiles/${username}`).then(r => r.json()).then(data => {
+      setProfile(data.profile || data);
+      setFollowerCount(data.followerCount || 0);
+      setFollowingCount(data.followingCount || 0);
+      setPostCount(data.postCount || 0);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [username]);
+
+  useEffect(() => {
+    if (!profile) return;
+    fetch(`/api/social/feed?profileId=${profile.id}`).then(r => r.json()).then(data => setPosts(Array.isArray(data) ? data : data.posts || [])).catch(() => {});
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile || !currentProfileId || currentProfileId === profile.id) return;
+    fetch(`/api/social/follow/check?followerId=${currentProfileId}&followingId=${profile.id}`).then(r => r.json()).then(data => setFollowing(data.following)).catch(() => {});
+  }, [profile, currentProfileId]);
+
+  const handleFollow = async () => {
+    if (!currentProfileId || !profile) return;
+    try {
+      const r = await fetch(`/api/social/follow/${profile.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ followerId: currentProfileId }) });
+      if (r.ok) { const data = await r.json(); setFollowing(data.following); setFollowerCount(data.followerCount); }
+    } catch {}
+  };
+
+  const mediaPosts = useMemo(() => posts.filter(p => p.mediaUrl && (p.mediaType === "image" || p.mediaType === "video")), [posts]);
+
+  if (loading) return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-40 bg-muted/30 rounded-xl" />
+      <div className="flex gap-4 px-4"><div className="w-20 h-20 rounded-full bg-muted/40" /><div className="flex-1 space-y-2 pt-4"><div className="h-4 bg-muted/30 rounded w-1/3" /><div className="h-3 bg-muted/30 rounded w-1/2" /></div></div>
+    </div>
+  );
+
+  if (!profile) return <div className="p-8 text-center text-muted-foreground">Profile not found</div>;
+
+  return (
+    <div className="space-y-0" data-testid={`profile-view-${username}`}>
+      <button onClick={onBack} className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2" data-testid="button-back-to-feed">
+        <ChevronRight size={14} className="rotate-180" /> Back
+      </button>
+
+      <div className="relative">
+        <div className="h-36 rounded-t-xl overflow-hidden bg-gradient-to-r from-purple-400 via-pink-300 to-blue-400">
+          {profile.coverImage && <img src={profile.coverImage} alt="Cover" className="w-full h-full object-cover" />}
+        </div>
+        <div className="absolute -bottom-10 left-4">
+          <SocialAvatar src={profile.avatar || undefined} name={profile.displayName} size="xl" verified={profile.verified || false} />
+        </div>
+      </div>
+
+      <div className="pt-12 px-4 pb-4 bg-white border border-border/30 border-t-0 rounded-b-xl">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="font-bold text-lg flex items-center gap-1.5" data-testid="text-profile-name">{profile.displayName}
+              {profile.verified && <CheckCircle2 size={16} className="text-blue-500 fill-blue-500" />}</h2>
+            <p className="text-sm text-muted-foreground" data-testid="text-profile-username">@{profile.username}</p>
+          </div>
+          {isOwn ? (
+            <button onClick={() => setShowEditProfile(true)} className="px-4 py-1.5 border border-border/40 rounded-full text-sm font-medium hover:bg-muted/20 transition-colors" data-testid="button-edit-profile">Edit profile</button>
+          ) : currentProfileId ? (
+            <button onClick={handleFollow} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${following ? "border border-border/40 hover:border-red-300 hover:text-red-500" : "bg-purple-500 text-white hover:bg-purple-600"}`} data-testid="button-follow-toggle">
+              {following ? "Following" : "Follow"}
+            </button>
+          ) : null}
+        </div>
+
+        {profile.bio && <p className="mt-3 text-sm text-foreground/80" data-testid="text-profile-bio">{profile.bio}</p>}
+
+        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground flex-wrap">
+          {profile.location && <span className="flex items-center gap-1"><MapPin size={12} />{profile.location}</span>}
+          {profile.website && <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-purple-500 hover:underline"><Link2 size={12} />{profile.website}</a>}
+          <span className="flex items-center gap-1"><Calendar size={12} />Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+        </div>
+
+        <div className="flex items-center gap-4 mt-3">
+          <button onClick={() => setShowFollowList("following")} className="text-sm hover:underline" data-testid="button-following-count"><strong>{followingCount}</strong> <span className="text-muted-foreground">Following</span></button>
+          <button onClick={() => setShowFollowList("followers")} className="text-sm hover:underline" data-testid="button-follower-count"><strong>{followerCount}</strong> <span className="text-muted-foreground">Followers</span></button>
+          <span className="text-sm text-muted-foreground" data-testid="text-post-count">{postCount} posts</span>
+        </div>
+      </div>
+
+      <div className="flex border-b border-border/30 bg-white rounded-t-xl mt-3">
+        {(["posts", "likes", "media"] as const).map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === tab ? "text-foreground" : "text-muted-foreground hover:text-foreground/70"}`} data-testid={`tab-profile-${tab}`}>
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {activeTab === tab && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-purple-500 rounded-full" />}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3 mt-3">
+        {activeTab === "posts" && posts.map(post => (
+          <SocialPostCard key={post.id} post={post} currentProfileId={currentProfileId} onProfileClick={onProfileClick} onRefresh={() => {
+            fetch(`/api/social/feed?profileId=${profile.id}`).then(r => r.json()).then(data => setPosts(Array.isArray(data) ? data : data.posts || [])).catch(() => {});
+          }} />
+        ))}
+        {activeTab === "media" && (
+          mediaPosts.length === 0 ? (
+            <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
+              <Image size={32} className="mx-auto text-muted-foreground/20 mb-2" />
+              <p className="text-sm text-muted-foreground/50">No media posts yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
+              {mediaPosts.map(post => (
+                <div key={post.id} className="aspect-square bg-muted/20 cursor-pointer" data-testid={`media-grid-${post.id}`}>
+                  {post.mediaType === "image" && <img src={post.mediaUrl!} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />}
+                  {post.mediaType === "video" && <div className="w-full h-full flex items-center justify-center bg-zinc-900"><Video size={24} className="text-white/60" /></div>}
+                </div>
+              ))}
+            </div>
+          )
+        )}
+        {activeTab === "likes" && (
+          <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
+            <Heart size={32} className="mx-auto text-muted-foreground/20 mb-2" />
+            <p className="text-sm text-muted-foreground/50">Liked posts will appear here</p>
+          </div>
+        )}
+        {posts.length === 0 && activeTab === "posts" && (
+          <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
+            <MessageCircle size={32} className="mx-auto text-muted-foreground/20 mb-2" />
+            <p className="text-sm text-muted-foreground/50">No posts yet</p>
+          </div>
+        )}
+      </div>
+
+      {showEditProfile && profile && (
+        <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={profile}
+          onUpdated={(p) => { setProfile(p); }} />
+      )}
+      {showFollowList && profile && (
+        <FollowListModal isOpen={!!showFollowList} onClose={() => setShowFollowList(null)} profileId={profile.id} type={showFollowList} onProfileClick={onProfileClick} />
+      )}
+    </div>
+  );
+}
+
+function WhoToFollow({ currentProfileId, onProfileClick }: { currentProfileId: number | null; onProfileClick: (username: string) => void }) {
+  const [suggestions, setSuggestions] = useState<SocialProfile[]>([]);
+
+  useEffect(() => {
+    fetch("/api/social/profiles/search/all").then(r => r.json()).then(data => {
+      const filtered = (Array.isArray(data) ? data : []).filter((p: SocialProfile) => p.id !== currentProfileId).slice(0, 5);
+      setSuggestions(filtered);
+    }).catch(() => {});
+  }, [currentProfileId]);
+
+  if (suggestions.length === 0) return null;
+  return (
+    <div className="bg-white border border-border/30 rounded-xl p-4" data-testid="who-to-follow">
+      <h3 className="font-semibold text-sm mb-3">Who to follow</h3>
+      <div className="space-y-3">
+        {suggestions.map(p => (
+          <button key={p.id} onClick={() => onProfileClick(p.username)} className="w-full flex items-center gap-3 text-left hover:bg-muted/10 rounded-lg p-1.5 -m-1.5 transition-colors" data-testid={`suggestion-${p.username}`}>
+            <SocialAvatar src={p.avatar || undefined} name={p.displayName} size="sm" verified={p.verified || false} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold truncate">{p.displayName}</div>
+              <div className="text-[10px] text-muted-foreground">@{p.username}</div>
+            </div>
+            <UserPlus size={14} className="text-muted-foreground/40 shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SocialSearchBar({ onProfileClick }: { onProfileClick: (username: string) => void }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SocialProfile[]>([]);
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    if (query.length < 2) { setResults([]); return; }
+    const timeout = setTimeout(() => {
+      fetch(`/api/social/profiles/search/${encodeURIComponent(query)}`).then(r => r.json()).then(data => {
+        setResults(Array.isArray(data) ? data : []);
+        setShowResults(true);
+      }).catch(() => {});
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [query]);
+
+  return (
+    <div className="relative" data-testid="social-search">
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+        <input value={query} onChange={e => setQuery(e.target.value)} onFocus={() => results.length > 0 && setShowResults(true)} onBlur={() => setTimeout(() => setShowResults(false), 200)}
+          placeholder="Search people..." className="w-full pl-9 pr-3 py-2 text-sm border border-border/30 rounded-full bg-muted/10 focus:outline-none focus:border-purple-300 focus:bg-white transition-all" data-testid="input-social-search" />
+      </div>
+      {showResults && results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border/30 rounded-xl shadow-xl z-50 overflow-hidden">
+          {results.map(p => (
+            <button key={p.id} onClick={() => { onProfileClick(p.username); setQuery(""); setShowResults(false); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/20 transition-colors text-left" data-testid={`search-result-${p.username}`}>
+              <SocialAvatar src={p.avatar || undefined} name={p.displayName} size="sm" verified={p.verified || false} />
+              <div>
+                <div className="text-sm font-semibold">{p.displayName}</div>
+                <div className="text-xs text-muted-foreground">@{p.username}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SocialPage() {
+  const [currentProfileId, setCurrentProfileId] = useState<number | null>(() => {
+    const id = localStorage.getItem("social_profile_id");
+    return id ? parseInt(id, 10) : null;
+  });
+  const [currentProfile, setCurrentProfile] = useState<SocialProfile | null>(null);
+  const [showCreateProfile, setShowCreateProfile] = useState(false);
+  const [viewingProfile, setViewingProfile] = useState<string | null>(null);
+  const [feedTab, setFeedTab] = useState<"foryou" | "following" | "trending">("foryou");
+  const [posts, setPosts] = useState<SocialPostWithProfile[]>([]);
+  const [loadingFeed, setLoadingFeed] = useState(true);
+  const [feedPage, setFeedPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const feedScrollRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    if (currentProfileId) {
+      const storedUsername = localStorage.getItem("social_username");
+      if (storedUsername) {
+        fetch(`/api/social/profiles/${storedUsername}`).then(r => r.json()).then(data => {
+          setCurrentProfile(data.profile || data);
+        }).catch(() => { setCurrentProfileId(null); localStorage.removeItem("social_profile_id"); localStorage.removeItem("social_username"); });
+      }
+    } else {
+      setShowCreateProfile(true);
+    }
+  }, [currentProfileId]);
+
+  const fetchFeed = useCallback(async (page: number, reset = false) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    if (page === 1) setLoadingFeed(true); else setLoadingMore(true);
+    try {
+      let url = "/api/social/feed?page=" + page;
+      if (feedTab === "trending") url = "/api/social/feed/trending?page=" + page;
+      if (feedTab === "following" && currentProfileId) url = `/api/social/feed/following?profileId=${currentProfileId}&page=${page}`;
+      const r = await fetch(url);
+      const data = await r.json();
+      const newPosts = Array.isArray(data) ? data : data.posts || [];
+      setPosts(prev => {
+        if (reset || page === 1) return newPosts;
+        const existingIds = new Set(prev.map(p => p.id));
+        return [...prev, ...newPosts.filter((p: SocialPostWithProfile) => !existingIds.has(p.id))];
+      });
+      setHasMore(Array.isArray(data) ? newPosts.length >= 20 : data.hasMore !== false);
+      setFeedPage(page);
+    } catch {}
+    setLoadingFeed(false);
+    setLoadingMore(false);
+    loadingRef.current = false;
+  }, [feedTab, currentProfileId]);
+
+  useEffect(() => { setPosts([]); setFeedPage(1); setHasMore(true); fetchFeed(1, true); }, [feedTab, fetchFeed]);
+
+  useEffect(() => {
+    const el = feedScrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 400 && hasMore && !loadingRef.current) {
+        fetchFeed(feedPage + 1);
+      }
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [feedPage, hasMore, fetchFeed]);
+
+  const handleProfileClick = (username: string) => { setViewingProfile(username); };
+  const handleBackToFeed = () => setViewingProfile(null);
+  const refreshFeed = () => { setPosts([]); fetchFeed(1, true); };
+
+  useEffect(() => { document.title = "Social - My Ai Gpt"; }, []);
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-purple-50/30 to-background" data-testid="social-page">
+      <div className="p-4 border-b border-border/20 bg-white/80 backdrop-blur-sm shrink-0">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-purple-500/10"><Users size={18} className="text-purple-500" /></div>
+            <div>
+              <h1 className="font-bold text-lg text-foreground" data-testid="text-social-title">Social</h1>
+              <p className="text-[10px] text-muted-foreground/60">Connect with the community</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {currentProfile && (
+              <button onClick={() => handleProfileClick(currentProfile.username)} className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-muted/20 transition-colors" data-testid="button-my-profile">
+                <SocialAvatar src={currentProfile.avatar || undefined} name={currentProfile.displayName} size="sm" verified={currentProfile.verified || false} />
+                <span className="text-xs font-medium hidden sm:inline">{currentProfile.displayName}</span>
+              </button>
+            )}
+            <button onClick={refreshFeed} className="p-1.5 rounded-lg hover:bg-purple-50 text-muted-foreground hover:text-purple-500 transition-colors" title="Refresh" data-testid="button-refresh-social">
+              <RefreshCw size={14} className={loadingFeed ? "animate-spin" : ""} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-y-auto p-4" ref={feedScrollRef}>
+          {viewingProfile ? (
+            <ProfileView username={viewingProfile} currentProfileId={currentProfileId} onProfileClick={handleProfileClick} onBack={handleBackToFeed} />
+          ) : (
+            <div className="max-w-xl mx-auto space-y-4">
+              <div className="hidden sm:block">
+                <SocialSearchBar onProfileClick={handleProfileClick} />
+              </div>
+
+              {currentProfileId && (
+                <PostComposer profileId={currentProfileId} onPosted={refreshFeed} />
+              )}
+
+              <div className="flex bg-white border border-border/30 rounded-xl overflow-hidden">
+                {([["foryou", "For You", TrendingUp], ["following", "Following", Users], ["trending", "Trending", Heart]] as const).map(([key, label, Icon]) => (
+                  <button key={key} onClick={() => setFeedTab(key as any)} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors relative ${feedTab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground/70"}`} data-testid={`tab-feed-${key}`}>
+                    <Icon size={14} />{label}
+                    {feedTab === key && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-purple-500 rounded-full" />}
+                  </button>
+                ))}
+              </div>
+
+              {loadingFeed && posts.length === 0 ? (
+                <div className="space-y-4">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="bg-white border border-border/30 rounded-xl p-4 animate-pulse">
+                      <div className="flex gap-3">
+                        <div className="w-10 h-10 rounded-full bg-muted/40" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-muted/30 rounded w-1/3" />
+                          <div className="h-3 bg-muted/30 rounded w-full" />
+                          <div className="h-3 bg-muted/30 rounded w-2/3" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="bg-white border border-border/30 rounded-xl p-12 text-center">
+                  <MessageCircle size={40} className="mx-auto text-muted-foreground/20 mb-3" />
+                  <p className="text-sm text-muted-foreground/60 mb-1">{feedTab === "following" ? "No posts from people you follow" : "No posts yet"}</p>
+                  <p className="text-xs text-muted-foreground/40">{feedTab === "following" ? "Follow people to see their posts here" : "Be the first to post something!"}</p>
+                </div>
+              ) : (
+                <>
+                  {posts.map(post => (
+                    <SocialPostCard key={post.id} post={post} currentProfileId={currentProfileId} onProfileClick={handleProfileClick} onRefresh={refreshFeed} />
+                  ))}
+                  {loadingMore && (
+                    <div className="flex justify-center py-6">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <RefreshCw size={14} className="animate-spin text-purple-500" />Loading more...
+                      </div>
+                    </div>
+                  )}
+                  {!hasMore && posts.length > 0 && (
+                    <div className="text-center py-6">
+                      <p className="text-xs text-muted-foreground/40">You've seen all posts</p>
+                      <button onClick={refreshFeed} className="mt-2 px-4 py-1.5 text-xs font-medium text-purple-500 border border-purple-200 rounded-full hover:bg-purple-50 transition-colors" data-testid="button-load-fresh-social">Refresh</button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="hidden lg:block w-72 p-4 border-l border-border/20 overflow-y-auto space-y-4">
+          <div className="sm:hidden">
+            <SocialSearchBar onProfileClick={handleProfileClick} />
+          </div>
+          <WhoToFollow currentProfileId={currentProfileId} onProfileClick={handleProfileClick} />
+          {currentProfile && (
+            <div className="bg-white border border-border/30 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <SocialAvatar src={currentProfile.avatar || undefined} name={currentProfile.displayName} size="md" verified={currentProfile.verified || false} />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold truncate">{currentProfile.displayName}</div>
+                  <div className="text-xs text-muted-foreground">@{currentProfile.username}</div>
+                </div>
+              </div>
+              <button onClick={() => handleProfileClick(currentProfile.username)} className="w-full py-1.5 text-xs font-medium text-purple-500 border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors" data-testid="button-view-my-profile">View Profile</button>
+            </div>
+          )}
+          <div className="text-[9px] text-muted-foreground/30 text-center">Quantum Pulse Intelligence</div>
+        </div>
+      </div>
+
+      <CreateProfileModal isOpen={showCreateProfile && !currentProfileId} onClose={() => setShowCreateProfile(false)} onCreated={(p) => { setCurrentProfileId(p.id); setCurrentProfile(p); setShowCreateProfile(false); }} />
+    </div>
+  );
+}
+
 // ─── LAYOUT + PAGES + ROUTER ─────────────────────────────────────────────────
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -2716,6 +3648,7 @@ function HomePage() { return <Layout><ChatInterface defaultType="general" /></La
 function CoderPage() { return <Layout><ChatInterface defaultType="coder" /></Layout>; }
 function PlaygroundPage() { return <Layout><CodePlayground /></Layout>; }
 function FeedPage() { return <Layout><NewsFeed /></Layout>; }
+function SocialPageWrapper() { return <Layout><SocialPage /></Layout>; }
 
 function ChatViewPage() {
   const [, params] = useRoute("/chat/:id");
@@ -2750,6 +3683,7 @@ function Router() {
       <Route path="/coder" component={CoderPage} />
       <Route path="/playground" component={PlaygroundPage} />
       <Route path="/feed" component={FeedPage} />
+      <Route path="/social" component={SocialPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route component={NotFound} />
     </Switch>

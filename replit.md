@@ -83,6 +83,21 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 - Source colors: Each source has a branded color for badges and placeholders
 - Discord "Join" button: Small indigo badge in sidebar header
 
+## Public Social Page (Twitter/Facebook-style)
+- Route: /social with sidebar "Social" link (purple accent, SOCIAL badge)
+- DB tables: socialProfiles, socialPosts, socialComments, socialFollows, socialLikes, socialBookmarks
+- localStorage-based auth (profileId + username stored locally, no passwords)
+- Profile system: username, display name, bio, avatar, cover image, location, website, verified badge
+- Post system: 280 char limit, media attachments (image/video/link), @mentions, #hashtags, auto-linked URLs
+- Social features: Like (with animation), Comment, Repost, Bookmark, Share (copy link), Pin, Delete
+- Feed tabs: For You (all), Following (from followed users), Trending (by likes in 24h)
+- Profile view: Cover image, avatar, stats, posts/likes/media tabs, follow/unfollow
+- Who to follow suggestions sidebar
+- Profile search with autocomplete
+- Follower/Following lists as modals
+- Infinite scroll on all feeds, skeleton loading, refresh button
+- 30 OMEGA upgrades: verified badges, char counter, pinning, trending algo, bookmarks, reposts, lightbox, video embeds, link previews, search, follower modals, view counter, infinite scroll, suggestions, relative time, @mention linking, #hashtag highlighting, cover images, edit profile, delete confirmation, empty states, skeleton loading, refresh, post count, media grid, like animation, responsive, share button, comment sections, sidebar badge
+
 ## API Endpoints
 - GET/POST /api/chats - List/create chats
 - GET/DELETE /api/chats/:id - Get/delete chat

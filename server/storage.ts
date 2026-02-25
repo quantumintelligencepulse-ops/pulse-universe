@@ -3,14 +3,29 @@ import {
   chats,
   messages,
   feedComments,
+  socialProfiles,
+  socialPosts,
+  socialComments,
+  socialFollows,
+  socialLikes,
+  socialBookmarks,
   type Chat,
   type Message,
   type FeedComment,
   type InsertChat,
   type InsertMessage,
   type InsertFeedComment,
+  type SocialProfile,
+  type SocialPost,
+  type SocialComment,
+  type SocialFollow,
+  type SocialLike,
+  type SocialBookmark,
+  type InsertSocialProfile,
+  type InsertSocialPost,
+  type InsertSocialComment,
 } from "@shared/schema";
-import { eq, desc, like, sql } from "drizzle-orm";
+import { eq, desc, like, sql, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getChats(): Promise<Chat[]>;
@@ -24,6 +39,43 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   getMessageCount(): Promise<number>;
   getChatCount(): Promise<number>;
+
+  createSocialProfile(profile: InsertSocialProfile): Promise<SocialProfile>;
+  getSocialProfile(id: number): Promise<SocialProfile | undefined>;
+  getSocialProfileByUsername(username: string): Promise<SocialProfile | undefined>;
+  updateSocialProfile(id: number, data: Partial<InsertSocialProfile>): Promise<SocialProfile | undefined>;
+  searchSocialProfiles(query: string): Promise<SocialProfile[]>;
+
+  createSocialPost(post: InsertSocialPost): Promise<SocialPost>;
+  getSocialPost(id: number): Promise<SocialPost | undefined>;
+  getSocialFeed(page: number, limit: number): Promise<SocialPost[]>;
+  getSocialPostsByProfile(profileId: number, page: number, limit: number): Promise<SocialPost[]>;
+  getTrendingSocialPosts(page: number, limit: number): Promise<SocialPost[]>;
+  deleteSocialPost(id: number): Promise<void>;
+  togglePinSocialPost(id: number): Promise<SocialPost | undefined>;
+  incrementPostViews(id: number): Promise<void>;
+  incrementPostReposts(id: number): Promise<void>;
+
+  createSocialComment(comment: InsertSocialComment): Promise<SocialComment>;
+  getSocialCommentsByPost(postId: number): Promise<SocialComment[]>;
+  deleteSocialComment(id: number): Promise<void>;
+
+  toggleSocialFollow(followerId: number, followingId: number): Promise<boolean>;
+  getSocialFollowers(profileId: number): Promise<SocialProfile[]>;
+  getSocialFollowing(profileId: number): Promise<SocialProfile[]>;
+  isSocialFollowing(followerId: number, followingId: number): Promise<boolean>;
+  getSocialFollowerCount(profileId: number): Promise<number>;
+  getSocialFollowingCount(profileId: number): Promise<number>;
+
+  toggleSocialLike(postId: number, profileId: number): Promise<boolean>;
+  isSocialLiked(postId: number, profileId: number): Promise<boolean>;
+  getSocialLikeCount(postId: number): Promise<number>;
+
+  toggleSocialBookmark(postId: number, profileId: number): Promise<boolean>;
+  getSocialBookmarkedPosts(profileId: number): Promise<SocialPost[]>;
+
+  getFollowingFeed(profileId: number, page: number, limit: number): Promise<SocialPost[]>;
+  getSocialPostCount(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -86,6 +138,198 @@ export class DatabaseStorage implements IStorage {
   async createFeedComment(comment: InsertFeedComment): Promise<FeedComment> {
     const [newComment] = await db.insert(feedComments).values(comment).returning();
     return newComment;
+  }
+
+  async createSocialProfile(profile: InsertSocialProfile): Promise<SocialProfile> {
+    const [newProfile] = await db.insert(socialProfiles).values(profile).returning();
+    return newProfile;
+  }
+
+  async getSocialProfile(id: number): Promise<SocialProfile | undefined> {
+    const [profile] = await db.select().from(socialProfiles).where(eq(socialProfiles.id, id));
+    return profile;
+  }
+
+  async getSocialProfileByUsername(username: string): Promise<SocialProfile | undefined> {
+    const [profile] = await db.select().from(socialProfiles).where(eq(socialProfiles.username, username));
+    return profile;
+  }
+
+  async updateSocialProfile(id: number, data: Partial<InsertSocialProfile>): Promise<SocialProfile | undefined> {
+    const [updated] = await db.update(socialProfiles).set(data).where(eq(socialProfiles.id, id)).returning();
+    return updated;
+  }
+
+  async searchSocialProfiles(query: string): Promise<SocialProfile[]> {
+    return await db.select().from(socialProfiles)
+      .where(sql`${socialProfiles.username} ILIKE ${'%' + query + '%'} OR ${socialProfiles.displayName} ILIKE ${'%' + query + '%'}`)
+      .limit(20);
+  }
+
+  async createSocialPost(post: InsertSocialPost): Promise<SocialPost> {
+    const [newPost] = await db.insert(socialPosts).values(post).returning();
+    return newPost;
+  }
+
+  async getSocialPost(id: number): Promise<SocialPost | undefined> {
+    const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, id));
+    return post;
+  }
+
+  async getSocialFeed(page: number, limit: number): Promise<SocialPost[]> {
+    const offset = (page - 1) * limit;
+    return await db.select().from(socialPosts).orderBy(desc(socialPosts.createdAt)).limit(limit).offset(offset);
+  }
+
+  async getSocialPostsByProfile(profileId: number, page: number, limit: number): Promise<SocialPost[]> {
+    const offset = (page - 1) * limit;
+    return await db.select().from(socialPosts)
+      .where(eq(socialPosts.profileId, profileId))
+      .orderBy(desc(socialPosts.pinned), desc(socialPosts.createdAt))
+      .limit(limit).offset(offset);
+  }
+
+  async getTrendingSocialPosts(page: number, limit: number): Promise<SocialPost[]> {
+    const offset = (page - 1) * limit;
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return await db.select().from(socialPosts)
+      .where(sql`${socialPosts.createdAt} > ${oneDayAgo}`)
+      .orderBy(desc(socialPosts.likes))
+      .limit(limit).offset(offset);
+  }
+
+  async deleteSocialPost(id: number): Promise<void> {
+    await db.delete(socialComments).where(eq(socialComments.postId, id));
+    await db.delete(socialLikes).where(eq(socialLikes.postId, id));
+    await db.delete(socialBookmarks).where(eq(socialBookmarks.postId, id));
+    await db.delete(socialPosts).where(eq(socialPosts.id, id));
+  }
+
+  async togglePinSocialPost(id: number): Promise<SocialPost | undefined> {
+    const post = await this.getSocialPost(id);
+    if (!post) return undefined;
+    const [updated] = await db.update(socialPosts).set({ pinned: !post.pinned }).where(eq(socialPosts.id, id)).returning();
+    return updated;
+  }
+
+  async incrementPostViews(id: number): Promise<void> {
+    await db.update(socialPosts).set({ views: sql`${socialPosts.views} + 1` }).where(eq(socialPosts.id, id));
+  }
+
+  async incrementPostReposts(id: number): Promise<void> {
+    await db.update(socialPosts).set({ reposts: sql`${socialPosts.reposts} + 1` }).where(eq(socialPosts.id, id));
+  }
+
+  async createSocialComment(comment: InsertSocialComment): Promise<SocialComment> {
+    const [newComment] = await db.insert(socialComments).values(comment).returning();
+    return newComment;
+  }
+
+  async getSocialCommentsByPost(postId: number): Promise<SocialComment[]> {
+    return await db.select().from(socialComments).where(eq(socialComments.postId, postId)).orderBy(desc(socialComments.createdAt));
+  }
+
+  async deleteSocialComment(id: number): Promise<void> {
+    await db.delete(socialComments).where(eq(socialComments.id, id));
+  }
+
+  async toggleSocialFollow(followerId: number, followingId: number): Promise<boolean> {
+    const [existing] = await db.select().from(socialFollows)
+      .where(and(eq(socialFollows.followerId, followerId), eq(socialFollows.followingId, followingId)));
+    if (existing) {
+      await db.delete(socialFollows).where(eq(socialFollows.id, existing.id));
+      return false;
+    }
+    await db.insert(socialFollows).values({ followerId, followingId });
+    return true;
+  }
+
+  async getSocialFollowers(profileId: number): Promise<SocialProfile[]> {
+    const follows = await db.select().from(socialFollows).where(eq(socialFollows.followingId, profileId));
+    if (follows.length === 0) return [];
+    const followerIds = follows.map(f => f.followerId);
+    return await db.select().from(socialProfiles).where(inArray(socialProfiles.id, followerIds));
+  }
+
+  async getSocialFollowing(profileId: number): Promise<SocialProfile[]> {
+    const follows = await db.select().from(socialFollows).where(eq(socialFollows.followerId, profileId));
+    if (follows.length === 0) return [];
+    const followingIds = follows.map(f => f.followingId);
+    return await db.select().from(socialProfiles).where(inArray(socialProfiles.id, followingIds));
+  }
+
+  async isSocialFollowing(followerId: number, followingId: number): Promise<boolean> {
+    const [existing] = await db.select().from(socialFollows)
+      .where(and(eq(socialFollows.followerId, followerId), eq(socialFollows.followingId, followingId)));
+    return !!existing;
+  }
+
+  async getSocialFollowerCount(profileId: number): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(socialFollows).where(eq(socialFollows.followingId, profileId));
+    return Number(result.count);
+  }
+
+  async getSocialFollowingCount(profileId: number): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(socialFollows).where(eq(socialFollows.followerId, profileId));
+    return Number(result.count);
+  }
+
+  async toggleSocialLike(postId: number, profileId: number): Promise<boolean> {
+    const [existing] = await db.select().from(socialLikes)
+      .where(and(eq(socialLikes.postId, postId), eq(socialLikes.profileId, profileId)));
+    if (existing) {
+      await db.delete(socialLikes).where(eq(socialLikes.id, existing.id));
+      await db.update(socialPosts).set({ likes: sql`GREATEST(${socialPosts.likes} - 1, 0)` }).where(eq(socialPosts.id, postId));
+      return false;
+    }
+    await db.insert(socialLikes).values({ postId, profileId });
+    await db.update(socialPosts).set({ likes: sql`${socialPosts.likes} + 1` }).where(eq(socialPosts.id, postId));
+    return true;
+  }
+
+  async isSocialLiked(postId: number, profileId: number): Promise<boolean> {
+    const [existing] = await db.select().from(socialLikes)
+      .where(and(eq(socialLikes.postId, postId), eq(socialLikes.profileId, profileId)));
+    return !!existing;
+  }
+
+  async getSocialLikeCount(postId: number): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(socialLikes).where(eq(socialLikes.postId, postId));
+    return Number(result.count);
+  }
+
+  async toggleSocialBookmark(postId: number, profileId: number): Promise<boolean> {
+    const [existing] = await db.select().from(socialBookmarks)
+      .where(and(eq(socialBookmarks.postId, postId), eq(socialBookmarks.profileId, profileId)));
+    if (existing) {
+      await db.delete(socialBookmarks).where(eq(socialBookmarks.id, existing.id));
+      return false;
+    }
+    await db.insert(socialBookmarks).values({ postId, profileId });
+    return true;
+  }
+
+  async getSocialBookmarkedPosts(profileId: number): Promise<SocialPost[]> {
+    const bookmarks = await db.select().from(socialBookmarks).where(eq(socialBookmarks.profileId, profileId));
+    if (bookmarks.length === 0) return [];
+    const postIds = bookmarks.map(b => b.postId);
+    return await db.select().from(socialPosts).where(inArray(socialPosts.id, postIds)).orderBy(desc(socialPosts.createdAt));
+  }
+
+  async getFollowingFeed(profileId: number, page: number, limit: number): Promise<SocialPost[]> {
+    const offset = (page - 1) * limit;
+    const follows = await db.select().from(socialFollows).where(eq(socialFollows.followerId, profileId));
+    if (follows.length === 0) return [];
+    const followingIds = follows.map(f => f.followingId);
+    return await db.select().from(socialPosts)
+      .where(inArray(socialPosts.profileId, followingIds))
+      .orderBy(desc(socialPosts.createdAt))
+      .limit(limit).offset(offset);
+  }
+
+  async getSocialPostCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(socialPosts);
+    return Number(result.count);
   }
 }
 
