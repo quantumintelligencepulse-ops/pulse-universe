@@ -53,7 +53,8 @@ discordClient.login(DISCORD_TOKEN).catch(e => console.error("Discord login faile
 
 async function getSearchContext(query: string): Promise<string> {
   try {
-    const results = await search(query, { safeSearch: "off" });
+    const { SafeSearchType } = await import("duck-duck-scrape");
+    const results = await search(query, { safeSearch: SafeSearchType.OFF });
     if (results?.results?.length) {
       return results.results.slice(0, 3).map(r => r.description || "").filter(Boolean).join("\n");
     }
@@ -61,6 +62,65 @@ async function getSearchContext(query: string): Promise<string> {
     console.error("Search error:", e);
   }
   return "";
+}
+
+async function getWeather(query: string): Promise<string> {
+  try {
+    const locationMatch = query.match(/weather\s+(?:in|for|at|of)?\s*(.+?)(?:\?|$|\.|\!)/i) ||
+      query.match(/(?:what(?:'s| is) the )?weather\s+(?:in|for|at|of)\s+(.+?)(?:\?|$|\.|\!)/i) ||
+      query.match(/(?:how(?:'s| is)(?: the)? weather)\s+(?:in|for|at|of)?\s*(.+?)(?:\?|$|\.|\!)/i) ||
+      query.match(/weather\s+(.+)/i);
+    let location = locationMatch ? locationMatch[1].trim() : "";
+    if (!location) { console.log("Weather: no location extracted from query"); return ""; }
+
+    const STATE_CITIES: Record<string, string> = { "alabama": "Birmingham", "alaska": "Anchorage", "arizona": "Phoenix", "arkansas": "Little Rock", "california": "Los Angeles", "colorado": "Denver", "connecticut": "Hartford", "delaware": "Wilmington", "florida": "Miami", "georgia": "Atlanta", "hawaii": "Honolulu", "idaho": "Boise", "illinois": "Chicago", "indiana": "Indianapolis", "iowa": "Des Moines", "kansas": "Wichita", "kentucky": "Louisville", "louisiana": "New Orleans", "maine": "Portland", "maryland": "Baltimore", "massachusetts": "Boston", "michigan": "Detroit", "minnesota": "Minneapolis", "mississippi": "Jackson", "missouri": "Kansas City", "montana": "Billings", "nebraska": "Omaha", "nevada": "Las Vegas", "new hampshire": "Manchester", "new jersey": "Newark", "new mexico": "Albuquerque", "new york": "New York", "north carolina": "Charlotte", "north dakota": "Fargo", "ohio": "Columbus", "oklahoma": "Oklahoma City", "oregon": "Portland", "pennsylvania": "Philadelphia", "rhode island": "Providence", "south carolina": "Charleston", "south dakota": "Sioux Falls", "tennessee": "Nashville", "texas": "Houston", "utah": "Salt Lake City", "vermont": "Burlington", "virginia": "Richmond", "washington": "Seattle", "west virginia": "Charleston", "wisconsin": "Milwaukee", "wyoming": "Cheyenne" };
+    const stateCity = STATE_CITIES[location.toLowerCase()];
+    if (stateCity) location = stateCity;
+    location = location.replace(/,.*$/, "").trim();
+    console.log("Weather: fetching for location:", location);
+
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
+    const geoResp = await fetch(geoUrl, { signal: AbortSignal.timeout(5000) });
+    if (!geoResp.ok) { console.log("Weather: geocoding failed", geoResp.status); return ""; }
+    const geoData = await geoResp.json() as any;
+    const place = geoData.results?.[0];
+    if (!place) { console.log("Weather: no geocoding results"); return ""; }
+
+    const { latitude, longitude, name, admin1, country } = place;
+    console.log("Weather: geocoded to", name, admin1, latitude, longitude);
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=3&timezone=auto`;
+    const weatherResp = await fetch(weatherUrl, { signal: AbortSignal.timeout(5000) });
+    if (!weatherResp.ok) { console.log("Weather: API failed", weatherResp.status); return ""; }
+    const w = await weatherResp.json() as any;
+    const cur = w.current;
+    if (!cur) { console.log("Weather: no current data in response"); return ""; }
+
+    const WMO: Record<number, string> = { 0: "Clear sky", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Foggy", 48: "Rime fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain", 71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains", 80: "Light showers", 81: "Showers", 82: "Heavy showers", 85: "Light snow showers", 86: "Heavy snow showers", 95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Severe thunderstorm" };
+    const desc = WMO[cur.weather_code] || "Unknown";
+    const tempF = Math.round(cur.temperature_2m);
+    const tempC = Math.round((tempF - 32) * 5 / 9);
+    const feelsF = Math.round(cur.apparent_temperature);
+    const humid = cur.relative_humidity_2m;
+    const windMph = Math.round(cur.wind_speed_10m);
+
+    const daily = w.daily;
+    const forecast = daily?.time?.slice(0, 3).map((d: string, i: number) => {
+      const hi = Math.round(daily.temperature_2m_max[i]);
+      const lo = Math.round(daily.temperature_2m_min[i]);
+      const dayDesc = WMO[daily.weather_code[i]] || "";
+      return `${d}: High ${hi}°F, Low ${lo}°F - ${dayDesc}`;
+    }).join("\n") || "";
+
+    const result = `LIVE WEATHER DATA for ${name}${admin1 ? ", " + admin1 : ""}${country ? ", " + country : ""}:
+Current: ${desc}, ${tempF}°F (${tempC}°C), Feels like ${feelsF}°F
+Wind: ${windMph} mph, Humidity: ${humid}%
+3-Day Forecast:\n${forecast}`;
+    console.log("Weather result:", result.substring(0, 200));
+    return result;
+  } catch (e) {
+    console.error("Weather fetch error:", e);
+    return "";
+  }
 }
 
 const CODES_DIR = path.join(process.cwd(), "saved_codes");
@@ -441,6 +501,11 @@ export async function registerRoutes(
         searchContext = await getSearchContext(input.content);
       }
 
+      let weatherContext = "";
+      if (/\bweather\b/i.test(lowerContent)) {
+        weatherContext = await getWeather(input.content);
+      }
+
       const history = await storage.getMessages(chatId);
       const recentHistory = history.slice(-8);
 
@@ -502,6 +567,9 @@ RULES:
       }
       if (searchContext) {
         systemPrompt += `\n\nWeb results:\n${searchContext.substring(0, 600)}`;
+      }
+      if (weatherContext) {
+        systemPrompt += `\n\n${weatherContext}\n\nIMPORTANT: You have LIVE weather data above. Present this data naturally and confidently. Do NOT say you don't have access to real-time weather. Do NOT suggest checking other websites. Just give the weather info directly.`;
       }
 
       const messagesForGroq = [
