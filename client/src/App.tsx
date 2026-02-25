@@ -2580,6 +2580,9 @@ function NewsFeed() {
   const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
 
@@ -2605,16 +2608,46 @@ function NewsFeed() {
     loadingRef.current = false;
   }, []);
 
+  const handleSearch = useCallback(async (query: string) => {
+    const q = query.trim();
+    if (!q) { clearSearch(); return; }
+    setSearchLoading(true);
+    setSearchQuery(q);
+    setFilter("All");
+    trackInteraction("search", { text: q, topic: q });
+    try {
+      const r = await fetch(`/api/feed/search?q=${encodeURIComponent(q)}`);
+      const data = await r.json();
+      setArticles(data.articles || []);
+      setTotal(data.total || 0);
+      setHasMore(false);
+    } catch {}
+    setSearchLoading(false);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setSearchInput("");
+    setArticles([]);
+    setPage(1);
+    setHasMore(true);
+    setLoading(true);
+    loadingRef.current = false;
+    fetchPage(1, true);
+  }, [fetchPage]);
+
   useEffect(() => { fetchPage(1); }, [fetchPage]);
 
   useEffect(() => {
+    if (searchQuery) return;
     const interval = setInterval(() => {
       if (!loadingRef.current) fetchPage(1, true);
     }, 120000);
     return () => clearInterval(interval);
-  }, [fetchPage]);
+  }, [fetchPage, searchQuery]);
 
   useEffect(() => {
+    if (searchQuery) return;
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
@@ -2624,7 +2657,7 @@ function NewsFeed() {
     };
     el.addEventListener("scroll", onScroll);
     return () => el.removeEventListener("scroll", onScroll);
-  }, [page, hasMore, fetchPage]);
+  }, [page, hasMore, fetchPage, searchQuery]);
 
   const sources = useMemo(() => {
     if (!articles.length) return ["All", "Videos"];
@@ -2639,6 +2672,7 @@ function NewsFeed() {
   }, [articles, filter]);
 
   const handleRefresh = () => {
+    if (searchQuery) { handleSearch(searchQuery); return; }
     setArticles([]);
     setPage(1);
     setHasMore(true);
@@ -2664,6 +2698,37 @@ function NewsFeed() {
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live" />
           </div>
         </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); handleSearch(searchInput); }} className="mb-3" data-testid="form-feed-search">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search news, videos, topics..."
+              className="w-full pl-9 pr-20 py-2 text-sm bg-muted/20 border border-border/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 placeholder:text-muted-foreground/40 transition-all"
+              data-testid="input-feed-search"
+            />
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <button type="button" onClick={clearSearch} className="p-1 rounded-md hover:bg-muted/30 text-muted-foreground/50 hover:text-foreground transition-colors" data-testid="button-clear-search" title="Clear search">
+                  <X size={14} />
+                </button>
+              )}
+              <button type="submit" disabled={searchLoading || !searchInput.trim()} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" data-testid="button-search-submit">
+                {searchLoading ? <RefreshCw size={12} className="animate-spin" /> : "Search"}
+              </button>
+            </div>
+          </div>
+          {searchQuery && (
+            <div className="flex items-center gap-2 mt-2 px-1">
+              <span className="text-[10px] text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded-full">Results for "{searchQuery}"</span>
+              <span className="text-[10px] text-muted-foreground/50">{total} found</span>
+              <button type="button" onClick={clearSearch} className="text-[10px] text-orange-500 hover:text-orange-600 font-medium ml-auto" data-testid="button-back-to-feed">Back to Live Feed</button>
+            </div>
+          )}
+        </form>
 
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
           {sources.map(s => (

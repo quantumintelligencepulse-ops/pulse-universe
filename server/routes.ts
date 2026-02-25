@@ -5,7 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema } from "@shared/schema";
 import Groq from "groq-sdk";
-import { search } from "duck-duck-scrape";
+import { search, searchNews, searchVideos } from "duck-duck-scrape";
 import { Client, GatewayIntentBits } from "discord.js";
 import * as fs from "fs";
 import * as path from "path";
@@ -778,6 +778,111 @@ export async function registerRoutes(
       res.status(201).json(comment);
     } catch (e) {
       res.status(500).json({ message: "Failed to post comment" });
+    }
+  });
+
+  // ═══════ FEED SEARCH (DuckDuckGo + Videos) ═══════
+  const searchCache: Record<string, { results: any[]; time: number }> = {};
+  const SEARCH_CACHE_TTL = 5 * 60 * 1000;
+
+  app.get("/api/feed/search", async (req, res) => {
+    try {
+      const q = (req.query.q as string || "").trim();
+      if (!q) return res.json({ articles: [], total: 0, query: "", searchMode: true });
+
+      const cacheKey = q.toLowerCase();
+      if (searchCache[cacheKey] && Date.now() - searchCache[cacheKey].time < SEARCH_CACHE_TTL) {
+        return res.json({ articles: searchCache[cacheKey].results, total: searchCache[cacheKey].results.length, query: q, searchMode: true });
+      }
+
+      const { SafeSearchType } = await import("duck-duck-scrape");
+      const allResults: any[] = [];
+      const seenUrls = new Set<string>();
+
+      const [newsResults, webResults, videoResults] = await Promise.allSettled([
+        searchNews(q, { safeSearch: SafeSearchType.STRICT }).catch(() => ({ results: [] })),
+        search(q, { safeSearch: SafeSearchType.STRICT }).catch(() => ({ results: [] })),
+        searchVideos(q, { safeSearch: SafeSearchType.STRICT }).catch(() => ({ results: [] })),
+      ]);
+
+      const newsData = newsResults.status === "fulfilled" ? (newsResults.value as any) : { results: [] };
+      if (newsData?.results?.length) {
+        for (const r of newsData.results.slice(0, 15)) {
+          const link = r.url || r.link || "";
+          if (!link || seenUrls.has(link)) continue;
+          seenUrls.add(link);
+          allResults.push({
+            id: createHash("md5").update(link).digest("hex").slice(0, 16),
+            title: (r.title || "").replace(/<\/?b>/g, ""),
+            description: (r.excerpt || r.body || r.description || "").replace(/<\/?b>/g, "").slice(0, 300),
+            link,
+            image: r.image || "",
+            source: r.source || new URL(link).hostname.replace("www.", ""),
+            pubDate: r.date ? new Date(r.date * 1000).toISOString() : new Date().toISOString(),
+            category: "Search",
+            type: "article",
+            videoUrl: "",
+            sourceColor: "#f97316",
+          });
+        }
+      }
+
+      const webData = webResults.status === "fulfilled" ? (webResults.value as any) : { results: [] };
+      if (webData?.results?.length) {
+        for (const r of webData.results.slice(0, 10)) {
+          const link = r.url || "";
+          if (!link || seenUrls.has(link)) continue;
+          seenUrls.add(link);
+          allResults.push({
+            id: createHash("md5").update(link).digest("hex").slice(0, 16),
+            title: r.title || "",
+            description: (r.description || "").slice(0, 300),
+            link,
+            image: r.icon || "",
+            source: r.hostname || new URL(link).hostname.replace("www.", ""),
+            pubDate: new Date().toISOString(),
+            category: "Search",
+            type: "article",
+            videoUrl: "",
+            sourceColor: "#f97316",
+          });
+        }
+      }
+
+      const videoData = videoResults.status === "fulfilled" ? (videoResults.value as any) : { results: [] };
+      if (videoData?.results?.length) {
+        for (const v of videoData.results.slice(0, 15)) {
+          const link = v.url || v.content || "";
+          if (!link || seenUrls.has(link)) continue;
+          seenUrls.add(link);
+          const isYT = link.includes("youtube.com") || link.includes("youtu.be");
+          let ytId = "";
+          if (isYT) {
+            const m = link.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            if (m) ytId = m[1];
+          }
+          const thumb = v.image || (ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : "");
+          allResults.push({
+            id: createHash("md5").update(link).digest("hex").slice(0, 16),
+            title: v.title || "",
+            description: (v.description || "").slice(0, 300),
+            link,
+            image: thumb,
+            source: v.publisher || (isYT ? "YouTube" : new URL(link).hostname.replace("www.", "")),
+            pubDate: v.published || new Date().toISOString(),
+            category: "Search",
+            type: "video",
+            videoUrl: isYT && ytId ? `https://www.youtube.com/embed/${ytId}` : link,
+            sourceColor: isYT ? "#ff0000" : "#8b5cf6",
+          });
+        }
+      }
+
+      searchCache[cacheKey] = { results: allResults, time: Date.now() };
+      res.json({ articles: allResults, total: allResults.length, query: q, searchMode: true });
+    } catch (e: any) {
+      console.error("Feed search error:", e?.message || e);
+      res.json({ articles: [], total: 0, query: req.query.q || "", searchMode: true, error: "Search temporarily unavailable" });
     }
   });
 

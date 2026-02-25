@@ -83,6 +83,13 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 - Comments: DB-backed public comments per article (username stored in localStorage)
 - Source colors: Each source has a branded color for badges and placeholders
 - Discord "Join" button: Small indigo badge in sidebar header
+- Feed Search Bar: DuckDuckGo-powered search (news + web + videos), fills feed with results for any topic
+  - API: GET /api/feed/search?q=... returns articles in same FeedArticle format
+  - Sources: DuckDuckGo News, DuckDuckGo Web, DuckDuckGo Videos (includes YouTube, TikTok, etc.)
+  - SafeSearch: STRICT mode enabled for safe content
+  - Caching: 5-min cache per query to avoid rate limits
+  - Tracking: "search" interaction type sent to personalization engine (tracks what users search for)
+  - UI: Search bar with orange accent, clear button, "Back to Live Feed" link, result count badge
 
 ## AI-Powered User Personalization (20 OMEGA S-Class Best Friend Logic)
 - DB tables: userPreferences (sector/topic/source/contentType scores, behavior profile, chat topics), userInteractions (event log)
