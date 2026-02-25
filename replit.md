@@ -69,6 +69,20 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 - Export conversation as markdown
 - Responsive design with white theme
 
+## News Feed (MSN-Style)
+- Route: /feed with sidebar "Feed" link (orange accent, LIVE badge)
+- Sources: NY Times (2 feeds), BBC World (2 feeds), CNN, NPR, TechCrunch, The Verge, Ars Technica
+- Video sources: MKBHD, Fireship, freeCodeCamp, Net Ninja, Veritasium, Traversy Media (YouTube RSS)
+- Pagination: 20 items per page, infinite scroll loads more on scroll
+- Auto-refresh: 2-min cache TTL on server, 2-min auto-refresh on client
+- Refresh button + "Load fresh content" at bottom of feed
+- Filter buttons: All, Videos, and per-source filters
+- Video cards: YouTube thumbnail, red play button overlay, VIDEO badge, embedded player on expand
+- Image fallback: Articles without images get source-colored gradient placeholder with icon
+- Comments: DB-backed public comments per article (username stored in localStorage)
+- Source colors: Each source has a branded color for badges and placeholders
+- Discord "Join" button: Small indigo badge in sidebar header
+
 ## API Endpoints
 - GET/POST /api/chats - List/create chats
 - GET/DELETE /api/chats/:id - Get/delete chat

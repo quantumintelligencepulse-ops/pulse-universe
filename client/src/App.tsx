@@ -2358,6 +2358,16 @@ interface FeedArticle {
   source: string;
   pubDate: string;
   category: string;
+  type: string;
+  videoUrl: string;
+  sourceColor: string;
+}
+
+interface FeedResponse {
+  articles: FeedArticle[];
+  total: number;
+  page: number;
+  hasMore: boolean;
 }
 
 function timeAgo(dateStr: string): string {
@@ -2377,6 +2387,9 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
   const [username, setUsername] = useState(() => localStorage.getItem("feed_username") || "");
   const [showComments, setShowComments] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const isVideo = article.type === "video";
+  const color = article.sourceColor || "#f97316";
 
   useEffect(() => {
     if (isExpanded) {
@@ -2402,21 +2415,42 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
     setPosting(false);
   };
 
+  const cardImage = article.image && !imgError;
+
   return (
     <div className={`bg-white rounded-xl border border-border/30 overflow-hidden transition-all duration-300 hover:shadow-lg ${isExpanded ? "col-span-full" : ""}`}
       data-testid={`feed-card-${article.id}`}>
-      {article.image && !isExpanded && (
+
+      {!isExpanded && (
         <div className="relative cursor-pointer group" onClick={onExpand}>
-          <img src={article.image} alt="" className="w-full h-48 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          {cardImage ? (
+            <img src={article.image} alt="" className="w-full h-48 object-cover" onError={() => setImgError(true)} />
+          ) : (
+            <div className="w-full h-32 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${color}18, ${color}30)` }}>
+              {isVideo ? <Play size={32} style={{ color }} /> : <Newspaper size={28} style={{ color }} className="opacity-40" />}
+            </div>
+          )}
+          {isVideo && cardImage && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-red-600/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Play size={20} className="text-white ml-0.5" fill="white" />
+              </div>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-            <span className="text-white text-xs font-medium">Click to read</span>
+            <span className="text-white text-xs font-medium">{isVideo ? "Watch video" : "Click to read"}</span>
           </div>
+          {isVideo && (
+            <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded flex items-center gap-1">
+              <Play size={8} fill="white" /> VIDEO
+            </div>
+          )}
         </div>
       )}
 
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">{article.source}</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ color, backgroundColor: `${color}15` }}>{article.source}</span>
           <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Clock size={9} /> {timeAgo(article.pubDate)}</span>
           {article.category !== "General" && (
             <span className="text-[10px] text-muted-foreground/40 bg-muted/30 px-1.5 py-0.5 rounded-full">{article.category}</span>
@@ -2433,13 +2467,18 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
 
         {isExpanded && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            {article.image && (
-              <img src={article.image} alt="" className="w-full max-h-96 object-cover rounded-lg" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            )}
+            {isVideo && article.videoUrl ? (
+              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                <iframe src={article.videoUrl} className="absolute inset-0 w-full h-full rounded-lg" allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+              </div>
+            ) : cardImage ? (
+              <img src={article.image} alt="" className="w-full max-h-96 object-cover rounded-lg" onError={() => setImgError(true)} />
+            ) : null}
             <p className="text-sm text-foreground/80 leading-relaxed">{article.description}</p>
             <a href={article.link} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors" data-testid={`feed-readmore-${article.id}`}>
-              Read full article <ChevronRight size={12} />
+              {isVideo ? "Watch on YouTube" : "Read full article"} <ChevronRight size={12} />
             </a>
 
             <div className="border-t border-border/20 pt-3">
@@ -2488,7 +2527,7 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
 
         {!isExpanded && (
           <button onClick={onExpand} className="text-[11px] text-orange-500 hover:text-orange-600 font-medium transition-colors" data-testid={`feed-expand-${article.id}`}>
-            Read more
+            {isVideo ? "Watch" : "Read more"}
           </button>
         )}
         {isExpanded && (
@@ -2502,21 +2541,78 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
 }
 
 function NewsFeed() {
-  const { data: articles, isLoading } = useQuery<FeedArticle[]>({ queryKey: ["/api/feed"] });
+  const [articles, setArticles] = useState<FeedArticle[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("All");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+
+  const fetchPage = useCallback(async (p: number, reset = false) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    if (p === 1) setLoading(true); else setLoadingMore(true);
+    try {
+      const r = await fetch(`/api/feed?page=${p}`);
+      const data: FeedResponse = await r.json();
+      setArticles(prev => {
+        if (reset || p === 1) return data.articles;
+        const existingIds = new Set(prev.map(a => a.id));
+        const newItems = data.articles.filter(a => !existingIds.has(a.id));
+        return [...prev, ...newItems];
+      });
+      setHasMore(data.hasMore);
+      setTotal(data.total);
+      setPage(p);
+    } catch {}
+    setLoading(false);
+    setLoadingMore(false);
+    loadingRef.current = false;
+  }, []);
+
+  useEffect(() => { fetchPage(1); }, [fetchPage]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loadingRef.current) fetchPage(1, true);
+    }, 120000);
+    return () => clearInterval(interval);
+  }, [fetchPage]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 300 && hasMore && !loadingRef.current) {
+        fetchPage(page + 1);
+      }
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [page, hasMore, fetchPage]);
 
   const sources = useMemo(() => {
-    if (!articles) return ["All"];
+    if (!articles.length) return ["All", "Videos"];
     const s = [...new Set(articles.map(a => a.source))];
-    return ["All", ...s.sort()];
+    return ["All", "Videos", ...s.sort()];
   }, [articles]);
 
   const filtered = useMemo(() => {
-    if (!articles) return [];
     if (filter === "All") return articles;
+    if (filter === "Videos") return articles.filter(a => a.type === "video");
     return articles.filter(a => a.source === filter);
   }, [articles, filter]);
+
+  const handleRefresh = () => {
+    setArticles([]);
+    setPage(1);
+    setHasMore(true);
+    fetchPage(1, true);
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-orange-50/30 to-background">
@@ -2526,11 +2622,14 @@ function NewsFeed() {
             <div className="p-1.5 rounded-lg bg-orange-500/10"><Newspaper size={18} className="text-orange-500" /></div>
             <div>
               <h1 className="font-bold text-lg text-foreground" data-testid="text-feed-title">My Ai Gpt Feed</h1>
-              <p className="text-[10px] text-muted-foreground/60">Live news from around the world</p>
+              <p className="text-[10px] text-muted-foreground/60">Live news & videos from around the world</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground/50">{articles?.length || 0} articles</span>
+            <button onClick={handleRefresh} className="p-1.5 rounded-lg hover:bg-orange-50 text-muted-foreground hover:text-orange-500 transition-colors" title="Refresh feed" data-testid="button-refresh-feed">
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            </button>
+            <span className="text-[10px] text-muted-foreground/50">{total} items</span>
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live" />
           </div>
         </div>
@@ -2538,15 +2637,19 @@ function NewsFeed() {
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
           {sources.map(s => (
             <button key={s} onClick={() => setFilter(s)} data-testid={`feed-filter-${s}`}
-              className={`px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-all ${filter === s ? "bg-orange-500 text-white shadow-sm" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"}`}>
-              {s}
+              className={`px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-all ${
+                filter === s
+                  ? s === "Videos" ? "bg-red-500 text-white shadow-sm" : "bg-orange-500 text-white shadow-sm"
+                  : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+              }`}>
+              {s === "Videos" && <span className="mr-1">▶</span>}{s}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {isLoading ? (
+      <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
+        {loading && articles.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1,2,3,4,5,6].map(i => (
               <div key={i} className="bg-white rounded-xl border border-border/30 overflow-hidden animate-pulse">
@@ -2565,13 +2668,31 @@ function NewsFeed() {
             <p className="text-sm text-muted-foreground/50">No articles available</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
-            {filtered.map(article => (
-              <FeedCard key={article.id} article={article}
-                isExpanded={expandedId === article.id}
-                onExpand={() => setExpandedId(expandedId === article.id ? null : article.id)} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+              {filtered.map(article => (
+                <FeedCard key={article.id} article={article}
+                  isExpanded={expandedId === article.id}
+                  onExpand={() => setExpandedId(expandedId === article.id ? null : article.id)} />
+              ))}
+            </div>
+            {loadingMore && (
+              <div className="flex justify-center py-6">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <RefreshCw size={14} className="animate-spin text-orange-500" />
+                  Loading more...
+                </div>
+              </div>
+            )}
+            {!hasMore && articles.length > 0 && (
+              <div className="text-center py-6">
+                <p className="text-xs text-muted-foreground/40">You've reached the end. Pull to refresh for new content!</p>
+                <button onClick={handleRefresh} className="mt-2 px-4 py-1.5 text-xs font-medium text-orange-500 border border-orange-200 rounded-full hover:bg-orange-50 transition-colors" data-testid="button-load-fresh">
+                  Load fresh content
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

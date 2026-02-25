@@ -627,49 +627,86 @@ export async function registerRoutes(
   });
 
   // ═══════ NEWS FEED ═══════
-  const RSS_FEEDS = [
+  const RSS_FEEDS: { url: string; source: string; type?: string }[] = [
     { url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", source: "NY Times" },
+    { url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", source: "NY Times" },
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
+    { url: "https://feeds.bbci.co.uk/news/technology/rss.xml", source: "BBC World" },
     { url: "https://rss.cnn.com/rss/edition.rss", source: "CNN" },
     { url: "https://feeds.npr.org/1001/rss.xml", source: "NPR" },
     { url: "https://feeds.feedburner.com/TechCrunch/", source: "TechCrunch" },
-    { url: "https://www.reddit.com/r/worldnews/.rss", source: "Reddit World News" },
     { url: "https://www.theverge.com/rss/index.xml", source: "The Verge" },
     { url: "https://feeds.arstechnica.com/arstechnica/index", source: "Ars Technica" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ", source: "MKBHD", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA", source: "Fireship", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8butISFwT-Wl7EV0hUK0BQ", source: "freeCodeCamp", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCW5YeuERMmlnqo4oq8vwUpg", source: "Net Ninja", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA", source: "Veritasium", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC29ju8bIPH5as8OGnQzwJyA", source: "Traversy Media", type: "video" },
   ];
 
-  let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
-  const FEED_CACHE_TTL = 10 * 60 * 1000;
+  const SOURCE_COLORS: Record<string, string> = {
+    "NY Times": "#1a1a2e", "BBC World": "#b80000", "CNN": "#cc0000",
+    "NPR": "#2663a5", "TechCrunch": "#0a9e01", "The Verge": "#6200ee",
+    "Ars Technica": "#ff4400", "MKBHD": "#e62117", "Fireship": "#ff9900",
+    "freeCodeCamp": "#0a0a23", "Net Ninja": "#00d9ff", "Veritasium": "#1a73e8",
+    "Traversy Media": "#6366f1",
+  };
 
-  app.get("/api/feed", async (_req, res) => {
+  let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
+  const FEED_CACHE_TTL = 2 * 60 * 1000;
+
+  app.get("/api/feed", async (req, res) => {
     try {
+      const page = parseInt(req.query.page as string) || 1;
+      const perPage = 20;
+
       if (Date.now() - feedCache.lastFetch < FEED_CACHE_TTL && feedCache.articles.length > 0) {
-        return res.json(feedCache.articles);
+        const start = (page - 1) * perPage;
+        const slice = feedCache.articles.slice(start, start + perPage);
+        return res.json({ articles: slice, total: feedCache.articles.length, page, hasMore: start + perPage < feedCache.articles.length });
       }
 
       const RssParser = (await import("rss-parser")).default;
       const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
 
       const allArticles: any[] = [];
+      const seenIds = new Set<string>();
       const feedPromises = RSS_FEEDS.map(async (feed) => {
         try {
           const parsed = await parser.parseURL(feed.url);
-          const items = (parsed.items || []).slice(0, 8).map((item: any) => {
+          const isYT = feed.type === "video";
+          const items = (parsed.items || []).slice(0, 10).map((item: any) => {
             const mediaContent = item["media:content"] || item["media:thumbnail"] || item.enclosure;
-            let image = mediaContent?.$.url || mediaContent?.url || item["media:thumbnail"]?.$.url || "";
-            if (!image && item["content:encoded"]) {
-              const imgMatch = item["content:encoded"].match(/<img[^>]+src="([^"]+)"/);
-              if (imgMatch) image = imgMatch[1];
-            }
-            if (!image && item.content) {
-              const imgMatch = item.content.match(/<img[^>]+src="([^"]+)"/);
-              if (imgMatch) image = imgMatch[1];
+            let image = "";
+            if (isYT) {
+              const vidId = (item.id || "").replace("yt:video:", "");
+              if (vidId) image = `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg`;
+            } else {
+              image = mediaContent?.$.url || mediaContent?.url || item["media:thumbnail"]?.$.url || "";
+              if (!image && item["content:encoded"]) {
+                const imgMatch = item["content:encoded"].match(/<img[^>]+src="([^"]+)"/);
+                if (imgMatch) image = imgMatch[1];
+              }
+              if (!image && item.content) {
+                const imgMatch = item.content.match(/<img[^>]+src="([^"]+)"/);
+                if (imgMatch) image = imgMatch[1];
+              }
+              if (!image && item.link) {
+                image = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(item.link)}&size=128`;
+              }
             }
 
             const desc = (item.contentSnippet || item.content || item.summary || "")
               .replace(/<[^>]*>/g, "").substring(0, 300);
 
             const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
+
+            let videoUrl = "";
+            if (isYT) {
+              const vidId = (item.id || "").replace("yt:video:", "");
+              videoUrl = vidId ? `https://www.youtube.com/embed/${vidId}` : "";
+            }
 
             return {
               id,
@@ -680,9 +717,17 @@ export async function registerRoutes(
               source: feed.source,
               pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
               category: typeof item.categories?.[0] === "string" ? item.categories[0] : (item.categories?.[0]?._ || "General"),
+              type: feed.type || "article",
+              videoUrl,
+              sourceColor: SOURCE_COLORS[feed.source] || "#f97316",
             };
           });
-          allArticles.push(...items);
+          items.forEach((item: any) => {
+            if (!seenIds.has(item.id)) {
+              seenIds.add(item.id);
+              allArticles.push(item);
+            }
+          });
         } catch (e) {
           console.error(`RSS fetch error for ${feed.source}:`, (e as Error).message);
         }
@@ -693,10 +738,12 @@ export async function registerRoutes(
       allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
       feedCache = { articles: allArticles, lastFetch: Date.now() };
-      res.json(allArticles);
+      const start = (page - 1) * perPage;
+      const slice = allArticles.slice(start, start + perPage);
+      res.json({ articles: slice, total: allArticles.length, page, hasMore: start + perPage < allArticles.length });
     } catch (e) {
       console.error("Feed error:", e);
-      res.json(feedCache.articles.length > 0 ? feedCache.articles : []);
+      res.json({ articles: feedCache.articles.length > 0 ? feedCache.articles.slice(0, 20) : [], total: 0, page: 1, hasMore: false });
     }
   });
 
