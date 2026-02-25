@@ -73,14 +73,39 @@ async function getWeather(query: string): Promise<string> {
     let location = locationMatch ? locationMatch[1].trim() : "";
     if (!location) return "";
 
+    const STATE_NAMES = ["alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia","hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts","michigan","minnesota","mississippi","missouri","montana","nebraska","nevada","new hampshire","new jersey","new mexico","new york","north carolina","north dakota","ohio","oklahoma","oregon","pennsylvania","rhode island","south carolina","south dakota","tennessee","texas","utah","vermont","virginia","washington","west virginia","wisconsin","wyoming"];
     const STATE_CITIES: Record<string, string> = { "alabama": "Birmingham", "alaska": "Anchorage", "arizona": "Phoenix", "arkansas": "Little Rock", "california": "Los Angeles", "colorado": "Denver", "connecticut": "Hartford", "delaware": "Wilmington", "florida": "Miami", "georgia": "Atlanta", "hawaii": "Honolulu", "idaho": "Boise", "illinois": "Chicago", "indiana": "Indianapolis", "iowa": "Des Moines", "kansas": "Wichita", "kentucky": "Louisville", "louisiana": "New Orleans", "maine": "Portland", "maryland": "Baltimore", "massachusetts": "Boston", "michigan": "Detroit", "minnesota": "Minneapolis", "mississippi": "Jackson", "missouri": "Kansas City", "montana": "Billings", "nebraska": "Omaha", "nevada": "Las Vegas", "new hampshire": "Manchester", "new jersey": "Newark", "new mexico": "Albuquerque", "new york": "New York", "north carolina": "Charlotte", "north dakota": "Fargo", "ohio": "Columbus", "oklahoma": "Oklahoma City", "oregon": "Portland", "pennsylvania": "Philadelphia", "rhode island": "Providence", "south carolina": "Charleston", "south dakota": "Sioux Falls", "tennessee": "Nashville", "texas": "Houston", "utah": "Salt Lake City", "vermont": "Burlington", "virginia": "Richmond", "washington": "Seattle", "west virginia": "Charleston", "wisconsin": "Milwaukee", "wyoming": "Cheyenne" };
-    const stateCity = STATE_CITIES[location.toLowerCase()];
-    if (stateCity) location = stateCity;
-    location = location.replace(/,.*$/, "").trim();
-    const geoResp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`, { signal: AbortSignal.timeout(5000) });
+
+    const lowerLoc = location.toLowerCase().replace(/,/g, " ").replace(/\s+/g, " ").trim();
+    let searchCity = location;
+    let targetState = "";
+
+    if (STATE_CITIES[lowerLoc]) {
+      searchCity = STATE_CITIES[lowerLoc];
+    } else {
+      const foundState = STATE_NAMES.find(s => {
+        const escaped = s.replace(/ /g, "\\s*");
+        return new RegExp(`\\b${escaped}\\s*$`, "i").test(lowerLoc);
+      });
+      if (foundState) {
+        targetState = foundState;
+        const cityPart = lowerLoc.replace(new RegExp(`\\s*${foundState.replace(/ /g, "\\s*")}\\s*$`, "i"), "").trim();
+        searchCity = cityPart || STATE_CITIES[foundState] || location;
+      }
+      searchCity = searchCity.replace(/,.*$/, "").trim();
+    }
+
+    const geoResp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchCity)}&count=10&language=en&format=json`, { signal: AbortSignal.timeout(5000) });
     if (!geoResp.ok) return "";
     const geoData = await geoResp.json() as any;
-    const place = geoData.results?.[0];
+    const geoResults = geoData.results || [];
+    if (geoResults.length === 0) return "";
+
+    let place = geoResults[0];
+    if (targetState && geoResults.length > 1) {
+      const stateMatch = geoResults.find((r: any) => r.admin1?.toLowerCase() === targetState.toLowerCase() || r.country?.toLowerCase() === targetState.toLowerCase());
+      if (stateMatch) place = stateMatch;
+    }
     if (!place) return "";
 
     const { latitude, longitude, name, admin1, country } = place;
@@ -749,21 +774,43 @@ If you have live data provided in this prompt, USE IT and present it confidently
 
       let reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
 
-      const bannedPatterns = [
-        /(?:I'm|I am|As) a (?:large )?language model[^.]*\./gi,
-        /(?:I'm|I am) a text-based AI[^.]*\./gi,
-        /I (?:don't|do not|cannot|can't) have (?:real-time |)access[^.]*\./gi,
-        /I (?:don't|do not|cannot|can't) (?:browse|access) the internet[^.]*\./gi,
-        /I (?:recommend|suggest) (?:checking|visiting)[^.]*\./gi,
-        /(?:You can|Please) (?:check|visit|go to)[^.]*(?:\.com|\.org|\.net|website|app)[^.]*\./gi,
-        /(?:check|visit) (?:online |)(?:weather |stock |crypto |)websites?[^.]*\./gi,
-        /However,? I (?:don't|do not|cannot|can't) have[^.]*\./gi,
-        /Please note that I[^.]*(?:real-time|browse|access)[^.]*\./gi,
+      const bannedSentencePatterns = [
+        /[^.!?\n]*(?:I'm|I am|as) a (?:large |)(?:language model|text-based AI)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:don't|do not|cannot|can't|unable to) (?:have |)(?:real-time|access to (?:real-time|current|live)|browse the internet|access (?:the internet|current|live))[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:I (?:recommend|suggest)|you (?:can|should|might want to)|please) (?:check|visit|go to|try|use|head to|look at)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:check(?:ing)?|visit(?:ing)?|head to|go to) (?:online |a |the |some )?(?:weather |stock |crypto |reliable |)?(?:websites?|apps?|services?|sources?|platforms?)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:accuweather|weather\.com|wunderground|coinmarketcap|coingecko|yahoo finance|google finance|national weather)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:download|install) (?:a |the |some |mobile |)?(?:weather |stock |)apps?[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:voice assistant|siri|google assistant|alexa)[^.!?\n]*(?:weather|price|stock)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:Dark Sky|Weather Underground|The Weather Channel)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*simply (?:enter|type|search)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:these (?:websites?|apps?|services?) (?:will |can |)provide)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:please note that I|however,? I)[^.!?\n]*(?:real-time|access|browse|language model)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:always a good idea to|it's always best to|I (?:would |)(?:recommend|advise|encourage)|for the most up-to-date)[^.!?\n]*(?:check|visit|consult|verify|local|online|website|report)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:please note that these|keep in mind that|note that (?:these|this|stock|crypto|weather|market))[^.!?\n]*(?:fluctuat|change|vary|not reflect|up-to-date|accurate)[^.!?\n]*[.!?\n]/gi,
+        /[^.!?\n]*(?:as of my (?:knowledge|last|training)|my (?:knowledge |data )cutoff)[^.!?\n]*[.!?\n]/gi,
       ];
-      for (const pattern of bannedPatterns) {
+      for (const pattern of bannedSentencePatterns) {
         reply = reply.replace(pattern, "").trim();
       }
-      reply = reply.replace(/\n{3,}/g, "\n\n").trim();
+
+      const bannedHeaders = [
+        /\*\*Method \d+:.*?\*\*\n?/gi,
+        /#{1,3}\s*(?:Method|Option|Way|Tip)\s*\d+[^\n]*\n?/gi,
+      ];
+      for (const pattern of bannedHeaders) {
+        reply = reply.replace(pattern, "").trim();
+      }
+
+      const bannedBlocks = [
+        /\*\s*(?:accuweather|weather\.com|wunderground|coinmarketcap|coingecko|Dark Sky|Weather Underground|The Weather Channel|nationalweather)[^\n]*\n?/gi,
+        /\d+\.\s*\*\*(?:Check online|Use a |Download|Visit|Mobile Apps?|Online Weather|Voice Assistant)[^*]*\*\*[^]*?(?=\n\d+\.|\n\n[A-Z]|\n#{1,3}|$)/gi,
+      ];
+      for (const pattern of bannedBlocks) {
+        reply = reply.replace(pattern, "").trim();
+      }
+
+      reply = reply.replace(/\n{3,}/g, "\n\n").replace(/^\s*[-*]\s*$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
 
       const savedMessage = await storage.createMessage({
         chatId,
