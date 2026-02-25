@@ -9,6 +9,8 @@ import {
   socialFollows,
   socialLikes,
   socialBookmarks,
+  userPreferences,
+  userInteractions,
   type Chat,
   type Message,
   type FeedComment,
@@ -24,6 +26,9 @@ import {
   type InsertSocialProfile,
   type InsertSocialPost,
   type InsertSocialComment,
+  type UserPreferences,
+  type UserInteraction,
+  type InsertUserInteraction,
 } from "@shared/schema";
 import { eq, desc, like, sql, and, inArray } from "drizzle-orm";
 
@@ -76,6 +81,11 @@ export interface IStorage {
 
   getFollowingFeed(profileId: number, page: number, limit: number): Promise<SocialPost[]>;
   getSocialPostCount(): Promise<number>;
+
+  getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
+  upsertUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences>;
+  recordInteraction(interaction: InsertUserInteraction): Promise<UserInteraction>;
+  getRecentInteractions(userId: string, limit: number): Promise<UserInteraction[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -330,6 +340,33 @@ export class DatabaseStorage implements IStorage {
   async getSocialPostCount(): Promise<number> {
     const [result] = await db.select({ count: sql<number>`count(*)` }).from(socialPosts);
     return Number(result.count);
+  }
+
+  async getUserPreferences(userId: string): Promise<UserPreferences | undefined> {
+    const [prefs] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
+    return prefs;
+  }
+
+  async upsertUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences> {
+    const existing = await this.getUserPreferences(userId);
+    if (existing) {
+      const [updated] = await db.update(userPreferences).set({ ...data, lastActive: new Date() }).where(eq(userPreferences.userId, userId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(userPreferences).values({ userId, ...data } as any).returning();
+    return created;
+  }
+
+  async recordInteraction(interaction: InsertUserInteraction): Promise<UserInteraction> {
+    const [created] = await db.insert(userInteractions).values(interaction).returning();
+    return created;
+  }
+
+  async getRecentInteractions(userId: string, limit: number): Promise<UserInteraction[]> {
+    return await db.select().from(userInteractions)
+      .where(eq(userInteractions.userId, userId))
+      .orderBy(desc(userInteractions.createdAt))
+      .limit(limit);
   }
 }
 

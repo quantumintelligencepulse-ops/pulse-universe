@@ -30,6 +30,17 @@ import logo from "@assets/MyAiGpt_1772000395528.webp";
 const MESSAGE_LIMIT = 9;
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
 
+function getUserId(): string {
+  let uid = localStorage.getItem("myaigpt_user_id");
+  if (!uid) { uid = `u_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; localStorage.setItem("myaigpt_user_id", uid); }
+  return uid;
+}
+
+function trackInteraction(type: string, data: { text?: string; source?: string; category?: string; contentType?: string; duration?: number; topic?: string } = {}) {
+  const userId = getUserId();
+  fetch("/api/user/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, type, ...data }) }).catch(() => {});
+}
+
 function getMessageCount(): number {
   try { return parseInt(localStorage.getItem("myaigpt_msg_count") || "0", 10); } catch { return 0; }
 }
@@ -861,7 +872,8 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
         const c = await r.json(); targetChatId = c.id;
         qc.invalidateQueries({ queryKey: [api.chats.list.path] });
       }
-      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }) });
+      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json", "x-user-id": getUserId() }, body: JSON.stringify({ content }) });
+      trackInteraction("chat_message", { text: content, topic: content.slice(0, 60) });
       if (!r.ok) throw new Error("Failed to get response");
       if (!chatId) { setLocation(`/chat/${targetChatId}`); } else { qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] }); setLocalMessages([]); }
     } catch (error: any) {
@@ -2395,8 +2407,18 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
   const [showComments, setShowComments] = useState(false);
   const [posting, setPosting] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const expandTimeRef = useRef<number>(0);
   const isVideo = article.type === "video";
   const color = article.sourceColor || "#f97316";
+
+  useEffect(() => {
+    if (isExpanded) { expandTimeRef.current = Date.now(); }
+    else if (expandTimeRef.current > 0) {
+      const duration = Math.round((Date.now() - expandTimeRef.current) / 1000);
+      if (duration >= 3) trackInteraction("article_read", { text: article.title, source: article.source, category: article.category, contentType: article.type, duration });
+      expandTimeRef.current = 0;
+    }
+  }, [isExpanded]);
 
   useEffect(() => {
     if (isExpanded) {
@@ -2417,6 +2439,7 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
         const comment = await r.json();
         setComments(prev => [comment, ...prev]);
         setNewComment("");
+        trackInteraction("comment", { text: newComment, source: article.source, category: article.category });
       }
     } catch {}
     setPosting(false);
@@ -2681,7 +2704,11 @@ function NewsFeed() {
               {filtered.map(article => (
                 <FeedCard key={article.id} article={article}
                   isExpanded={expandedId === article.id}
-                  onExpand={() => setExpandedId(expandedId === article.id ? null : article.id)} />
+                  onExpand={() => {
+                    const isExpanding = expandedId !== article.id;
+                    setExpandedId(isExpanding ? article.id : null);
+                    if (isExpanding) trackInteraction("article_click", { text: article.title + " " + article.description, source: article.source, category: article.category, contentType: article.type });
+                  }} />
               ))}
             </div>
             {loadingMore && (
@@ -2939,7 +2966,7 @@ function PostComposer({ profileId, onPosted }: { profileId: number; onPosted: ()
       const body: any = { profileId, content };
       if (mediaUrl) { body.mediaUrl = mediaUrl; body.mediaType = mediaType || "image"; }
       const r = await fetch("/api/social/posts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (r.ok) { setContent(""); setMediaUrl(""); setMediaType(""); setShowMedia(false); onPosted(); toast({ title: "Post published!" }); }
+      if (r.ok) { trackInteraction("social_post", { text: content }); setContent(""); setMediaUrl(""); setMediaType(""); setShowMedia(false); onPosted(); toast({ title: "Post published!" }); }
     } catch { toast({ title: "Failed to post", variant: "destructive" }); }
     setPosting(false);
   };
@@ -3009,7 +3036,7 @@ function SocialPostCard({ post, currentProfileId, onProfileClick, onRefresh }: {
     setTimeout(() => setLikeAnimating(false), 500);
     try {
       const r = await fetch(`/api/social/posts/${post.id}/like`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
-      if (r.ok) { const data = await r.json(); setLiked(data.liked); setLikeCount(data.likes); }
+      if (r.ok) { const data = await r.json(); setLiked(data.liked); setLikeCount(data.likes); if (data.liked) trackInteraction("social_like", { text: post.content }); }
     } catch {}
   };
 
@@ -3017,7 +3044,7 @@ function SocialPostCard({ post, currentProfileId, onProfileClick, onRefresh }: {
     if (!currentProfileId) return;
     try {
       const r = await fetch(`/api/social/posts/${post.id}/bookmark`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
-      if (r.ok) { const data = await r.json(); setBookmarked(data.bookmarked); toast({ title: data.bookmarked ? "Bookmarked" : "Removed bookmark" }); }
+      if (r.ok) { const data = await r.json(); setBookmarked(data.bookmarked); toast({ title: data.bookmarked ? "Bookmarked" : "Removed bookmark" }); if (data.bookmarked) trackInteraction("bookmark", { text: post.content }); }
     } catch {}
   };
 

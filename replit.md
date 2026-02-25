@@ -79,9 +79,40 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 - Filter buttons: All, Videos, and per-source filters
 - Video cards: YouTube thumbnail, red play button overlay, VIDEO badge, embedded player on expand
 - Image fallback: Articles without images get source-colored gradient placeholder with icon
+- OG Image Fetcher: Background async fetcher scrapes og:image from article pages (BBC, NPR, Ars Technica work; NYT blocks scraping)
 - Comments: DB-backed public comments per article (username stored in localStorage)
 - Source colors: Each source has a branded color for badges and placeholders
 - Discord "Join" button: Small indigo badge in sidebar header
+
+## AI-Powered User Personalization (20 OMEGA S-Class Best Friend Logic)
+- DB tables: userPreferences (sector/topic/source/contentType scores, behavior profile, chat topics), userInteractions (event log)
+- User ID: Auto-generated in localStorage (myaigpt_user_id), passed via x-user-id header to chat
+- GICS Sector Mapping: 15 sectors (Energy, Materials, Industrials, Consumer Discretionary, Consumer Staples, Health Care, Financials, IT, Communication Services, Real Estate, Utilities, Government & Politics, Science & Education, Sports & Fitness, Arts & Culture) with keyword matching
+- 20 Learning Signals:
+  1. Article click tracking (topic/source/category)
+  2. Time-on-article tracking (duration in seconds)
+  3. Chat topic analysis (what they ask about)
+  4. Search query tracking
+  5. Social post topic analysis
+  6. Feed source preference (which sources they click most)
+  7. Category affinity scoring (weighted decay)
+  8. GICS sector mapping (auto-classify content)
+  9. Industry interest profiling
+  10. Activity time patterns (hour-of-day tracking)
+  11. Content type preference (articles vs videos)
+  12. Engagement style (reader vs commenter vs poster)
+  13. Topic velocity (trending interests vs stable)
+  14. Social like pattern analysis
+  15. Bookmark topic analysis
+  16. Feed comment tracking
+  17. Chat response context injection
+  18. Code playground tracking
+  19. Duration-weighted learning (longer read = stronger signal)
+  20. Adaptive AI personality tuning (system prompt injection)
+- Personalized Feed: /api/feed/personalized?userId=X reorders articles by affinity score
+- AI Chat Integration: User preferences injected into Groq system prompt (top sectors, topics, chat focus)
+- Score Decay: 0.98 decay factor prevents stale preferences, keeps profile fresh
+- API: POST /api/user/track, GET /api/user/preferences/:userId, GET /api/feed/personalized
 
 ## Public Social Page (Twitter/Facebook-style)
 - Route: /social with sidebar "Social" link (purple accent, SOCIAL badge)

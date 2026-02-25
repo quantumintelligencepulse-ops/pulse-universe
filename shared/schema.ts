@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, jsonb, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -93,6 +93,34 @@ export const socialBookmarks = pgTable("social_bookmarks", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().unique(),
+  sectorScores: jsonb("sector_scores").default({}),
+  topicScores: jsonb("topic_scores").default({}),
+  sourceScores: jsonb("source_scores").default({}),
+  contentTypeScores: jsonb("content_type_scores").default({}),
+  chatTopics: jsonb("chat_topics").default({}),
+  behaviorProfile: jsonb("behavior_profile").default({}),
+  totalInteractions: integer("total_interactions").default(0),
+  lastActive: timestamp("last_active").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userInteractions = pgTable("user_interactions", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  interactionType: text("interaction_type").notNull(),
+  category: text("category").default(""),
+  source: text("source").default(""),
+  topic: text("topic").default(""),
+  sector: text("sector").default(""),
+  contentType: text("content_type").default(""),
+  duration: integer("duration").default(0),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertSocialProfileSchema = createInsertSchema(socialProfiles).omit({ id: true, createdAt: true });
 export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({ id: true, createdAt: true, likes: true, reposts: true, views: true });
 export const insertSocialCommentSchema = createInsertSchema(socialComments).omit({ id: true, createdAt: true, likes: true });
@@ -112,3 +140,10 @@ export type InsertSocialComment = z.infer<typeof insertSocialCommentSchema>;
 export type InsertSocialFollow = z.infer<typeof insertSocialFollowSchema>;
 export type InsertSocialLike = z.infer<typeof insertSocialLikeSchema>;
 export type InsertSocialBookmark = z.infer<typeof insertSocialBookmarkSchema>;
+
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, createdAt: true, lastActive: true });
+export const insertUserInteractionSchema = createInsertSchema(userInteractions).omit({ id: true, createdAt: true });
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type UserInteraction = typeof userInteractions.$inferSelect;
+export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
+export type InsertUserInteraction = z.infer<typeof insertUserInteractionSchema>;

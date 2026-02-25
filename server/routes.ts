@@ -751,6 +751,7 @@ export async function registerRoutes(
       allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
       feedCache = { articles: allArticles, lastFetch: Date.now() };
+      enrichArticlesWithImages(allArticles).catch(() => {});
       const start = (page - 1) * perPage;
       const slice = allArticles.slice(start, start + perPage);
       res.json({ articles: slice, total: allArticles.length, page, hasMore: start + perPage < allArticles.length });
@@ -777,6 +778,294 @@ export async function registerRoutes(
       res.status(201).json(comment);
     } catch (e) {
       res.status(500).json({ message: "Failed to post comment" });
+    }
+  });
+
+  // ═══════ OG IMAGE FETCHER ═══════
+  const ogImageCache: Record<string, string> = {};
+
+  async function fetchOgImage(url: string): Promise<string> {
+    if (ogImageCache[url] !== undefined) return ogImageCache[url];
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const resp = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; MyAiGpt/1.0)" },
+        signal: controller.signal,
+        redirect: "follow",
+      });
+      clearTimeout(timeout);
+      const html = await resp.text();
+      const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+        || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+      const image = ogMatch?.[1] || "";
+      ogImageCache[url] = image;
+      return image;
+    } catch {
+      ogImageCache[url] = "";
+      return "";
+    }
+  }
+
+  async function enrichArticlesWithImages(articles: any[]): Promise<void> {
+    const needsImage = articles.filter(a => !a.image && a.link && a.type !== "video");
+    const batches = [];
+    for (let i = 0; i < needsImage.length; i += 5) {
+      batches.push(needsImage.slice(i, i + 5));
+    }
+    for (const batch of batches) {
+      await Promise.allSettled(batch.map(async (article: any) => {
+        const img = await fetchOgImage(article.link);
+        if (img) article.image = img;
+      }));
+    }
+  }
+
+  // ═══════ GICS SECTOR + PERSONALIZATION ENGINE ═══════
+  const GICS_SECTORS: Record<string, { keywords: string[]; industries: string[] }> = {
+    "Energy": { keywords: ["oil", "gas", "petroleum", "energy", "solar", "wind", "nuclear", "renewable", "drilling", "pipeline", "opec", "crude", "fossil", "coal", "electric grid", "power plant", "utility"], industries: ["Oil & Gas", "Renewable Energy", "Energy Equipment", "Utilities"] },
+    "Materials": { keywords: ["mining", "chemicals", "metals", "steel", "copper", "gold", "aluminum", "lumber", "cement", "fertilizer", "lithium", "rare earth", "packaging", "paper"], industries: ["Chemicals", "Metals & Mining", "Construction Materials", "Containers"] },
+    "Industrials": { keywords: ["manufacturing", "aerospace", "defense", "construction", "transport", "logistics", "railroad", "airline", "shipping", "machinery", "engineering", "industrial", "automation", "robotics"], industries: ["Aerospace & Defense", "Machinery", "Transportation", "Construction"] },
+    "Consumer Discretionary": { keywords: ["retail", "fashion", "luxury", "auto", "car", "vehicle", "restaurant", "hotel", "travel", "gaming", "entertainment", "media", "streaming", "nike", "amazon", "tesla", "disney", "netflix"], industries: ["Retail", "Automobiles", "Hotels & Leisure", "Media & Entertainment"] },
+    "Consumer Staples": { keywords: ["food", "beverage", "grocery", "household", "tobacco", "cosmetics", "personal care", "walmart", "costco", "coca-cola", "pepsi", "procter"], industries: ["Food & Beverage", "Household Products", "Personal Products"] },
+    "Health Care": { keywords: ["health", "medical", "pharma", "biotech", "hospital", "drug", "vaccine", "clinical", "fda", "surgery", "diagnosis", "therapy", "mental health", "fitness", "wellness", "disease"], industries: ["Pharmaceuticals", "Biotechnology", "Health Care Equipment", "Health Care Services"] },
+    "Financials": { keywords: ["bank", "finance", "insurance", "invest", "stock", "crypto", "bitcoin", "trading", "mortgage", "loan", "credit", "fintech", "payment", "wall street", "hedge fund", "ipo", "venture capital"], industries: ["Banks", "Insurance", "Capital Markets", "FinTech"] },
+    "Information Technology": { keywords: ["tech", "software", "hardware", "computer", "chip", "semiconductor", "ai", "artificial intelligence", "cloud", "saas", "cyber", "data", "programming", "code", "developer", "app", "startup", "silicon valley", "apple", "google", "microsoft", "nvidia", "meta", "openai"], industries: ["Software", "Hardware", "Semiconductors", "IT Services", "Internet"] },
+    "Communication Services": { keywords: ["telecom", "5g", "social media", "advertising", "broadcast", "cable", "internet", "streaming", "content", "podcast", "youtube", "tiktok", "twitter", "instagram", "facebook", "spotify"], industries: ["Telecom", "Media", "Interactive Media", "Entertainment"] },
+    "Real Estate": { keywords: ["real estate", "property", "housing", "mortgage", "rent", "commercial", "residential", "reit", "building", "apartment", "condo", "land", "zoning"], industries: ["REITs", "Real Estate Management", "Real Estate Development"] },
+    "Utilities": { keywords: ["utility", "water", "electricity", "power", "grid", "infrastructure", "sewage", "waste", "recycling"], industries: ["Electric Utilities", "Water Utilities", "Gas Utilities", "Renewable Utilities"] },
+    "Government & Politics": { keywords: ["politics", "government", "election", "president", "congress", "senate", "law", "regulation", "policy", "democrat", "republican", "trump", "biden", "legislation", "court", "supreme court", "vote", "campaign"], industries: ["Federal Government", "State Government", "Policy", "Legislation"] },
+    "Science & Education": { keywords: ["science", "research", "university", "education", "school", "study", "professor", "academic", "space", "nasa", "physics", "chemistry", "biology", "climate", "environment", "ocean", "weather"], industries: ["Higher Education", "Research", "Space", "Environmental Science"] },
+    "Sports & Fitness": { keywords: ["sports", "nba", "nfl", "soccer", "football", "basketball", "baseball", "tennis", "golf", "olympics", "athlete", "team", "championship", "league", "match", "game", "workout", "gym"], industries: ["Professional Sports", "Fitness", "Sports Media", "Sports Equipment"] },
+    "Arts & Culture": { keywords: ["art", "music", "film", "movie", "book", "literature", "museum", "theater", "dance", "fashion", "design", "photography", "architecture", "culture", "award", "oscar", "grammy"], industries: ["Visual Arts", "Music", "Film", "Literature", "Design"] },
+  };
+
+  function classifyToSectors(text: string): Record<string, number> {
+    const lower = text.toLowerCase();
+    const scores: Record<string, number> = {};
+    for (const [sector, data] of Object.entries(GICS_SECTORS)) {
+      let score = 0;
+      for (const kw of data.keywords) {
+        if (lower.includes(kw)) score += 1;
+      }
+      if (score > 0) scores[sector] = score;
+    }
+    return scores;
+  }
+
+  function mergeScores(existing: Record<string, number>, newScores: Record<string, number>, weight: number = 1, decay: number = 0.98): Record<string, number> {
+    const merged = { ...existing };
+    for (const [key, val] of Object.entries(merged)) {
+      merged[key] = val * decay;
+    }
+    for (const [key, val] of Object.entries(newScores)) {
+      merged[key] = (merged[key] || 0) + val * weight;
+    }
+    const entries = Object.entries(merged).filter(([, v]) => v > 0.01);
+    entries.sort((a, b) => b[1] - a[1]);
+    return Object.fromEntries(entries.slice(0, 50));
+  }
+
+  async function learnFromInteraction(userId: string, type: string, data: { text?: string; source?: string; category?: string; contentType?: string; duration?: number; topic?: string }) {
+    const sectorScores = data.text ? classifyToSectors(data.text) : {};
+    const topSector = Object.entries(sectorScores).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+
+    await storage.recordInteraction({
+      userId,
+      interactionType: type,
+      category: data.category || "",
+      source: data.source || "",
+      topic: data.topic || "",
+      sector: topSector,
+      contentType: data.contentType || "",
+      duration: data.duration || 0,
+      metadata: sectorScores,
+    });
+
+    const prefs = await storage.getUserPreferences(userId) || {
+      sectorScores: {}, topicScores: {}, sourceScores: {}, contentTypeScores: {}, chatTopics: {}, behaviorProfile: {}, totalInteractions: 0,
+    };
+
+    const weight = type === "article_read" ? 1
+      : type === "article_click" ? 0.5
+      : type === "chat_message" ? 1.5
+      : type === "social_post" ? 0.8
+      : type === "social_like" ? 0.6
+      : type === "search" ? 1.2
+      : type === "video_watch" ? 1.3
+      : type === "bookmark" ? 1.5
+      : type === "comment" ? 1.0
+      : type === "code_run" ? 1.0
+      : 0.5;
+
+    const durationBonus = data.duration ? Math.min(data.duration / 60, 3) : 1;
+
+    const updatedSectors = mergeScores(prefs.sectorScores as Record<string, number> || {}, sectorScores, weight * durationBonus);
+
+    const topicUpdate: Record<string, number> = {};
+    if (data.category && data.category !== "General") topicUpdate[data.category] = 1;
+    if (data.topic) topicUpdate[data.topic] = 1.5;
+    const updatedTopics = mergeScores(prefs.topicScores as Record<string, number> || {}, topicUpdate, weight);
+
+    const sourceUpdate: Record<string, number> = {};
+    if (data.source) sourceUpdate[data.source] = 1;
+    const updatedSources = mergeScores(prefs.sourceScores as Record<string, number> || {}, sourceUpdate, weight);
+
+    const ctUpdate: Record<string, number> = {};
+    if (data.contentType) ctUpdate[data.contentType] = 1;
+    const updatedCT = mergeScores(prefs.contentTypeScores as Record<string, number> || {}, ctUpdate, weight);
+
+    const chatUpdate: Record<string, number> = {};
+    if (type === "chat_message" && data.topic) chatUpdate[data.topic] = 2;
+    const updatedChat = mergeScores(prefs.chatTopics as Record<string, number> || {}, chatUpdate, 1);
+
+    const behavior = (prefs.behaviorProfile as Record<string, any>) || {};
+    const hour = new Date().getHours();
+    const hourKey = `hour_${hour}`;
+    behavior[hourKey] = (behavior[hourKey] || 0) + 1;
+    behavior[`type_${type}`] = (behavior[`type_${type}`] || 0) + 1;
+    if (data.duration) {
+      behavior.avgDuration = ((behavior.avgDuration || 0) * (behavior.durationCount || 0) + data.duration) / ((behavior.durationCount || 0) + 1);
+      behavior.durationCount = (behavior.durationCount || 0) + 1;
+    }
+
+    await storage.upsertUserPreferences(userId, {
+      sectorScores: updatedSectors,
+      topicScores: updatedTopics,
+      sourceScores: updatedSources,
+      contentTypeScores: updatedCT,
+      chatTopics: updatedChat,
+      behaviorProfile: behavior,
+      totalInteractions: (prefs.totalInteractions || 0) + 1,
+    } as any);
+  }
+
+  function personalizeArticles(articles: any[], prefs: any): any[] {
+    if (!prefs || !prefs.sectorScores) return articles;
+
+    const sectorScores = prefs.sectorScores as Record<string, number> || {};
+    const topicScores = prefs.topicScores as Record<string, number> || {};
+    const sourceScores = prefs.sourceScores as Record<string, number> || {};
+    const ctScores = prefs.contentTypeScores as Record<string, number> || {};
+
+    const maxSector = Math.max(...Object.values(sectorScores), 1);
+    const maxTopic = Math.max(...Object.values(topicScores), 1);
+    const maxSource = Math.max(...Object.values(sourceScores), 1);
+
+    const scored = articles.map(article => {
+      let affinity = 0;
+      const textCombo = `${article.title} ${article.description} ${article.category}`.toLowerCase();
+      for (const [sector, data] of Object.entries(GICS_SECTORS)) {
+        let matches = 0;
+        for (const kw of data.keywords) {
+          if (textCombo.includes(kw)) matches++;
+        }
+        if (matches > 0 && sectorScores[sector]) {
+          affinity += (sectorScores[sector] / maxSector) * matches * 2;
+        }
+      }
+      if (topicScores[article.category]) {
+        affinity += (topicScores[article.category] / maxTopic) * 3;
+      }
+      if (sourceScores[article.source]) {
+        affinity += (sourceScores[article.source] / maxSource) * 1.5;
+      }
+      if (ctScores[article.type]) {
+        affinity += ctScores[article.type] * 0.5;
+      }
+      const ageHours = (Date.now() - new Date(article.pubDate).getTime()) / (1000 * 60 * 60);
+      const freshness = Math.max(0, 1 - ageHours / 48);
+      const finalScore = affinity * 0.6 + freshness * 10 * 0.4;
+      return { ...article, _affinityScore: finalScore };
+    });
+
+    scored.sort((a, b) => b._affinityScore - a._affinityScore);
+    return scored;
+  }
+
+  app.post("/api/user/track", async (req, res) => {
+    try {
+      const { userId, type, text, source, category, contentType, duration, topic } = req.body;
+      if (!userId || !type) return res.status(400).json({ message: "userId and type required" });
+      await learnFromInteraction(userId, type, { text, source, category, contentType, duration, topic });
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("Track error:", e);
+      res.status(500).json({ message: "Failed to track" });
+    }
+  });
+
+  app.get("/api/user/preferences/:userId", async (req, res) => {
+    try {
+      const prefs = await storage.getUserPreferences(req.params.userId);
+      if (!prefs) return res.json({ sectorScores: {}, topicScores: {}, sourceScores: {}, contentTypeScores: {}, chatTopics: {}, behaviorProfile: {}, totalInteractions: 0 });
+      res.json(prefs);
+    } catch {
+      res.status(500).json({ message: "Failed to get preferences" });
+    }
+  });
+
+  app.get("/api/feed/personalized", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      const page = parseInt(req.query.page as string) || 1;
+      const perPage = 20;
+
+      if (Date.now() - feedCache.lastFetch >= FEED_CACHE_TTL || feedCache.articles.length === 0) {
+        const RssParser = (await import("rss-parser")).default;
+        const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
+        const allArticles: any[] = [];
+        const seenIds = new Set<string>();
+        await Promise.allSettled(RSS_FEEDS.map(async (feed) => {
+          try {
+            const parsed = await parser.parseURL(feed.url);
+            const isYT = feed.type === "video";
+            (parsed.items || []).slice(0, 10).forEach((item: any) => {
+              const mediaContent = item["media:content"] || item["media:thumbnail"] || item.enclosure;
+              let image = "";
+              if (isYT) {
+                const vidId = (item.id || "").replace("yt:video:", "");
+                if (vidId) image = `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg`;
+              } else {
+                try { image = mediaContent?.$.url || mediaContent?.url || ""; } catch { image = ""; }
+                if (!image) try { image = item["media:thumbnail"]?.$.url || ""; } catch { image = ""; }
+                if (!image && item["content:encoded"]) { const m = item["content:encoded"].match(/<img[^>]+src="([^"]+)"/); if (m) image = m[1]; }
+                if (!image && item.content) { const m = item.content.match(/<img[^>]+src="([^"]+)"/); if (m) image = m[1]; }
+              }
+              const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
+              if (!seenIds.has(id)) {
+                seenIds.add(id);
+                allArticles.push({
+                  id, title: item.title || "", description: (item.contentSnippet || "").substring(0, 300),
+                  link: item.link || "", image, source: feed.source,
+                  pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
+                  category: typeof item.categories?.[0] === "string" ? item.categories[0] : "General",
+                  type: feed.type || "article", videoUrl: isYT ? `https://www.youtube.com/embed/${(item.id || "").replace("yt:video:", "")}` : "",
+                  sourceColor: SOURCE_COLORS[feed.source] || "#f97316",
+                });
+              }
+            });
+          } catch {}
+        }));
+        allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+        feedCache = { articles: allArticles, lastFetch: Date.now() };
+        enrichArticlesWithImages(allArticles).catch(() => {});
+      }
+
+      let articles = [...feedCache.articles];
+      if (userId) {
+        const prefs = await storage.getUserPreferences(userId);
+        if (prefs && (prefs.totalInteractions || 0) >= 3) {
+          articles = personalizeArticles(articles, prefs);
+        }
+      }
+
+      const start = (page - 1) * perPage;
+      const slice = articles.slice(start, start + perPage);
+      res.json({ articles: slice, total: articles.length, page, hasMore: start + perPage < articles.length, personalized: !!userId });
+    } catch (e) {
+      console.error("Personalized feed error:", e);
+      res.json({ articles: feedCache.articles.slice(0, 20), total: 0, page: 1, hasMore: false, personalized: false });
     }
   });
 
@@ -910,6 +1199,26 @@ If you have live data provided in this prompt, USE IT and present it confidently
       }
       if (financeContext) {
         systemPrompt += `\n\n${financeContext}\n\nIMPORTANT: You have LIVE financial data above. Present this data naturally and confidently as current market data. Format prices nicely. Do NOT say you can't access real-time prices. Do NOT tell users to check other websites. You HAVE the data — just present it. Include relevant context like whether the price is up or down, market cap significance, etc.`;
+      }
+
+      const chatUserId = req.headers["x-user-id"] as string;
+      if (chatUserId) {
+        try {
+          const userPrefs = await storage.getUserPreferences(chatUserId);
+          if (userPrefs && (userPrefs.totalInteractions || 0) >= 3) {
+            const topSectors = Object.entries(userPrefs.sectorScores as Record<string, number> || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+            const topTopics = Object.entries(userPrefs.topicScores as Record<string, number> || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+            const topChatTopics = Object.entries(userPrefs.chatTopics as Record<string, number> || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+            if (topSectors.length > 0 || topTopics.length > 0) {
+              systemPrompt += `\n\nUSER PROFILE (adapt your tone and depth to this user):`;
+              if (topSectors.length > 0) systemPrompt += `\nTop interests: ${topSectors.join(", ")}`;
+              if (topTopics.length > 0) systemPrompt += `\nFavorite topics: ${topTopics.join(", ")}`;
+              if (topChatTopics.length > 0) systemPrompt += `\nRecent chat focus: ${topChatTopics.join(", ")}`;
+              systemPrompt += `\nTailor your responses to their interests. Use relevant examples from their domains. Be their knowledgeable best friend.`;
+            }
+          }
+          learnFromInteraction(chatUserId, "chat_message", { text: input.content, topic: chat.title }).catch(() => {});
+        } catch {}
       }
 
       const messagesForGroq = [
