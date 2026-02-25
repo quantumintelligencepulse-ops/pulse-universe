@@ -1519,9 +1519,12 @@ ${brokenCode.substring(0, 2000)}
         window.removeEventListener("message", handler);
         try { document.body.removeChild(iframe); } catch {}
 
-        if (errors > 0 && autoFixEnabled && fixAttempt < MAX_FIX_ATTEMPTS) {
-          const errorLines = logs.filter((l: string) => l.startsWith("ERROR:"));
-          const errorMsg = errorLines.join("; ");
+        const UNFIXABLE_ERRORS = ["registerProtocolHandler", "allowlist", "Bluetooth", "USB", "Serial", "HID", "showDirectoryPicker", "showOpenFilePicker", "showSaveFilePicker", "getDisplayMedia", "requestMIDIAccess", "PaymentRequest", "Notification.requestPermission", "serviceWorker.register", "cross-origin", "Blocked a frame", "SecurityError"];
+        const errorLines = logs.filter((l: string) => l.startsWith("ERROR:"));
+        const errorMsg = errorLines.join("; ");
+        const isUnfixable = UNFIXABLE_ERRORS.some(uf => errorMsg.includes(uf));
+
+        if (errors > 0 && autoFixEnabled && fixAttempt < MAX_FIX_ATTEMPTS && !isUnfixable) {
           setOutput(prev => [...prev, ...logs, "", `⚠ Error detected (attempt ${fixAttempt + 1}/${MAX_FIX_ATTEMPTS})`, "🔧 AI Auto-Fix: Analyzing and fixing code..."]);
           setFixAttempt(prev => prev + 1);
           const fixedCode = await aiAutoFix(src, errorMsg, "javascript", fixAttempt + 1);
@@ -1535,7 +1538,8 @@ ${brokenCode.substring(0, 2000)}
             setFixAttempt(0);
           }
         } else {
-          setOutput(prev => [...(fixAttempt > 0 ? prev : []), ...logs, "", errors > 0 ? `⚠ Completed with ${errors} error(s) in ${elapsed}ms` : `✓ Executed successfully in ${elapsed}ms`]);
+          const extra = isUnfixable ? ["", "⚠ This error is a browser security restriction — it cannot be auto-fixed.", "💡 Try running in Server mode or use a different approach."] : [];
+          setOutput(prev => [...(fixAttempt > 0 ? prev : []), ...logs, ...extra, "", errors > 0 ? `⚠ Completed with ${errors} error(s) in ${elapsed}ms` : `✓ Executed successfully in ${elapsed}ms`]);
           setIsRunning(false);
           setFixAttempt(0);
         }
