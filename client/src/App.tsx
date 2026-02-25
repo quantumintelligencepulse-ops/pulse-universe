@@ -1211,6 +1211,10 @@ function CodePlayground() {
   // FUTURISTIC #2 - AI Code Review
   const [reviewResult, setReviewResult] = useState<string | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
+  // AUTO-FIX ENGINE
+  const [autoFixEnabled, setAutoFixEnabled] = useState(true);
+  const [fixAttempt, setFixAttempt] = useState(0);
+  const MAX_FIX_ATTEMPTS = 3;
 
   const langInfo = PG_LANGUAGES.find(l => l.id === lang)!;
 
@@ -1221,6 +1225,33 @@ function CodePlayground() {
     setShowPreview(false);
     setReviewResult(null);
   };
+
+  const aiAutoFix = useCallback(async (brokenCode: string, errorMsg: string, language: string, attempt: number): Promise<string | null> => {
+    try {
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Auto-Fix " + attempt, type: "coder" }) });
+      const chat = await chatRes.json();
+      const prompt = `Fix this ${language} code that has this error: "${errorMsg}"
+
+Return ONLY the complete fixed code in a single code block. No explanation, no comments about what you changed. Just the working code.
+
+\`\`\`${language}
+${brokenCode.substring(0, 2000)}
+\`\`\``;
+      const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: prompt })
+      });
+      const msg = await msgRes.json();
+      const codeMatch = msg.content.match(/```(?:\w+)?\n([\s\S]*?)```/);
+      if (codeMatch) return codeMatch[1].trim();
+      const lines = msg.content.split("\n");
+      const codeLines = lines.filter((l: string) => !l.startsWith("#") && !l.startsWith("//") && l.trim());
+      if (codeLines.length > 2) return codeLines.join("\n");
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const detectLang = useCallback((src: string): string | null => {
     const t = src.trim();
@@ -1316,24 +1347,43 @@ function CodePlayground() {
       setTimeout(function(){parent.postMessage({type:"pg_output",logs:_l,errors:_e},"*")},10);
     <\/script></body></html>`;
     let done = false;
-    const handler = (e: MessageEvent) => {
+    const handler = async (e: MessageEvent) => {
       if (e.data?.type === "pg_output" && !done) {
         done = true;
         const elapsed = (performance.now() - startTime).toFixed(1);
-        const logs = e.data.logs || [];
+        const logs: string[] = e.data.logs || [];
         const errors = e.data.errors || 0;
-        setOutput([...logs, "", errors > 0 ? `⚠ Completed with ${errors} error(s) in ${elapsed}ms` : `✓ Executed successfully in ${elapsed}ms`]);
-        setIsRunning(false);
         window.removeEventListener("message", handler);
         try { document.body.removeChild(iframe); } catch {}
+
+        if (errors > 0 && autoFixEnabled && fixAttempt < MAX_FIX_ATTEMPTS) {
+          const errorLines = logs.filter((l: string) => l.startsWith("ERROR:"));
+          const errorMsg = errorLines.join("; ");
+          setOutput(prev => [...prev, ...logs, "", `⚠ Error detected (attempt ${fixAttempt + 1}/${MAX_FIX_ATTEMPTS})`, "🔧 AI Auto-Fix: Analyzing and fixing code..."]);
+          setFixAttempt(prev => prev + 1);
+          const fixedCode = await aiAutoFix(src, errorMsg, "javascript", fixAttempt + 1);
+          if (fixedCode) {
+            setCode(fixedCode);
+            setOutput(prev => [...prev, "✓ AI applied a fix. Re-running...", ""]);
+            setTimeout(() => runJS(fixedCode), 300);
+          } else {
+            setOutput(prev => [...prev, "⚠ AI could not auto-fix this error.", `Completed in ${elapsed}ms`]);
+            setIsRunning(false);
+            setFixAttempt(0);
+          }
+        } else {
+          setOutput(prev => [...(fixAttempt > 0 ? prev : []), ...logs, "", errors > 0 ? `⚠ Completed with ${errors} error(s) in ${elapsed}ms` : `✓ Executed successfully in ${elapsed}ms`]);
+          setIsRunning(false);
+          setFixAttempt(0);
+        }
       }
     };
     window.addEventListener("message", handler);
     iframe.srcdoc = html;
     setTimeout(() => {
-      if (!done) { done = true; setOutput(p => [...p, "ERROR: Timed out (10s limit)"]); setIsRunning(false); window.removeEventListener("message", handler); try { document.body.removeChild(iframe); } catch {} }
+      if (!done) { done = true; setOutput(p => [...p, "ERROR: Timed out (10s limit)"]); setIsRunning(false); setFixAttempt(0); window.removeEventListener("message", handler); try { document.body.removeChild(iframe); } catch {} }
     }, 10000);
-  }, [prepareJSCode]);
+  }, [prepareJSCode, autoFixEnabled, fixAttempt, aiAutoFix]);
 
   const SERVER_ONLY_PACKAGES = new Set([
     "discord", "discord.py", "spacy", "tensorflow", "torch", "pytorch",
@@ -1354,6 +1404,73 @@ function CodePlayground() {
     "idna", "urllib3", "pytz", "dateutil", "python-dateutil",
   ]);
 
+  const pyExecute = useCallback(async (src: string, pyodide: any, attempt: number): Promise<void> => {
+    setOutput(prev => [...prev, "Running Python..."]);
+    pyodide.runPython(`import sys; from io import StringIO; sys.stdout = StringIO(); sys.stderr = StringIO()`);
+    const startTime = performance.now();
+
+    try {
+      pyodide.runPython(src);
+    } catch (e: any) {
+      let stdout = "", stderr = "";
+      try { stdout = pyodide.runPython(`sys.stdout.getvalue()`); } catch {}
+      try { stderr = pyodide.runPython(`sys.stderr.getvalue()`); } catch {}
+      try { pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`); } catch {}
+      const outLines = stdout ? stdout.split("\n").filter((l: string) => l) : [];
+      const errMsg = e.message || "";
+
+      const moduleMatch = errMsg.match(/No module named '(\w+)'/);
+      const errLines = errMsg.split("\n");
+      const lastLine = errLines.filter((l: string) => l.trim()).pop() || errMsg;
+      const tbLine = errLines.find((l: string) => /line \d+/.test(l));
+
+      if (moduleMatch) {
+        const missingMod = moduleMatch[1];
+        const isSvrOnly = SERVER_ONLY_PACKAGES.has(missingMod.toLowerCase());
+        setOutput(prev => [...prev, ...outLines,
+          `ERROR: No module named '${missingMod}'`,
+          isSvrOnly ? `  '${missingMod}' requires a server environment.` : `  '${missingMod}' not available in browser Python.`,
+        ]);
+      } else {
+        setOutput(prev => [...prev, ...outLines,
+          `ERROR: ${lastLine}`,
+          ...(tbLine ? [`  at ${tbLine.trim()}`] : []),
+          ...(stderr ? [`STDERR: ${stderr}`] : []),
+        ]);
+      }
+
+      if (autoFixEnabled && attempt < MAX_FIX_ATTEMPTS && !moduleMatch) {
+        setOutput(prev => [...prev, "", `⚠ Error detected (attempt ${attempt + 1}/${MAX_FIX_ATTEMPTS})`, "🔧 AI Auto-Fix: Analyzing and fixing Python code..."]);
+        const fixedCode = await aiAutoFix(src, lastLine, "python", attempt + 1);
+        if (fixedCode) {
+          setCode(fixedCode);
+          setOutput(prev => [...prev, "✓ AI applied a fix. Re-running...", ""]);
+          await pyExecute(fixedCode, pyodide, attempt + 1);
+          return;
+        } else {
+          setOutput(prev => [...prev, "⚠ AI could not auto-fix this error."]);
+        }
+      }
+      setIsRunning(false);
+      setFixAttempt(0);
+      return;
+    }
+
+    let stdout = "";
+    try {
+      stdout = pyodide.runPython(`v = sys.stdout.getvalue(); sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__; v`);
+    } catch { try { pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`); } catch {} }
+    const elapsed = (performance.now() - startTime).toFixed(1);
+    const lines = stdout ? stdout.split("\n").filter((l: string) => l !== "") : [];
+    if (lines.length === 0) lines.push("(no output - add print() statements to see results)");
+    setOutput(prev => {
+      const cleaned = prev.filter(l => l !== "Running Python..." && l !== "Loading Python runtime...");
+      return [...cleaned, ...lines, "", `✓ Executed in ${elapsed}ms`];
+    });
+    setIsRunning(false);
+    setFixAttempt(0);
+  }, [autoFixEnabled, aiAutoFix]);
+
   const runPython = useCallback(async (src: string) => {
     setOutput(["Loading Python runtime..."]);
     try {
@@ -1370,27 +1487,12 @@ function CodePlayground() {
           "These packages require a real server environment:",
           ...serverOnly.map(m => `  • ${m} - needs native OS / network access`),
           "",
-          "What you can do:",
-          "  1. Remove those imports to test the rest of your logic",
-          "  2. Use the AI Coder chat to get help with server-side code",
-          "  3. Mock the imports to test your code structure",
-          "",
-          "The playground runs Python via Pyodide (WebAssembly).",
-          "It supports: math, json, re, collections, itertools, functools,",
-          "datetime, random, string, typing, dataclasses, enum, abc,",
-          "and installable: numpy, pandas, scipy, matplotlib, scikit-learn,",
-          "sympy, networkx, beautifulsoup4, pillow, regex, pyyaml, and more.",
-          "",
           "Running remaining code without blocked imports...",
         ]);
-
-        const cleanedSrc = src.replace(
+        src = src.replace(
           new RegExp(`^\\s*(?:import|from)\\s+(?:${serverOnly.join("|")})\\b.*$`, "gm"),
-          (match) => `# [SKIPPED - server only] ${match.trim()}`
+          (match) => `# [SKIPPED] ${match.trim()}`
         );
-
-        setOutput(prev => [...prev, "", "--- Running cleaned code ---", ""]);
-        src = cleanedSrc;
       }
 
       const installable = requestedModules.filter(m =>
@@ -1398,78 +1500,17 @@ function CodePlayground() {
       );
       if (installable.length > 0) {
         setOutput(prev => [...prev, `Installing packages: ${installable.join(", ")}...`]);
-        try {
-          await pyodide.loadPackagesFromImports(src);
-        } catch {
-          try {
-            const micropip = pyodide.pyimport("micropip");
-            for (const pkg of installable) {
-              try { await micropip.install(pkg); } catch {}
-            }
-          } catch {}
+        try { await pyodide.loadPackagesFromImports(src); } catch {
+          try { const mp = pyodide.pyimport("micropip"); for (const p of installable) { try { await mp.install(p); } catch {} } } catch {}
         }
       }
 
-      setOutput(prev => [...prev, "Running Python..."]);
-      pyodide.runPython(`import sys; from io import StringIO; sys.stdout = StringIO(); sys.stderr = StringIO()`);
-      const startTime = performance.now();
-
-      try {
-        pyodide.runPython(src);
-      } catch (e: any) {
-        let stdout = "", stderr = "";
-        try { stdout = pyodide.runPython(`sys.stdout.getvalue()`); } catch {}
-        try { stderr = pyodide.runPython(`sys.stderr.getvalue()`); } catch {}
-        try { pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`); } catch {}
-        const outLines = stdout ? stdout.split("\n").filter((l: string) => l) : [];
-        const errMsg = e.message || "";
-
-        const moduleMatch = errMsg.match(/No module named '(\w+)'/);
-        if (moduleMatch) {
-          const missingMod = moduleMatch[1];
-          const isSvrOnly = SERVER_ONLY_PACKAGES.has(missingMod.toLowerCase());
-          setOutput(prev => [...prev, ...outLines,
-            `ERROR: No module named '${missingMod}'`,
-            "",
-            isSvrOnly
-              ? `'${missingMod}' is a server-side package that needs native OS access.`
-              : `'${missingMod}' is not available in the browser Python runtime.`,
-            "",
-            "Suggestions:",
-            "  • Remove or mock the import to test your logic",
-            "  • Use standard library alternatives",
-            "  • Test in the AI Coder chat for full server guidance",
-          ]);
-        } else {
-          const errLines = errMsg.split("\n");
-          const lastLine = errLines.filter((l: string) => l.trim()).pop() || errMsg;
-          const tbLine = errLines.find((l: string) => /line \d+/.test(l));
-          setOutput(prev => [...prev, ...outLines,
-            `ERROR: ${lastLine}`,
-            ...(tbLine ? [`  at ${tbLine.trim()}`] : []),
-            ...(stderr ? [`STDERR: ${stderr}`] : []),
-          ]);
-        }
-        setIsRunning(false);
-        return;
-      }
-
-      let stdout = "";
-      try {
-        stdout = pyodide.runPython(`v = sys.stdout.getvalue(); sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__; v`);
-      } catch { try { pyodide.runPython(`sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__`); } catch {} }
-      const elapsed = (performance.now() - startTime).toFixed(1);
-      const lines = stdout ? stdout.split("\n").filter((l: string) => l !== "") : [];
-      if (lines.length === 0) lines.push("(no output - add print() statements to see results)");
-      setOutput(prev => {
-        const cleaned = prev.filter(l => l !== "Running Python..." && l !== "Loading Python runtime...");
-        return [...cleaned, ...lines, "", `✓ Executed in ${elapsed}ms`];
-      });
+      await pyExecute(src, pyodide, fixAttempt);
     } catch (e: any) {
       setOutput([`ERROR: ${e.message}`, "", "Tip: Python runtime loads on first use. Try running again."]);
+      setIsRunning(false);
     }
-    setIsRunning(false);
-  }, [loadPyodide]);
+  }, [loadPyodide, pyExecute, fixAttempt]);
 
   const runCode = useCallback(async () => {
     setOutput([]);
@@ -1686,6 +1727,14 @@ function CodePlayground() {
         <button onClick={handleExplain} disabled={isExplaining} data-testid="button-ai-explain"
           className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all disabled:opacity-50">
           <Brain size={12} /> {isExplaining ? "..." : "Explain"}
+        </button>
+
+        <div className="h-5 w-px bg-border/30" />
+
+        <button onClick={() => setAutoFixEnabled(!autoFixEnabled)} data-testid="button-toggle-autofix"
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${autoFixEnabled ? "bg-green-500 text-white shadow-sm" : "bg-zinc-100 text-zinc-400"}`}>
+          <RefreshCw size={11} className={autoFixEnabled ? "animate-[spin_3s_linear_infinite]" : ""} />
+          Auto-Fix {autoFixEnabled ? "ON" : "OFF"}
         </button>
       </div>
 
