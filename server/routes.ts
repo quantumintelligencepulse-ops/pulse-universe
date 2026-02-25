@@ -99,6 +99,31 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  app.patch("/api/chats/:id/rename", async (req, res) => {
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ message: "Title required" });
+    const chat = await storage.renameChat(Number(req.params.id), title.substring(0, 80));
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+    res.json(chat);
+  });
+
+  app.delete("/api/chats", async (_req, res) => {
+    await storage.deleteAllChats();
+    res.status(204).send();
+  });
+
+  app.get("/api/chats/search/:query", async (req, res) => {
+    const results = await storage.searchChats(req.params.query);
+    res.json(results);
+  });
+
+  app.get("/api/stats", async (_req, res) => {
+    const chatCount = await storage.getChatCount();
+    const messageCount = await storage.getMessageCount();
+    const codeFiles = fs.existsSync(CODES_DIR) ? fs.readdirSync(CODES_DIR).length : 0;
+    res.json({ chatCount, messageCount, codeFiles, discordConnected: discordClient.isReady() });
+  });
+
   app.get(api.messages.list.path, async (req, res) => {
     res.json(await storage.getMessages(Number(req.params.chatId)));
   });
@@ -111,7 +136,7 @@ export async function registerRoutes(
       const filePath = path.join(CODES_DIR, safeName);
       fs.writeFileSync(filePath, code, "utf-8");
       res.json({ message: "Code saved", path: filePath, filename: safeName });
-    } catch (err) {
+    } catch {
       res.status(500).json({ message: "Failed to save code" });
     }
   });
@@ -136,6 +161,20 @@ export async function registerRoutes(
     res.download(filePath);
   });
 
+  app.post("/api/chats/:chatId/export", async (req, res) => {
+    const chatId = Number(req.params.chatId);
+    const chat = await storage.getChat(chatId);
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+    const msgs = await storage.getMessages(chatId);
+    let md = `# ${chat.title}\n\nType: ${chat.type}\nDate: ${chat.createdAt}\n\n---\n\n`;
+    for (const m of msgs) {
+      md += `### ${m.role === "user" ? "You" : "My Ai"}\n\n${m.content}\n\n---\n\n`;
+    }
+    res.setHeader("Content-Type", "text/markdown");
+    res.setHeader("Content-Disposition", `attachment; filename="${chat.title.replace(/[^a-zA-Z0-9]/g, "_")}.md"`);
+    res.send(md);
+  });
+
   app.post(api.messages.create.path, async (req, res) => {
     try {
       const chatId = Number(req.params.chatId);
@@ -147,7 +186,7 @@ export async function registerRoutes(
       await storage.createMessage({ chatId, role: "user", content: input.content });
 
       const lowerContent = input.content.toLowerCase();
-      const needsSearch = /\b(what is|who is|when did|where is|how to|latest|news|define|search|current|today)\b/.test(lowerContent);
+      const needsSearch = /\b(what is|who is|when did|where is|how to|latest|news|define|search|current|today|price of|weather|score)\b/.test(lowerContent);
       let searchContext = "";
       if (needsSearch) {
         searchContext = await getSearchContext(input.content);
@@ -160,9 +199,44 @@ export async function registerRoutes(
 
       let systemPrompt: string;
       if (chat.type === "coder") {
-        systemPrompt = `You are My Ai Coder, an elite programming assistant created by Billy Banks. ${creatorInfo} You write clean, production-ready code with comments. When generating code, always use proper markdown code blocks with language tags (e.g. \`\`\`python). You explain your reasoning. You can debug, optimize, refactor, write tests, and build full applications. You support all major languages: JavaScript, TypeScript, Python, Java, C++, Rust, Go, SQL, HTML/CSS, and more. When asked, provide complete working files. Never provide links, images, or videos unless the user specifically asks for them.`;
+        systemPrompt = `You are My Ai Coder, an elite S-class programming assistant created by Billy Banks. ${creatorInfo}
+
+CAPABILITIES:
+- Write production-ready code in ALL languages (JavaScript, TypeScript, Python, Java, C++, Rust, Go, SQL, HTML/CSS, Swift, Kotlin, Ruby, PHP, C#, Dart, Scala, R, MATLAB, and more)
+- Debug any error with detailed explanations and fixes
+- Optimize code for performance, memory, and readability
+- Write comprehensive unit tests, integration tests, and E2E tests
+- Design system architectures, database schemas, and API contracts
+- Refactor legacy code into modern patterns
+- Explain complex algorithms step by step
+- Build complete full-stack applications from scratch
+- Generate Docker, CI/CD, deployment configs
+
+RULES:
+- Always use proper markdown code blocks with language tags
+- Include helpful comments in code
+- Explain your reasoning before code
+- Never provide links, images, or videos unless specifically asked
+- If the user shares an error, diagnose the root cause first`;
       } else {
-        systemPrompt = `You are My Ai Gpt, a knowledgeable and friendly assistant created by Billy Banks. ${creatorInfo} You provide clear, accurate, and helpful answers. You adapt your tone to the user's needs. Never provide links, images, or videos unless the user specifically asks for them. Be concise but thorough.`;
+        systemPrompt = `You are My Ai Gpt, a world-class intelligent assistant created by Billy Banks. ${creatorInfo}
+
+CAPABILITIES:
+- Answer any question with accuracy and depth
+- Write essays, emails, stories, scripts, and any text format
+- Analyze data, arguments, and complex topics
+- Provide step-by-step tutorials and explanations
+- Help with math, science, history, philosophy, and every subject
+- Brainstorm creative ideas and solutions
+- Translate between languages
+- Summarize long documents or concepts
+
+RULES:
+- Be concise but thorough
+- Adapt your tone to the user's needs
+- Never provide links, images, or videos unless specifically asked
+- Use structured formatting (lists, headers) for clarity
+- If unsure, say so honestly`;
       }
 
       if (discordKnowledge) {
@@ -184,7 +258,7 @@ export async function registerRoutes(
         messages: messagesForGroq,
         model: "llama-3.1-8b-instant",
         max_tokens: 2048,
-        temperature: chat.type === "coder" ? 0.3 : 0.7,
+        temperature: chat.type === "coder" ? 0.2 : 0.7,
       });
 
       const reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
@@ -199,7 +273,7 @@ export async function registerRoutes(
 
     } catch (err: any) {
       console.error("Chat error:", err?.message || err);
-      
+
       if (err?.status === 413 || err?.message?.includes("rate_limit")) {
         const chatId = Number(req.params.chatId);
         const fallback = await storage.createMessage({
@@ -209,7 +283,7 @@ export async function registerRoutes(
         });
         return res.status(200).json(fallback);
       }
-      
+
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
