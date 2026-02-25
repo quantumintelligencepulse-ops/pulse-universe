@@ -30,6 +30,34 @@ import logo from "@assets/MyAiGpt_1772000395528.webp";
 const MESSAGE_LIMIT = 9;
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
 
+function updateSEO(config: { title?: string; description?: string; ogTitle?: string; ogDesc?: string; ogType?: string; ogImage?: string; canonical?: string; jsonLd?: object }) {
+  if (config.title) document.title = config.title;
+  const setMeta = (attr: string, key: string, val: string) => {
+    let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement;
+    if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
+    el.setAttribute("content", val);
+  };
+  if (config.description) setMeta("name", "description", config.description);
+  if (config.ogTitle) setMeta("property", "og:title", config.ogTitle);
+  if (config.ogDesc) setMeta("property", "og:description", config.ogDesc);
+  if (config.ogType) setMeta("property", "og:type", config.ogType);
+  if (config.ogImage) setMeta("property", "og:image", config.ogImage);
+  if (config.ogTitle) setMeta("name", "twitter:title", config.ogTitle);
+  if (config.ogDesc) setMeta("name", "twitter:description", config.ogDesc);
+  if (config.ogImage) setMeta("name", "twitter:image", config.ogImage);
+  if (config.canonical) {
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (!link) { link = document.createElement("link"); link.setAttribute("rel", "canonical"); document.head.appendChild(link); }
+    link.setAttribute("href", config.canonical);
+    setMeta("property", "og:url", config.canonical);
+  }
+  if (config.jsonLd) {
+    let script = document.getElementById("dynamic-jsonld") as HTMLScriptElement;
+    if (!script) { script = document.createElement("script"); script.id = "dynamic-jsonld"; script.type = "application/ld+json"; document.head.appendChild(script); }
+    script.textContent = JSON.stringify(config.jsonLd);
+  }
+}
+
 function getUserId(): string {
   let uid = localStorage.getItem("myaigpt_user_id");
   if (!uid) { uid = `u_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; localStorage.setItem("myaigpt_user_id", uid); }
@@ -3745,11 +3773,26 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function HomePage() { return <Layout><ChatInterface defaultType="general" /></Layout>; }
-function CoderPage() { return <Layout><ChatInterface defaultType="coder" /></Layout>; }
-function PlaygroundPage() { return <Layout><CodePlayground /></Layout>; }
-function FeedPage() { return <Layout><NewsFeed /></Layout>; }
-function SocialPageWrapper() { return <Layout><SocialPage /></Layout>; }
+function HomePage() {
+  useEffect(() => { updateSEO({ title: "My Ai Gpt - AI Chat Assistant | by Billy Banks", description: "Chat with My Ai Gpt, your AI best friend that learns your interests. Ask anything, get personalized answers. By Billy Banks.", ogTitle: "My Ai Gpt - AI Chat", ogDesc: "Your AI best friend that learns you. Chat about anything.", canonical: window.location.origin + "/" }); }, []);
+  return <Layout><ChatInterface defaultType="general" /></Layout>;
+}
+function CoderPage() {
+  useEffect(() => { updateSEO({ title: "My Ai Coder - AI Programming Assistant | My Ai Gpt", description: "Write code with AI assistance. My Ai Coder helps you debug, refactor, and build in any programming language. By Billy Banks.", ogTitle: "My Ai Coder - AI Programming", ogDesc: "AI-powered coding assistant for any language.", canonical: window.location.origin + "/coder" }); }, []);
+  return <Layout><ChatInterface defaultType="coder" /></Layout>;
+}
+function PlaygroundPage() {
+  useEffect(() => { updateSEO({ title: "Code Playground - Write & Run Code in 30+ Languages | My Ai Gpt", description: "Free online code playground IDE. Write, run, and share code in JavaScript, Python, HTML/CSS, and 30+ languages with real-time preview. By Billy Banks.", ogTitle: "Code Playground - 30+ Languages", ogDesc: "Free online IDE with 30+ languages and real-time preview.", canonical: window.location.origin + "/code" }); }, []);
+  return <Layout><CodePlayground /></Layout>;
+}
+function FeedPage() {
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Live News & Videos from Around the World", description: "Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, and more. Watch videos from top creators. Search any topic. AI-personalized.", ogTitle: "My Ai Gpt Feed - Live News & Videos", ogDesc: "Live news, videos, and articles from top sources. Search any topic.", canonical: window.location.origin + "/feed" }); }, []);
+  return <Layout><NewsFeed /></Layout>;
+}
+function SocialPageWrapper() {
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Connect, Share & Discover", description: "Join My Ai Gpt Social network by Billy Banks. Create your profile, share posts, follow friends, discover trending content, and get verified.", ogTitle: "My Ai Gpt Social Network", ogDesc: "Join the social network powered by AI. Share, connect, discover.", canonical: window.location.origin + "/social" }); }, []);
+  return <Layout><SocialPage /></Layout>;
+}
 
 function ChatViewPage() {
   const [, params] = useRoute("/chat/:id");

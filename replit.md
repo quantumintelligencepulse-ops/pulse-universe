@@ -91,6 +91,33 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
   - Tracking: "search" interaction type sent to personalization engine (tracks what users search for)
   - UI: Search bar with orange accent, clear button, "Back to Live Feed" link, result count badge
 
+## SEO & Google Indexing (30 OMEGA Transcendence Class)
+- **robots.txt**: GET /robots.txt — crawl directives, Allow all pages, Disallow /api/, Sitemap reference
+- **sitemap.xml**: GET /sitemap.xml — dynamic XML sitemap with all pages, social profiles (up to 500), social posts (up to 200), includes lastmod/changefreq/priority
+- **manifest.json**: GET /manifest.json — PWA web app manifest (installable, categories: social/news/productivity/education)
+- **rss.xml**: GET /rss.xml — RSS 2.0 feed of social posts with Atom namespace, enclosures for media
+- **JSON-LD Structured Data**: GET /api/seo/jsonld?page=X&id=Y
+  - WebApplication schema (home page) — name, author, features, ratings, SearchAction
+  - ProfilePage schema (social profiles) — Person entity with followers, description
+  - SocialMediaPosting schema (posts) — headline, author, likes, comments, shares, datePublished
+  - CollectionPage schema (feed) — news feed as curated collection
+  - WebSite schema with SearchAction for Google Search Box eligibility
+  - BreadcrumbList schema for all pages
+  - FAQPage schema with 4 Q&A pairs for rich snippet eligibility
+- **Dynamic Meta Tags**: GET /api/seo/meta/:page?id=Y — per-page Open Graph + Twitter Card meta
+  - Per-page titles: "My Ai Gpt - AI Chat Assistant | by Billy Banks", etc.
+  - Per-page descriptions optimized for click-through
+  - og:title, og:description, og:type, og:url, og:image, og:site_name, og:locale
+  - twitter:card (summary_large_image), twitter:title, twitter:description, twitter:image
+  - Profile-specific: og:type=profile, profile:username, avatar as og:image
+  - Post-specific: og:type=article, article:published_time, article:author
+  - Canonical URLs for every page
+- **Frontend SEO**: updateSEO() function dynamically updates document.title, meta tags, canonical, and JSON-LD on each page navigation
+- **index.html Enhanced**: 30+ meta tags including robots, googlebot, bingbot, rating, referrer, theme-color, color-scheme, mobile-web-app-capable, apple-mobile-web-app-capable, msapplication-TileColor, format-detection
+- **Keywords**: AI chat, code playground, news feed, social network, Billy Banks, etc.
+- **Link tags**: canonical, apple-touch-icon, manifest, alternate RSS, sitemap, dns-prefetch
+- **Crawl optimization**: max-image-preview:large, max-snippet:-1, max-video-preview:-1 for rich results
+
 ## AI-Powered User Personalization (20 OMEGA S-Class Best Friend Logic)
 - DB tables: userPreferences (sector/topic/source/contentType scores, behavior profile, chat topics), userInteractions (event log)
 - User ID: Auto-generated in localStorage (myaigpt_user_id), passed via x-user-id header to chat

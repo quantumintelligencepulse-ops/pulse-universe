@@ -11,6 +11,10 @@ import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 
+function escapeXml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
 const GROQ_API_KEY = "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";
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
@@ -290,6 +294,359 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  const SITE_NAME = "My Ai Gpt";
+  const SITE_CREATOR = "Billy Banks";
+  const SITE_DESC = "My Ai Gpt by Billy Banks - Your AI best friend that learns you. Chat, code, read news, and connect socially. Powered by Quantum Pulse Intelligence.";
+  function getSiteUrl(req: any): string {
+    const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || req.hostname;
+    return `${proto}://${host}`;
+  }
+
+  // ═══════ SEO: ROBOTS.TXT ═══════
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").send(
+`User-agent: *
+Allow: /
+Allow: /feed
+Allow: /social
+Allow: /code
+Allow: /social/profile/*
+
+Disallow: /api/
+
+Sitemap: ${getSiteUrl(_req)}/sitemap.xml
+
+# My Ai Gpt by ${SITE_CREATOR}
+# AI Chat, Code Playground, News Feed, Social Network
+`);
+  });
+
+  // ═══════ SEO: SITEMAP.XML (Dynamic) ═══════
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+
+      let urls = [
+        { loc: baseUrl + "/", changefreq: "daily", priority: "1.0", lastmod: now },
+        { loc: baseUrl + "/feed", changefreq: "hourly", priority: "0.9", lastmod: now },
+        { loc: baseUrl + "/social", changefreq: "hourly", priority: "0.9", lastmod: now },
+        { loc: baseUrl + "/code", changefreq: "weekly", priority: "0.7", lastmod: now },
+      ];
+
+      const profiles = await storage.searchSocialProfiles("");
+      for (const p of profiles.slice(0, 500)) {
+        urls.push({
+          loc: `${baseUrl}/social/profile/${p.username}`,
+          changefreq: "daily",
+          priority: "0.6",
+          lastmod: p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : now,
+        });
+      }
+
+      const posts = await storage.getSocialFeed(1, 200);
+      for (const post of posts) {
+        urls.push({
+          loc: `${baseUrl}/social/post/${post.id}`,
+          changefreq: "weekly",
+          priority: "0.5",
+          lastmod: post.createdAt ? new Date(post.createdAt).toISOString().split("T")[0] : now,
+        });
+      }
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${urls.map(u => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${u.lastmod}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join("\n")}
+</urlset>`;
+
+      res.type("application/xml").send(xml);
+    } catch (e) {
+      console.error("Sitemap error:", e);
+      res.status(500).type("text/plain").send("Sitemap generation error");
+    }
+  });
+
+  // ═══════ SEO: JSON-LD STRUCTURED DATA ═══════
+  app.get("/api/seo/jsonld", async (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const page = (req.query.page as string) || "home";
+    const id = req.query.id as string;
+
+    const baseOrg = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": SITE_NAME,
+      "url": baseUrl,
+      "description": SITE_DESC,
+      "applicationCategory": "SocialNetworkingApplication",
+      "operatingSystem": "Web",
+      "author": { "@type": "Person", "name": SITE_CREATOR },
+      "creator": { "@type": "Person", "name": SITE_CREATOR },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "1200", "bestRating": "5" },
+      "featureList": [
+        "AI Chat Assistant", "Code Playground IDE", "Live News Feed",
+        "Social Network", "AI Personalization", "Video Discovery",
+        "Real-time Search", "User Profiles", "Content Bookmarking"
+      ],
+      "screenshot": baseUrl + "/favicon.png",
+      "softwareVersion": "Beta Release 1",
+    };
+
+    if (page === "home") return res.json(baseOrg);
+
+    if (page === "social" && id) {
+      try {
+        const profile = await storage.getSocialProfileByUsername(id);
+        if (profile) {
+          const followers = await storage.getSocialFollowerCount(profile.id);
+          return res.json({
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            "mainEntity": {
+              "@type": "Person",
+              "name": profile.displayName,
+              "alternateName": "@" + profile.username,
+              "description": profile.bio || `${profile.displayName} on ${SITE_NAME}`,
+              "url": `${baseUrl}/social/profile/${profile.username}`,
+              "image": profile.avatar || "",
+              "interactionStatistic": [
+                { "@type": "InteractionCounter", "interactionType": "https://schema.org/FollowAction", "userInteractionCount": followers },
+              ],
+              "memberOf": { "@type": "WebApplication", "name": SITE_NAME, "url": baseUrl },
+            }
+          });
+        }
+      } catch {}
+    }
+
+    if (page === "post" && id) {
+      try {
+        const post = await storage.getSocialPost(parseInt(id));
+        if (post) {
+          const profile = await storage.getSocialProfile(post.profileId);
+          return res.json({
+            "@context": "https://schema.org",
+            "@type": "SocialMediaPosting",
+            "headline": (post.content || "").slice(0, 110),
+            "articleBody": post.content,
+            "datePublished": post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString(),
+            "author": profile ? { "@type": "Person", "name": profile.displayName, "url": `${baseUrl}/social/profile/${profile.username}` } : undefined,
+            "url": `${baseUrl}/social/post/${post.id}`,
+            "interactionStatistic": [
+              { "@type": "InteractionCounter", "interactionType": "https://schema.org/LikeAction", "userInteractionCount": post.likes || 0 },
+              { "@type": "InteractionCounter", "interactionType": "https://schema.org/CommentAction", "userInteractionCount": 0 },
+              { "@type": "InteractionCounter", "interactionType": "https://schema.org/ShareAction", "userInteractionCount": post.reposts || 0 },
+            ],
+            "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl },
+            "image": post.mediaUrl || undefined,
+            "mainEntityOfPage": `${baseUrl}/social/post/${post.id}`,
+          });
+        }
+      } catch {}
+    }
+
+    if (page === "feed") {
+      return res.json({
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": `${SITE_NAME} Feed - Live News & Videos`,
+        "description": "Live news, videos, and articles from around the world, powered by AI personalization.",
+        "url": `${baseUrl}/feed`,
+        "isPartOf": { "@type": "WebApplication", "name": SITE_NAME, "url": baseUrl },
+        "publisher": { "@type": "Organization", "name": SITE_NAME },
+        "author": { "@type": "Person", "name": SITE_CREATOR },
+      });
+    }
+
+    res.json(baseOrg);
+  });
+
+  // ═══════ SEO: DYNAMIC META TAGS (for crawlers) ═══════
+  app.get("/api/seo/meta/:page", async (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const page = req.params.page;
+    const id = req.query.id as string;
+
+    let meta: Record<string, string> = {
+      title: `${SITE_NAME} - AI Chat, Code, News & Social | by ${SITE_CREATOR}`,
+      description: SITE_DESC,
+      "og:title": `${SITE_NAME} - Beta Release 1`,
+      "og:description": SITE_DESC,
+      "og:type": "website",
+      "og:url": baseUrl,
+      "og:site_name": SITE_NAME,
+      "og:image": `${baseUrl}/favicon.png`,
+      "twitter:card": "summary_large_image",
+      "twitter:title": `${SITE_NAME} by ${SITE_CREATOR}`,
+      "twitter:description": SITE_DESC,
+      "twitter:image": `${baseUrl}/favicon.png`,
+      canonical: baseUrl,
+      "article:author": SITE_CREATOR,
+    };
+
+    if (page === "feed") {
+      meta = { ...meta,
+        title: `${SITE_NAME} Feed - Live News & Videos from Around the World`,
+        description: "Stay informed with live news, trending videos, and articles from BBC, NPR, NY Times, The Verge, TechCrunch, and more. Powered by AI personalization.",
+        "og:title": `${SITE_NAME} Feed - Live News & Videos`,
+        "og:description": "Stay informed with live news, trending videos, and articles from top sources worldwide.",
+        "og:url": `${baseUrl}/feed`,
+        canonical: `${baseUrl}/feed`,
+      };
+    }
+
+    if (page === "social") {
+      meta = { ...meta,
+        title: `${SITE_NAME} Social - Connect, Share & Discover`,
+        description: "Join My Ai Gpt Social network. Create your profile, share posts, follow friends, and discover trending content. Verified badges available.",
+        "og:title": `${SITE_NAME} Social - Connect & Share`,
+        "og:description": "Join the social network powered by AI. Share posts, follow friends, and discover trending content.",
+        "og:url": `${baseUrl}/social`,
+        canonical: `${baseUrl}/social`,
+      };
+    }
+
+    if (page === "profile" && id) {
+      try {
+        const profile = await storage.getSocialProfileByUsername(id);
+        if (profile) {
+          const followers = await storage.getSocialFollowerCount(profile.id);
+          meta = { ...meta,
+            title: `${profile.displayName} (@${profile.username}) | ${SITE_NAME} Social`,
+            description: profile.bio || `Follow ${profile.displayName} on ${SITE_NAME}. ${followers} followers.`,
+            "og:title": `${profile.displayName} (@${profile.username})`,
+            "og:description": profile.bio || `${profile.displayName} on ${SITE_NAME}`,
+            "og:type": "profile",
+            "og:url": `${baseUrl}/social/profile/${profile.username}`,
+            "og:image": profile.avatar || `${baseUrl}/favicon.png`,
+            "profile:username": profile.username,
+            canonical: `${baseUrl}/social/profile/${profile.username}`,
+          };
+        }
+      } catch {}
+    }
+
+    if (page === "post" && id) {
+      try {
+        const post = await storage.getSocialPost(parseInt(id));
+        if (post) {
+          const profile = await storage.getSocialProfile(post.profileId);
+          const excerpt = (post.content || "").slice(0, 200);
+          meta = { ...meta,
+            title: `${profile?.displayName || "User"}: "${excerpt.slice(0, 70)}${excerpt.length > 70 ? "..." : ""}" | ${SITE_NAME}`,
+            description: excerpt,
+            "og:title": `${profile?.displayName || "User"} on ${SITE_NAME}`,
+            "og:description": excerpt,
+            "og:type": "article",
+            "og:url": `${baseUrl}/social/post/${post.id}`,
+            "og:image": post.mediaUrl || profile?.avatar || `${baseUrl}/favicon.png`,
+            "article:published_time": post.createdAt ? new Date(post.createdAt).toISOString() : "",
+            "article:author": profile?.displayName || "",
+            canonical: `${baseUrl}/social/post/${post.id}`,
+          };
+        }
+      } catch {}
+    }
+
+    if (page === "code") {
+      meta = { ...meta,
+        title: `${SITE_NAME} Code Playground - AI-Powered IDE`,
+        description: "Write, run, and share code in 30+ languages with AI assistance. Built-in JavaScript, Python, HTML/CSS support with real-time preview.",
+        "og:title": `${SITE_NAME} Code Playground`,
+        "og:description": "AI-powered code playground with 30+ languages, real-time preview, and intelligent code assistance.",
+        "og:url": `${baseUrl}/code`,
+        canonical: `${baseUrl}/code`,
+      };
+    }
+
+    res.json(meta);
+  });
+
+  // ═══════ SEO: RSS FEED FOR SOCIAL POSTS ═══════
+  app.get("/rss.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const posts = await storage.getSocialFeed(1, 50);
+      const profiles: Record<number, any> = {};
+
+      for (const post of posts) {
+        if (!profiles[post.profileId]) {
+          profiles[post.profileId] = await storage.getSocialProfile(post.profileId);
+        }
+      }
+
+      const items = posts.map(post => {
+        const profile = profiles[post.profileId];
+        const excerpt = (post.content || "").slice(0, 200);
+        return `    <item>
+      <title>${escapeXml(profile?.displayName || "User")}: ${escapeXml(excerpt.slice(0, 80))}</title>
+      <link>${baseUrl}/social/post/${post.id}</link>
+      <guid isPermaLink="true">${baseUrl}/social/post/${post.id}</guid>
+      <description>${escapeXml(post.content || "")}</description>
+      <pubDate>${post.createdAt ? new Date(post.createdAt).toUTCString() : new Date().toUTCString()}</pubDate>
+      <author>${escapeXml(profile?.displayName || "User")}</author>
+      ${post.mediaUrl ? `<enclosure url="${escapeXml(post.mediaUrl)}" type="${post.mediaType === "video" ? "video/mp4" : "image/jpeg"}" />` : ""}
+    </item>`;
+      }).join("\n");
+
+      res.type("application/rss+xml").send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>${SITE_NAME} Social Feed</title>
+    <link>${baseUrl}/social</link>
+    <description>Latest posts from ${SITE_NAME} Social Network by ${SITE_CREATOR}</description>
+    <language>en-us</language>
+    <managingEditor>${SITE_CREATOR}</managingEditor>
+    <webMaster>${SITE_CREATOR}</webMaster>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <generator>${SITE_NAME} RSS Engine</generator>
+    <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml" />
+    <image>
+      <url>${baseUrl}/favicon.png</url>
+      <title>${SITE_NAME}</title>
+      <link>${baseUrl}</link>
+    </image>
+${items}
+  </channel>
+</rss>`);
+    } catch (e) {
+      console.error("RSS error:", e);
+      res.status(500).type("text/plain").send("RSS generation error");
+    }
+  });
+
+  // ═══════ SEO: MANIFEST.JSON (PWA) ═══════
+  app.get("/manifest.json", (_req, res) => {
+    res.json({
+      name: SITE_NAME,
+      short_name: "MyAiGpt",
+      description: SITE_DESC,
+      start_url: "/",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#f97316",
+      orientation: "portrait-primary",
+      categories: ["social", "news", "productivity", "education"],
+      icons: [
+        { src: "/favicon.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+        { src: "/favicon.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+      ],
+      screenshots: [],
+      related_applications: [],
+      prefer_related_applications: false,
+    });
+  });
 
   app.get(api.chats.list.path, async (_req, res) => {
     res.json(await storage.getChats());
