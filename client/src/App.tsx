@@ -1807,7 +1807,7 @@ ${brokenCode.substring(0, 2000)}
         body: JSON.stringify({ title: `Voice: ${description.substring(0, 40)}`, type: "coder" })
       });
       const chat = await chatRes.json();
-      const prompt = `The user spoke this voice command describing what they want to build:\n\n"${description}"\n\nGenerate the complete ${lang} code that does exactly what they described. Return ONLY the code in a single code block. No explanation before or after. Make it fully working and runnable.`;
+      const prompt = `The user spoke this voice command describing what they want to build:\n\n"${description}"\n\nGenerate the complete ${lang} code that does exactly what they described. Return ONLY the code in a single code block. No explanation before or after. Make it fully working and runnable.\n\nIMPORTANT RULES:\n- To open any website/URL, use: window.open("https://example.com", "_blank")\n- NEVER use registerProtocolHandler, it does not work in sandboxed browsers\n- NEVER use require() or import for Node.js modules — this runs in a browser sandbox\n- For fetching data, use fetch() API\n- For DOM manipulation, use standard document methods\n- Keep it browser-compatible JavaScript unless the user specifically asks for server-side code`;
       const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: prompt })
