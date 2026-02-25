@@ -21,7 +21,8 @@ import {
   Mic, MicOff, SplitSquareVertical, Wand2, Brain, Scan, Square,
   SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle,
   ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight,
-  Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3
+  Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
+  Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
@@ -223,6 +224,345 @@ function formatTime(date: string | Date) {
   return d.toLocaleDateString();
 }
 function wordCount(t: string) { return t.trim().split(/\s+/).filter(Boolean).length; }
+
+// ─── VOICE ENGINE (Speech-to-Text + Text-to-Speech) ──────────────────────────
+
+function useSpeechRecognition() {
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = useCallback(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return false;
+    const recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.maxAlternatives = 1;
+    let finalTranscript = "";
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) { finalTranscript += event.results[i][0].transcript + " "; }
+        else { interim += event.results[i][0].transcript; }
+      }
+      setTranscript((finalTranscript + interim).trim());
+    };
+    recognition.onerror = () => { setIsListening(false); };
+    recognition.onend = () => { setIsListening(false); };
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+    setTranscript("");
+    return true;
+  }, []);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
+    setIsListening(false);
+  }, []);
+
+  return { isListening, transcript, startListening, stopListening, setTranscript };
+}
+
+function speakText(text: string, onEnd?: () => void): SpeechSynthesisUtterance | null {
+  if (!window.speechSynthesis) return null;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/```[\s\S]*?```/g, " code block ").replace(/[*_~`#]/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/https?:\/\/\S+/g, " link ").trim();
+  if (!clean) return null;
+  const utterance = new SpeechSynthesisUtterance(clean);
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.name.includes("Google") && v.lang.startsWith("en")) ||
+    voices.find(v => v.name.includes("Samantha")) ||
+    voices.find(v => v.name.includes("Natural") && v.lang.startsWith("en")) ||
+    voices.find(v => v.lang.startsWith("en") && v.localService) ||
+    voices.find(v => v.lang.startsWith("en"));
+  if (preferred) utterance.voice = preferred;
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  if (onEnd) utterance.onend = onEnd;
+  window.speechSynthesis.speak(utterance);
+  return utterance;
+}
+
+// ─── DEVICE PERMISSIONS ENGINE ───────────────────────────────────────────────
+
+type PermissionStatus = "granted" | "denied" | "prompt" | "unavailable" | "checking";
+type PermissionInfo = { id: string; name: string; desc: string; icon: any; status: PermissionStatus; category: string };
+
+function useDevicePermissions() {
+  const [permissions, setPermissions] = useState<PermissionInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const checkAll = useCallback(async () => {
+    setLoading(true);
+    const results: PermissionInfo[] = [];
+
+    const checkPerm = async (name: string): Promise<PermissionStatus> => {
+      try { const s = await navigator.permissions.query({ name: name as any }); return s.state as PermissionStatus; }
+      catch { return "unavailable"; }
+    };
+
+    results.push({ id: "geolocation", name: "Location (GPS)", desc: "Navigate, find nearby places, get directions, weather by location", icon: Locate, status: await checkPerm("geolocation"), category: "Location" });
+    results.push({ id: "camera", name: "Camera", desc: "Take photos, scan QR codes, video calls, profile pictures", icon: Camera, status: await checkPerm("camera"), category: "Media" });
+    results.push({ id: "microphone", name: "Microphone", desc: "Voice commands, voice chat, audio messages, dictation", icon: Mic, status: await checkPerm("microphone"), category: "Media" });
+    results.push({ id: "notifications", name: "Notifications", desc: "Get alerts for messages, news, social activity, reminders", icon: Bell, status: await checkPerm("notifications"), category: "System" });
+    results.push({ id: "clipboard-read", name: "Clipboard", desc: "Paste text, images, code snippets from clipboard", icon: Copy, status: await checkPerm("clipboard-read"), category: "System" });
+    results.push({ id: "persistent-storage", name: "Storage", desc: "Save data offline, cache content, store preferences", icon: Database, status: await checkPerm("persistent-storage"), category: "System" });
+    results.push({ id: "accelerometer", name: "Motion Sensors", desc: "Fitness tracking, gaming, shake gestures, step counting", icon: Smartphone, status: await checkPerm("accelerometer"), category: "Sensors" });
+    results.push({ id: "gyroscope", name: "Gyroscope", desc: "Orientation detection, 360 views, AR experiences", icon: Navigation, status: await checkPerm("gyroscope"), category: "Sensors" });
+
+    setPermissions(results);
+    setLoading(false);
+  }, []);
+
+  const requestPermission = useCallback(async (id: string) => {
+    try {
+      if (id === "geolocation") { await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject)); }
+      else if (id === "camera") { const s = await navigator.mediaDevices.getUserMedia({ video: true }); s.getTracks().forEach(t => t.stop()); }
+      else if (id === "microphone") { const s = await navigator.mediaDevices.getUserMedia({ audio: true }); s.getTracks().forEach(t => t.stop()); }
+      else if (id === "notifications") { await Notification.requestPermission(); }
+      else if (id === "clipboard-read") { await navigator.clipboard.readText().catch(() => {}); }
+      else if (id === "persistent-storage") { await navigator.storage?.persist?.(); }
+      else if (id === "accelerometer" || id === "gyroscope") {
+        if ((DeviceMotionEvent as any).requestPermission) { await (DeviceMotionEvent as any).requestPermission(); }
+      }
+      await checkAll();
+    } catch { await checkAll(); }
+  }, [checkAll]);
+
+  useEffect(() => { checkAll(); }, [checkAll]);
+
+  return { permissions, loading, requestPermission, refresh: checkAll };
+}
+
+// ─── AI IMAGE GENERATION ENGINE (Canvas-based, 100% free) ───────────────────
+
+function generateAIImage(prompt: string, width = 512, height = 512): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  const seed = prompt.split("").reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+  const rng = (i: number) => { let s = seed + i * 9301 + 49297; s = ((s * 9301 + 49297) % 233280); return s / 233280; };
+
+  const lower = prompt.toLowerCase();
+  const isSunset = /sunset|sunrise|dawn|dusk/i.test(lower);
+  const isOcean = /ocean|sea|water|wave|beach/i.test(lower);
+  const isForest = /forest|tree|nature|green|jungle/i.test(lower);
+  const isMountain = /mountain|hill|peak|landscape/i.test(lower);
+  const isCity = /city|building|skyline|urban|downtown/i.test(lower);
+  const isSpace = /space|galaxy|star|cosmos|universe|planet/i.test(lower);
+  const isAbstract = /abstract|art|pattern|design|colorful/i.test(lower);
+  const isPortrait = /face|person|portrait|human|people/i.test(lower);
+  const isAnimal = /cat|dog|animal|bird|fish|lion|tiger/i.test(lower);
+  const isFlower = /flower|rose|garden|bloom|floral/i.test(lower);
+
+  let palette: string[];
+  if (isSunset) palette = ["#ff6b35", "#f7931e", "#ffd700", "#ff4500", "#8b0000", "#4a0e4e", "#1a0533"];
+  else if (isOcean) palette = ["#006994", "#40a4df", "#87ceeb", "#e0f7fa", "#004d7a", "#008b8b", "#00ced1"];
+  else if (isForest) palette = ["#1b4332", "#2d6a4f", "#40916c", "#52b788", "#74c69d", "#95d5b2", "#b7e4c7"];
+  else if (isMountain) palette = ["#2c3e50", "#34495e", "#7f8c8d", "#95a5a6", "#bdc3c7", "#ecf0f1", "#8e44ad"];
+  else if (isCity) palette = ["#1a1a2e", "#16213e", "#0f3460", "#e94560", "#f5f5dc", "#ffab00", "#00bcd4"];
+  else if (isSpace) palette = ["#0d0221", "#0a0a2e", "#1a0533", "#4a0e4e", "#7b2ff7", "#c471f5", "#00d4ff"];
+  else if (isAbstract) palette = ["#ff006e", "#fb5607", "#ffbe0b", "#8338ec", "#3a86ff", "#06d6a0", "#ef476f"];
+  else if (isPortrait) palette = ["#ffd5c8", "#f4a261", "#e76f51", "#264653", "#2a9d8f", "#e9c46a", "#f4a261"];
+  else if (isAnimal) palette = ["#4a7c59", "#8fbc8f", "#daa520", "#d2691e", "#8b4513", "#f5deb3", "#2f4f4f"];
+  else if (isFlower) palette = ["#ff69b4", "#ff1493", "#c71585", "#db7093", "#ffc0cb", "#228b22", "#32cd32"];
+  else palette = ["#667eea", "#764ba2", "#f093fb", "#4facfe", "#00f2fe", "#43e97b", "#fa709a"];
+
+  const pc = (i: number) => palette[Math.abs(i) % palette.length];
+
+  if (isSpace) {
+    const grd = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width);
+    grd.addColorStop(0, "#1a0533");
+    grd.addColorStop(0.5, "#0a0a2e");
+    grd.addColorStop(1, "#000005");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, width, height);
+    for (let i = 0; i < 400; i++) {
+      const x = rng(i * 3) * width, y = rng(i * 3 + 1) * height, r = rng(i * 3 + 2) * 2.5;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${0.3 + rng(i) * 0.7})`;
+      ctx.fill();
+    }
+    for (let i = 0; i < 3; i++) {
+      const cx = rng(i * 10 + 50) * width, cy = rng(i * 10 + 51) * height, nr = 30 + rng(i * 10 + 52) * 60;
+      const nebula = ctx.createRadialGradient(cx, cy, 0, cx, cy, nr);
+      nebula.addColorStop(0, pc(i) + "66");
+      nebula.addColorStop(0.5, pc(i + 2) + "33");
+      nebula.addColorStop(1, "transparent");
+      ctx.fillStyle = nebula;
+      ctx.fillRect(0, 0, width, height);
+    }
+  } else {
+    const grd = ctx.createLinearGradient(0, 0, width * rng(0), height);
+    grd.addColorStop(0, pc(0));
+    grd.addColorStop(0.3, pc(1));
+    grd.addColorStop(0.6, pc(2));
+    grd.addColorStop(1, pc(3));
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  if (isSunset || isOcean || isMountain || isForest) {
+    for (let l = 0; l < 4; l++) {
+      ctx.beginPath();
+      ctx.moveTo(0, height * (0.4 + l * 0.15));
+      for (let x = 0; x <= width; x += 10) {
+        const y = height * (0.4 + l * 0.15) + Math.sin(x * 0.02 + l + seed) * 30 + Math.sin(x * 0.005 + seed) * 20;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(width, height); ctx.lineTo(0, height); ctx.closePath();
+      ctx.fillStyle = pc(l + 3) + (l === 3 ? "ee" : "99");
+      ctx.fill();
+    }
+  }
+
+  if (isCity) {
+    for (let i = 0; i < 15; i++) {
+      const bx = rng(i * 4 + 100) * width, bw = 20 + rng(i * 4 + 101) * 40;
+      const bh = 60 + rng(i * 4 + 102) * 200, by = height - bh;
+      ctx.fillStyle = pc(i % 4) + "cc";
+      ctx.fillRect(bx, by, bw, bh);
+      for (let wy = by + 10; wy < height - 10; wy += 15) {
+        for (let wx = bx + 5; wx < bx + bw - 5; wx += 10) {
+          ctx.fillStyle = rng(wy + wx) > 0.4 ? "#ffd70099" : "#00000033";
+          ctx.fillRect(wx, wy, 5, 8);
+        }
+      }
+    }
+  }
+
+  if (isFlower || isAnimal || isPortrait) {
+    for (let i = 0; i < 8; i++) {
+      const cx = rng(i * 5 + 200) * width, cy = rng(i * 5 + 201) * height;
+      const radius = 20 + rng(i * 5 + 202) * 50;
+      for (let p = 0; p < 8; p++) {
+        const angle = (p / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.ellipse(cx + Math.cos(angle) * radius * 0.5, cy + Math.sin(angle) * radius * 0.5, radius * 0.4, radius * 0.2, angle, 0, Math.PI * 2);
+        ctx.fillStyle = pc(p) + "bb";
+        ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(cx, cy, radius * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffd700cc";
+      ctx.fill();
+    }
+  }
+
+  if (isAbstract) {
+    for (let i = 0; i < 20; i++) {
+      ctx.beginPath();
+      const cx = rng(i * 6 + 300) * width, cy = rng(i * 6 + 301) * height;
+      const r = 10 + rng(i * 6 + 302) * 80;
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = pc(i) + "77";
+      ctx.fill();
+      ctx.strokeStyle = pc(i + 1) + "aa";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    const sx = rng(i * 7 + 400) * width, sy = rng(i * 7 + 401) * height;
+    ctx.moveTo(sx, sy);
+    ctx.bezierCurveTo(sx + rng(i * 7 + 402) * 200 - 100, sy + rng(i * 7 + 403) * 200 - 100,
+      sx + rng(i * 7 + 404) * 200 - 100, sy + rng(i * 7 + 405) * 200 - 100,
+      rng(i * 7 + 406) * width, rng(i * 7 + 407) * height);
+    ctx.strokeStyle = pc(i) + "44";
+    ctx.lineWidth = 1 + rng(i) * 3;
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  for (let i = 0; i < 100; i++) {
+    const x = rng(i * 2 + 500) * width, y = rng(i * 2 + 501) * height;
+    ctx.fillRect(x, y, 2 + rng(i) * 4, 2 + rng(i + 1) * 4);
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
+function generateAIVideo(prompt: string, durationMs = 4000): Promise<string> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 360;
+    const ctx = canvas.getContext("2d")!;
+    const seed = prompt.split("").reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+    const rng = (i: number) => { let s = ((seed + i) * 9301 + 49297) % 233280; return s / 233280; };
+
+    const lower = prompt.toLowerCase();
+    let colors: string[];
+    if (/ocean|water|wave/i.test(lower)) colors = ["#006994", "#40a4df", "#87ceeb", "#004d7a"];
+    else if (/fire|flame|lava/i.test(lower)) colors = ["#ff4500", "#ff6347", "#ffd700", "#8b0000"];
+    else if (/space|galaxy|star/i.test(lower)) colors = ["#0d0221", "#4a0e4e", "#7b2ff7", "#00d4ff"];
+    else if (/nature|forest|green/i.test(lower)) colors = ["#1b4332", "#2d6a4f", "#40916c", "#74c69d"];
+    else colors = ["#667eea", "#764ba2", "#f093fb", "#4facfe"];
+
+    const particles: Array<{x: number; y: number; vx: number; vy: number; r: number; c: string}> = [];
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: rng(i * 3) * 640, y: rng(i * 3 + 1) * 360,
+        vx: (rng(i * 3 + 2) - 0.5) * 3, vy: (rng(i * 3 + 3) - 0.5) * 3,
+        r: 3 + rng(i * 3 + 4) * 15, c: colors[i % colors.length]
+      });
+    }
+
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      resolve(URL.createObjectURL(blob));
+    };
+
+    let frame = 0;
+    const totalFrames = Math.floor(durationMs / 33);
+    const animate = () => {
+      const t = frame / totalFrames;
+      const grd = ctx.createLinearGradient(0, 0, 640, 360);
+      grd.addColorStop(0, colors[0]); grd.addColorStop(0.5, colors[1]);
+      grd.addColorStop(1, colors[Math.floor(t * 3) % colors.length]);
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, 640, 360);
+
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > 640) p.vx *= -1;
+        if (p.y < 0 || p.y > 360) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * (0.8 + Math.sin(frame * 0.05 + p.r) * 0.3), 0, Math.PI * 2);
+        ctx.fillStyle = p.c + "88";
+        ctx.fill();
+      }
+
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 180 + Math.sin(frame * 0.03 + i * 2) * 60);
+        for (let x = 0; x <= 640; x += 5) {
+          ctx.lineTo(x, 180 + Math.sin(x * 0.01 + frame * 0.04 + i) * 50 + Math.cos(x * 0.02 + frame * 0.02) * 30);
+        }
+        ctx.strokeStyle = colors[i % colors.length] + "55";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      frame++;
+      if (frame < totalFrames) { requestAnimationFrame(animate); }
+      else { recorder.stop(); }
+    };
+
+    recorder.start();
+    animate();
+  });
+}
 
 // #3 - Code metrics analyzer
 function analyzeCode(code: string, lang: string) {
@@ -492,8 +832,14 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
   const isUser = role === "user";
   const [reaction, setReaction] = useState<"up" | "down" | null>(null);
   const [msgCopied, setMsgCopied] = useState(false);
-  // #12 - Code block count in message
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const codeBlockCount = (content.match(/```\w+/g) || []).length;
+
+  const handleSpeak = () => {
+    if (isSpeaking) { window.speechSynthesis?.cancel(); setIsSpeaking(false); return; }
+    setIsSpeaking(true);
+    speakText(content, () => setIsSpeaking(false));
+  };
 
   return (
     <div data-testid={`message-${role}`} className={`group py-5 px-4 md:px-8 w-full flex justify-center transition-colors ${isUser ? "bg-transparent" : "bg-muted/15"}`}>
@@ -553,6 +899,11 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
           </div>
           {!isUser && !isThinking && content && (
             <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={handleSpeak} data-testid="button-speak-message"
+                className={`p-1.5 rounded-md hover:bg-muted/50 transition-colors ${isSpeaking ? "text-blue-500" : "text-muted-foreground/50 hover:text-foreground"}`}
+                title={isSpeaking ? "Stop speaking" : "Read aloud"}>
+                {isSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
               <button onClick={() => { navigator.clipboard.writeText(content); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 2000); }}
                 className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Copy">{msgCopied ? <Check size={14} /> : <Copy size={14} />}</button>
               <button onClick={() => setReaction(reaction === "up" ? null : "up")} className={`p-1.5 rounded-md hover:bg-muted/50 transition-colors ${reaction === "up" ? "text-green-500" : "text-muted-foreground/50 hover:text-foreground"}`}><ThumbsUp size={14} /></button>
@@ -587,11 +938,25 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [histIdx, setHistIdx] = useState(-1);
-  // #16 - Show templates
   const [showTemplates, setShowTemplates] = useState(false);
-  // #17 - Paste code detection
   const [pastedCode, setPastedCode] = useState(false);
   const charCount = value.length;
+  const { isListening, transcript, startListening, stopListening, setTranscript } = useSpeechRecognition();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (transcript) setValue(transcript);
+  }, [transcript]);
+
+  const toggleVoice = () => {
+    if (isListening) {
+      stopListening();
+      if (transcript.trim()) { setValue(transcript.trim()); }
+    } else {
+      const ok = startListening();
+      if (!ok) toast({ title: "Voice not supported", description: "Your browser doesn't support speech recognition. Try Chrome on Android or desktop.", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -658,17 +1023,29 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
           rows={1} />
         <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
           {charCount > 0 && <span className="text-[10px] text-muted-foreground/40 tabular-nums">{charCount}</span>}
-          {/* #16 - Template button */}
           {isCoder && !value && (
             <button type="button" onClick={() => setShowTemplates(!showTemplates)} className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors" title="Code templates (/)">
               <Layers size={14} />
             </button>
           )}
+          <button type="button" onClick={toggleVoice} data-testid="button-voice-input"
+            className={`p-2 rounded-xl flex items-center justify-center transition-all ${isListening ? "bg-red-500 text-white shadow-md animate-pulse" : "text-muted-foreground/50 hover:text-foreground hover:bg-muted/30"}`}
+            title={isListening ? "Stop listening" : "Voice input"}>
+            {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+          </button>
           <button type="submit" disabled={!value.trim() || disabled} data-testid="button-send"
             className={`p-2.5 rounded-xl flex items-center justify-center transition-all ${value.trim() && !disabled ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground cursor-not-allowed"}`}>
             <Send size={16} strokeWidth={2.5} />
           </button>
         </div>
+        {isListening && (
+          <div className="absolute -top-10 left-0 right-0 flex items-center justify-center">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full text-xs text-red-600 shadow-sm">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              Listening... speak now
+            </div>
+          </div>
+        )}
       </div>
       <div className="flex items-center justify-center gap-3 mt-2">
         <span className="text-[10px] text-muted-foreground/40">My Ai Gpt Beta Release 1</span>
@@ -1242,6 +1619,17 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/social" || location.startsWith("/social") ? "bg-purple-500/15" : "bg-purple-500/5"}`}><Users size={14} className="text-purple-600" /></div>
             <span className="flex-1">Social</span>
             <span className="text-[9px] bg-purple-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">SOCIAL</span>
+          </Link>
+          <Link href="/create" data-testid="link-create"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
+            <span className="flex-1">AI Studio</span>
+            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">CREATE</span>
+          </Link>
+          <Link href="/permissions" data-testid="link-permissions"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/permissions" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/permissions" ? "bg-teal-500/15" : "bg-teal-500/5"}`}><Shield size={14} className="text-teal-600" /></div>
+            <span className="flex-1">Permissions</span>
           </Link>
         </div>
 
@@ -3825,6 +4213,355 @@ function FeedPage() {
   useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Live News & Videos from BBC, NPR, NY Times & More", description: "Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, Reuters, Associated Press, The Guardian, and more. Watch videos, search any topic. AI-personalized news feed by Billy Banks.", ogTitle: "My Ai Gpt Feed - Live News, Videos & Search", ogDesc: "Live news from BBC, NPR, NY Times, TechCrunch. Search any topic for news, web, and video results.", ogType: "website", canonical: window.location.origin + "/feed", keywords: "live news, news feed, BBC news, NPR news, NY Times, The Verge, TechCrunch, trending news, video news, AI news, personalized news, Billy Banks, news aggregator, world news, tech news, video search", author: "Billy Banks", articleSection: "News", jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "My Ai Gpt Feed", "description": "Live news and video feed with AI personalization", "url": window.location.origin + "/feed", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "author": { "@type": "Person", "name": "Billy Banks" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "News Feed", "item": window.location.origin + "/feed" }] } } }); }, []);
   return <Layout><NewsFeed /></Layout>;
 }
+// ─── AI STUDIO PAGE (Image + Video Generation) ──────────────────────────────
+
+function AIStudioPage() {
+  const [prompt, setPrompt] = useState("");
+  const [mode, setMode] = useState<"image" | "video">("image");
+  const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [gallery, setGallery] = useState<Array<{ url: string; prompt: string; type: "image" | "video"; timestamp: number }>>(() => {
+    try { return JSON.parse(localStorage.getItem("ai_studio_gallery") || "[]"); } catch { return []; }
+  });
+  const [selectedStyle, setSelectedStyle] = useState("realistic");
+  const [resolution, setResolution] = useState("512");
+  const [duration, setDuration] = useState("4");
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const styles = [
+    { id: "realistic", name: "Realistic", desc: "Photorealistic rendering" },
+    { id: "abstract", name: "Abstract Art", desc: "Creative abstract patterns" },
+    { id: "space", name: "Cosmic", desc: "Space and galaxy themes" },
+    { id: "city", name: "Urban", desc: "City skylines and architecture" },
+    { id: "nature", name: "Nature", desc: "Forests, mountains, oceans" },
+    { id: "flower", name: "Floral", desc: "Flowers and botanical art" },
+  ];
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    setGenerating(true);
+    setResult(null);
+    try {
+      const styledPrompt = `${selectedStyle} style: ${prompt}`;
+      if (mode === "image") {
+        const res = parseInt(resolution);
+        const dataUrl = generateAIImage(styledPrompt, res, res);
+        setResult(dataUrl);
+        const item = { url: dataUrl, prompt: prompt.trim(), type: "image" as const, timestamp: Date.now() };
+        const updated = [item, ...gallery].slice(0, 50);
+        setGallery(updated);
+        localStorage.setItem("ai_studio_gallery", JSON.stringify(updated));
+        toast({ title: "Image generated!" });
+      } else {
+        const dur = parseInt(duration) * 1000;
+        const videoUrl = await generateAIVideo(styledPrompt, dur);
+        setResult(videoUrl);
+        const item = { url: videoUrl, prompt: prompt.trim(), type: "video" as const, timestamp: Date.now() };
+        const updated = [item, ...gallery].slice(0, 50);
+        setGallery(updated);
+        localStorage.setItem("ai_studio_gallery", JSON.stringify(updated));
+        toast({ title: "Video generated!" });
+      }
+      trackInteraction("ai_studio", { text: prompt, contentType: mode });
+    } catch { toast({ title: "Generation failed", variant: "destructive" }); }
+    setGenerating(false);
+  };
+
+  const handleDownload = (url: string, type: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `myaigpt_${type}_${Date.now()}.${type === "image" ? "png" : "webm"}`;
+    a.click();
+    toast({ title: "Download started!" });
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 flex items-center justify-center shadow-xl">
+            <Paintbrush size={28} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight mb-1" data-testid="text-studio-title">AI Studio</h1>
+          <p className="text-muted-foreground text-sm">Generate images and videos with AI-powered creative engine</p>
+        </div>
+
+        <div className="bg-white border border-border/30 rounded-2xl p-6 shadow-sm mb-6">
+          <div className="flex gap-2 mb-4">
+            <button onClick={() => setMode("image")} data-testid="button-mode-image"
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all ${mode === "image" ? "bg-pink-500 text-white shadow-md" : "bg-muted/30 text-foreground/60 hover:bg-muted/50"}`}>
+              <ImagePlus size={16} /> Image
+            </button>
+            <button onClick={() => setMode("video")} data-testid="button-mode-video"
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all ${mode === "video" ? "bg-violet-500 text-white shadow-md" : "bg-muted/30 text-foreground/60 hover:bg-muted/50"}`}>
+              <VideoIcon size={16} /> Video
+            </button>
+          </div>
+
+          <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={mode === "image" ? "Describe the image you want to create... (e.g., sunset over mountains, abstract galaxy art, city skyline at night)" : "Describe the video you want to create... (e.g., ocean waves crashing, fire particles floating, aurora borealis)"} data-testid="input-studio-prompt"
+            className="w-full px-4 py-3 border border-border/40 rounded-xl text-sm focus:outline-none focus:border-pink-300 resize-none placeholder:text-muted-foreground/40" rows={3} />
+
+          <div className="mt-4">
+            <div className="text-xs font-medium text-muted-foreground mb-2">Art Style</div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {styles.map(s => (
+                <button key={s.id} onClick={() => setSelectedStyle(s.id)} data-testid={`button-style-${s.id}`}
+                  className={`p-2 rounded-lg text-center transition-all ${selectedStyle === s.id ? "bg-pink-50 border-2 border-pink-400 shadow-sm" : "border border-border/30 hover:border-border/60"}`}>
+                  <div className="text-xs font-medium">{s.name}</div>
+                  <div className="text-[10px] text-muted-foreground/60">{s.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 mt-4">
+            {mode === "image" ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Resolution:</span>
+                <select value={resolution} onChange={e => setResolution(e.target.value)} data-testid="select-resolution"
+                  className="text-xs px-2 py-1.5 border border-border/30 rounded-lg bg-white">
+                  <option value="256">256x256</option>
+                  <option value="512">512x512</option>
+                  <option value="768">768x768</option>
+                  <option value="1024">1024x1024</option>
+                </select>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Duration:</span>
+                <select value={duration} onChange={e => setDuration(e.target.value)} data-testid="select-duration"
+                  className="text-xs px-2 py-1.5 border border-border/30 rounded-lg bg-white">
+                  <option value="2">2 seconds</option>
+                  <option value="4">4 seconds</option>
+                  <option value="6">6 seconds</option>
+                  <option value="8">8 seconds</option>
+                </select>
+              </div>
+            )}
+            <button onClick={handleGenerate} disabled={generating || !prompt.trim()} data-testid="button-generate"
+              className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl text-sm font-medium shadow-md hover:shadow-lg disabled:opacity-40 transition-all">
+              {generating ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
+              ) : (
+                <><Wand size={16} /> Generate {mode === "image" ? "Image" : "Video"}</>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="bg-white border border-border/30 rounded-2xl p-4 shadow-sm mb-6" data-testid="studio-result">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2"><Aperture size={14} className="text-pink-500" /> Generated {mode}</h3>
+              <button onClick={() => handleDownload(result, mode)} data-testid="button-download-result"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/30 text-sm rounded-lg hover:bg-muted/50 transition-colors">
+                <Download size={14} /> Download
+              </button>
+            </div>
+            {mode === "image" ? (
+              <img src={result} alt="Generated" className="w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setLightbox(result)} data-testid="img-result" />
+            ) : (
+              <video src={result} controls autoPlay loop className="w-full rounded-xl" data-testid="video-result" />
+            )}
+          </div>
+        )}
+
+        {gallery.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2"><FolderOpen size={14} /> Gallery ({gallery.length})</h3>
+              <button onClick={() => { setGallery([]); localStorage.removeItem("ai_studio_gallery"); toast({ title: "Gallery cleared" }); }}
+                className="text-xs text-red-400 hover:text-red-600 transition-colors" data-testid="button-clear-gallery">Clear all</button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {gallery.map((item, i) => (
+                <div key={i} className="relative group rounded-xl overflow-hidden border border-border/20 shadow-sm hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => item.type === "image" ? setLightbox(item.url) : undefined} data-testid={`gallery-item-${i}`}>
+                  {item.type === "image" ? (
+                    <img src={item.url} alt={item.prompt} className="w-full aspect-square object-cover" />
+                  ) : (
+                    <video src={item.url} className="w-full aspect-square object-cover" muted />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-2">
+                      <p className="text-white text-[10px] line-clamp-2">{item.prompt}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] text-white/60">{item.type === "image" ? "Image" : "Video"}</span>
+                        <button onClick={e => { e.stopPropagation(); handleDownload(item.url, item.type); }}
+                          className="text-white/80 hover:text-white"><Download size={11} /></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {gallery.length === 0 && !result && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/30 flex items-center justify-center">
+              <ImagePlus size={28} className="text-muted-foreground/30" />
+            </div>
+            <p className="text-sm text-muted-foreground/50">Your creations will appear here</p>
+            <p className="text-xs text-muted-foreground/30 mt-1">Try: "sunset over mountains" or "abstract galaxy art"</p>
+          </div>
+        )}
+      </div>
+
+      {lightbox && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 p-2 text-white/60 hover:text-white"><X size={24} /></button>
+          <img src={lightbox} alt="Fullscreen" className="max-w-full max-h-full rounded-xl shadow-2xl" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PERMISSIONS PAGE ────────────────────────────────────────────────────────
+
+function PermissionsPage() {
+  const { permissions, loading, requestPermission, refresh } = useDevicePermissions();
+  const [locationData, setLocationData] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const { toast } = useToast();
+
+  const statusColors: Record<string, { bg: string; text: string; label: string }> = {
+    granted: { bg: "bg-green-50", text: "text-green-600", label: "Allowed" },
+    denied: { bg: "bg-red-50", text: "text-red-600", label: "Blocked" },
+    prompt: { bg: "bg-amber-50", text: "text-amber-600", label: "Not Set" },
+    unavailable: { bg: "bg-gray-50", text: "text-gray-400", label: "Unavailable" },
+    checking: { bg: "bg-blue-50", text: "text-blue-400", label: "Checking..." },
+  };
+
+  const handleRequest = async (id: string) => {
+    await requestPermission(id);
+    if (id === "geolocation") {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true }));
+        setLocationData({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
+        toast({ title: "Location accessed!", description: `Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)}` });
+      } catch { toast({ title: "Location access denied", variant: "destructive" }); }
+    } else {
+      toast({ title: "Permission updated" });
+    }
+  };
+
+  const categories = useMemo(() => {
+    const cats: Record<string, PermissionInfo[]> = {};
+    for (const p of permissions) {
+      if (!cats[p.category]) cats[p.category] = [];
+      cats[p.category].push(p);
+    }
+    return cats;
+  }, [permissions]);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 md:p-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
+            <Shield size={28} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight mb-1" data-testid="text-permissions-title">Device Permissions</h1>
+          <p className="text-muted-foreground text-sm">Manage what My Ai Gpt can access on your device</p>
+          <p className="text-muted-foreground/50 text-xs mt-1">Enable permissions for the best experience — GPS navigation, voice chat, camera, notifications and more</p>
+        </div>
+
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{permissions.filter(p => p.status === "granted").length}/{permissions.length} enabled</span>
+          </div>
+          <button onClick={refresh} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors" data-testid="button-refresh-permissions">
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-20 bg-muted/20 rounded-xl animate-pulse" />)}</div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(categories).map(([cat, items]) => (
+              <div key={cat}>
+                <h3 className="text-xs font-bold text-muted-foreground/50 uppercase tracking-widest mb-2 px-1">{cat}</h3>
+                <div className="space-y-2">
+                  {items.map(perm => {
+                    const s = statusColors[perm.status] || statusColors.unavailable;
+                    return (
+                      <div key={perm.id} className="bg-white border border-border/30 rounded-xl p-4 flex items-center gap-4 transition-all hover:shadow-sm" data-testid={`permission-${perm.id}`}>
+                        <div className={`p-2.5 rounded-xl ${s.bg}`}>
+                          <perm.icon size={20} className={s.text} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">{perm.name}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.bg} ${s.text}`}>{s.label}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground/60 mt-0.5">{perm.desc}</p>
+                        </div>
+                        {perm.status !== "unavailable" && perm.status !== "granted" && (
+                          <button onClick={() => handleRequest(perm.id)} data-testid={`button-request-${perm.id}`}
+                            className="px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm whitespace-nowrap">
+                            Allow
+                          </button>
+                        )}
+                        {perm.status === "granted" && (
+                          <CheckCircle2 size={20} className="text-green-500 shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {locationData && (
+          <div className="mt-6 bg-white border border-border/30 rounded-xl p-4" data-testid="location-info">
+            <h3 className="text-sm font-semibold flex items-center gap-2 mb-3"><Locate size={14} className="text-teal-500" /> Your Location</h3>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="bg-teal-50 rounded-lg p-3">
+                <div className="text-lg font-bold text-teal-600">{locationData.lat.toFixed(4)}</div>
+                <div className="text-[10px] text-teal-500/70">Latitude</div>
+              </div>
+              <div className="bg-teal-50 rounded-lg p-3">
+                <div className="text-lg font-bold text-teal-600">{locationData.lng.toFixed(4)}</div>
+                <div className="text-[10px] text-teal-500/70">Longitude</div>
+              </div>
+              <div className="bg-teal-50 rounded-lg p-3">
+                <div className="text-lg font-bold text-teal-600">{locationData.accuracy.toFixed(0)}m</div>
+                <div className="text-[10px] text-teal-500/70">Accuracy</div>
+              </div>
+            </div>
+            <a href={`https://www.google.com/maps?q=${locationData.lat},${locationData.lng}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 mt-3 px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-medium hover:bg-teal-600 transition-colors" data-testid="link-open-maps">
+              <Navigation size={14} /> Open in Google Maps
+            </a>
+          </div>
+        )}
+
+        <div className="mt-8 bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
+          <Shield size={16} className="mx-auto mb-2 text-blue-400" />
+          <p className="text-xs text-blue-600 font-medium">Your privacy matters</p>
+          <p className="text-[10px] text-blue-400 mt-1">My Ai Gpt only uses permissions you allow. All data stays on your device. No tracking, no selling data. You can revoke permissions anytime in your browser settings.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIStudioPageWrapper() {
+  useEffect(() => { updateSEO({ title: "AI Studio - Generate Images & Videos Free | My Ai Gpt", description: "Create stunning AI-generated images and videos for free. Multiple art styles, high resolution, instant download. By Billy Banks.", ogTitle: "AI Studio - Free Image & Video Generation", ogDesc: "Generate images and videos with AI. Multiple styles, free, instant.", canonical: window.location.origin + "/create", keywords: "AI image generator, AI video generator, free image generation, art generator, AI art, create images, generate video, Billy Banks" }); }, []);
+  return <Layout><AIStudioPage /></Layout>;
+}
+
+function PermissionsPageWrapper() {
+  useEffect(() => { updateSEO({ title: "Device Permissions - My Ai Gpt | GPS, Camera, Microphone & More", description: "Manage device permissions for My Ai Gpt. Enable GPS for navigation, camera for photos, microphone for voice chat, and notifications for alerts.", ogTitle: "Device Permissions - My Ai Gpt", canonical: window.location.origin + "/permissions" }); }, []);
+  return <Layout><PermissionsPage /></Layout>;
+}
+
 function SocialPageWrapper() {
   useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Free Social Network | Create Profile, Post, Follow & Get Verified", description: "Join My Ai Gpt Social network by Billy Banks. Create your profile, share posts, follow friends, discover trending content, get a verified badge, and connect with the AI-powered community. Free to join.", ogTitle: "My Ai Gpt Social Network - Connect, Share & Discover", ogDesc: "Free social network powered by AI. Create profiles, share posts, follow friends, get verified. By Billy Banks.", ogType: "website", canonical: window.location.origin + "/social", keywords: "social network, social media, create profile, follow friends, verified badge, trending posts, share posts, social platform, Billy Banks, free social network, AI social, community, connect, discover", author: "Billy Banks", articleSection: "Social Network", jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "My Ai Gpt Social", "description": "AI-powered social network", "url": window.location.origin + "/social", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "Social", "item": window.location.origin + "/social" }] } } }); }, []);
   return <Layout><SocialPage /></Layout>;
