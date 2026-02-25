@@ -8,6 +8,7 @@ import { search } from "duck-duck-scrape";
 import { Client, GatewayIntentBits } from "discord.js";
 import * as fs from "fs";
 import * as path from "path";
+import { createHash } from "crypto";
 
 const GROQ_API_KEY = "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";
 const groq = new Groq({ apiKey: GROQ_API_KEY });
@@ -668,7 +669,7 @@ export async function registerRoutes(
             const desc = (item.contentSnippet || item.content || item.summary || "")
               .replace(/<[^>]*>/g, "").substring(0, 300);
 
-            const id = Buffer.from(item.link || item.guid || item.title || "").toString("base64").substring(0, 40);
+            const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
 
             return {
               id,
