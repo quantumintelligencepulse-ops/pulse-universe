@@ -1234,7 +1234,24 @@ function CodePlayground() {
       document.body.appendChild(iframe);
       const startTime = performance.now();
       const encodedCode = btoa(unescape(encodeURIComponent(code)));
-      const runnerHtml = `<!DOCTYPE html><html><body><script>
+      const hasImport = /\bimport\s/.test(code);
+      const runnerHtml = hasImport
+        ? `<!DOCTYPE html><html><body><script>
+        var _l = [];
+        console.log = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
+        console.error = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('ERROR: ' + a.join(' ')); };
+        console.warn = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('WARN: ' + a.join(' ')); };
+        var _code = decodeURIComponent(escape(atob("${encodedCode}")));
+        var _blob = new Blob([_code], { type: 'application/javascript' });
+        var _url = URL.createObjectURL(_blob);
+        import(_url).then(function() {
+          parent.postMessage({ type: 'pg_output', logs: _l }, '*');
+        }).catch(function(e) {
+          _l.push('ERROR: ' + e.message);
+          parent.postMessage({ type: 'pg_output', logs: _l }, '*');
+        });
+      <\/script></body></html>`
+        : `<!DOCTYPE html><html><body><script>
         var _l = [];
         console.log = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
         console.error = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('ERROR: ' + a.join(' ')); };
