@@ -4601,6 +4601,8 @@ function Router() {
       <Route path="/playground" component={PlaygroundPage} />
       <Route path="/feed" component={FeedPage} />
       <Route path="/social" component={SocialPageWrapper} />
+      <Route path="/create" component={AIStudioPageWrapper} />
+      <Route path="/permissions" component={PermissionsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route component={NotFound} />
     </Switch>

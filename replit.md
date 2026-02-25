@@ -196,6 +196,36 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 - Infinite scroll on all feeds, skeleton loading, refresh button
 - 30 OMEGA upgrades: verified badges, char counter, pinning, trending algo, bookmarks, reposts, lightbox, video embeds, link previews, search, follower modals, view counter, infinite scroll, suggestions, relative time, @mention linking, #hashtag highlighting, cover images, edit profile, delete confirmation, empty states, skeleton loading, refresh, post count, media grid, like animation, responsive, share button, comment sections, sidebar badge
 
+## Voice Input/Output (Web Speech API)
+- **Speech-to-Text**: `useSpeechRecognition()` hook using Web Speech API
+- Mic button in ChatInput (between templates and send), red pulsing animation when listening
+- Transcript auto-fills input, auto-sends after 2s silence
+- "Listening... speak now" floating indicator banner
+- **Text-to-Speech**: `speakText()` function using SpeechSynthesis API
+- Speaker button (Volume2/VolumeX icons) on every AI message hover bar
+- Prefers natural voices (Google, Samantha, Natural), falls back to first available
+- Toggle to stop speaking mid-sentence
+
+## AI Studio (Image + Video Generation)
+- Route: /create with sidebar "AI Studio" link (pink accent, CREATE badge)
+- **Image Generation**: Canvas-based algorithmic art engine (`generateAIImage()`)
+  - Analyzes prompt keywords (sunset, ocean, city, space, abstract, flowers, etc.)
+  - Generates unique art using gradient layers, particle effects, geometric shapes, seeded RNG
+  - 6 art styles: Realistic, Abstract, Cosmic, Urban, Nature, Floral
+  - Resolution options: 256x256, 512x512, 768x768, 1024x1024
+- **Video Generation**: Canvas + MediaRecorder API (`generateAIVideo()`)
+  - Creates animated WebM clips with particle systems and wave animations
+  - Duration options: 2s, 4s, 6s, 8s
+- Gallery: Persistent localStorage gallery (up to 50 items), lightbox viewer, download support
+- 100% free, no API keys — all generation happens client-side in browser
+
+## Device Permissions System
+- Route: /permissions with sidebar "Permissions" link (teal accent)
+- `useDevicePermissions()` hook manages: geolocation, camera, microphone, notifications, clipboard, persistent-storage, accelerometer, gyroscope
+- Categorized permission cards with grant/deny status, request buttons
+- GPS: Shows lat/lng/accuracy with "Open in Google Maps" link
+- Privacy notice: "No tracking, no selling data"
+
 ## API Endpoints
 - GET/POST /api/chats - List/create chats
 - GET/DELETE /api/chats/:id - Get/delete chat
