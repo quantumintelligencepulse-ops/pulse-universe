@@ -879,14 +879,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, isThinking]);
 
-  const [limitReached, setLimitReached] = useState(isLimitReached());
-  const [msgCount, setMsgCount] = useState(getMessageCount());
-
   const handleSend = useCallback(async (content: string) => {
-    if (isLimitReached()) { setLimitReached(true); return; }
-    const newCount = incrementMessageCount();
-    setMsgCount(newCount);
-    if (newCount >= MESSAGE_LIMIT) { setLimitReached(true); }
 
     let targetChatId = chatId;
     setLocalMessages(prev => [...prev, { role: "user", content }]);
@@ -1077,17 +1070,8 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4 md:px-8">
-        {limitReached ? (
-          <StripePaywall />
-        ) : (
-          <>
-            <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
-              placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
-            <div className="text-center mt-1.5">
-              <span className="text-[10px] text-muted-foreground/40">{msgCount}/{MESSAGE_LIMIT} free messages used</span>
-            </div>
-          </>
-        )}
+        <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
+          placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
       </div>
     </div>
   );
