@@ -684,7 +684,14 @@ export async function registerRoutes(
               const vidId = (item.id || "").replace("yt:video:", "");
               if (vidId) image = `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg`;
             } else {
-              image = mediaContent?.$.url || mediaContent?.url || item["media:thumbnail"]?.$.url || "";
+              try { image = mediaContent?.$.url || mediaContent?.url || ""; } catch { image = ""; }
+              if (!image) try { image = item["media:thumbnail"]?.$.url || ""; } catch { image = ""; }
+              if (!image && item["media:group"]?.["media:thumbnail"]?.[0]?.$?.url) {
+                image = item["media:group"]["media:thumbnail"][0].$.url;
+              }
+              if (!image && item.enclosure?.url && /\.(jpg|jpeg|png|webp|gif)/i.test(item.enclosure.url)) {
+                image = item.enclosure.url;
+              }
               if (!image && item["content:encoded"]) {
                 const imgMatch = item["content:encoded"].match(/<img[^>]+src="([^"]+)"/);
                 if (imgMatch) image = imgMatch[1];
@@ -693,8 +700,13 @@ export async function registerRoutes(
                 const imgMatch = item.content.match(/<img[^>]+src="([^"]+)"/);
                 if (imgMatch) image = imgMatch[1];
               }
-              if (!image && item.link) {
-                image = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(item.link)}&size=128`;
+              if (!image && item.summary) {
+                const imgMatch = item.summary.match(/<img[^>]+src="([^"]+)"/);
+                if (imgMatch) image = imgMatch[1];
+              }
+              if (!image && item.description && typeof item.description === 'string') {
+                const imgMatch = item.description.match(/<img[^>]+src="([^"]+)"/);
+                if (imgMatch) image = imgMatch[1];
               }
             }
 
@@ -1030,6 +1042,17 @@ If you have live data provided in this prompt, USE IT and present it confidently
       res.json(profile);
     } catch {
       res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.post("/api/social/profiles/:id/verify", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const profile = await storage.updateSocialProfile(id, { verified: true });
+      if (!profile) return res.status(404).json({ message: "Profile not found" });
+      res.json(profile);
+    } catch {
+      res.status(500).json({ message: "Failed to verify profile" });
     }
   });
 

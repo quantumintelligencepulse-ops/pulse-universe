@@ -2422,7 +2422,8 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
     setPosting(false);
   };
 
-  const cardImage = article.image && !imgError;
+  const hasRealImage = article.image && !imgError && !article.image.includes("gstatic.com/favicon");
+  const cardImage = hasRealImage;
 
   return (
     <div className={`bg-white rounded-xl border border-border/30 overflow-hidden transition-all duration-300 hover:shadow-lg ${isExpanded ? "col-span-full" : ""}`}
@@ -3287,7 +3288,15 @@ function ProfileView({ username, currentProfileId, onProfileClick, onBack }: { u
             <p className="text-sm text-muted-foreground" data-testid="text-profile-username">@{profile.username}</p>
           </div>
           {isOwn ? (
-            <button onClick={() => setShowEditProfile(true)} className="px-4 py-1.5 border border-border/40 rounded-full text-sm font-medium hover:bg-muted/20 transition-colors" data-testid="button-edit-profile">Edit profile</button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowEditProfile(true)} className="px-4 py-1.5 border border-border/40 rounded-full text-sm font-medium hover:bg-muted/20 transition-colors" data-testid="button-edit-profile">Edit profile</button>
+              {!profile.verified && (
+                <a href="https://buy.stripe.com/14AbJ086kdeH7mMgSi6Ri03" target="_blank" rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-xs font-medium hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-1.5 shadow-sm" data-testid="button-buy-verified">
+                  <CheckCircle2 size={12} /> Get Verified $1.49
+                </a>
+              )}
+            </div>
           ) : currentProfileId ? (
             <button onClick={handleFollow} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${following ? "border border-border/40 hover:border-red-300 hover:text-red-500" : "bg-purple-500 text-white hover:bg-purple-600"}`} data-testid="button-follow-toggle">
               {following ? "Following" : "Follow"}
