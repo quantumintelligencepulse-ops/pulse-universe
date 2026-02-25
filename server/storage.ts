@@ -2,10 +2,13 @@ import { db } from "./db";
 import {
   chats,
   messages,
+  feedComments,
   type Chat,
   type Message,
+  type FeedComment,
   type InsertChat,
   type InsertMessage,
+  type InsertFeedComment,
 } from "@shared/schema";
 import { eq, desc, like, sql } from "drizzle-orm";
 
@@ -74,6 +77,15 @@ export class DatabaseStorage implements IStorage {
   async getChatCount(): Promise<number> {
     const [result] = await db.select({ count: sql<number>`count(*)` }).from(chats);
     return Number(result.count);
+  }
+
+  async getFeedComments(articleId: string): Promise<FeedComment[]> {
+    return await db.select().from(feedComments).where(eq(feedComments.articleId, articleId)).orderBy(desc(feedComments.createdAt));
+  }
+
+  async createFeedComment(comment: InsertFeedComment): Promise<FeedComment> {
+    const [newComment] = await db.insert(feedComments).values(comment).returning();
+    return newComment;
   }
 }
 

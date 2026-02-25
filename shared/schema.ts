@@ -17,10 +17,21 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const feedComments = pgTable("feed_comments", {
+  id: serial("id").primaryKey(),
+  articleId: text("article_id").notNull(),
+  username: text("username").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertChatSchema = createInsertSchema(chats).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
+export const insertFeedCommentSchema = createInsertSchema(feedComments).omit({ id: true, createdAt: true });
 
 export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type FeedComment = typeof feedComments.$inferSelect;
 export type InsertChat = z.infer<typeof insertChatSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type InsertFeedComment = z.infer<typeof insertFeedCommentSchema>;

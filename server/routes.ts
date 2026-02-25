@@ -625,6 +625,100 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // ═══════ NEWS FEED ═══════
+  const RSS_FEEDS = [
+    { url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", source: "NY Times" },
+    { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
+    { url: "https://rss.cnn.com/rss/edition.rss", source: "CNN" },
+    { url: "https://feeds.npr.org/1001/rss.xml", source: "NPR" },
+    { url: "https://feeds.feedburner.com/TechCrunch/", source: "TechCrunch" },
+    { url: "https://www.reddit.com/r/worldnews/.rss", source: "Reddit World News" },
+    { url: "https://www.theverge.com/rss/index.xml", source: "The Verge" },
+    { url: "https://feeds.arstechnica.com/arstechnica/index", source: "Ars Technica" },
+  ];
+
+  let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
+  const FEED_CACHE_TTL = 10 * 60 * 1000;
+
+  app.get("/api/feed", async (_req, res) => {
+    try {
+      if (Date.now() - feedCache.lastFetch < FEED_CACHE_TTL && feedCache.articles.length > 0) {
+        return res.json(feedCache.articles);
+      }
+
+      const RssParser = (await import("rss-parser")).default;
+      const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
+
+      const allArticles: any[] = [];
+      const feedPromises = RSS_FEEDS.map(async (feed) => {
+        try {
+          const parsed = await parser.parseURL(feed.url);
+          const items = (parsed.items || []).slice(0, 8).map((item: any) => {
+            const mediaContent = item["media:content"] || item["media:thumbnail"] || item.enclosure;
+            let image = mediaContent?.$.url || mediaContent?.url || item["media:thumbnail"]?.$.url || "";
+            if (!image && item["content:encoded"]) {
+              const imgMatch = item["content:encoded"].match(/<img[^>]+src="([^"]+)"/);
+              if (imgMatch) image = imgMatch[1];
+            }
+            if (!image && item.content) {
+              const imgMatch = item.content.match(/<img[^>]+src="([^"]+)"/);
+              if (imgMatch) image = imgMatch[1];
+            }
+
+            const desc = (item.contentSnippet || item.content || item.summary || "")
+              .replace(/<[^>]*>/g, "").substring(0, 300);
+
+            const id = Buffer.from(item.link || item.guid || item.title || "").toString("base64").substring(0, 40);
+
+            return {
+              id,
+              title: item.title || "",
+              description: desc,
+              link: item.link || "",
+              image,
+              source: feed.source,
+              pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
+              category: typeof item.categories?.[0] === "string" ? item.categories[0] : (item.categories?.[0]?._ || "General"),
+            };
+          });
+          allArticles.push(...items);
+        } catch (e) {
+          console.error(`RSS fetch error for ${feed.source}:`, (e as Error).message);
+        }
+      });
+
+      await Promise.allSettled(feedPromises);
+
+      allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+      feedCache = { articles: allArticles, lastFetch: Date.now() };
+      res.json(allArticles);
+    } catch (e) {
+      console.error("Feed error:", e);
+      res.json(feedCache.articles.length > 0 ? feedCache.articles : []);
+    }
+  });
+
+  app.get("/api/feed/comments/:articleId", async (req, res) => {
+    const comments = await storage.getFeedComments(req.params.articleId);
+    res.json(comments);
+  });
+
+  app.post("/api/feed/comments/:articleId", async (req, res) => {
+    try {
+      const { username, content } = req.body;
+      if (!username || !content) return res.status(400).json({ message: "Username and content required" });
+      const comment = await storage.createFeedComment({
+        articleId: req.params.articleId,
+        username: username.substring(0, 30),
+        content: content.substring(0, 500),
+      });
+      res.status(201).json(comment);
+    } catch (e) {
+      res.status(500).json({ message: "Failed to post comment" });
+    }
+  });
+
   // ═══════ POWER #5: SNIPPET TEMPLATES ═══════
   app.get("/api/templates", async (_req, res) => {
     const templates = [

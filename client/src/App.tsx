@@ -20,10 +20,10 @@ import {
   ChevronDown, ChevronUp, Settings2, Brackets, FlaskConical, Rocket,
   Mic, MicOff, SplitSquareVertical, Wand2, Brain, Scan, Square,
   SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle,
-  ExternalLink, CreditCard, Crown
+  ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
-import type { Chat, Message } from "@shared/schema";
+import type { Chat, Message, FeedComment } from "@shared/schema";
 import logo from "@assets/MyAiGpt_1772000395528.webp";
 
 const MESSAGE_LIMIT = 9;
@@ -1145,7 +1145,13 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span className="text-[9px] text-muted-foreground/60">Beta Release 1</span>
             </div>
           </Link>
-          <button onClick={() => setIsOpen(false)} className="md:hidden p-1.5 text-muted-foreground rounded-lg" data-testid="button-close-sidebar"><PanelLeftClose size={16} /></button>
+          <div className="flex items-center gap-1.5">
+            <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" data-testid="link-discord-invite"
+              className="px-2 py-1 text-[10px] font-semibold bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors flex items-center gap-1" title="Join Discord">
+              <ExternalLink size={10} /> Discord
+            </a>
+            <button onClick={() => setIsOpen(false)} className="md:hidden p-1.5 text-muted-foreground rounded-lg" data-testid="button-close-sidebar"><PanelLeftClose size={16} /></button>
+          </div>
         </div>
 
         <div className="px-2.5 py-2 space-y-1">
@@ -1167,12 +1173,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Playground</span>
             <span className="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">IDE</span>
           </Link>
-          <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" data-testid="link-discord-invite"
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group text-foreground/70 hover:bg-indigo-50 hover:text-indigo-600">
-            <div className="p-1 rounded-lg bg-indigo-500/10"><ExternalLink size={14} className="text-indigo-500" /></div>
-            <span className="flex-1">Join Discord</span>
-            <span className="text-[9px] bg-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">NEW</span>
-          </a>
+          <Link href="/feed" data-testid="link-feed"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
+            <span className="flex-1">Feed</span>
+            <span className="text-[9px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">LIVE</span>
+          </Link>
         </div>
 
         <div className="px-2.5 py-1">
@@ -2341,8 +2347,236 @@ ${brokenCode.substring(0, 2000)}
   );
 }
 
-// FUTURISTIC #5 - AI Code Converter (send to coder from playground)
-// Built into the playground toolbar as "AI Fix" and accessible via the code chat
+// ─── NEWS FEED (MSN-STYLE) ──────────────────────────────────────────────────
+
+interface FeedArticle {
+  id: string;
+  title: string;
+  description: string;
+  link: string;
+  image: string;
+  source: string;
+  pubDate: string;
+  category: string;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onExpand: () => void; isExpanded: boolean }) {
+  const [comments, setComments] = useState<FeedComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [username, setUsername] = useState(() => localStorage.getItem("feed_username") || "");
+  const [showComments, setShowComments] = useState(false);
+  const [posting, setPosting] = useState(false);
+
+  useEffect(() => {
+    if (isExpanded) {
+      fetch(`/api/feed/comments/${article.id}`).then(r => r.json()).then(setComments).catch(() => {});
+    }
+  }, [isExpanded, article.id]);
+
+  const postComment = async () => {
+    if (!newComment.trim() || !username.trim()) return;
+    setPosting(true);
+    try {
+      localStorage.setItem("feed_username", username);
+      const r = await fetch(`/api/feed/comments/${article.id}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), content: newComment.trim() }),
+      });
+      if (r.ok) {
+        const comment = await r.json();
+        setComments(prev => [comment, ...prev]);
+        setNewComment("");
+      }
+    } catch {}
+    setPosting(false);
+  };
+
+  return (
+    <div className={`bg-white rounded-xl border border-border/30 overflow-hidden transition-all duration-300 hover:shadow-lg ${isExpanded ? "col-span-full" : ""}`}
+      data-testid={`feed-card-${article.id}`}>
+      {article.image && !isExpanded && (
+        <div className="relative cursor-pointer group" onClick={onExpand}>
+          <img src={article.image} alt="" className="w-full h-48 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+            <span className="text-white text-xs font-medium">Click to read</span>
+          </div>
+        </div>
+      )}
+
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">{article.source}</span>
+          <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Clock size={9} /> {timeAgo(article.pubDate)}</span>
+          {article.category !== "General" && (
+            <span className="text-[10px] text-muted-foreground/40 bg-muted/30 px-1.5 py-0.5 rounded-full">{article.category}</span>
+          )}
+        </div>
+
+        <h3 className="font-bold text-sm leading-snug mb-1.5 cursor-pointer hover:text-orange-600 transition-colors line-clamp-2" onClick={onExpand} data-testid={`feed-title-${article.id}`}>
+          {article.title}
+        </h3>
+
+        {!isExpanded && (
+          <p className="text-xs text-muted-foreground/70 line-clamp-2 mb-3">{article.description}</p>
+        )}
+
+        {isExpanded && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {article.image && (
+              <img src={article.image} alt="" className="w-full max-h-96 object-cover rounded-lg" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            )}
+            <p className="text-sm text-foreground/80 leading-relaxed">{article.description}</p>
+            <a href={article.link} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors" data-testid={`feed-readmore-${article.id}`}>
+              Read full article <ChevronRight size={12} />
+            </a>
+
+            <div className="border-t border-border/20 pt-3">
+              <button onClick={() => setShowComments(!showComments)} data-testid={`feed-toggle-comments-${article.id}`}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <MessageCircle size={13} /> {comments.length} Comment{comments.length !== 1 ? "s" : ""}
+                {showComments ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+
+              {showComments && (
+                <div className="mt-3 space-y-3">
+                  <div className="flex gap-2">
+                    <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Name"
+                      className="w-24 px-2 py-1.5 text-xs border border-border/30 rounded-lg focus:outline-none focus:border-orange-300 bg-muted/20" data-testid={`feed-comment-name-${article.id}`} />
+                    <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Write a comment..."
+                      className="flex-1 px-3 py-1.5 text-xs border border-border/30 rounded-lg focus:outline-none focus:border-orange-300 bg-muted/20" data-testid={`feed-comment-input-${article.id}`}
+                      onKeyDown={e => e.key === "Enter" && postComment()} />
+                    <button onClick={postComment} disabled={posting || !newComment.trim() || !username.trim()} data-testid={`feed-comment-submit-${article.id}`}
+                      className="px-3 py-1.5 text-xs font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-40 transition-colors">
+                      {posting ? "..." : "Post"}
+                    </button>
+                  </div>
+
+                  {comments.length === 0 && (
+                    <p className="text-xs text-muted-foreground/40 text-center py-2">No comments yet. Be the first!</p>
+                  )}
+                  {comments.map(c => (
+                    <div key={c.id} className="flex gap-2 items-start" data-testid={`feed-comment-${c.id}`}>
+                      <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                        <User size={11} className="text-orange-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-foreground">{c.username}</span>
+                          <span className="text-[10px] text-muted-foreground/40">{timeAgo(c.createdAt as unknown as string)}</span>
+                        </div>
+                        <p className="text-xs text-foreground/70 mt-0.5">{c.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!isExpanded && (
+          <button onClick={onExpand} className="text-[11px] text-orange-500 hover:text-orange-600 font-medium transition-colors" data-testid={`feed-expand-${article.id}`}>
+            Read more
+          </button>
+        )}
+        {isExpanded && (
+          <button onClick={onExpand} className="mt-2 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors" data-testid={`feed-collapse-${article.id}`}>
+            Collapse
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NewsFeed() {
+  const { data: articles, isLoading } = useQuery<FeedArticle[]>({ queryKey: ["/api/feed"] });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("All");
+
+  const sources = useMemo(() => {
+    if (!articles) return ["All"];
+    const s = [...new Set(articles.map(a => a.source))];
+    return ["All", ...s.sort()];
+  }, [articles]);
+
+  const filtered = useMemo(() => {
+    if (!articles) return [];
+    if (filter === "All") return articles;
+    return articles.filter(a => a.source === filter);
+  }, [articles, filter]);
+
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-orange-50/30 to-background">
+      <div className="p-4 border-b border-border/20 bg-white/80 backdrop-blur-sm shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-orange-500/10"><Newspaper size={18} className="text-orange-500" /></div>
+            <div>
+              <h1 className="font-bold text-lg text-foreground" data-testid="text-feed-title">My Ai Gpt Feed</h1>
+              <p className="text-[10px] text-muted-foreground/60">Live news from around the world</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground/50">{articles?.length || 0} articles</span>
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live" />
+          </div>
+        </div>
+
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+          {sources.map(s => (
+            <button key={s} onClick={() => setFilter(s)} data-testid={`feed-filter-${s}`}
+              className={`px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-all ${filter === s ? "bg-orange-500 text-white shadow-sm" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="bg-white rounded-xl border border-border/30 overflow-hidden animate-pulse">
+                <div className="h-48 bg-muted/30" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 bg-muted/30 rounded w-1/4" />
+                  <div className="h-4 bg-muted/30 rounded w-3/4" />
+                  <div className="h-3 bg-muted/30 rounded w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <Newspaper size={40} className="mx-auto text-muted-foreground/20 mb-3" />
+            <p className="text-sm text-muted-foreground/50">No articles available</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-8">
+            {filtered.map(article => (
+              <FeedCard key={article.id} article={article}
+                isExpanded={expandedId === article.id}
+                onExpand={() => setExpandedId(expandedId === article.id ? null : article.id)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── LAYOUT + PAGES + ROUTER ─────────────────────────────────────────────────
 
@@ -2360,6 +2594,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 function HomePage() { return <Layout><ChatInterface defaultType="general" /></Layout>; }
 function CoderPage() { return <Layout><ChatInterface defaultType="coder" /></Layout>; }
 function PlaygroundPage() { return <Layout><CodePlayground /></Layout>; }
+function FeedPage() { return <Layout><NewsFeed /></Layout>; }
 
 function ChatViewPage() {
   const [, params] = useRoute("/chat/:id");
@@ -2393,6 +2628,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/coder" component={CoderPage} />
       <Route path="/playground" component={PlaygroundPage} />
+      <Route path="/feed" component={FeedPage} />
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route component={NotFound} />
     </Switch>
