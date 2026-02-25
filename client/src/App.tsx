@@ -1787,14 +1787,49 @@ ${brokenCode.substring(0, 2000)}
     toast({ title: "Listening...", description: "Speak your code description" });
   }, [isListening, toast]);
 
-  const applyVoiceToCode = useCallback(() => {
-    if (voiceText) {
-      setCode(prev => prev + `\n// Voice command: ${voiceText}\n`);
-      setVoiceText("");
-      recognitionRef.current?.stop();
-      setIsListening(false);
+  const [voiceGenerating, setVoiceGenerating] = useState(false);
+
+  const generateCodeFromVoice = useCallback(async () => {
+    if (!voiceText.trim()) return;
+    const description = voiceText.trim();
+    recognitionRef.current?.stop();
+    setIsListening(false);
+    setVoiceGenerating(true);
+    setOutput([`🎤 Voice Command: "${description}"`, "", "🔧 AI is generating your code..."]);
+
+    try {
+      const chatRes = await fetch("/api/chats", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: `Voice: ${description.substring(0, 40)}`, type: "coder" })
+      });
+      const chat = await chatRes.json();
+      const prompt = `The user spoke this voice command describing what they want to build:\n\n"${description}"\n\nGenerate the complete ${lang} code that does exactly what they described. Return ONLY the code in a single code block. No explanation before or after. Make it fully working and runnable.`;
+      const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: prompt })
+      });
+      const msg = await msgRes.json();
+      const codeMatch = msg.content.match(/```(?:\w+)?\n([\s\S]*?)```/);
+      if (codeMatch) {
+        setCode(codeMatch[1].trim());
+        setOutput([`🎤 Voice: "${description}"`, "", `✓ AI generated ${lang} code from your voice command!`, "", "Press Run to execute, or keep speaking for more."]);
+        toast({ title: "Code generated from voice!" });
+      } else {
+        const lines = msg.content.split("\n");
+        const codeLines = lines.filter((l: string) => !l.startsWith("Here") && !l.startsWith("This") && !l.startsWith("I ") && l.trim());
+        if (codeLines.length > 2) {
+          setCode(codeLines.join("\n"));
+          setOutput([`🎤 Voice: "${description}"`, "", "✓ AI generated code from your description."]);
+        } else {
+          setOutput([`🎤 Voice: "${description}"`, "", "⚠ AI couldn't generate code. Try being more specific:", `  Example: "create a function that sorts an array using quicksort"`]);
+        }
+      }
+    } catch (e: any) {
+      setOutput([`🎤 Voice: "${description}"`, "", `ERROR: ${e.message}`]);
     }
-  }, [voiceText]);
+    setVoiceText("");
+    setVoiceGenerating(false);
+  }, [voiceText, lang, toast]);
 
   // FUTURISTIC #2 - AI Code Review
   const handleAIReview = useCallback(async () => {
@@ -1957,13 +1992,25 @@ ${brokenCode.substring(0, 2000)}
       </div>
 
       {/* Voice transcript bar */}
-      {(isListening || voiceText) && (
+      {(isListening || voiceText || voiceGenerating) && (
         <div className="flex items-center gap-2 px-4 py-2 bg-violet-50 border-b border-violet-200">
           <Mic size={14} className={`text-violet-500 ${isListening ? "animate-pulse" : ""}`} />
-          <span className="text-xs text-violet-700 flex-1">{voiceText || "Listening... speak your code description"}</span>
-          {voiceText && (
-            <button onClick={applyVoiceToCode} className="px-2 py-1 text-[11px] bg-violet-500 text-white rounded-md hover:bg-violet-600">Insert as comment</button>
+          <span className="text-xs text-violet-700 flex-1">
+            {voiceGenerating ? "AI is writing your code..." : voiceText || "Listening... describe what you want to build"}
+          </span>
+          {voiceText && !voiceGenerating && (
+            <>
+              <button onClick={generateCodeFromVoice} data-testid="button-voice-generate"
+                className="px-3 py-1 text-[11px] bg-violet-600 text-white rounded-md hover:bg-violet-700 font-medium shadow-sm flex items-center gap-1">
+                <Sparkles size={10} /> Generate Code
+              </button>
+              <button onClick={() => { setVoiceText(""); recognitionRef.current?.stop(); setIsListening(false); }}
+                className="px-2 py-1 text-[11px] text-violet-500 hover:text-violet-700">
+                <X size={12} />
+              </button>
+            </>
           )}
+          {voiceGenerating && <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />}
         </div>
       )}
 
