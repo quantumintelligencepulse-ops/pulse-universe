@@ -1344,15 +1344,20 @@ function CodePlayground() {
     if (!pkgInput.trim()) return;
     const pkgs = pkgInput.split(/[\s,]+/).filter(Boolean);
     setPkgInstalling(true);
-    setPkgLog(prev => [...prev, `Installing ${pkgs.join(", ")} via ${pkgManager}...`]);
+    setPkgLog(prev => [...prev, `> ${pkgManager} install ${pkgs.join(" ")}`, "Installing..."]);
     try {
       const r = await fetch("/api/packages/install", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packages: pkgs, manager: pkgManager }) });
       const data = await r.json();
-      if (data.error) setPkgLog(prev => [...prev, `Error: ${data.error}`]);
-      if (data.output) setPkgLog(prev => [...prev, data.output.substring(0, 2000)]);
-      setPkgLog(prev => [...prev, `✓ Done.`]);
+      if (data.output) {
+        const lines = data.output.split("\n").filter((l: string) => l.trim()).slice(-15);
+        setPkgLog(prev => [...prev, ...lines]);
+      }
+      if (data.error && !data.success) {
+        setPkgLog(prev => [...prev, `ERROR: ${data.error.substring(0, 500)}`]);
+      }
+      setPkgLog(prev => [...prev, data.success !== false ? `✓ Successfully installed: ${pkgs.join(", ")}` : `⚠ Install may have failed. Check output above.`]);
     } catch (e: any) {
-      setPkgLog(prev => [...prev, `Error: ${e.message}`]);
+      setPkgLog(prev => [...prev, `ERROR: ${e.message}`]);
     }
     setPkgInstalling(false);
     setPkgInput("");

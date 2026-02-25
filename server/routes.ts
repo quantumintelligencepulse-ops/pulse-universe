@@ -192,6 +192,26 @@ export async function registerRoutes(
     res.send(md);
   });
 
+  // ═══════ SHELL EXECUTION HELPER ═══════
+  const { execSync } = await import("child_process");
+  const EXEC_ENV = { ...process.env, NODE_PATH: path.join(process.cwd(), "node_modules") };
+
+  function shellExec(cmd: string, opts: { timeout?: number; cwd?: string; maxBuffer?: number } = {}): { stdout: string; stderr: string; exitCode: number } {
+    try {
+      const stdout = execSync(cmd, {
+        timeout: opts.timeout || 15000,
+        maxBuffer: opts.maxBuffer || 1024 * 512,
+        encoding: "utf-8",
+        cwd: opts.cwd || process.cwd(),
+        env: EXEC_ENV,
+        shell: "/bin/bash",
+      });
+      return { stdout: stdout || "", stderr: "", exitCode: 0 };
+    } catch (e: any) {
+      return { stdout: e.stdout || "", stderr: e.stderr || e.message || "Execution failed", exitCode: e.status || 1 };
+    }
+  }
+
   // ═══════ POWER #1: SERVER-SIDE CODE EXECUTION ═══════
   app.post("/api/execute", async (req, res) => {
     const { code, language } = req.body;
@@ -207,7 +227,10 @@ export async function registerRoutes(
 
     try {
       if (lang === "javascript" || lang === "typescript") {
-        filePath = path.join(tmpDir, `${id}.js`);
+        const usesRequire = /\brequire\s*\(/.test(code);
+        const usesImport = /^\s*import\s+/m.test(code);
+        const ext = usesRequire && !usesImport ? ".cjs" : ".mjs";
+        filePath = path.join(tmpDir, `${id}${ext}`);
         let jsCode = code;
         if (lang === "typescript") {
           jsCode = code.replace(/:\s*(string|number|boolean|any|void|never|null|undefined|object|unknown)(\[\])?\s*/g, " ");
@@ -229,21 +252,12 @@ export async function registerRoutes(
       }
 
       const startTime = Date.now();
-      const { execSync } = await import("child_process");
-      let stdout = "", stderr = "";
-      let exitCode = 0;
-      try {
-        stdout = execSync(cmd, { timeout: 15000, maxBuffer: 1024 * 512, encoding: "utf-8", cwd: tmpDir, env: { ...process.env, NODE_PATH: path.join(process.cwd(), "node_modules") } });
-      } catch (e: any) {
-        stdout = e.stdout || "";
-        stderr = e.stderr || e.message || "Execution failed";
-        exitCode = e.status || 1;
-      }
+      const result = shellExec(cmd, { timeout: 15000, cwd: tmpDir });
       const executionTime = Date.now() - startTime;
 
       try { fs.unlinkSync(filePath); } catch {}
 
-      res.json({ stdout: stdout.substring(0, 50000), stderr: stderr.substring(0, 10000), exitCode, executionTime });
+      res.json({ stdout: result.stdout.substring(0, 50000), stderr: result.stderr.substring(0, 10000), exitCode: result.exitCode, executionTime });
     } catch (e: any) {
       try { if (filePath) fs.unlinkSync(filePath); } catch {}
       res.json({ stdout: "", stderr: e.message || "Execution error", exitCode: 1, executionTime: 0 });
@@ -261,21 +275,8 @@ export async function registerRoutes(
       return res.json({ stdout: "", stderr: "Command blocked for safety.", exitCode: 1 });
     }
 
-    try {
-      const { execSync } = await import("child_process");
-      let stdout = "", stderr = "";
-      let exitCode = 0;
-      try {
-        stdout = execSync(command, { timeout: 10000, maxBuffer: 1024 * 256, encoding: "utf-8", cwd: process.cwd() });
-      } catch (e: any) {
-        stdout = e.stdout || "";
-        stderr = e.stderr || e.message || "";
-        exitCode = e.status || 1;
-      }
-      res.json({ stdout: stdout.substring(0, 30000), stderr: stderr.substring(0, 5000), exitCode });
-    } catch (e: any) {
-      res.json({ stdout: "", stderr: e.message, exitCode: 1 });
-    }
+    const result = shellExec(command, { timeout: 10000 });
+    res.json({ stdout: result.stdout.substring(0, 30000), stderr: result.stderr.substring(0, 5000), exitCode: result.exitCode });
   });
 
   // ═══════ POWER #3: PACKAGE MANAGER ═══════
@@ -286,32 +287,26 @@ export async function registerRoutes(
     const sanitized = packages.map((p: string) => p.replace(/[;&|`$(){}]/g, "")).filter(Boolean).slice(0, 5);
     const mgr = manager === "pip" ? "pip" : "npm";
 
-    try {
-      const { execSync } = await import("child_process");
-      const cmd = mgr === "pip"
-        ? `pip install ${sanitized.join(" ")}`
-        : `npm install ${sanitized.join(" ")} --no-save`;
+    const cmd = mgr === "pip"
+      ? `pip install ${sanitized.join(" ")} 2>&1`
+      : `npm install ${sanitized.join(" ")} --no-save 2>&1`;
 
-      let stdout = "", stderr = "";
-      try {
-        stdout = execSync(cmd, { timeout: 60000, maxBuffer: 1024 * 512, encoding: "utf-8", cwd: process.cwd() });
-      } catch (e: any) {
-        stdout = e.stdout || "";
-        stderr = e.stderr || e.message || "";
-      }
-      res.json({ output: stdout.substring(0, 10000), error: stderr.substring(0, 5000), packages: sanitized, manager: mgr });
-    } catch (e: any) {
-      res.json({ output: "", error: e.message, packages: sanitized, manager: mgr });
-    }
+    const result = shellExec(cmd, { timeout: 120000, maxBuffer: 1024 * 1024 });
+    const combined = (result.stdout + "\n" + result.stderr).trim();
+    res.json({
+      output: combined.substring(0, 15000),
+      error: result.exitCode !== 0 ? combined.substring(0, 5000) : "",
+      packages: sanitized,
+      manager: mgr,
+      success: result.exitCode === 0,
+    });
   });
 
   app.get("/api/packages/list", async (_req, res) => {
+    const npm = shellExec("npm list --depth=0 --json 2>/dev/null || echo '{}'", { timeout: 10000 });
+    const pip = shellExec("pip list --format=json 2>/dev/null || echo '[]'", { timeout: 10000 });
     try {
-      const { execSync } = await import("child_process");
-      const npm = execSync("npm list --depth=0 --json 2>/dev/null || echo '{}'", { encoding: "utf-8", timeout: 10000 });
-      let pip = "{}";
-      try { pip = execSync("pip list --format=json 2>/dev/null || echo '[]'", { encoding: "utf-8", timeout: 10000 }); } catch {}
-      res.json({ npm: JSON.parse(npm), pip: JSON.parse(pip) });
+      res.json({ npm: JSON.parse(npm.stdout), pip: JSON.parse(pip.stdout) });
     } catch {
       res.json({ npm: {}, pip: [] });
     }
