@@ -12,40 +12,54 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 
 ## Key Files
 - `client/src/App.tsx` - ALL frontend code (consolidated single file)
+- `client/src/index.css` - All styles and CSS variables
 - `server/routes.ts` - API routes + AI logic + Discord + search
 - `server/storage.ts` - Database CRUD operations
 - `server/db.ts` - Database connection
 - `shared/schema.ts` - Drizzle schema (chats, messages tables)
 - `shared/routes.ts` - API contract definitions
 
-## Features
+## Coder Features (30 Transcendence-class upgrades)
+1. Code theme system - 5 themes (One Dark, VS Code, Dracula, Atom, Coldark)
+2. Language-specific icons for 20+ languages
+3. Code metrics analyzer (lines, functions, classes, imports, complexity)
+4. Enhanced live preview with console output capture for JS
+5. Fullscreen code viewer with Escape to close
+6. Code metrics popup with complexity rating
+7. Collapsible long code blocks (auto-collapse >50 lines)
+8. In-code search with match highlighting
+9. Search match counter
+10. File size badge on code blocks
+11. Configurable syntax highlighting (theme, font size, wrap, line numbers)
+12. Code block count badge on messages
+13. Auto-detect untagged code blocks
+14. Quick code templates (React, API, DB, Tests, Debug, Refactor, Docker, Algorithm)
+15. Paste code detection with visual indicator
+16. Template popup triggered by / key
+17. Pasted code analysis indicator
+18. Categorized coder suggestions (Full Stack, Backend, Frontend, DevOps, Debug)
+19. Saved codes file manager panel with viewer
+20. Coder settings panel (theme, font size, word wrap, line numbers)
+21. Open saved codes from toolbar
+22. Settings accessible from toolbar
+23. Code block extraction from entire conversation
+24. Save all code blocks at once
+25. Enhanced toolbar with code block counter
+26. Feature badges on welcome screen (8 capability indicators)
+27. Persistent settings via localStorage
+28. Keyboard shortcuts: Ctrl+K (new chat), Ctrl+J (new coder)
+29. Transcendence-level system prompt with 30+ language support
+30. Lower temperature (0.15) for more precise code generation
+
+## General Features
 - Two chat modes: My Ai Gpt (general) and My Ai Coder (coding)
-- Code syntax highlighting with copy/save/download buttons
-- Live HTML/CSS/JS code preview (run button)
-- Line numbers in code blocks
-- Discord knowledge base integration (17 channels)
-- DuckDuckGo web search for real-time info
-- Chat history with sidebar navigation (grouped by Today/This Week/Older)
-- Server-side code saving (saved_codes/ directory)
-- Responsive design with white theme
-- Markdown rendering with GFM support
-- Chat rename (inline editing in sidebar)
-- Clear all chats
-- Search/filter chats in sidebar
-- Message reactions (thumbs up/down)
-- Copy full AI response
-- Regenerate last response
-- Error retry button
+- Chat rename, search, clear all, grouped by date
+- Message reactions, copy, regenerate, retry on error
 - Export conversation as markdown
-- Scroll to bottom button
-- Input history (up/down arrow keys)
-- Character count on input
-- Word count on messages
-- Timestamps on messages
-- Dynamic page titles
-- Stats dashboard in sidebar (chat count, message count, code files, connection status)
-- Keyboard shortcut: Ctrl+K for new chat
-- SEO meta tags (Open Graph, description, theme-color)
+- Scroll to bottom button, input history, char/word count
+- Timestamps, dynamic page titles, SEO meta tags
+- Stats dashboard (chat count, message count, code files, connection status)
+- Responsive design with white theme
 
 ## API Endpoints
 - GET/POST /api/chats - List/create chats
@@ -53,13 +67,15 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 - PATCH /api/chats/:id/rename - Rename a chat
 - DELETE /api/chats - Delete all chats
 - GET /api/chats/search/:query - Search chats
-- GET /api/stats - Get stats (chat count, message count, code files, discord status)
+- GET /api/stats - Get stats
 - GET /api/chats/:chatId/messages - List messages
 - POST /api/chats/:chatId/messages - Send message (triggers AI response)
 - POST /api/chats/:chatId/export - Export conversation as markdown
 - POST /api/save-code - Save code to server
-- GET /api/saved-codes - List saved code files
+- GET /api/saved-codes - List saved code files (with metadata)
 - GET /api/saved-codes/:filename - Download saved code file
+- GET /api/saved-codes/:filename/content - Read file content
+- DELETE /api/saved-codes/:filename - Delete saved code file
 
 ## Token Management
 - Discord knowledge truncated to 800 chars max

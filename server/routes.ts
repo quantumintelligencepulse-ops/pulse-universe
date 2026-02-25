@@ -143,11 +143,13 @@ export async function registerRoutes(
 
   app.get("/api/saved-codes", async (_req, res) => {
     try {
-      const files = fs.readdirSync(CODES_DIR).map(f => ({
-        name: f,
-        size: fs.statSync(path.join(CODES_DIR, f)).size,
-        modified: fs.statSync(path.join(CODES_DIR, f)).mtime,
-      }));
+      const files = fs.readdirSync(CODES_DIR).map(f => {
+        const stat = fs.statSync(path.join(CODES_DIR, f));
+        const content = fs.readFileSync(path.join(CODES_DIR, f), "utf-8");
+        const ext = f.split(".").pop() || "";
+        return { name: f, size: stat.size, modified: stat.mtime, lines: content.split("\n").length, ext };
+      });
+      files.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
       res.json(files);
     } catch {
       res.json([]);
@@ -159,6 +161,21 @@ export async function registerRoutes(
     const filePath = path.join(CODES_DIR, safeName);
     if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File not found" });
     res.download(filePath);
+  });
+
+  app.get("/api/saved-codes/:filename/content", async (req, res) => {
+    const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = path.join(CODES_DIR, safeName);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File not found" });
+    const content = fs.readFileSync(filePath, "utf-8");
+    res.json({ content, filename: safeName });
+  });
+
+  app.delete("/api/saved-codes/:filename", async (req, res) => {
+    const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = path.join(CODES_DIR, safeName);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.status(204).send();
   });
 
   app.post("/api/chats/:chatId/export", async (req, res) => {
@@ -199,25 +216,34 @@ export async function registerRoutes(
 
       let systemPrompt: string;
       if (chat.type === "coder") {
-        systemPrompt = `You are My Ai Coder, an elite S-class programming assistant created by Billy Banks. ${creatorInfo}
+        systemPrompt = `You are My Ai Coder, the world's most elite S-class Transcendence-level programming assistant, created by Billy Banks. ${creatorInfo}
 
-CAPABILITIES:
-- Write production-ready code in ALL languages (JavaScript, TypeScript, Python, Java, C++, Rust, Go, SQL, HTML/CSS, Swift, Kotlin, Ruby, PHP, C#, Dart, Scala, R, MATLAB, and more)
-- Debug any error with detailed explanations and fixes
-- Optimize code for performance, memory, and readability
-- Write comprehensive unit tests, integration tests, and E2E tests
-- Design system architectures, database schemas, and API contracts
-- Refactor legacy code into modern patterns
-- Explain complex algorithms step by step
-- Build complete full-stack applications from scratch
-- Generate Docker, CI/CD, deployment configs
+OMEGA TRANSCENDENCE CAPABILITIES:
+- Write flawless, production-ready, optimized code in ALL 30+ languages (JavaScript, TypeScript, Python, Java, C++, Rust, Go, SQL, HTML/CSS, Swift, Kotlin, Ruby, PHP, C#, Dart, Scala, R, MATLAB, Lua, Perl, Haskell, Elixir, Clojure, F#, Assembly, COBOL, Fortran, Julia, Zig, V)
+- Debug ANY error instantly - read stack traces, identify root cause, provide exact fix
+- Full-stack architecture: Design databases, APIs, microservices, event-driven systems
+- Algorithm mastery: Sort, search, graph, DP, greedy, backtracking, divide-and-conquer
+- Data structures: Trees, heaps, tries, segment trees, bloom filters, skip lists
+- Design patterns: Factory, Observer, Strategy, Command, Decorator, Singleton, CQRS, Event Sourcing
+- DevOps: Docker, Kubernetes, CI/CD, AWS/GCP/Azure, Terraform, Ansible
+- Security: Authentication, encryption, SQL injection prevention, XSS/CSRF protection
+- Performance: Big-O analysis, profiling, caching strategies, lazy loading, memoization
+- Testing: Unit, integration, E2E, property-based, mutation, snapshot, load testing
+- Mobile: React Native, Flutter, SwiftUI, Jetpack Compose
+- AI/ML: TensorFlow, PyTorch, scikit-learn, model training, NLP, computer vision
 
-RULES:
-- Always use proper markdown code blocks with language tags
-- Include helpful comments in code
-- Explain your reasoning before code
+CODE OUTPUT RULES:
+- ALWAYS use markdown code blocks with correct language tags (e.g. \`\`\`python)
+- Include clear, helpful comments explaining logic
+- Use best practices and modern patterns for each language
+- Handle edge cases and errors properly
+- Include type annotations where applicable
+- Follow language-specific style guides (PEP 8, ESLint, etc.)
+- When generating multi-file solutions, use separate code blocks with filename comments
+- Explain your approach BEFORE writing code
+- After code, explain key decisions and potential improvements
 - Never provide links, images, or videos unless specifically asked
-- If the user shares an error, diagnose the root cause first`;
+- If user shares an error, diagnose root cause FIRST, then provide the fix`;
       } else {
         systemPrompt = `You are My Ai Gpt, a world-class intelligent assistant created by Billy Banks. ${creatorInfo}
 
@@ -258,7 +284,7 @@ RULES:
         messages: messagesForGroq,
         model: "llama-3.1-8b-instant",
         max_tokens: 2048,
-        temperature: chat.type === "coder" ? 0.2 : 0.7,
+        temperature: chat.type === "coder" ? 0.15 : 0.7,
       });
 
       const reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";

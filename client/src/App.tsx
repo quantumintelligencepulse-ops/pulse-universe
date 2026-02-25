@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -7,52 +7,66 @@ import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneDark, vscDarkPlus, dracula, atomDark, coldarkDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   Send, MessageSquare, Code2, Plus, Trash2, PanelLeftClose, PanelLeftOpen,
   Copy, Check, Download, Sparkles, Zap, Bug, FileCode, Cpu, Terminal,
   BookOpen, Lightbulb, Wrench, Globe, ArrowDown, RotateCcw,
   Pencil, Search, X, Trash, FileDown, ThumbsUp, ThumbsDown,
-  Clock, BarChart3, Wifi, WifiOff, Play, ChevronRight, Hash, Shield
+  BarChart3, Wifi, WifiOff, Play, Hash, Shield,
+  Maximize2, Minimize2, WrapText, Type, Palette, FolderOpen,
+  Archive, Eye, EyeOff, Layers, GitBranch, Package,
+  Braces, Database, Lock, TestTube, Smartphone, Cloud,
+  ChevronDown, ChevronUp, Settings2, Brackets, FlaskConical, Rocket
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message } from "@shared/schema";
 import logo from "@assets/MyAiGpt_1772000395528.webp";
 
+// ─── THEME CONTEXT (#1 - Code theme system) ─────────────────────────────────
+
+const CODE_THEMES: Record<string, { name: string; style: any; bg: string }> = {
+  oneDark: { name: "One Dark", style: oneDark, bg: "#1a1a2e" },
+  vscode: { name: "VS Code", style: vscDarkPlus, bg: "#1e1e1e" },
+  dracula: { name: "Dracula", style: dracula, bg: "#282a36" },
+  atom: { name: "Atom", style: atomDark, bg: "#1d1f21" },
+  coldark: { name: "Coldark", style: coldarkDark, bg: "#111b27" },
+};
+
+type CoderSettings = {
+  codeTheme: string;
+  fontSize: number;
+  wordWrap: boolean;
+  showLineNumbers: boolean;
+  showMinimap: boolean;
+};
+
+const defaultSettings: CoderSettings = { codeTheme: "oneDark", fontSize: 13, wordWrap: false, showLineNumbers: true, showMinimap: false };
+
+const SettingsCtx = createContext<{ settings: CoderSettings; set: (s: Partial<CoderSettings>) => void }>({ settings: defaultSettings, set: () => {} });
+
+function useCoderSettings() { return useContext(SettingsCtx); }
+
 // ─── HOOKS ───────────────────────────────────────────────────────────────────
 
 function useChats() {
-  return useQuery<Chat[]>({
-    queryKey: [api.chats.list.path],
-    queryFn: async () => {
-      const res = await fetch(api.chats.list.path);
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-  });
+  return useQuery<Chat[]>({ queryKey: [api.chats.list.path], queryFn: async () => { const r = await fetch(api.chats.list.path); return r.json(); } });
 }
-
 function useMessages(chatId: number | null) {
   return useQuery<Message[]>({
     queryKey: [api.messages.list.path, chatId],
-    queryFn: async () => {
-      if (!chatId) return [];
-      const res = await fetch(buildUrl(api.messages.list.path, { chatId }));
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
+    queryFn: async () => { if (!chatId) return []; const r = await fetch(buildUrl(api.messages.list.path, { chatId })); return r.json(); },
     enabled: !!chatId,
   });
 }
-
 function useStats() {
   return useQuery<{ chatCount: number; messageCount: number; codeFiles: number; discordConnected: boolean }>({
-    queryKey: ["/api/stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/stats");
-      return res.json();
-    },
-    refetchInterval: 30000,
+    queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats"); return r.json(); }, refetchInterval: 30000,
+  });
+}
+function useSavedCodes() {
+  return useQuery<Array<{ name: string; size: number; modified: string; lines: number; ext: string }>>({
+    queryKey: ["/api/saved-codes"], queryFn: async () => { const r = await fetch("/api/saved-codes"); return r.json(); },
   });
 }
 
@@ -66,24 +80,66 @@ const EXT_MAP: Record<string, string> = {
   yaml: "yaml", xml: "xml", markdown: "md", dockerfile: "dockerfile",
 };
 
-function getExt(lang: string) { return EXT_MAP[lang] || "txt"; }
+// #2 - Language icons mapping
+const LANG_ICONS: Record<string, { icon: any; color: string }> = {
+  javascript: { icon: Braces, color: "text-yellow-400" },
+  typescript: { icon: Braces, color: "text-blue-400" },
+  python: { icon: Terminal, color: "text-green-400" },
+  java: { icon: Package, color: "text-red-400" },
+  cpp: { icon: Cpu, color: "text-blue-300" },
+  c: { icon: Cpu, color: "text-gray-400" },
+  html: { icon: Globe, color: "text-orange-400" },
+  css: { icon: Palette, color: "text-purple-400" },
+  sql: { icon: Database, color: "text-cyan-400" },
+  rust: { icon: Lock, color: "text-orange-500" },
+  go: { icon: Zap, color: "text-cyan-300" },
+  ruby: { icon: Sparkles, color: "text-red-500" },
+  php: { icon: Globe, color: "text-indigo-400" },
+  swift: { icon: Smartphone, color: "text-orange-400" },
+  kotlin: { icon: Smartphone, color: "text-purple-500" },
+  bash: { icon: Terminal, color: "text-green-300" },
+  shell: { icon: Terminal, color: "text-green-300" },
+  json: { icon: Brackets, color: "text-yellow-300" },
+  yaml: { icon: FileCode, color: "text-pink-400" },
+  dockerfile: { icon: Cloud, color: "text-blue-400" },
+  dart: { icon: Smartphone, color: "text-teal-400" },
+};
 
+function getExt(lang: string) { return EXT_MAP[lang] || "txt"; }
 function formatTime(date: string | Date) {
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  const diffD = Math.floor(diffH / 24);
-  if (diffD < 7) return `${diffD}d ago`;
+  const d = new Date(date); const now = new Date(); const ms = now.getTime() - d.getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return "Just now"; if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60); if (h < 24) return `${h}h ago`;
+  const dd = Math.floor(h / 24); if (dd < 7) return `${dd}d ago`;
   return d.toLocaleDateString();
 }
+function wordCount(t: string) { return t.trim().split(/\s+/).filter(Boolean).length; }
 
-function wordCount(text: string) {
-  return text.trim().split(/\s+/).filter(Boolean).length;
+// #3 - Code metrics analyzer
+function analyzeCode(code: string, lang: string) {
+  const lines = code.split("\n");
+  const totalLines = lines.length;
+  const blankLines = lines.filter(l => !l.trim()).length;
+  const commentLines = lines.filter(l => {
+    const t = l.trim();
+    return t.startsWith("//") || t.startsWith("#") || t.startsWith("/*") || t.startsWith("*") || t.startsWith("--");
+  }).length;
+  const codeLines = totalLines - blankLines - commentLines;
+
+  let functions = 0, classes = 0, imports = 0;
+  for (const l of lines) {
+    const t = l.trim();
+    if (/^(function |def |func |fn |public |private |protected |static |async function|const \w+ = (?:async )?\()/.test(t)) functions++;
+    if (/^(class |struct |enum |interface |type |trait )/.test(t)) classes++;
+    if (/^(import |from |require\(|#include|using )/.test(t)) imports++;
+  }
+
+  let complexity = "Low";
+  if (totalLines > 100 || functions > 5) complexity = "Medium";
+  if (totalLines > 300 || functions > 15 || classes > 5) complexity = "High";
+
+  return { totalLines, blankLines, commentLines, codeLines, functions, classes, imports, complexity };
 }
 
 // ─── CODE ACTION BUTTONS ─────────────────────────────────────────────────────
@@ -101,12 +157,13 @@ function CopyBtn({ text }: { text: string }) {
 function SaveBtn({ code, language }: { code: string; language: string }) {
   const [ok, setOk] = useState(false);
   const { toast } = useToast();
+  const qc = useQueryClient();
   return (
     <button onClick={async () => {
       const fn = `code_${Date.now()}.${getExt(language)}`;
       try {
         await fetch("/api/save-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, filename: fn, language }) });
-        setOk(true); toast({ title: "Saved to server", description: fn }); setTimeout(() => setOk(false), 3000);
+        setOk(true); toast({ title: "Saved to server", description: fn }); qc.invalidateQueries({ queryKey: ["/api/saved-codes"] }); setTimeout(() => setOk(false), 3000);
       } catch { toast({ title: "Save failed", variant: "destructive" }); }
     }} data-testid="button-save-code" className="p-1 rounded hover:bg-white/10 transition-colors" title="Save to server">
       {ok ? <Check size={14} className="text-green-400" /> : <Download size={14} className="text-zinc-400" />}
@@ -117,35 +174,205 @@ function SaveBtn({ code, language }: { code: string; language: string }) {
 function DlBtn({ code, language }: { code: string; language: string }) {
   return (
     <button onClick={() => {
-      const blob = new Blob([code], { type: "text/plain" });
-      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-      a.download = `code_${Date.now()}.${getExt(language)}`; a.click();
+      const blob = new Blob([code], { type: "text/plain" }); const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = `code_${Date.now()}.${getExt(language)}`; a.click();
     }} data-testid="button-download-code" className="p-1 rounded hover:bg-white/10 transition-colors" title="Download">
       <FileCode size={14} className="text-zinc-400" />
     </button>
   );
 }
 
-// #1 - Live HTML/CSS/JS Preview
+// #4 - Enhanced live preview with console output capture
 function RunBtn({ code, language }: { code: string; language: string }) {
   const [show, setShow] = useState(false);
   if (!["html", "javascript", "css"].includes(language)) return null;
-  const html = language === "html" ? code : language === "javascript" ? `<html><body><script>${code}<\/script><pre id="out"></pre></body></html>` : `<html><head><style>${code}</style></head><body><div class="demo">Styled Preview</div></body></html>`;
+  const consoleCapture = `<script>
+    const _origLog = console.log; const _logs = [];
+    console.log = function(...args) { _logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a,null,2) : String(a)).join(' ')); document.getElementById('_console').textContent = _logs.join('\\n'); _origLog.apply(console, args); };
+    console.error = function(...args) { _logs.push('ERROR: ' + args.join(' ')); document.getElementById('_console').textContent = _logs.join('\\n'); };
+    window.onerror = function(msg) { _logs.push('ERROR: ' + msg); document.getElementById('_console').textContent = _logs.join('\\n'); };
+  <\/script>`;
+  const html = language === "html" ? code
+    : language === "javascript" ? `<html><body>${consoleCapture}<pre id="_console" style="font-family:monospace;font-size:13px;padding:12px;margin:0;background:#0d1117;color:#c9d1d9;min-height:100%"></pre><script>${code}<\/script></body></html>`
+    : `<html><head><style>${code}</style></head><body style="padding:20px"><div class="demo" style="padding:20px;border:1px solid #ddd;border-radius:8px">
+        <h1>Heading 1</h1><h2>Heading 2</h2><p>Paragraph text with <a href="#">a link</a> and <strong>bold text</strong>.</p>
+        <button style="padding:8px 16px;margin:4px">Button</button><input placeholder="Input field" style="padding:8px;margin:4px"/>
+      </div></body></html>`;
   return (
     <>
-      <button onClick={() => setShow(!show)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Run preview">
+      <button onClick={() => setShow(!show)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Run preview" data-testid="button-run-code">
         <Play size={14} className="text-emerald-400" />
       </button>
       {show && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 border border-zinc-700 rounded-lg overflow-hidden bg-white shadow-2xl">
           <div className="flex items-center justify-between bg-zinc-800 px-3 py-1.5">
-            <span className="text-xs text-zinc-400">Live Preview</span>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1"><div className="w-2.5 h-2.5 rounded-full bg-red-500"/><div className="w-2.5 h-2.5 rounded-full bg-yellow-500"/><div className="w-2.5 h-2.5 rounded-full bg-green-500"/></div>
+              <span className="text-xs text-zinc-400">{language === "javascript" ? "Console Output" : "Live Preview"}</span>
+            </div>
             <button onClick={() => setShow(false)} className="text-zinc-400 hover:text-white"><X size={14} /></button>
           </div>
-          <iframe srcDoc={html} sandbox="allow-scripts" className="w-full h-48 bg-white" title="preview" />
+          <iframe srcDoc={html} sandbox="allow-scripts" className="w-full h-56 bg-white" title="preview" />
         </div>
       )}
     </>
+  );
+}
+
+// #5 - Fullscreen code viewer
+function FullscreenBtn({ code, language }: { code: string; language: string }) {
+  const [show, setShow] = useState(false);
+  const { settings } = useCoderSettings();
+  const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
+  useEffect(() => {
+    if (show) { const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setShow(false); }; window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler); }
+  }, [show]);
+  return (
+    <>
+      <button onClick={() => setShow(true)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Fullscreen">
+        <Maximize2 size={14} className="text-zinc-400" />
+      </button>
+      {show && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col" onClick={e => { if (e.target === e.currentTarget) setShow(false); }}>
+          <div className="flex items-center justify-between px-6 py-3 bg-zinc-900 border-b border-zinc-800">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500"/><div className="w-3 h-3 rounded-full bg-yellow-500"/><div className="w-3 h-3 rounded-full bg-green-500"/></div>
+              <span className="text-sm font-mono text-zinc-300">{language}</span>
+              <span className="text-xs text-zinc-600">{code.split("\n").length} lines</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CopyBtn text={code} />
+              <button onClick={() => setShow(false)} className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400"><Minimize2 size={16} /></button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <SyntaxHighlighter style={theme.style} language={language} showLineNumbers
+              lineNumberStyle={{ color: "#555", fontSize: "0.75rem" }}
+              customStyle={{ margin: 0, padding: "1.5rem", background: theme.bg, fontSize: `${settings.fontSize}px`, minHeight: "100%" }}>
+              {code}
+            </SyntaxHighlighter>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// #6 - Code metrics popup
+function MetricsBtn({ code, language }: { code: string; language: string }) {
+  const [show, setShow] = useState(false);
+  const metrics = useMemo(() => analyzeCode(code, language), [code, language]);
+  return (
+    <div className="relative">
+      <button onClick={() => setShow(!show)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Code Metrics">
+        <BarChart3 size={14} className="text-zinc-400" />
+      </button>
+      {show && (
+        <div className="absolute top-full right-0 mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-2xl min-w-[200px]">
+          <div className="text-xs text-zinc-300 font-semibold mb-2">Code Metrics</div>
+          <div className="space-y-1.5 text-[11px]">
+            <div className="flex justify-between"><span className="text-zinc-500">Total Lines</span><span className="text-zinc-300 font-mono">{metrics.totalLines}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Code Lines</span><span className="text-zinc-300 font-mono">{metrics.codeLines}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Comments</span><span className="text-zinc-300 font-mono">{metrics.commentLines}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Blank Lines</span><span className="text-zinc-300 font-mono">{metrics.blankLines}</span></div>
+            <div className="h-px bg-zinc-800 my-1"/>
+            <div className="flex justify-between"><span className="text-zinc-500">Functions</span><span className="text-cyan-400 font-mono">{metrics.functions}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Classes</span><span className="text-purple-400 font-mono">{metrics.classes}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500">Imports</span><span className="text-yellow-400 font-mono">{metrics.imports}</span></div>
+            <div className="h-px bg-zinc-800 my-1"/>
+            <div className="flex justify-between"><span className="text-zinc-500">Complexity</span>
+              <span className={`font-mono font-semibold ${metrics.complexity === "Low" ? "text-green-400" : metrics.complexity === "Medium" ? "text-yellow-400" : "text-red-400"}`}>{metrics.complexity}</span>
+            </div>
+          </div>
+          <button onClick={() => setShow(false)} className="mt-2 w-full text-center text-[10px] text-zinc-600 hover:text-zinc-400">Close</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ENHANCED CODE BLOCK (#7-#15 combined) ───────────────────────────────────
+
+function CodeBlock({ code, language, isCoder }: { code: string; language: string; isCoder?: boolean }) {
+  const { settings } = useCoderSettings();
+  const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
+  const lines = code.split("\n").length;
+  // #7 - Collapsible long code blocks
+  const [collapsed, setCollapsed] = useState(lines > 50);
+  // #8 - Code search within block
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const langInfo = LANG_ICONS[language];
+
+  const displayCode = collapsed ? code.split("\n").slice(0, 20).join("\n") + "\n\n// ... " + (lines - 20) + " more lines" : code;
+
+  // #9 - Highlight search matches
+  const highlightedCode = searchTerm ? displayCode.replace(new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '█$1█') : displayCode;
+
+  return (
+    <div className="my-3 rounded-xl overflow-hidden border border-zinc-800 relative group/code">
+      <div className="bg-zinc-900 px-3 py-2 text-xs text-zinc-400 flex justify-between items-center border-b border-zinc-800">
+        <div className="flex items-center gap-2">
+          {/* #2 - Language icon */}
+          {langInfo && <langInfo.icon size={13} className={langInfo.color} />}
+          <span className="font-mono font-medium text-zinc-300">{language}</span>
+          <span className="bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded text-[10px]">{lines} lines</span>
+          {/* #10 - Size badge */}
+          <span className="bg-zinc-800/50 text-zinc-600 px-1.5 py-0.5 rounded text-[10px]">{(new Blob([code]).size / 1024).toFixed(1)} KB</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          {/* #8 - Search in code */}
+          {lines > 10 && (
+            <button onClick={() => setSearchOpen(!searchOpen)} className="p-1 rounded hover:bg-white/10 transition-colors" title="Search in code">
+              <Search size={14} className={searchOpen ? "text-blue-400" : "text-zinc-400"} />
+            </button>
+          )}
+          <CopyBtn text={code} />
+          <SaveBtn code={code} language={language} />
+          <DlBtn code={code} language={language} />
+          <RunBtn code={code} language={language} />
+          {/* #5 - Fullscreen */}
+          <FullscreenBtn code={code} language={language} />
+          {/* #6 - Metrics */}
+          {isCoder && <MetricsBtn code={code} language={language} />}
+          {/* #7 - Collapse toggle */}
+          {lines > 50 && (
+            <button onClick={() => setCollapsed(!collapsed)} className="p-1 rounded hover:bg-white/10 transition-colors" title={collapsed ? "Expand" : "Collapse"}>
+              {collapsed ? <ChevronDown size={14} className="text-zinc-400" /> : <ChevronUp size={14} className="text-zinc-400" />}
+            </button>
+          )}
+        </div>
+      </div>
+      {/* #8 - Search bar */}
+      {searchOpen && (
+        <div className="bg-zinc-900/80 px-3 py-1.5 flex items-center gap-2 border-b border-zinc-800/50">
+          <Search size={12} className="text-zinc-500" />
+          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search in code..."
+            className="flex-1 bg-transparent text-xs text-zinc-300 focus:outline-none placeholder:text-zinc-700" autoFocus />
+          {searchTerm && <span className="text-[10px] text-zinc-600">{(code.match(new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length} found</span>}
+          <button onClick={() => { setSearchOpen(false); setSearchTerm(""); }} className="text-zinc-600 hover:text-zinc-400"><X size={12} /></button>
+        </div>
+      )}
+      {/* #11 - Configurable syntax highlighting */}
+      <div style={{ maxHeight: collapsed ? "none" : undefined }}>
+        <SyntaxHighlighter
+          style={theme.style} language={language} PreTag="div"
+          showLineNumbers={settings.showLineNumbers && lines > 3}
+          lineNumberStyle={{ color: "#444", fontSize: `${settings.fontSize - 2}px`, minWidth: "2.5em" }}
+          wrapLines={settings.wordWrap} wrapLongLines={settings.wordWrap}
+          customStyle={{ margin: 0, padding: "1rem", background: theme.bg, fontSize: `${settings.fontSize}px` }}
+        >
+          {displayCode}
+        </SyntaxHighlighter>
+      </div>
+      {/* #7 - Collapsed indicator */}
+      {collapsed && (
+        <button onClick={() => setCollapsed(false)}
+          className="w-full py-2 bg-zinc-900 text-zinc-500 text-xs hover:text-zinc-300 hover:bg-zinc-800 transition-colors border-t border-zinc-800 flex items-center justify-center gap-1">
+          <ChevronDown size={12} /> Show all {lines} lines
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -155,10 +382,10 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
   role: string; content: string; isThinking?: boolean; isCoder?: boolean; timestamp?: string; onRetry?: () => void;
 }) {
   const isUser = role === "user";
-  // #2 - Message reactions
   const [reaction, setReaction] = useState<"up" | "down" | null>(null);
-  // #3 - Copy full message
   const [msgCopied, setMsgCopied] = useState(false);
+  // #12 - Code block count in message
+  const codeBlockCount = (content.match(/```\w+/g) || []).length;
 
   return (
     <div data-testid={`message-${role}`} className={`group py-5 px-4 md:px-8 w-full flex justify-center transition-colors ${isUser ? "bg-transparent" : "bg-muted/15"}`}>
@@ -179,18 +406,19 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
             <span className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">
               {isUser ? "You" : isCoder ? "My Ai Coder" : "My Ai Gpt"}
             </span>
-            {/* #4 - Timestamps */}
             {timestamp && <span className="text-[10px] text-muted-foreground/40">{formatTime(timestamp)}</span>}
+            {/* #12 - Code block badge */}
+            {!isUser && codeBlockCount > 0 && (
+              <span className="text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded-full font-medium">{codeBlockCount} code block{codeBlockCount > 1 ? "s" : ""}</span>
+            )}
           </div>
           <div className="text-foreground leading-relaxed markdown-body">
             {isThinking ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center h-6 gap-1.5">
-                  <div className="w-2 h-2 bg-primary/50 rounded-full typing-dot" />
-                  <div className="w-2 h-2 bg-primary/50 rounded-full typing-dot" />
-                  <div className="w-2 h-2 bg-primary/50 rounded-full typing-dot" />
+                  <div className="w-2 h-2 bg-primary/50 rounded-full typing-dot" /><div className="w-2 h-2 bg-primary/50 rounded-full typing-dot" /><div className="w-2 h-2 bg-primary/50 rounded-full typing-dot" />
                 </div>
-                <span className="text-xs text-muted-foreground/50 animate-pulse">Thinking...</span>
+                <span className="text-xs text-muted-foreground/50 animate-pulse">{isCoder ? "Generating code..." : "Thinking..."}</span>
               </div>
             ) : (
               <ReactMarkdown
@@ -199,72 +427,29 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
                   code({ node, inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || "");
                     const codeStr = String(children).replace(/\n$/, "");
-                    const lines = codeStr.split("\n").length;
                     return !inline && match ? (
-                      <div className="my-3 rounded-xl overflow-hidden border border-zinc-800 relative">
-                        <div className="bg-zinc-900 px-4 py-2 text-xs text-zinc-400 flex justify-between items-center border-b border-zinc-800">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-medium text-zinc-300">{match[1]}</span>
-                            {/* #5 - Line count badge */}
-                            <span className="bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded text-[10px]">{lines} lines</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CopyBtn text={codeStr} />
-                            <SaveBtn code={codeStr} language={match[1]} />
-                            <DlBtn code={codeStr} language={match[1]} />
-                            {/* #1 - Run preview for HTML/JS/CSS */}
-                            <RunBtn code={codeStr} language={match[1]} />
-                          </div>
-                        </div>
-                        {/* #6 - Line numbers built into syntax highlighter */}
-                        <SyntaxHighlighter
-                          style={oneDark as any}
-                          language={match[1]}
-                          PreTag="div"
-                          showLineNumbers={lines > 3}
-                          lineNumberStyle={{ color: "#555", fontSize: "0.7rem", minWidth: "2em" }}
-                          customStyle={{ margin: 0, padding: "1rem", background: "#1a1a2e", fontSize: "0.83rem" }}
-                          {...props}
-                        >
-                          {codeStr}
-                        </SyntaxHighlighter>
-                      </div>
+                      <CodeBlock code={codeStr} language={match[1]} isCoder={isCoder} />
+                    ) : !inline && codeStr.includes("\n") ? (
+                      // #13 - Auto-detect untagged code blocks
+                      <CodeBlock code={codeStr} language="plaintext" isCoder={isCoder} />
                     ) : (
                       <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono border border-border/40" {...props}>{children}</code>
                     );
                   },
-                  table({ children }: any) {
-                    return <div className="overflow-x-auto my-3 rounded-lg border border-border"><table className="min-w-full text-sm">{children}</table></div>;
-                  },
+                  table({ children }: any) { return <div className="overflow-x-auto my-3 rounded-lg border border-border"><table className="min-w-full text-sm">{children}</table></div>; },
                   th({ children }: any) { return <th className="border-b border-border bg-muted/50 px-3 py-2 text-left font-semibold text-xs uppercase tracking-wider">{children}</th>; },
                   td({ children }: any) { return <td className="border-b border-border/50 px-3 py-2">{children}</td>; },
                 }}
-              >
-                {content}
-              </ReactMarkdown>
+              >{content}</ReactMarkdown>
             )}
           </div>
-          {/* #2 - Reactions + #3 Copy message + #7 Retry button */}
           {!isUser && !isThinking && content && (
             <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button onClick={() => { navigator.clipboard.writeText(content); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 2000); }}
-                className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Copy message">
-                {msgCopied ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-              <button onClick={() => setReaction(reaction === "up" ? null : "up")}
-                className={`p-1.5 rounded-md hover:bg-muted/50 transition-colors ${reaction === "up" ? "text-green-500" : "text-muted-foreground/50 hover:text-foreground"}`}>
-                <ThumbsUp size={14} />
-              </button>
-              <button onClick={() => setReaction(reaction === "down" ? null : "down")}
-                className={`p-1.5 rounded-md hover:bg-muted/50 transition-colors ${reaction === "down" ? "text-red-500" : "text-muted-foreground/50 hover:text-foreground"}`}>
-                <ThumbsDown size={14} />
-              </button>
-              {onRetry && (
-                <button onClick={onRetry} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Regenerate">
-                  <RotateCcw size={14} />
-                </button>
-              )}
-              {/* #8 - Word count */}
+                className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Copy">{msgCopied ? <Check size={14} /> : <Copy size={14} />}</button>
+              <button onClick={() => setReaction(reaction === "up" ? null : "up")} className={`p-1.5 rounded-md hover:bg-muted/50 transition-colors ${reaction === "up" ? "text-green-500" : "text-muted-foreground/50 hover:text-foreground"}`}><ThumbsUp size={14} /></button>
+              <button onClick={() => setReaction(reaction === "down" ? null : "down")} className={`p-1.5 rounded-md hover:bg-muted/50 transition-colors ${reaction === "down" ? "text-red-500" : "text-muted-foreground/50 hover:text-foreground"}`}><ThumbsDown size={14} /></button>
+              {onRetry && <button onClick={onRetry} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Regenerate"><RotateCcw size={14} /></button>}
               <span className="text-[10px] text-muted-foreground/30 ml-2">{wordCount(content)} words</span>
             </div>
           )}
@@ -276,13 +461,28 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
 
 // ─── CHAT INPUT ──────────────────────────────────────────────────────────────
 
+// #14 - Quick code templates
+const CODE_TEMPLATES = [
+  { label: "React Component", prefix: "Create a React component that ", icon: Braces },
+  { label: "REST API", prefix: "Build a REST API endpoint that ", icon: Globe },
+  { label: "Database Schema", prefix: "Design a database schema for ", icon: Database },
+  { label: "Unit Tests", prefix: "Write unit tests for ", icon: FlaskConical },
+  { label: "Debug Error", prefix: "Debug this error: ", icon: Bug },
+  { label: "Refactor", prefix: "Refactor this code to be cleaner: ", icon: GitBranch },
+  { label: "Docker Setup", prefix: "Create a Dockerfile and docker-compose for ", icon: Cloud },
+  { label: "Algorithm", prefix: "Implement an algorithm that ", icon: Cpu },
+];
+
+// #15 - Paste code input with language detection
 function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: string) => void; disabled?: boolean; placeholder?: string; isCoder?: boolean }) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // #9 - Input history (up/down arrow)
   const [history, setHistory] = useState<string[]>([]);
   const [histIdx, setHistIdx] = useState(-1);
-  // #10 - Character count
+  // #16 - Show templates
+  const [showTemplates, setShowTemplates] = useState(false);
+  // #17 - Paste code detection
+  const [pastedCode, setPastedCode] = useState(false);
   const charCount = value.length;
 
   useEffect(() => {
@@ -299,6 +499,7 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
       setHistIdx(-1);
       onSend(value.trim());
       setValue("");
+      setPastedCode(false);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
     }
   };
@@ -306,31 +507,55 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
     if (e.key === "ArrowUp" && !value && history.length > 0) {
-      e.preventDefault();
-      const next = Math.min(histIdx + 1, history.length - 1);
-      setHistIdx(next);
-      setValue(history[next]);
+      e.preventDefault(); const n = Math.min(histIdx + 1, history.length - 1); setHistIdx(n); setValue(history[n]);
     }
     if (e.key === "ArrowDown" && histIdx >= 0) {
-      e.preventDefault();
-      const next = histIdx - 1;
-      setHistIdx(next);
-      setValue(next >= 0 ? history[next] : "");
+      e.preventDefault(); const n = histIdx - 1; setHistIdx(n); setValue(n >= 0 ? history[n] : "");
+    }
+    if (e.key === "/" && !value && isCoder) { setShowTemplates(true); }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData("text");
+    if (text.includes("\n") && (text.includes("{") || text.includes("def ") || text.includes("function ") || text.includes("import ") || text.includes("#include"))) {
+      setPastedCode(true);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="relative max-w-3xl w-full mx-auto" data-testid="form-chat-input">
+      {/* #16 - Templates popup */}
+      {showTemplates && isCoder && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-border/50 rounded-xl shadow-xl p-2 z-50 grid grid-cols-2 sm:grid-cols-4 gap-1">
+          {CODE_TEMPLATES.map((t, i) => (
+            <button key={i} type="button" onClick={() => { setValue(t.prefix); setShowTemplates(false); textareaRef.current?.focus(); }}
+              className="flex items-center gap-2 p-2 rounded-lg text-xs text-foreground/70 hover:bg-muted/50 hover:text-foreground transition-colors text-left">
+              <t.icon size={12} className="text-blue-500 flex-shrink-0" /><span className="truncate">{t.label}</span>
+            </button>
+          ))}
+          <button type="button" onClick={() => setShowTemplates(false)} className="col-span-2 sm:col-span-4 text-[10px] text-muted-foreground/40 hover:text-muted-foreground py-1">Close</button>
+        </div>
+      )}
+
       <div className="relative flex items-end p-2 bg-white border border-border/60 rounded-2xl shadow-lg focus-within:shadow-xl focus-within:border-primary/20 transition-all">
-        <textarea
-          ref={textareaRef} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKey}
+        {/* #17 - Pasted code indicator */}
+        {pastedCode && (
+          <div className="absolute -top-6 left-3 flex items-center gap-1.5 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-t-lg">
+            <Code2 size={10} /> Code detected - will be analyzed
+          </div>
+        )}
+        <textarea ref={textareaRef} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKey} onPaste={handlePaste}
           placeholder={placeholder} disabled={disabled} data-testid="input-message"
-          className="w-full max-h-[200px] min-h-[44px] bg-transparent border-0 resize-none py-2.5 pl-3 pr-14 focus:ring-0 focus:outline-none scrollbar-hide text-base leading-relaxed placeholder:text-muted-foreground/50"
-          rows={1}
-        />
-        <div className="absolute right-3 bottom-3 flex items-center gap-2">
-          {/* #10 - Char count */}
+          className="w-full max-h-[200px] min-h-[44px] bg-transparent border-0 resize-none py-2.5 pl-3 pr-20 focus:ring-0 focus:outline-none scrollbar-hide text-base leading-relaxed placeholder:text-muted-foreground/50"
+          rows={1} />
+        <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
           {charCount > 0 && <span className="text-[10px] text-muted-foreground/40 tabular-nums">{charCount}</span>}
+          {/* #16 - Template button */}
+          {isCoder && !value && (
+            <button type="button" onClick={() => setShowTemplates(!showTemplates)} className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors" title="Code templates (/)">
+              <Layers size={14} />
+            </button>
+          )}
           <button type="submit" disabled={!value.trim() || disabled} data-testid="button-send"
             className={`p-2.5 rounded-xl flex items-center justify-center transition-all ${value.trim() && !disabled ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground cursor-not-allowed"}`}>
             <Send size={16} strokeWidth={2.5} />
@@ -341,9 +566,10 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
         <span className="text-[10px] text-muted-foreground/40">My Ai Gpt Beta Release 1</span>
         <span className="text-[10px] text-muted-foreground/20">|</span>
         <span className="text-[10px] text-muted-foreground/40">Quantum Pulse Intelligence</span>
-        {/* #11 - Keyboard shortcut hint */}
-        <span className="text-[10px] text-muted-foreground/20">|</span>
-        <span className="text-[10px] text-muted-foreground/30">Enter to send</span>
+        {isCoder && <>
+          <span className="text-[10px] text-muted-foreground/20">|</span>
+          <span className="text-[10px] text-muted-foreground/30">/ for templates</span>
+        </>}
       </div>
     </form>
   );
@@ -360,38 +586,170 @@ const GENERAL_SUGGESTIONS = [
   { icon: BarChart3, text: "Help me create a weekly productivity plan", color: "text-pink-500", cat: "Planning" },
 ];
 
-const CODER_SUGGESTIONS = [
-  { icon: Code2, text: "Build a complete REST API with Node.js, Express, and PostgreSQL", color: "text-blue-500", cat: "Backend" },
-  { icon: Bug, text: "Debug and fix this code for me", color: "text-red-500", cat: "Debug" },
-  { icon: Terminal, text: "Write a Python web scraper with BeautifulSoup", color: "text-green-500", cat: "Python" },
-  { icon: Cpu, text: "Create a React dashboard with real-time charts", color: "text-purple-500", cat: "Frontend" },
-  { icon: Wrench, text: "Optimize this SQL query and explain the execution plan", color: "text-orange-500", cat: "Database" },
-  { icon: Zap, text: "Build a full-stack TypeScript app with authentication", color: "text-cyan-500", cat: "Full Stack" },
-  { icon: FileCode, text: "Write comprehensive unit tests for this function", color: "text-indigo-500", cat: "Testing" },
-  { icon: Hash, text: "Create a Dockerfile and docker-compose for my project", color: "text-teal-500", cat: "DevOps" },
+// #18 - Categorized coder suggestions
+const CODER_CATEGORIES = [
+  { name: "Full Stack", items: [
+    { icon: Rocket, text: "Build a complete SaaS app with auth, billing, and dashboard", color: "text-blue-500" },
+    { icon: Globe, text: "Create a real-time chat app with WebSockets", color: "text-cyan-500" },
+  ]},
+  { name: "Backend", items: [
+    { icon: Database, text: "Design a scalable REST API with rate limiting and caching", color: "text-green-500" },
+    { icon: Lock, text: "Implement JWT authentication with refresh tokens", color: "text-amber-500" },
+  ]},
+  { name: "Frontend", items: [
+    { icon: Braces, text: "Build an interactive data dashboard with React and D3", color: "text-purple-500" },
+    { icon: Smartphone, text: "Create a responsive e-commerce product page", color: "text-pink-500" },
+  ]},
+  { name: "DevOps", items: [
+    { icon: Cloud, text: "Set up a CI/CD pipeline with Docker and GitHub Actions", color: "text-teal-500" },
+    { icon: Package, text: "Create a microservices architecture with Docker Compose", color: "text-indigo-500" },
+  ]},
+  { name: "Debug & Test", items: [
+    { icon: Bug, text: "Debug and fix my code with detailed explanations", color: "text-red-500" },
+    { icon: FlaskConical, text: "Write comprehensive tests with 100% coverage", color: "text-orange-500" },
+  ]},
 ];
-
-// ─── SCROLL TO BOTTOM BUTTON (#12) ──────────────────────────────────────────
 
 function ScrollBtn({ scrollRef }: { scrollRef: React.RefObject<HTMLDivElement> }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const check = () => {
-      const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
-      setShow(gap > 200);
-    };
-    el.addEventListener("scroll", check);
-    return () => el.removeEventListener("scroll", check);
+    const el = scrollRef.current; if (!el) return;
+    const check = () => setShow(el.scrollHeight - el.scrollTop - el.clientHeight > 200);
+    el.addEventListener("scroll", check); return () => el.removeEventListener("scroll", check);
   }, [scrollRef]);
   if (!show) return null;
   return (
     <button onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
-      data-testid="button-scroll-bottom"
-      className="absolute bottom-44 right-6 z-30 p-2.5 bg-white border border-border/50 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105">
+      data-testid="button-scroll-bottom" className="absolute bottom-44 right-6 z-30 p-2.5 bg-white border border-border/50 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105">
       <ArrowDown size={16} />
     </button>
+  );
+}
+
+// ─── SAVED CODES PANEL (#19) ─────────────────────────────────────────────────
+
+function SavedCodesPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { data: codes = [], isLoading } = useSavedCodes();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [viewingCode, setViewingCode] = useState<{ name: string; content: string } | null>(null);
+  const { settings } = useCoderSettings();
+  const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
+
+  const viewFile = async (name: string) => {
+    const r = await fetch(`/api/saved-codes/${name}/content`);
+    const data = await r.json();
+    setViewingCode(data);
+  };
+  const deleteFile = async (name: string) => {
+    await fetch(`/api/saved-codes/${name}`, { method: "DELETE" });
+    qc.invalidateQueries({ queryKey: ["/api/saved-codes"] });
+    toast({ title: "File deleted" });
+    if (viewingCode?.name === name) setViewingCode(null);
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[90] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+          <div className="flex items-center gap-2">
+            <Archive size={18} className="text-blue-500" />
+            <span className="font-semibold text-lg">Saved Code Files</span>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{codes.length} files</span>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50"><X size={18} /></button>
+        </div>
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-64 border-r border-border/20 overflow-y-auto">
+            {isLoading ? (
+              <div className="p-4 space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-muted rounded-lg animate-pulse"/>)}</div>
+            ) : codes.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No saved code yet</div>
+            ) : codes.map(f => (
+              <div key={f.name} className={`group flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30 cursor-pointer border-b border-border/10 transition-colors ${viewingCode?.name === f.name ? "bg-blue-50" : ""}`}
+                onClick={() => viewFile(f.name)}>
+                <FileCode size={14} className="text-blue-500/50 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium truncate">{f.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{f.lines} lines &middot; {(f.size/1024).toFixed(1)}KB</div>
+                </div>
+                <button onClick={e => { e.stopPropagation(); deleteFile(f.name); }} className="p-1 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={12}/></button>
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 overflow-auto bg-zinc-950">
+            {viewingCode ? (
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+                  <span className="text-xs text-zinc-400 font-mono">{viewingCode.name}</span>
+                  <div className="flex gap-1">
+                    <CopyBtn text={viewingCode.content} />
+                    <button onClick={() => {
+                      const blob = new Blob([viewingCode.content], { type: "text/plain" }); const a = document.createElement("a");
+                      a.href = URL.createObjectURL(blob); a.download = viewingCode.name; a.click();
+                    }} className="p-1 rounded hover:bg-white/10"><Download size={14} className="text-zinc-400"/></button>
+                  </div>
+                </div>
+                <SyntaxHighlighter style={theme.style} language={viewingCode.name.split(".").pop() || "text"} showLineNumbers
+                  customStyle={{ margin: 0, padding: "1rem", background: theme.bg, fontSize: `${settings.fontSize}px`, flex: 1 }}>
+                  {viewingCode.content}
+                </SyntaxHighlighter>
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center text-zinc-700 text-sm">Select a file to view</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SETTINGS PANEL (#20) ────────────────────────────────────────────────────
+
+function SettingsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { settings, set } = useCoderSettings();
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[90] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2"><Settings2 size={18} /><span className="font-semibold text-lg">Coder Settings</span></div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50"><X size={18} /></button>
+        </div>
+        <div className="space-y-5">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">Code Theme</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {Object.entries(CODE_THEMES).map(([key, t]) => (
+                <button key={key} onClick={() => set({ codeTheme: key })}
+                  className={`px-3 py-2 text-xs rounded-lg border transition-all ${settings.codeTheme === key ? "border-primary bg-primary/5 font-semibold" : "border-border/30 hover:border-border"}`}>{t.name}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">Font Size: {settings.fontSize}px</label>
+            <input type="range" min="10" max="20" value={settings.fontSize} onChange={e => set({ fontSize: +e.target.value })}
+              className="w-full accent-primary" />
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-sm">Word Wrap</span>
+              <div onClick={() => set({ wordWrap: !settings.wordWrap })} className={`w-10 h-5 rounded-full transition-colors ${settings.wordWrap ? "bg-primary" : "bg-muted"} relative`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${settings.wordWrap ? "left-5" : "left-0.5"}`}/>
+              </div>
+            </label>
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-sm">Line Numbers</span>
+              <div onClick={() => set({ showLineNumbers: !settings.showLineNumbers })} className={`w-10 h-5 rounded-full transition-colors ${settings.showLineNumbers ? "bg-primary" : "bg-muted"} relative`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${settings.showLineNumbers ? "left-5" : "left-0.5"}`}/>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -402,123 +760,139 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   const scrollRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const { toast } = useToast();
-
   const { data: messages = [] } = useMessages(chatId || null);
   const [localMessages, setLocalMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [isThinking, setIsThinking] = useState(false);
-  // #13 - Error state with retry
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastFailedMsg, setLastFailedMsg] = useState<string | null>(null);
+  // #21 - Saved codes panel
+  const [showSavedCodes, setShowSavedCodes] = useState(false);
+  // #22 - Settings panel
+  const [showSettings, setShowSettings] = useState(false);
 
   const isCoder = defaultType === "coder";
   const isEmpty = messages.length === 0 && localMessages.length === 0;
 
-  // #14 - Dynamic page title
+  // #23 - Code block extraction from conversation
+  const allCodeBlocks = useMemo(() => {
+    const blocks: { code: string; language: string; msgIndex: number }[] = [];
+    messages.forEach((m, i) => {
+      if (m.role === "assistant") {
+        const matches = m.content.matchAll(/```(\w+)?\n([\s\S]*?)```/g);
+        for (const match of matches) {
+          blocks.push({ language: match[1] || "plaintext", code: match[2], msgIndex: i });
+        }
+      }
+    });
+    return blocks;
+  }, [messages]);
+
   useEffect(() => {
     document.title = isCoder ? "My Ai Coder - Quantum Pulse Intelligence" : "My Ai Gpt - Quantum Pulse Intelligence";
   }, [isCoder]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-    }
+    if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, isThinking]);
 
   const handleSend = useCallback(async (content: string) => {
     let targetChatId = chatId;
-    setLocalMessages((prev) => [...prev, { role: "user", content }]);
+    setLocalMessages(prev => [...prev, { role: "user", content }]);
     setIsThinking(true);
     setLastError(null);
     setLastFailedMsg(null);
-
     try {
       if (!targetChatId) {
-        const res = await fetch(api.chats.create.path, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: content.slice(0, 40), type: defaultType }),
-        });
-        if (!res.ok) throw new Error("Failed to create chat");
-        const newChat = await res.json();
-        targetChatId = newChat.id;
+        const r = await fetch(api.chats.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: content.slice(0, 40), type: defaultType }) });
+        if (!r.ok) throw new Error("Failed");
+        const c = await r.json(); targetChatId = c.id;
         qc.invalidateQueries({ queryKey: [api.chats.list.path] });
       }
-
-      const res = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!res.ok) throw new Error("Failed to get response");
-
-      if (!chatId) {
-        setLocation(`/chat/${targetChatId}`);
-      } else {
-        qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] });
-        setLocalMessages([]);
-      }
+      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }) });
+      if (!r.ok) throw new Error("Failed to get response");
+      if (!chatId) { setLocation(`/chat/${targetChatId}`); } else { qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] }); setLocalMessages([]); }
     } catch (error: any) {
-      setLastError(error.message);
-      setLastFailedMsg(content);
+      setLastError(error.message); setLastFailedMsg(content);
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setLocalMessages(prev => prev.filter(m => m.content !== content));
-    } finally {
-      setIsThinking(false);
-    }
+    } finally { setIsThinking(false); }
   }, [chatId, defaultType, qc, setLocation, toast]);
 
-  // #7 - Regenerate last response
   const handleRegenerate = useCallback(async () => {
     if (!chatId || messages.length < 2) return;
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
     if (lastUserMsg) {
       setIsThinking(true);
       try {
-        const res = await fetch(buildUrl(api.messages.create.path, { chatId }), {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: lastUserMsg.content }),
-        });
-        if (!res.ok) throw new Error("Failed");
+        const r = await fetch(buildUrl(api.messages.create.path, { chatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: lastUserMsg.content }) });
+        if (!r.ok) throw new Error("Failed");
         qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] });
-      } catch {
-        toast({ title: "Regeneration failed", variant: "destructive" });
-      } finally {
-        setIsThinking(false);
-      }
+      } catch { toast({ title: "Regeneration failed", variant: "destructive" }); }
+      finally { setIsThinking(false); }
     }
   }, [chatId, messages, qc, toast]);
 
-  // #15 - Export conversation
   const handleExport = useCallback(async () => {
     if (!chatId) return;
     try {
-      const res = await fetch(`/api/chats/${chatId}/export`, { method: "POST" });
-      const text = await res.text();
-      const blob = new Blob([text], { type: "text/markdown" });
-      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      const r = await fetch(`/api/chats/${chatId}/export`, { method: "POST" });
+      const t = await r.text();
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([t], { type: "text/markdown" }));
       a.download = `chat_${chatId}.md`; a.click();
-      toast({ title: "Conversation exported!" });
-    } catch {
-      toast({ title: "Export failed", variant: "destructive" });
-    }
+      toast({ title: "Exported!" });
+    } catch { toast({ title: "Export failed", variant: "destructive" }); }
   }, [chatId, toast]);
 
+  // #24 - Save all code blocks at once
+  const handleSaveAllCode = useCallback(async () => {
+    if (allCodeBlocks.length === 0) return;
+    let saved = 0;
+    for (const block of allCodeBlocks) {
+      const fn = `code_${Date.now()}_${saved}.${getExt(block.language)}`;
+      try {
+        await fetch("/api/save-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: block.code, filename: fn, language: block.language }) });
+        saved++;
+      } catch {}
+    }
+    qc.invalidateQueries({ queryKey: ["/api/saved-codes"] });
+    toast({ title: `Saved ${saved} code blocks!` });
+  }, [allCodeBlocks, qc, toast]);
+
   const allMessages = [...messages, ...localMessages];
-  const suggestions = isCoder ? CODER_SUGGESTIONS : GENERAL_SUGGESTIONS;
 
   return (
     <div className="flex flex-col h-full w-full relative bg-background">
-      {/* #16 - Top bar with chat info */}
+      {/* #25 - Enhanced top bar for coder */}
       {chatId && messages.length > 0 && (
         <div className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/30 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isCoder ? <Code2 size={14} className="text-blue-500" /> : <MessageSquare size={14} className="text-muted-foreground" />}
-            <span className="text-sm font-medium text-foreground/80 truncate max-w-[200px]">
-              {isCoder ? "My Ai Coder" : "My Ai Gpt"}
-            </span>
-            <span className="text-xs text-muted-foreground/40">{messages.length} messages</span>
+            <span className="text-sm font-medium text-foreground/80 truncate max-w-[200px]">{isCoder ? "My Ai Coder" : "My Ai Gpt"}</span>
+            <span className="text-xs text-muted-foreground/40">{messages.length} msgs</span>
+            {isCoder && allCodeBlocks.length > 0 && (
+              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">{allCodeBlocks.length} code blocks</span>
+            )}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={handleExport} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Export chat" data-testid="button-export">
+            {/* #24 - Save all code */}
+            {isCoder && allCodeBlocks.length > 0 && (
+              <button onClick={handleSaveAllCode} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Save all code blocks" data-testid="button-save-all-code">
+                <Archive size={14} />
+              </button>
+            )}
+            {/* #21 - Saved codes */}
+            {isCoder && (
+              <button onClick={() => setShowSavedCodes(true)} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Saved codes" data-testid="button-open-saved">
+                <FolderOpen size={14} />
+              </button>
+            )}
+            {/* #22 - Settings */}
+            {isCoder && (
+              <button onClick={() => setShowSettings(true)} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Coder settings" data-testid="button-open-settings">
+                <Settings2 size={14} />
+              </button>
+            )}
+            <button onClick={handleExport} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Export" data-testid="button-export">
               <FileDown size={14} />
             </button>
           </div>
@@ -528,7 +902,6 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
       <div ref={scrollRef} className="flex-1 overflow-y-auto w-full scroll-smooth pt-4 pb-40">
         {isEmpty ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            {/* #17 - Animated welcome */}
             <div className="w-20 h-20 rounded-2xl bg-white shadow-xl border border-border/20 flex items-center justify-center mb-6 p-1.5 animate-[bounce_3s_ease-in-out_1]">
               <img src={logo} alt="My Ai" className="w-full h-full object-cover rounded-xl" />
             </div>
@@ -536,41 +909,62 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
               {isCoder ? "My Ai Coder" : "My Ai Gpt"}
             </h1>
             <p className="text-muted-foreground max-w-lg mb-2" data-testid="text-welcome-subtitle">
-              {isCoder
-                ? "Your S-class programming assistant. I write, debug, optimize, test, and deploy code in every language."
-                : "Your world-class intelligent assistant. Ask me anything."}
+              {isCoder ? "The world's most elite S-class programming assistant. I write, debug, optimize, test, and deploy code in 30+ languages." : "Your world-class intelligent assistant. Ask me anything."}
             </p>
             {isCoder && (
-              <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-                <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full"><Zap size={10} /> Auto-Save</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full"><Play size={10} /> Live Preview</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full"><Code2 size={10} /> 20+ Languages</span>
+              <>
+                {/* #26 - Feature badges */}
+                <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
+                  <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full"><Zap size={9} /> Auto-Save</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full"><Play size={9} /> Live Preview</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full"><Code2 size={9} /> 30+ Languages</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full"><BarChart3 size={9} /> Metrics</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full"><Maximize2 size={9} /> Fullscreen</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full"><Palette size={9} /> 5 Themes</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full"><Search size={9} /> Code Search</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full"><Archive size={9} /> File Manager</span>
+                </div>
+                {/* #18 - Categorized suggestions */}
+                <div className="w-full max-w-4xl space-y-3 mt-2">
+                  {CODER_CATEGORIES.map((cat, ci) => (
+                    <div key={ci}>
+                      <div className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-1.5 text-left px-1">{cat.name}</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {cat.items.map((s, i) => (
+                          <button key={i} onClick={() => handleSend(s.text)} data-testid={`button-suggestion-${ci}-${i}`}
+                            className="p-3 text-sm text-left border border-border/30 rounded-xl bg-white hover:bg-muted/20 hover:shadow-md hover:border-border/60 transition-all group flex items-start gap-2.5">
+                            <s.icon size={14} className={`${s.color} mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0`} />
+                            <span className="text-foreground/70 group-hover:text-foreground text-xs leading-relaxed">{s.text}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {!isCoder && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-4 max-w-3xl w-full">
+                {GENERAL_SUGGESTIONS.map((s, i) => (
+                  <button key={i} onClick={() => handleSend(s.text)} data-testid={`button-suggestion-${i}`}
+                    className="p-3.5 text-sm text-left border border-border/30 rounded-xl bg-white hover:bg-muted/20 hover:shadow-md hover:border-border/60 transition-all group">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <s.icon size={14} className={`${s.color} group-hover:scale-110 transition-transform`} />
+                      <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">{s.cat}</span>
+                    </div>
+                    <span className="text-foreground/70 group-hover:text-foreground text-xs leading-relaxed">{s.text}</span>
+                  </button>
+                ))}
               </div>
             )}
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isCoder ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-2.5 mt-2 max-w-4xl w-full`}>
-              {suggestions.map((s, i) => (
-                <button key={i} onClick={() => handleSend(s.text)} data-testid={`button-suggestion-${i}`}
-                  className="p-3.5 text-sm text-left border border-border/30 rounded-xl bg-white hover:bg-muted/20 hover:shadow-md hover:border-border/60 transition-all group">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <s.icon size={14} className={`${s.color} group-hover:scale-110 transition-transform`} />
-                    <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">{s.cat}</span>
-                  </div>
-                  <span className="text-foreground/70 group-hover:text-foreground text-xs leading-relaxed">{s.text}</span>
-                </button>
-              ))}
-            </div>
           </div>
         ) : (
           <div className="flex flex-col pt-10">
             {allMessages.map((msg, i) => (
-              <ChatMsg
-                key={i} role={msg.role} content={msg.content} isCoder={isCoder}
-                timestamp={(msg as any).createdAt}
-                onRetry={msg.role === "assistant" && i === allMessages.length - 1 ? handleRegenerate : undefined}
-              />
+              <ChatMsg key={i} role={msg.role} content={msg.content} isCoder={isCoder} timestamp={(msg as any).createdAt}
+                onRetry={msg.role === "assistant" && i === allMessages.length - 1 ? handleRegenerate : undefined} />
             ))}
             {isThinking && <ChatMsg role="assistant" content="" isThinking isCoder={isCoder} />}
-            {/* #13 - Error retry */}
             {lastError && lastFailedMsg && (
               <div className="flex justify-center py-3">
                 <button onClick={() => handleSend(lastFailedMsg!)} data-testid="button-retry"
@@ -583,14 +977,15 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
         )}
       </div>
 
-      {/* #12 - Scroll to bottom */}
       <ScrollBtn scrollRef={scrollRef as React.RefObject<HTMLDivElement>} />
 
+      {/* #21/#22 - Panels */}
+      <SavedCodesPanel isOpen={showSavedCodes} onClose={() => setShowSavedCodes(false)} />
+      <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
+
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4 md:px-8">
-        <ChatInput
-          onSend={handleSend} disabled={isThinking} isCoder={isCoder}
-          placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."}
-        />
+        <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
+          placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
       </div>
     </div>
   );
@@ -604,9 +999,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   const { data: stats } = useStats();
   const qc = useQueryClient();
   const { toast } = useToast();
-  // #18 - Search chats
   const [searchQuery, setSearchQuery] = useState("");
-  // #19 - Rename chat
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
@@ -615,11 +1008,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     return chats.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [chats, searchQuery]);
 
-  // #20 - Group chats by date
   const groupedChats = useMemo(() => {
-    const today: Chat[] = [];
-    const week: Chat[] = [];
-    const older: Chat[] = [];
+    const today: Chat[] = [], week: Chat[] = [], older: Chat[] = [];
     const now = Date.now();
     for (const c of filteredChats) {
       const age = now - new Date(c.createdAt).getTime();
@@ -635,23 +1025,17 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     qc.invalidateQueries({ queryKey: [api.chats.list.path] });
     if (location === `/chat/${id}`) setLocation("/");
   };
-
-  // #21 - Clear all chats
   const handleClearAll = async () => {
     if (!confirm("Delete ALL chats? This cannot be undone.")) return;
     await fetch("/api/chats", { method: "DELETE" });
     qc.invalidateQueries({ queryKey: [api.chats.list.path] });
-    setLocation("/");
-    toast({ title: "All chats cleared" });
+    setLocation("/"); toast({ title: "All chats cleared" });
   };
-
-  // #19 - Rename
   const handleRename = async (id: number) => {
     if (!renameValue.trim()) { setRenamingId(null); return; }
     await fetch(`/api/chats/${id}/rename`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: renameValue }) });
     qc.invalidateQueries({ queryKey: [api.chats.list.path] });
-    setRenamingId(null);
-    toast({ title: "Chat renamed" });
+    setRenamingId(null); toast({ title: "Chat renamed" });
   };
 
   const renderChatGroup = (title: string, items: Chat[]) => {
@@ -659,14 +1043,13 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     return (
       <div className="mb-3">
         <div className="text-[10px] font-bold text-muted-foreground/40 mb-1 px-3 tracking-widest uppercase">{title}</div>
-        {items.map((chat) => (
+        {items.map(chat => (
           <div key={chat.id} className="relative group" data-testid={`chat-item-${chat.id}`}>
             {renamingId === chat.id ? (
               <div className="flex items-center gap-1 px-2 py-1">
                 <input value={renameValue} onChange={e => setRenameValue(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") handleRename(chat.id); if (e.key === "Escape") setRenamingId(null); }}
-                  className="flex-1 text-xs bg-white border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-primary/30" autoFocus
-                />
+                  className="flex-1 text-xs bg-white border border-border rounded-md px-2 py-1.5 focus:outline-none focus:border-primary/30" autoFocus />
                 <button onClick={() => handleRename(chat.id)} className="p-1 text-green-500"><Check size={14} /></button>
                 <button onClick={() => setRenamingId(null)} className="p-1 text-muted-foreground"><X size={14} /></button>
               </div>
@@ -678,14 +1061,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                   <span className="truncate text-xs">{chat.title}</span>
                 </Link>
                 <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => { setRenamingId(chat.id); setRenameValue(chat.title); }}
-                    className="p-1 text-muted-foreground hover:text-foreground rounded" title="Rename" data-testid={`button-rename-${chat.id}`}>
-                    <Pencil size={12} />
-                  </button>
-                  <button onClick={() => handleDelete(chat.id)}
-                    className="p-1 text-muted-foreground hover:text-red-500 rounded" title="Delete" data-testid={`button-delete-chat-${chat.id}`}>
-                    <Trash2 size={12} />
-                  </button>
+                  <button onClick={() => { setRenamingId(chat.id); setRenameValue(chat.title); }} className="p-1 text-muted-foreground hover:text-foreground rounded" data-testid={`button-rename-${chat.id}`}><Pencil size={12} /></button>
+                  <button onClick={() => handleDelete(chat.id)} className="p-1 text-muted-foreground hover:text-red-500 rounded" data-testid={`button-delete-chat-${chat.id}`}><Trash2 size={12} /></button>
                 </div>
               </>
             )}
@@ -699,7 +1076,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     <>
       {isOpen && <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsOpen(false)} />}
       <div className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col w-[280px] bg-[#fafafa] border-r border-border/30 transition-transform duration-300 h-[100dvh] ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden md:border-none"}`}>
-        {/* Header */}
         <div className="p-3 flex items-center justify-between border-b border-border/20">
           <Link href="/" className="flex items-center gap-2" data-testid="link-home">
             <img src={logo} alt="My Ai Gpt" className="w-7 h-7 rounded-full shadow-sm bg-white" />
@@ -708,65 +1084,43 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span className="text-[9px] text-muted-foreground/60">Beta Release 1</span>
             </div>
           </Link>
-          <button onClick={() => setIsOpen(false)} className="md:hidden p-1.5 text-muted-foreground rounded-lg" data-testid="button-close-sidebar">
-            <PanelLeftClose size={16} />
-          </button>
+          <button onClick={() => setIsOpen(false)} className="md:hidden p-1.5 text-muted-foreground rounded-lg" data-testid="button-close-sidebar"><PanelLeftClose size={16} /></button>
         </div>
 
-        {/* Nav Links */}
         <div className="px-2.5 py-2 space-y-1">
           <Link href="/" data-testid="link-general-chat"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/" ? "bg-primary/10" : "bg-muted/50"}`}>
-              <MessageSquare size={14} className={location === "/" ? "text-primary" : ""} />
-            </div>
+            <div className={`p-1 rounded-lg ${location === "/" ? "bg-primary/10" : "bg-muted/50"}`}><MessageSquare size={14} className={location === "/" ? "text-primary" : ""} /></div>
             <span className="flex-1">My Ai Gpt</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
           <Link href="/coder" data-testid="link-coder-chat"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/coder" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-blue-500/15" : "bg-blue-500/5"}`}>
-              <Code2 size={14} className="text-blue-600" />
-            </div>
+            <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-blue-500/15" : "bg-blue-500/5"}`}><Code2 size={14} className="text-blue-600" /></div>
             <span className="flex-1">My Ai Coder</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
         </div>
 
-        {/* #18 - Search */}
         <div className="px-2.5 py-1">
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search chats..." data-testid="input-search-chats"
-              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-border/30 rounded-lg focus:outline-none focus:border-primary/20 placeholder:text-muted-foreground/30"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground">
-                <X size={12} />
-              </button>
-            )}
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search chats..." data-testid="input-search-chats"
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-border/30 rounded-lg focus:outline-none focus:border-primary/20 placeholder:text-muted-foreground/30" />
+            {searchQuery && <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground"><X size={12} /></button>}
           </div>
         </div>
 
-        {/* Chat History */}
         <div className="flex-1 overflow-y-auto px-2.5 py-2 scrollbar-hide">
           {isLoading ? (
-            <div className="space-y-2 px-2">{[1, 2, 3].map(i => <div key={i} className="h-8 bg-black/5 rounded-lg animate-pulse" />)}</div>
+            <div className="space-y-2 px-2">{[1,2,3].map(i => <div key={i} className="h-8 bg-black/5 rounded-lg animate-pulse" />)}</div>
           ) : filteredChats.length === 0 ? (
-            <div className="px-3 py-8 text-xs text-muted-foreground/50 text-center">
-              {searchQuery ? "No matching chats" : "No chats yet. Start a conversation!"}
-            </div>
+            <div className="px-3 py-8 text-xs text-muted-foreground/50 text-center">{searchQuery ? "No matching chats" : "No chats yet. Start a conversation!"}</div>
           ) : (
-            <>
-              {renderChatGroup("Today", groupedChats.today)}
-              {renderChatGroup("This Week", groupedChats.week)}
-              {renderChatGroup("Older", groupedChats.older)}
-            </>
+            <>{renderChatGroup("Today", groupedChats.today)}{renderChatGroup("This Week", groupedChats.week)}{renderChatGroup("Older", groupedChats.older)}</>
           )}
         </div>
 
-        {/* #22 - Stats footer + #21 Clear all */}
         <div className="p-2.5 border-t border-border/20 space-y-2">
           {chats.length > 0 && (
             <button onClick={handleClearAll} data-testid="button-clear-all"
@@ -774,31 +1128,23 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <Trash size={11} /> Clear All Chats
             </button>
           )}
-          {/* #23 - Connection status */}
           <div className="flex items-center justify-between px-2 text-[9px] text-muted-foreground/40">
             <div className="flex items-center gap-1">
               {stats?.discordConnected ? <Wifi size={9} className="text-green-400" /> : <WifiOff size={9} className="text-red-400" />}
               <span>{stats?.discordConnected ? "Connected" : "Offline"}</span>
             </div>
-            {/* #24 - Chat/message count */}
             <div className="flex items-center gap-2">
               <span>{stats?.chatCount || 0} chats</span>
               <span>{stats?.messageCount || 0} msgs</span>
-              {stats?.codeFiles ? <span>{stats.codeFiles} codes</span> : null}
+              {(stats?.codeFiles || 0) > 0 && <span>{stats?.codeFiles} codes</span>}
             </div>
           </div>
-          {/* #25 - Branding */}
-          <div className="text-[9px] text-center text-muted-foreground/30 font-medium tracking-wide">
-            Quantum Pulse Intelligence
-          </div>
+          <div className="text-[9px] text-center text-muted-foreground/30 font-medium tracking-wide">Quantum Pulse Intelligence</div>
         </div>
       </div>
-
       {!isOpen && (
         <button onClick={() => setIsOpen(true)} data-testid="button-open-sidebar"
-          className="fixed top-4 left-4 z-40 p-2.5 bg-white border border-border/30 rounded-xl shadow-sm hover:shadow-md transition-all">
-          <PanelLeftOpen size={16} />
-        </button>
+          className="fixed top-4 left-4 z-40 p-2.5 bg-white border border-border/30 rounded-xl shadow-sm hover:shadow-md transition-all"><PanelLeftOpen size={16} /></button>
       )}
     </>
   );
@@ -808,12 +1154,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
-  useEffect(() => {
-    const check = () => setIsOpen(window.innerWidth >= 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
+  useEffect(() => { const c = () => setIsOpen(window.innerWidth >= 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
@@ -830,7 +1171,7 @@ function ChatViewPage() {
   const chatId = params?.id ? parseInt(params.id, 10) : undefined;
   const { data: chat } = useQuery<Chat>({
     queryKey: [api.chats.get.path, chatId],
-    queryFn: async () => { const res = await fetch(buildUrl(api.chats.get.path, { id: chatId! })); if (!res.ok) throw new Error("Not found"); return res.json(); },
+    queryFn: async () => { const r = await fetch(buildUrl(api.chats.get.path, { id: chatId! })); if (!r.ok) throw new Error("Not found"); return r.json(); },
     enabled: !!chatId,
   });
   return <Layout><ChatInterface key={chatId} chatId={chatId} defaultType={(chat?.type as "general" | "coder") || "general"} /></Layout>;
@@ -845,9 +1186,7 @@ function NotFound() {
         </div>
         <h1 className="text-5xl font-extrabold text-foreground mb-2">404</h1>
         <p className="text-muted-foreground mb-6">This page doesn't exist</p>
-        <Link href="/" data-testid="link-go-home" className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all">
-          Go Home
-        </Link>
+        <Link href="/" data-testid="link-go-home" className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all">Go Home</Link>
       </div>
     </div>
   );
@@ -865,22 +1204,29 @@ function Router() {
 }
 
 export default function App() {
-  // #25 - Keyboard shortcut: Ctrl+K for new chat
+  // #27 - Persistent coder settings
+  const [settings, setSettings] = useState<CoderSettings>(() => {
+    try { const s = localStorage.getItem("coderSettings"); return s ? { ...defaultSettings, ...JSON.parse(s) } : defaultSettings; } catch { return defaultSettings; }
+  });
+  const set = useCallback((partial: Partial<CoderSettings>) => {
+    setSettings(prev => { const next = { ...prev, ...partial }; localStorage.setItem("coderSettings", JSON.stringify(next)); return next; });
+  }, []);
+
+  // #28 - Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        window.location.href = "/";
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); window.location.href = "/"; }
+      if ((e.metaKey || e.ctrlKey) && e.key === "j") { e.preventDefault(); window.location.href = "/coder"; }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler);
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Toaster />
-      <Router />
-    </QueryClientProvider>
+    <SettingsCtx.Provider value={{ settings, set }}>
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
+        <Router />
+      </QueryClientProvider>
+    </SettingsCtx.Provider>
   );
 }

@@ -52,6 +52,10 @@
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight font-semibold;
   }
+
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+  }
 }
 
 @layer utilities {
@@ -91,9 +95,17 @@
   .markdown-body blockquote {
     @apply border-l-4 border-muted-foreground/30 pl-4 italic text-muted-foreground my-4;
   }
+  .markdown-body strong {
+    @apply font-semibold;
+  }
+  .markdown-body hr {
+    @apply my-6 border-border/50;
+  }
+  .markdown-body pre {
+    @apply my-0;
+  }
 }
 
-/* Typing animation */
 .typing-dot {
   animation: typing-bounce 1.4s infinite ease-in-out both;
 }
@@ -103,4 +115,24 @@
 @keyframes typing-bounce {
   0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
   40% { transform: scale(1); opacity: 1; }
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
