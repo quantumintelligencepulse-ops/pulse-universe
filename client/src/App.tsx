@@ -1233,29 +1233,14 @@ function CodePlayground() {
       iframe.style.display = "none";
       document.body.appendChild(iframe);
       const startTime = performance.now();
-      const encodedCode = btoa(unescape(encodeURIComponent(code)));
-      const hasImport = /\bimport\s/.test(code);
-      const runnerHtml = hasImport
-        ? `<!DOCTYPE html><html><body><script>
+      const strippedCode = code.replace(/^\s*import\s+.*?[;\n]/gm, "").replace(/^\s*export\s+(default\s+)?/gm, "");
+      const encodedCode = btoa(unescape(encodeURIComponent(strippedCode)));
+      const runnerHtml = `<!DOCTYPE html><html><body><script>
         var _l = [];
         console.log = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
         console.error = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('ERROR: ' + a.join(' ')); };
         console.warn = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('WARN: ' + a.join(' ')); };
-        var _code = decodeURIComponent(escape(atob("${encodedCode}")));
-        var _blob = new Blob([_code], { type: 'application/javascript' });
-        var _url = URL.createObjectURL(_blob);
-        import(_url).then(function() {
-          parent.postMessage({ type: 'pg_output', logs: _l }, '*');
-        }).catch(function(e) {
-          _l.push('ERROR: ' + e.message);
-          parent.postMessage({ type: 'pg_output', logs: _l }, '*');
-        });
-      <\/script></body></html>`
-        : `<!DOCTYPE html><html><body><script>
-        var _l = [];
-        console.log = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
-        console.error = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('ERROR: ' + a.join(' ')); };
-        console.warn = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(String(arguments[i])); } _l.push('WARN: ' + a.join(' ')); };
+        console.info = function() { var a = []; for (var i = 0; i < arguments.length; i++) { a.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i], null, 2) : String(arguments[i])); } _l.push(a.join(' ')); };
         try {
           var _code = decodeURIComponent(escape(atob("${encodedCode}")));
           var _fn = new Function(_code);
@@ -1535,31 +1520,44 @@ function CodePlayground() {
               <span className={metrics.complexity === "Low" ? "text-green-500" : metrics.complexity === "Medium" ? "text-yellow-500" : "text-red-500"}>{metrics.complexity}</span>
             </div>
           </div>
-          <div className="flex-1 relative overflow-hidden" style={{ background: theme.bg }}>
-            <textarea
-              ref={textareaRef} value={code} onChange={e => setCode(e.target.value)}
-              data-testid="playground-editor"
-              className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white resize-none p-4 z-10 focus:outline-none"
-              style={{ fontFamily: "var(--font-mono)", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", tabSize: 2 }}
-              spellCheck={false}
-              onKeyDown={e => {
-                if (e.key === "Tab") {
-                  e.preventDefault();
-                  const start = e.currentTarget.selectionStart;
-                  const end = e.currentTarget.selectionEnd;
-                  setCode(code.substring(0, start) + "  " + code.substring(end));
-                  setTimeout(() => { e.currentTarget.selectionStart = e.currentTarget.selectionEnd = start + 2; }, 0);
+          <div className="flex-1 relative" style={{ background: theme.bg, overflow: "hidden" }}>
+            <div className="absolute inset-0 overflow-auto" ref={(el) => {
+              if (el) {
+                const ta = el.querySelector("textarea");
+                const hl = el.querySelector(".syntax-hl");
+                if (ta && hl) {
+                  ta.onscroll = () => { hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; };
                 }
-                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); runCode(); }
-                if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); handleSave(); }
-              }}
-            />
-            <div className="absolute inset-0 overflow-auto pointer-events-none">
-              <SyntaxHighlighter style={theme.style} language={lang} showLineNumbers={settings.showLineNumbers}
-                lineNumberStyle={{ color: "#444", fontSize: `${settings.fontSize - 2}px`, minWidth: "2.5em" }}
-                customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", minHeight: "100%" }}>
-                {code || " "}
-              </SyntaxHighlighter>
+              }
+            }}>
+              <div className="relative" style={{ minHeight: "100%" }}>
+                <textarea
+                  ref={textareaRef} value={code} onChange={e => setCode(e.target.value)}
+                  data-testid="playground-editor"
+                  className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white resize-none z-10 focus:outline-none overflow-auto"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", tabSize: 2, padding: "1rem", paddingLeft: settings.showLineNumbers ? "4rem" : "1rem" }}
+                  spellCheck={false}
+                  onKeyDown={e => {
+                    if (e.key === "Tab") {
+                      e.preventDefault();
+                      const start = e.currentTarget.selectionStart;
+                      const end = e.currentTarget.selectionEnd;
+                      const newCode = code.substring(0, start) + "  " + code.substring(end);
+                      setCode(newCode);
+                      requestAnimationFrame(() => { if (textareaRef.current) { textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2; } });
+                    }
+                    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); runCode(); }
+                    if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); handleSave(); }
+                  }}
+                />
+                <div className="syntax-hl pointer-events-none overflow-hidden" aria-hidden="true">
+                  <SyntaxHighlighter style={theme.style} language={lang} showLineNumbers={settings.showLineNumbers}
+                    lineNumberStyle={{ color: "#555", fontSize: `${settings.fontSize - 2}px`, minWidth: "2.5em" }}
+                    customStyle={{ margin: 0, padding: "1rem", background: "transparent", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", minHeight: "100%" }}>
+                    {code || " "}
+                  </SyntaxHighlighter>
+                </div>
+              </div>
             </div>
           </div>
         </div>
