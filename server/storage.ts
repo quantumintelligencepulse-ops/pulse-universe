@@ -78,6 +78,7 @@ export interface IStorage {
 
   toggleSocialBookmark(postId: number, profileId: number): Promise<boolean>;
   getSocialBookmarkedPosts(profileId: number): Promise<SocialPost[]>;
+  getSocialLikedPosts(profileId: number): Promise<SocialPost[]>;
 
   getFollowingFeed(profileId: number, page: number, limit: number): Promise<SocialPost[]>;
   getSocialPostCount(): Promise<number>;
@@ -323,6 +324,13 @@ export class DatabaseStorage implements IStorage {
     const bookmarks = await db.select().from(socialBookmarks).where(eq(socialBookmarks.profileId, profileId));
     if (bookmarks.length === 0) return [];
     const postIds = bookmarks.map(b => b.postId);
+    return await db.select().from(socialPosts).where(inArray(socialPosts.id, postIds)).orderBy(desc(socialPosts.createdAt));
+  }
+
+  async getSocialLikedPosts(profileId: number): Promise<SocialPost[]> {
+    const likes = await db.select().from(socialLikes).where(eq(socialLikes.profileId, profileId));
+    if (likes.length === 0) return [];
+    const postIds = likes.map(l => l.postId);
     return await db.select().from(socialPosts).where(inArray(socialPosts.id, postIds)).orderBy(desc(socialPosts.createdAt));
   }
 

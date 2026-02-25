@@ -29,6 +29,7 @@ import logo from "@assets/MyAiGpt_1772000395528.webp";
 
 const MESSAGE_LIMIT = 9;
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
+const VIP_EMAILS = ["billyotucker@gmail.com", "quantumintelligencepulse@gmail.com"];
 
 function updateSEO(config: { title?: string; description?: string; ogTitle?: string; ogDesc?: string; ogType?: string; ogImage?: string; canonical?: string; jsonLd?: object }) {
   if (config.title) document.title = config.title;
@@ -77,7 +78,8 @@ function incrementMessageCount(): number {
   localStorage.setItem("myaigpt_msg_count", String(count));
   return count;
 }
-function isLimitReached(): boolean { return getMessageCount() >= MESSAGE_LIMIT; }
+function isVIP(): boolean { const email = (localStorage.getItem("myaigpt_email") || "").toLowerCase(); return VIP_EMAILS.includes(email); }
+function isLimitReached(): boolean { if (isVIP()) return false; return getMessageCount() >= MESSAGE_LIMIT; }
 
 function StripePaywall() {
   const paywallRef = useRef<HTMLDivElement>(null);
@@ -2884,6 +2886,7 @@ function CreateProfileModal({ isOpen, onClose, onCreated }: { isOpen: boolean; o
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [email, setEmail] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const { toast } = useToast();
@@ -2893,11 +2896,12 @@ function CreateProfileModal({ isOpen, onClose, onCreated }: { isOpen: boolean; o
     if (!/^[a-zA-Z0-9_]+$/.test(username)) { setError("Username can only contain letters, numbers, and underscores"); return; }
     setCreating(true); setError("");
     try {
-      const r = await fetch("/api/social/profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.toLowerCase(), displayName, bio, avatar }) });
+      const r = await fetch("/api/social/profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.toLowerCase(), displayName, bio, avatar, email: email.trim().toLowerCase() }) });
       if (!r.ok) { const data = await r.json().catch(() => ({})); throw new Error(data.message || "Failed to create profile"); }
       const profile = await r.json();
       localStorage.setItem("social_profile_id", String(profile.id));
       localStorage.setItem("social_username", profile.username);
+      if (email.trim()) localStorage.setItem("myaigpt_email", email.trim().toLowerCase());
       onCreated(profile);
       toast({ title: "Profile created!", description: `Welcome, @${profile.username}` });
     } catch (e: any) { setError(e.message); }
@@ -2930,6 +2934,11 @@ function CreateProfileModal({ isOpen, onClose, onCreated }: { isOpen: boolean; o
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Bio</label>
             <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell us about yourself..."
               className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300 resize-none" rows={2} data-testid="input-social-bio" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" type="email"
+              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-email" />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Avatar URL</label>
@@ -3334,6 +3343,7 @@ function ProfileView({ username, currentProfileId, onProfileClick, onBack }: { u
   const [followingCount, setFollowingCount] = useState(0);
   const [postCount, setPostCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"posts" | "likes" | "media">("posts");
+  const [likedPosts, setLikedPosts] = useState<SocialPost[]>([]);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const isOwn = profile && currentProfileId === profile.id;
@@ -3353,6 +3363,11 @@ function ProfileView({ username, currentProfileId, onProfileClick, onBack }: { u
     if (!profile) return;
     fetch(`/api/social/feed?profileId=${profile.id}`).then(r => r.json()).then(data => setPosts(Array.isArray(data) ? data : data.posts || [])).catch(() => {});
   }, [profile]);
+
+  useEffect(() => {
+    if (!profile || activeTab !== "likes") return;
+    fetch(`/api/social/liked/${profile.id}`).then(r => r.json()).then(data => setLikedPosts(Array.isArray(data) ? data : [])).catch(() => {});
+  }, [profile, activeTab]);
 
   useEffect(() => {
     if (!profile || !currentProfileId || currentProfileId === profile.id) return;
@@ -3465,10 +3480,16 @@ function ProfileView({ username, currentProfileId, onProfileClick, onBack }: { u
           )
         )}
         {activeTab === "likes" && (
-          <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
-            <Heart size={32} className="mx-auto text-muted-foreground/20 mb-2" />
-            <p className="text-sm text-muted-foreground/50">Liked posts will appear here</p>
-          </div>
+          likedPosts.length === 0 ? (
+            <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
+              <Heart size={32} className="mx-auto text-muted-foreground/20 mb-2" />
+              <p className="text-sm text-muted-foreground/50">No liked posts yet</p>
+            </div>
+          ) : likedPosts.map(post => (
+            <SocialPostCard key={post.id} post={post} currentProfileId={currentProfileId} onProfileClick={onProfileClick} onRefresh={() => {
+              fetch(`/api/social/liked/${profile!.id}`).then(r => r.json()).then(data => setLikedPosts(Array.isArray(data) ? data : [])).catch(() => {});
+            }} />
+          ))
         )}
         {posts.length === 0 && activeTab === "posts" && (
           <div className="bg-white border border-border/30 rounded-xl p-8 text-center">

@@ -1768,11 +1768,16 @@ If you have live data provided in this prompt, USE IT and present it confidently
 
   // ═══════ SOCIAL API ROUTES ═══════
 
+  const VIP_EMAILS = ["billyotucker@gmail.com", "quantumintelligencepulse@gmail.com"];
+
   app.post("/api/social/profiles", async (req, res) => {
     try {
-      const data = insertSocialProfileSchema.parse(req.body);
+      const { email, ...rest } = req.body;
+      const data = insertSocialProfileSchema.parse(rest);
       const existing = await storage.getSocialProfileByUsername(data.username!);
       if (existing) return res.status(409).json({ message: "Username already taken" });
+      const isVip = email && VIP_EMAILS.includes(email.toLowerCase().trim());
+      if (isVip) data.verified = true;
       const profile = await storage.createSocialProfile(data);
       res.status(201).json(profile);
     } catch (err) {
@@ -1993,6 +1998,15 @@ If you have live data provided in this prompt, USE IT and present it confidently
   app.get("/api/social/bookmarks/:profileId", async (req, res) => {
     try {
       const posts = await storage.getSocialBookmarkedPosts(Number(req.params.profileId));
+      res.json(posts);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  app.get("/api/social/liked/:profileId", async (req, res) => {
+    try {
+      const posts = await storage.getSocialLikedPosts(Number(req.params.profileId));
       res.json(posts);
     } catch {
       res.json([]);
