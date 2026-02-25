@@ -242,6 +242,33 @@ export async function registerRoutes(
       } else if (lang === "python") {
         filePath = path.join(tmpDir, `${id}.py`);
         fs.writeFileSync(filePath, code);
+
+        const importRegex = /^\s*(?:import|from)\s+(\w+)/gm;
+        let match;
+        const pyImports: string[] = [];
+        while ((match = importRegex.exec(code)) !== null) {
+          pyImports.push(match[1]);
+        }
+        const STDLIB = new Set(["os","sys","json","time","re","math","random","datetime","collections","itertools","functools","io","pathlib","typing","hashlib","base64","copy","string","textwrap","struct","enum","dataclasses","abc","contextlib","operator","bisect","heapq","array","queue","threading","multiprocessing","subprocess","socket","asyncio","http","urllib","email","html","xml","csv","sqlite3","logging","unittest","pdb","argparse","configparser","shutil","tempfile","glob","fnmatch","stat","zipfile","tarfile","gzip","bz2","lzma","pickle","shelve","marshal","dbm","platform","ctypes","signal","mmap","codecs","unicodedata","locale","gettext","decimal","fractions","statistics","secrets","hmac","ssl","select","selectors","traceback","warnings","inspect","importlib","pkgutil","pprint","dis","gc","weakref","types","numbers"]);
+        const PIP_MAP: Record<string, string> = { "bs4": "beautifulsoup4", "cv2": "opencv-python", "sklearn": "scikit-learn", "PIL": "Pillow", "dateutil": "python-dateutil", "yaml": "pyyaml", "lxml": "lxml", "ddgs": "duckduckgo-search", "discord": "discord.py" };
+
+        const toInstall: string[] = [];
+        for (const mod of pyImports) {
+          if (STDLIB.has(mod)) continue;
+          const pipName = PIP_MAP[mod] || mod;
+          const check = shellExec(`python3 -c "import ${mod}" 2>&1`, { timeout: 5000 });
+          if (check.exitCode !== 0) {
+            toInstall.push(pipName);
+          }
+        }
+
+        if (toInstall.length > 0) {
+          const installResult = shellExec(`pip install ${toInstall.join(" ")} 2>&1`, { timeout: 120000, maxBuffer: 1024 * 1024 });
+          if (installResult.exitCode !== 0) {
+            return res.json({ stdout: `Auto-installing: ${toInstall.join(", ")}...\n${installResult.stdout}`, stderr: installResult.stderr, exitCode: 1, executionTime: 0 });
+          }
+        }
+
         cmd = `python3 "${filePath}"`;
       } else if (lang === "bash") {
         filePath = path.join(tmpDir, `${id}.sh`);
@@ -252,7 +279,8 @@ export async function registerRoutes(
       }
 
       const startTime = Date.now();
-      const result = shellExec(cmd, { timeout: 15000, cwd: tmpDir });
+      const timeout = lang === "python" ? 60000 : 15000;
+      const result = shellExec(cmd, { timeout, cwd: tmpDir, maxBuffer: 1024 * 1024 });
       const executionTime = Date.now() - startTime;
 
       try { fs.unlinkSync(filePath); } catch {}

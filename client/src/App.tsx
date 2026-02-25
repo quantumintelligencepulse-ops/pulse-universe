@@ -1561,6 +1561,8 @@ ${brokenCode.substring(0, 2000)}
     "dask", "ray", "airflow", "kafka", "boto3", "grpc", "grpcio",
     "socket", "asyncio", "multiprocessing", "threading", "subprocess",
     "ctypes", "cffi", "cython", "numba",
+    "aiohttp", "yfinance", "ddgs", "websockets", "paramiko", "fabric",
+    "celery", "kombu", "pika", "twisted", "gevent", "uvloop",
   ]);
 
   const PYODIDE_INSTALLABLE = new Set([
@@ -1638,50 +1640,11 @@ ${brokenCode.substring(0, 2000)}
     setFixAttempt(0);
   }, [autoFixEnabled, aiAutoFix]);
 
-  const runPython = useCallback(async (src: string) => {
-    setOutput(["Loading Python runtime..."]);
-    try {
-      const pyodide = await loadPyodide();
-
-      const importMatches = src.match(/^\s*(?:import|from)\s+(\w+)/gm) || [];
-      const requestedModules = importMatches.map(m => m.replace(/^\s*(?:import|from)\s+/, "").trim());
-
-      const serverOnly = requestedModules.filter(m => SERVER_ONLY_PACKAGES.has(m.toLowerCase()));
-      if (serverOnly.length > 0) {
-        setOutput([
-          `⚠ Cannot run in browser: ${serverOnly.join(", ")}`,
-          "",
-          "These packages require a real server environment:",
-          ...serverOnly.map(m => `  • ${m} - needs native OS / network access`),
-          "",
-          "Running remaining code without blocked imports...",
-        ]);
-        src = src.replace(
-          new RegExp(`^\\s*(?:import|from)\\s+(?:${serverOnly.join("|")})\\b.*$`, "gm"),
-          (match) => `# [SKIPPED] ${match.trim()}`
-        );
-      }
-
-      const installable = requestedModules.filter(m =>
-        PYODIDE_INSTALLABLE.has(m.toLowerCase()) && !serverOnly.includes(m)
-      );
-      if (installable.length > 0) {
-        setOutput(prev => [...prev, `Installing packages: ${installable.join(", ")}...`]);
-        try { await pyodide.loadPackagesFromImports(src); } catch {
-          try { const mp = pyodide.pyimport("micropip"); for (const p of installable) { try { await mp.install(p); } catch {} } } catch {}
-        }
-      }
-
-      await pyExecute(src, pyodide, fixAttempt);
-    } catch (e: any) {
-      setOutput([`ERROR: ${e.message}`, "", "Tip: Python runtime loads on first use. Try running again."]);
-      setIsRunning(false);
-    }
-  }, [loadPyodide, pyExecute, fixAttempt]);
-
   // ═══════ POWER #1: SERVER-SIDE EXECUTION ═══════
+  const runOnServerRef = useRef<(src: string, language: string) => Promise<void>>(async () => {});
+
   const runOnServer = useCallback(async (src: string, language: string) => {
-    setOutput(["⚡ Executing on server..."]);
+    setOutput(prev => [...prev, "⚡ Executing on server..."]);
     try {
       const r = await fetch("/api/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: src, language }) });
       const data = await r.json();
@@ -1699,7 +1662,7 @@ ${brokenCode.substring(0, 2000)}
         if (fixedCode) {
           setCode(fixedCode);
           setOutput(prev => [...prev, "✓ Fix applied. Re-running on server..."]);
-          setTimeout(() => runOnServer(fixedCode, language), 300);
+          setTimeout(() => runOnServerRef.current(fixedCode, language), 300);
           return;
         }
         setOutput(prev => [...prev, "⚠ Could not auto-fix."]);
@@ -1712,6 +1675,45 @@ ${brokenCode.substring(0, 2000)}
     setIsRunning(false);
     setFixAttempt(0);
   }, [autoFixEnabled, fixAttempt, aiAutoFix]);
+
+  runOnServerRef.current = runOnServer;
+
+  const runPython = useCallback(async (src: string) => {
+    setOutput(["Loading Python runtime..."]);
+    try {
+      const importMatches = src.match(/^\s*(?:import|from)\s+(\w+)/gm) || [];
+      const requestedModules = importMatches.map(m => m.replace(/^\s*(?:import|from)\s+/, "").trim());
+
+      const serverOnly = requestedModules.filter(m => SERVER_ONLY_PACKAGES.has(m.toLowerCase()));
+      if (serverOnly.length > 0) {
+        setOutput([
+          `⚡ Detected server-only packages: ${serverOnly.join(", ")}`,
+          "Auto-switching to Server mode (packages will be auto-installed)...",
+          "",
+        ]);
+        setExecMode("server");
+        await runOnServerRef.current(src, "python");
+        return;
+      }
+
+      const pyodide = await loadPyodide();
+
+      const installable = requestedModules.filter(m =>
+        PYODIDE_INSTALLABLE.has(m.toLowerCase()) && !serverOnly.includes(m)
+      );
+      if (installable.length > 0) {
+        setOutput(prev => [...prev, `Installing packages: ${installable.join(", ")}...`]);
+        try { await pyodide.loadPackagesFromImports(src); } catch {
+          try { const mp = pyodide.pyimport("micropip"); for (const p of installable) { try { await mp.install(p); } catch {} } } catch {}
+        }
+      }
+
+      await pyExecute(src, pyodide, fixAttempt);
+    } catch (e: any) {
+      setOutput([`ERROR: ${e.message}`, "", "Tip: Python runtime loads on first use. Try running again."]);
+      setIsRunning(false);
+    }
+  }, [loadPyodide, pyExecute, fixAttempt]);
 
   const runCode = useCallback(async () => {
     setOutput([]);
