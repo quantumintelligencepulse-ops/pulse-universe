@@ -143,3 +143,13 @@ input[type="range"]::-webkit-slider-thumb {
 .markdown-body li { margin: 0.15em 0; }
 .markdown-body code { background: rgba(255,255,255,0.1); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
 .markdown-body strong { color: #e2e8f0; }
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes float-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}

@@ -2112,6 +2112,28 @@ If you have live data provided in this prompt, USE IT and present it confidently
         } catch {}
       }
 
+      const imageGenPatterns = /(?:generate|create|make|draw|design|paint|render|produce|show me|give me|can you (?:make|create|draw|generate))[\s\w]*(?:image|picture|photo|illustration|art|artwork|drawing|portrait|painting|icon|logo|poster|banner|thumbnail)/i;
+      const videoGenPatterns = /(?:generate|create|make|produce|render|show me|give me|can you (?:make|create|generate))[\s\w]*(?:video|movie|animation|clip|film|motion|animated)/i;
+      const userContent = input.content.toLowerCase();
+
+      if (videoGenPatterns.test(userContent)) {
+        const videoReply = `🎬 **AI Studio Movie Maker — Coming Soon!**\n\nBilly Banks is working hard on the Video Generator to make it the absolute best for you! 🚀\n\nThe AI Studio Video Maker is being built to create stunning AI-generated videos from your text descriptions. Stay tuned — it's going to be amazing!\n\nIn the meantime, you can:\n- **Generate images** — just ask me to create any picture!\n- **Visit AI Studio** — check out the page in the sidebar\n- **Chat with me** about anything else you need!`;
+        await storage.createMessage({ chatId: targetChatId, role: "user", content: input.content });
+        const savedReply = await storage.createMessage({ chatId: targetChatId, role: "assistant", content: videoReply });
+        return res.json(savedReply);
+      }
+
+      if (imageGenPatterns.test(userContent)) {
+        const promptMatch = userContent.replace(imageGenPatterns, "").replace(/^[\s,of:]+|[\s,.]+$/g, "").trim();
+        const imagePrompt = promptMatch || input.content.replace(/(?:generate|create|make|draw|design|paint|render|produce|show me|give me|can you (?:make|create|draw|generate))[\s]*/i, "").replace(/(?:an?\s+)?(?:image|picture|photo|illustration|art|artwork|drawing|portrait|painting)\s*(?:of|for|about|with|showing)?\s*/i, "").trim() || "beautiful artwork";
+        const seed = Math.floor(Math.random() * 999999);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ", high quality, detailed, 4k")}?width=512&height=512&seed=${seed}&nologo=true`;
+        const imageReply = `Here's your generated image! 🎨\n\n![${imagePrompt}](${imageUrl})\n\n**Prompt:** ${imagePrompt}\n\nWant me to generate another one? Just describe what you'd like to see!`;
+        await storage.createMessage({ chatId: targetChatId, role: "user", content: input.content });
+        const savedReply = await storage.createMessage({ chatId: targetChatId, role: "assistant", content: imageReply });
+        return res.json(savedReply);
+      }
+
       const messagesForGroq = [
         { role: "system" as const, content: systemPrompt },
         ...recentHistory.map(m => ({

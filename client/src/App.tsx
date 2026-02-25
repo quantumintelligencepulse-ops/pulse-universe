@@ -1900,7 +1900,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
             <span className="flex-1">AI Studio</span>
-            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">CREATE</span>
+            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           <Link href="/permissions" data-testid="link-permissions"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/permissions" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -4573,7 +4573,12 @@ function AIStudioPage() {
             <Paintbrush size={28} className="text-white" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight mb-1" data-testid="text-studio-title">AI Studio</h1>
-          <p className="text-muted-foreground text-sm">Generate real AI images and animated videos — 100% free, powered by Pollinations AI</p>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-pink-500/10 via-violet-500/10 to-pink-500/10 rounded-full border border-pink-200/50 mt-1 mb-1 relative overflow-hidden animate-[float-glow_3s_ease-in-out_infinite]">
+            <Sparkles size={14} className="text-pink-500" />
+            <span className="text-sm font-bold bg-gradient-to-r from-pink-500 to-violet-600 bg-clip-text text-transparent">Coming Soon</span>
+            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
+          </div>
+          <p className="text-muted-foreground text-sm mt-1">AI Image & Video Generation — Billy Banks is building something incredible</p>
         </div>
 
         <div className="bg-white border border-border/30 rounded-2xl p-6 shadow-sm mb-6">
@@ -4590,18 +4595,10 @@ function AIStudioPage() {
 
           <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={mode === "image" ? "Describe any image... (e.g., a rabbit jumping in a meadow, a futuristic city at night, a portrait of a cat wearing a hat)" : "Describe the animation you want... (e.g., ocean waves, floating particles, colorful aurora)"} data-testid="input-studio-prompt"
             className="w-full px-4 py-3 border border-border/40 rounded-xl text-sm focus:outline-none focus:border-pink-300 resize-none placeholder:text-muted-foreground/40" rows={3} />
-          {mode === "image" && (
-            <div className="mt-2 flex items-center gap-2 px-1">
-              <Sparkles size={12} className="text-pink-400" />
-              <span className="text-[10px] text-pink-400/80">Powered by Pollinations AI — generates real images like DALL-E, 100% free</span>
-            </div>
-          )}
-          {mode === "video" && (
-            <div className="mt-2 flex items-center gap-2 px-1">
-              <Zap size={12} className="text-violet-400" />
-              <span className="text-[10px] text-violet-400/80">Creates animated motion graphics based on your prompt colors and theme</span>
-            </div>
-          )}
+          <div className="mt-2 flex items-center gap-2 px-1">
+            <Clock size={12} className="text-muted-foreground/40" />
+            <span className="text-[10px] text-muted-foreground/40">This feature is coming soon — stay tuned!</span>
+          </div>
 
           <div className="mt-4">
             <div className="text-xs font-medium text-muted-foreground mb-2">Art Style</div>
@@ -4640,13 +4637,10 @@ function AIStudioPage() {
                 </select>
               </div>
             )}
-            <button onClick={handleGenerate} disabled={generating || !prompt.trim()} data-testid="button-generate"
-              className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl text-sm font-medium shadow-md hover:shadow-lg disabled:opacity-40 transition-all">
-              {generating ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
-              ) : (
-                <><Wand size={16} /> Generate {mode === "image" ? "Image" : "Video"}</>
-              )}
+            <button disabled={true} data-testid="button-generate"
+              className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-pink-500/50 to-violet-500/50 text-white/70 rounded-xl text-sm font-medium cursor-not-allowed transition-all relative overflow-hidden">
+              <Wand size={16} /> Coming Soon
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_infinite]" />
             </button>
           </div>
         </div>
@@ -4705,8 +4699,9 @@ function AIStudioPage() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/30 flex items-center justify-center">
               <ImagePlus size={28} className="text-muted-foreground/30" />
             </div>
-            <p className="text-sm text-muted-foreground/50">Your creations will appear here</p>
-            <p className="text-xs text-muted-foreground/30 mt-1">Try: "sunset over mountains" or "abstract galaxy art"</p>
+            <p className="text-sm text-muted-foreground/50">AI Studio is coming soon!</p>
+            <p className="text-xs text-muted-foreground/30 mt-1">Billy Banks is building the ultimate AI image & video generator for you</p>
+            <p className="text-xs text-muted-foreground/30 mt-3">💡 <strong>Tip:</strong> You can already generate images in the chat! Just ask My Ai Gpt to "make a picture of..." anything</p>
           </div>
         )}
       </div>
