@@ -304,74 +304,210 @@ export async function registerRoutes(
     return `${proto}://${host}`;
   }
 
-  // ═══════ SEO: ROBOTS.TXT ═══════
+  // ═══════ SEO: ROBOTS.TXT (Enhanced) ═══════
   app.get("/robots.txt", (_req, res) => {
+    const baseUrl = getSiteUrl(_req);
     res.type("text/plain").send(
 `User-agent: *
 Allow: /
 Allow: /feed
 Allow: /social
+Allow: /social/profile/
+Allow: /social/post/
 Allow: /code
-Allow: /social/profile/*
+Allow: /coder
+Disallow: /api/
+Crawl-delay: 1
 
+User-agent: Googlebot
+Allow: /
+Allow: /feed
+Allow: /social
+Allow: /social/profile/
+Allow: /social/post/
+Allow: /code
+Allow: /coder
 Disallow: /api/
 
-Sitemap: ${getSiteUrl(_req)}/sitemap.xml
+User-agent: Googlebot-Image
+Allow: /favicon.png
+Allow: /assets/
+
+User-agent: Googlebot-Video
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Crawl-delay: 2
+
+User-agent: Slurp
+Allow: /
+Disallow: /api/
+Crawl-delay: 2
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /api/
+
+User-agent: Yandex
+Allow: /
+Disallow: /api/
+Crawl-delay: 3
+
+User-agent: Baiduspider
+Allow: /
+Disallow: /api/
+Crawl-delay: 3
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+Sitemap: ${baseUrl}/sitemap.xml
+Sitemap: ${baseUrl}/sitemap-profiles.xml
+Sitemap: ${baseUrl}/sitemap-posts.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
 # AI Chat, Code Playground, News Feed, Social Network
+# Powered by Quantum Pulse Intelligence
+# Contact: ${SITE_CREATOR}
 `);
   });
 
-  // ═══════ SEO: SITEMAP.XML (Dynamic) ═══════
+  // ═══════ SEO: SITEMAP INDEX (Master) ═══════
   app.get("/sitemap.xml", async (req, res) => {
     try {
       const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${baseUrl}/sitemap-pages.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-profiles.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-posts.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+      res.type("application/xml").send(xml);
+    } catch (e) {
+      res.status(500).type("text/plain").send("Sitemap index error");
+    }
+  });
+
+  // ═══════ SEO: SITEMAP PAGES ═══════
+  app.get("/sitemap-pages.xml", (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const now = new Date().toISOString().split("T")[0];
+    const pages = [
+      { loc: "/", changefreq: "daily", priority: "1.0" },
+      { loc: "/coder", changefreq: "daily", priority: "0.9" },
+      { loc: "/feed", changefreq: "hourly", priority: "0.95" },
+      { loc: "/social", changefreq: "hourly", priority: "0.95" },
+      { loc: "/code", changefreq: "weekly", priority: "0.8" },
+    ];
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${pages.map(p => `  <url>
+    <loc>${baseUrl}${p.loc}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+    <image:image>
+      <image:loc>${baseUrl}/favicon.png</image:loc>
+      <image:title>My Ai Gpt by Billy Banks</image:title>
+      <image:caption>My Ai Gpt - AI Chat, Code, News, Social by Billy Banks</image:caption>
+    </image:image>
+    <xhtml:link rel="alternate" hreflang="en" href="${baseUrl}${p.loc}" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}${p.loc}" />
+  </url>`).join("\n")}
+</urlset>`;
+    res.type("application/xml").send(xml);
+  });
+
+  // ═══════ SEO: SITEMAP PROFILES ═══════
+  app.get("/sitemap-profiles.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
       const now = new Date().toISOString().split("T")[0];
-
-      let urls = [
-        { loc: baseUrl + "/", changefreq: "daily", priority: "1.0", lastmod: now },
-        { loc: baseUrl + "/feed", changefreq: "hourly", priority: "0.9", lastmod: now },
-        { loc: baseUrl + "/social", changefreq: "hourly", priority: "0.9", lastmod: now },
-        { loc: baseUrl + "/code", changefreq: "weekly", priority: "0.7", lastmod: now },
-      ];
-
       const profiles = await storage.searchSocialProfiles("");
-      for (const p of profiles.slice(0, 500)) {
-        urls.push({
-          loc: `${baseUrl}/social/profile/${p.username}`,
-          changefreq: "daily",
-          priority: "0.6",
-          lastmod: p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : now,
-        });
-      }
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${profiles.slice(0, 1000).map(p => `  <url>
+    <loc>${baseUrl}/social/profile/${escapeXml(p.username)}</loc>
+    <lastmod>${p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>${p.verified ? "0.8" : "0.6"}</priority>${p.avatar ? `
+    <image:image>
+      <image:loc>${escapeXml(p.avatar)}</image:loc>
+      <image:title>${escapeXml(p.displayName)} on My Ai Gpt</image:title>
+    </image:image>` : ""}
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e) {
+      res.status(500).type("text/plain").send("Profile sitemap error");
+    }
+  });
 
-      const posts = await storage.getSocialFeed(1, 200);
-      for (const post of posts) {
-        urls.push({
-          loc: `${baseUrl}/social/post/${post.id}`,
-          changefreq: "weekly",
-          priority: "0.5",
-          lastmod: post.createdAt ? new Date(post.createdAt).toISOString().split("T")[0] : now,
-        });
-      }
-
+  // ═══════ SEO: SITEMAP POSTS ═══════
+  app.get("/sitemap-posts.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+      const posts = await storage.getSocialFeed(1, 500);
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-${urls.map(u => `  <url>
-    <loc>${u.loc}</loc>
-    <lastmod>${u.lastmod}</lastmod>
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
+${posts.map(p => `  <url>
+    <loc>${baseUrl}/social/post/${p.id}</loc>
+    <lastmod>${p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${(p.likes || 0) > 10 ? "0.7" : "0.5"}</priority>${p.mediaUrl && p.mediaType === "image" ? `
+    <image:image>
+      <image:loc>${escapeXml(p.mediaUrl)}</image:loc>
+      <image:title>Post on My Ai Gpt Social</image:title>
+    </image:image>` : ""}
+    <news:news>
+      <news:publication>
+        <news:name>My Ai Gpt Social</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString()}</news:publication_date>
+      <news:title>${escapeXml((p.content || "Post").slice(0, 100))}</news:title>
+    </news:news>
   </url>`).join("\n")}
 </urlset>`;
-
       res.type("application/xml").send(xml);
     } catch (e) {
-      console.error("Sitemap error:", e);
-      res.status(500).type("text/plain").send("Sitemap generation error");
+      res.status(500).type("text/plain").send("Post sitemap error");
     }
   });
 
@@ -626,25 +762,322 @@ ${items}
     }
   });
 
-  // ═══════ SEO: MANIFEST.JSON (PWA) ═══════
-  app.get("/manifest.json", (_req, res) => {
+  // ═══════ SEO: MANIFEST.JSON (PWA Enhanced) ═══════
+  app.get("/manifest.json", (req, res) => {
+    const baseUrl = getSiteUrl(req);
     res.json({
       name: SITE_NAME,
       short_name: "MyAiGpt",
       description: SITE_DESC,
       start_url: "/",
+      id: "/",
       display: "standalone",
+      display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
       background_color: "#ffffff",
       theme_color: "#f97316",
       orientation: "portrait-primary",
-      categories: ["social", "news", "productivity", "education"],
+      scope: "/",
+      lang: "en",
+      dir: "ltr",
+      categories: ["social", "news", "productivity", "education", "entertainment", "utilities"],
       icons: [
+        { src: "/favicon.png", sizes: "48x48", type: "image/png", purpose: "any" },
+        { src: "/favicon.png", sizes: "72x72", type: "image/png", purpose: "any" },
+        { src: "/favicon.png", sizes: "96x96", type: "image/png", purpose: "any" },
+        { src: "/favicon.png", sizes: "128x128", type: "image/png", purpose: "any" },
+        { src: "/favicon.png", sizes: "144x144", type: "image/png", purpose: "any maskable" },
         { src: "/favicon.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+        { src: "/favicon.png", sizes: "256x256", type: "image/png", purpose: "any" },
+        { src: "/favicon.png", sizes: "384x384", type: "image/png", purpose: "any" },
         { src: "/favicon.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+      ],
+      shortcuts: [
+        { name: "AI Chat", short_name: "Chat", description: "Chat with your AI best friend", url: "/", icons: [{ src: "/favicon.png", sizes: "96x96" }] },
+        { name: "AI Coder", short_name: "Coder", description: "AI-powered coding assistant", url: "/coder", icons: [{ src: "/favicon.png", sizes: "96x96" }] },
+        { name: "News Feed", short_name: "Feed", description: "Live news and videos", url: "/feed", icons: [{ src: "/favicon.png", sizes: "96x96" }] },
+        { name: "Social Network", short_name: "Social", description: "Connect with the community", url: "/social", icons: [{ src: "/favicon.png", sizes: "96x96" }] },
+        { name: "Code Playground", short_name: "Code", description: "Write code in 30+ languages", url: "/code", icons: [{ src: "/favicon.png", sizes: "96x96" }] },
       ],
       screenshots: [],
       related_applications: [],
       prefer_related_applications: false,
+      launch_handler: { client_mode: "navigate-existing" },
+      edge_side_panel: { preferred_width: 400 },
+    });
+  });
+
+  // ═══════ SEO: OPENSEARCH.XML (Browser Search Integration) ═══════
+  app.get("/opensearch.xml", (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    res.type("application/opensearchdescription+xml").send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>${SITE_NAME}</ShortName>
+  <Description>Search ${SITE_NAME} - News, Videos, Web, Social. By ${SITE_CREATOR}.</Description>
+  <Tags>AI chat code news social search Billy Banks</Tags>
+  <Contact>${SITE_CREATOR}</Contact>
+  <Url type="text/html" template="${baseUrl}/feed?search={searchTerms}" />
+  <Url type="application/rss+xml" template="${baseUrl}/rss.xml" />
+  <Image width="16" height="16" type="image/png">${baseUrl}/favicon.png</Image>
+  <LongName>${SITE_NAME} by ${SITE_CREATOR} - AI Chat, Code, News, Social Search</LongName>
+  <InputEncoding>UTF-8</InputEncoding>
+  <OutputEncoding>UTF-8</OutputEncoding>
+  <Language>en-us</Language>
+  <AdultContent>false</AdultContent>
+</OpenSearchDescription>`);
+  });
+
+  // ═══════ SEO: ATOM FEED (Alternate syndication) ═══════
+  app.get("/atom.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const posts = await storage.getSocialFeed(1, 50);
+      const profiles: Record<number, any> = {};
+      for (const post of posts) {
+        if (!profiles[post.profileId]) profiles[post.profileId] = await storage.getSocialProfile(post.profileId);
+      }
+      const entries = posts.map(post => {
+        const profile = profiles[post.profileId];
+        return `  <entry>
+    <title>${escapeXml(profile?.displayName || "User")}: ${escapeXml((post.content || "").slice(0, 80))}</title>
+    <link href="${baseUrl}/social/post/${post.id}" rel="alternate" type="text/html" />
+    <id>urn:myaigpt:post:${post.id}</id>
+    <updated>${post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()}</updated>
+    <published>${post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()}</published>
+    <author><name>${escapeXml(profile?.displayName || "User")}</name><uri>${baseUrl}/social/profile/${escapeXml(profile?.username || "")}</uri></author>
+    <content type="html">${escapeXml(post.content || "")}</content>
+    <summary>${escapeXml((post.content || "").slice(0, 200))}</summary>${post.mediaUrl ? `
+    <link rel="enclosure" type="${post.mediaType === "video" ? "video/mp4" : "image/jpeg"}" href="${escapeXml(post.mediaUrl)}" />` : ""}
+  </entry>`;
+      }).join("\n");
+
+      res.type("application/atom+xml").send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+  <title>${SITE_NAME} Social Feed</title>
+  <subtitle>Latest posts from ${SITE_NAME} Social Network by ${SITE_CREATOR}</subtitle>
+  <link href="${baseUrl}/social" rel="alternate" type="text/html" />
+  <link href="${baseUrl}/atom.xml" rel="self" type="application/atom+xml" />
+  <id>urn:myaigpt:feed</id>
+  <updated>${new Date().toISOString()}</updated>
+  <author><name>${SITE_CREATOR}</name></author>
+  <generator uri="${baseUrl}" version="1.0">${SITE_NAME}</generator>
+  <icon>${baseUrl}/favicon.png</icon>
+  <logo>${baseUrl}/favicon.png</logo>
+  <rights>Copyright ${new Date().getFullYear()} ${SITE_CREATOR}</rights>
+${entries}
+</feed>`);
+    } catch (e) {
+      res.status(500).type("text/plain").send("Atom feed error");
+    }
+  });
+
+  // ═══════ SEO: HUMANS.TXT ═══════
+  app.get("/humans.txt", (_req, res) => {
+    res.type("text/plain").send(
+`/* TEAM */
+Creator: ${SITE_CREATOR}
+Role: Founder, Developer, Designer
+Location: United States
+
+AI Engine: Quantum Pulse Intelligence
+AI Model: Groq-powered LLM
+
+/* SITE */
+Name: ${SITE_NAME}
+Version: Beta Release 1
+Last Update: ${new Date().toISOString().split("T")[0]}
+Standards: HTML5, CSS3, JavaScript ES2024
+Components: Express.js, React, Vite, PostgreSQL, Drizzle ORM
+Software: Node.js, TypeScript
+Language: English
+
+/* FEATURES */
+AI Chat Assistant - Personalized AI that learns your interests
+AI Coder - Programming assistant for any language
+Code Playground - 30+ language IDE with real-time preview
+News Feed - BBC, NPR, NY Times, The Verge, TechCrunch
+Social Network - Profiles, posts, follows, verified badges
+Universal Search - DuckDuckGo-powered web/news/video search
+Personalization Engine - GICS sector-based interest tracking
+`);
+  });
+
+  // ═══════ SEO: SECURITY.TXT ═══════
+  app.get("/.well-known/security.txt", (_req, res) => {
+    res.type("text/plain").send(
+`Contact: mailto:billyotucker@gmail.com
+Preferred-Languages: en
+Canonical: /.well-known/security.txt
+Policy: /security
+Acknowledgments: /humans.txt
+`);
+  });
+
+  // ═══════ SEO: ADS.TXT ═══════
+  app.get("/ads.txt", (_req, res) => {
+    res.type("text/plain").send("# ${SITE_NAME} by ${SITE_CREATOR}\n# No programmatic ads currently running\n");
+  });
+
+  // ═══════ SEO: APP-ADS.TXT ═══════
+  app.get("/app-ads.txt", (_req, res) => {
+    res.type("text/plain").send("# ${SITE_NAME} by ${SITE_CREATOR}\n# No programmatic ads currently running\n");
+  });
+
+  // ═══════ SEO: PRERENDER / SSR FOR CRAWLERS ═══════
+  app.get("/api/seo/prerender/:page", async (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const page = req.params.page;
+    const id = req.query.id as string;
+
+    let title = `${SITE_NAME} - AI Chat, Code, News & Social | by ${SITE_CREATOR}`;
+    let description = SITE_DESC;
+    let content = "";
+    let ogImage = `${baseUrl}/favicon.png`;
+
+    if (page === "home") {
+      title = `${SITE_NAME} - AI Chat Assistant | by ${SITE_CREATOR}`;
+      content = `<h1>${SITE_NAME} - Your AI Best Friend</h1><p>Chat with an AI that learns your interests. Code in 30+ languages. Read live news. Connect socially. Created by ${SITE_CREATOR}.</p>`;
+    } else if (page === "feed") {
+      title = `${SITE_NAME} Feed - Live News & Videos`;
+      content = `<h1>Live News Feed</h1><p>Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, and more. Search any topic for news, web results, and videos.</p>`;
+    } else if (page === "social") {
+      title = `${SITE_NAME} Social - Connect & Share`;
+      content = `<h1>${SITE_NAME} Social Network</h1><p>Create your profile, share posts, follow friends, discover trending content, and get verified. Join the AI-powered social network.</p>`;
+      try {
+        const posts = await storage.getSocialFeed(1, 20);
+        for (const post of posts) {
+          const profile = await storage.getSocialProfile(post.profileId);
+          content += `<article><h3>${escapeXml(profile?.displayName || "User")}</h3><p>${escapeXml(post.content || "")}</p><time>${post.createdAt ? new Date(post.createdAt).toISOString() : ""}</time></article>`;
+        }
+      } catch {}
+    } else if (page === "profile" && id) {
+      try {
+        const profile = await storage.getSocialProfileByUsername(id);
+        if (profile) {
+          const followers = await storage.getSocialFollowerCount(profile.id);
+          title = `${profile.displayName} (@${profile.username}) | ${SITE_NAME}`;
+          description = profile.bio || `Follow ${profile.displayName} on ${SITE_NAME}`;
+          ogImage = profile.avatar || ogImage;
+          content = `<h1>${escapeXml(profile.displayName)}</h1><p>@${escapeXml(profile.username)}</p><p>${escapeXml(profile.bio || "")}</p><p>${followers} followers</p>`;
+          const posts = await storage.getSocialPostsByProfile(profile.id, 1, 20);
+          for (const post of posts) {
+            content += `<article><p>${escapeXml(post.content || "")}</p><time>${post.createdAt ? new Date(post.createdAt).toISOString() : ""}</time></article>`;
+          }
+        }
+      } catch {}
+    } else if (page === "post" && id) {
+      try {
+        const post = await storage.getSocialPost(parseInt(id));
+        if (post) {
+          const profile = await storage.getSocialProfile(post.profileId);
+          title = `${profile?.displayName || "User"} on ${SITE_NAME}: "${(post.content || "").slice(0, 60)}"`;
+          description = (post.content || "").slice(0, 200);
+          ogImage = post.mediaUrl || profile?.avatar || ogImage;
+          content = `<article><h1>${escapeXml(profile?.displayName || "User")}</h1><p>${escapeXml(post.content || "")}</p>`;
+          if (post.mediaUrl) content += `<img src="${escapeXml(post.mediaUrl)}" alt="Post media" />`;
+          content += `<p>Likes: ${post.likes || 0} | Reposts: ${post.reposts || 0} | Views: ${post.views || 0}</p></article>`;
+          const comments = await storage.getSocialCommentsByPost(post.id);
+          for (const c of comments) {
+            const cp = await storage.getSocialProfile(c.profileId);
+            content += `<div><strong>${escapeXml(cp?.displayName || "User")}</strong><p>${escapeXml(c.content || "")}</p></div>`;
+          }
+        }
+      } catch {}
+    } else if (page === "code") {
+      title = `${SITE_NAME} Code Playground - 30+ Languages`;
+      content = `<h1>Code Playground</h1><p>Write and run code in JavaScript, Python, TypeScript, HTML/CSS, Java, C++, Go, Rust, Ruby, PHP, and 20+ more languages with AI assistance and real-time preview.</p>`;
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><title>${title}</title>
+<meta name="description" content="${escapeXml(description)}" />
+<meta property="og:title" content="${escapeXml(title)}" />
+<meta property="og:description" content="${escapeXml(description)}" />
+<meta property="og:image" content="${escapeXml(ogImage)}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="${SITE_NAME}" />
+<link rel="canonical" href="${baseUrl}/${page === "home" ? "" : page}${id ? `/${id}` : ""}" />
+</head>
+<body>${content}<footer><p>${SITE_NAME} by ${SITE_CREATOR} - AI Chat, Code Playground, News Feed & Social Network</p></footer></body>
+</html>`;
+    res.type("text/html").send(html);
+  });
+
+  // ═══════ SEO: DYNAMIC SEO STATS ENDPOINT ═══════
+  app.get("/api/seo/stats", async (_req, res) => {
+    try {
+      const profileCount = (await storage.searchSocialProfiles("")).length;
+      const postCount = await storage.getSocialPostCount();
+      res.json({
+        site: SITE_NAME,
+        creator: SITE_CREATOR,
+        version: "Beta Release 1",
+        profiles: profileCount,
+        posts: postCount,
+        features: 5,
+        languages: 30,
+        newsSources: 12,
+      });
+    } catch {
+      res.json({ site: SITE_NAME, creator: SITE_CREATOR });
+    }
+  });
+
+  // ═══════ SEO: WELL-KNOWN CHANGE-PASSWORD ═══════
+  app.get("/.well-known/change-password", (_req, res) => {
+    res.redirect("/social");
+  });
+
+  // ═══════ SEO: WELL-KNOWN WEBFINGER (ActivityPub Discovery) ═══════
+  app.get("/.well-known/webfinger", async (req, res) => {
+    const resource = req.query.resource as string;
+    if (!resource) return res.status(400).json({ error: "resource parameter required" });
+    const baseUrl = getSiteUrl(req);
+    const match = resource.match(/^acct:([^@]+)@/);
+    if (match) {
+      const username = match[1];
+      try {
+        const profile = await storage.getSocialProfileByUsername(username);
+        if (profile) {
+          return res.json({
+            subject: resource,
+            aliases: [`${baseUrl}/social/profile/${profile.username}`],
+            links: [
+              { rel: "http://webfinger.net/rel/profile-page", type: "text/html", href: `${baseUrl}/social/profile/${profile.username}` },
+              { rel: "http://webfinger.net/rel/avatar", type: "image/png", href: profile.avatar || `${baseUrl}/favicon.png` },
+            ],
+          });
+        }
+      } catch {}
+    }
+    res.status(404).json({ error: "Not found" });
+  });
+
+  // ═══════ SEO: WELL-KNOWN NODEINFO ═══════
+  app.get("/.well-known/nodeinfo", (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    res.json({
+      links: [{
+        rel: "http://nodeinfo.diaspora.software/ns/schema/2.1",
+        href: `${baseUrl}/nodeinfo/2.1`,
+      }],
+    });
+  });
+
+  app.get("/nodeinfo/2.1", async (req, res) => {
+    const profileCount = (await storage.searchSocialProfiles("")).length;
+    const postCount = await storage.getSocialPostCount();
+    res.json({
+      version: "2.1",
+      software: { name: "myaigpt", version: "1.0.0", repository: "", homepage: getSiteUrl(req) },
+      protocols: ["activitypub"],
+      services: { inbound: [], outbound: ["atom1.0", "rss2.0"] },
+      openRegistrations: true,
+      usage: { users: { total: profileCount, activeMonth: profileCount, activeHalfyear: profileCount }, localPosts: postCount },
+      metadata: { nodeName: SITE_NAME, nodeDescription: SITE_DESC, maintainer: { name: SITE_CREATOR } },
     });
   });
 

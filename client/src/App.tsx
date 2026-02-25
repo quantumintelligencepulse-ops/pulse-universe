@@ -31,21 +31,43 @@ const MESSAGE_LIMIT = 9;
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
 const VIP_EMAILS = ["billyotucker@gmail.com", "quantumintelligencepulse@gmail.com"];
 
-function updateSEO(config: { title?: string; description?: string; ogTitle?: string; ogDesc?: string; ogType?: string; ogImage?: string; canonical?: string; jsonLd?: object }) {
+function updateSEO(config: { title?: string; description?: string; ogTitle?: string; ogDesc?: string; ogType?: string; ogImage?: string; canonical?: string; jsonLd?: object; keywords?: string; author?: string; articleSection?: string; publishedTime?: string }) {
   if (config.title) document.title = config.title;
   const setMeta = (attr: string, key: string, val: string) => {
     let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement;
     if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
     el.setAttribute("content", val);
   };
-  if (config.description) setMeta("name", "description", config.description);
-  if (config.ogTitle) setMeta("property", "og:title", config.ogTitle);
-  if (config.ogDesc) setMeta("property", "og:description", config.ogDesc);
+  if (config.description) {
+    setMeta("name", "description", config.description);
+    setMeta("name", "dc.description", config.description);
+    setMeta("itemprop", "description", config.description);
+  }
+  if (config.ogTitle) {
+    setMeta("property", "og:title", config.ogTitle);
+    setMeta("name", "twitter:title", config.ogTitle);
+    setMeta("itemprop", "name", config.ogTitle);
+    setMeta("name", "dc.title", config.ogTitle);
+  }
+  if (config.ogDesc) {
+    setMeta("property", "og:description", config.ogDesc);
+    setMeta("name", "twitter:description", config.ogDesc);
+  }
   if (config.ogType) setMeta("property", "og:type", config.ogType);
-  if (config.ogImage) setMeta("property", "og:image", config.ogImage);
-  if (config.ogTitle) setMeta("name", "twitter:title", config.ogTitle);
-  if (config.ogDesc) setMeta("name", "twitter:description", config.ogDesc);
-  if (config.ogImage) setMeta("name", "twitter:image", config.ogImage);
+  if (config.ogImage) {
+    setMeta("property", "og:image", config.ogImage);
+    setMeta("property", "og:image:secure_url", config.ogImage);
+    setMeta("name", "twitter:image", config.ogImage);
+    setMeta("itemprop", "image", config.ogImage);
+  }
+  if (config.keywords) setMeta("name", "keywords", config.keywords);
+  if (config.author) {
+    setMeta("name", "author", config.author);
+    setMeta("property", "article:author", config.author);
+    setMeta("name", "dc.creator", config.author);
+  }
+  if (config.articleSection) setMeta("property", "article:section", config.articleSection);
+  if (config.publishedTime) setMeta("property", "article:published_time", config.publishedTime);
   if (config.canonical) {
     let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
     if (!link) { link = document.createElement("link"); link.setAttribute("rel", "canonical"); document.head.appendChild(link); }
@@ -3788,23 +3810,23 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function HomePage() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt - AI Chat Assistant | by Billy Banks", description: "Chat with My Ai Gpt, your AI best friend that learns your interests. Ask anything, get personalized answers. By Billy Banks.", ogTitle: "My Ai Gpt - AI Chat", ogDesc: "Your AI best friend that learns you. Chat about anything.", canonical: window.location.origin + "/" }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Gpt - AI Chat Assistant That Learns You | by Billy Banks", description: "Chat with My Ai Gpt, your AI best friend that learns your interests. Ask anything, get personalized answers. Free AI chat powered by Quantum Pulse Intelligence. By Billy Banks.", ogTitle: "My Ai Gpt - AI Chat Assistant | Billy Banks", ogDesc: "Your AI best friend that learns you. Chat about anything. Free, personalized, intelligent.", ogType: "website", canonical: window.location.origin + "/", keywords: "AI chat, AI assistant, chatbot, Billy Banks, My Ai Gpt, free AI, personalized AI, Quantum Pulse Intelligence, GPT chat, AI companion, smart assistant", author: "Billy Banks", articleSection: "Artificial Intelligence", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Gpt - AI Chat", "description": "AI Chat Assistant that learns your interests", "url": window.location.origin + "/", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "author": { "@type": "Person", "name": "Billy Banks" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }] } } }); }, []);
   return <Layout><ChatInterface defaultType="general" /></Layout>;
 }
 function CoderPage() {
-  useEffect(() => { updateSEO({ title: "My Ai Coder - AI Programming Assistant | My Ai Gpt", description: "Write code with AI assistance. My Ai Coder helps you debug, refactor, and build in any programming language. By Billy Banks.", ogTitle: "My Ai Coder - AI Programming", ogDesc: "AI-powered coding assistant for any language.", canonical: window.location.origin + "/coder" }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Coder - AI Programming Assistant | Write Code with AI | My Ai Gpt", description: "Write code with AI assistance. My Ai Coder helps you debug, refactor, and build in any programming language. Python, JavaScript, TypeScript, Java, C++, Go, Rust and more. By Billy Banks.", ogTitle: "My Ai Coder - AI Programming Assistant", ogDesc: "AI-powered coding assistant for any language. Debug, refactor, build faster.", ogType: "website", canonical: window.location.origin + "/coder", keywords: "AI coding assistant, code helper, programming AI, debug code, refactor code, Billy Banks, Python AI, JavaScript AI, code generation, AI programmer", author: "Billy Banks", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Coder", "description": "AI-powered programming assistant", "url": window.location.origin + "/coder", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "AI Coder", "item": window.location.origin + "/coder" }] } } }); }, []);
   return <Layout><ChatInterface defaultType="coder" /></Layout>;
 }
 function PlaygroundPage() {
-  useEffect(() => { updateSEO({ title: "Code Playground - Write & Run Code in 30+ Languages | My Ai Gpt", description: "Free online code playground IDE. Write, run, and share code in JavaScript, Python, HTML/CSS, and 30+ languages with real-time preview. By Billy Banks.", ogTitle: "Code Playground - 30+ Languages", ogDesc: "Free online IDE with 30+ languages and real-time preview.", canonical: window.location.origin + "/code" }); }, []);
+  useEffect(() => { updateSEO({ title: "Code Playground - Write & Run Code in 30+ Languages Online Free | My Ai Gpt", description: "Free online code playground IDE by Billy Banks. Write, run, and share code in JavaScript, Python, TypeScript, HTML/CSS, Java, C++, Go, Rust, Ruby, PHP, Swift, Kotlin and 20+ more languages with real-time preview and AI assistance.", ogTitle: "Code Playground - 30+ Languages Free Online IDE", ogDesc: "Free online IDE with 30+ languages. Write JavaScript, Python, TypeScript, HTML, and more with real-time preview.", ogType: "website", canonical: window.location.origin + "/code", keywords: "online code editor, free IDE, code playground, JavaScript editor, Python editor, online compiler, run code online, free coding, code runner, Billy Banks, programming playground, HTML CSS editor, TypeScript playground", author: "Billy Banks", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "Code Playground", "description": "Write and run code in 30+ languages", "url": window.location.origin + "/code", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "Code Playground", "item": window.location.origin + "/code" }] } } }); }, []);
   return <Layout><CodePlayground /></Layout>;
 }
 function FeedPage() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Live News & Videos from Around the World", description: "Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, and more. Watch videos from top creators. Search any topic. AI-personalized.", ogTitle: "My Ai Gpt Feed - Live News & Videos", ogDesc: "Live news, videos, and articles from top sources. Search any topic.", canonical: window.location.origin + "/feed" }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Live News & Videos from BBC, NPR, NY Times & More", description: "Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, Reuters, Associated Press, The Guardian, and more. Watch videos, search any topic. AI-personalized news feed by Billy Banks.", ogTitle: "My Ai Gpt Feed - Live News, Videos & Search", ogDesc: "Live news from BBC, NPR, NY Times, TechCrunch. Search any topic for news, web, and video results.", ogType: "website", canonical: window.location.origin + "/feed", keywords: "live news, news feed, BBC news, NPR news, NY Times, The Verge, TechCrunch, trending news, video news, AI news, personalized news, Billy Banks, news aggregator, world news, tech news, video search", author: "Billy Banks", articleSection: "News", jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "My Ai Gpt Feed", "description": "Live news and video feed with AI personalization", "url": window.location.origin + "/feed", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "author": { "@type": "Person", "name": "Billy Banks" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "News Feed", "item": window.location.origin + "/feed" }] } } }); }, []);
   return <Layout><NewsFeed /></Layout>;
 }
 function SocialPageWrapper() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Connect, Share & Discover", description: "Join My Ai Gpt Social network by Billy Banks. Create your profile, share posts, follow friends, discover trending content, and get verified.", ogTitle: "My Ai Gpt Social Network", ogDesc: "Join the social network powered by AI. Share, connect, discover.", canonical: window.location.origin + "/social" }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Free Social Network | Create Profile, Post, Follow & Get Verified", description: "Join My Ai Gpt Social network by Billy Banks. Create your profile, share posts, follow friends, discover trending content, get a verified badge, and connect with the AI-powered community. Free to join.", ogTitle: "My Ai Gpt Social Network - Connect, Share & Discover", ogDesc: "Free social network powered by AI. Create profiles, share posts, follow friends, get verified. By Billy Banks.", ogType: "website", canonical: window.location.origin + "/social", keywords: "social network, social media, create profile, follow friends, verified badge, trending posts, share posts, social platform, Billy Banks, free social network, AI social, community, connect, discover", author: "Billy Banks", articleSection: "Social Network", jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "My Ai Gpt Social", "description": "AI-powered social network", "url": window.location.origin + "/social", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "Social", "item": window.location.origin + "/social" }] } } }); }, []);
   return <Layout><SocialPage /></Layout>;
 }
 
