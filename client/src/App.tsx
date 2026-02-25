@@ -340,7 +340,21 @@ function useDevicePermissions() {
 
 // ─── AI IMAGE GENERATION ENGINE (Canvas-based, 100% free) ───────────────────
 
-function generateAIImage(prompt: string, width = 512, height = 512): string {
+function generateAIImageUrl(prompt: string, width = 512, height = 512): string {
+  const encoded = encodeURIComponent(prompt);
+  const seed = Math.floor(Math.random() * 999999);
+  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+}
+
+async function generateAIImage(prompt: string, width = 512, height = 512): Promise<string> {
+  const url = generateAIImageUrl(prompt, width, height);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Image generation failed");
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+function generateAIImageCanvas(prompt: string, width = 512, height = 512): string {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -4505,28 +4519,41 @@ function AIStudioPage() {
     setGenerating(true);
     setResult(null);
     try {
-      const styledPrompt = `${selectedStyle} style: ${prompt}`;
+      const styleMap: Record<string, string> = {
+        realistic: "photorealistic, detailed, high quality, 4k",
+        abstract: "abstract art, creative, colorful, artistic",
+        space: "cosmic, space, galaxy, nebula, stars, sci-fi",
+        city: "urban, architecture, city skyline, metropolitan",
+        nature: "nature photography, landscape, forests, mountains",
+        flower: "floral, botanical illustration, flowers, garden",
+      };
+      const styleDesc = styleMap[selectedStyle] || "";
+      const fullPrompt = `${prompt.trim()}, ${styleDesc}`;
       if (mode === "image") {
         const res = parseInt(resolution);
-        const dataUrl = generateAIImage(styledPrompt, res, res);
-        setResult(dataUrl);
-        const item = { url: dataUrl, prompt: prompt.trim(), type: "image" as const, timestamp: Date.now() };
+        const pollinationsUrl = generateAIImageUrl(fullPrompt, res, res);
+        const blobUrl = await generateAIImage(fullPrompt, res, res);
+        setResult(blobUrl);
+        const item = { url: pollinationsUrl, prompt: prompt.trim(), type: "image" as const, timestamp: Date.now() };
         const updated = [item, ...gallery].slice(0, 50);
         setGallery(updated);
-        localStorage.setItem("ai_studio_gallery", JSON.stringify(updated));
+        try { localStorage.setItem("ai_studio_gallery", JSON.stringify(updated)); } catch {}
         toast({ title: "Image generated!" });
       } else {
         const dur = parseInt(duration) * 1000;
-        const videoUrl = await generateAIVideo(styledPrompt, dur);
+        const videoUrl = await generateAIVideo(fullPrompt, dur);
         setResult(videoUrl);
         const item = { url: videoUrl, prompt: prompt.trim(), type: "video" as const, timestamp: Date.now() };
         const updated = [item, ...gallery].slice(0, 50);
         setGallery(updated);
-        localStorage.setItem("ai_studio_gallery", JSON.stringify(updated));
+        try { localStorage.setItem("ai_studio_gallery", JSON.stringify(updated)); } catch {}
         toast({ title: "Video generated!" });
       }
       trackInteraction("ai_studio", { text: prompt, contentType: mode });
-    } catch { toast({ title: "Generation failed", variant: "destructive" }); }
+    } catch (err) {
+      console.error("Generation error:", err);
+      toast({ title: "Generation failed. Try a different prompt.", variant: "destructive" });
+    }
     setGenerating(false);
   };
 
@@ -4546,7 +4573,7 @@ function AIStudioPage() {
             <Paintbrush size={28} className="text-white" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight mb-1" data-testid="text-studio-title">AI Studio</h1>
-          <p className="text-muted-foreground text-sm">Generate images and videos with AI-powered creative engine</p>
+          <p className="text-muted-foreground text-sm">Generate real AI images and animated videos — 100% free, powered by Pollinations AI</p>
         </div>
 
         <div className="bg-white border border-border/30 rounded-2xl p-6 shadow-sm mb-6">
@@ -4561,8 +4588,20 @@ function AIStudioPage() {
             </button>
           </div>
 
-          <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={mode === "image" ? "Describe the image you want to create... (e.g., sunset over mountains, abstract galaxy art, city skyline at night)" : "Describe the video you want to create... (e.g., ocean waves crashing, fire particles floating, aurora borealis)"} data-testid="input-studio-prompt"
+          <textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={mode === "image" ? "Describe any image... (e.g., a rabbit jumping in a meadow, a futuristic city at night, a portrait of a cat wearing a hat)" : "Describe the animation you want... (e.g., ocean waves, floating particles, colorful aurora)"} data-testid="input-studio-prompt"
             className="w-full px-4 py-3 border border-border/40 rounded-xl text-sm focus:outline-none focus:border-pink-300 resize-none placeholder:text-muted-foreground/40" rows={3} />
+          {mode === "image" && (
+            <div className="mt-2 flex items-center gap-2 px-1">
+              <Sparkles size={12} className="text-pink-400" />
+              <span className="text-[10px] text-pink-400/80">Powered by Pollinations AI — generates real images like DALL-E, 100% free</span>
+            </div>
+          )}
+          {mode === "video" && (
+            <div className="mt-2 flex items-center gap-2 px-1">
+              <Zap size={12} className="text-violet-400" />
+              <span className="text-[10px] text-violet-400/80">Creates animated motion graphics based on your prompt colors and theme</span>
+            </div>
+          )}
 
           <div className="mt-4">
             <div className="text-xs font-medium text-muted-foreground mb-2">Art Style</div>
