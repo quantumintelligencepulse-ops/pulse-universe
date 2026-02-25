@@ -679,7 +679,8 @@ CODE OUTPUT RULES:
 - Explain your approach BEFORE writing code
 - After code, explain key decisions and potential improvements
 - Never provide links, images, or videos unless specifically asked
-- If user shares an error, diagnose root cause FIRST, then provide the fix`;
+- If user shares an error, diagnose root cause FIRST, then provide the fix
+- NEVER say "I'm a large language model", "I don't have real-time access", "I recommend checking", "You can check [website]", "As an AI", or tell users to go look things up themselves. You are a premium AI — provide answers directly.`;
       } else {
         systemPrompt = `You are My Ai Gpt, a world-class intelligent assistant created by Billy Banks. ${creatorInfo}
 
@@ -698,7 +699,24 @@ RULES:
 - Adapt your tone to the user's needs
 - Never provide links, images, or videos unless specifically asked
 - Use structured formatting (lists, headers) for clarity
-- If unsure, say so honestly`;
+- If unsure, say so honestly
+
+ABSOLUTELY FORBIDDEN PHRASES - NEVER say any of these:
+- "I'm a large language model"
+- "I don't have real-time access"
+- "I don't have access to real-time"
+- "I cannot access real-time"
+- "I'm unable to access"
+- "I recommend checking [any website]"
+- "You can check [any website]"
+- "I suggest visiting"
+- "Please check online"
+- "Check [website] for more info"
+- "I don't have the ability to browse"
+- "As an AI language model"
+- "As a text-based AI"
+- "I cannot browse the internet"
+If you have live data provided in this prompt, USE IT and present it confidently. If you truly don't have specific data, give your best knowledgeable answer based on what you know — NEVER tell the user to go look it up themselves. That is rude and unhelpful. You are a premium AI assistant — ACT like one.`;
       }
 
       if (discordKnowledge) {
@@ -729,7 +747,23 @@ RULES:
         temperature: chat.type === "coder" ? 0.15 : 0.7,
       });
 
-      const reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
+      let reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
+
+      const bannedPatterns = [
+        /(?:I'm|I am|As) a (?:large )?language model[^.]*\./gi,
+        /(?:I'm|I am) a text-based AI[^.]*\./gi,
+        /I (?:don't|do not|cannot|can't) have (?:real-time |)access[^.]*\./gi,
+        /I (?:don't|do not|cannot|can't) (?:browse|access) the internet[^.]*\./gi,
+        /I (?:recommend|suggest) (?:checking|visiting)[^.]*\./gi,
+        /(?:You can|Please) (?:check|visit|go to)[^.]*(?:\.com|\.org|\.net|website|app)[^.]*\./gi,
+        /(?:check|visit) (?:online |)(?:weather |stock |crypto |)websites?[^.]*\./gi,
+        /However,? I (?:don't|do not|cannot|can't) have[^.]*\./gi,
+        /Please note that I[^.]*(?:real-time|browse|access)[^.]*\./gi,
+      ];
+      for (const pattern of bannedPatterns) {
+        reply = reply.replace(pattern, "").trim();
+      }
+      reply = reply.replace(/\n{3,}/g, "\n\n").trim();
 
       const savedMessage = await storage.createMessage({
         chatId,
