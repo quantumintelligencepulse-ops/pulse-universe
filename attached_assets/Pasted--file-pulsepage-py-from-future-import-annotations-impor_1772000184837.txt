@@ -1,0 +1,837 @@
+# file: pulsepage.py
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import json
+import os
+import re
+import secrets
+import sqlite3
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Deque, Dict, Iterable, List, Optional, Tuple
+from collections import deque
+
+import aiohttp
+import yfinance as yf
+from ddgs import DDGS
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel, Field
+import uvicorn
+
+# ============================
+# PRODUCTION SETTINGS (ENV)
+# ============================
+
+APP_DIR = Path(__file__).resolve().parent
+DB_PATH = Path(os.getenv("PULSE_DB_PATH", str(APP_DIR / "pulse.db")))
+
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "").strip()
+if not ADMIN_PASSWORD:
+    raise RuntimeError("Set ADMIN_PASSWORD env var (required for public deploy).")
+
+ADMIN_PASSWORD_HASH = hashlib.sha256(ADMIN_PASSWORD.encode("utf-8")).hexdigest()
+
+GROQ_API_KEY = os.getenv("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", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
+
+DISCORD_BOT_TOKEN = os.getenv("MTQyMjAxNjAwNTM2MTg5NzU2NQ.Gcy0a4.k6EVpuY2pP19Knwfu6-jskl1S1rMGfwNjqpuXc", "").strip()  # optional
+
+# Public hardening switches
+PUBLIC_DISABLE_MARKETS = os.getenv("PUBLIC_DISABLE_MARKETS", "0").strip() == "1"
+PUBLIC_DISABLE_SEARCH = os.getenv("PUBLIC_DISABLE_SEARCH", "0").strip() == "1"
+
+# Optional allowlist to prevent random tickers scraping abuse (recommended for public)
+ALLOWLIST_RAW = os.getenv("TICKER_ALLOWLIST", "").strip()
+TICKER_ALLOWLIST = {t.strip().upper() for t in ALLOWLIST_RAW.split(",") if t.strip()} if ALLOWLIST_RAW else set()
+
+# Rate limits (tune for public)
+CHAT_REQ_PER_MIN = float(os.getenv("CHAT_REQ_PER_MIN", "10"))
+PRICE_REQ_PER_MIN = float(os.getenv("PRICE_REQ_PER_MIN", "30"))
+
+# CORS
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+
+# Security headers
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+}
+
+LOG_BUFFER: Deque[str] = deque(maxlen=2000)
+
+# ============================
+# DB
+# ============================
+
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "ENABLE_MARKETS": True,
+    "ENABLE_SEARCH": True,
+    "ENABLE_DISCORD_BOT": False,
+}
+
+def db() -> sqlite3.Connection:
+    con = sqlite3.connect(DB_PATH)
+    con.row_factory = sqlite3.Row
+    return con
+
+def init_db() -> None:
+    con = db()
+    cur = con.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS config (
+          id INTEGER PRIMARY KEY CHECK (id=1),
+          json TEXT NOT NULL
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS conversations (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          created_at REAL NOT NULL,
+          updated_at REAL NOT NULL
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          convo_id TEXT NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at REAL NOT NULL
+        )
+        """
+    )
+    cur.execute("INSERT OR IGNORE INTO config (id, json) VALUES (1, ?)", (json.dumps(DEFAULT_CONFIG),))
+    con.commit()
+    con.close()
+
+init_db()
+
+def load_config() -> Dict[str, Any]:
+    con = db()
+    row = con.execute("SELECT json FROM config WHERE id=1").fetchone()
+    con.close()
+    merged = dict(DEFAULT_CONFIG)
+    if row:
+        try:
+            data = json.loads(row["json"])
+            for k in merged:
+                if k in data:
+                    merged[k] = data[k]
+        except Exception:
+            pass
+
+    # Enforce public env policy (env wins)
+    if PUBLIC_DISABLE_MARKETS:
+        merged["ENABLE_MARKETS"] = False
+    if PUBLIC_DISABLE_SEARCH:
+        merged["ENABLE_SEARCH"] = False
+
+    return merged
+
+def save_config(cfg: Dict[str, Any]) -> None:
+    merged = dict(DEFAULT_CONFIG)
+    for k in merged:
+        if k in cfg:
+            merged[k] = cfg[k]
+
+    # Enforce public env policy (env wins)
+    if PUBLIC_DISABLE_MARKETS:
+        merged["ENABLE_MARKETS"] = False
+    if PUBLIC_DISABLE_SEARCH:
+        merged["ENABLE_SEARCH"] = False
+
+    con = db()
+    con.execute("UPDATE config SET json=? WHERE id=1", (json.dumps(merged),))
+    con.commit()
+    con.close()
+
+def new_convo_id() -> str:
+    return secrets.token_urlsafe(10)
+
+def ensure_default_conversation() -> str:
+    con = db()
+    row = con.execute("SELECT id FROM conversations ORDER BY updated_at DESC LIMIT 1").fetchone()
+    if row:
+        con.close()
+        return str(row["id"])
+    cid = new_convo_id()
+    now = time.time()
+    con.execute("INSERT INTO conversations (id, title, created_at, updated_at) VALUES (?,?,?,?)",
+                (cid, "New chat", now, now))
+    con.commit()
+    con.close()
+    return cid
+
+def list_conversations() -> List[Dict[str, Any]]:
+    con = db()
+    rows = con.execute("SELECT id, title, created_at, updated_at FROM conversations ORDER BY updated_at DESC").fetchall()
+    con.close()
+    return [dict(r) for r in rows]
+
+def create_conversation(title: str = "New chat") -> Dict[str, Any]:
+    cid = new_convo_id()
+    now = time.time()
+    con = db()
+    con.execute("INSERT INTO conversations (id, title, created_at, updated_at) VALUES (?,?,?,?)",
+                (cid, title[:80] or "New chat", now, now))
+    con.commit()
+    con.close()
+    return {"id": cid, "title": title[:80] or "New chat", "created_at": now, "updated_at": now}
+
+def rename_conversation(cid: str, title: str) -> None:
+    con = db()
+    con.execute("UPDATE conversations SET title=?, updated_at=? WHERE id=?",
+                (title[:80] or "Chat", time.time(), cid))
+    con.commit()
+    con.close()
+
+def delete_conversation(cid: str) -> None:
+    con = db()
+    con.execute("DELETE FROM messages WHERE convo_id=?", (cid,))
+    con.execute("DELETE FROM conversations WHERE id=?", (cid,))
+    con.commit()
+    con.close()
+
+def get_messages(cid: str, limit: int = 160) -> List[Dict[str, Any]]:
+    con = db()
+    rows = con.execute(
+        "SELECT role, content, created_at FROM messages WHERE convo_id=? ORDER BY id ASC LIMIT ?",
+        (cid, limit),
+    ).fetchall()
+    con.close()
+    return [dict(r) for r in rows]
+
+def add_message(cid: str, role: str, content: str) -> None:
+    now = time.time()
+    con = db()
+    con.execute("INSERT INTO messages (convo_id, role, content, created_at) VALUES (?,?,?,?)",
+                (cid, role, content, now))
+    con.execute("UPDATE conversations SET updated_at=? WHERE id=?", (now, cid))
+    con.commit()
+    con.close()
+
+# ============================
+# AUTH + RATE LIMIT
+# ============================
+
+def require_admin(req: Request) -> None:
+    token = (req.headers.get("X-Admin-Token") or "").strip()
+    if not token:
+        raise HTTPException(401, "Unauthorized")
+    if hashlib.sha256(token.encode("utf-8")).hexdigest() != ADMIN_PASSWORD_HASH:
+        raise HTTPException(401, "Unauthorized")
+
+@dataclass
+class TokenBucket:
+    tokens: float
+    updated_at: float
+
+CHAT_BUCKETS: Dict[str, TokenBucket] = {}
+PRICE_BUCKETS: Dict[str, TokenBucket] = {}
+
+def _ip(req: Request) -> str:
+    xf = (req.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    return xf or (req.client.host if req.client else "unknown")
+
+def _take(bucket_map: Dict[str, TokenBucket], key: str, per_min: float, cost: float = 1.0) -> None:
+    cap = max(1.0, per_min)
+    refill_per_sec = per_min / 60.0
+    now = time.time()
+    b = bucket_map.get(key)
+    if b is None:
+        bucket_map[key] = TokenBucket(tokens=cap - cost, updated_at=now)
+        return
+    elapsed = max(0.0, now - b.updated_at)
+    b.tokens = min(cap, b.tokens + elapsed * refill_per_sec)
+    b.updated_at = now
+    if b.tokens < cost:
+        raise HTTPException(429, "Rate limited")
+    b.tokens -= cost
+
+def rate_limit_chat(req: Request) -> None:
+    _take(CHAT_BUCKETS, _ip(req), CHAT_REQ_PER_MIN)
+
+def rate_limit_price(req: Request) -> None:
+    _take(PRICE_BUCKETS, _ip(req), PRICE_REQ_PER_MIN)
+
+# ============================
+# FINANCE (SAFE)
+# ============================
+
+_PRICE_CACHE: Dict[str, Tuple[float, float]] = {}
+_PRICE_CACHE_TTL = 20.0
+
+def _cache_get(sym: str) -> Optional[float]:
+    item = _PRICE_CACHE.get(sym.upper())
+    if not item:
+        return None
+    ts, val = item
+    return val if (time.time() - ts <= _PRICE_CACHE_TTL) else None
+
+def _cache_set(sym: str, val: float) -> None:
+    _PRICE_CACHE[sym.upper()] = (time.time(), float(val))
+
+def _normalize_symbol(symbol: str) -> str:
+    s = symbol.strip().upper()
+    if s in {"BTC", "BITCOIN"}:
+        return "BTC-USD"
+    if s in {"ETH", "ETHEREUM"}:
+        return "ETH-USD"
+    return s
+
+def _enforce_allowlist(symbol: str) -> None:
+    if not TICKER_ALLOWLIST:
+        return
+    base = symbol.upper().strip()
+    # allowlist can contain BTC-USD etc.
+    if base not in TICKER_ALLOWLIST:
+        raise HTTPException(403, "Ticker not allowed on this public deployment")
+
+def _yf_price_sync(symbol: str) -> Optional[float]:
+    sym = _normalize_symbol(symbol)
+    try:
+        t = yf.Ticker(sym)
+        try:
+            fi = getattr(t, "fast_info", None)
+            if fi:
+                lp = fi.get("last_price") or fi.get("lastPrice")
+                if lp is not None:
+                    return float(lp)
+        except Exception:
+            pass
+        try:
+            df = t.history(period="1d", interval="1m")
+            if df is not None and not df.empty:
+                return float(df["Close"].iloc[-1])
+        except Exception:
+            pass
+        df = t.history(period="5d", interval="1d")
+        if df is not None and not df.empty:
+            return float(df["Close"].iloc[-1])
+        return None
+    except Exception:
+        return None
+
+async def get_price(symbol: str) -> Dict[str, Any]:
+    sym = _normalize_symbol(symbol)
+    _enforce_allowlist(sym)
+
+    cached = _cache_get(sym)
+    if cached is not None:
+        return {"symbol": sym, "price": cached, "cached": True, "ts": time.time()}
+
+    price = await asyncio.to_thread(_yf_price_sync, sym)
+    if price is None:
+        raise HTTPException(404, f"Could not fetch price for {sym}")
+
+    _cache_set(sym, float(price))
+    return {"symbol": sym, "price": float(price), "cached": False, "ts": time.time()}
+
+def detect_finance_symbols(text: str) -> List[str]:
+    symbols: set[str] = set()
+    for w in text.replace(",", " ").replace("\n", " ").split():
+        if w.startswith("$") and len(w) > 1:
+            sym = "".join(ch for ch in w[1:] if ch.isalnum() or ch in ".-^")
+            if sym:
+                symbols.add(sym.upper())
+    upper = text.upper()
+    if "BITCOIN" in upper:
+        symbols.add("BTC")
+    if "ETHEREUM" in upper:
+        symbols.add("ETH")
+    for token in re.findall(r"\b[A-Za-z]{1,5}\b", text):
+        if token.upper() in {"SPY", "QQQ", "BTC", "ETH"}:
+            symbols.add(token.upper())
+    return sorted(symbols)
+
+# ============================
+# SEARCH (SAFE)
+# ============================
+
+_WEB_CACHE: Dict[str, Tuple[float, str]] = {}
+_WEB_CACHE_TTL = 180.0
+
+def looks_like_search_question(text: str) -> bool:
+    t = text.lower()
+    return any(x in t for x in ["what is", "who is", "when did", "why", "news", "latest", "define", "meaning of"])
+
+async def duckduckgo_search(query: str, max_results: int = 5) -> str:
+    q = query.strip()
+    if not q:
+        return ""
+    cached = _WEB_CACHE.get(q)
+    if cached and (time.time() - cached[0] <= _WEB_CACHE_TTL):
+        return cached[1]
+
+    def _run() -> List[str]:
+        out: List[str] = []
+        try:
+            with DDGS() as ddgs:
+                for r in ddgs.text(q, max_results=max_results):
+                    body = (r.get("body") or r.get("snippet") or "").strip()
+                    if body:
+                        out.append(body)
+        except Exception:
+            pass
+        return out
+
+    snippets = await asyncio.to_thread(_run)
+    text = "\n".join(snippets[:max_results]) if snippets else ""
+    _WEB_CACHE[q] = (time.time(), text)
+    return text
+
+# ============================
+# GROQ STREAM
+# ============================
+
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+def _build_prompt(history: List[Dict[str, str]], user_text: str, data_block: str, background_block: str) -> str:
+    def compact(items: List[Dict[str, str]], max_turns: int = 8) -> str:
+        tail = items[-(max_turns * 2) :]
+        out: List[str] = []
+        for it in tail:
+            role = (it.get("role") or "").upper()
+            content = (it.get("content") or "").strip()
+            if content:
+                out.append(f"{role}: {content}")
+        return "\n".join(out)
+
+    return "\n".join(
+        [
+            "You are the Pulse Deep Think engine.",
+            "Rules:",
+            "- If DATA contains prices, use them as truth.",
+            "- Be direct, grounded, no tool talk.",
+            "- If asked for financial advice, give educational info + risks, not guarantees.",
+            "",
+            "=== HISTORY ===",
+            compact(history) or "(none)",
+            "",
+            "=== USER ===",
+            user_text,
+            "",
+            "=== BACKGROUND ===",
+            background_block or "(none)",
+            "",
+            "=== DATA ===",
+            data_block or "(none)",
+            "",
+            "Answer now.",
+        ]
+    )
+
+async def groq_stream(prompt: str) -> Iterable[str]:
+    if not GROQ_API_KEY:
+        yield "Server missing GROQ_API_KEY."
+        return
+
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": GROQ_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.4,
+        "max_tokens": 900,
+        "stream": True,
+    }
+
+    timeout = aiohttp.ClientTimeout(total=60)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(GROQ_URL, json=payload, headers=headers) as resp:
+            if resp.status >= 400:
+                raw = await resp.text()
+                yield f"GROQ error {resp.status}: {raw[:600]}"
+                return
+
+            async for line_bytes in resp.content:
+                line = line_bytes.decode("utf-8", errors="ignore").strip()
+                if not line:
+                    continue
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    obj = json.loads(data)
+                    delta = obj["choices"][0]["delta"].get("content")
+                    if delta:
+                        yield delta
+                except Exception:
+                    continue
+
+# ============================
+# FASTAPI APP
+# ============================
+
+app = FastAPI(title="Pulse Public")
+
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=["*"],
+    )
+
+@app.middleware("http")
+async def add_security_headers(req: Request, call_next):
+    resp = await call_next(req)
+    for k, v in SECURITY_HEADERS.items():
+        resp.headers[k] = v
+    return resp
+
+class ChatStartPayload(BaseModel):
+    convo_id: str = Field(min_length=1)
+    message: str = Field(min_length=1, max_length=8000)
+
+@app.get("/healthz")
+async def healthz() -> JSONResponse:
+    return JSONResponse({"ok": True, "ts": time.time()})
+
+@app.get("/", response_class=HTMLResponse)
+async def home() -> str:
+    ensure_default_conversation()
+    return HOME_HTML
+
+@app.get("/api/conversations")
+async def api_list_conversations() -> JSONResponse:
+    return JSONResponse({"conversations": list_conversations()})
+
+@app.post("/api/conversations")
+async def api_create_conversation() -> JSONResponse:
+    return JSONResponse(create_conversation("New chat"))
+
+@app.post("/api/conversations/{cid}/rename")
+async def api_rename_conversation(cid: str, payload: Dict[str, Any]) -> JSONResponse:
+    title = str(payload.get("title") or "").strip()
+    if not title:
+        raise HTTPException(400, "title required")
+    rename_conversation(cid, title)
+    return JSONResponse({"ok": True})
+
+@app.delete("/api/conversations/{cid}")
+async def api_delete_conversation(cid: str) -> JSONResponse:
+    delete_conversation(cid)
+    ensure_default_conversation()
+    return JSONResponse({"ok": True})
+
+@app.get("/api/conversations/{cid}/messages")
+async def api_get_messages(cid: str) -> JSONResponse:
+    return JSONResponse({"messages": get_messages(cid)})
+
+@app.get("/api/price")
+async def api_price(req: Request, symbol: str) -> JSONResponse:
+    cfg = load_config()
+    if not cfg.get("ENABLE_MARKETS", True):
+        raise HTTPException(403, "Markets disabled on this deployment")
+    rate_limit_price(req)
+    return JSONResponse(await get_price(symbol))
+
+@app.post("/api/chat/stream")
+async def api_chat_stream(req: Request, payload: ChatStartPayload) -> StreamingResponse:
+    rate_limit_chat(req)
+
+    cfg = load_config()
+    convo_id = payload.convo_id.strip()
+    user_text = payload.message.strip()
+    if not convo_id or not user_text:
+        raise HTTPException(400, "convo_id and message required")
+
+    add_message(convo_id, "user", user_text)
+
+    enable_markets = bool(cfg.get("ENABLE_MARKETS", True))
+    enable_search = bool(cfg.get("ENABLE_SEARCH", True))
+
+    symbols = detect_finance_symbols(user_text)[:6]
+    data_lines: List[str] = []
+    finance_lines: List[str] = []
+
+    if enable_markets and symbols and not PUBLIC_DISABLE_MARKETS:
+        normalized = [_normalize_symbol(s) for s in symbols]
+        results = await asyncio.gather(*[get_price(s) for s in normalized], return_exceptions=True)
+        for r in results:
+            if isinstance(r, Exception):
+                continue
+            line = f"{r['symbol']} price: {r['price']}"
+            finance_lines.append(line)
+            data_lines.append(f"{r['symbol']}_DATA: {line}")
+
+    web_context = ""
+    if enable_search and not PUBLIC_DISABLE_SEARCH and looks_like_search_question(user_text):
+        web_context = await duckduckgo_search(user_text, max_results=5)
+
+    background_parts = [p for p in ["\n".join(finance_lines), web_context] if p]
+    background_block = "\n\n".join(background_parts)
+    data_block = "\n".join(data_lines) if data_lines else "(none)"
+
+    messages = get_messages(convo_id, limit=160)
+    history_for_prompt = [{"role": m["role"], "content": m["content"]} for m in messages[:-1]]
+    prompt = _build_prompt(history_for_prompt, user_text, data_block, background_block)
+
+    async def event_gen() -> Iterable[bytes]:
+        full: List[str] = []
+        meta = {"type": "meta", "data": {"prices": data_lines, "markets_enabled": enable_markets}}
+        yield f"event: meta\ndata: {json.dumps(meta)}\n\n".encode("utf-8")
+
+        try:
+            async for chunk in groq_stream(prompt):
+                full.append(chunk)
+                yield f"event: delta\ndata: {json.dumps({'type':'delta','data':chunk})}\n\n".encode("utf-8")
+        except Exception as e:
+            yield f"event: error\ndata: {json.dumps({'type':'error','data':str(e)})}\n\n".encode("utf-8")
+        finally:
+            final_text = "".join(full).strip() or "(no reply)"
+            add_message(convo_id, "assistant", final_text)
+            yield f"event: done\ndata: {json.dumps({'type':'done'})}\n\n".encode("utf-8")
+
+    return StreamingResponse(event_gen(), media_type="text/event-stream")
+
+# ---- Admin-only config endpoints (no secrets exposed in UI) ----
+
+class ConfigPayload(BaseModel):
+    ENABLE_MARKETS: bool = Field(default=True)
+    ENABLE_SEARCH: bool = Field(default=True)
+    ENABLE_DISCORD_BOT: bool = Field(default=False)
+
+@app.get("/api/admin/config")
+async def api_admin_get_config(req: Request) -> JSONResponse:
+    require_admin(req)
+    return JSONResponse({"config": load_config(), "policy": {
+        "PUBLIC_DISABLE_MARKETS": PUBLIC_DISABLE_MARKETS,
+        "PUBLIC_DISABLE_SEARCH": PUBLIC_DISABLE_SEARCH,
+        "TICKER_ALLOWLIST": sorted(TICKER_ALLOWLIST),
+    }})
+
+@app.post("/api/admin/config")
+async def api_admin_set_config(req: Request, payload: Dict[str, Any]) -> JSONResponse:
+    require_admin(req)
+    cfg = ConfigPayload(**payload).model_dump()
+    save_config(cfg)
+    LOG_BUFFER.append("[ADMIN] Config saved")
+    return JSONResponse({"ok": True})
+
+@app.get("/api/admin/logs")
+async def api_admin_logs(req: Request) -> JSONResponse:
+    require_admin(req)
+    return JSONResponse({"tail": list(LOG_BUFFER)[-350:]})
+
+# ============================
+# SINGLE-PAGE UI
+# ============================
+
+HOME_HTML = r"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Pulse</title>
+<style>
+  :root{--bg0:#0b0b0f;--bg1:#0f1220;--border:rgba(255,255,255,.10);--text:rgba(255,255,255,.92);--muted:rgba(255,255,255,.62);--shadow:0 10px 30px rgba(0,0,0,.35)}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);
+    background:radial-gradient(1200px 700px at 20% 10%, rgba(105,127,255,.18), transparent 55%),
+              radial-gradient(900px 600px at 80% 20%, rgba(255,120,220,.14), transparent 55%),
+              radial-gradient(900px 600px at 40% 90%, rgba(80,220,255,.10), transparent 55%),
+              linear-gradient(180deg,var(--bg0),var(--bg1));overflow:hidden}
+  .app{display:flex;height:100%}
+  .sidebar{width:310px;border-right:1px solid var(--border);background:rgba(0,0,0,.18);padding:14px;display:flex;flex-direction:column;gap:12px}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px}
+  .logo{width:34px;height:34px;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);
+    background:linear-gradient(135deg,rgba(255,255,255,.20),rgba(255,255,255,.05));position:relative;overflow:hidden}
+  .logo:before{content:"";position:absolute;inset:-60%;background:conic-gradient(from 180deg, rgba(140,160,255,.75), rgba(255,130,225,.65), rgba(90,235,255,.55), rgba(140,160,255,.75));filter:blur(10px);animation:spin 8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);cursor:pointer}
+  .btn.primary{background:rgba(255,255,255,.92);color:#0b0b0f;border-color:rgba(255,255,255,.75)}
+  .list{flex:1;overflow:auto;padding-right:4px}
+  .item{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);border-radius:14px;padding:10px;cursor:pointer;margin-bottom:10px}
+  .item.active{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16)}
+  .item .t{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .m{font-size:11px;color:var(--muted);margin-top:4px}
+  .main{flex:1;display:flex;flex-direction:column;padding:14px;gap:12px}
+  .thread{flex:1;overflow:auto;border:1px solid var(--border);border-radius:20px;background:rgba(255,255,255,.04);padding:10px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
+  .msg{display:flex;gap:10px;margin:10px 0}
+  .avatar{width:30px;height:30px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.06)}
+  .bubble{padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.05);white-space:pre-wrap;word-break:break-word;line-height:1.45}
+  .bubble.user{background:rgba(255,255,255,.08)}
+  .composer{border-radius:20px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.05));box-shadow:var(--shadow);padding:10px}
+  textarea{width:100%;resize:none;min-height:56px;max-height:160px;border:0;outline:none;background:transparent;color:var(--text);font-size:15px;line-height:1.35;padding:10px}
+  .actions{display:flex;gap:10px;align-items:center;padding:0 6px 4px}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.18);color:var(--muted);font-size:12px;white-space:nowrap}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  .muted{color:var(--muted);font-size:12px}
+  @media (max-width: 900px){.sidebar{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <div style="font-size:14px;font-weight:700">Pulse</div>
+        <div class="muted">Deep Think • Public</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn primary" onclick="newChat()">New chat</button>
+    </div>
+    <div class="list" id="convoList"></div>
+    <div class="muted">No account system yet. Chats stored server-side.</div>
+  </aside>
+
+  <main class="main">
+    <div class="muted">Conversation: <span class="mono" id="activeId"></span></div>
+    <div class="thread" id="thread"></div>
+    <div class="composer">
+      <textarea id="prompt" placeholder="Message Pulse…"></textarea>
+      <div class="actions">
+        <div class="pill"><span class="mono">Enter</span> send • <span class="mono">Shift+Enter</span> newline</div>
+        <div style="flex:1"></div>
+        <button class="btn" onclick="fill('Price $TSLA and summarize risks')">Example</button>
+        <button class="btn primary" onclick="send()">Send</button>
+      </div>
+    </div>
+    <div class="muted">Educational only. Not financial advice.</div>
+  </main>
+</div>
+
+<script>
+const threadEl = document.getElementById("thread");
+const promptEl = document.getElementById("prompt");
+const convoListEl = document.getElementById("convoList");
+const activeIdEl = document.getElementById("activeId");
+let activeConvoId = null;
+let sending = false;
+
+function autoGrow(){ promptEl.style.height="auto"; promptEl.style.height=Math.min(promptEl.scrollHeight,160)+"px"; }
+promptEl.addEventListener("input", autoGrow); autoGrow();
+
+function fill(t){ promptEl.value=t; promptEl.focus(); autoGrow(); }
+
+function addMsg(role, content){
+  const wrap=document.createElement("div"); wrap.className="msg";
+  const av=document.createElement("div"); av.className="avatar"; wrap.appendChild(av);
+  const b=document.createElement("div"); b.className="bubble "+(role==="user"?"user":"assistant"); b.textContent=content;
+  wrap.appendChild(b); threadEl.appendChild(wrap); threadEl.scrollTop=threadEl.scrollHeight; return b;
+}
+
+async function jget(url){
+  const r=await fetch(url); const t=await r.text();
+  if(!r.ok) throw new Error(t); return JSON.parse(t);
+}
+async function jpost(url, body){
+  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});
+  const t=await r.text(); if(!r.ok) throw new Error(t); return JSON.parse(t);
+}
+async function jdel(url){
+  const r=await fetch(url,{method:"DELETE"}); const t=await r.text();
+  if(!r.ok) throw new Error(t); return JSON.parse(t);
+}
+
+async function loadConversations(){
+  const data = await jget("/api/conversations");
+  const convos = data.conversations || [];
+  convoListEl.innerHTML="";
+  if(!activeConvoId && convos.length) activeConvoId = convos[0].id;
+  convos.forEach(c=>{
+    const div=document.createElement("div");
+    div.className="item"+(c.id===activeConvoId?" active":"");
+    div.onclick=()=>selectConvo(c.id);
+    const t=document.createElement("div"); t.className="t"; t.textContent=c.title||"Chat"; div.appendChild(t);
+    const m=document.createElement("div"); m.className="m"; m.textContent=new Date((c.updated_at||c.created_at)*1000).toLocaleString(); div.appendChild(m);
+    convoListEl.appendChild(div);
+  });
+  activeIdEl.textContent = activeConvoId || "";
+  if(!activeConvoId){ await newChat(); }
+}
+
+async function selectConvo(id){ activeConvoId=id; await loadConversations(); await loadMessages(); }
+async function loadMessages(){
+  threadEl.innerHTML="";
+  const data=await jget(`/api/conversations/${encodeURIComponent(activeConvoId)}/messages`);
+  const msgs=data.messages||[];
+  if(!msgs.length){ addMsg("assistant","Ask me anything."); return; }
+  msgs.forEach(m=>addMsg(m.role,m.content));
+}
+
+async function newChat(){
+  const c=await jpost("/api/conversations",{});
+  activeConvoId=c.id;
+  await loadConversations();
+  await loadMessages();
+}
+
+async function send(){
+  if(sending) return;
+  const text=(promptEl.value||"").trim();
+  if(!text) return;
+  promptEl.value=""; autoGrow();
+  addMsg("user", text);
+  const bubble = addMsg("assistant","…");
+  sending=true;
+  try{ await streamChat(activeConvoId, text, bubble); await loadConversations(); }
+  catch(e){ bubble.textContent="Error: "+(e.message||e); }
+  finally{ sending=false; }
+}
+
+async function streamChat(convoId, message, bubble){
+  const res=await fetch("/api/chat/stream",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({convo_id:convoId,message})});
+  if(!res.ok) throw new Error(await res.text());
+  const reader=res.body.getReader(); const dec=new TextDecoder("utf-8");
+  let buf="", full="";
+  while(true){
+    const {value,done}=await reader.read(); if(done) break;
+    buf += dec.decode(value,{stream:true});
+    while(true){
+      const idx=buf.indexOf("\\n\\n"); if(idx===-1) break;
+      const frame=buf.slice(0,idx); buf=buf.slice(idx+2);
+      const lines=frame.split("\\n").map(x=>x.trim());
+      let evt="", dataLine="";
+      for(const ln of lines){ if(ln.startsWith("event:")) evt=ln.slice(6).trim(); if(ln.startsWith("data:")) dataLine=ln.slice(5).trim(); }
+      if(!dataLine) continue;
+      let obj; try{ obj=JSON.parse(dataLine); }catch(e){ continue; }
+      if(evt==="delta"){ full += (obj.data||""); bubble.textContent=full||"…"; threadEl.scrollTop=threadEl.scrollHeight; }
+      if(evt==="error"){ bubble.textContent="Error: "+(obj.data||""); }
+      if(evt==="done"){ return; }
+    }
+  }
+}
+
+promptEl.addEventListener("keydown",(e)=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); }});
+
+(async ()=>{ await loadConversations(); await loadMessages(); })();
+</script>
+</body></html>
+"""
+
+# ============================
+# RUN
+# ============================
+
+def main() -> None:
+    uvicorn.run(
+        "pulsepage:app",
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "8000")),
+        reload=False,
+        log_level="info",
+        proxy_headers=True,
+    )
+
+if __name__ == "__main__":
+    main()
