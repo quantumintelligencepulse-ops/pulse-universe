@@ -1190,6 +1190,39 @@ const STARTER_CODE: Record<string, string> = {
   cpp: `// C++ - Display mode\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello from My Ai Coder!" << endl;\n    return 0;\n}`,
 };
 
+function ProjectsPanel({ loadProjects, openProject, createProject, activeProject, projectFiles, activeFile, setActiveFile, addFileToProject, onClose }: any) {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { loadProjects().then((p: any) => { setProjects(p); setLoading(false); }); }, [loadProjects]);
+
+  return (
+    <div className="border-b border-border/20 bg-zinc-50 px-4 py-2 max-h-40 overflow-auto">
+      <div className="flex items-center gap-2 mb-2">
+        <FolderOpen size={13} className="text-blue-500" />
+        <span className="text-xs font-medium">Projects</span>
+        <div className="flex-1" />
+        <button onClick={createProject} className="px-2 py-0.5 text-[10px] font-medium bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-1">
+          <Plus size={9} /> New
+        </button>
+        <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600"><X size={12} /></button>
+      </div>
+      {loading ? <div className="text-[10px] text-zinc-400">Loading...</div> : projects.length === 0 ? (
+        <div className="text-[10px] text-zinc-400">No projects yet. Create one to manage multi-file code.</div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {projects.map((p: any) => (
+            <button key={p.id} onClick={() => openProject(p)} data-testid={`project-${p.id}`}
+              className={`text-left p-2 rounded-lg border transition-all ${activeProject?.id === p.id ? "border-blue-400 bg-blue-50" : "border-border/30 bg-white hover:shadow-sm"}`}>
+              <div className="text-[11px] font-medium truncate">{p.name}</div>
+              <div className="text-[9px] text-muted-foreground">{p.fileCount || 0} files · {p.language}</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CodePlayground() {
   const { settings } = useCoderSettings();
   const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
@@ -1204,23 +1237,148 @@ function CodePlayground() {
   const [pyodideLoading, setPyodideLoading] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // FUTURISTIC #1 - Voice-to-Code
   const [isListening, setIsListening] = useState(false);
   const [voiceText, setVoiceText] = useState("");
   const recognitionRef = useRef<any>(null);
-  // FUTURISTIC #2 - AI Code Review
   const [reviewResult, setReviewResult] = useState<string | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
-  // AUTO-FIX ENGINE
   const [autoFixEnabled, setAutoFixEnabled] = useState(true);
   const [fixAttempt, setFixAttempt] = useState(0);
   const MAX_FIX_ATTEMPTS = 3;
+
+  // ═══════ POWER #1: SERVER-SIDE EXECUTION MODE ═══════
+  const [execMode, setExecMode] = useState<"browser" | "server">("browser");
+
+  // ═══════ POWER #2: INTERACTIVE TERMINAL / REPL ═══════
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalHistory, setTerminalHistory] = useState<{ cmd: string; out: string; err?: string }[]>([]);
+  const [termCmd, setTermCmd] = useState("");
+  const [termRunning, setTermRunning] = useState(false);
+  const [cmdHistory, setCmdHistory] = useState<string[]>([]);
+  const [historyIdx, setHistoryIdx] = useState(-1);
+  const termInputRef = useRef<HTMLInputElement>(null);
+  const termScrollRef = useRef<HTMLDivElement>(null);
+
+  const runTerminalCmd = useCallback(async (command?: string) => {
+    const cmd = (command || termCmd).trim();
+    if (!cmd) return;
+    setTermRunning(true);
+    setCmdHistory(prev => [...prev.filter(c => c !== cmd), cmd]);
+    setHistoryIdx(-1);
+    setTermCmd("");
+    try {
+      const res = await fetch("/api/terminal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command: cmd }) });
+      const data = await res.json();
+      setTerminalHistory(prev => [...prev, { cmd, out: data.stdout || "", err: data.stderr || "" }]);
+    } catch (e: any) {
+      setTerminalHistory(prev => [...prev, { cmd, out: "", err: e.message }]);
+    }
+    setTermRunning(false);
+    setTimeout(() => termScrollRef.current?.scrollTo(0, termScrollRef.current.scrollHeight), 50);
+  }, [termCmd]);
+
+  // ═══════ POWER #3: MULTI-FILE PROJECT SYSTEM ═══════
+  const [showProjects, setShowProjects] = useState(false);
+  const [activeProject, setActiveProject] = useState<any>(null);
+  const [projectFiles, setProjectFiles] = useState<any[]>([]);
+  const [activeFile, setActiveFile] = useState("");
+
+  const loadProjects = useCallback(async () => {
+    try { const r = await fetch("/api/projects"); return await r.json(); } catch { return []; }
+  }, []);
+
+  const createProject = useCallback(async () => {
+    try {
+      const r = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: `Project ${Date.now() % 10000}`, language: lang }) });
+      const proj = await r.json();
+      setActiveProject(proj);
+      const filesRes = await fetch(`/api/projects/${proj.id}/files`);
+      const files = await filesRes.json();
+      setProjectFiles(files);
+      if (files.length > 0) { setActiveFile(files[0].name); setCode(files[0].content); }
+      toast({ title: "Project created!" });
+    } catch { toast({ title: "Failed to create project", variant: "destructive" }); }
+  }, [lang, toast]);
+
+  const openProject = useCallback(async (proj: any) => {
+    setActiveProject(proj);
+    try {
+      const r = await fetch(`/api/projects/${proj.id}/files`);
+      const files = await r.json();
+      setProjectFiles(files);
+      if (files.length > 0) { setActiveFile(files[0].name); setCode(files[0].content); }
+    } catch {}
+    setShowProjects(false);
+  }, []);
+
+  const saveFileToProject = useCallback(async () => {
+    if (!activeProject || !activeFile) return;
+    try {
+      await fetch(`/api/projects/${activeProject.id}/files/${activeFile}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: code }) });
+      toast({ title: `Saved ${activeFile}` });
+    } catch {}
+  }, [activeProject, activeFile, code, toast]);
+
+  const addFileToProject = useCallback(async () => {
+    if (!activeProject) return;
+    const ext = lang === "python" ? "py" : lang === "html" ? "html" : lang === "css" ? "css" : "js";
+    const name = `file_${projectFiles.length + 1}.${ext}`;
+    try {
+      await fetch(`/api/projects/${activeProject.id}/files`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ filename: name, content: `// ${name}\n` }) });
+      const r = await fetch(`/api/projects/${activeProject.id}/files`);
+      const files = await r.json();
+      setProjectFiles(files);
+      setActiveFile(name);
+      setCode(`// ${name}\n`);
+    } catch {}
+  }, [activeProject, lang, projectFiles]);
+
+  // ═══════ POWER #4: PACKAGE MANAGER ═══════
+  const [showPkgMgr, setShowPkgMgr] = useState(false);
+  const [pkgInput, setPkgInput] = useState("");
+  const [pkgManager, setPkgManager] = useState<"npm" | "pip">("npm");
+  const [pkgInstalling, setPkgInstalling] = useState(false);
+  const [pkgLog, setPkgLog] = useState<string[]>([]);
+
+  const installPackages = useCallback(async () => {
+    if (!pkgInput.trim()) return;
+    const pkgs = pkgInput.split(/[\s,]+/).filter(Boolean);
+    setPkgInstalling(true);
+    setPkgLog(prev => [...prev, `Installing ${pkgs.join(", ")} via ${pkgManager}...`]);
+    try {
+      const r = await fetch("/api/packages/install", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ packages: pkgs, manager: pkgManager }) });
+      const data = await r.json();
+      if (data.error) setPkgLog(prev => [...prev, `Error: ${data.error}`]);
+      if (data.output) setPkgLog(prev => [...prev, data.output.substring(0, 2000)]);
+      setPkgLog(prev => [...prev, `✓ Done.`]);
+    } catch (e: any) {
+      setPkgLog(prev => [...prev, `Error: ${e.message}`]);
+    }
+    setPkgInstalling(false);
+    setPkgInput("");
+  }, [pkgInput, pkgManager]);
+
+  // ═══════ POWER #5: SNIPPET TEMPLATES ═══════
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+
+  const loadTemplates = useCallback(async () => {
+    try { const r = await fetch("/api/templates"); setTemplates(await r.json()); } catch {}
+  }, []);
+
+  const applyTemplate = useCallback((t: any) => {
+    setCode(t.code);
+    setLang(t.lang);
+    setShowTemplates(false);
+    setOutput([]);
+    toast({ title: `Loaded: ${t.name}` });
+  }, [toast]);
 
   const langInfo = PG_LANGUAGES.find(l => l.id === lang)!;
 
   const switchLang = (newLang: string) => {
     setLang(newLang);
-    setCode(STARTER_CODE[newLang] || `// ${newLang}\n`);
+    if (!activeProject) setCode(STARTER_CODE[newLang] || `// ${newLang}\n`);
     setOutput([]);
     setShowPreview(false);
     setReviewResult(null);
@@ -1512,6 +1670,40 @@ ${brokenCode.substring(0, 2000)}
     }
   }, [loadPyodide, pyExecute, fixAttempt]);
 
+  // ═══════ POWER #1: SERVER-SIDE EXECUTION ═══════
+  const runOnServer = useCallback(async (src: string, language: string) => {
+    setOutput(["⚡ Executing on server..."]);
+    try {
+      const r = await fetch("/api/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: src, language }) });
+      const data = await r.json();
+      const lines: string[] = [];
+      if (data.stdout) lines.push(...data.stdout.split("\n"));
+      if (data.stderr) lines.push(...data.stderr.split("\n").map((l: string) => `STDERR: ${l}`));
+      if (lines.length === 0) lines.push("(no output)");
+      lines.push("", data.exitCode === 0 ? `✓ Server execution completed in ${data.executionTime}ms` : `⚠ Exited with code ${data.exitCode} (${data.executionTime}ms)`);
+
+      if (data.exitCode !== 0 && autoFixEnabled && fixAttempt < MAX_FIX_ATTEMPTS) {
+        const errMsg = data.stderr || lines.find((l: string) => l.includes("Error")) || "Unknown error";
+        setOutput(prev => [...prev, ...lines, "", `🔧 AI Auto-Fix attempt ${fixAttempt + 1}/${MAX_FIX_ATTEMPTS}...`]);
+        setFixAttempt(prev => prev + 1);
+        const fixedCode = await aiAutoFix(src, errMsg, language, fixAttempt + 1);
+        if (fixedCode) {
+          setCode(fixedCode);
+          setOutput(prev => [...prev, "✓ Fix applied. Re-running on server..."]);
+          setTimeout(() => runOnServer(fixedCode, language), 300);
+          return;
+        }
+        setOutput(prev => [...prev, "⚠ Could not auto-fix."]);
+      } else {
+        setOutput(lines);
+      }
+    } catch (e: any) {
+      setOutput([`ERROR: ${e.message}`]);
+    }
+    setIsRunning(false);
+    setFixAttempt(0);
+  }, [autoFixEnabled, fixAttempt, aiAutoFix]);
+
   const runCode = useCallback(async () => {
     setOutput([]);
     setIsRunning(true);
@@ -1520,16 +1712,15 @@ ${brokenCode.substring(0, 2000)}
     const detected = detectLang(code);
     if (detected && detected !== lang) {
       if (detected === "python" && (lang === "javascript" || lang === "typescript")) {
-        effectiveLang = "python";
-        setLang("python");
+        effectiveLang = "python"; setLang("python");
         setOutput(["Auto-detected Python code. Switching language..."]);
-      } else if (detected === "html" && lang !== "html") {
-        effectiveLang = "html";
-        setLang("html");
-      } else if (detected === "css" && lang !== "css") {
-        effectiveLang = "css";
-        setLang("css");
-      }
+      } else if (detected === "html" && lang !== "html") { effectiveLang = "html"; setLang("html"); }
+      else if (detected === "css" && lang !== "css") { effectiveLang = "css"; setLang("css"); }
+    }
+
+    if (execMode === "server" && (effectiveLang === "javascript" || effectiveLang === "typescript" || effectiveLang === "python" || effectiveLang === "bash")) {
+      await runOnServer(code, effectiveLang);
+      return;
     }
 
     if (effectiveLang === "javascript" || effectiveLang === "typescript") {
@@ -1544,23 +1735,13 @@ ${brokenCode.substring(0, 2000)}
       setIsRunning(false);
     } else if (effectiveLang === "python") {
       await runPython(code);
+    } else if (effectiveLang === "bash") {
+      await runOnServer(code, "bash");
     } else {
-      setOutput([
-        `Language: ${effectiveLang}`,
-        "",
-        "This language requires a server-side runtime.",
-        "To run this code, use the AI Coder chat to get help executing it,",
-        "or switch to JavaScript/Python/HTML/CSS for in-browser execution.",
-        "",
-        "Supported runnable languages:",
-        "  JavaScript/TypeScript - Full execution with console capture",
-        "  Python - Full execution via Pyodide (WebAssembly)",
-        "  HTML - Live preview rendering",
-        "  CSS - Live style preview",
-      ]);
+      setOutput([`Language: ${effectiveLang}`, "", "Switch to Server mode to run this language,", "or use JavaScript/Python/HTML/CSS for browser execution."]);
       setIsRunning(false);
     }
-  }, [code, lang, detectLang, runJS, runPython]);
+  }, [code, lang, detectLang, runJS, runPython, execMode, runOnServer]);
 
   const handleSave = async () => {
     const fn = `playground_${Date.now()}.${getExt(lang)}`;
@@ -1680,61 +1861,93 @@ ${brokenCode.substring(0, 2000)}
 
   return (
     <div className="flex flex-col h-full bg-background" data-testid="playground-page">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-white">
-        <SquareTerminal size={16} className="text-blue-500" />
-        <span className="font-semibold text-sm">Code Playground</span>
+      {/* Toolbar Row 1 - Main controls */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border/30 bg-white overflow-x-auto">
+        <SquareTerminal size={14} className="text-blue-500 shrink-0" />
+        <span className="font-semibold text-xs shrink-0">Playground</span>
+
+        {activeProject && (
+          <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-medium shrink-0">
+            <FolderOpen size={9} className="inline mr-0.5" />{activeProject.name}
+          </span>
+        )}
+
         <div className="flex-1" />
 
-        {/* Language selector */}
-        <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-0.5">
+        <div className="flex items-center gap-0.5 bg-muted/30 rounded-lg p-0.5 shrink-0">
           {PG_LANGUAGES.slice(0, 6).map(l => (
             <button key={l.id} onClick={() => switchLang(l.id)}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] transition-all ${lang === l.id ? "bg-white shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}>
-              <l.icon size={11} className={l.color} />{l.name}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] transition-all ${lang === l.id ? "bg-white shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+              <l.icon size={10} className={l.color} />{l.name}
             </button>
           ))}
-          <select value={lang} onChange={e => switchLang(e.target.value)} className="text-[11px] bg-transparent border-none focus:outline-none text-muted-foreground cursor-pointer px-1">
+          <select value={lang} onChange={e => switchLang(e.target.value)} className="text-[10px] bg-transparent border-none focus:outline-none text-muted-foreground cursor-pointer px-0.5">
             {PG_LANGUAGES.slice(6).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
 
-        <div className="h-5 w-px bg-border/30" />
+        <div className="h-4 w-px bg-border/20 shrink-0" />
 
-        {/* Action buttons */}
-        <button onClick={runCode} disabled={isRunning} data-testid="button-run-playground"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isRunning ? "bg-amber-500 text-white" : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm"}`}>
-          {isRunning ? <><StopCircle size={12} /> Running...</> : <><Play size={12} /> Run</>}
+        <button onClick={() => setExecMode(execMode === "browser" ? "server" : "browser")} data-testid="button-exec-mode"
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all shrink-0 ${execMode === "server" ? "bg-orange-500 text-white shadow-sm" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}>
+          {execMode === "server" ? <><Cloud size={10} /> Server</> : <><Smartphone size={10} /> Browser</>}
         </button>
-        <button onClick={handleSave} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground" title="Save"><Download size={14} /></button>
-        <button onClick={() => { setCode(""); setOutput([]); }} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground" title="Clear"><Eraser size={14} /></button>
 
-        <div className="h-5 w-px bg-border/30" />
+        <button onClick={runCode} disabled={isRunning} data-testid="button-run-playground"
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all shrink-0 ${isRunning ? "bg-amber-500 text-white" : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm"}`}>
+          {isRunning ? <><StopCircle size={11} /> Running...</> : <><Play size={11} /> Run</>}
+        </button>
 
-        {/* FUTURISTIC BUTTONS */}
+        <button onClick={activeProject ? saveFileToProject : handleSave} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Save"><Download size={13} /></button>
+        <button onClick={() => { setCode(""); setOutput([]); }} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Clear"><Eraser size={13} /></button>
+      </div>
+
+      {/* Toolbar Row 2 - Power features */}
+      <div className="flex items-center gap-1 px-3 py-1 border-b border-border/20 bg-zinc-50/80 overflow-x-auto">
         <button onClick={toggleVoice} data-testid="button-voice"
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${isListening ? "bg-red-500 text-white animate-pulse" : "bg-violet-50 text-violet-600 hover:bg-violet-100"}`}>
-          {isListening ? <><MicOff size={12} /> Stop</> : <><Mic size={12} /> Voice</>}
+          className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 ${isListening ? "bg-red-500 text-white animate-pulse" : "bg-violet-50 text-violet-600 hover:bg-violet-100"}`}>
+          {isListening ? <><MicOff size={10} /> Stop</> : <><Mic size={10} /> Voice</>}
         </button>
         <button onClick={handleAIReview} disabled={isReviewing} data-testid="button-ai-review"
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all disabled:opacity-50">
-          <Scan size={12} /> {isReviewing ? "Reviewing..." : "AI Review"}
+          className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all disabled:opacity-50 shrink-0">
+          <Scan size={10} /> {isReviewing ? "..." : "Review"}
         </button>
         <button onClick={handleAIFix} disabled={isRunning} data-testid="button-ai-fix"
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all disabled:opacity-50">
-          <Wand2 size={12} /> AI Fix
+          className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all disabled:opacity-50 shrink-0">
+          <Wand2 size={10} /> Fix
         </button>
         <button onClick={handleExplain} disabled={isExplaining} data-testid="button-ai-explain"
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all disabled:opacity-50">
-          <Brain size={12} /> {isExplaining ? "..." : "Explain"}
+          className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all disabled:opacity-50 shrink-0">
+          <Brain size={10} /> {isExplaining ? "..." : "Explain"}
         </button>
 
-        <div className="h-5 w-px bg-border/30" />
+        <div className="h-3.5 w-px bg-border/20 shrink-0" />
 
         <button onClick={() => setAutoFixEnabled(!autoFixEnabled)} data-testid="button-toggle-autofix"
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${autoFixEnabled ? "bg-green-500 text-white shadow-sm" : "bg-zinc-100 text-zinc-400"}`}>
-          <RefreshCw size={11} className={autoFixEnabled ? "animate-[spin_3s_linear_infinite]" : ""} />
-          Auto-Fix {autoFixEnabled ? "ON" : "OFF"}
+          className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 ${autoFixEnabled ? "bg-green-500 text-white" : "bg-zinc-100 text-zinc-400"}`}>
+          <RefreshCw size={9} className={autoFixEnabled ? "animate-[spin_3s_linear_infinite]" : ""} /> Auto-Fix
+        </button>
+
+        <div className="h-3.5 w-px bg-border/20 shrink-0" />
+
+        <button onClick={() => setShowTerminal(!showTerminal)} data-testid="button-terminal"
+          className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 ${showTerminal ? "bg-zinc-800 text-green-400" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}>
+          <Terminal size={10} /> Terminal
+        </button>
+
+        <button onClick={() => { setShowProjects(!showProjects); if (!showProjects) loadProjects().then(() => {}); }} data-testid="button-projects"
+          className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 ${showProjects ? "bg-blue-500 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}>
+          <FolderOpen size={10} /> Projects
+        </button>
+
+        <button onClick={() => setShowPkgMgr(!showPkgMgr)} data-testid="button-packages"
+          className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 ${showPkgMgr ? "bg-purple-500 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}>
+          <Package size={10} /> Packages
+        </button>
+
+        <button onClick={() => { setShowTemplates(!showTemplates); if (!showTemplates) loadTemplates(); }} data-testid="button-templates"
+          className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all shrink-0 ${showTemplates ? "bg-cyan-500 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}>
+          <Rocket size={10} /> Templates
         </button>
       </div>
 
@@ -1749,8 +1962,87 @@ ${brokenCode.substring(0, 2000)}
         </div>
       )}
 
+      {/* Slide-down panels for Projects, Packages, Templates */}
+      {showProjects && (
+        <ProjectsPanel loadProjects={loadProjects} openProject={openProject} createProject={createProject}
+          activeProject={activeProject} projectFiles={projectFiles} activeFile={activeFile}
+          setActiveFile={(f: string) => { setActiveFile(f); const file = projectFiles.find((pf: any) => pf.name === f); if (file) setCode(file.content); }}
+          addFileToProject={addFileToProject} onClose={() => setShowProjects(false)} />
+      )}
+      {showPkgMgr && (
+        <div className="border-b border-border/20 bg-zinc-50 px-4 py-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Package size={13} className="text-purple-500" />
+            <span className="text-xs font-medium">Package Manager</span>
+            <div className="flex-1" />
+            <button onClick={() => setShowPkgMgr(false)} className="text-zinc-400 hover:text-zinc-600"><X size={12} /></button>
+          </div>
+          <div className="flex items-center gap-2">
+            <select value={pkgManager} onChange={e => setPkgManager(e.target.value as "npm" | "pip")}
+              className="text-[10px] px-1.5 py-1 rounded border border-border/30 bg-white">
+              <option value="npm">npm</option><option value="pip">pip</option>
+            </select>
+            <input value={pkgInput} onChange={e => setPkgInput(e.target.value)} placeholder="package names (space separated)"
+              className="flex-1 text-xs px-2 py-1 rounded border border-border/30 bg-white focus:outline-none focus:border-blue-300"
+              onKeyDown={e => e.key === "Enter" && installPackages()} data-testid="input-package" />
+            <button onClick={installPackages} disabled={pkgInstalling}
+              className="px-2 py-1 text-[10px] font-medium bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50">
+              {pkgInstalling ? "Installing..." : "Install"}
+            </button>
+          </div>
+          {pkgLog.length > 0 && (
+            <div className="mt-2 max-h-24 overflow-auto bg-zinc-900 rounded p-2 text-[10px] font-mono text-zinc-300">
+              {pkgLog.map((l, i) => <div key={i} className={l.startsWith("Error") ? "text-red-400" : l.startsWith("✓") ? "text-green-400" : ""}>{l}</div>)}
+            </div>
+          )}
+        </div>
+      )}
+      {showTemplates && (
+        <div className="border-b border-border/20 bg-zinc-50 px-4 py-2 max-h-48 overflow-auto">
+          <div className="flex items-center gap-2 mb-2">
+            <Rocket size={13} className="text-cyan-500" />
+            <span className="text-xs font-medium">Code Templates</span>
+            <div className="flex-1" />
+            <button onClick={() => setShowTemplates(false)} className="text-zinc-400 hover:text-zinc-600"><X size={12} /></button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {templates.map(t => (
+              <button key={t.id} onClick={() => applyTemplate(t)} data-testid={`template-${t.id}`}
+                className="text-left p-2 rounded-lg border border-border/30 bg-white hover:shadow-sm hover:border-cyan-300 transition-all">
+                <div className="text-[11px] font-medium">{t.name}</div>
+                <div className="text-[9px] text-muted-foreground">{t.desc}</div>
+                <span className="text-[8px] bg-zinc-100 text-zinc-500 px-1 py-0.5 rounded mt-1 inline-block">{t.lang}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main Editor + Output */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Multi-file sidebar */}
+        {activeProject && projectFiles.length > 0 && (
+          <div className="w-40 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+            <div className="px-2 py-1.5 text-[10px] text-zinc-500 font-medium border-b border-zinc-800 flex items-center justify-between">
+              <span>FILES</span>
+              <button onClick={addFileToProject} className="text-zinc-600 hover:text-zinc-300"><Plus size={11} /></button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {projectFiles.map(f => (
+                <button key={f.name} onClick={() => { setActiveFile(f.name); setCode(f.content); }}
+                  className={`w-full text-left px-2 py-1 text-[10px] font-mono flex items-center gap-1.5 transition-colors ${activeFile === f.name ? "bg-zinc-800 text-zinc-200" : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"}`}>
+                  <FileCode size={10} className="shrink-0 text-zinc-600" />
+                  <span className="truncate">{f.name}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { setActiveProject(null); setProjectFiles([]); setActiveFile(""); }}
+              className="px-2 py-1.5 text-[9px] text-zinc-600 hover:text-red-400 border-t border-zinc-800 text-center">
+              Close Project
+            </button>
+          </div>
+        )}
+
         {/* Code Editor */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
@@ -1856,19 +2148,69 @@ ${brokenCode.substring(0, 2000)}
         </div>
       </div>
 
+      {/* Interactive Terminal Panel */}
+      {showTerminal && (
+        <div className="h-48 border-t border-zinc-800 bg-zinc-950 flex flex-col">
+          <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border-b border-zinc-800">
+            <Terminal size={11} className="text-green-400" />
+            <span className="text-[10px] text-zinc-400 font-medium">Terminal</span>
+            <div className="flex-1" />
+            <button onClick={() => setTerminalHistory([])} className="text-[9px] text-zinc-600 hover:text-zinc-400">Clear</button>
+            <button onClick={() => setShowTerminal(false)} className="text-zinc-600 hover:text-zinc-400"><X size={11} /></button>
+          </div>
+          <div ref={termScrollRef} className="flex-1 overflow-auto p-2 font-mono text-[11px]">
+            {terminalHistory.length === 0 && (
+              <div className="text-zinc-700 text-[10px]">Terminal ready. Type commands below (ls, pwd, node -v, python3 --version, etc.)</div>
+            )}
+            {terminalHistory.map((h, i) => (
+              <div key={i} className="mb-2">
+                <div className="text-green-400 flex items-center gap-1"><span className="text-blue-400">$</span> {h.cmd}</div>
+                {h.out && <div className="text-zinc-300 whitespace-pre-wrap">{h.out}</div>}
+                {h.err && <div className="text-red-400 whitespace-pre-wrap">{h.err}</div>}
+              </div>
+            ))}
+            {termRunning && <div className="text-yellow-500 animate-pulse">Running...</div>}
+          </div>
+          <div className="flex items-center gap-1 px-2 py-1 bg-zinc-900 border-t border-zinc-800">
+            <span className="text-green-400 text-xs font-mono">$</span>
+            <input ref={termInputRef} value={termCmd} onChange={e => setTermCmd(e.target.value)}
+              className="flex-1 bg-transparent text-zinc-200 text-xs font-mono focus:outline-none placeholder:text-zinc-700"
+              placeholder="Type a command..." data-testid="input-terminal"
+              onKeyDown={e => {
+                if (e.key === "Enter") runTerminalCmd();
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  const newIdx = historyIdx < cmdHistory.length - 1 ? historyIdx + 1 : historyIdx;
+                  setHistoryIdx(newIdx);
+                  if (cmdHistory[cmdHistory.length - 1 - newIdx]) setTermCmd(cmdHistory[cmdHistory.length - 1 - newIdx]);
+                }
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  const newIdx = historyIdx > 0 ? historyIdx - 1 : -1;
+                  setHistoryIdx(newIdx);
+                  setTermCmd(newIdx >= 0 && cmdHistory[cmdHistory.length - 1 - newIdx] ? cmdHistory[cmdHistory.length - 1 - newIdx] : "");
+                }
+              }} />
+          </div>
+        </div>
+      )}
+
       {/* Status bar */}
-      <div className="flex items-center justify-between px-4 py-1 bg-zinc-900 border-t border-zinc-800 text-[10px] text-zinc-600">
+      <div className="flex items-center justify-between px-3 py-0.5 bg-zinc-900 border-t border-zinc-800 text-[9px] text-zinc-600">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
-            {langInfo && <langInfo.icon size={10} className={langInfo.color} />} {langInfo.name}
+            {langInfo && <langInfo.icon size={9} className={langInfo.color} />} {langInfo.name}
           </span>
-          <span>Ln {code.substring(0, textareaRef.current?.selectionStart || 0).split("\n").length}, Col {((textareaRef.current?.selectionStart || 0) - code.lastIndexOf("\n", (textareaRef.current?.selectionStart || 0) - 1))}</span>
+          <span>Ln {code.substring(0, textareaRef.current?.selectionStart || 0).split("\n").length}</span>
           <span>{(new Blob([code]).size / 1024).toFixed(1)} KB</span>
+          <span className={`px-1 py-0.5 rounded ${execMode === "server" ? "bg-orange-500/20 text-orange-400" : "bg-blue-500/20 text-blue-400"}`}>
+            {execMode === "server" ? "Server" : "Browser"}
+          </span>
+          {activeProject && <span className="text-blue-400">{activeProject.name}/{activeFile}</span>}
         </div>
         <div className="flex items-center gap-3">
-          <span>Ctrl+Enter to run</span>
-          <span>Ctrl+S to save</span>
-          <span>Tab for indent</span>
+          <span>Ctrl+Enter run</span>
+          <span>Ctrl+S save</span>
           <span className="text-zinc-500">My Ai Coder Playground</span>
         </div>
       </div>

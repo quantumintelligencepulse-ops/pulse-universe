@@ -13,89 +13,77 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 ## Key Files
 - `client/src/App.tsx` - ALL frontend code (consolidated single file)
 - `client/src/index.css` - All styles and CSS variables
-- `server/routes.ts` - API routes + AI logic + Discord + search
+- `server/routes.ts` - API routes + AI logic + Discord + search + execution engine
 - `server/storage.ts` - Database CRUD operations
 - `server/db.ts` - Database connection
 - `shared/schema.ts` - Drizzle schema (chats, messages tables)
 - `shared/routes.ts` - API contract definitions
 
-## Coder Features (30 Transcendence-class upgrades)
-1. Code theme system - 5 themes (One Dark, VS Code, Dracula, Atom, Coldark)
-2. Language-specific icons for 20+ languages
-3. Code metrics analyzer (lines, functions, classes, imports, complexity)
-4. Enhanced live preview with console output capture for JS
-5. Fullscreen code viewer with Escape to close
-6. Code metrics popup with complexity rating
-7. Collapsible long code blocks (auto-collapse >50 lines)
-8. In-code search with match highlighting
-9. Search match counter
-10. File size badge on code blocks
-11. Configurable syntax highlighting (theme, font size, wrap, line numbers)
-12. Code block count badge on messages
-13. Auto-detect untagged code blocks
-14. Quick code templates (React, API, DB, Tests, Debug, Refactor, Docker, Algorithm)
-15. Paste code detection with visual indicator
-16. Template popup triggered by / key
-17. Pasted code analysis indicator
-18. Categorized coder suggestions (Full Stack, Backend, Frontend, DevOps, Debug)
-19. Saved codes file manager panel with viewer
-20. Coder settings panel (theme, font size, word wrap, line numbers)
-21. Open saved codes from toolbar
-22. Settings accessible from toolbar
-23. Code block extraction from entire conversation
-24. Save all code blocks at once
-25. Enhanced toolbar with code block counter
-26. Feature badges on welcome screen (8 capability indicators)
-27. Persistent settings via localStorage
-28. Keyboard shortcuts: Ctrl+K (new chat), Ctrl+J (new coder)
-29. Transcendence-level system prompt with 30+ language support
-30. Lower temperature (0.15) for more precise code generation
-
-## Code Playground (Full IDE)
+## Code Playground (Full IDE - PowerShell Level)
 - Route: /playground with sidebar navigation link
-- Multi-language support: JavaScript, HTML, CSS, Python, TypeScript, SQL, JSON, Bash, Rust, Go, Java, C++
+- Multi-language: JavaScript, HTML, CSS, Python, TypeScript, SQL, JSON, Bash, Rust, Go, Java, C++
 - JavaScript execution via sandboxed iframe with console.log capture
 - Python execution via Pyodide (WebAssembly) - real Python in browser
 - HTML/CSS live preview in iframe panel
 - Tab key indentation, Ctrl+Enter to run, Ctrl+S to save
 - Code metrics in status bar (lines, functions, classes, complexity)
 - VS Code-style editor with syntax highlighting overlay
-- Console output panel with error highlighting
-- Save to server, clear, language switching with starter code templates
 - Keyboard shortcut: Ctrl+P to open playground
 
-## 5 Futuristic Features (20 Years Ahead)
-1. Voice-to-Code - Web Speech API captures voice, inserts as code comments/descriptions
-2. AI Code Review - Sends code to AI for quality rating (1-10) with specific improvements
-3. AI Auto-Fix - Sends broken/bad code to AI, gets back fixed version automatically
-4. AI Code Explainer - Step-by-step AI breakdown of what code does and why
-5. AI Code Converter - Built into AI Fix, transforms code between patterns/paradigms
+## 5 POWER Features (PowerShell-Level)
+1. **Server-Side Execution** - Toggle Browser/Server mode. Server mode runs JS/TS/Python/Bash on actual Node.js/Python runtime with real file system access, `require()`, full npm packages. 15s timeout, temp file cleanup.
+2. **Interactive Terminal** - Built-in terminal panel with command history (arrow keys), runs real shell commands (ls, pwd, node -v, pip list, etc.). Safety-blocked destructive commands. Green prompt with command history.
+3. **Multi-File Project System** - Create projects with multiple files, file tree sidebar, switch between files, save/load per-file. Server-persisted in playground_projects/ directory.
+4. **Package Manager** - Install npm or pip packages from the playground. Select manager, type package names, install button. Output log shows progress. Packages available for server-side execution.
+5. **Code Snippet Templates** - 8 pre-built templates: HTTP Server, Web Scraper, Data Analysis, REST API Client, Sorting Algorithms, Discord Bot, React Component, Dashboard UI. One-click load into editor.
+
+## 5 Futuristic AI Features
+1. Voice-to-Code - Web Speech API captures voice, inserts as code comments
+2. AI Code Review - Sends code to AI for quality rating (1-10) with improvements
+3. AI Auto-Fix Engine - On error, automatically sends code+error to AI, gets fixed version, re-runs. Up to 3 attempts. Works in browser AND server mode.
+4. AI Code Explainer - Step-by-step AI breakdown of what code does
+5. AI Code Converter - Transforms code between patterns/paradigms
+
+## Auto-Fix Engine
+- Toggle ON/OFF in toolbar (green button)
+- Catches JS errors from iframe sandbox, Python errors from Pyodide, server execution errors
+- Sends broken code + error message to AI Coder endpoint
+- AI returns fixed code in code block, engine extracts and replaces editor content
+- Automatically re-runs fixed code (recursive for Python/server, setTimeout for JS)
+- MAX_FIX_ATTEMPTS = 3, resets on success or exhaustion
+
+## Coder Features (30 Transcendence-class upgrades)
+1-30: Code themes, language icons, metrics analyzer, live preview, fullscreen, collapsible blocks, search, settings, templates, paste detection, categorized suggestions, saved codes manager, persistent settings, keyboard shortcuts, etc.
 
 ## General Features
 - Two chat modes: My Ai Gpt (general) and My Ai Coder (coding)
 - Chat rename, search, clear all, grouped by date
 - Message reactions, copy, regenerate, retry on error
 - Export conversation as markdown
-- Scroll to bottom button, input history, char/word count
-- Timestamps, dynamic page titles, SEO meta tags
-- Stats dashboard (chat count, message count, code files, connection status)
 - Responsive design with white theme
 
 ## API Endpoints
 - GET/POST /api/chats - List/create chats
 - GET/DELETE /api/chats/:id - Get/delete chat
-- PATCH /api/chats/:id/rename - Rename a chat
+- PATCH /api/chats/:id/rename - Rename chat
 - DELETE /api/chats - Delete all chats
 - GET /api/chats/search/:query - Search chats
 - GET /api/stats - Get stats
-- GET /api/chats/:chatId/messages - List messages
-- POST /api/chats/:chatId/messages - Send message (triggers AI response)
-- POST /api/chats/:chatId/export - Export conversation as markdown
+- GET/POST /api/chats/:chatId/messages - List/send messages
+- POST /api/chats/:chatId/export - Export as markdown
 - POST /api/save-code - Save code to server
-- GET /api/saved-codes - List saved code files (with metadata)
-- GET /api/saved-codes/:filename - Download saved code file
-- GET /api/saved-codes/:filename/content - Read file content
-- DELETE /api/saved-codes/:filename - Delete saved code file
+- GET /api/saved-codes - List saved codes
+- POST /api/execute - Server-side code execution (JS/TS/Python/Bash)
+- POST /api/terminal - Run shell commands
+- POST /api/packages/install - Install npm/pip packages
+- GET /api/packages/list - List installed packages
+- GET/POST /api/projects - List/create projects
+- GET /api/projects/:id/files - Get project files
+- PUT /api/projects/:id/files/:filename - Update file
+- POST /api/projects/:id/files - Create file
+- DELETE /api/projects/:id/files/:filename - Delete file
+- DELETE /api/projects/:id - Delete project
+- GET /api/templates - Get code templates
 
 ## Token Management
 - Discord knowledge truncated to 800 chars max

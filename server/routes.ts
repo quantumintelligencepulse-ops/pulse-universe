@@ -192,6 +192,215 @@ export async function registerRoutes(
     res.send(md);
   });
 
+  // ═══════ POWER #1: SERVER-SIDE CODE EXECUTION ═══════
+  app.post("/api/execute", async (req, res) => {
+    const { code, language } = req.body;
+    if (!code) return res.status(400).json({ error: "No code provided" });
+
+    const lang = (language || "javascript").toLowerCase();
+    const tmpDir = path.join(process.cwd(), "tmp_exec");
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+
+    const id = `exec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    let filePath = "";
+    let cmd = "";
+
+    try {
+      if (lang === "javascript" || lang === "typescript") {
+        filePath = path.join(tmpDir, `${id}.js`);
+        let jsCode = code;
+        if (lang === "typescript") {
+          jsCode = code.replace(/:\s*(string|number|boolean|any|void|never|null|undefined|object|unknown)(\[\])?\s*/g, " ");
+          jsCode = jsCode.replace(/^\s*interface\s+\w+\s*\{[\s\S]*?\n\}\s*$/gm, "");
+          jsCode = jsCode.replace(/^\s*type\s+\w+\s*=\s*[\s\S]*?;\s*$/gm, "");
+        }
+        fs.writeFileSync(filePath, jsCode);
+        cmd = `node "${filePath}"`;
+      } else if (lang === "python") {
+        filePath = path.join(tmpDir, `${id}.py`);
+        fs.writeFileSync(filePath, code);
+        cmd = `python3 "${filePath}"`;
+      } else if (lang === "bash") {
+        filePath = path.join(tmpDir, `${id}.sh`);
+        fs.writeFileSync(filePath, code);
+        cmd = `bash "${filePath}"`;
+      } else {
+        return res.json({ stdout: "", stderr: `Language '${lang}' not supported for server execution. Supported: javascript, typescript, python, bash.`, exitCode: 1, executionTime: 0 });
+      }
+
+      const startTime = Date.now();
+      const { execSync } = await import("child_process");
+      let stdout = "", stderr = "";
+      let exitCode = 0;
+      try {
+        stdout = execSync(cmd, { timeout: 15000, maxBuffer: 1024 * 512, encoding: "utf-8", cwd: tmpDir, env: { ...process.env, NODE_PATH: path.join(process.cwd(), "node_modules") } });
+      } catch (e: any) {
+        stdout = e.stdout || "";
+        stderr = e.stderr || e.message || "Execution failed";
+        exitCode = e.status || 1;
+      }
+      const executionTime = Date.now() - startTime;
+
+      try { fs.unlinkSync(filePath); } catch {}
+
+      res.json({ stdout: stdout.substring(0, 50000), stderr: stderr.substring(0, 10000), exitCode, executionTime });
+    } catch (e: any) {
+      try { if (filePath) fs.unlinkSync(filePath); } catch {}
+      res.json({ stdout: "", stderr: e.message || "Execution error", exitCode: 1, executionTime: 0 });
+    }
+  });
+
+  // ═══════ POWER #2: REPL / TERMINAL COMMANDS ═══════
+  app.post("/api/terminal", async (req, res) => {
+    const { command } = req.body;
+    if (!command) return res.status(400).json({ error: "No command" });
+
+    const blocked = ["rm -rf /", "rm -rf /*", "sudo", "shutdown", "reboot", "mkfs", "dd if=", "> /dev", ":(){ :|:&", "chmod -R 777 /"];
+    const lower = command.toLowerCase().trim();
+    if (blocked.some(b => lower.includes(b))) {
+      return res.json({ stdout: "", stderr: "Command blocked for safety.", exitCode: 1 });
+    }
+
+    try {
+      const { execSync } = await import("child_process");
+      let stdout = "", stderr = "";
+      let exitCode = 0;
+      try {
+        stdout = execSync(command, { timeout: 10000, maxBuffer: 1024 * 256, encoding: "utf-8", cwd: process.cwd() });
+      } catch (e: any) {
+        stdout = e.stdout || "";
+        stderr = e.stderr || e.message || "";
+        exitCode = e.status || 1;
+      }
+      res.json({ stdout: stdout.substring(0, 30000), stderr: stderr.substring(0, 5000), exitCode });
+    } catch (e: any) {
+      res.json({ stdout: "", stderr: e.message, exitCode: 1 });
+    }
+  });
+
+  // ═══════ POWER #3: PACKAGE MANAGER ═══════
+  app.post("/api/packages/install", async (req, res) => {
+    const { packages, manager } = req.body;
+    if (!packages || !Array.isArray(packages) || packages.length === 0) return res.status(400).json({ error: "No packages" });
+
+    const sanitized = packages.map((p: string) => p.replace(/[;&|`$(){}]/g, "")).filter(Boolean).slice(0, 5);
+    const mgr = manager === "pip" ? "pip" : "npm";
+
+    try {
+      const { execSync } = await import("child_process");
+      const cmd = mgr === "pip"
+        ? `pip install ${sanitized.join(" ")}`
+        : `npm install ${sanitized.join(" ")} --no-save`;
+
+      let stdout = "", stderr = "";
+      try {
+        stdout = execSync(cmd, { timeout: 60000, maxBuffer: 1024 * 512, encoding: "utf-8", cwd: process.cwd() });
+      } catch (e: any) {
+        stdout = e.stdout || "";
+        stderr = e.stderr || e.message || "";
+      }
+      res.json({ output: stdout.substring(0, 10000), error: stderr.substring(0, 5000), packages: sanitized, manager: mgr });
+    } catch (e: any) {
+      res.json({ output: "", error: e.message, packages: sanitized, manager: mgr });
+    }
+  });
+
+  app.get("/api/packages/list", async (_req, res) => {
+    try {
+      const { execSync } = await import("child_process");
+      const npm = execSync("npm list --depth=0 --json 2>/dev/null || echo '{}'", { encoding: "utf-8", timeout: 10000 });
+      let pip = "{}";
+      try { pip = execSync("pip list --format=json 2>/dev/null || echo '[]'", { encoding: "utf-8", timeout: 10000 }); } catch {}
+      res.json({ npm: JSON.parse(npm), pip: JSON.parse(pip) });
+    } catch {
+      res.json({ npm: {}, pip: [] });
+    }
+  });
+
+  // ═══════ POWER #4: MULTI-FILE PROJECT SYSTEM ═══════
+  const PROJECTS_DIR = path.join(process.cwd(), "playground_projects");
+  if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR, { recursive: true });
+
+  app.get("/api/projects", async (_req, res) => {
+    try {
+      const dirs = fs.readdirSync(PROJECTS_DIR).filter(d => fs.statSync(path.join(PROJECTS_DIR, d)).isDirectory());
+      const projects = dirs.map(d => {
+        const metaPath = path.join(PROJECTS_DIR, d, "meta.json");
+        let meta = { name: d, language: "javascript", created: Date.now() };
+        if (fs.existsSync(metaPath)) { try { meta = JSON.parse(fs.readFileSync(metaPath, "utf-8")); } catch {} }
+        const files = fs.readdirSync(path.join(PROJECTS_DIR, d)).filter(f => f !== "meta.json");
+        return { ...meta, id: d, fileCount: files.length, files };
+      });
+      res.json(projects);
+    } catch { res.json([]); }
+  });
+
+  app.post("/api/projects", async (req, res) => {
+    const { name, language } = req.body;
+    const id = `proj_${Date.now()}`;
+    const dir = path.join(PROJECTS_DIR, id);
+    fs.mkdirSync(dir, { recursive: true });
+    const meta = { name: name || "Untitled Project", language: language || "javascript", created: Date.now() };
+    fs.writeFileSync(path.join(dir, "meta.json"), JSON.stringify(meta));
+    const ext = language === "python" ? "py" : language === "html" ? "html" : language === "css" ? "css" : "js";
+    fs.writeFileSync(path.join(dir, `main.${ext}`), `// ${meta.name}\n`);
+    res.json({ id, ...meta, files: [`main.${ext}`] });
+  });
+
+  app.get("/api/projects/:id/files", async (req, res) => {
+    const dir = path.join(PROJECTS_DIR, req.params.id.replace(/[^a-zA-Z0-9_-]/g, ""));
+    if (!fs.existsSync(dir)) return res.status(404).json({ error: "Not found" });
+    const files = fs.readdirSync(dir).filter(f => f !== "meta.json").map(f => ({
+      name: f, size: fs.statSync(path.join(dir, f)).size,
+      content: fs.readFileSync(path.join(dir, f), "utf-8")
+    }));
+    res.json(files);
+  });
+
+  app.put("/api/projects/:id/files/:filename", async (req, res) => {
+    const dir = path.join(PROJECTS_DIR, req.params.id.replace(/[^a-zA-Z0-9_-]/g, ""));
+    if (!fs.existsSync(dir)) return res.status(404).json({ error: "Not found" });
+    const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    fs.writeFileSync(path.join(dir, safeName), req.body.content || "");
+    res.json({ saved: true, filename: safeName });
+  });
+
+  app.post("/api/projects/:id/files", async (req, res) => {
+    const dir = path.join(PROJECTS_DIR, req.params.id.replace(/[^a-zA-Z0-9_-]/g, ""));
+    if (!fs.existsSync(dir)) return res.status(404).json({ error: "Not found" });
+    const safeName = (req.body.filename || "untitled.js").replace(/[^a-zA-Z0-9._-]/g, "_");
+    fs.writeFileSync(path.join(dir, safeName), req.body.content || "");
+    res.json({ created: true, filename: safeName });
+  });
+
+  app.delete("/api/projects/:id/files/:filename", async (req, res) => {
+    const dir = path.join(PROJECTS_DIR, req.params.id.replace(/[^a-zA-Z0-9_-]/g, ""));
+    const filePath = path.join(dir, req.params.filename.replace(/[^a-zA-Z0-9._-]/g, "_"));
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.status(204).send();
+  });
+
+  app.delete("/api/projects/:id", async (req, res) => {
+    const dir = path.join(PROJECTS_DIR, req.params.id.replace(/[^a-zA-Z0-9_-]/g, ""));
+    if (fs.existsSync(dir)) { fs.rmSync(dir, { recursive: true, force: true }); }
+    res.status(204).send();
+  });
+
+  // ═══════ POWER #5: SNIPPET TEMPLATES ═══════
+  app.get("/api/templates", async (_req, res) => {
+    const templates = [
+      { id: "http-server", name: "HTTP Server", lang: "javascript", desc: "Express-like server", code: `const http = require('http');\n\nconst server = http.createServer((req, res) => {\n  res.writeHead(200, { 'Content-Type': 'application/json' });\n  res.end(JSON.stringify({ message: 'Hello from server!', path: req.url, method: req.method }));\n});\n\nserver.listen(3001, () => {\n  console.log('Server running on port 3001');\n});\n\nsetTimeout(() => { server.close(); console.log('Server stopped.'); }, 5000);` },
+      { id: "web-scraper", name: "Web Scraper", lang: "python", desc: "URL content fetcher", code: `import urllib.request\nimport json\n\ndef fetch_url(url):\n    try:\n        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})\n        with urllib.request.urlopen(req, timeout=10) as resp:\n            data = resp.read().decode('utf-8')\n            print(f"Status: {resp.status}")\n            print(f"Content length: {len(data)} chars")\n            print(f"First 500 chars:\\n{data[:500]}")\n    except Exception as e:\n        print(f"Error: {e}")\n\nfetch_url("https://httpbin.org/json")` },
+      { id: "data-analysis", name: "Data Analysis", lang: "python", desc: "Stats + analysis pipeline", code: `import math\nimport json\nfrom collections import Counter\n\ndata = [23, 45, 12, 67, 34, 89, 23, 45, 56, 78, 12, 34, 67, 90, 23]\n\nmean = sum(data) / len(data)\nsorted_d = sorted(data)\nmedian = sorted_d[len(sorted_d) // 2]\nvariance = sum((x - mean) ** 2 for x in data) / len(data)\nstd_dev = math.sqrt(variance)\nmode = Counter(data).most_common(1)[0][0]\n\nprint("=== Data Analysis ===")\nprint(f"Data: {data}")\nprint(f"Count: {len(data)}")\nprint(f"Mean: {mean:.2f}")\nprint(f"Median: {median}")\nprint(f"Mode: {mode}")\nprint(f"Std Dev: {std_dev:.2f}")\nprint(f"Min: {min(data)}, Max: {max(data)}")\nprint(f"Range: {max(data) - min(data)}")` },
+      { id: "api-client", name: "REST API Client", lang: "javascript", desc: "Fetch + API calls", code: `async function apiClient(baseUrl) {\n  const methods = ['GET', 'POST'];\n  \n  async function request(method, path, body = null) {\n    const opts = { method, headers: { 'Content-Type': 'application/json' } };\n    if (body) opts.body = JSON.stringify(body);\n    const res = await fetch(baseUrl + path, opts);\n    return { status: res.status, data: await res.json() };\n  }\n  \n  return {\n    get: (path) => request('GET', path),\n    post: (path, body) => request('POST', path, body),\n  };\n}\n\n// Demo\nconst client = await apiClient('https://jsonplaceholder.typicode.com');\nconst users = await client.get('/users');\nconsole.log(\`Found \${users.data.length} users\`);\nusers.data.slice(0, 3).forEach(u => console.log(\`  - \${u.name} (\${u.email})\`));` },
+      { id: "algo-sort", name: "Sorting Algorithms", lang: "javascript", desc: "Visual sort comparison", code: `function quickSort(arr) {\n  if (arr.length <= 1) return arr;\n  const pivot = arr[Math.floor(arr.length / 2)];\n  const left = arr.filter(x => x < pivot);\n  const mid = arr.filter(x => x === pivot);\n  const right = arr.filter(x => x > pivot);\n  return [...quickSort(left), ...mid, ...quickSort(right)];\n}\n\nfunction mergeSort(arr) {\n  if (arr.length <= 1) return arr;\n  const mid = Math.floor(arr.length / 2);\n  const left = mergeSort(arr.slice(0, mid));\n  const right = mergeSort(arr.slice(mid));\n  const result = [];\n  let i = 0, j = 0;\n  while (i < left.length && j < right.length) {\n    result.push(left[i] <= right[j] ? left[i++] : right[j++]);\n  }\n  return [...result, ...left.slice(i), ...right.slice(j)];\n}\n\nconst data = Array.from({length: 20}, () => Math.floor(Math.random() * 100));\nconsole.log("Original:", data.join(", "));\n\nlet t = performance.now();\nconst qs = quickSort([...data]);\nconsole.log(\`QuickSort (\${(performance.now()-t).toFixed(3)}ms): \${qs.join(", ")}\`);\n\nt = performance.now();\nconst ms = mergeSort([...data]);\nconsole.log(\`MergeSort (\${(performance.now()-t).toFixed(3)}ms): \${ms.join(", ")}\`);` },
+      { id: "discord-bot", name: "Discord Bot", lang: "python", desc: "Bot template (server-side)", code: `import discord\nfrom discord.ext import commands\n\nbot = commands.Bot(command_prefix='!', intents=discord.Intents.all())\n\n@bot.event\nasync def on_ready():\n    print(f'{bot.user} is online!')\n\n@bot.command()\nasync def ping(ctx):\n    await ctx.send(f'Pong! {round(bot.latency * 1000)}ms')\n\n@bot.command()\nasync def hello(ctx):\n    await ctx.send(f'Hello {ctx.author.name}! 👋')\n\n# bot.run('YOUR_TOKEN')  # Add your token to run\nprint("Discord bot template ready!")` },
+      { id: "react-component", name: "React Component", lang: "typescript", desc: "Modern React pattern", code: `interface CardProps {\n  title: string;\n  description: string;\n  tags: string[];\n  onClick?: () => void;\n}\n\nfunction Card({ title, description, tags, onClick }: CardProps) {\n  return (\n    <div className="card" onClick={onClick}>\n      <h3>{title}</h3>\n      <p>{description}</p>\n      <div className="tags">\n        {tags.map(tag => <span key={tag} className="tag">{tag}</span>)}\n      </div>\n    </div>\n  );\n}\n\nconsole.log("React Card component template loaded!");` },
+      { id: "dashboard-html", name: "Dashboard UI", lang: "html", desc: "Modern dashboard layout", code: `<!DOCTYPE html>\n<html>\n<head>\n<style>\n  * { margin: 0; box-sizing: border-box; }\n  body { font-family: system-ui; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 20px; }\n  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }\n  .card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }\n  .card h3 { color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }\n  .card .value { font-size: 32px; font-weight: 700; margin-top: 8px; }\n  .green { color: #4ade80; } .blue { color: #60a5fa; } .purple { color: #a78bfa; } .amber { color: #fbbf24; }\n  h1 { margin-bottom: 20px; font-size: 24px; }\n  .bar { height: 8px; border-radius: 4px; background: #334155; margin-top: 12px; overflow: hidden; }\n  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }\n</style>\n</head>\n<body>\n  <h1>📊 Dashboard</h1>\n  <div class="grid">\n    <div class="card"><h3>Revenue</h3><div class="value green">$48.2K</div><div class="bar"><div class="bar-fill" style="width:78%;background:#4ade80"></div></div></div>\n    <div class="card"><h3>Users</h3><div class="value blue">2,847</div><div class="bar"><div class="bar-fill" style="width:62%;background:#60a5fa"></div></div></div>\n    <div class="card"><h3>Projects</h3><div class="value purple">156</div><div class="bar"><div class="bar-fill" style="width:45%;background:#a78bfa"></div></div></div>\n    <div class="card"><h3>Uptime</h3><div class="value amber">99.9%</div><div class="bar"><div class="bar-fill" style="width:99%;background:#fbbf24"></div></div></div>\n  </div>\n</body>\n</html>` },
+    ];
+    res.json(templates);
+  });
+
   app.post(api.messages.create.path, async (req, res) => {
     try {
       const chatId = Number(req.params.chatId);
