@@ -71,29 +71,24 @@ async function getWeather(query: string): Promise<string> {
       query.match(/(?:how(?:'s| is)(?: the)? weather)\s+(?:in|for|at|of)?\s*(.+?)(?:\?|$|\.|\!)/i) ||
       query.match(/weather\s+(.+)/i);
     let location = locationMatch ? locationMatch[1].trim() : "";
-    if (!location) { console.log("Weather: no location extracted from query"); return ""; }
+    if (!location) return "";
 
     const STATE_CITIES: Record<string, string> = { "alabama": "Birmingham", "alaska": "Anchorage", "arizona": "Phoenix", "arkansas": "Little Rock", "california": "Los Angeles", "colorado": "Denver", "connecticut": "Hartford", "delaware": "Wilmington", "florida": "Miami", "georgia": "Atlanta", "hawaii": "Honolulu", "idaho": "Boise", "illinois": "Chicago", "indiana": "Indianapolis", "iowa": "Des Moines", "kansas": "Wichita", "kentucky": "Louisville", "louisiana": "New Orleans", "maine": "Portland", "maryland": "Baltimore", "massachusetts": "Boston", "michigan": "Detroit", "minnesota": "Minneapolis", "mississippi": "Jackson", "missouri": "Kansas City", "montana": "Billings", "nebraska": "Omaha", "nevada": "Las Vegas", "new hampshire": "Manchester", "new jersey": "Newark", "new mexico": "Albuquerque", "new york": "New York", "north carolina": "Charlotte", "north dakota": "Fargo", "ohio": "Columbus", "oklahoma": "Oklahoma City", "oregon": "Portland", "pennsylvania": "Philadelphia", "rhode island": "Providence", "south carolina": "Charleston", "south dakota": "Sioux Falls", "tennessee": "Nashville", "texas": "Houston", "utah": "Salt Lake City", "vermont": "Burlington", "virginia": "Richmond", "washington": "Seattle", "west virginia": "Charleston", "wisconsin": "Milwaukee", "wyoming": "Cheyenne" };
     const stateCity = STATE_CITIES[location.toLowerCase()];
     if (stateCity) location = stateCity;
     location = location.replace(/,.*$/, "").trim();
-    console.log("Weather: fetching for location:", location);
-
-    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
-    const geoResp = await fetch(geoUrl, { signal: AbortSignal.timeout(5000) });
-    if (!geoResp.ok) { console.log("Weather: geocoding failed", geoResp.status); return ""; }
+    const geoResp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`, { signal: AbortSignal.timeout(5000) });
+    if (!geoResp.ok) return "";
     const geoData = await geoResp.json() as any;
     const place = geoData.results?.[0];
-    if (!place) { console.log("Weather: no geocoding results"); return ""; }
+    if (!place) return "";
 
     const { latitude, longitude, name, admin1, country } = place;
-    console.log("Weather: geocoded to", name, admin1, latitude, longitude);
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=3&timezone=auto`;
-    const weatherResp = await fetch(weatherUrl, { signal: AbortSignal.timeout(5000) });
-    if (!weatherResp.ok) { console.log("Weather: API failed", weatherResp.status); return ""; }
+    const weatherResp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=3&timezone=auto`, { signal: AbortSignal.timeout(5000) });
+    if (!weatherResp.ok) return "";
     const w = await weatherResp.json() as any;
     const cur = w.current;
-    if (!cur) { console.log("Weather: no current data in response"); return ""; }
+    if (!cur) return "";
 
     const WMO: Record<number, string> = { 0: "Clear sky", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Foggy", 48: "Rime fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain", 71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains", 80: "Light showers", 81: "Showers", 82: "Heavy showers", 85: "Light snow showers", 86: "Heavy snow showers", 95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Severe thunderstorm" };
     const desc = WMO[cur.weather_code] || "Unknown";
@@ -111,14 +106,150 @@ async function getWeather(query: string): Promise<string> {
       return `${d}: High ${hi}°F, Low ${lo}°F - ${dayDesc}`;
     }).join("\n") || "";
 
-    const result = `LIVE WEATHER DATA for ${name}${admin1 ? ", " + admin1 : ""}${country ? ", " + country : ""}:
+    return `LIVE WEATHER DATA for ${name}${admin1 ? ", " + admin1 : ""}${country ? ", " + country : ""}:
 Current: ${desc}, ${tempF}°F (${tempC}°C), Feels like ${feelsF}°F
 Wind: ${windMph} mph, Humidity: ${humid}%
 3-Day Forecast:\n${forecast}`;
-    console.log("Weather result:", result.substring(0, 200));
-    return result;
   } catch (e) {
     console.error("Weather fetch error:", e);
+    return "";
+  }
+}
+
+const COMMON_TICKERS: Record<string, string> = {
+  "apple": "AAPL", "google": "GOOGL", "alphabet": "GOOGL", "microsoft": "MSFT", "amazon": "AMZN",
+  "tesla": "TSLA", "meta": "META", "facebook": "META", "netflix": "NFLX", "nvidia": "NVDA",
+  "amd": "AMD", "intel": "INTC", "disney": "DIS", "nike": "NKE", "walmart": "WMT",
+  "target": "TGT", "costco": "COST", "starbucks": "SBUX", "mcdonalds": "MCD", "coca-cola": "KO",
+  "pepsi": "PEP", "boeing": "BA", "ford": "F", "gm": "GM", "general motors": "GM",
+  "uber": "UBER", "lyft": "LYFT", "spotify": "SPOT", "snap": "SNAP", "snapchat": "SNAP",
+  "twitter": "X", "coinbase": "COIN", "paypal": "PYPL", "square": "SQ", "block": "SQ",
+  "shopify": "SHOP", "zoom": "ZM", "salesforce": "CRM", "oracle": "ORCL", "ibm": "IBM",
+  "adobe": "ADBE", "visa": "V", "mastercard": "MA", "jpmorgan": "JPM", "goldman sachs": "GS",
+  "bank of america": "BAC", "wells fargo": "WFC", "citigroup": "C", "morgan stanley": "MS",
+  "berkshire": "BRK-B", "berkshire hathaway": "BRK-B", "johnson & johnson": "JNJ", "pfizer": "PFE",
+  "moderna": "MRNA", "unitedhealth": "UNH", "at&t": "T", "verizon": "VZ", "t-mobile": "TMUS",
+  "airbnb": "ABNB", "palantir": "PLTR", "robinhood": "HOOD", "roblox": "RBLX", "draftkings": "DKNG",
+  "gamestop": "GME", "amc": "AMC", "lucid": "LCID", "rivian": "RIVN", "nio": "NIO",
+  "sofi": "SOFI", "plaid": "PLTR", "crowdstrike": "CRWD", "snowflake": "SNOW", "databricks": "DBRX",
+  "doordash": "DASH", "instacart": "CART", "pinterest": "PINS", "reddit": "RDDT", "etsy": "ETSY"
+};
+
+const CRYPTO_IDS: Record<string, { id: string; symbol: string }> = {
+  "bitcoin": { id: "bitcoin", symbol: "BTC" }, "btc": { id: "bitcoin", symbol: "BTC" },
+  "ethereum": { id: "ethereum", symbol: "ETH" }, "eth": { id: "ethereum", symbol: "ETH" },
+  "dogecoin": { id: "dogecoin", symbol: "DOGE" }, "doge": { id: "dogecoin", symbol: "DOGE" },
+  "solana": { id: "solana", symbol: "SOL" }, "sol": { id: "solana", symbol: "SOL" },
+  "cardano": { id: "cardano", symbol: "ADA" }, "ada": { id: "cardano", symbol: "ADA" },
+  "xrp": { id: "ripple", symbol: "XRP" }, "ripple": { id: "ripple", symbol: "XRP" },
+  "polkadot": { id: "polkadot", symbol: "DOT" }, "dot": { id: "polkadot", symbol: "DOT" },
+  "litecoin": { id: "litecoin", symbol: "LTC" }, "ltc": { id: "litecoin", symbol: "LTC" },
+  "chainlink": { id: "chainlink", symbol: "LINK" }, "link": { id: "chainlink", symbol: "LINK" },
+  "avalanche": { id: "avalanche-2", symbol: "AVAX" }, "avax": { id: "avalanche-2", symbol: "AVAX" },
+  "polygon": { id: "matic-network", symbol: "MATIC" }, "matic": { id: "matic-network", symbol: "MATIC" },
+  "shiba inu": { id: "shiba-inu", symbol: "SHIB" }, "shib": { id: "shiba-inu", symbol: "SHIB" },
+  "tron": { id: "tron", symbol: "TRX" }, "pepe": { id: "pepe", symbol: "PEPE" },
+  "uniswap": { id: "uniswap", symbol: "UNI" }, "tether": { id: "tether", symbol: "USDT" },
+  "usdc": { id: "usd-coin", symbol: "USDC" }, "bnb": { id: "binancecoin", symbol: "BNB" },
+  "binance coin": { id: "binancecoin", symbol: "BNB" }, "sui": { id: "sui", symbol: "SUI" },
+  "aptos": { id: "aptos", symbol: "APT" }, "near": { id: "near", symbol: "NEAR" },
+  "stellar": { id: "stellar", symbol: "XLM" }, "xlm": { id: "stellar", symbol: "XLM" }
+};
+
+async function getFinanceData(query: string): Promise<string> {
+  try {
+    const lower = query.toLowerCase();
+    const results: string[] = [];
+
+    const cryptoMatch = Object.keys(CRYPTO_IDS).find(key => lower.includes(key));
+    if (cryptoMatch) {
+      const crypto = CRYPTO_IDS[cryptoMatch];
+      try {
+        const resp = await fetch(`https://api.coingecko.com/api/v3/coins/${crypto.id}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`, { signal: AbortSignal.timeout(5000) });
+        if (resp.ok) {
+          const data = await resp.json() as any;
+          const price = data.market_data?.current_price?.usd;
+          const change24h = data.market_data?.price_change_percentage_24h;
+          const marketCap = data.market_data?.market_cap?.usd;
+          const volume = data.market_data?.total_volume?.usd;
+          const high24h = data.market_data?.high_24h?.usd;
+          const low24h = data.market_data?.low_24h?.usd;
+          const ath = data.market_data?.ath?.usd;
+          const athDate = data.market_data?.ath_date?.usd?.split("T")[0];
+          const rank = data.market_cap_rank;
+          const desc = data.description?.en?.substring(0, 200) || "";
+
+          const fmtNum = (n: number) => n >= 1e9 ? `$${(n/1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n/1e6).toFixed(2)}M` : `$${n.toLocaleString()}`;
+          const fmtPrice = (n: number) => n >= 1 ? `$${n.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : `$${n.toFixed(6)}`;
+
+          results.push(`LIVE CRYPTO DATA - ${data.name} (${crypto.symbol}):
+Price: ${fmtPrice(price)}
+24h Change: ${change24h >= 0 ? "+" : ""}${change24h?.toFixed(2)}%
+24h High/Low: ${fmtPrice(high24h)} / ${fmtPrice(low24h)}
+Market Cap: ${fmtNum(marketCap)} (Rank #${rank})
+24h Volume: ${fmtNum(volume)}
+All-Time High: ${fmtPrice(ath)} (${athDate})
+${desc ? "About: " + desc.replace(/<[^>]*>/g, "") : ""}`);
+        }
+      } catch (e) { console.error("Crypto fetch error:", e); }
+    }
+
+    let ticker = "";
+    const tickerMatch = lower.match(/\b([A-Z]{1,5})\b/i);
+    for (const [company, sym] of Object.entries(COMMON_TICKERS)) {
+      if (lower.includes(company)) { ticker = sym; break; }
+    }
+    if (!ticker && tickerMatch) {
+      const candidate = tickerMatch[1].toUpperCase();
+      if (candidate.length >= 1 && candidate.length <= 5 && /^[A-Z]+$/.test(candidate)) {
+        const stockWords = ["stock", "price", "share", "ticker", "market", "invest", "trading", "value of", "worth"];
+        if (stockWords.some(w => lower.includes(w))) {
+          ticker = candidate;
+        }
+      }
+    }
+
+    if (ticker && !cryptoMatch) {
+      try {
+        const resp = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`, {
+          signal: AbortSignal.timeout(5000),
+          headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        if (resp.ok) {
+          const data = await resp.json() as any;
+          const meta = data.chart?.result?.[0]?.meta;
+          const indicators = data.chart?.result?.[0]?.indicators?.quote?.[0];
+          if (meta) {
+            const price = meta.regularMarketPrice;
+            const prevClose = meta.chartPreviousClose || meta.previousClose;
+            const change = price - prevClose;
+            const changePct = (change / prevClose) * 100;
+            const high = indicators?.high?.filter((v: any) => v !== null).pop();
+            const low = indicators?.low?.filter((v: any) => v !== null).pop();
+            const volume = indicators?.volume?.filter((v: any) => v !== null).pop();
+            const name = meta.shortName || meta.symbol;
+            const exchange = meta.exchangeName || "";
+            const currency = meta.currency || "USD";
+
+            results.push(`LIVE STOCK DATA - ${name} (${ticker}) on ${exchange}:
+Price: $${price?.toFixed(2)} ${currency}
+Change: ${change >= 0 ? "+" : ""}$${change?.toFixed(2)} (${changePct >= 0 ? "+" : ""}${changePct?.toFixed(2)}%)
+Today's High: $${high?.toFixed(2)} | Low: $${low?.toFixed(2)}
+Volume: ${volume ? (volume >= 1e6 ? (volume/1e6).toFixed(2) + "M" : volume.toLocaleString()) : "N/A"}
+Previous Close: $${prevClose?.toFixed(2)}`);
+          }
+        }
+      } catch (e) { console.error("Stock fetch error:", e); }
+    }
+
+    if (results.length > 0) {
+      console.log("Finance result:", results[0].substring(0, 150));
+      return results.join("\n\n");
+    }
+
+    return "";
+  } catch (e) {
+    console.error("Finance fetch error:", e);
     return "";
   }
 }
@@ -506,6 +637,14 @@ export async function registerRoutes(
         weatherContext = await getWeather(input.content);
       }
 
+      let financeContext = "";
+      const financeKeywords = /\b(stock|price|ticker|market cap|share price|trading|invest|bitcoin|btc|ethereum|eth|crypto|doge|dogecoin|solana|xrp|cardano|litecoin|bnb|shib|how much is|what is .+ worth|value of|price of)\b/i;
+      const hasCompanyName = Object.keys(COMMON_TICKERS).some(c => lowerContent.includes(c));
+      const hasCryptoName = Object.keys(CRYPTO_IDS).some(c => lowerContent.includes(c));
+      if (financeKeywords.test(lowerContent) || hasCompanyName || hasCryptoName) {
+        financeContext = await getFinanceData(input.content);
+      }
+
       const history = await storage.getMessages(chatId);
       const recentHistory = history.slice(-8);
 
@@ -570,6 +709,9 @@ RULES:
       }
       if (weatherContext) {
         systemPrompt += `\n\n${weatherContext}\n\nIMPORTANT: You have LIVE weather data above. Present this data naturally and confidently. Do NOT say you don't have access to real-time weather. Do NOT suggest checking other websites. Just give the weather info directly.`;
+      }
+      if (financeContext) {
+        systemPrompt += `\n\n${financeContext}\n\nIMPORTANT: You have LIVE financial data above. Present this data naturally and confidently as current market data. Format prices nicely. Do NOT say you can't access real-time prices. Do NOT tell users to check other websites. You HAVE the data — just present it. Include relevant context like whether the price is up or down, market cap significance, etc.`;
       }
 
       const messagesForGroq = [

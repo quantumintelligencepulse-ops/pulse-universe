@@ -9,6 +9,8 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 - **AI**: Groq SDK (llama-3.1-8b-instant)
 - **Search**: duck-duck-scrape for web context
 - **Knowledge**: Discord.js bot fetches from 17 knowledge channels
+- **Weather**: Open-Meteo API (geocoding + forecast, free, no key)
+- **Finance**: CoinGecko API (crypto) + Yahoo Finance API (stocks), free, no key
 
 ## Key Files
 - `client/src/App.tsx` - ALL frontend code (consolidated single file)
@@ -54,6 +56,11 @@ AI chat site called "My Ai Gpt" powered by Quantum Pulse Intelligence. Features 
 
 ## Coder Features (30 Transcendence-class upgrades)
 1-30: Code themes, language icons, metrics analyzer, live preview, fullscreen, collapsible blocks, search, settings, templates, paste detection, categorized suggestions, saved codes manager, persistent settings, keyboard shortcuts, etc.
+
+## Live Data Features
+- **Weather**: Detects weather queries, extracts location, maps US state names to major cities, uses Open-Meteo geocoding + forecast API. Returns current conditions + 3-day forecast injected into AI context.
+- **Finance/Stocks**: Detects stock/crypto queries by company name or ticker. Uses Yahoo Finance v8 chart API for stocks (price, change, high/low, volume). Uses CoinGecko API for crypto (price, 24h change, market cap, ATH, description). 60+ company names mapped to tickers, 25+ crypto names mapped to CoinGecko IDs.
+- **Web Search**: DuckDuckGo search for general knowledge queries (who/what/when/where/how/latest/news).
 
 ## General Features
 - Two chat modes: My Ai Gpt (general) and My Ai Coder (coding)
