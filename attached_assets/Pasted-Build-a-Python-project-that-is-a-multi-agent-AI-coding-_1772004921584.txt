@@ -1,0 +1,215 @@
+Build a Python project that is a multi-agent AI coding platform with a FastAPI API, designed to act like an autonomous “Project Brain” / AI coder.
+
+High-level goals:
+- Take a natural language feature request (e.g., “add a login page and backend route”)
+- Plan the work using a planner agent
+- Use separate coder agents for backend and frontend code
+- Use a terminal agent to run shell commands
+- Apply file edits to a real project folder on disk
+- Expose everything through a FastAPI server
+- Include an “OMEGA engine” layer that defines future ultra-advanced capabilities as structured stubs
+
+Use this structure:
+
+- requirements.txt
+- config.py
+- agents/
+  - base.py
+  - openai_client.py
+  - planner.py
+  - coder.py
+  - terminal.py
+- core/
+  - project_index.py
+  - file_applier.py
+  - orchestrator.py
+- omega/
+  - engine.py
+- api/
+  - server.py
+
+Details for each part:
+
+1) requirements.txt
+Include at least:
+- fastapi
+- uvicorn[standard]
+- openai
+
+2) config.py
+- Read OPENAI_API_KEY from environment variable.
+- Define CHAT_MODEL (e.g., "gpt-4o-mini" or "gpt-3.5-turbo").
+- Define PROJECT_ROOT as an environment variable with default ".".
+
+3) agents/base.py
+- Define an abstract Agent base class with:
+  - name
+  - __init__(name)
+  - abstract run(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]
+
+4) agents/openai_client.py
+- Wrap OpenAI chat completion into a simple function:
+  - chat(messages: List[Dict[str, str]]) -> str
+- Use config.OPENAI_API_KEY and config.CHAT_MODEL.
+
+5) agents/planner.py
+- PlannerAgent extends Agent.
+- System prompt: it is the “Planner” in a multi-agent system.
+- Given:
+  - feature request
+  - project summary
+- It returns a JSON-like plan with:
+  {
+    "tasks": [
+      {
+        "agent": "coder_backend" | "coder_frontend" | "terminal",
+        "description": "what to do",
+        "files": ["relative/path/file1.py", ...]
+      },
+      ...
+    ]
+  }
+- The run() method should call openai_client.chat() and return {"plan_raw": <string_from_model>}.
+
+6) agents/coder.py
+- CoderAgent extends Agent.
+- It receives:
+  - task description
+  - list of files (may be empty)
+- For each file, read its current content from PROJECT_ROOT (if it exists).
+- System prompt: it is a coding agent that edits files in a real project.
+- It must respond with JSON:
+  {
+    "edits": [
+      {
+        "path": "relative/path/to/file",
+        "action": "create" or "update",
+        "content": "full new file content"
+      },
+      ...
+    ]
+  }
+- run() returns {"edits_raw": <string_from_model>}.
+
+7) agents/terminal.py
+- TerminalAgent extends Agent.
+- It receives:
+  - a task string (shell command or description)
+  - context with "commands": [list of shell commands] (optional)
+- It runs commands using subprocess.run with:
+  - shell=True
+  - cwd=PROJECT_ROOT
+  - capture_output=True
+  - text=True
+- Returns:
+  {
+    "terminal_results": [
+      {
+        "command": "...",
+        "returncode": int,
+        "stdout": "...",
+        "stderr": "..."
+      },
+      ...
+    ]
+  }
+
+8) core/project_index.py
+- summarize_project():
+  - Walk PROJECT_ROOT.
+  - Skip .git and __pycache__.
+  - Return a string summary listing directories and key code files (.py, .js, .ts, .tsx, .jsx, .html, .css).
+- list_files():
+  - Return a list of all file paths (relative to PROJECT_ROOT).
+
+9) core/file_applier.py
+- apply_edits(edits_raw: str) -> List[Dict[str, Any]]:
+  - Parse edits_raw as JSON.
+  - For each edit:
+    - Ensure path and action are valid.
+    - Create directories as needed.
+    - Write full content to the file.
+  - Return a list of results:
+    - { "path": "...", "status": "ok", "action": "create" | "update" }
+    - or { "path": "...", "error": "..." }
+
+10) omega/engine.py
+- Define 15 “OMEGA-class” future capabilities as stub functions.
+- Each function returns a structured dict with placeholder values, for example:
+  - quantum_adaptive_compute(plan)
+  - autonomous_multi_agent_team(plan)
+  - self_architecting_codebase(project_summary)
+  - predictive_feature_engineering(history, feature_request)
+  - omni_language_fusion()
+  - reality_linked_debugging()
+  - infinite_context_memory()
+  - autonomous_infra_brain()
+  - multi_device_code_generation(feature_request)
+  - neural_terminal_interface(command)
+  - self_healing_codebase()
+  - full_project_simulation()
+  - ai_driven_cicd()
+  - universal_knowledge_graph()
+  - autonomous_feature_builder(feature_request)
+- Implement omega_snapshot(feature_request, project_summary, history) that calls all of the above and returns a big dict with their outputs.
+
+11) core/orchestrator.py
+- Import PlannerAgent, CoderAgent, TerminalAgent, summarize_project, apply_edits, and omega_snapshot.
+- Instantiate:
+  - planner = PlannerAgent()
+  - coder_backend = CoderAgent("coder_backend")
+  - coder_frontend = CoderAgent("coder_frontend")
+  - terminal = TerminalAgent()
+- parse_plan(plan_raw: str) -> list of tasks:
+  - Try to parse plan_raw as JSON.
+  - If parsing fails, fall back to a single terminal task.
+- run_feature_pipeline(feature_request: str, history: List[str] | None = None) -> Dict[str, Any]:
+  - Get project_summary = summarize_project().
+  - Call planner.run(feature_request, {"project_summary": project_summary}).
+  - Parse tasks from plan_raw.
+  - For each task:
+    - If agent == "coder_backend" or "coder_frontend":
+      - Call corresponding coder agent.
+      - Apply edits via apply_edits().
+    - If agent == "terminal":
+      - Call terminal agent with the description as command.
+  - Call omega_snapshot(feature_request, project_summary, history or []).
+  - Return a dict:
+    {
+      "feature_request": ...,
+      "plan_raw": ...,
+      "tasks_executed": [...],
+      "omega": <snapshot>
+    }
+
+12) api/server.py
+- Use FastAPI.
+- Define models:
+  - FeatureRequest: { feature: str, history: Optional[List[str]] }
+  - FeatureResponse: { result: Dict[str, Any] }
+  - OmegaRequest: { feature: str, history: Optional[List[str]] }
+  - OmegaResponse: { omega: Dict[str, Any] }
+- Endpoints:
+  - GET /health -> { "status": "ok" }
+  - GET /project/summary -> { "summary": summarize_project() }
+  - POST /feature -> runs run_feature_pipeline(feature, history) and returns FeatureResponse.
+  - POST /omega -> calls omega_snapshot(feature, project_summary, history) and returns OmegaResponse.
+
+General requirements:
+- Use type hints where reasonable.
+- Keep code modular and readable.
+- Add basic error handling (try/except) where parsing or file I/O happens.
+- Do NOT implement real quantum, infra, or simulation logic; OMEGA functions are stubs returning structured placeholder data.
+- The project should be runnable with:
+  - `pip install -r requirements.txt`
+  - `uvicorn api.server:app --host 0.0.0.0 --port 8000`
+
+The result should be a working multi-agent AI coding backend with:
+- Planner agent
+- Backend coder agent
+- Frontend coder agent
+- Terminal agent
+- File applier
+- Project indexer
+- OMEGA future-capability engine
+- FastAPI API exposing /feature, /omega, /project/summary, /health
