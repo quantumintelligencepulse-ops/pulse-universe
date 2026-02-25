@@ -96,7 +96,7 @@ function StripePaywall() {
       </div>
       <h3 className="text-lg font-bold text-foreground mb-1">Upgrade to Pro</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        You've used your {MESSAGE_LIMIT} free messages. Upgrade to unlock unlimited access to My Ai Gpt and My Ai Coder.
+        You've reached your free message limit. Upgrade to unlock unlimited access to My Ai Gpt and My Ai Coder.
       </p>
       <div ref={paywallRef} className="mb-4" />
       <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer"
@@ -879,7 +879,12 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, isThinking]);
 
+  const [limitReached, setLimitReached] = useState(isLimitReached());
+
   const handleSend = useCallback(async (content: string) => {
+    if (isLimitReached()) { setLimitReached(true); return; }
+    const newCount = incrementMessageCount();
+    if (newCount >= MESSAGE_LIMIT) { setLimitReached(true); }
 
     let targetChatId = chatId;
     setLocalMessages(prev => [...prev, { role: "user", content }]);
@@ -1070,8 +1075,12 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4 md:px-8">
-        <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
-          placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
+        {limitReached ? (
+          <StripePaywall />
+        ) : (
+          <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
+            placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
+        )}
       </div>
     </div>
   );
