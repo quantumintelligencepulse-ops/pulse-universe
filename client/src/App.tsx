@@ -104,6 +104,52 @@ function incrementMessageCount(): number {
 function isVIP(): boolean { const email = (localStorage.getItem("myaigpt_email") || "").toLowerCase(); return VIP_EMAILS.includes(email); }
 function isLimitReached(): boolean { if (isVIP()) return false; return getMessageCount() >= MESSAGE_LIMIT; }
 
+type AppSettings = {
+  darkMode: boolean;
+  bgColor: string;
+  accentColor: string;
+  fontSize: "small" | "medium" | "large";
+  hiddenPages: string[];
+  autoScroll: boolean;
+  messageSound: boolean;
+  compactMode: boolean;
+  showTimestamps: boolean;
+  feedAutoRefresh: boolean;
+  feedRefreshInterval: number;
+  chatBubbleStyle: "rounded" | "sharp" | "minimal";
+  displayName: string;
+};
+const defaultAppSettings: AppSettings = {
+  darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
+  hiddenPages: [], autoScroll: true, messageSound: false, compactMode: false,
+  showTimestamps: true, feedAutoRefresh: true, feedRefreshInterval: 5,
+  chatBubbleStyle: "rounded", displayName: "",
+};
+const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
+function useAppSettings() { return useContext(AppSettingsCtx); }
+function AppSettingsProvider({ children }: { children: React.ReactNode }) {
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    try { const s = localStorage.getItem("myaigpt_app_settings"); return s ? { ...defaultAppSettings, ...JSON.parse(s) } : defaultAppSettings; } catch { return defaultAppSettings; }
+  });
+  const applySettings = useCallback((s: AppSettings) => {
+    if (s.darkMode) { document.documentElement.classList.add("dark"); } else { document.documentElement.classList.remove("dark"); }
+    if (s.bgColor && s.bgColor !== "#ffffff") { document.documentElement.style.setProperty("--settings-bg", s.bgColor); } else { document.documentElement.style.removeProperty("--settings-bg"); }
+    document.documentElement.style.setProperty("--accent-color", s.accentColor);
+    document.documentElement.setAttribute("data-font-size", s.fontSize);
+    if (s.compactMode) { document.documentElement.classList.add("compact"); } else { document.documentElement.classList.remove("compact"); }
+  }, []);
+  const update = useCallback((partial: Partial<AppSettings>) => {
+    setSettings(prev => {
+      const next = { ...prev, ...partial };
+      localStorage.setItem("myaigpt_app_settings", JSON.stringify(next));
+      applySettings(next);
+      return next;
+    });
+  }, [applySettings]);
+  useEffect(() => { applySettings(settings); }, []);
+  return <AppSettingsCtx.Provider value={{ settings, update }}>{children}</AppSettingsCtx.Provider>;
+}
+
 function StripePaywall() {
   const paywallRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1273,6 +1319,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   const [searchQuery, setSearchQuery] = useState("");
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const { settings: appSettings } = useAppSettings();
 
   const filteredChats = useMemo(() => {
     if (!searchQuery) return chats;
@@ -1371,41 +1418,46 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">My Ai Gpt</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
+          {!appSettings.hiddenPages.includes("coder") && (
           <Link href="/coder" data-testid="link-coder-chat"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/coder" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-blue-500/15" : "bg-blue-500/5"}`}><Code2 size={14} className="text-blue-600" /></div>
             <span className="flex-1">My Ai Coder</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("playground") && (
           <Link href="/playground" data-testid="link-playground"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/playground" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/playground" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><SquareTerminal size={14} className="text-emerald-600" /></div>
             <span className="flex-1">Playground</span>
             <span className="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">IDE</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("feed") && (
           <Link href="/feed" data-testid="link-feed"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
             <span className="flex-1">Feed</span>
             <span className="text-[9px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">LIVE</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("social") && (
           <Link href="/social" data-testid="link-social"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/social" || location.startsWith("/social") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/social" || location.startsWith("/social") ? "bg-purple-500/15" : "bg-purple-500/5"}`}><Users size={14} className="text-purple-600" /></div>
             <span className="flex-1">Social</span>
             <span className="text-[9px] bg-purple-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">SOCIAL</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
             <span className="flex-1">AI Studio</span>
             <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
-          <Link href="/permissions" data-testid="link-permissions"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/permissions" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/permissions" ? "bg-teal-500/15" : "bg-teal-500/5"}`}><Shield size={14} className="text-teal-600" /></div>
-            <span className="flex-1">Permissions</span>
-          </Link>
+          )}
         </div>
 
         <div className="px-2.5 py-1">
@@ -1428,6 +1480,11 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         </div>
 
         <div className="p-2.5 border-t border-border/20 space-y-2">
+          <Link href="/settings" data-testid="link-settings"
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${location === "/settings" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/60 hover:bg-black/5"}`}>
+            <Settings2 size={14} className="text-gray-500" />
+            <span className="flex-1 text-xs">Settings</span>
+          </Link>
           {chats.length > 0 && (
             <button onClick={handleClearAll} data-testid="button-clear-all"
               className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
@@ -4341,20 +4398,23 @@ function AIStudioPage() {
 
 // ─── PERMISSIONS PAGE ────────────────────────────────────────────────────────
 
-function PermissionsPage() {
-  const { permissions, loading, requestPermission, refresh } = useDevicePermissions();
+function SettingsPage() {
+  const { settings, update } = useAppSettings();
+  const { permissions, loading: permLoading, requestPermission, refresh } = useDevicePermissions();
   const [locationData, setLocationData] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const { toast } = useToast();
+  const [activeSection, setActiveSection] = useState<string>("appearance");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-    granted: { bg: "bg-green-50", text: "text-green-600", label: "Allowed" },
-    denied: { bg: "bg-red-50", text: "text-red-600", label: "Blocked" },
-    prompt: { bg: "bg-amber-50", text: "text-amber-600", label: "Not Set" },
-    unavailable: { bg: "bg-gray-50", text: "text-gray-400", label: "Unavailable" },
-    checking: { bg: "bg-blue-50", text: "text-blue-400", label: "Checking..." },
+    granted: { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-600 dark:text-green-400", label: "Allowed" },
+    denied: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-600 dark:text-red-400", label: "Blocked" },
+    prompt: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-600 dark:text-amber-400", label: "Not Set" },
+    unavailable: { bg: "bg-gray-50 dark:bg-gray-800/20", text: "text-gray-400", label: "Unavailable" },
+    checking: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-400", label: "Checking..." },
   };
 
-  const handleRequest = async (id: string) => {
+  const handlePermRequest = async (id: string) => {
     await requestPermission(id);
     if (id === "geolocation") {
       try {
@@ -4362,110 +4422,380 @@ function PermissionsPage() {
         setLocationData({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
         toast({ title: "Location accessed!", description: `Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)}` });
       } catch { toast({ title: "Location access denied", variant: "destructive" }); }
-    } else {
-      toast({ title: "Permission updated" });
-    }
+    } else { toast({ title: "Permission updated" }); }
+  };
+
+  const pages = [
+    { id: "playground", name: "Playground", icon: SquareTerminal, color: "text-emerald-600", desc: "Code IDE with 30+ languages" },
+    { id: "feed", name: "Feed", icon: Newspaper, color: "text-orange-600", desc: "News & video feed" },
+    { id: "social", name: "Social", icon: Users, color: "text-purple-600", desc: "Public social network" },
+    { id: "create", name: "AI Studio", icon: Paintbrush, color: "text-pink-600", desc: "AI image & video generation" },
+    { id: "coder", name: "My Ai Coder", icon: Code2, color: "text-blue-600", desc: "AI coding assistant" },
+  ];
+
+  const bgPresets = [
+    { color: "#ffffff", name: "White" }, { color: "#f8fafc", name: "Snow" }, { color: "#fefce8", name: "Cream" },
+    { color: "#f0fdf4", name: "Mint" }, { color: "#eff6ff", name: "Ice" }, { color: "#fdf4ff", name: "Lavender" },
+    { color: "#fff7ed", name: "Peach" }, { color: "#f5f5f4", name: "Stone" },
+    { color: "#1a1a2e", name: "Midnight" }, { color: "#0f172a", name: "Slate" }, { color: "#18181b", name: "Zinc" }, { color: "#1c1917", name: "Charcoal" },
+  ];
+
+  const accentPresets = [
+    { color: "#f97316", name: "Orange" }, { color: "#3b82f6", name: "Blue" }, { color: "#8b5cf6", name: "Violet" },
+    { color: "#10b981", name: "Emerald" }, { color: "#ec4899", name: "Pink" }, { color: "#ef4444", name: "Red" },
+    { color: "#14b8a6", name: "Teal" }, { color: "#f59e0b", name: "Amber" },
+  ];
+
+  const sections = [
+    { id: "appearance", name: "Appearance", icon: Palette },
+    { id: "pages", name: "Pages", icon: Layers },
+    { id: "chat", name: "Chat", icon: MessageSquare },
+    { id: "feed-settings", name: "Feed", icon: Newspaper },
+    { id: "permissions", name: "Permissions", icon: Shield },
+    { id: "data", name: "Data & Privacy", icon: Database },
+  ];
+
+  const togglePage = (pageId: string) => {
+    const hidden = settings.hiddenPages.includes(pageId) ? settings.hiddenPages.filter(p => p !== pageId) : [...settings.hiddenPages, pageId];
+    update({ hiddenPages: hidden });
+  };
+
+  const ToggleSwitch = ({ on, onToggle, testId }: { on: boolean; onToggle: () => void; testId: string }) => (
+    <div onClick={onToggle} data-testid={testId}
+      className={`w-11 h-6 rounded-full transition-colors cursor-pointer ${on ? "bg-orange-500" : "bg-gray-300 dark:bg-gray-600"} relative`}>
+      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "left-[22px]" : "left-0.5"}`} />
+    </div>
+  );
+
+  const handleResetAll = () => {
+    update(defaultAppSettings);
+    localStorage.removeItem("myaigpt_app_settings");
+    setShowResetConfirm(false);
+    toast({ title: "Settings reset to defaults" });
+  };
+
+  const handleExportData = () => {
+    const data = {
+      settings, chats: localStorage.getItem("myaigpt_msg_count"),
+      userId: localStorage.getItem("myaigpt_user_id"),
+      exportDate: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `myaigpt-settings-${Date.now()}.json`; a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Settings exported" });
   };
 
   const categories = useMemo(() => {
     const cats: Record<string, PermissionInfo[]> = {};
-    for (const p of permissions) {
-      if (!cats[p.category]) cats[p.category] = [];
-      cats[p.category].push(p);
-    }
+    for (const p of permissions) { if (!cats[p.category]) cats[p.category] = []; cats[p.category].push(p); }
     return cats;
   }, [permissions]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8">
+    <div className="flex-1 overflow-y-auto p-4 md:p-8" style={settings.bgColor !== "#ffffff" ? { backgroundColor: settings.bgColor } : undefined}>
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
-            <Shield size={28} className="text-white" />
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-900 dark:from-gray-200 dark:to-gray-400 flex items-center justify-center shadow-xl">
+            <Settings2 size={24} className="text-white dark:text-gray-900" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight mb-1" data-testid="text-permissions-title">Device Permissions</h1>
-          <p className="text-muted-foreground text-sm">Manage what My Ai Gpt can access on your device</p>
-          <p className="text-muted-foreground/50 text-xs mt-1">Enable permissions for the best experience — GPS navigation, voice chat, camera, notifications and more</p>
+          <h1 className="text-2xl font-extrabold tracking-tight mb-0.5" data-testid="text-settings-title">Settings</h1>
+          <p className="text-muted-foreground text-sm">Customize your My Ai Gpt experience</p>
         </div>
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{permissions.filter(p => p.status === "granted").length}/{permissions.length} enabled</span>
-          </div>
-          <button onClick={refresh} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors" data-testid="button-refresh-permissions">
-            <RefreshCw size={12} /> Refresh
-          </button>
+        <div className="flex gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-hide">
+          {sections.map(s => (
+            <button key={s.id} onClick={() => setActiveSection(s.id)} data-testid={`settings-tab-${s.id}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${activeSection === s.id ? "bg-foreground text-background shadow-md" : "bg-muted/30 dark:bg-muted/10 text-muted-foreground hover:bg-muted/50"}`}>
+              <s.icon size={13} /> {s.name}
+            </button>
+          ))}
         </div>
 
-        {loading ? (
-          <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-20 bg-muted/20 rounded-xl animate-pulse" />)}</div>
-        ) : (
-          <div className="space-y-6">
-            {Object.entries(categories).map(([cat, items]) => (
-              <div key={cat}>
-                <h3 className="text-xs font-bold text-muted-foreground/50 uppercase tracking-widest mb-2 px-1">{cat}</h3>
-                <div className="space-y-2">
-                  {items.map(perm => {
-                    const s = statusColors[perm.status] || statusColors.unavailable;
-                    return (
-                      <div key={perm.id} className="bg-white border border-border/30 rounded-xl p-4 flex items-center gap-4 transition-all hover:shadow-sm" data-testid={`permission-${perm.id}`}>
-                        <div className={`p-2.5 rounded-xl ${s.bg}`}>
-                          <perm.icon size={20} className={s.text} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold">{perm.name}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.bg} ${s.text}`}>{s.label}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground/60 mt-0.5">{perm.desc}</p>
-                        </div>
-                        {perm.status !== "unavailable" && perm.status !== "granted" && (
-                          <button onClick={() => handleRequest(perm.id)} data-testid={`button-request-${perm.id}`}
-                            className="px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm whitespace-nowrap">
-                            Allow
-                          </button>
-                        )}
-                        {perm.status === "granted" && (
-                          <CheckCircle2 size={20} className="text-green-500 shrink-0" />
-                        )}
-                      </div>
-                    );
-                  })}
+        {activeSection === "appearance" && (
+          <div className="space-y-5" data-testid="settings-section-appearance">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Palette size={15} /> Theme</h3>
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <div className="text-sm font-medium">Dark Mode</div>
+                  <div className="text-xs text-muted-foreground">Switch to dark theme</div>
+                </div>
+                <ToggleSwitch on={settings.darkMode} onToggle={() => update({ darkMode: !settings.darkMode })} testId="toggle-dark-mode" />
+              </div>
+
+              <div className="mb-5">
+                <div className="text-sm font-medium mb-2">Background Color</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {bgPresets.map(p => (
+                    <button key={p.color} onClick={() => update({ bgColor: p.color })} data-testid={`bg-color-${p.name.toLowerCase()}`}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all ${settings.bgColor === p.color ? "border-orange-500 shadow-md" : "border-border/20 hover:border-border/50"}`}>
+                      <div className="w-8 h-8 rounded-lg shadow-inner border border-black/10" style={{ backgroundColor: p.color }} />
+                      <span className="text-[10px] text-muted-foreground">{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <label className="text-xs text-muted-foreground">Custom:</label>
+                  <input type="color" value={settings.bgColor} onChange={e => update({ bgColor: e.target.value })}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0" data-testid="input-custom-bg-color" />
+                  <span className="text-xs text-muted-foreground font-mono">{settings.bgColor}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {locationData && (
-          <div className="mt-6 bg-white border border-border/30 rounded-xl p-4" data-testid="location-info">
-            <h3 className="text-sm font-semibold flex items-center gap-2 mb-3"><Locate size={14} className="text-teal-500" /> Your Location</h3>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-teal-50 rounded-lg p-3">
-                <div className="text-lg font-bold text-teal-600">{locationData.lat.toFixed(4)}</div>
-                <div className="text-[10px] text-teal-500/70">Latitude</div>
-              </div>
-              <div className="bg-teal-50 rounded-lg p-3">
-                <div className="text-lg font-bold text-teal-600">{locationData.lng.toFixed(4)}</div>
-                <div className="text-[10px] text-teal-500/70">Longitude</div>
-              </div>
-              <div className="bg-teal-50 rounded-lg p-3">
-                <div className="text-lg font-bold text-teal-600">{locationData.accuracy.toFixed(0)}m</div>
-                <div className="text-[10px] text-teal-500/70">Accuracy</div>
+              <div>
+                <div className="text-sm font-medium mb-2">Accent Color</div>
+                <div className="flex gap-2 flex-wrap">
+                  {accentPresets.map(p => (
+                    <button key={p.color} onClick={() => update({ accentColor: p.color })} data-testid={`accent-color-${p.name.toLowerCase()}`}
+                      className={`w-9 h-9 rounded-full border-2 transition-all ${settings.accentColor === p.color ? "border-foreground scale-110 shadow-lg" : "border-transparent hover:scale-105"}`}
+                      style={{ backgroundColor: p.color }} title={p.name} />
+                  ))}
+                </div>
               </div>
             </div>
-            <a href={`https://www.google.com/maps?q=${locationData.lat},${locationData.lng}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 mt-3 px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-medium hover:bg-teal-600 transition-colors" data-testid="link-open-maps">
-              <Navigation size={14} /> Open in Google Maps
-            </a>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Type size={15} /> Display</h3>
+              <div className="mb-4">
+                <div className="text-sm font-medium mb-2">Font Size</div>
+                <div className="flex gap-2">
+                  {(["small", "medium", "large"] as const).map(size => (
+                    <button key={size} onClick={() => update({ fontSize: size })} data-testid={`font-size-${size}`}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${settings.fontSize === size ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      <span style={{ fontSize: size === "small" ? 11 : size === "medium" ? 13 : 15 }}>Aa</span>
+                      <div className="text-[10px] mt-0.5 capitalize">{size}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Compact Mode</div>
+                  <div className="text-xs text-muted-foreground">Tighter spacing for more content</div>
+                </div>
+                <ToggleSwitch on={settings.compactMode} onToggle={() => update({ compactMode: !settings.compactMode })} testId="toggle-compact-mode" />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><User size={15} /> Profile</h3>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
+                <input value={settings.displayName} onChange={e => update({ displayName: e.target.value })} placeholder="Your name (optional)"
+                  className="w-full px-3 py-2 text-sm border border-border/30 rounded-lg focus:outline-none focus:border-orange-300 bg-muted/10 dark:bg-gray-800" data-testid="input-display-name" />
+                <p className="text-[10px] text-muted-foreground/50 mt-1">Shown in social posts and comments</p>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="mt-8 bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
-          <Shield size={16} className="mx-auto mb-2 text-blue-400" />
-          <p className="text-xs text-blue-600 font-medium">Your privacy matters</p>
-          <p className="text-[10px] text-blue-400 mt-1">My Ai Gpt only uses permissions you allow. All data stays on your device. No tracking, no selling data. You can revoke permissions anytime in your browser settings.</p>
-        </div>
+        {activeSection === "pages" && (
+          <div className="space-y-3" data-testid="settings-section-pages">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-1 flex items-center gap-2"><Layers size={15} /> Visible Pages</h3>
+              <p className="text-xs text-muted-foreground mb-4">Toggle which pages appear in your sidebar. Hidden pages can still be accessed via URL.</p>
+              <div className="space-y-2">
+                {pages.map(pg => {
+                  const isHidden = settings.hiddenPages.includes(pg.id);
+                  return (
+                    <div key={pg.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${isHidden ? "border-border/20 opacity-50" : "border-border/30 bg-muted/5 dark:bg-gray-800/30"}`} data-testid={`page-toggle-${pg.id}`}>
+                      <div className={`p-2 rounded-lg ${isHidden ? "bg-gray-100 dark:bg-gray-800" : "bg-muted/30"}`}>
+                        <pg.icon size={16} className={isHidden ? "text-gray-400" : pg.color} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{pg.name}</div>
+                        <div className="text-[11px] text-muted-foreground">{pg.desc}</div>
+                      </div>
+                      <ToggleSwitch on={!isHidden} onToggle={() => togglePage(pg.id)} testId={`toggle-page-${pg.id}`} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground/50 px-1">
+                <Lock size={10} /> My Ai Gpt (home) is always visible
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "chat" && (
+          <div className="space-y-3" data-testid="settings-section-chat">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><MessageSquare size={15} /> Chat Preferences</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Auto-Scroll</div>
+                  <div className="text-xs text-muted-foreground">Scroll to new messages automatically</div>
+                </div>
+                <ToggleSwitch on={settings.autoScroll} onToggle={() => update({ autoScroll: !settings.autoScroll })} testId="toggle-auto-scroll" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Message Sound</div>
+                  <div className="text-xs text-muted-foreground">Play a sound for new AI responses</div>
+                </div>
+                <ToggleSwitch on={settings.messageSound} onToggle={() => update({ messageSound: !settings.messageSound })} testId="toggle-message-sound" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Timestamps</div>
+                  <div className="text-xs text-muted-foreground">Display time on each message</div>
+                </div>
+                <ToggleSwitch on={settings.showTimestamps} onToggle={() => update({ showTimestamps: !settings.showTimestamps })} testId="toggle-timestamps" />
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Chat Bubble Style</div>
+                <div className="flex gap-2">
+                  {(["rounded", "sharp", "minimal"] as const).map(style => (
+                    <button key={style} onClick={() => update({ chatBubbleStyle: style })} data-testid={`bubble-style-${style}`}
+                      className={`flex-1 py-3 px-2 border transition-all text-center ${settings.chatBubbleStyle === style ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "border-border/30 hover:border-border"} ${style === "rounded" ? "rounded-xl" : style === "sharp" ? "rounded-sm" : "rounded-none border-0 border-b-2"}`}>
+                      <div className={`w-full h-6 bg-orange-200 dark:bg-orange-800 mb-1 ${style === "rounded" ? "rounded-lg" : style === "sharp" ? "rounded-sm" : ""}`} />
+                      <span className="text-[10px] capitalize">{style}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "feed-settings" && (
+          <div className="space-y-3" data-testid="settings-section-feed">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Newspaper size={15} /> Feed Preferences</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Auto-Refresh</div>
+                  <div className="text-xs text-muted-foreground">Automatically fetch new articles</div>
+                </div>
+                <ToggleSwitch on={settings.feedAutoRefresh} onToggle={() => update({ feedAutoRefresh: !settings.feedAutoRefresh })} testId="toggle-feed-auto-refresh" />
+              </div>
+              {settings.feedAutoRefresh && (
+                <div>
+                  <div className="text-sm font-medium mb-2">Refresh Interval</div>
+                  <div className="flex gap-2">
+                    {[1, 5, 15, 30].map(mins => (
+                      <button key={mins} onClick={() => update({ feedRefreshInterval: mins })} data-testid={`feed-interval-${mins}`}
+                        className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.feedRefreshInterval === mins ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                        {mins}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeSection === "permissions" && (
+          <div className="space-y-3" data-testid="settings-section-permissions">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">{permissions.filter(p => p.status === "granted").length}/{permissions.length} enabled</span>
+              <button onClick={refresh} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors" data-testid="button-refresh-permissions">
+                <RefreshCw size={12} /> Refresh
+              </button>
+            </div>
+            {permLoading ? (
+              <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-20 bg-muted/20 rounded-xl animate-pulse" />)}</div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(categories).map(([cat, items]) => (
+                  <div key={cat}>
+                    <h3 className="text-xs font-bold text-muted-foreground/50 uppercase tracking-widest mb-2 px-1">{cat}</h3>
+                    <div className="space-y-2">
+                      {items.map(perm => {
+                        const s = statusColors[perm.status] || statusColors.unavailable;
+                        return (
+                          <div key={perm.id} className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-4 flex items-center gap-4 transition-all hover:shadow-sm" data-testid={`permission-${perm.id}`}>
+                            <div className={`p-2.5 rounded-xl ${s.bg}`}>
+                              <perm.icon size={20} className={s.text} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold">{perm.name}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.bg} ${s.text}`}>{s.label}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground/60 mt-0.5">{perm.desc}</p>
+                            </div>
+                            {perm.status !== "unavailable" && perm.status !== "granted" && (
+                              <button onClick={() => handlePermRequest(perm.id)} data-testid={`button-request-${perm.id}`}
+                                className="px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm whitespace-nowrap">Allow</button>
+                            )}
+                            {perm.status === "granted" && <CheckCircle2 size={20} className="text-green-500 shrink-0" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {locationData && (
+              <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-4" data-testid="location-info">
+                <h3 className="text-sm font-semibold flex items-center gap-2 mb-3"><Locate size={14} className="text-teal-500" /> Your Location</h3>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  {[{ v: locationData.lat.toFixed(4), l: "Latitude" }, { v: locationData.lng.toFixed(4), l: "Longitude" }, { v: `${locationData.accuracy.toFixed(0)}m`, l: "Accuracy" }].map(d => (
+                    <div key={d.l} className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3">
+                      <div className="text-lg font-bold text-teal-600 dark:text-teal-400">{d.v}</div>
+                      <div className="text-[10px] text-teal-500/70">{d.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <a href={`https://www.google.com/maps?q=${locationData.lat},${locationData.lng}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 mt-3 px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-medium hover:bg-teal-600 transition-colors" data-testid="link-open-maps">
+                  <Navigation size={14} /> Open in Google Maps
+                </a>
+              </div>
+            )}
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-xl p-4 text-center">
+              <Shield size={16} className="mx-auto mb-2 text-blue-400" />
+              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Your privacy matters</p>
+              <p className="text-[10px] text-blue-400 mt-1">My Ai Gpt only uses permissions you allow. All data stays on your device. No tracking, no selling data.</p>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "data" && (
+          <div className="space-y-3" data-testid="settings-section-data">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Database size={15} /> Data Management</h3>
+              <button onClick={handleExportData} data-testid="button-export-data"
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/30 hover:bg-muted/10 transition-colors text-left">
+                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20"><Download size={16} className="text-blue-500" /></div>
+                <div><div className="text-sm font-medium">Export Settings</div><div className="text-xs text-muted-foreground">Download your settings as JSON</div></div>
+              </button>
+              <button onClick={() => setShowResetConfirm(true)} data-testid="button-reset-settings"
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-red-200 dark:border-red-800/30 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left">
+                <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20"><RotateCcw size={16} className="text-red-500" /></div>
+                <div><div className="text-sm font-medium text-red-600 dark:text-red-400">Reset All Settings</div><div className="text-xs text-muted-foreground">Restore everything to defaults</div></div>
+              </button>
+              {showResetConfirm && (
+                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl p-4 text-center">
+                  <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-3">Are you sure? This can't be undone.</p>
+                  <div className="flex gap-2 justify-center">
+                    <button onClick={handleResetAll} className="px-4 py-2 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600" data-testid="button-confirm-reset">Reset</button>
+                    <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300" data-testid="button-cancel-reset">Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold flex items-center gap-2 mb-3"><Shield size={15} /> About</h3>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex justify-between"><span>Version</span><span className="font-mono">Beta Release 1</span></div>
+                <div className="flex justify-between"><span>Created by</span><span className="font-medium">Billy Banks</span></div>
+                <div className="flex justify-between"><span>Powered by</span><span>Quantum Pulse Intelligence</span></div>
+              </div>
+              <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 mt-4 px-4 py-2.5 bg-indigo-500 text-white rounded-xl text-xs font-medium hover:bg-indigo-600 transition-colors" data-testid="link-discord-settings">
+                <ExternalLink size={14} /> Join our Discord Community
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4476,9 +4806,9 @@ function AIStudioPageWrapper() {
   return <Layout><AIStudioPage /></Layout>;
 }
 
-function PermissionsPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Device Permissions - My Ai Gpt | GPS, Camera, Microphone & More", description: "Manage device permissions for My Ai Gpt. Enable GPS for navigation, camera for photos, microphone for voice chat, and notifications for alerts.", ogTitle: "Device Permissions - My Ai Gpt", canonical: window.location.origin + "/permissions" }); }, []);
-  return <Layout><PermissionsPage /></Layout>;
+function SettingsPageWrapper() {
+  useEffect(() => { updateSEO({ title: "Settings - My Ai Gpt | Customize Your Experience", description: "Customize My Ai Gpt with dark mode, background colors, page visibility, permissions, chat preferences and more. By Billy Banks.", ogTitle: "Settings - My Ai Gpt", canonical: window.location.origin + "/settings" }); }, []);
+  return <Layout><SettingsPage /></Layout>;
 }
 
 function SocialPageWrapper() {
@@ -4521,7 +4851,8 @@ function Router() {
       <Route path="/feed" component={FeedPage} />
       <Route path="/social" component={SocialPageWrapper} />
       <Route path="/create" component={AIStudioPageWrapper} />
-      <Route path="/permissions" component={PermissionsPageWrapper} />
+      <Route path="/settings" component={SettingsPageWrapper} />
+      <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route component={NotFound} />
     </Switch>
@@ -4547,10 +4878,12 @@ export default function App() {
 
   return (
     <SettingsCtx.Provider value={{ settings, set }}>
-      <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <Router />
-      </QueryClientProvider>
+      <AppSettingsProvider>
+        <QueryClientProvider client={queryClient}>
+          <Toaster />
+          <Router />
+        </QueryClientProvider>
+      </AppSettingsProvider>
     </SettingsCtx.Provider>
   );
 }
