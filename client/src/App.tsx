@@ -2793,6 +2793,51 @@ function NewsFeed() {
   const [searchLoading, setSearchLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  const [industrySectors, setIndustrySectors] = useState<any[]>([]);
+  const [activeIndustry, setActiveIndustry] = useState<string | null>(null);
+  const [industryArticles, setIndustryArticles] = useState<FeedArticle[]>([]);
+  const [industryLoading, setIndustryLoading] = useState(false);
+  const [showIndustryBrowser, setShowIndustryBrowser] = useState(false);
+  const [industryTree, setIndustryTree] = useState<any[]>([]);
+  const [expandedSectors, setExpandedSectors] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/api/industries/sectors").then(r => r.json()).then(setIndustrySectors).catch(() => {});
+    const params = new URLSearchParams(window.location.search);
+    const indParam = params.get("industry");
+    if (indParam) { setActiveIndustry(indParam); fetchIndustryNews(indParam); }
+  }, []);
+
+  const fetchIndustryNews = useCallback(async (slug: string) => {
+    setIndustryLoading(true);
+    try {
+      const r = await fetch(`/api/industry/${slug}/news`);
+      const data = await r.json();
+      setIndustryArticles((data.articles || []).map((a: any) => ({ ...a, sourceColor: "#f97316" })));
+    } catch { setIndustryArticles([]); }
+    setIndustryLoading(false);
+  }, []);
+
+  const selectIndustry = useCallback((slug: string | null) => {
+    setActiveIndustry(slug);
+    if (slug) {
+      fetchIndustryNews(slug);
+      window.history.replaceState(null, "", `/feed?industry=${slug}`);
+    } else {
+      setIndustryArticles([]);
+      window.history.replaceState(null, "", "/feed");
+    }
+  }, [fetchIndustryNews]);
+
+  const loadIndustryTree = useCallback(async () => {
+    if (industryTree.length > 0) { setShowIndustryBrowser(!showIndustryBrowser); return; }
+    try {
+      const r = await fetch("/api/industries");
+      const data = await r.json();
+      setIndustryTree(data);
+      setShowIndustryBrowser(true);
+    } catch {}
+  }, [industryTree, showIndustryBrowser]);
 
   const fetchPage = useCallback(async (p: number, reset = false) => {
     if (loadingRef.current) return;
@@ -2874,10 +2919,11 @@ function NewsFeed() {
   }, [articles]);
 
   const filtered = useMemo(() => {
-    if (filter === "All") return articles;
-    if (filter === "Videos") return articles.filter(a => a.type === "video");
-    return articles.filter(a => a.source === filter);
-  }, [articles, filter]);
+    const source = activeIndustry ? industryArticles : articles;
+    if (filter === "All") return source;
+    if (filter === "Videos") return source.filter(a => a.type === "video");
+    return source.filter(a => a.source === filter);
+  }, [articles, industryArticles, activeIndustry, filter]);
 
   const handleRefresh = () => {
     if (searchQuery) { handleSearch(searchQuery); return; }
@@ -2894,8 +2940,8 @@ function NewsFeed() {
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-orange-500/10"><Newspaper size={18} className="text-orange-500" /></div>
             <div>
-              <h1 className="font-bold text-lg text-foreground" data-testid="text-feed-title">My Ai Gpt Feed</h1>
-              <p className="text-[10px] text-muted-foreground/60">Live news & videos from around the world</p>
+              <h1 className="font-bold text-lg text-foreground" data-testid="text-feed-title">{activeIndustry ? `${industrySectors.find((s: any) => s.slug === activeIndustry)?.name || activeIndustry} News` : "My Ai Gpt Feed"}</h1>
+              <p className="text-[10px] text-muted-foreground/60">{activeIndustry ? "Industry-specific news powered by AI" : "Live news & videos from around the world"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -2938,6 +2984,61 @@ function NewsFeed() {
           )}
         </form>
 
+        {industrySectors.length > 0 && (
+          <div className="mb-2">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wider">Industries</span>
+              <div className="flex-1 h-px bg-border/20" />
+              <button onClick={loadIndustryTree} className="text-[9px] text-muted-foreground hover:text-orange-500 font-medium transition-colors" data-testid="button-browse-industries">
+                {showIndustryBrowser ? "Close" : "Browse All"} ▾
+              </button>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+              {activeIndustry && (
+                <button onClick={() => selectIndustry(null)} data-testid="button-clear-industry"
+                  className="px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap bg-muted/40 text-muted-foreground hover:bg-muted/60 transition-all flex items-center gap-1">
+                  <X size={10} /> All News
+                </button>
+              )}
+              {industrySectors.map((s: any) => (
+                <button key={s.slug} onClick={() => selectIndustry(s.slug)} data-testid={`industry-chip-${s.slug}`}
+                  className={`px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-all ${
+                    activeIndustry === s.slug
+                      ? "bg-orange-500 text-white shadow-sm"
+                      : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200/50"
+                  }`}>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            {showIndustryBrowser && industryTree.length > 0 && (
+              <div className="mt-2 p-3 bg-white border border-border/30 rounded-xl max-h-64 overflow-y-auto shadow-sm" data-testid="industry-browser">
+                {industryTree.map((sector: any) => (
+                  <div key={sector.slug} className="mb-1">
+                    <button onClick={() => { const next = new Set(expandedSectors); next.has(sector.slug) ? next.delete(sector.slug) : next.add(sector.slug); setExpandedSectors(next); }}
+                      className="w-full flex items-center justify-between py-1.5 px-2 text-xs font-bold text-foreground hover:bg-orange-50 rounded-lg transition-colors">
+                      <span>{sector.name}</span>
+                      <ChevronDown size={12} className={`transition-transform ${expandedSectors.has(sector.slug) ? "rotate-180" : ""}`} />
+                    </button>
+                    {expandedSectors.has(sector.slug) && (sector.children || []).map((group: any) => (
+                      <div key={group.slug} className="ml-3">
+                        <button onClick={() => selectIndustry(group.slug)} className="w-full text-left py-1 px-2 text-[11px] text-muted-foreground hover:text-orange-600 hover:bg-orange-50/50 rounded transition-colors" data-testid={`industry-item-${group.slug}`}>
+                          {group.name}
+                        </button>
+                        {(group.children || []).map((ind: any) => (
+                          <button key={ind.slug} onClick={() => selectIndustry(ind.slug)} className="w-full text-left py-0.5 px-2 ml-3 text-[10px] text-muted-foreground/70 hover:text-orange-500 rounded transition-colors" data-testid={`industry-item-${ind.slug}`}>
+                            {ind.name}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
           {sources.map(s => (
             <button key={s} onClick={() => setFilter(s)} data-testid={`feed-filter-${s}`}
@@ -2953,7 +3054,20 @@ function NewsFeed() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
-        {loading && articles.length === 0 ? (
+        {industryLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white rounded-xl border border-border/30 overflow-hidden animate-pulse">
+                <div className="h-48 bg-orange-100/50" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 bg-orange-100/50 rounded w-1/4" />
+                  <div className="h-4 bg-orange-100/50 rounded w-3/4" />
+                  <div className="h-3 bg-orange-100/50 rounded w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : loading && articles.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1,2,3,4,5,6].map(i => (
               <div key={i} className="bg-white rounded-xl border border-border/30 overflow-hidden animate-pulse">

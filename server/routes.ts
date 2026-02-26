@@ -10,6 +10,7 @@ import { Client, GatewayIntentBits } from "discord.js";
 import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
+import { GICS_HIERARCHY, getBySlug, getChildren, getParent, getSiblings, getByLevel, getAncestors, getSectorForEntry, getAll } from "./gics-data";
 
 function escapeXml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -329,6 +330,7 @@ export async function registerRoutes(
 Allow: /
 Allow: /feed
 Allow: /news/
+Allow: /industry/
 Allow: /social
 Allow: /social/profile/
 Allow: /social/post/
@@ -341,6 +343,7 @@ User-agent: Googlebot
 Allow: /
 Allow: /feed
 Allow: /news/
+Allow: /industry/
 Allow: /social
 Allow: /social/profile/
 Allow: /social/post/
@@ -404,6 +407,7 @@ Sitemap: ${baseUrl}/sitemap.xml
 Sitemap: ${baseUrl}/sitemap-news.xml
 Sitemap: ${baseUrl}/sitemap-profiles.xml
 Sitemap: ${baseUrl}/sitemap-posts.xml
+Sitemap: ${baseUrl}/sitemap-industries.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
 # AI Chat, Code Playground, News Feed, Social Network
@@ -435,6 +439,10 @@ Sitemap: ${baseUrl}/sitemap-posts.xml
     <loc>${baseUrl}/sitemap-news.xml</loc>
     <lastmod>${now}</lastmod>
   </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-industries.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
 </sitemapindex>`;
       res.type("application/xml").send(xml);
     } catch (e) {
@@ -451,6 +459,7 @@ Sitemap: ${baseUrl}/sitemap-posts.xml
       { loc: "/coder", changefreq: "daily", priority: "0.9" },
       { loc: "/feed", changefreq: "hourly", priority: "0.95" },
       { loc: "/social", changefreq: "hourly", priority: "0.95" },
+      { loc: "/industries", changefreq: "daily", priority: "0.85" },
       { loc: "/code", changefreq: "weekly", priority: "0.8" },
     ];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -858,6 +867,315 @@ ${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME
 </body>
 </html>`;
 
+    res.type("text/html").send(html);
+  });
+
+  // ═══════ GICS 262 INDUSTRY PAGES ═══════
+  const industryNewsCache: Record<string, { articles: any[]; lastFetch: number }> = {};
+  const INDUSTRY_NEWS_TTL = 5 * 60 * 1000;
+
+  async function fetchIndustryNews(slug: string, keywords: string[]): Promise<any[]> {
+    const cached = industryNewsCache[slug];
+    if (cached && Date.now() - cached.lastFetch < INDUSTRY_NEWS_TTL) return cached.articles;
+    try {
+      const query = keywords.slice(0, 3).join(" ") + " news";
+      const results = await searchNews(query, { safeSearch: 0 });
+      const articles = (results?.results || []).slice(0, 20).map((r: any) => ({
+        id: createHash("sha256").update(r.url || r.title || "").digest("hex").substring(0, 16),
+        title: r.title || "", description: (r.body || r.description || "").substring(0, 300),
+        link: r.url || "", image: r.image || "", source: r.source || "News",
+        pubDate: r.date ? new Date(r.date * 1000).toISOString() : new Date().toISOString(),
+        type: "article",
+      }));
+      industryNewsCache[slug] = { articles, lastFetch: Date.now() };
+      return articles;
+    } catch {
+      if (feedCache.articles.length > 0) {
+        const lower = keywords.map(k => k.toLowerCase());
+        const matched = feedCache.articles.filter(a => {
+          const text = (a.title + " " + a.description).toLowerCase();
+          return lower.some(k => text.includes(k));
+        }).slice(0, 20);
+        industryNewsCache[slug] = { articles: matched, lastFetch: Date.now() };
+        return matched;
+      }
+      return [];
+    }
+  }
+
+  app.get("/api/industries", (_req, res) => {
+    const sectors = getByLevel("sector");
+    const tree = sectors.map(s => ({
+      ...s,
+      children: getChildren(s.slug).map(g => ({
+        ...g,
+        children: getChildren(g.slug).map(i => ({
+          ...i,
+          children: getChildren(i.slug),
+        })),
+      })),
+    }));
+    res.json(tree);
+  });
+
+  app.get("/api/industries/sectors", (_req, res) => {
+    res.json(getByLevel("sector"));
+  });
+
+  app.get("/api/industry/:slug/news", async (req, res) => {
+    const entry = getBySlug(req.params.slug);
+    if (!entry) return res.status(404).json({ message: "Industry not found" });
+    const articles = await fetchIndustryNews(entry.slug, entry.searchKeywords);
+    res.json({ industry: entry, articles });
+  });
+
+  app.get("/industries", (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const sectors = getByLevel("sector");
+    const sectorHtml = sectors.map(s => {
+      const groups = getChildren(s.slug);
+      const groupHtml = groups.map(g => {
+        const industries = getChildren(g.slug);
+        const indHtml = industries.map(i => {
+          const subs = getChildren(i.slug);
+          return `<li><a href="/industry/${i.slug}">${escapeXml(i.name)}</a>${subs.length > 0 ? `<ul>${subs.map(sub => `<li><a href="/industry/${sub.slug}">${escapeXml(sub.name)}</a></li>`).join("")}</ul>` : ""}</li>`;
+        }).join("");
+        return `<li><a href="/industry/${g.slug}"><strong>${escapeXml(g.name)}</strong></a><ul>${indHtml}</ul></li>`;
+      }).join("");
+      return `<section><h2><a href="/industry/${s.slug}">${escapeXml(s.name)}</a></h2><ul>${groupHtml}</ul></section>`;
+    }).join("");
+    res.type("text/html").send(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>All Industries - GICS Industry News Directory | ${SITE_NAME}</title>
+<meta name="description" content="Browse ${getAll().length}+ industry-specific news pages covering every GICS sector. Energy, Technology, Health Care, Financials, and more — all auto-updating with live news." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="${baseUrl}/industries" />
+<meta property="og:title" content="Industry News Directory | ${SITE_NAME}" />
+<meta property="og:description" content="Browse ${getAll().length}+ industry news pages across all GICS sectors." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="${baseUrl}/industries" />
+<style>*{margin:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#f3f4f8;line-height:1.6;padding:20px}
+a{color:#f97316;text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1100px;margin:0 auto}
+h1{font-size:32px;margin-bottom:8px}h2{font-size:20px;margin:24px 0 12px;color:#f97316}
+ul{list-style:none;padding-left:16px}li{padding:3px 0;font-size:14px}
+section{margin-bottom:16px;padding:16px;background:rgba(18,18,28,.85);border:1px solid rgba(255,255,255,.08);border-radius:14px}
+nav{margin-bottom:20px;font-size:14px}footer{margin-top:40px;text-align:center;font-size:13px;color:#7f8398}</style>
+</head><body><div class="container">
+<nav><a href="/">${SITE_NAME}</a> › <span>Industries</span></nav>
+<h1>Industry News Directory</h1>
+<p style="color:#aeb1c2;margin-bottom:20px">${getAll().length} industry-specific news pages, auto-updating with live news from every GICS sector.</p>
+${sectorHtml}
+<footer><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR}</footer>
+</div>
+<script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex|facebookexternalhit|twitterbot|linkedinbot|discordbot/i.test(navigator.userAgent)){window.location.href="/feed";}</script>
+</body></html>`);
+  });
+
+  app.get("/sitemap-industries.xml", (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const now = new Date().toISOString().split("T")[0];
+    const entries = getAll();
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.map(e => `  <url>
+    <loc>${baseUrl}/industry/${e.slug}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>${e.level === "sector" ? "0.9" : e.level === "group" ? "0.8" : e.level === "industry" ? "0.7" : "0.6"}</priority>
+  </url>`).join("\n")}
+</urlset>`;
+    res.type("application/xml").send(xml);
+  });
+
+  app.get("/industry/:slug", async (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const slug = req.params.slug;
+    const entry = getBySlug(slug);
+    if (!entry) return res.redirect("/feed");
+
+    const articles = await fetchIndustryNews(slug, entry.searchKeywords);
+    const parent = getParent(slug);
+    const children = getChildren(slug);
+    const siblings = getSiblings(slug);
+    const ancestors = getAncestors(slug);
+    const sector = getSectorForEntry(slug) || entry;
+
+    const pageTitle = `My Ai ${entry.name} News | ${SITE_NAME}`;
+    const pageDesc = `Latest ${entry.name} news, analysis, and updates. Browse real-time ${entry.name} industry coverage on ${SITE_NAME} — your AI-powered news hub by ${SITE_CREATOR}.`;
+    const breadcrumbItems = [
+      { name: SITE_NAME, url: baseUrl },
+      { name: "Industries", url: `${baseUrl}/feed` },
+      ...ancestors.map(a => ({ name: a.name, url: `${baseUrl}/industry/${a.slug}` })),
+      { name: entry.name, url: `${baseUrl}/industry/${slug}` },
+    ];
+
+    const jsonLd = JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": pageTitle,
+        "description": pageDesc,
+        "url": `${baseUrl}/industry/${slug}`,
+        "isPartOf": { "@type": "WebSite", "name": SITE_NAME, "url": baseUrl },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` } },
+        "about": { "@type": "Thing", "name": entry.name, "description": `${entry.level} in the GICS classification` },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": breadcrumbItems.map((b, i) => ({
+          "@type": "ListItem", "position": i + 1, "name": b.name, "item": b.url,
+        })),
+      },
+    ]);
+
+    const newsCardsHtml = articles.length > 0
+      ? articles.map(a => `
+      <article class="news-card">
+        ${a.image ? `<img src="${escapeXml(a.image)}" alt="${escapeXml(a.title)}" loading="lazy" />` : ""}
+        <div class="card-body">
+          <h3><a href="${escapeXml(a.link)}" target="_blank" rel="noopener">${escapeXml(a.title)}</a></h3>
+          <p>${escapeXml((a.description || "").slice(0, 160))}...</p>
+          <span class="card-meta">${escapeXml(a.source)} · ${new Date(a.pubDate).toLocaleDateString()}</span>
+        </div>
+      </article>`).join("")
+      : `<div class="empty">No news articles found for ${escapeXml(entry.name)} right now. Check back soon for updates.</div>`;
+
+    const crossLinksHtml = `
+      <div class="cross-links">
+        ${parent ? `<div class="link-section"><h3>Parent Category</h3><a href="/industry/${parent.slug}">${escapeXml(parent.name)}</a></div>` : ""}
+        ${children.length > 0 ? `<div class="link-section"><h3>${entry.level === "sector" ? "Industry Groups" : entry.level === "group" ? "Industries" : "Sub-Industries"}</h3>
+          <div class="link-grid">${children.map(c => `<a href="/industry/${c.slug}">${escapeXml(c.name)}</a>`).join("")}</div></div>` : ""}
+        ${siblings.length > 0 ? `<div class="link-section"><h3>Related ${entry.level === "sector" ? "Sectors" : entry.level === "group" ? "Industry Groups" : entry.level === "industry" ? "Industries" : "Sub-Industries"}</h3>
+          <div class="link-grid">${siblings.slice(0, 12).map(s => `<a href="/industry/${s.slug}">${escapeXml(s.name)}</a>`).join("")}</div></div>` : ""}
+      </div>`;
+
+    const allSectors = getByLevel("sector");
+    const sectorLinksHtml = allSectors.map(s =>
+      `<a href="/industry/${s.slug}" class="sector-chip${s.slug === (sector?.slug || slug) ? " active" : ""}">${escapeXml(s.name)}</a>`
+    ).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+<title>${escapeXml(pageTitle)}</title>
+<meta name="description" content="${escapeXml(pageDesc)}" />
+<meta name="keywords" content="${entry.searchKeywords.slice(0, 10).join(", ")}, ${entry.name}, industry news, ${SITE_NAME}" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<meta name="googlebot" content="index, follow, max-image-preview:large" />
+<link rel="canonical" href="${baseUrl}/industry/${slug}" />
+<meta property="og:title" content="${escapeXml(pageTitle)}" />
+<meta property="og:description" content="${escapeXml(pageDesc)}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="${baseUrl}/industry/${slug}" />
+<meta property="og:site_name" content="${SITE_NAME}" />
+<meta property="og:image" content="${baseUrl}/favicon.png" />
+<meta property="og:locale" content="en_US" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeXml(pageTitle)}" />
+<meta name="twitter:description" content="${escapeXml(pageDesc)}" />
+<meta name="twitter:image" content="${baseUrl}/favicon.png" />
+<meta name="twitter:site" content="@MyAiGpt" />
+<script type="application/ld+json">${jsonLd}</script>
+<style>
+*{margin:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0f;color:#f3f4f8;line-height:1.6}
+a{color:#f97316;text-decoration:none}a:hover{text-decoration:underline}
+header{background:rgba(10,10,15,.95);border-bottom:1px solid rgba(255,255,255,.08);padding:16px 0;position:sticky;top:0;z-index:50;backdrop-filter:blur(16px)}
+.container{max-width:1100px;margin:0 auto;padding:0 20px}
+nav.site-nav{text-align:center}
+nav.site-nav a{display:inline-block;margin:0 14px;color:#ccc;font-weight:500;font-size:14px}
+nav.site-nav a:hover{color:#f97316}
+.hero{padding:40px 0 30px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
+.hero .level-badge{display:inline-block;background:rgba(249,115,22,.15);color:#f97316;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+.hero h1{font-size:clamp(28px,4vw,42px);font-weight:900;margin-bottom:8px;background:linear-gradient(135deg,#fff,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:#aeb1c2;font-size:16px;max-width:600px;margin:0 auto 16px}
+.breadcrumb{font-size:13px;color:#666;padding:16px 0}
+.breadcrumb a{color:#f97316}
+.sectors-bar{display:flex;gap:8px;overflow-x:auto;padding:16px 0;scrollbar-width:thin}
+.sector-chip{padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(15,15,22,.7);color:#aeb1c2;font-size:12px;white-space:nowrap;transition:all .15s}
+.sector-chip:hover,.sector-chip.active{border-color:rgba(249,115,22,.8);background:rgba(249,115,22,.15);color:#f97316;text-decoration:none}
+.content{display:grid;grid-template-columns:1fr 320px;gap:24px;padding:24px 0 40px}
+@media(max-width:768px){.content{grid-template-columns:1fr}}
+.news-grid{display:flex;flex-direction:column;gap:16px}
+.news-card{background:rgba(18,18,28,.85);border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;transition:transform .15s,border-color .15s}
+.news-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.15)}
+.news-card img{width:100%;height:180px;object-fit:cover}
+.card-body{padding:14px 16px 16px}
+.card-body h3{font-size:16px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.card-body h3 a{color:#f3f4f8}
+.card-body h3 a:hover{color:#f97316}
+.card-body p{font-size:13px;color:#aeb1c2;margin-bottom:8px}
+.card-meta{font-size:11px;color:#7f8398;text-transform:uppercase;letter-spacing:.08em}
+.empty{padding:40px;text-align:center;color:#7f8398;font-size:15px}
+.sidebar{display:flex;flex-direction:column;gap:20px}
+.cross-links{background:rgba(18,18,28,.85);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px}
+.link-section{margin-bottom:16px}
+.link-section:last-child{margin-bottom:0}
+.link-section h3{font-size:12px;color:#f97316;text-transform:uppercase;letter-spacing:.14em;margin-bottom:10px;font-weight:700}
+.link-grid{display:flex;flex-wrap:wrap;gap:6px}
+.link-grid a{padding:5px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(15,15,22,.7);color:#ccc;font-size:12px;transition:all .15s}
+.link-grid a:hover{border-color:rgba(249,115,22,.6);color:#f97316;text-decoration:none}
+.cta-box{background:linear-gradient(135deg,rgba(249,115,22,.12),rgba(249,59,0,.08));border:1px solid rgba(249,115,22,.3);border-radius:14px;padding:20px;text-align:center}
+.cta-box h3{font-size:16px;margin-bottom:8px}
+.cta-box p{font-size:13px;color:#aeb1c2;margin-bottom:14px}
+.cta-btn{display:inline-block;background:#f97316;color:#fff;padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px}
+.cta-btn:hover{background:#ea580c;text-decoration:none}
+footer{background:rgba(10,10,15,.95);border-top:1px solid rgba(255,255,255,.06);padding:30px 0;text-align:center;font-size:13px;color:#7f8398}
+footer a{color:#f97316}
+</style>
+</head>
+<body>
+<header>
+<div class="container">
+<nav class="site-nav">
+<a href="/"><strong>${SITE_NAME}</strong></a>
+<a href="/feed">News Feed</a>
+<a href="/social">Social</a>
+<a href="/code">Code Playground</a>
+</nav>
+</div>
+</header>
+<div class="container">
+<div class="breadcrumb">${breadcrumbItems.map((b, i) => i < breadcrumbItems.length - 1 ? `<a href="${b.url}">${escapeXml(b.name)}</a>` : `<span>${escapeXml(b.name)}</span>`).join(" › ")}</div>
+<div class="sectors-bar">${sectorLinksHtml}</div>
+</div>
+<div class="container hero">
+<span class="level-badge">${entry.level}</span>
+<h1>My Ai ${escapeXml(entry.name)} News</h1>
+<p>${escapeXml(pageDesc)}</p>
+</div>
+<div class="container">
+<div class="content">
+<div class="news-grid">${newsCardsHtml}</div>
+<aside class="sidebar">
+<div class="cta-box">
+<h3>Talk to My Ai GPT</h3>
+<p>Ask our AI anything about ${escapeXml(entry.name)} — get instant, informed answers powered by live news.</p>
+<a href="/" class="cta-btn">Chat with AI →</a>
+</div>
+${crossLinksHtml}
+<div class="cta-box">
+<h3>Browse All News</h3>
+<p>Explore the full ${SITE_NAME} news feed with articles, videos, and more.</p>
+<a href="/feed" class="cta-btn">Open News Feed →</a>
+</div>
+</aside>
+</div>
+</div>
+<footer>
+<div class="container">
+<p><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · AI Chat, Code Playground, News Feed & Social Network</p>
+<p style="margin-top:8px"><a href="/feed">Browse All News</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a></p>
+<p style="margin-top:12px">Industry Pages: ${allSectors.map(s => `<a href="/industry/${s.slug}">${escapeXml(s.name)}</a>`).join(" · ")}</p>
+</div>
+</footer>
+<script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex|facebookexternalhit|twitterbot|linkedinbot|discordbot/i.test(navigator.userAgent)){window.location.href="/feed?industry=${slug}";}</script>
+</body>
+</html>`;
     res.type("text/html").send(html);
   });
 
@@ -2475,6 +2793,22 @@ If you have live data provided in this prompt, USE IT and present it confidently
           learnFromInteraction(chatUserId, "chat_message", { text: input.content, topic: chat.title }).catch(() => {});
         } catch {}
       }
+
+      try {
+        const questionSectors = classifyToSectors(input.content);
+        const topIndustrySector = Object.entries(questionSectors).sort((a, b) => b[1] - a[1])[0];
+        if (topIndustrySector && topIndustrySector[1] >= 2) {
+          const sectorSlug = topIndustrySector[0].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+          const sectorEntry = getBySlug(sectorSlug);
+          if (sectorEntry) {
+            const cached = industryNewsCache[sectorSlug];
+            if (cached && cached.articles.length > 0) {
+              const headlines = cached.articles.slice(0, 5).map(a => `• ${a.title} (${a.source})`).join("\n");
+              systemPrompt += `\n\nCurrent ${sectorEntry.name} industry news:\n${headlines}\nUse these headlines to inform your response if relevant.`;
+            }
+          }
+        }
+      } catch {}
 
       const imageRequestPatterns = /(?:show me|find me|get me|search for|look up|give me|can you (?:show|find|get)|i (?:want|need)|send me)[\s\w]*(?:image|picture|photo|pic|photograph|illustration)/i;
       const imageRequestPatterns2 = /(?:image|picture|photo|pic|photograph)\s*(?:of|for|about|with|showing)\s+/i;

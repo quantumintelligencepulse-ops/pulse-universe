@@ -1,0 +1,1460 @@
+import os
+import sys
+import subprocess
+import importlib
+import datetime as dt
+import json
+import warnings
+import urllib.parse
+import time
+import threading
+from email.utils import parsedate_to_datetime
+from typing import List, Dict, Any, Optional, Tuple
+from pathlib import Path
+
+# ================== AUTO-PIP ==================
+
+PIP_MODULES = [
+    ("requests", "requests"),
+    ("beautifulsoup4", "bs4"),
+    ("lxml", "lxml"),
+    ("readability-lxml", "readability"),
+    ("rich", "rich"),
+    ("sentence-transformers", "sentence_transformers"),
+    ("spacy", "spacy"),
+    ("gnews", "gnews"),
+    ("googlesearch-python", "googlesearch"),
+    ("newspaper3k", "newspaper"),
+    ("trafilatura", "trafilatura"),
+    ("pandas", "pandas"),
+]
+
+def ensure_all_packages():
+    for pip_name, module_name in PIP_MODULES:
+        try:
+            importlib.import_module(module_name)
+        except Exception:
+            print(f"[AUTO-PIP] Installing {pip_name} ...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
+
+def ensure_spacy_model(model_name: str = "en_core_web_sm"):
+    import spacy
+    try:
+        spacy.load(model_name)
+        return
+    except Exception:
+        print(f"[AUTO-PIP] Downloading spaCy model {model_name} ...")
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", model_name])
+
+ensure_all_packages()
+ensure_spacy_model("en_core_web_sm")
+
+# ================== IMPORTS ==================
+
+import requests
+from bs4 import BeautifulSoup
+import xml.etree.ElementTree as ET
+from readability import Document
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.theme import Theme
+from rich.table import Table
+from sentence_transformers import SentenceTransformer, util
+import spacy
+from gnews import GNews
+from googlesearch import search as google_search
+import trafilatura
+from newspaper import Article as NPArticle
+import pandas as pd
+
+warnings.filterwarnings("ignore")
+
+# ================== SAFE MODEL LOAD ==================
+
+def heartbeat(label="Working"):
+    while True:
+        print(f"[HEARTBEAT] {label} ...")
+        time.sleep(2)
+
+def load_spacy_model_safe():
+    print("🔧 Loading spaCy model (en_core_web_sm)...")
+    hb = threading.Thread(target=heartbeat, args=("Loading spaCy",), daemon=True)
+    hb.start()
+    try:
+        return spacy.load("en_core_web_sm")
+    finally:
+        print("✅ spaCy model loaded.")
+
+def load_sentence_transformer_safe(model_name):
+    print(f"🔧 Loading SentenceTransformer model: {model_name}")
+    hb = threading.Thread(target=heartbeat, args=("Loading SentenceTransformer",), daemon=True)
+    hb.start()
+    try:
+        model = SentenceTransformer(model_name)
+        return model
+    finally:
+        print("✅ SentenceTransformer model loaded.")
+
+# ================== CONFIG ==================
+
+ROOT = r"C:\Users\Billy\breaking-news\breaking-news\gics"
+TEMPLATE_PATH = r"C:\Users\Billy\breaking-news\breaking-news\newsarticletemplate.html"
+STATE_DIR = r"C:\Users\Billy\breaking-news\breaking-news\state"
+os.makedirs(STATE_DIR, exist_ok=True)
+
+with open(TEMPLATE_PATH, encoding="utf-8") as f:
+    TEMPLATE = f.read()
+
+BACKLINK_LIMIT = 5
+RELEVANCE_THRESHOLD = 3
+SEMANTIC_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+SEMANTIC_MODEL = load_sentence_transformer_safe(SEMANTIC_MODEL_NAME)
+NER_MODEL = load_spacy_model_safe()
+
+SEMANTIC_WEIGHT = 6.0
+RECENCY_WEIGHT = 0.5
+
+GLOBAL_SEEN_FILE = os.path.join(STATE_DIR, "global_seen.json")
+BAD_SOURCES: set[str] = set()
+
+# BREAKING + YEAR FLOOR
+MAX_AGE_DAYS = 90
+HARD_RECENCY_BONUS = 6.0
+HARD_RECENCY_WINDOW = 7
+MIN_YEAR = 2026
+
+# ================== RICH ==================
+
+custom_theme = Theme(
+    {
+        "banner": "bold cyan",
+        "section": "bold bright_black",
+        "label": "bold yellow",
+        "good": "bold green",
+        "bad": "bold red",
+        "info": "bright_black",
+        "score": "bold magenta",
+    }
+)
+console = Console(theme=custom_theme)
+
+def banner(text: str) -> None:
+    console.print(Panel(Text(text, justify="center"), style="banner"))
+
+def section(text: str) -> None:
+    console.rule(Text(text, style="section"))
+
+def label(name: str, value: str) -> None:
+    console.print(f"[label][ {name:<18}][/label] {value}")
+
+def good(text: str) -> None:
+    console.print(f"[good]✓ {text}[/good]")
+
+def info(text: str) -> None:
+    console.print(f"[info]{text}[/info]")
+
+def bad(text: str) -> None:
+    console.print(f"[bad]✖ {text}[/bad]")
+
+def score_line(score: float, extra: str = "") -> None:
+    console.print(f"[score]SCORE {score:6.2f}[/score] {extra}")
+
+# ================== GLOBAL SEEN ==================
+
+def load_global_seen() -> set:
+    if os.path.exists(GLOBAL_SEEN_FILE):
+        try:
+            with open(GLOBAL_SEEN_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+            return set(data.get("headlines", []))
+        except Exception:
+            return set()
+    return set()
+
+def save_global_seen(seen: set) -> None:
+    data = {"headlines": sorted(seen)}
+    with open(GLOBAL_SEEN_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+GLOBAL_SEEN = load_global_seen()
+
+# ================== GICS BRAIN ==================
+
+NEGATIVE_KEYWORDS_SEVERITY = {
+    "high": [
+        "election", "elections", "campaign", "president", "prime minister",
+        "war", "military", "missile", "airstrike", "battle", "invasion",
+        "terrorist", "terrorism", "celebrity gossip", "royal family",
+    ],
+    "medium": [
+        "ai safety", "ai breakthrough", "artificial intelligence",
+        "crypto", "bitcoin", "ethereum",
+        "fighter jet", "air force",
+        "earthquake", "hurricane", "wildfire",
+    ],
+    "low": [
+        "movie review", "film review", "tv recap",
+        "football", "soccer", "basketball", "baseball", "tennis",
+        "music video", "concert review",
+    ],
+}
+NEGATIVE_WEIGHTS = {"high": -6, "medium": -4, "low": -2}
+
+VAGUE_PATTERNS = [
+    "kids can be the harshest critics",
+    "you won’t believe",
+    "you won't believe",
+    "what happens next",
+    "goes viral",
+    "internet reacts",
+]
+
+CLICKBAIT_PATTERNS = [
+    "you won’t believe",
+    "you won't believe",
+    "shocking",
+    "stunned",
+    "jaw-dropping",
+    "mind-blowing",
+]
+
+STORY_TYPES = {
+    "earnings": ["earnings", "q1", "q2", "q3", "q4", "profit", "loss", "results"],
+    "layoffs": ["layoff", "layoffs", "job cuts", "redundancies", "workforce reduction"],
+    "expansion": ["store opening", "opens new store", "expansion", "expands", "new location"],
+    "mna": ["acquisition", "merger", "buyout", "takeover", "m&a"],
+    "supply_chain": ["supply chain", "logistics", "shipping delays", "inventory shortage"],
+    "regulation": ["regulation", "lawsuit", "fine", "antitrust", "compliance"],
+    "consumer_trend": ["trend", "consumer demand", "shopping habits", "spending", "holiday sales"],
+}
+
+def _get_domain(url: str) -> str:
+    try:
+        return urllib.parse.urlparse(url).netloc.lower()
+    except Exception:
+        return ""
+
+def _contains_any(text: str, patterns: List[str]) -> bool:
+    t = text.lower()
+    return any(p.lower() in t for p in patterns)
+
+def _parse_date_safe(date_str: str):
+    if not date_str:
+        return None
+    try:
+        dt_obj = parsedate_to_datetime(date_str)
+        if dt_obj.tzinfo is not None:
+            dt_obj = dt_obj.astimezone(dt.timezone.utc).replace(tzinfo=None)
+        return dt_obj
+    except Exception:
+        try:
+            dt_obj = dt.datetime.fromisoformat(date_str.replace("Z", ""))
+            if dt_obj.tzinfo is not None:
+                dt_obj = dt_obj.astimezone(dt.timezone.utc).replace(tzinfo=None)
+            return dt_obj
+        except Exception:
+            return None
+
+def _subindustry_semantic_prompt(gics: dict) -> str:
+    return (
+        f"News specifically about the {gics['subindustry']} subindustry within "
+        f"the {gics['industry']} industry, focusing on companies, operations, "
+        f"sales, products, and market developments."
+    )
+
+def _extract_companies_ner(text: str) -> List[str]:
+    doc = NER_MODEL(text)
+    return [ent.text for ent in doc.ents if ent.label_ in ("ORG", "PRODUCT")]
+
+def classify_story_type(title: str) -> str:
+    t = title.lower()
+    best_type = "general"
+    best_hits = 0
+    for stype, kws in STORY_TYPES.items():
+        hits = sum(1 for kw in kws if kw in t)
+        if hits > best_hits:
+            best_hits = hits
+            best_type = stype
+    return best_type
+
+def _build_brain_keywords(gics: dict, brain: dict) -> Tuple[List[str], List[str]]:
+    core_words = []
+    for key in ("sector", "group", "industry", "subindustry"):
+        for w in gics.get(key, "").replace("-", " ").replace("/", " ").split():
+            w = w.strip().lower()
+            if len(w) > 3:
+                core_words.append(w)
+    vocab = brain.get("vocab", [])
+    vocab_words = [w for w, _ in vocab]
+    return core_words, vocab_words
+
+def score_headline_for_subindustry(
+    headline: str,
+    link: str,
+    gics: dict,
+    subindustry_embedding,
+    pub_dt: Optional[dt.datetime],
+    brain: dict,
+) -> Tuple[float, float]:
+    title = (headline or "").lower()
+    domain = _get_domain(link)
+
+    core_words, vocab_words = _build_brain_keywords(gics, brain)
+    domain_trust = brain.get("domain_trust", {})
+
+    score = 0.0
+
+    for kw in core_words:
+        if kw in title:
+            score += 3.0
+
+    for kw in vocab_words:
+        if kw in title:
+            score += 2.0
+
+    for level, words in NEGATIVE_KEYWORDS_SEVERITY.items():
+        for kw in words:
+            if kw.lower() in title:
+                score += NEGATIVE_WEIGHTS[level]
+
+    if any(c.isdigit() for c in title):
+        score += 1.0
+
+    if _contains_any(title, VAGUE_PATTERNS):
+        score -= 3.0
+
+    if _contains_any(title, CLICKBAIT_PATTERNS):
+        score -= 4.0
+
+    score += float(domain_trust.get(domain, 0))
+
+    try:
+        headline_emb = SEMANTIC_MODEL.encode(title, convert_to_tensor=True)
+        sim = util.cos_sim(headline_emb, subindustry_embedding).item()
+        score += sim * SEMANTIC_WEIGHT
+    except Exception:
+        sim = 0.0
+
+    if sim < 0.25:
+        score -= 8.0
+
+    if pub_dt is not None:
+        if pub_dt.year < MIN_YEAR:
+            score -= 100.0
+        else:
+            now = dt.datetime.utcnow()
+            delta_days = (now - pub_dt).total_seconds() / 86400.0
+            if delta_days > MAX_AGE_DAYS:
+                score -= 50.0
+            else:
+                score += max(-10.0, min(10.0, -delta_days * (RECENCY_WEIGHT * 2.0)))
+                if delta_days <= HARD_RECENCY_WINDOW:
+                    score += HARD_RECENCY_BONUS
+    else:
+        score -= 2.0
+
+    if headline in GLOBAL_SEEN:
+        score -= 8.0
+
+    return score, sim
+
+# ================== FETCH / PARSE ==================
+
+def _repair_url_if_404(url: str) -> Optional[str]:
+    try:
+        r = requests.get(
+            url,
+            timeout=15,
+            allow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        if r.status_code == 404:
+            parsed = urllib.parse.urlparse(url)
+            path = parsed.path.rstrip("/")
+            if "/" in path:
+                parent = path.rsplit("/", 1)[0] or "/"
+                repaired = parsed._replace(path=parent).geturl()
+                try:
+                    r2 = requests.get(
+                        repaired,
+                        timeout=15,
+                        allow_redirects=True,
+                        headers={"User-Agent": "Mozilla/5.0"},
+                    )
+                    if r2.ok:
+                        good(f"AUTO-REPAIRED SOURCE: {url} → {repaired}")
+                        return repaired
+                except Exception:
+                    pass
+        if r.ok:
+            return url
+    except Exception:
+        pass
+    return None
+
+def fetch(url: str, allow_redirects: bool = True) -> requests.Response:
+    info(f"FETCH → {url}")
+    try:
+        r = requests.get(
+            url,
+            timeout=20,
+            allow_redirects=allow_redirects,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        r.raise_for_status()
+        return r
+    except requests.exceptions.HTTPError as e:
+        status = getattr(e.response, "status_code", None)
+        bad(f"HTTP ERROR {status} for {url}")
+        if status in (404, 410):
+            BAD_SOURCES.add(url)
+        raise
+    except Exception as e:
+        bad(f"FETCH ERROR: {url} :: {e}")
+        BAD_SOURCES.add(url)
+        raise
+
+def parse_rss(content: str, url: str) -> List[Dict[str, Any]]:
+    items: List[Dict[str, Any]] = []
+    try:
+        root = ET.fromstring(content)
+    except Exception as e:
+        bad(f"RSS PARSE ERROR: {e}")
+        return items
+
+    for item in root.findall(".//item"):
+        title = (item.findtext("title") or "").strip()
+        link = (item.findtext("link") or "").strip()
+        date = (item.findtext("pubDate") or "").strip()
+        if title and link:
+            items.append({"title": title, "link": link, "date": date or ""})
+
+    if not items:
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        for entry in root.findall(".//atom:entry", ns):
+            title = (entry.findtext("atom:title", default="", namespaces=ns) or "").strip()
+            link_el = entry.find("atom:link", ns)
+            link = (link_el.get("href") if link_el is not None else "").strip()
+            date = (entry.findtext("atom:updated", default="", namespaces=ns) or "").strip()
+            if title and link:
+                items.append({"title": title, "link": link, "date": date or ""})
+
+    if items:
+        good(f"RSS ITEMS: {len(items)}")
+    else:
+        info("No RSS items found")
+
+    return items
+
+def _is_article_like_url(base: str, url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    path = parsed.path.lower()
+    if not path or path == "/":
+        return False
+    if any(seg in path for seg in ["/article", "/story", "/stories", "/news", "/insights", "/blog"]):
+        return True
+    if any(part.isdigit() and len(part) == 4 for part in path.split("/")):
+        return True
+    if url.rstrip("/") == base.rstrip("/"):
+        return False
+    return True
+
+def parse_webpage(content: str, url: str) -> List[Dict[str, Any]]:
+    soup = BeautifulSoup(content, "html.parser")
+    items: List[Dict[str, Any]] = []
+
+    base_domain = _get_domain(url)
+    for a in soup.find_all("a", href=True):
+        text = (a.get_text(strip=True) or "").strip()
+        href = a["href"]
+        full_url = urllib.parse.urljoin(url, href)
+        if _get_domain(full_url) != base_domain:
+            continue
+        if not _is_article_like_url(url, full_url):
+            continue
+        if not text or len(text) < 30:
+            continue
+        items.append({"title": text, "link": full_url, "date": ""})
+
+    if items:
+        good(f"WEB PAGE ARTICLES (DEEP): {len(items)}")
+        return items
+
+    title = soup.title.string.strip() if soup.title and soup.title.string else url
+    good(f"WEB TITLE (FALLBACK): {title}")
+    return [{"title": title, "link": url, "date": ""}]
+
+def collect_headlines_from_source(url: str) -> List[Dict[str, Any]]:
+    if url in BAD_SOURCES:
+        bad(f"SKIP BAD SOURCE: {url}")
+        return []
+
+    repaired = _repair_url_if_404(url)
+    if not repaired:
+        bad(f"UNRECOVERABLE SOURCE: {url}")
+        BAD_SOURCES.add(url)
+        return []
+    if repaired != url:
+        url = repaired
+
+    try:
+        r = fetch(url)
+    except Exception:
+        return []
+
+    content = r.text
+    lower = content.lower()
+    if "<rss" in lower or "<feed" in lower:
+        info("Detected RSS/Feed")
+        items = parse_rss(content, url)
+    else:
+        info("Detected normal webpage (DEEP CRAWL)")
+        items = parse_webpage(content, url)
+
+    for i, it in enumerate(items, start=1):
+        info(f"  [{i}] {it['title']}")
+
+    return items
+
+# ================== GOOGLE NEWS ==================
+
+def is_google_news_url(url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    return "news.google.com" in parsed.netloc
+
+def resolve_google_news_redirect(url: str) -> str:
+    section("GOOGLE NEWS RESOLVE")
+    label("WRAPPER URL", url)
+    try:
+        r = fetch(url, allow_redirects=True)
+        final_url = r.url
+        if not is_google_news_url(final_url):
+            good(f"RESOLVED → {final_url}")
+            return final_url
+
+        soup = BeautifulSoup(r.text, "lxml")
+        a = soup.find("a", href=True)
+        if a and a["href"]:
+            real = a["href"]
+            good(f"HTML LINK → {real}")
+            return real
+
+        bad("Could not resolve Google News wrapper, using original URL")
+        return url
+    except Exception as e:
+        bad(f"RESOLVE ERROR: {e}")
+        return url
+
+# ================== ARTICLE EXTRACTION ==================
+
+def _extract_meta(soup: BeautifulSoup, names, props):
+    for n in names:
+        tag = soup.find("meta", attrs={"name": n})
+        if tag and tag.get("content"):
+            return tag["content"].strip()
+    for p in props:
+        tag = soup.find("meta", attrs={"property": p})
+        if tag and tag.get("content"):
+            return tag["content"].strip()
+    return ""
+
+def _extract_time(soup: BeautifulSoup):
+    t = soup.find("time")
+    if t and (t.get("datetime") or t.text.strip()):
+        return (t.get("datetime") or t.text.strip())
+    meta = _extract_meta(
+        soup,
+        ["article:published_time", "pubdate", "date", "dc.date"],
+        ["article:published_time", "og:updated_time"],
+    )
+    return meta or "Unknown"
+
+def _estimate_reading_time(text: str) -> str:
+    words = len(text.split())
+    minutes = max(1, int(round(words / 200.0)))
+    return str(minutes)
+
+def _quality_score(body_html: str) -> float:
+    text = BeautifulSoup(body_html, "lxml").get_text(" ", strip=True)
+    words = len(text.split())
+    paragraphs = body_html.count("<p")
+    score = 0.0
+    if words > 300:
+        score += 3
+    elif words > 150:
+        score += 2
+    elif words > 60:
+        score += 1
+    if paragraphs > 5:
+        score += 2
+    elif paragraphs > 2:
+        score += 1
+    return score
+
+def extract_full_article(url: str) -> Dict[str, Any]:
+    section("ARTICLE EXTRACTION")
+    label("ORIGINAL URL", url)
+
+    if is_google_news_url(url):
+        url = resolve_google_news_redirect(url)
+    label("TARGET URL", url)
+
+    html = None
+    for attempt in range(3):
+        try:
+            r = fetch(url, allow_redirects=True)
+            html = r.text
+            break
+        except Exception as e:
+            bad(f"ARTICLE FETCH ERROR (attempt {attempt+1}/3): {e}")
+    if html is None:
+        return {
+            "title": "",
+            "dek": "",
+            "body_html": "",
+            "hero_image": "",
+            "hero_caption": "",
+            "published_at": "Unknown",
+            "updated_at": "Unknown",
+            "reading_time": "3",
+            "quality_score": 0.0,
+        }
+
+    soup = BeautifulSoup(html, "lxml")
+
+    body_html = ""
+    dek = ""
+    readable_title = ""
+
+    try:
+        downloaded = trafilatura.extract(
+            html,
+            include_comments=False,
+            include_tables=False,
+            output_format="xml",
+        )
+        if downloaded:
+            tsoup = BeautifulSoup(downloaded, "lxml")
+            parts = []
+            for el in tsoup.find_all(["p", "h2", "h3", "ul", "ol", "li", "blockquote"]):
+                parts.append(str(el))
+            body_html = "\n".join(parts).strip()
+            good("Trafilatura extraction OK")
+    except Exception as e:
+        bad(f"Trafilatura failed: {e}")
+
+    if not body_html:
+        try:
+            doc = Document(html)
+            readable_title = (doc.short_title() or "").strip()
+            readable_html = doc.summary()
+            readable_soup = BeautifulSoup(readable_html, "lxml")
+
+            body_parts = []
+            for el in readable_soup.find_all(["p", "h2", "h3", "ul", "ol", "li", "blockquote"]):
+                body_parts.append(str(el))
+            body_html = "\n".join(body_parts).strip()
+
+            first_p = readable_soup.find("p")
+            dek = first_p.get_text(strip=True) if first_p else ""
+
+            good("Readability extraction OK")
+        except Exception as e:
+            bad(f"Readability failed: {e}")
+
+    if not body_html:
+        try:
+            art = NPArticle(url)
+            art.download()
+            art.parse()
+            art.nlp()
+            body_html = "".join(
+                f"<p>{p}</p>" for p in art.text.split("\n") if p.strip()
+            )
+            if not dek:
+                dek = art.summary.split("\n")[0] if art.summary else ""
+            if not readable_title:
+                readable_title = art.title or ""
+            good("Newspaper3k extraction OK")
+        except Exception as e:
+            bad(f"Newspaper3k failed: {e}")
+
+    if not body_html:
+        bad("No body extracted — returning minimal stub")
+        body_html = "<p>Content could not be extracted.</p>"
+
+    title = readable_title or (soup.title.string.strip() if soup.title and soup.title.string else url)
+    hero_image = _extract_meta(
+        soup,
+        ["og:image", "twitter:image", "image"],
+        ["og:image", "twitter:image"],
+    )
+    hero_caption = ""
+
+    published_at = _extract_time(soup)
+    updated_at = published_at
+    reading_time = _estimate_reading_time(
+        BeautifulSoup(body_html, "lxml").get_text(" ", strip=True)
+    )
+    q_score = _quality_score(body_html)
+
+    return {
+        "title": title,
+        "dek": dek,
+        "body_html": body_html,
+        "hero_image": hero_image,
+        "hero_caption": hero_caption,
+        "published_at": published_at,
+        "updated_at": updated_at,
+        "reading_time": reading_time,
+        "quality_score": q_score,
+    }
+
+# ================== ENGINE HELPERS ==================
+
+def get_gics_hierarchy(articles_root: str) -> dict:
+    rel = os.path.relpath(articles_root, ROOT)
+    parts = rel.split(os.sep)
+    if parts and parts[-1].lower() == "articles":
+        parts = parts[:-1]
+    sector = parts[0] if len(parts) > 0 else "Unknown Sector"
+    group = parts[1] if len(parts) > 1 else "Unknown Group"
+    industry = parts[2] if len(parts) > 2 else "Unknown Industry"
+    subindustry = parts[3] if len(parts) > 3 else "Unknown Subindustry"
+    return {
+        "sector": sector,
+        "group": group,
+        "industry": industry,
+        "subindustry": subindustry,
+        "subindustry_path": os.path.dirname(articles_root),
+    }
+
+def _state_key(gics: dict) -> str:
+    return f"{gics['sector']}__{gics['group']}__{gics['industry']}__{gics['subindustry']}".replace(os.sep, "_")
+
+def load_state_for_subindustry(gics: dict) -> dict:
+    key = _state_key(gics)
+    path = os.path.join(STATE_DIR, key + ".json")
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_state_for_subindustry(gics: dict, state: dict) -> None:
+    key = _state_key(gics)
+    path = os.path.join(STATE_DIR, key + ".json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+def kernel_source_expand(base_sources: List[str]) -> List[str]:
+    expanded = []
+    for src in base_sources:
+        if src in BAD_SOURCES:
+            continue
+        parsed = urllib.parse.urlparse(src)
+        path = parsed.path.lower()
+        if any(seg in path for seg in ["/article", "/story", "/stories", "/news/", "/insights/", "/blog/"]):
+            continue
+        expanded.append(src)
+
+    expanded = list(dict.fromkeys(expanded))
+    extra = []
+    for src in expanded:
+        try:
+            r = fetch(src)
+        except Exception:
+            continue
+        soup = BeautifulSoup(r.text, "html.parser")
+        for link in soup.find_all("link", rel="alternate"):
+            t = (link.get("type") or "").lower()
+            href = link.get("href")
+            if not href:
+                continue
+            if "rss" in t or "xml" in t or "atom" in t:
+                full = urllib.parse.urljoin(src, href)
+                extra.append(full)
+    expanded.extend(extra)
+    expanded = list(dict.fromkeys(expanded))
+    return [s for s in expanded if s not in BAD_SOURCES]
+
+def kernel_news_discovery(gics: dict, limit: int = 8) -> List[str]:
+    query = f"{gics['industry']} {gics['subindustry']} business news"
+    urls = []
+    try:
+        g = GNews(language="en", max_results=limit)
+        results = g.get_news(query)
+        for r in results:
+            if r.get("url"):
+                urls.append(r["url"])
+    except Exception:
+        pass
+    try:
+        for u in google_search(query, num=limit, stop=limit, pause=2.0):
+            urls.append(u)
+    except Exception:
+        pass
+    cleaned = []
+    for u in urls:
+        parsed = urllib.parse.urlparse(u)
+        path = parsed.path.lower()
+        if any(seg in path for seg in ["/tag/", "/category/", "/section/", "/business/", "/retail/"]):
+            cleaned.append(u)
+    return list(dict.fromkeys(cleaned))
+
+def kernel_semantic_filter(urls: List[str], gics: dict, threshold: float = 0.15) -> List[str]:
+    if not urls:
+        return []
+    prompt = _subindustry_semantic_prompt(gics)
+    try:
+        sub_emb = SEMANTIC_MODEL.encode(prompt, convert_to_tensor=True)
+    except Exception:
+        return urls
+    kept = []
+    for u in urls:
+        title = _get_domain(u) + " " + urllib.parse.urlparse(u).path
+        try:
+            emb = SEMANTIC_MODEL.encode(title, convert_to_tensor=True)
+            sim = util.cos_sim(emb, sub_emb).item()
+            if sim >= threshold:
+                kept.append(u)
+        except Exception:
+            kept.append(u)
+    return list(dict.fromkeys(kept))
+
+def compute_density_level(items: List[Dict[str, Any]]) -> Tuple[str, str]:
+    n = len(items)
+    if n >= 15:
+        return "high", "High signal density — intense coverage."
+    elif n >= 7:
+        return "medium", "Moderate signal density — steady coverage."
+    elif n >= 1:
+        return "low", "Low signal density — light coverage."
+    else:
+        return "none", "No active coverage."
+
+def kernel_density(items: List[Dict[str, Any]]) -> Tuple[str, str]:
+    return compute_density_level(items)
+
+def build_article_body_html(article_data: dict, backlinks: List[Dict[str, Any]]) -> str:
+    return article_data["body_html"]
+
+def build_source_links_html(all_items: List[Dict[str, Any]]) -> str:
+    parts = []
+    for it in all_items[:20]:
+        parts.append(f'<li><a href="{it["link"]}" target="_blank" rel="noopener">{it["title"]}</a></li>')
+    if not parts:
+        return ""
+    return "<ul>" + "\n".join(parts) + "</ul>"
+
+def build_related_stories_html(backlinks: List[Dict[str, Any]]) -> str:
+    parts = []
+    for it in backlinks:
+        parts.append(f'<li><a href="{it["link"]}" target="_blank" rel="noopener">{it["title"]}</a></li>')
+    if not parts:
+        return ""
+    return "<ul>" + "\n".join(parts) + "</ul>"
+
+def build_machine_metadata_json(
+    gics: dict,
+    main_story: dict,
+    article_data: dict,
+    all_items: List[Dict[str, Any]],
+    story_type: str,
+    density_level: str,
+) -> str:
+    meta = {
+        "gics": gics,
+        "main_story": {
+            "title": main_story["title"],
+            "link": main_story["link"],
+            "score": main_story.get("score", 0),
+            "story_type": story_type,
+        },
+        "density_level": density_level,
+        "source_count": len(all_items),
+        "published_at": article_data.get("published_at"),
+    }
+    return json.dumps(meta, ensure_ascii=False)
+
+# ================== ARTICLE WRITER ==================
+
+def _sanitize_filename(name: str) -> str:
+    bad_chars = '<>:"/\\|?*'
+    for c in bad_chars:
+        name = name.replace(c, " ")
+    name = "_".join(name.split())
+    return name[:180] if name else "article"
+
+def write_article(
+    articles_root: str,
+    gics: dict,
+    main_story: dict,
+    backlinks: List[Dict[str, Any]],
+    all_items: List[Dict[str, Any]],
+    article_data: dict,
+    story_type: str,
+    density_level: str,
+    density_text: str,
+) -> str:
+
+    section("WRITING ARTICLE")
+
+    now = dt.datetime.utcnow()
+    year = now.year
+    dateline = now.strftime("%B %d, %Y")
+    edition = now.strftime("Edition · %Y-%m-%d")
+
+    article_title = article_data["title"] or main_story["title"]
+    article_url = main_story["link"]
+    article_dek = article_data["dek"] or article_title
+    article_dek_plain = article_dek
+
+    article_body_html = build_article_body_html(article_data, backlinks)
+    source_links_html = build_source_links_html(all_items)
+    related_stories_html = build_related_stories_html(backlinks)
+    machine_metadata_json = build_machine_metadata_json(
+        gics, main_story, article_data, all_items, story_type, density_level
+    )
+
+    if article_data["hero_image"]:
+        hero_media = f'<img src="{article_data["hero_image"]}" alt="{article_title}" />'
+    else:
+        hero_media = f'<img src="https://via.placeholder.com/800x450?text={gics["subindustry"]}" alt="{article_title}" />'
+    hero_media_caption = article_data["hero_caption"]
+
+    html = TEMPLATE
+    html = html.replace("{ARTICLE_TITLE}", article_title)
+    html = html.replace("{ARTICLE_DEK}", article_dek)
+    html = html.replace("{ARTICLE_DEK_PLAIN}", article_dek_plain)
+    html = html.replace("{ARTICLE_URL}", article_url)
+    html = html.replace("{ARTICLE_AUTHOR}", "Banking With Billy Newsroom")
+    html = html.replace("{ARTICLE_PUBLISHED_AT}", article_data["published_at"] or dateline)
+    html = html.replace("{ARTICLE_UPDATED_AT}", article_data["updated_at"] or dateline)
+    html = html.replace("{ARTICLE_READING_TIME}", article_data["reading_time"])
+    html = html.replace("{ARTICLE_TAGS_CSV}", f"{gics['industry']},{story_type}")
+    html = html.replace("{ARTICLE_TAG_BADGES}", "")
+    html = html.replace("{ARTICLE_YEAR}", str(year))
+
+    html = html.replace("{SECTOR_NAME}", gics["sector"])
+    html = html.replace("{INDUSTRY_GROUP_NAME}", gics["group"])
+    html = html.replace("{INDUSTRY_NAME}", gics["industry"])
+    html = html.replace("{INDUSTRY_KICKER}", gics["subindustry"])
+
+    html = html.replace("{NEWSROOM_EDITION}", edition)
+    html = html.replace("{NEWSROOM_DATELINE}", dateline)
+    html = html.replace("{PULSE_TEXT}", f"Live signal for {gics['industry']} · {gics['subindustry']}")
+    html = html.replace("{STICKY_SIGNAL_TEXT}", article_title)
+
+    html = html.replace("{INTEL_POSITION_LABEL}", "Emerging Story")
+    html = html.replace("{INTEL_POSITION_CONTEXT}", f"Tracking developments in {gics['industry']}.")
+
+    html = html.replace("{MARKET_SHORT_LABEL}", "Market")
+    html = html.replace("{MARKET_SHORT_VALUE}", "Watching")
+    html = html.replace("{OP_SHORT_LABEL}", "Ops")
+    html = html.replace("{OP_SHORT_VALUE}", "Stable")
+    html = html.replace("{REG_SHORT_LABEL}", "Reg")
+    html = html.replace("{REG_SHORT_VALUE}", "Neutral")
+
+    html = html.replace("{SIGNAL_OP_LEVEL}", density_level)
+    html = html.replace("{SIGNAL_OP_LABEL}", density_text)
+    html = html.replace("{SIGNAL_MKT_LEVEL}", density_level)
+    html = html.replace("{SIGNAL_MKT_LABEL}", density_text)
+    html = html.replace("{SIGNAL_REG_LEVEL}", "low")
+    html = html.replace("{SIGNAL_REG_LABEL}", "Regulatory posture unchanged.")
+    html = html.replace("{SIGNAL_SUMMARY_TEXT}", density_text)
+
+    html = html.replace("{HERO_MEDIA}", hero_media)
+    html = html.replace("{HERO_MEDIA_CAPTION}", hero_media_caption)
+
+    html = html.replace("{SOURCE_LINKS_HTML}", source_links_html)
+    html = html.replace("{RELATED_STORIES_HTML}", related_stories_html)
+    html = html.replace("{ARTICLE_BODY_HTML}", article_body_html)
+
+    html = html.replace("{VIDEO_EMBED_HTML}", "")
+    html = html.replace("{VIDEO_PRIMARY_LABEL}", "Video briefing")
+    html = html.replace("{VIDEO_SECONDARY_LABEL}", "Auto‑slot")
+
+    html = html.replace("{INDUSTRY_STATUS_LABEL}", "Live Coverage")
+    html = html.replace("{INDUSTRY_STATUS_CONTEXT}", f"Ongoing monitoring of {gics['industry']}.")
+
+    html = html.replace("{MACHINE_METADATA_JSON}", machine_metadata_json)
+
+    safe_title = _sanitize_filename(article_title)
+    filename = f"{safe_title}.html"
+    out = os.path.join(articles_root, filename)
+
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    panel_text = Text()
+    panel_text.append(f"{article_title}\n", style="bold")
+    panel_text.append(f"URL: {article_url}\n")
+    panel_text.append(f"Saved: {out}\n")
+    panel_text.append(f"Story type: {story_type}\n")
+    panel_text.append(f"Density: {density_level}\n")
+    console.print(Panel(panel_text, title="ARTICLE WRITTEN", style="good"))
+
+    return out
+
+# ================== DEDUP ==================
+
+def deduplicate_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not items:
+        return items
+    section("DEDUPLICATION")
+    titles = [it["title"].lower() for it in items]
+    embeddings = SEMANTIC_MODEL.encode(titles, convert_to_tensor=True)
+    keep_indices = []
+    used = set()
+    for i in range(len(items)):
+        if i in used:
+            continue
+        keep_indices.append(i)
+        for j in range(i + 1, len(items)):
+            if j in used:
+                continue
+            sim = util.cos_sim(embeddings[i], embeddings[j]).item()
+            if sim > 0.85:
+                used.add(j)
+    deduped = [items[i] for i in keep_indices]
+    good(f"DEDUPED: {len(items)} → {len(deduped)}")
+    return deduped
+
+# ================== PROCESS ONE FOLDER ==================
+
+def process_articles_folder(articles_root: str) -> None:
+    gics = get_gics_hierarchy(articles_root)
+
+    section("SUBINDUSTRY RUN")
+    label("SECTOR", gics["sector"])
+    label("GROUP", gics["group"])
+    label("INDUSTRY", gics["industry"])
+    label("SUBINDUSTRY", gics["subindustry"])
+
+    sub_prompt = _subindustry_semantic_prompt(gics)
+    sub_emb = SEMANTIC_MODEL.encode(sub_prompt, convert_to_tensor=True)
+
+    state = load_state_for_subindustry(gics)
+    brain = state.get("brain", {"vocab": [], "domain_trust": {}})
+    seen_headlines = set(state.get("seen_headlines", []))
+    last_run_str = state.get("last_run_utc")
+    last_run_dt = None
+    if last_run_str:
+        try:
+            last_run_dt = dt.datetime.fromisoformat(last_run_str.replace("Z", ""))
+            if last_run_dt.tzinfo is not None:
+                last_run_dt = last_run_dt.astimezone(dt.timezone.utc).replace(tzinfo=None)
+        except Exception:
+            last_run_dt = None
+
+    sources_file = os.path.join(gics["subindustry_path"], "sources.txt")
+    base_sources = []
+    if os.path.exists(sources_file):
+        with open(sources_file, encoding="utf-8", errors="ignore") as f:
+            lines = f.read().splitlines()
+            base_sources = [s.strip() for s in lines if s.strip().startswith("http")]
+
+    base_sources = [s for s in base_sources if s not in BAD_SOURCES]
+
+    section("KERNEL: SOURCE EXPANSION")
+    expanded_sources = kernel_source_expand(base_sources)
+    for s in expanded_sources:
+        info(f"SRC: {s}")
+
+    section("KERNEL: NEWS DISCOVERY")
+    discovered_urls = kernel_news_discovery(gics, limit=8)
+    for u in discovered_urls:
+        info(f"DISCOVERED: {u}")
+
+    section("KERNEL: SEMANTIC FILTER")
+    semantic_urls = kernel_semantic_filter(discovered_urls, gics, threshold=0.15)
+    for u in semantic_urls:
+        info(f"SEMANTIC-KEEP: {u}")
+
+    new_sources = [u for u in semantic_urls if u not in base_sources]
+    if new_sources:
+        good(f"AUTO-SOURCE EXPANSION: adding {len(new_sources)} new sources")
+        updated_sources = base_sources + new_sources
+        updated_sources = list(dict.fromkeys(updated_sources))
+        with open(sources_file, "w", encoding="utf-8") as f:
+            for s in updated_sources:
+                f.write(s + "\n")
+    else:
+        info("AUTO-SOURCE EXPANSION: no new sources to add")
+
+    all_source_urls = list(set(expanded_sources + semantic_urls))
+    all_source_urls = [u for u in all_source_urls if u not in BAD_SOURCES]
+
+    if not all_source_urls:
+        bad("No valid URLs — SKIPPING")
+        return
+
+    section("FETCH & PARSE (DEEP)")
+    all_items: List[Dict[str, Any]] = []
+    for src in all_source_urls:
+        good(f"SOURCE: {src}")
+        items = collect_headlines_from_source(src)
+        if items:
+            good(f"HEADLINES: {len(items)}")
+        all_items.extend(items)
+
+    if not all_items:
+        bad("No headlines from any source — SKIPPING")
+        return
+
+    all_items = deduplicate_items(all_items)
+
+    section("SCORING HEADLINES")
+    scored_items: List[Dict[str, Any]] = []
+    fresh_count = 0
+    for item in all_items:
+        pub_dt = _parse_date_safe(item.get("date", ""))
+
+        # HARD YEAR + AGE FILTER BEFORE SCORING
+        if pub_dt is not None:
+            if pub_dt.year < MIN_YEAR:
+                continue
+            now = dt.datetime.utcnow()
+            delta_days = (now - pub_dt).total_seconds() / 86400.0
+            if delta_days > MAX_AGE_DAYS:
+                continue
+
+        if last_run_dt and pub_dt and pub_dt <= last_run_dt:
+            continue
+        if item["title"] in seen_headlines:
+            continue
+
+        s, sim = score_headline_for_subindustry(
+            item["title"],
+            item["link"],
+            gics,
+            sub_emb,
+            pub_dt,
+            brain,
+        )
+        item["score"] = s
+        item["semantic_similarity"] = sim
+        item["pub_dt"] = pub_dt
+        item["story_type"] = classify_story_type(item["title"])
+        score_line(s, extra=item["title"])
+        scored_items.append(item)
+        fresh_count += 1
+
+    filtered_items = [it for it in scored_items if it["score"] >= RELEVANCE_THRESHOLD]
+
+    if not filtered_items:
+        bad("No items passed relevance filter — using top 5 raw headlines as fallback")
+        filtered_items = sorted(scored_items, key=lambda x: x["score"], reverse=True)[:5]
+
+    def sort_key(it):
+        dt_val = it["pub_dt"] or dt.datetime.min
+        return (it["score"], dt_val)
+
+    filtered_items_sorted = sorted(filtered_items, key=sort_key, reverse=True)
+
+    # RECENCY-FIRST TOP 5 FOR NEXT ROUND
+    top5 = filtered_items_sorted[:5]
+    top5 = sorted(
+        top5,
+        key=lambda it: (it["pub_dt"] or dt.datetime.min, it["score"]),
+        reverse=True,
+    )
+    # put recency-first top5 back at front
+    filtered_items_sorted = top5 + filtered_items_sorted[5:]
+
+    density_level, density_text = kernel_density(filtered_items_sorted)
+
+    section("BEST STORY SELECTION")
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Rank", style="bold")
+    table.add_column("Score")
+    table.add_column("Date")
+    table.add_column("Type")
+    table.add_column("Title", overflow="fold")
+
+    for idx, it in enumerate(filtered_items_sorted[:5], start=1):
+        dt_str = it["pub_dt"].isoformat() if it["pub_dt"] else "Unknown"
+        table.add_row(str(idx), f"{it['score']:.2f}", dt_str, it["story_type"], it["title"])
+
+    console.print(table)
+
+    best_story = None
+    article_data = None
+    for candidate in filtered_items_sorted[:5]:  # only fight among recency-first top5
+        section("SELECTED STORY (CANDIDATE)")
+        label("TITLE", candidate["title"])
+        label("URL", candidate["link"])
+        label("SCORE", f"{candidate['score']:.2f}")
+        tmp_article = extract_full_article(candidate["link"])
+        if tmp_article.get("quality_score", 0.0) < 2.0:
+            bad("QUALITY TOO LOW — TRYING NEXT CANDIDATE")
+            continue
+        best_story = candidate
+        article_data = tmp_article
+        break
+
+    if best_story is None or article_data is None:
+        bad("No candidate met quality threshold — falling back to top story without quality gate")
+        best_story = filtered_items_sorted[0]
+        article_data = extract_full_article(best_story["link"])
+
+    backlinks = [it for it in filtered_items_sorted if it is not best_story][:BACKLINK_LIMIT]
+
+    info(f"[DEBUG] BODY LENGTH: {len(article_data['body_html'])}")
+    info(f"[DEBUG] FIRST 400 CHARS:\n{article_data['body_html'][:400]}")
+
+    out_path = write_article(
+        articles_root,
+        gics,
+        best_story,
+        backlinks,
+        filtered_items_sorted,
+        article_data,
+        best_story["story_type"],
+        density_level,
+        density_text,
+    )
+
+    title = best_story["title"]
+    seen_headlines.add(title)
+    GLOBAL_SEEN.add(title)
+
+    tokens = [t.strip(".,:;!?()[]\"'").lower() for t in title.split()]
+    tokens = [t for t in tokens if len(t) > 3]
+    vocab_counts = {w: c for w, c in brain.get("vocab", [])}
+    for t in tokens:
+        vocab_counts[t] = vocab_counts.get(t, 0) + 1
+    vocab_sorted = sorted(vocab_counts.items(), key=lambda x: x[1], reverse=True)[:40]
+    brain["vocab"] = vocab_sorted
+
+    domain = _get_domain(best_story["link"])
+    dt_map = brain.get("domain_trust", {})
+    dt_map[domain] = dt_map.get(domain, 0) + 1
+    brain["domain_trust"] = dt_map
+
+    state["brain"] = brain
+    state["seen_headlines"] = sorted(seen_headlines)
+    state["last_run_utc"] = dt.datetime.utcnow().isoformat() + "Z"
+    save_state_for_subindustry(gics, state)
+    save_global_seen(GLOBAL_SEEN)
+
+    section("SUBINDUSTRY SUMMARY")
+    label("TOTAL SOURCES", str(len(all_source_urls)))
+    label("BASE SOURCES", str(len(base_sources)))
+    label("NEW SOURCES ADDED", str(len(new_sources)))
+    label("TOTAL HEADLINES FOUND", str(len(all_items)))
+    label("FRESH HEADLINES SCORED", str(fresh_count))
+    label("ARTICLES WRITTEN", "1")
+    good("SUBINDUSTRY COMPLETE")
+
+# ================== CASCADE UPDATER ==================
+
+GICS_ROOT = Path(ROOT)
+MAX_MAIN_ARTICLES = 12
+MAX_SIDEBAR_ARTICLES = 3
+MAX_ROLLUP_ARTICLES = 24
+
+def log(msg: str):
+    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[cascade] {now} :: {msg}")
+
+def find_all_leaf_industries(root: Path):
+    leaf_dirs = []
+    for folder in root.rglob("*"):
+        if not folder.is_dir():
+            continue
+        index_file = folder / "index.html"
+        articles_dir = folder / "articles"
+        if index_file.exists() and articles_dir.exists():
+            leaf_dirs.append(folder)
+    return leaf_dirs
+
+def find_parent_layers(root: Path):
+    parents = []
+    for folder in root.rglob("*"):
+        if not folder.is_dir():
+            continue
+        index_file = folder / "index.html"
+        articles_dir = folder / "articles"
+        if not index_file.exists():
+            continue
+        if articles_dir.exists():
+            continue
+        has_children = False
+        for child in folder.iterdir():
+            if child.is_dir() and ((child / "index.html").exists() or (child / "articles").exists()):
+                has_children = True
+                break
+        if has_children:
+            parents.append(folder)
+    return parents
+
+def load_articles_from_dir(articles_dir: Path):
+    articles = []
+    if not articles_dir.exists():
+        log(f"Articles folder not found: {articles_dir}")
+        return articles
+    files = sorted(
+        articles_dir.glob("*.html"),
+        key=os.path.getmtime,
+        reverse=True,
+    )
+    for file in files:
+        with open(file, "r", encoding="utf-8") as f:
+            soup = BeautifulSoup(f.read(), "html.parser")
+        title = None
+        desc = None
+        img_src = None
+        date_str = None
+        h1 = soup.find("h1")
+        if h1 and h1.get_text(strip=True):
+            title = h1.get_text(strip=True)
+        elif soup.title:
+            title = soup.title.get_text(strip=True)
+        meta_desc = soup.find("meta", attrs={"name": "description"})
+        if meta_desc and meta_desc.get("content"):
+            desc = meta_desc["content"]
+        else:
+            p = soup.find("p")
+            if p:
+                desc = p.get_text(strip=True)
+        og_image = soup.find("meta", property="og:image")
+        if og_image and og_image.get("content"):
+            img_src = og_image["content"]
+        else:
+            img = soup.find("img")
+            if img and img.get("src"):
+                img_src = img["src"]
+        time_tag = soup.find("time")
+        if time_tag and (time_tag.get("datetime") or time_tag.get_text(strip=True)):
+            date_str = time_tag.get("datetime") or time_tag.get_text(strip=True)
+        else:
+            mtime = dt.datetime.fromtimestamp(os.path.getmtime(file))
+            date_str = mtime.strftime("%Y-%m-%d")
+        rel_url = f"./articles/{file.name}"
+        if not title:
+            log(f"Skipping article with no title: {file}")
+            continue
+        articles.append(
+            {
+                "title": title,
+                "desc": desc or "",
+                "img": img_src,
+                "date": date_str,
+                "url": rel_url,
+                "source_path": str(file),
+            }
+        )
+    log(f"Loaded {len(articles)} articles from {articles_dir}")
+    return articles
+
+def score_article_for_layer(article, layer_type: str, depth: int):
+    try:
+        dt_val = dt.datetime.fromisoformat(article["date"].split("T")[0])
+    except Exception:
+        try:
+            dt_val = dt.datetime.strptime(article["date"], "%Y-%m-%d")
+        except Exception:
+            dt_val = dt.datetime.now()
+    age_days = (dt.datetime.now() - dt_val).days
+    recency_score = max(0, 365 - age_days)
+    depth_boost = depth
+    if layer_type == "subindustry":
+        score = recency_score + depth_boost * 2
+    elif layer_type == "industry":
+        score = recency_score + depth_boost * 1.5
+    elif layer_type == "group":
+        score = recency_score + depth_boost * 1.0
+    elif layer_type == "sector":
+        score = recency_score + depth_boost * 0.5
+    else:
+        score = recency_score
+    return score
+
+def collect_child_articles(parent_dir: Path, layer_type: str):
+    all_articles = []
+    for folder in parent_dir.rglob("*"):
+        if not folder.is_dir():
+            continue
+        articles_dir = folder / "articles"
+        if articles_dir.exists():
+            depth = len(folder.relative_to(GICS_ROOT).parts)
+            articles = load_articles_from_dir(articles_dir)
+            for a in articles:
+                a["score"] = score_article_for_layer(a, layer_type, depth)
+                all_articles.append(a)
+    all_articles.sort(key=lambda x: x.get("score", 0), reverse=True)
+    return all_articles
+
+def update_hero_cascade(soup, latest_article):
+    hero_slot = soup.select_one(".hero-image-slot")
+    if not hero_slot or not latest_article.get("img"):
+        return
+    hero_slot.clear()
+    img_tag = soup.new_tag("img", src=latest_article["img"])
+    img_tag["alt"] = latest_article["title"]
+    hero_slot.append(img_tag)
+
+def update_last_updated_cascade(soup, articles):
+    if not articles:
+        return
+    latest_date = articles[0]["date"]
+    for micro in soup.select(".micro-block"):
+        label_el = micro.find(class_="micro-label")
+        if label_el and "Last Updated" in label_el.get_text():
+            body = micro.find(class_="micro-body")
+            if body:
+                body.clear()
+                body.append("This terminal was last updated with new coverage on ")
+                strong = soup.new_tag("strong")
+                strong.string = latest_date
+                body.append(strong)
+            break
+
+def build_article_card_main_cascade(soup, article):
+    card = soup.new_tag(
+        "article",
+        **{
+            "class": "article-card",
+            "itemscope": True,
+            "itemtype": "https://schema.org/NewsArticle",
+        },
+    )
+    img_div = soup.new_tag("div", **{"class": "article-card-image"})
+    if article.get("img"):
+        img_tag = soup.new_tag("img", src=article["img"])
+        img_tag["alt"] = article["title"]
+        img_tag["itemprop"] = "image"
+        img_div.append(img_tag)
+    inner = soup.new_tag("div", **{"class": "article-card-inner"})
+    body = soup.new_tag("div", **{"class": "article-card-body"})
+    title_tag = soup.new_tag(
+        "h3", **{"class": "article-card-title", "itemprop": "headline"}
+    )
+    link = soup.new_tag("a", href=article["url"])
+    link.string = article["title"]
+    title_tag.append(link)
+    summary_tag = soup.new_tag(
+        "p", **{"class": "article-card-summary", "itemprop": "description"}
+    )
+    summary_tag.string = article["desc"]
+    meta_div = soup.new_tag("div", **{"class": "article-card-meta"})
+    time_tag = soup.new_tag("time", datetime=article["date"])
+    time_tag["itemprop"] = "datePublished"
+    time_tag.string = article["date"]
+    meta_div.append(time_tag)
+    meta_div.append(" · ")
+    publisher_span = soup.new_tag("span", itemprop="publisher")
+    publisher_span.string = "Banking With Billy"
+    meta_div.append(publisher_span)
+    body.extend([title_tag, summary_tag, meta_div])
+    inner.extend([body])
+    card.extend([img_div, inner])
+    return card
+
+def build_article_card_sidebar_cascade(soup, article, label_text=None):
+   
