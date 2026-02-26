@@ -4514,10 +4514,10 @@ function SettingsPage() {
           <p className="text-muted-foreground text-sm">Customize your My Ai Gpt experience</p>
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-hide -mx-4 px-4 md:-mx-0 md:px-0">
           {sections.map(s => (
             <button key={s.id} onClick={() => setActiveSection(s.id)} data-testid={`settings-tab-${s.id}`}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${activeSection === s.id ? "bg-foreground text-background shadow-md" : "bg-muted/30 dark:bg-muted/10 text-muted-foreground hover:bg-muted/50"}`}>
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 ${activeSection === s.id ? "bg-foreground text-background shadow-md" : "bg-muted/30 dark:bg-muted/10 text-muted-foreground hover:bg-muted/50"}`}>
               <s.icon size={13} /> {s.name}
             </button>
           ))}

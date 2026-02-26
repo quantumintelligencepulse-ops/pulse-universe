@@ -945,7 +945,8 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
     if (cached && Date.now() - cached.lastFetch < INDUSTRY_NEWS_TTL) return cached.articles;
     try {
       const query = keywords.slice(0, 3).join(" ") + " news";
-      const results = await searchNews(query, { safeSearch: 0 });
+      const { SafeSearchType } = await import("duck-duck-scrape");
+      const results = await searchNews(query, { safeSearch: SafeSearchType.OFF });
       const articles = (results?.results || []).slice(0, 20).map((r: any) => ({
         id: createHash("sha256").update(r.url || r.title || "").digest("hex").substring(0, 16),
         title: r.title || "", description: (r.body || r.description || "").substring(0, 300),
@@ -2718,7 +2719,7 @@ ${entries}
             description: (v.description || "").slice(0, 300),
             link,
             image: thumb,
-            source: v.publisher || (isYT ? "YouTube" : new URL(link).hostname.replace("www.", "")),
+            source: v.publisher || (isYT ? "YouTube" : (() => { try { return new URL(link).hostname.replace("www.", ""); } catch { return "Video"; } })()),
             pubDate: v.published || new Date().toISOString(),
             category: "Search",
             type: "video",
