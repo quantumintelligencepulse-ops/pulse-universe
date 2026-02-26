@@ -4723,7 +4723,12 @@ function SettingsPage() {
                               <button onClick={() => handlePermRequest(perm.id)} data-testid={`button-request-${perm.id}`}
                                 className="px-4 py-2 bg-teal-500 text-white rounded-xl text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm whitespace-nowrap">Allow</button>
                             )}
-                            {perm.status === "granted" && <CheckCircle2 size={20} className="text-green-500 shrink-0" />}
+                            {perm.status === "granted" && (
+                              <button onClick={() => { if (confirm(`Revoke ${perm.name} permission? You may need to update your browser settings to fully disable this.`)) { handlePermRequest(perm.id); } }} data-testid={`button-revoke-${perm.id}`}
+                                className="px-3 py-1.5 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 rounded-xl text-xs font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:text-red-400 dark:hover:border-red-800 transition-colors whitespace-nowrap flex items-center gap-1.5">
+                                <CheckCircle2 size={14} /> Allowed
+                              </button>
+                            )}
                           </div>
                         );
                       })}
