@@ -1,7 +1,7 @@
 # My Ai Gpt - Compressed
 
 ## Overview
-My Ai Gpt is an AI chat site powered by Quantum Pulse Intelligence, featuring general and coding assistant modes. It leverages the Groq API, integrates Discord for a knowledge base, and utilizes DuckDuckGo for web search. The project aims to provide a comprehensive AI-powered platform for diverse user needs, from conversational assistance to advanced code development and dynamic content consumption. Key capabilities include a full-fledged code playground, server-side execution, interactive terminal, and dynamic live data features for weather and finance.
+My Ai Gpt is an AI chat site powered by Quantum Pulse Intelligence, featuring general and coding assistant modes. It leverages the Groq API and utilizes DuckDuckGo for live web search on every chat message. The project aims to provide a comprehensive AI-powered platform for diverse user needs, from conversational assistance to advanced code development and dynamic content consumption. Key capabilities include a full-fledged code playground, server-side execution, interactive terminal, and dynamic live data features for weather and finance.
 
 ## User Preferences
 - I prefer simple language.
@@ -17,7 +17,7 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 
 **Key Architectural Decisions:**
 - **Single-File Frontend**: Centralized UI logic in `App.tsx` for simplified development and maintenance.
-- **Microservice-like Backend**: Separation of concerns with dedicated routes for AI logic, Discord integration, search, execution engine, and database operations.
+- **Microservice-like Backend**: Separation of concerns with dedicated routes for AI logic, web search, execution engine, and database operations.
 - **Robust Code Playground**: A full IDE experience with multi-language support (JavaScript, HTML, CSS, Python, TypeScript, SQL, JSON, Bash, Rust, Go, Java, C++), sandboxed execution, live previews, and VS Code-style features.
 - **Advanced AI Features**:
     - **Server-Side Execution**: Toggleable browser/server mode for executing code with real file system access and package management.
@@ -41,8 +41,7 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 ## External Dependencies
 - **AI Model**: Groq API (llama-3.1-8b-instant)
 - **Web Search**: duck-duck-scrape (for DuckDuckGo search)
-- **Knowledge Base**: Discord.js (for fetching from Discord channels)
-- **Brain Cell Memory**: Discord channel `#pulse-data-center` (1476404773455663165) — stores KNOWLEDGE_ATOM, CONVERSATION_ATOM, CODE_ATOM micro-messages. Multi-part splitting for content over 2000 chars (labeled [PART 1/N]). Adaptive rate-limit throttling (2000–15000ms, burst limit 3 per 60s). System defined in `server/brain-cell.ts`.
+- **AI Web Search**: DuckDuckGo search runs on almost every chat message (skips trivial greetings). Returns top 5 results with titles+descriptions, up to 1200 chars injected into system prompt. AI is instructed to use this data confidently and never claim it can't browse the internet. DDG throttled to 10s minimum between calls.
 - **Video Platform Feeds**: YouTube (10 channels), Vimeo (Staff Picks), Dailymotion (US trending). Feed API supports `?source=YouTube&type=video` server-side filtering. Source tabs always show all platforms. TikTok & Instagram removed for stability.
 - **Weather API**: Open-Meteo API (geocoding + forecast)
 - **Cryptocurrency API**: CoinGecko API

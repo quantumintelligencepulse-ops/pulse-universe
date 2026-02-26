@@ -62,7 +62,11 @@ async function getSearchContext(query: string): Promise<string> {
     const { SafeSearchType } = await import("duck-duck-scrape");
     const results = await search(query, { safeSearch: SafeSearchType.OFF });
     if (results?.results?.length) {
-      return results.results.slice(0, 3).map(r => r.description || "").filter(Boolean).join("\n");
+      return results.results.slice(0, 5).map(r => {
+        const title = r.title || "";
+        const desc = r.description || "";
+        return `${title}: ${desc}`;
+      }).filter(s => s.length > 5).join("\n");
     }
   } catch (e) {
     console.error("Search error:", e);
@@ -2993,9 +2997,9 @@ ${entries}
       await storage.createMessage({ chatId, role: "user", content: input.content });
 
       const lowerContent = input.content.toLowerCase();
-      const needsSearch = /\b(what is|who is|when did|where is|how to|latest|news|define|search|current|today|price of|weather|score)\b/.test(lowerContent);
       let searchContext = "";
-      if (needsSearch) {
+      const skipSearch = /^(hi|hello|hey|thanks|thank you|ok|okay|bye|goodbye|yes|no|sure|lol|haha|good|great|nice|cool|wow|please|help)$/i.test(input.content.trim());
+      if (!skipSearch && input.content.trim().length > 3) {
         searchContext = await getSearchContext(input.content);
       }
 
@@ -3087,7 +3091,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
       }
 
       if (searchContext) {
-        systemPrompt += `\n\nWeb results:\n${searchContext.substring(0, 600)}`;
+        systemPrompt += `\n\nLIVE WEB SEARCH RESULTS (from DuckDuckGo — this is REAL, CURRENT data you just searched):\n${searchContext.substring(0, 1200)}\n\nIMPORTANT: You have LIVE web search data above. Use it to give accurate, up-to-date answers. Present this information confidently as facts you know. NEVER say you cannot browse the internet — you literally just did. NEVER tell users to look things up themselves. Synthesize the search results into a clear, helpful answer.`;
       }
       if (weatherContext) {
         systemPrompt += `\n\n${weatherContext}\n\nIMPORTANT: You have LIVE weather data above. Present this data naturally and confidently. Do NOT say you don't have access to real-time weather. Do NOT suggest checking other websites. Just give the weather info directly.`;
