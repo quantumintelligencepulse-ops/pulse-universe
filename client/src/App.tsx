@@ -2691,6 +2691,9 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ color, backgroundColor: `${color}15` }}>{article.source}</span>
           <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Clock size={9} /> {timeAgo(article.pubDate)}</span>
+          {(Date.now() - new Date(article.pubDate).getTime()) < 2 * 60 * 60 * 1000 && (
+            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-green-500 text-white animate-pulse">NEW</span>
+          )}
           {article.category !== "General" && (
             <span className="text-[10px] text-muted-foreground/40 bg-muted/30 px-1.5 py-0.5 rounded-full">{article.category}</span>
           )}
@@ -2800,6 +2803,7 @@ function NewsFeed() {
   const [showIndustryBrowser, setShowIndustryBrowser] = useState(false);
   const [industryTree, setIndustryTree] = useState<any[]>([]);
   const [expandedSectors, setExpandedSectors] = useState<Set<string>>(new Set());
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
   useEffect(() => {
     fetch("/api/industries/sectors").then(r => r.json()).then(setIndustrySectors).catch(() => {});
@@ -2813,7 +2817,9 @@ function NewsFeed() {
     try {
       const r = await fetch(`/api/industry/${slug}/news`);
       const data = await r.json();
-      setIndustryArticles((data.articles || []).map((a: any) => ({ ...a, sourceColor: "#f97316" })));
+      const sorted = (data.articles || []).sort((a: any, b: any) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+      setIndustryArticles(sorted.map((a: any) => ({ ...a, sourceColor: "#f97316" })));
+      setLastRefreshed(new Date());
     } catch { setIndustryArticles([]); }
     setIndustryLoading(false);
   }, []);
@@ -2855,6 +2861,7 @@ function NewsFeed() {
       setHasMore(data.hasMore);
       setTotal(data.total);
       setPage(p);
+      if (p === 1) setLastRefreshed(new Date());
     } catch {}
     setLoading(false);
     setLoadingMore(false);
@@ -2894,10 +2901,13 @@ function NewsFeed() {
   useEffect(() => {
     if (searchQuery) return;
     const interval = setInterval(() => {
-      if (!loadingRef.current) fetchPage(1, true);
-    }, 120000);
+      if (!loadingRef.current) {
+        if (activeIndustry) fetchIndustryNews(activeIndustry);
+        else fetchPage(1, true);
+      }
+    }, 45000);
     return () => clearInterval(interval);
-  }, [fetchPage, searchQuery]);
+  }, [fetchPage, fetchIndustryNews, searchQuery, activeIndustry]);
 
   useEffect(() => {
     if (searchQuery) return;
@@ -2927,6 +2937,7 @@ function NewsFeed() {
 
   const handleRefresh = () => {
     if (searchQuery) { handleSearch(searchQuery); return; }
+    if (activeIndustry) { fetchIndustryNews(activeIndustry); return; }
     setArticles([]);
     setPage(1);
     setHasMore(true);
@@ -2949,7 +2960,8 @@ function NewsFeed() {
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
             <span className="text-[10px] text-muted-foreground/50">{total} items</span>
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live" />
+            <span className="text-[9px] text-muted-foreground/40">{timeAgo(lastRefreshed.toISOString())}</span>
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live — auto-refreshes every 45s" />
           </div>
         </div>
 

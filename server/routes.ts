@@ -872,7 +872,7 @@ ${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME
 
   // ═══════ GICS 262 INDUSTRY PAGES ═══════
   const industryNewsCache: Record<string, { articles: any[]; lastFetch: number }> = {};
-  const INDUSTRY_NEWS_TTL = 5 * 60 * 1000;
+  const INDUSTRY_NEWS_TTL = 2 * 60 * 1000;
 
   async function fetchIndustryNews(slug: string, keywords: string[]): Promise<any[]> {
     const cached = industryNewsCache[slug];
@@ -887,6 +887,7 @@ ${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME
         pubDate: r.date ? new Date(r.date * 1000).toISOString() : new Date().toISOString(),
         type: "article",
       }));
+      articles.sort((a: any, b: any) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
       industryNewsCache[slug] = { articles, lastFetch: Date.now() };
       return articles;
     } catch {
@@ -895,7 +896,7 @@ ${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME
         const matched = feedCache.articles.filter(a => {
           const text = (a.title + " " + a.description).toLowerCase();
           return lower.some(k => text.includes(k));
-        }).slice(0, 20);
+        }).sort((a: any, b: any) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()).slice(0, 20);
         industryNewsCache[slug] = { articles: matched, lastFetch: Date.now() };
         return matched;
       }
@@ -1037,7 +1038,7 @@ ${entries.map(e => `  <url>
         <div class="card-body">
           <h3><a href="${escapeXml(a.link)}" target="_blank" rel="noopener">${escapeXml(a.title)}</a></h3>
           <p>${escapeXml((a.description || "").slice(0, 160))}...</p>
-          <span class="card-meta">${escapeXml(a.source)} · ${new Date(a.pubDate).toLocaleDateString()}</span>
+          <span class="card-meta">${escapeXml(a.source)} · ${(() => { const diff = Date.now() - new Date(a.pubDate).getTime(); const mins = Math.floor(diff / 60000); if (mins < 60) return mins + "m ago"; const hrs = Math.floor(mins / 60); if (hrs < 24) return hrs + "h ago"; const days = Math.floor(hrs / 24); return days + "d ago"; })()}</span>
         </div>
       </article>`).join("")
       : `<div class="empty">No news articles found for ${escapeXml(entry.name)} right now. Check back soon for updates.</div>`;
@@ -2123,7 +2124,7 @@ Acknowledgments: /humans.txt
   };
 
   let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
-  const FEED_CACHE_TTL = 2 * 60 * 1000;
+  const FEED_CACHE_TTL = 90 * 1000;
 
   app.get("/api/feed", async (req, res) => {
     try {
@@ -2251,7 +2252,7 @@ Acknowledgments: /humans.txt
 
   // ═══════ FEED SEARCH (DuckDuckGo + Videos) ═══════
   const searchCache: Record<string, { results: any[]; time: number }> = {};
-  const SEARCH_CACHE_TTL = 5 * 60 * 1000;
+  const SEARCH_CACHE_TTL = 2 * 60 * 1000;
 
   app.get("/api/feed/search", async (req, res) => {
     try {
@@ -2346,6 +2347,7 @@ Acknowledgments: /humans.txt
         }
       }
 
+      allResults.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
       searchCache[cacheKey] = { results: allResults, time: Date.now() };
       res.json({ articles: allResults, total: allResults.length, query: q, searchMode: true });
     } catch (e: any) {
