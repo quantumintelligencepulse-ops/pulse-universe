@@ -30,7 +30,9 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **AI-Powered User Personalization**: Tracks user interactions and preferences (topics, sources, content types, GICS sectors) to tailor content (e.g., personalized news feed) and influence AI responses through system prompt injection.
 - **Public Social Page**: Features a Twitter/Facebook-style social platform with profiles, posts, comments, follows, likes, and bookmarks, with localStorage-based authentication.
 - **Voice Input/Output**: Integrates Web Speech API for speech-to-text chat input and text-to-speech for AI responses.
-- **AI Studio**: Client-side image and video generation using algorithmic art engines and MediaRecorder API, providing a free tool for creative content.
+- **AI Studio**: Coming Soon — generate button disabled, page shows "Coming Soon" overlay. Canvas/video gen code removed.
+- **Image Search in Chat**: When users ask for pictures, server-side DuckDuckGo image search finds and displays real photos (no AI generation).
+- **SEO News Indexing System**: Every news article from RSS feeds gets its own crawlable page at `/news/:articleId` with full structured data (NewsArticle JSON-LD), OG tags, Twitter Cards, and breadcrumbs. Google News-compatible sitemap at `/sitemap-news.xml` auto-indexes all 100+ articles. Dedicated `/news-rss.xml` RSS feed for search engines. Real users who visit `/news/:articleId` are auto-redirected to `/feed` via JS (crawlers see the full HTML).
 - **Device Permissions System**: Manages and displays device permissions (geolocation, camera, microphone, notifications) with user-friendly controls.
 
 ## External Dependencies

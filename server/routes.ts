@@ -328,6 +328,7 @@ export async function registerRoutes(
 `User-agent: *
 Allow: /
 Allow: /feed
+Allow: /news/
 Allow: /social
 Allow: /social/profile/
 Allow: /social/post/
@@ -339,6 +340,7 @@ Crawl-delay: 1
 User-agent: Googlebot
 Allow: /
 Allow: /feed
+Allow: /news/
 Allow: /social
 Allow: /social/profile/
 Allow: /social/post/
@@ -399,6 +401,7 @@ User-agent: TelegramBot
 Allow: /
 
 Sitemap: ${baseUrl}/sitemap.xml
+Sitemap: ${baseUrl}/sitemap-news.xml
 Sitemap: ${baseUrl}/sitemap-profiles.xml
 Sitemap: ${baseUrl}/sitemap-posts.xml
 
@@ -426,6 +429,10 @@ Sitemap: ${baseUrl}/sitemap-posts.xml
   </sitemap>
   <sitemap>
     <loc>${baseUrl}/sitemap-posts.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-news.xml</loc>
     <lastmod>${now}</lastmod>
   </sitemap>
 </sitemapindex>`;
@@ -526,6 +533,332 @@ ${posts.map(p => `  <url>
     } catch (e) {
       res.status(500).type("text/plain").send("Post sitemap error");
     }
+  });
+
+  // ═══════ SEO: NEWS SITEMAP (Google News compatible) ═══════
+  app.get("/sitemap-news.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+
+      if (Date.now() - feedCache.lastFetch > FEED_CACHE_TTL || feedCache.articles.length === 0) {
+        try {
+          const RssParser = (await import("rss-parser")).default;
+          const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
+          const allArticles: any[] = [];
+          const seenIds = new Set<string>();
+          const feedPromises = RSS_FEEDS.map(async (feed) => {
+            try {
+              const parsed = await parser.parseURL(feed.url);
+              const isYT = feed.type === "video";
+              (parsed.items || []).slice(0, 10).forEach((item: any) => {
+                const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
+                if (!seenIds.has(id)) {
+                  seenIds.add(id);
+                  let image = "";
+                  if (isYT) { const vidId = (item.id || "").replace("yt:video:", ""); if (vidId) image = `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg`; }
+                  allArticles.push({
+                    id, title: item.title || "", description: (item.contentSnippet || item.content || "").replace(/<[^>]*>/g, "").substring(0, 300),
+                    link: item.link || "", image, source: feed.source,
+                    pubDate: item.pubDate || item.isoDate || now, type: feed.type || "article",
+                  });
+                }
+              });
+            } catch {}
+          });
+          await Promise.allSettled(feedPromises);
+          allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+          feedCache = { articles: allArticles, lastFetch: Date.now() };
+        } catch {}
+      }
+
+      const cutoff48h = Date.now() - 48 * 60 * 60 * 1000;
+      const articles = feedCache.articles.filter(a => new Date(a.pubDate).getTime() > cutoff48h).slice(0, 1000);
+      const urls = articles.map(a => {
+        const pubDate = new Date(a.pubDate);
+        const isRecent = (Date.now() - pubDate.getTime()) < 12 * 60 * 60 * 1000;
+        return `  <url>
+    <loc>${baseUrl}/news/${a.id}</loc>
+    <lastmod>${pubDate.toISOString()}</lastmod>
+    <changefreq>${isRecent ? "hourly" : "daily"}</changefreq>
+    <priority>${isRecent ? "0.9" : "0.7"}</priority>${a.image ? `
+    <image:image>
+      <image:loc>${escapeXml(a.image)}</image:loc>
+      <image:title>${escapeXml(a.title)}</image:title>
+    </image:image>` : ""}
+    <news:news>
+      <news:publication>
+        <news:name>${escapeXml(SITE_NAME)}</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${pubDate.toISOString()}</news:publication_date>
+      <news:title>${escapeXml(a.title)}</news:title>
+    </news:news>
+  </url>`;
+      }).join("\n");
+
+      res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${urls}
+</urlset>`);
+    } catch (e) {
+      res.status(500).type("text/plain").send("News sitemap error");
+    }
+  });
+
+  // ═══════ SEO: NEWS RSS FEED ═══════
+  app.get("/news-rss.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      if (feedCache.articles.length === 0 || Date.now() - feedCache.lastFetch > FEED_CACHE_TTL) {
+        try {
+          const RssParser = (await import("rss-parser")).default;
+          const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
+          const allArticles: any[] = [];
+          const seenIds = new Set<string>();
+          await Promise.allSettled(RSS_FEEDS.map(async (feed) => {
+            try {
+              const parsed = await parser.parseURL(feed.url);
+              (parsed.items || []).slice(0, 10).forEach((item: any) => {
+                const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
+                if (!seenIds.has(id)) { seenIds.add(id); allArticles.push({ id, title: item.title || "", description: (item.contentSnippet || "").replace(/<[^>]*>/g, "").substring(0, 300), link: item.link || "", source: feed.source, pubDate: item.pubDate || item.isoDate || new Date().toISOString(), type: feed.type || "article" }); }
+              });
+            } catch {}
+          }));
+          allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+          feedCache = { articles: allArticles, lastFetch: Date.now() };
+        } catch {}
+      }
+      const articles = feedCache.articles.slice(0, 50);
+      const items = articles.map(a => `    <item>
+      <title>${escapeXml(a.title)}</title>
+      <link>${baseUrl}/news/${a.id}</link>
+      <guid isPermaLink="true">${baseUrl}/news/${a.id}</guid>
+      <description>${escapeXml(a.description || "")}</description>
+      <pubDate>${new Date(a.pubDate).toUTCString()}</pubDate>
+      <source url="${baseUrl}/feed">${SITE_NAME}</source>
+      <category>${escapeXml(a.source || "General")}</category>${a.image ? `
+      <enclosure url="${escapeXml(a.image)}" type="image/jpeg" />` : ""}
+    </item>`).join("\n");
+
+      res.type("application/rss+xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>${SITE_NAME} - Live News &amp; Videos</title>
+    <link>${baseUrl}/feed</link>
+    <description>Live news feed from BBC, NPR, NY Times, The Verge, TechCrunch and more - curated by ${SITE_NAME}</description>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <managingEditor>billyotucker@gmail.com (${SITE_CREATOR})</managingEditor>
+    <webMaster>billyotucker@gmail.com (${SITE_CREATOR})</webMaster>
+    <copyright>Copyright ${new Date().getFullYear()} ${SITE_CREATOR}</copyright>
+    <ttl>15</ttl>
+    <image>
+      <url>${baseUrl}/favicon.png</url>
+      <title>${SITE_NAME}</title>
+      <link>${baseUrl}</link>
+    </image>
+    <atom:link href="${baseUrl}/news-rss.xml" rel="self" type="application/rss+xml" />
+${items}
+  </channel>
+</rss>`);
+    } catch (e) {
+      res.status(500).type("text/plain").send("News RSS error");
+    }
+  });
+
+  // ═══════ SEO: CRAWLABLE NEWS ARTICLE PAGES ═══════
+  app.get("/news/:articleId", async (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const articleId = req.params.articleId;
+
+    if (feedCache.articles.length === 0 || Date.now() - feedCache.lastFetch > FEED_CACHE_TTL) {
+      try {
+        const RssParser = (await import("rss-parser")).default;
+        const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
+        const allArticles: any[] = [];
+        const seenIds = new Set<string>();
+        const feedPromises = RSS_FEEDS.map(async (feed) => {
+          try {
+            const parsed = await parser.parseURL(feed.url);
+            const isYT = feed.type === "video";
+            (parsed.items || []).slice(0, 10).forEach((item: any) => {
+              const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
+              if (!seenIds.has(id)) {
+                seenIds.add(id);
+                let image = "";
+                if (isYT) { const vidId = (item.id || "").replace("yt:video:", ""); if (vidId) image = `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg`; }
+                else { try { image = item["media:content"]?.$.url || item["media:thumbnail"]?.$.url || ""; } catch { image = ""; } }
+                allArticles.push({
+                  id, title: item.title || "", description: (item.contentSnippet || item.content || "").replace(/<[^>]*>/g, "").substring(0, 600),
+                  link: item.link || "", image, source: feed.source,
+                  pubDate: item.pubDate || item.isoDate || new Date().toISOString(), type: feed.type || "article",
+                  category: typeof item.categories?.[0] === "string" ? item.categories[0] : "General",
+                });
+              }
+            });
+          } catch {}
+        });
+        await Promise.allSettled(feedPromises);
+        allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+        feedCache = { articles: allArticles, lastFetch: Date.now() };
+      } catch {}
+    }
+
+    const article = feedCache.articles.find(a => a.id === articleId);
+    if (!article) {
+      return res.redirect("/feed");
+    }
+
+    const relatedArticles = feedCache.articles
+      .filter(a => a.id !== articleId && a.source === article.source)
+      .slice(0, 6);
+    const allRelated = relatedArticles.length < 6
+      ? [...relatedArticles, ...feedCache.articles.filter(a => a.id !== articleId && a.source !== article.source).slice(0, 6 - relatedArticles.length)]
+      : relatedArticles;
+
+    const pubDate = new Date(article.pubDate);
+    const isVideo = article.type === "video";
+    const articleTitle = `${article.title} | ${SITE_NAME}`;
+    const articleDesc = article.description || `Read this ${article.source} article on ${SITE_NAME}`;
+
+    const jsonLd = JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": isVideo ? "VideoObject" : "NewsArticle",
+        "headline": article.title,
+        "description": article.description,
+        "image": article.image || `${baseUrl}/favicon.png`,
+        "datePublished": pubDate.toISOString(),
+        "dateModified": pubDate.toISOString(),
+        "author": { "@type": "Organization", "name": article.source },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` } },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": `${baseUrl}/news/${articleId}` },
+        "url": `${baseUrl}/news/${articleId}`,
+        "isAccessibleForFree": true,
+        ...(isVideo ? { "thumbnailUrl": article.image, "uploadDate": pubDate.toISOString() } : {}),
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": SITE_NAME, "item": baseUrl },
+          { "@type": "ListItem", "position": 2, "name": "News Feed", "item": `${baseUrl}/feed` },
+          { "@type": "ListItem", "position": 3, "name": article.title, "item": `${baseUrl}/news/${articleId}` },
+        ]
+      }
+    ]);
+
+    const relatedHtml = allRelated.map(r => `
+      <article class="related-article">
+        <a href="/news/${r.id}"><h3>${escapeXml(r.title)}</h3></a>
+        <p>${escapeXml((r.description || "").slice(0, 120))}...</p>
+        <span class="source">${escapeXml(r.source)} · ${new Date(r.pubDate).toLocaleDateString()}</span>
+      </article>`).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+<title>${escapeXml(articleTitle)}</title>
+<meta name="description" content="${escapeXml(articleDesc)}" />
+<meta name="keywords" content="${escapeXml(article.title.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 10).join(", "))}, ${article.source}, news, ${SITE_NAME}" />
+<meta name="author" content="${escapeXml(article.source)}" />
+<meta name="publisher" content="${SITE_NAME}" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<meta name="googlebot" content="index, follow, max-image-preview:large" />
+<meta name="news_keywords" content="${escapeXml(article.title.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 10).join(", "))}" />
+<meta name="article:published_time" content="${pubDate.toISOString()}" />
+<meta name="article:section" content="${escapeXml(article.category || "News")}" />
+<meta name="article:author" content="${escapeXml(article.source)}" />
+<link rel="canonical" href="${baseUrl}/news/${articleId}" />
+<meta property="og:title" content="${escapeXml(article.title)}" />
+<meta property="og:description" content="${escapeXml(articleDesc)}" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="${baseUrl}/news/${articleId}" />
+<meta property="og:site_name" content="${SITE_NAME}" />
+<meta property="og:image" content="${escapeXml(article.image || `${baseUrl}/favicon.png`)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content="en_US" />
+<meta property="article:published_time" content="${pubDate.toISOString()}" />
+<meta property="article:author" content="${escapeXml(article.source)}" />
+<meta property="article:section" content="${escapeXml(article.category || "News")}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeXml(article.title)}" />
+<meta name="twitter:description" content="${escapeXml(articleDesc)}" />
+<meta name="twitter:image" content="${escapeXml(article.image || `${baseUrl}/favicon.png`)}" />
+<meta name="twitter:site" content="@MyAiGpt" />
+<script type="application/ld+json">${jsonLd}</script>
+<style>
+*{margin:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#fafafa;color:#1a1a1a;line-height:1.7}
+header{background:#fff;border-bottom:1px solid #eee;padding:16px 0}
+.container{max-width:800px;margin:0 auto;padding:0 20px}
+.breadcrumb{font-size:13px;color:#666;margin-bottom:20px;padding-top:20px}
+.breadcrumb a{color:#f97316;text-decoration:none}
+.article-header{margin-bottom:24px}
+.source-badge{display:inline-block;background:#f97316;color:#fff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;margin-bottom:12px}
+h1{font-size:28px;font-weight:700;line-height:1.3;margin-bottom:12px}
+.meta{font-size:14px;color:#666;margin-bottom:20px}
+.article-image{width:100%;border-radius:12px;margin-bottom:24px;aspect-ratio:16/9;object-fit:cover}
+.article-body{font-size:16px;margin-bottom:32px}
+.original-link{display:inline-block;background:#f97316;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-bottom:40px}
+.original-link:hover{background:#ea580c}
+.related{border-top:1px solid #eee;padding-top:32px;margin-top:32px}
+.related h2{font-size:20px;font-weight:700;margin-bottom:16px}
+.related-article{padding:12px 0;border-bottom:1px solid #f0f0f0}
+.related-article h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.related-article a{color:#1a1a1a;text-decoration:none}
+.related-article a:hover{color:#f97316}
+.related-article p{font-size:14px;color:#666;margin-bottom:4px}
+.related-article .source{font-size:12px;color:#999}
+footer{background:#fff;border-top:1px solid #eee;padding:24px 0;margin-top:40px;text-align:center;font-size:13px;color:#999}
+footer a{color:#f97316;text-decoration:none}
+nav.site-nav{text-align:center}
+nav.site-nav a{display:inline-block;margin:0 12px;color:#333;text-decoration:none;font-weight:500;font-size:14px}
+nav.site-nav a:hover{color:#f97316}
+</style>
+</head>
+<body>
+<header>
+<div class="container">
+<nav class="site-nav">
+<a href="/"><strong>${SITE_NAME}</strong></a>
+<a href="/feed">News Feed</a>
+<a href="/social">Social</a>
+<a href="/code">Code Playground</a>
+</nav>
+</div>
+</header>
+<main class="container">
+<div class="breadcrumb"><a href="/">${SITE_NAME}</a> › <a href="/feed">News</a> › ${escapeXml(article.source)}</div>
+<article class="article-header">
+<span class="source-badge">${escapeXml(article.source)}</span>
+<h1>${escapeXml(article.title)}</h1>
+<div class="meta">Published ${pubDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} · Source: ${escapeXml(article.source)}</div>
+${article.image ? `<img src="${escapeXml(article.image)}" alt="${escapeXml(article.title)}" class="article-image" loading="lazy" />` : ""}
+<div class="article-body">
+<p>${escapeXml(article.description)}</p>
+<p style="margin-top:16px">Read the full article from ${escapeXml(article.source)} for complete coverage and details.</p>
+</div>
+${article.link ? `<a href="${escapeXml(article.link)}" class="original-link" rel="noopener" target="_blank">Read Full Article on ${escapeXml(article.source)} →</a>` : ""}
+</article>
+${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME}</h2>${relatedHtml}</section>` : ""}
+</main>
+<footer>
+<div class="container">
+<p><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · AI Chat, Code Playground, News Feed & Social Network</p>
+<p style="margin-top:8px"><a href="/feed">Browse All News</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a></p>
+</div>
+</footer>
+<script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex/i.test(navigator.userAgent)){window.location.href="/feed";}</script>
+</body>
+</html>`;
+
+    res.type("text/html").send(html);
   });
 
   // ═══════ SEO: JSON-LD STRUCTURED DATA ═══════
@@ -954,6 +1287,20 @@ Acknowledgments: /humans.txt
     } else if (page === "feed") {
       title = `${SITE_NAME} Feed - Live News & Videos`;
       content = `<h1>Live News Feed</h1><p>Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, and more. Search any topic for news, web results, and videos.</p>`;
+      try {
+        const articles = feedCache.articles.slice(0, 30);
+        for (const a of articles) {
+          content += `<article><h3><a href="/news/${a.id}">${escapeXml(a.title)}</a></h3><p>${escapeXml(a.description || "")}</p><span>${escapeXml(a.source)} · ${new Date(a.pubDate).toLocaleDateString()}</span></article>`;
+        }
+      } catch {}
+    } else if (page === "news" && id) {
+      const article = feedCache.articles.find(a => a.id === id);
+      if (article) {
+        title = `${article.title} | ${SITE_NAME}`;
+        description = article.description || `Read on ${SITE_NAME}`;
+        ogImage = article.image || ogImage;
+        content = `<article><h1>${escapeXml(article.title)}</h1><p>Source: ${escapeXml(article.source)}</p><p>${escapeXml(article.description || "")}</p><time>${new Date(article.pubDate).toISOString()}</time></article>`;
+      }
     } else if (page === "social") {
       title = `${SITE_NAME} Social - Connect & Share`;
       content = `<h1>${SITE_NAME} Social Network</h1><p>Create your profile, share posts, follow friends, discover trending content, and get verified. Join the AI-powered social network.</p>`;
