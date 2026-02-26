@@ -691,7 +691,7 @@ ${urls}
   <channel>
     <title>${SITE_NAME} - Live News &amp; Videos</title>
     <link>${baseUrl}/feed</link>
-    <description>Live news feed from BBC, NPR, NY Times, The Verge, TechCrunch and more - curated by ${SITE_NAME}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</description>
+    <description>Live news and videos from BBC, NPR, NY Times, YouTube, TikTok, Vimeo, Reddit and more - curated by ${SITE_NAME}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <managingEditor>billyotucker@gmail.com (${SITE_CREATOR})</managingEditor>
@@ -1504,7 +1504,7 @@ ${crossLinksHtml}
     if (page === "feed") {
       meta = { ...meta,
         title: `${SITE_NAME} Feed - Live News & Videos from Around the World`,
-        description: "Stay informed with live news, trending videos, and articles from BBC, NPR, NY Times, The Verge, TechCrunch, and more. Powered by AI personalization.",
+        description: "Stay informed with live news, trending videos from YouTube, TikTok, Vimeo, and articles from BBC, NPR, NY Times, The Verge, Reddit and more. Powered by AI personalization.",
         "og:title": `${SITE_NAME} Feed - Live News & Videos`,
         "og:description": "Stay informed with live news, trending videos, and articles from top sources worldwide.",
         "og:url": `${baseUrl}/feed`,
@@ -1764,7 +1764,7 @@ Language: English
 AI Chat Assistant - Personalized AI that learns your interests
 AI Coder - Programming assistant for any language
 Code Playground - 30+ language IDE with real-time preview
-News Feed - BBC, NPR, NY Times, The Verge, TechCrunch
+News Feed - BBC, NPR, NY Times, YouTube, TikTok, Vimeo, Reddit
 Social Network - Profiles, posts, follows, verified badges
 Universal Search - DuckDuckGo-powered web/news/video search
 Personalization Engine - GICS sector-based interest tracking
@@ -1808,7 +1808,7 @@ Acknowledgments: /humans.txt
       content = `<h1>${SITE_NAME} - Your AI Best Friend</h1><p>Chat with an AI that learns your interests. Code in 30+ languages. Read live news. Connect socially. Created by ${SITE_CREATOR}.</p>`;
     } else if (page === "feed") {
       title = `${SITE_NAME} Feed - Live News & Videos`;
-      content = `<h1>Live News Feed</h1><p>Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, and more. Search any topic for news, web results, and videos.</p>`;
+      content = `<h1>Live News Feed</h1><p>Stay informed with live news and trending videos from YouTube, TikTok, Vimeo, Reddit, BBC, NPR, NY Times, The Verge, and more. Search any topic for news, web results, and videos.</p>`;
       try {
         const articles = feedCache.articles.slice(0, 30);
         for (const a of articles) {
@@ -2419,25 +2419,30 @@ ${entries}
     { url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", source: "NY Times" },
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
     { url: "https://feeds.bbci.co.uk/news/technology/rss.xml", source: "BBC World" },
-    { url: "https://rss.cnn.com/rss/edition.rss", source: "CNN" },
     { url: "https://feeds.npr.org/1001/rss.xml", source: "NPR" },
-    { url: "https://feeds.feedburner.com/TechCrunch/", source: "TechCrunch" },
     { url: "https://www.theverge.com/rss/index.xml", source: "The Verge" },
     { url: "https://feeds.arstechnica.com/arstechnica/index", source: "Ars Technica" },
-    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ", source: "MKBHD", type: "video" },
-    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA", source: "Fireship", type: "video" },
-    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8butISFwT-Wl7EV0hUK0BQ", source: "freeCodeCamp", type: "video" },
-    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCW5YeuERMmlnqo4oq8vwUpg", source: "Net Ninja", type: "video" },
-    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA", source: "Veritasium", type: "video" },
-    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC29ju8bIPH5as8OGnQzwJyA", source: "Traversy Media", type: "video" },
+    { url: "https://techcrunch.com/feed/", source: "TechCrunch" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8butISFwT-Wl7EV0hUK0BQ", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCVHFbqXqoYvEWM1Ddxl0QDg", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCXuqSBlHAE6Xw-yeJA0Tunw", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCddiUEpeqJcYeBxX1IVBKvQ", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC29ju8bIPH5as8OGnQzwJyA", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCW5YeuERMmlnqo4oq8vwUpg", source: "YouTube", type: "video" },
+    { url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCWN3xxRkmTPphYnPFQ3BFEA", source: "YouTube", type: "video" },
+    { url: "https://vimeo.com/channels/staffpicks/videos/rss", source: "Vimeo", type: "video" },
+    { url: "https://www.dailymotion.com/rss/us", source: "Dailymotion", type: "video" },
   ];
 
   const SOURCE_COLORS: Record<string, string> = {
-    "NY Times": "#1a1a2e", "BBC World": "#b80000", "CNN": "#cc0000",
+    "NY Times": "#1a1a2e", "BBC World": "#b80000",
     "NPR": "#2663a5", "TechCrunch": "#0a9e01", "The Verge": "#6200ee",
-    "Ars Technica": "#ff4400", "MKBHD": "#e62117", "Fireship": "#ff9900",
-    "freeCodeCamp": "#0a0a23", "Net Ninja": "#00d9ff", "Veritasium": "#1a73e8",
-    "Traversy Media": "#6366f1",
+    "Ars Technica": "#ff4400", "YouTube": "#e62117",
+    "Vimeo": "#1ab7ea", "Dailymotion": "#0064ff",
+    "TikTok": "#000000", "Instagram": "#e1306c",
   };
 
   let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
@@ -2447,20 +2452,34 @@ ${entries}
     try {
       const page = parseInt(req.query.page as string) || 1;
       const perPage = 20;
+      const sourceFilter = req.query.source as string || "";
+      const typeFilter = req.query.type as string || "";
 
       if (Date.now() - feedCache.lastFetch < FEED_CACHE_TTL && feedCache.articles.length > 0) {
+        let filtered = feedCache.articles;
+        if (sourceFilter) filtered = filtered.filter(a => a.source === sourceFilter);
+        if (typeFilter) filtered = filtered.filter(a => a.type === typeFilter);
         const start = (page - 1) * perPage;
-        const slice = feedCache.articles.slice(start, start + perPage);
-        return res.json({ articles: slice, total: feedCache.articles.length, page, hasMore: start + perPage < feedCache.articles.length });
+        const slice = filtered.slice(start, start + perPage);
+        return res.json({ articles: slice, total: filtered.length, page, hasMore: start + perPage < filtered.length });
       }
 
       const RssParser = (await import("rss-parser")).default;
-      const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
+      const parser = new RssParser({
+        timeout: 8000,
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; MyAiGpt/1.0)" },
+        customFields: { item: [["media:group", "mediaGroup"], ["media:thumbnail", "mediaThumbnail"], ["yt:videoId", "ytVideoId"]] },
+      });
 
       const allArticles: any[] = [];
       const seenIds = new Set<string>();
+      let ytDelay = 0;
       const feedPromises = RSS_FEEDS.map(async (feed) => {
         try {
+          if (feed.source === "YouTube") {
+            ytDelay += 200;
+            await new Promise(r => setTimeout(r, ytDelay));
+          }
           const parsed = await parser.parseURL(feed.url);
           const isYT = feed.type === "video";
           const items = (parsed.items || []).slice(0, 10).map((item: any) => {
@@ -2502,9 +2521,17 @@ ${entries}
             const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
 
             let videoUrl = "";
-            if (isYT) {
+            if (feed.source === "YouTube") {
               const vidId = (item.id || "").replace("yt:video:", "");
               videoUrl = vidId ? `https://www.youtube.com/embed/${vidId}` : "";
+            } else if (feed.source === "Vimeo" && item.link) {
+              const vimeoId = item.link.match(/vimeo\.com\/(\d+)/)?.[1];
+              videoUrl = vimeoId ? `https://player.vimeo.com/video/${vimeoId}` : "";
+            } else if (feed.source === "Dailymotion" && item.link) {
+              const dmId = item.link.match(/dailymotion\.com\/video\/(\w+)/)?.[1];
+              videoUrl = dmId ? `https://www.dailymotion.com/embed/video/${dmId}` : "";
+            } else if (isYT && item.link) {
+              videoUrl = item.link;
             }
 
             return {
@@ -2534,13 +2561,47 @@ ${entries}
 
       await Promise.allSettled(feedPromises);
 
+      try {
+        const videoSearches = [
+          { query: "trending tiktok videos today", source: "TikTok" },
+          { query: "trending instagram reels today", source: "Instagram" },
+        ];
+        await Promise.allSettled(videoSearches.map(async (vs) => {
+          try {
+            const results = await searchVideos(vs.query + " site:" + (vs.source === "TikTok" ? "tiktok.com" : "instagram.com"), { safeSearch: 0 });
+            const vids = (results?.results || []).slice(0, 8).map((v: any) => {
+              const vid_id = createHash("sha256").update(v.url || v.title || "").digest("hex").substring(0, 16);
+              if (seenIds.has(vid_id)) return null;
+              seenIds.add(vid_id);
+              return {
+                id: vid_id,
+                title: v.title || "",
+                description: (v.description || v.content || "").substring(0, 300),
+                link: v.url || "",
+                image: v.image || v.thumbnail || "",
+                source: vs.source,
+                pubDate: v.published || new Date().toISOString(),
+                category: "Trending",
+                type: "video",
+                videoUrl: v.embed?.url || v.url || "",
+                sourceColor: SOURCE_COLORS[vs.source] || "#f97316",
+              };
+            }).filter(Boolean);
+            allArticles.push(...vids);
+          } catch {}
+        }));
+      } catch {}
+
       allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
       feedCache = { articles: allArticles, lastFetch: Date.now() };
       enrichArticlesWithImages(allArticles).catch(() => {});
+      let freshFiltered = allArticles;
+      if (sourceFilter) freshFiltered = freshFiltered.filter(a => a.source === sourceFilter);
+      if (typeFilter) freshFiltered = freshFiltered.filter(a => a.type === typeFilter);
       const start = (page - 1) * perPage;
-      const slice = allArticles.slice(start, start + perPage);
-      res.json({ articles: slice, total: allArticles.length, page, hasMore: start + perPage < allArticles.length });
+      const slice = freshFiltered.slice(start, start + perPage);
+      res.json({ articles: slice, total: freshFiltered.length, page, hasMore: start + perPage < freshFiltered.length });
     } catch (e) {
       console.error("Feed error:", e);
       res.json({ articles: feedCache.articles.length > 0 ? feedCache.articles.slice(0, 20) : [], total: 0, page: 1, hasMore: false });

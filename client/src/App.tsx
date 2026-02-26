@@ -2850,7 +2850,12 @@ function NewsFeed() {
     loadingRef.current = true;
     if (p === 1) setLoading(true); else setLoadingMore(true);
     try {
-      const r = await fetch(`/api/feed?page=${p}`);
+      let feedUrl = `/api/feed?page=${p}`;
+      if (filter && filter !== "All") {
+        if (filter === "Videos") feedUrl += `&type=video`;
+        else feedUrl += `&source=${encodeURIComponent(filter)}`;
+      }
+      const r = await fetch(feedUrl);
       const data: FeedResponse = await r.json();
       setArticles(prev => {
         if (reset || p === 1) return data.articles;
@@ -2866,7 +2871,7 @@ function NewsFeed() {
     setLoading(false);
     setLoadingMore(false);
     loadingRef.current = false;
-  }, []);
+  }, [filter]);
 
   const handleSearch = useCallback(async (query: string) => {
     const q = query.trim();
@@ -2896,7 +2901,7 @@ function NewsFeed() {
     fetchPage(1, true);
   }, [fetchPage]);
 
-  useEffect(() => { fetchPage(1); }, [fetchPage]);
+  useEffect(() => { fetchPage(1, true); }, [fetchPage]);
 
   useEffect(() => {
     if (searchQuery) return;
@@ -2923,17 +2928,16 @@ function NewsFeed() {
   }, [page, hasMore, fetchPage, searchQuery]);
 
   const sources = useMemo(() => {
-    if (!articles.length) return ["All", "Videos"];
-    const s = [...new Set(articles.map(a => a.source))];
+    const knownSources = ["YouTube", "TikTok", "Instagram", "Vimeo", "Dailymotion", "NY Times", "BBC World", "NPR", "TechCrunch", "The Verge", "Ars Technica"];
+    if (!articles.length) return ["All", "Videos", ...knownSources];
+    const s = [...new Set([...articles.map(a => a.source), ...knownSources])];
     return ["All", "Videos", ...s.sort()];
   }, [articles]);
 
   const filtered = useMemo(() => {
-    const source = activeIndustry ? industryArticles : articles;
-    if (filter === "All") return source;
-    if (filter === "Videos") return source.filter(a => a.type === "video");
-    return source.filter(a => a.source === filter);
-  }, [articles, industryArticles, activeIndustry, filter]);
+    if (activeIndustry) return industryArticles;
+    return articles;
+  }, [articles, industryArticles, activeIndustry]);
 
   const handleRefresh = () => {
     if (searchQuery) { handleSearch(searchQuery); return; }
