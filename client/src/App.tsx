@@ -2780,13 +2780,7 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
               let embedUrl = article.videoUrl;
               let embedRatio = "56.25%";
               let maxH: number | undefined;
-              if (article.source === "TikTok") {
-                const tikTokMatch = article.link?.match(/video\/(\d+)/);
-                if (tikTokMatch) { embedUrl = `https://www.tiktok.com/embed/v2/${tikTokMatch[1]}`; embedRatio = "140%"; maxH = 580; }
-              } else if (article.source === "Instagram") {
-                const igMatch = article.link?.match(/\/(p|reel|tv)\/([^/?]+)/);
-                if (igMatch) { embedUrl = `https://www.instagram.com/${igMatch[1]}/${igMatch[2]}/embed/`; embedRatio = "120%"; maxH = 500; }
-              }
+              
               return (
                 <div className="relative w-full overflow-hidden rounded-lg" style={{ paddingBottom: embedRatio, maxHeight: maxH }}>
                   <iframe src={embedUrl} className="absolute inset-0 w-full h-full rounded-lg border-0" allowFullScreen
@@ -3008,7 +3002,7 @@ function NewsFeed() {
   }, [page, hasMore, fetchPage, searchQuery]);
 
   const sources = useMemo(() => {
-    const knownSources = ["YouTube", "TikTok", "Instagram", "Vimeo", "Dailymotion", "NY Times", "BBC World", "NPR", "TechCrunch", "The Verge", "Ars Technica"];
+    const knownSources = ["YouTube", "Vimeo", "Dailymotion", "NY Times", "BBC World", "NPR", "TechCrunch", "The Verge", "Ars Technica"];
     if (!articles.length) return ["All", "Videos", ...knownSources];
     const s = [...new Set([...articles.map(a => a.source), ...knownSources])];
     return ["All", "Videos", ...s.sort()];

@@ -691,7 +691,7 @@ ${urls}
   <channel>
     <title>${SITE_NAME} - Live News &amp; Videos</title>
     <link>${baseUrl}/feed</link>
-    <description>Live news and videos from BBC, NPR, NY Times, YouTube, TikTok, Vimeo, Reddit and more - curated by ${SITE_NAME}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</description>
+    <description>Live news and videos from BBC, NPR, NY Times, YouTube, Vimeo, Reddit and more - curated by ${SITE_NAME}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <managingEditor>billyotucker@gmail.com (${SITE_CREATOR})</managingEditor>
@@ -1508,7 +1508,7 @@ ${crossLinksHtml}
     if (page === "feed") {
       meta = { ...meta,
         title: `${SITE_NAME} Feed - Live News & Videos from Around the World`,
-        description: "Stay informed with live news, trending videos from YouTube, TikTok, Vimeo, and articles from BBC, NPR, NY Times, The Verge, Reddit and more. Powered by AI personalization.",
+        description: "Stay informed with live news, trending videos from YouTube, Vimeo, and articles from BBC, NPR, NY Times, The Verge, Reddit and more. Powered by AI personalization.",
         "og:title": `${SITE_NAME} Feed - Live News & Videos`,
         "og:description": "Stay informed with live news, trending videos, and articles from top sources worldwide.",
         "og:url": `${baseUrl}/feed`,
@@ -1768,7 +1768,7 @@ Language: English
 AI Chat Assistant - Personalized AI that learns your interests
 AI Coder - Programming assistant for any language
 Code Playground - 30+ language IDE with real-time preview
-News Feed - BBC, NPR, NY Times, YouTube, TikTok, Vimeo, Reddit
+News Feed - BBC, NPR, NY Times, YouTube, Vimeo, Reddit
 Social Network - Profiles, posts, follows, verified badges
 Universal Search - DuckDuckGo-powered web/news/video search
 Personalization Engine - GICS sector-based interest tracking
@@ -1812,7 +1812,7 @@ Acknowledgments: /humans.txt
       content = `<h1>${SITE_NAME} - Your AI Best Friend</h1><p>Chat with an AI that learns your interests. Code in 30+ languages. Read live news. Connect socially. Created by ${SITE_CREATOR}.</p>`;
     } else if (page === "feed") {
       title = `${SITE_NAME} Feed - Live News & Videos`;
-      content = `<h1>Live News Feed</h1><p>Stay informed with live news and trending videos from YouTube, TikTok, Vimeo, Reddit, BBC, NPR, NY Times, The Verge, and more. Search any topic for news, web results, and videos.</p>`;
+      content = `<h1>Live News Feed</h1><p>Stay informed with live news and trending videos from YouTube, Vimeo, Reddit, BBC, NPR, NY Times, The Verge, and more. Search any topic for news, web results, and videos.</p>`;
       try {
         const articles = feedCache.articles.slice(0, 30);
         for (const a of articles) {
@@ -2446,7 +2446,7 @@ ${entries}
     "NPR": "#2663a5", "TechCrunch": "#0a9e01", "The Verge": "#6200ee",
     "Ars Technica": "#ff4400", "YouTube": "#e62117",
     "Vimeo": "#1ab7ea", "Dailymotion": "#0064ff",
-    "TikTok": "#000000", "Instagram": "#e1306c",
+    
   };
 
   let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
@@ -2565,36 +2565,7 @@ ${entries}
 
       await Promise.allSettled(feedPromises);
 
-      try {
-        const videoSearches = [
-          { query: "trending tiktok videos today", source: "TikTok" },
-          { query: "trending instagram reels today", source: "Instagram" },
-        ];
-        await Promise.allSettled(videoSearches.map(async (vs) => {
-          try {
-            const results = await searchVideos(vs.query + " site:" + (vs.source === "TikTok" ? "tiktok.com" : "instagram.com"), { safeSearch: 0 });
-            const vids = (results?.results || []).slice(0, 8).map((v: any) => {
-              const vid_id = createHash("sha256").update(v.url || v.title || "").digest("hex").substring(0, 16);
-              if (seenIds.has(vid_id)) return null;
-              seenIds.add(vid_id);
-              return {
-                id: vid_id,
-                title: v.title || "",
-                description: (v.description || v.content || "").substring(0, 300),
-                link: v.url || "",
-                image: v.image || v.thumbnail || "",
-                source: vs.source,
-                pubDate: v.published || new Date().toISOString(),
-                category: "Trending",
-                type: "video",
-                videoUrl: v.embed?.url || v.url || "",
-                sourceColor: SOURCE_COLORS[vs.source] || "#f97316",
-              };
-            }).filter(Boolean);
-            allArticles.push(...vids);
-          } catch {}
-        }));
-      } catch {}
+      
 
       allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
