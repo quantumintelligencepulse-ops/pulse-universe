@@ -122,7 +122,7 @@ type AppSettings = {
 const defaultAppSettings: AppSettings = {
   darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
   hiddenPages: [], autoScroll: true, messageSound: false, compactMode: false,
-  showTimestamps: true, feedAutoRefresh: true, feedRefreshInterval: 5,
+  showTimestamps: true, feedAutoRefresh: true, feedRefreshInterval: 10,
   chatBubbleStyle: "rounded", displayName: "",
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
@@ -226,7 +226,7 @@ function useMessages(chatId: number | null) {
 }
 function useStats() {
   return useQuery<{ chatCount: number; messageCount: number; codeFiles: number; discordConnected: boolean }>({
-    queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats"); return r.json(); }, refetchInterval: 30000,
+    queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats"); return r.json(); }, refetchInterval: 120000,
   });
 }
 function useSavedCodes() {

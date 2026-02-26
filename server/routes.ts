@@ -5,7 +5,20 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema } from "@shared/schema";
 import Groq from "groq-sdk";
-import { search, searchNews, searchVideos, searchImages } from "duck-duck-scrape";
+import { search as _ddgSearch, searchNews as _ddgSearchNews, searchVideos as _ddgSearchVideos, searchImages as _ddgSearchImages } from "duck-duck-scrape";
+
+let lastDdgCall = 0;
+const DDG_MIN_INTERVAL = 1500;
+async function ddgThrottle() {
+  const now = Date.now();
+  const wait = DDG_MIN_INTERVAL - (now - lastDdgCall);
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  lastDdgCall = Date.now();
+}
+const search: typeof _ddgSearch = async (...args) => { await ddgThrottle(); return _ddgSearch(...args); };
+const searchNews: typeof _ddgSearchNews = async (...args) => { await ddgThrottle(); return _ddgSearchNews(...args); };
+const searchVideos: typeof _ddgSearchVideos = async (...args) => { await ddgThrottle(); return _ddgSearchVideos(...args); };
+const searchImages: typeof _ddgSearchImages = async (...args) => { await ddgThrottle(); return _ddgSearchImages(...args); };
 import { Client, GatewayIntentBits } from "discord.js";
 import * as fs from "fs";
 import * as path from "path";
@@ -938,7 +951,7 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
 
   // ═══════ GICS 262 INDUSTRY PAGES ═══════
   const industryNewsCache: Record<string, { articles: any[]; lastFetch: number }> = {};
-  const INDUSTRY_NEWS_TTL = 2 * 60 * 1000;
+  const INDUSTRY_NEWS_TTL = 15 * 60 * 1000;
 
   async function fetchIndustryNews(slug: string, keywords: string[]): Promise<any[]> {
     const cached = industryNewsCache[slug];
@@ -2450,7 +2463,8 @@ ${entries}
   };
 
   let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
-  const FEED_CACHE_TTL = 90 * 1000;
+  const FEED_CACHE_TTL = 5 * 60 * 1000;
+  let feedFetchInProgress: Promise<any[]> | null = null;
 
   app.get("/api/feed", async (req, res) => {
     try {
@@ -2468,9 +2482,20 @@ ${entries}
         return res.json({ articles: slice, total: filtered.length, page, hasMore: start + perPage < filtered.length });
       }
 
+      if (feedFetchInProgress) {
+        const articles = await feedFetchInProgress;
+        let filtered = articles;
+        if (sourceFilter) filtered = filtered.filter(a => a.source === sourceFilter);
+        if (typeFilter) filtered = filtered.filter(a => a.type === typeFilter);
+        const start = (page - 1) * perPage;
+        const slice = filtered.slice(start, start + perPage);
+        return res.json({ articles: slice, total: filtered.length, page, hasMore: start + perPage < filtered.length });
+      }
+
+      const fetchFeedArticles = async (): Promise<any[]> => {
       const RssParser = (await import("rss-parser")).default;
       const parser = new RssParser({
-        timeout: 8000,
+        timeout: 10000,
         headers: { "User-Agent": "Mozilla/5.0 (compatible; MyAiGpt/1.0)" },
         customFields: { item: [["media:group", "mediaGroup"], ["media:thumbnail", "mediaThumbnail"], ["yt:videoId", "ytVideoId"]] },
       });
@@ -2481,7 +2506,7 @@ ${entries}
       const feedPromises = RSS_FEEDS.map(async (feed) => {
         try {
           if (feed.source === "YouTube") {
-            ytDelay += 200;
+            ytDelay += 500;
             await new Promise(r => setTimeout(r, ytDelay));
           }
           const parsed = await parser.parseURL(feed.url);
@@ -2565,20 +2590,27 @@ ${entries}
 
       await Promise.allSettled(feedPromises);
 
-      
-
       allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-
       feedCache = { articles: allArticles, lastFetch: Date.now() };
       enrichArticlesWithImages(allArticles).catch(() => {});
-      let freshFiltered = allArticles;
-      if (sourceFilter) freshFiltered = freshFiltered.filter(a => a.source === sourceFilter);
-      if (typeFilter) freshFiltered = freshFiltered.filter(a => a.type === typeFilter);
-      const start = (page - 1) * perPage;
-      const slice = freshFiltered.slice(start, start + perPage);
-      res.json({ articles: slice, total: freshFiltered.length, page, hasMore: start + perPage < freshFiltered.length });
+      return allArticles;
+      };
+
+      feedFetchInProgress = fetchFeedArticles();
+      try {
+        const allArticles = await feedFetchInProgress;
+        let freshFiltered = allArticles;
+        if (sourceFilter) freshFiltered = freshFiltered.filter(a => a.source === sourceFilter);
+        if (typeFilter) freshFiltered = freshFiltered.filter(a => a.type === typeFilter);
+        const start = (page - 1) * perPage;
+        const slice = freshFiltered.slice(start, start + perPage);
+        res.json({ articles: slice, total: freshFiltered.length, page, hasMore: start + perPage < freshFiltered.length });
+      } finally {
+        feedFetchInProgress = null;
+      }
     } catch (e) {
       console.error("Feed error:", e);
+      feedFetchInProgress = null;
       res.json({ articles: feedCache.articles.length > 0 ? feedCache.articles.slice(0, 20) : [], total: 0, page: 1, hasMore: false });
     }
   });
@@ -2605,7 +2637,7 @@ ${entries}
 
   // ═══════ FEED SEARCH (DuckDuckGo + Videos) ═══════
   const searchCache: Record<string, { results: any[]; time: number }> = {};
-  const SEARCH_CACHE_TTL = 2 * 60 * 1000;
+  const SEARCH_CACHE_TTL = 10 * 60 * 1000;
 
   app.get("/api/feed/search", async (req, res) => {
     try {
