@@ -42,7 +42,7 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **AI Model**: Groq API (llama-3.1-8b-instant)
 - **Web Search**: duck-duck-scrape (for DuckDuckGo search)
 - **Knowledge Base**: Discord.js (for fetching from Discord channels)
-- **Brain Cell Memory**: Discord channel `#pulse-data-center` (1476404773455663165) — stores KNOWLEDGE_ATOM, CONVERSATION_ATOM, CODE_ATOM micro-messages. Multi-part splitting for content over 2000 chars (labeled [PART 1/N]). Adaptive rate-limit throttling (350–3000ms). System defined in `server/brain-cell.ts`.
+- **Brain Cell Memory**: Discord channel `#pulse-data-center` (1476404773455663165) — stores KNOWLEDGE_ATOM, CONVERSATION_ATOM, CODE_ATOM micro-messages. Multi-part splitting for content over 2000 chars (labeled [PART 1/N]). Adaptive rate-limit throttling (2000–15000ms, burst limit 3 per 60s). System defined in `server/brain-cell.ts`.
 - **Video Platform Feeds**: YouTube (10 channels), Vimeo (Staff Picks), Dailymotion (US trending). Feed API supports `?source=YouTube&type=video` server-side filtering. Source tabs always show all platforms. TikTok & Instagram removed for stability.
 - **Weather API**: Open-Meteo API (geocoding + forecast)
 - **Cryptocurrency API**: CoinGecko API

@@ -1,0 +1,90 @@
+You’re dealing with **three different systems**, each with its own rules:  
+**Discord**, **YouTube**, and **Vimeo**.  
+Here’s a complete, structured breakdown of **message length limits** and **API rate limits**, grounded in the most recent authoritative sources.
+
+---
+
+## 🟦 Discord limits (messages + API)
+### Message length  
+- **2,000 characters per message** for all users and bots without Nitro.  
+This is a hard limit enforced by Discord.
+
+### API rate limits  
+Discord uses **multiple layers** of rate limiting:
+
+- **Global limit:**  
+  **50 requests per second** across most endpoints. 
+
+- **Per‑route limits:**  
+  Each endpoint (like sending messages) has its own bucket. Limits vary. 
+
+- **Shared buckets:**  
+  Similar endpoints share the same limit bucket. 
+
+- **429 responses:**  
+  When you exceed a limit, Discord returns **HTTP 429** with a `retry_after` value telling you exactly how long to wait. 
+
+- **Invalid request limit:**  
+  10,000 invalid requests per 10 minutes before Cloudflare bans you. 
+
+This is why your bot must use a **queue** and **adaptive backoff**.
+
+---
+
+## 🟥 YouTube API limits
+YouTube uses a **quota system**, not a per‑second rate limit.
+
+### Daily quota  
+- **10,000 units per day** by default for each project.  
+  This is the main limit. 
+
+### Cost per request  
+Examples:  
+- `videos.list` → **1 unit**  
+- `search.list` → **100 units**  
+- Upload video → **1,600 units**  
+- Write operations → **50 units**  
+
+
+### Notes  
+- Quota resets at **midnight Pacific Time**.   
+- You can request higher quotas from Google.   
+- Exceeding quota stops your API access until reset. 
+
+YouTube does **not** have a simple “requests per second” limit — it’s all about **quota units**.
+
+---
+
+## 🟩 Vimeo API limits
+Vimeo uses **per‑minute** rate limits based on the user’s Vimeo plan.
+
+### Requests per minute (per user)  
+From Vimeo’s official documentation: 
+
+| Vimeo Plan | Requests per minute |
+|------------|---------------------|
+| Free       | 25                  |
+| Starter    | 125                 |
+| Standard   | 250                 |
+| Advanced   | 750                 |
+| Enterprise | 2500                |
+
+### With field filtering  
+Vimeo **doubles** your quota if you request only specific fields.  
+Example: Free plan goes from **25 → 50** requests/min. 
+
+### Additional notes  
+- Exceeding limits returns **HTTP 429** and puts the user in cooldown.   
+- Legacy plans have similar limits (25–750/min).   
+- Some sources also mention **500–600 requests per hour** for general usage. 
+
+---
+
+## 🧠 What this means for Pulse
+- Discord: You must **queue messages** and send **1 every 300–500ms** to stay safe.  
+- YouTube: You must **minimize API calls** because quota is limited.  
+- Vimeo: You must **throttle per user** and use **field filtering** to double your quota.
+
+---
+
+If you want, I can help you design a **unified rate‑limit‑safe ingestion engine** that handles all three platforms without ever hitting 429s.

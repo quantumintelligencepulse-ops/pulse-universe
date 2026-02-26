@@ -8,7 +8,7 @@ import Groq from "groq-sdk";
 import { search as _ddgSearch, searchNews as _ddgSearchNews, searchVideos as _ddgSearchVideos, searchImages as _ddgSearchImages } from "duck-duck-scrape";
 
 let lastDdgCall = 0;
-const DDG_MIN_INTERVAL = 1500;
+const DDG_MIN_INTERVAL = 10000;
 async function ddgThrottle() {
   const now = Date.now();
   const wait = DDG_MIN_INTERVAL - (now - lastDdgCall);
@@ -951,7 +951,7 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
 
   // ═══════ GICS 262 INDUSTRY PAGES ═══════
   const industryNewsCache: Record<string, { articles: any[]; lastFetch: number }> = {};
-  const INDUSTRY_NEWS_TTL = 15 * 60 * 1000;
+  const INDUSTRY_NEWS_TTL = 60 * 60 * 1000;
 
   async function fetchIndustryNews(slug: string, keywords: string[]): Promise<any[]> {
     const cached = industryNewsCache[slug];
@@ -2463,7 +2463,7 @@ ${entries}
   };
 
   let feedCache: { articles: any[]; lastFetch: number } = { articles: [], lastFetch: 0 };
-  const FEED_CACHE_TTL = 5 * 60 * 1000;
+  const FEED_CACHE_TTL = 30 * 60 * 1000;
   let feedFetchInProgress: Promise<any[]> | null = null;
 
   app.get("/api/feed", async (req, res) => {
@@ -2506,7 +2506,7 @@ ${entries}
       const feedPromises = RSS_FEEDS.map(async (feed) => {
         try {
           if (feed.source === "YouTube") {
-            ytDelay += 500;
+            ytDelay += 3000;
             await new Promise(r => setTimeout(r, ytDelay));
           }
           const parsed = await parser.parseURL(feed.url);
@@ -2637,7 +2637,7 @@ ${entries}
 
   // ═══════ FEED SEARCH (DuckDuckGo + Videos) ═══════
   const searchCache: Record<string, { results: any[]; time: number }> = {};
-  const SEARCH_CACHE_TTL = 10 * 60 * 1000;
+  const SEARCH_CACHE_TTL = 30 * 60 * 1000;
 
   app.get("/api/feed/search", async (req, res) => {
     try {

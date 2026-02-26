@@ -122,7 +122,7 @@ type AppSettings = {
 const defaultAppSettings: AppSettings = {
   darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
   hiddenPages: [], autoScroll: true, messageSound: false, compactMode: false,
-  showTimestamps: true, feedAutoRefresh: true, feedRefreshInterval: 10,
+  showTimestamps: true, feedAutoRefresh: false, feedRefreshInterval: 30,
   chatBubbleStyle: "rounded", displayName: "",
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
@@ -226,7 +226,7 @@ function useMessages(chatId: number | null) {
 }
 function useStats() {
   return useQuery<{ chatCount: number; messageCount: number; codeFiles: number; discordConnected: boolean }>({
-    queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats"); return r.json(); }, refetchInterval: 120000,
+    queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats"); return r.json(); }, refetchInterval: 600000,
   });
 }
 function useSavedCodes() {
@@ -2984,7 +2984,7 @@ function NewsFeed() {
         if (activeIndustry) fetchIndustryNews(activeIndustry);
         else fetchPage(1, true);
       }
-    }, 45000);
+    }, 600000);
     return () => clearInterval(interval);
   }, [fetchPage, fetchIndustryNews, searchQuery, activeIndustry]);
 
@@ -4680,7 +4680,7 @@ function SettingsPage() {
                 <div>
                   <div className="text-sm font-medium mb-2">Refresh Interval</div>
                   <div className="flex gap-2">
-                    {[1, 5, 15, 30].map(mins => (
+                    {[10, 30, 60].map(mins => (
                       <button key={mins} onClick={() => update({ feedRefreshInterval: mins })} data-testid={`feed-interval-${mins}`}
                         className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.feedRefreshInterval === mins ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
                         {mins}m

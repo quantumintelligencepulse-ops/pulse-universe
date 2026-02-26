@@ -2,11 +2,11 @@ import { Client, TextChannel } from "discord.js";
 
 const BRAIN_CELL_CHANNEL_ID = "1476404773455663165";
 const MAX_ATOM_LENGTH = 2000;
-const BASE_DELAY_MS = 400;
-const MIN_DELAY_MS = 350;
-const MAX_DELAY_MS = 3000;
-const BURST_WINDOW_MS = 10000;
-const BURST_LIMIT = 8;
+const BASE_DELAY_MS = 2000;
+const MIN_DELAY_MS = 2000;
+const MAX_DELAY_MS = 15000;
+const BURST_WINDOW_MS = 60000;
+const BURST_LIMIT = 3;
 
 interface QueuedAtom {
   content: string;
