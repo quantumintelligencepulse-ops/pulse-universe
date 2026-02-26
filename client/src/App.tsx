@@ -2883,7 +2883,7 @@ function NewsFeed() {
     fetch("/api/industries/sectors").then(r => r.json()).then(setIndustrySectors).catch(() => {});
     const params = new URLSearchParams(window.location.search);
     const indParam = params.get("industry");
-    if (indParam) { setActiveIndustry(indParam); fetchIndustryNews(indParam); }
+    if (indParam) { setActiveIndustry(indParam); }
   }, []);
 
   const fetchIndustryNews = useCallback(async (slug: string) => {
@@ -2900,11 +2900,13 @@ function NewsFeed() {
 
   const selectIndustry = useCallback((slug: string | null) => {
     setActiveIndustry(slug);
+    setFeedLoaded(false);
     if (slug) {
-      fetchIndustryNews(slug);
+      setIndustryArticles([]);
       window.history.replaceState(null, "", `/feed?industry=${slug}`);
     } else {
       setIndustryArticles([]);
+      setArticles([]);
       window.history.replaceState(null, "", "/feed");
     }
   }, [fetchIndustryNews]);
@@ -2975,21 +2977,15 @@ function NewsFeed() {
     fetchPage(1, true);
   }, [fetchPage]);
 
-  useEffect(() => { fetchPage(1, true); }, [fetchPage]);
+  const [feedLoaded, setFeedLoaded] = useState(false);
+  const loadFeed = useCallback(() => {
+    setFeedLoaded(true);
+    if (activeIndustry) fetchIndustryNews(activeIndustry);
+    else fetchPage(1, true);
+  }, [fetchPage, fetchIndustryNews, activeIndustry]);
 
   useEffect(() => {
-    if (searchQuery) return;
-    const interval = setInterval(() => {
-      if (!loadingRef.current) {
-        if (activeIndustry) fetchIndustryNews(activeIndustry);
-        else fetchPage(1, true);
-      }
-    }, 600000);
-    return () => clearInterval(interval);
-  }, [fetchPage, fetchIndustryNews, searchQuery, activeIndustry]);
-
-  useEffect(() => {
-    if (searchQuery) return;
+    if (searchQuery || !feedLoaded) return;
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
@@ -2999,7 +2995,7 @@ function NewsFeed() {
     };
     el.addEventListener("scroll", onScroll);
     return () => el.removeEventListener("scroll", onScroll);
-  }, [page, hasMore, fetchPage, searchQuery]);
+  }, [page, hasMore, fetchPage, searchQuery, feedLoaded]);
 
   const sources = useMemo(() => {
     const knownSources = ["YouTube", "Vimeo", "Dailymotion", "NY Times", "BBC World", "NPR", "TechCrunch", "The Verge", "Ars Technica"];
@@ -3156,6 +3152,15 @@ function NewsFeed() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : !feedLoaded && articles.length === 0 ? (
+          <div className="text-center py-16">
+            <Newspaper size={40} className="mx-auto text-muted-foreground/20 mb-3" />
+            <p className="text-sm text-muted-foreground/50 mb-4">Click below to load the latest news</p>
+            <button onClick={loadFeed} data-testid="button-load-feed"
+              className="px-6 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors">
+              Load News Feed
+            </button>
           </div>
         ) : loading && articles.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4024,7 +4029,8 @@ function SocialPage() {
     loadingRef.current = false;
   }, [feedTab, currentProfileId]);
 
-  useEffect(() => { setPosts([]); setFeedPage(1); setHasMore(true); fetchFeed(1, true); }, [feedTab, fetchFeed]);
+  const [socialLoaded, setSocialLoaded] = useState(false);
+  const loadSocial = useCallback(() => { setSocialLoaded(true); setPosts([]); setFeedPage(1); setHasMore(true); fetchFeed(1, true); }, [feedTab, fetchFeed]);
 
   useEffect(() => {
     const el = feedScrollRef.current;
@@ -4092,7 +4098,16 @@ function SocialPage() {
                 ))}
               </div>
 
-              {loadingFeed && posts.length === 0 ? (
+              {!socialLoaded && posts.length === 0 ? (
+                <div className="bg-white border border-border/30 rounded-xl p-12 text-center">
+                  <MessageCircle size={40} className="mx-auto text-muted-foreground/20 mb-3" />
+                  <p className="text-sm text-muted-foreground/50 mb-4">Click below to load the social feed</p>
+                  <button onClick={loadSocial} data-testid="button-load-social"
+                    className="px-6 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors">
+                    Load Social Feed
+                  </button>
+                </div>
+              ) : loadingFeed && posts.length === 0 ? (
                 <div className="space-y-4">
                   {[1,2,3].map(i => (
                     <div key={i} className="bg-white border border-border/30 rounded-xl p-4 animate-pulse">

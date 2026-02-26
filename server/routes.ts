@@ -1062,7 +1062,6 @@ ${entries.map(e => {
     const entry = getBySlug(slug);
     if (!entry) return res.redirect("/feed");
 
-    const articles = await fetchIndustryNews(slug, entry.searchKeywords);
     const parent = getParent(slug);
     const children = getChildren(slug);
     const siblings = getSiblings(slug);
@@ -1091,13 +1090,10 @@ ${entries.map(e => {
         "dateCreated": "2026-01-01T00:00:00Z",
         "inLanguage": "en",
         "isPartOf": { "@type": "WebSite", "name": SITE_NAME, "url": baseUrl },
-        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`, `${baseUrl}/industries`, DISCORD_INVITE] },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`, `${baseUrl}/industries`] },
         "author": { "@type": "Person", "name": SITE_CREATOR },
         "about": { "@type": "Thing", "name": entry.name, "description": `${entry.level} in the GICS (Global Industry Classification Standard) hierarchy`, "identifier": slug },
-        "mainEntity": { "@type": "ItemList", "name": `${entry.name} News`, "numberOfItems": articles.length, "itemListOrder": "https://schema.org/ItemListOrderDescending",
-          "itemListElement": articles.slice(0, 10).map((a: any, i: number) => ({ "@type": "ListItem", "position": i + 1, "name": a.title, "url": a.link }))
-        },
-        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".hero h1", ".hero p", ".card-body h3"] },
+        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".hero h1", ".hero p"] },
         "potentialAction": [
           { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${baseUrl}/feed?search={search_term}` }, "query-input": "required name=search_term" },
           { "@type": "ReadAction", "target": `${baseUrl}/industry/${slug}` }
@@ -1112,56 +1108,18 @@ ${entries.map(e => {
       },
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": SITE_NAME,
-        "url": baseUrl,
-        "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${baseUrl}/feed?search={search_term_string}` }, "query-input": "required name=search_term_string" },
-      },
-    ];
-    if (articles.length >= 3) {
-      jsonLdArr.push({
-        "@context": "https://schema.org",
         "@type": "FAQPage",
         "mainEntity": [
-          { "@type": "Question", "name": `What is the latest ${entry.name} news?`, "acceptedAnswer": { "@type": "Answer", "text": `The latest ${entry.name} headline: ${articles[0]?.title || "Check back soon"}. Updated in real-time on ${SITE_NAME}.` }},
+          { "@type": "Question", "name": `What is the latest ${entry.name} news?`, "acceptedAnswer": { "@type": "Answer", "text": `${SITE_NAME} provides live, auto-updating ${entry.name} news coverage. Visit the feed to see the latest headlines.` }},
           { "@type": "Question", "name": `Where can I read ${entry.name} industry news?`, "acceptedAnswer": { "@type": "Answer", "text": `${SITE_NAME} provides auto-updating ${entry.name} news coverage at ${baseUrl}/industry/${slug}, curated by ${SITE_CREATOR}.` }},
-          { "@type": "Question", "name": `How often is ${entry.name} news updated?`, "acceptedAnswer": { "@type": "Answer", "text": `${entry.name} news on ${SITE_NAME} refreshes every 2 minutes with the latest headlines from top sources worldwide.` }},
+          { "@type": "Question", "name": `How often is ${entry.name} news updated?`, "acceptedAnswer": { "@type": "Answer", "text": `${entry.name} news on ${SITE_NAME} updates on demand when you browse the feed, with the latest headlines from top sources worldwide.` }},
         ],
-      });
-    }
-    articles.slice(0, 5).forEach((a: any) => {
-      jsonLdArr.push({
-        "@context": "https://schema.org",
-        "@type": "NewsArticle",
-        "headline": a.title,
-        "description": (a.description || "").slice(0, 200),
-        "url": a.link,
-        "image": a.image || `${baseUrl}/favicon.png`,
-        "datePublished": new Date(a.pubDate).toISOString(),
-        "dateModified": new Date(a.pubDate).toISOString(),
-        "author": { "@type": "Organization", "name": a.source },
-        "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` } },
-        "articleSection": entry.name,
-        "wordCount": (a.description || "").split(/\s+/).length,
-        "isAccessibleForFree": true,
-        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".card-body h3", ".card-body p"] },
-        "mainEntityOfPage": { "@type": "WebPage", "@id": `${baseUrl}/industry/${slug}` },
-        "isPartOf": { "@type": "CollectionPage", "name": `${entry.name} News`, "url": `${baseUrl}/industry/${slug}` },
-      });
-    });
+      },
+    ];
     const jsonLd = JSON.stringify(jsonLdArr);
 
-    const newsCardsHtml = articles.length > 0
-      ? articles.map(a => `
-      <article class="news-card">
-        ${a.image ? `<img src="${escapeXml(a.image)}" alt="${escapeXml(a.title)}" loading="lazy" />` : ""}
-        <div class="card-body">
-          <h3><a href="${escapeXml(a.link)}" target="_blank" rel="noopener">${escapeXml(a.title)}</a></h3>
-          <p>${escapeXml((a.description || "").slice(0, 160))}...</p>
-          <span class="card-meta">${escapeXml(a.source)} · ${(() => { const diff = Date.now() - new Date(a.pubDate).getTime(); const mins = Math.floor(diff / 60000); if (mins < 60) return mins + "m ago"; const hrs = Math.floor(mins / 60); if (hrs < 24) return hrs + "h ago"; const days = Math.floor(hrs / 24); return days + "d ago"; })()}</span>
-        </div>
-      </article>`).join("")
-      : `<div class="empty">No news articles found for ${escapeXml(entry.name)} right now. Check back soon for updates.</div>`;
+    const newsCardsHtml = `<div class="empty" id="news-placeholder">Click "Load News" to see the latest ${escapeXml(entry.name)} headlines.</div>
+      <div id="news-container" style="display:none"></div>`;
 
     const crossLinksHtml = `
       <div class="cross-links">
@@ -1208,7 +1166,7 @@ ${children.length > 0 ? children.slice(0, 5).map((c: any) => `<link rel="section
 <meta property="og:type" content="article" />
 <meta property="og:url" content="${baseUrl}/industry/${slug}" />
 <meta property="og:site_name" content="${SITE_NAME}" />
-<meta property="og:image" content="${articles[0]?.image || `${baseUrl}/favicon.png`}" />
+<meta property="og:image" content="${baseUrl}/favicon.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="${escapeXml(entry.name)} News - ${SITE_NAME}" />
@@ -1221,7 +1179,7 @@ ${children.length > 0 ? children.slice(0, 5).map((c: any) => `<link rel="section
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escapeXml(pageTitle)}" />
 <meta name="twitter:description" content="${escapeXml(pageDesc)}" />
-<meta name="twitter:image" content="${articles[0]?.image || `${baseUrl}/favicon.png`}" />
+<meta name="twitter:image" content="${baseUrl}/favicon.png" />
 <meta name="twitter:image:alt" content="${escapeXml(entry.name)} News" />
 <meta name="twitter:site" content="@MyAiGpt" />
 <meta name="twitter:label1" content="Category" />
@@ -1299,6 +1257,7 @@ footer a{color:#f97316}
 <span class="level-badge">${entry.level}</span>
 <h1>My Ai ${escapeXml(entry.name)} News</h1>
 <p>${escapeXml(pageDesc)}</p>
+<button onclick="loadNews()" id="load-btn" style="margin-top:16px;background:#f97316;color:#fff;border:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer">📰 Load Latest News</button>
 </div>
 <div class="container">
 <div class="content">
@@ -1336,7 +1295,24 @@ ${crossLinksHtml}
 <p style="margin-top:12px">Industry Pages: ${allSectors.map(s => `<a href="/industry/${s.slug}">${escapeXml(s.name)}</a>`).join(" · ")}</p>
 </div>
 </footer>
-<script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex|facebookexternalhit|twitterbot|linkedinbot|discordbot/i.test(navigator.userAgent)){window.location.href="/feed?industry=${slug}";}</script>
+<script>
+if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex|facebookexternalhit|twitterbot|linkedinbot|discordbot/i.test(navigator.userAgent)){window.location.href="/feed?industry=${slug}";}
+function loadNews(){
+  var btn=document.getElementById('load-btn');
+  btn.textContent='Loading...';btn.disabled=true;
+  fetch('/api/industry/${slug}/news').then(function(r){return r.json()}).then(function(data){
+    var articles=data.articles||data||[];
+    var ph=document.getElementById('news-placeholder');
+    var ct=document.getElementById('news-container');
+    if(articles.length===0){ph.textContent='No news found for this industry right now.';btn.textContent='No Results';return;}
+    ph.style.display='none';ct.style.display='block';
+    ct.innerHTML=articles.map(function(a){
+      return '<article class="news-card"><div class="card-body"><h3><a href="'+a.link+'" target="_blank" rel="noopener">'+a.title+'</a></h3><p>'+(a.description||'').slice(0,160)+'...</p><span class="card-meta">'+(a.source||'News')+'</span></div></article>';
+    }).join('');
+    btn.textContent='Loaded '+articles.length+' articles';
+  }).catch(function(){btn.textContent='Load Failed - Try Again';btn.disabled=false;});
+}
+</script>
 </body>
 </html>`;
     res.type("text/html").send(html);
@@ -1874,7 +1850,8 @@ Acknowledgments: /humans.txt
     const slug = req.params.slug;
     const entry = getBySlug(slug);
     if (!entry) return res.status(404).send("Industry not found");
-    const articles = await fetchIndustryNews(slug, entry.searchKeywords);
+    const cached = industryNewsCache[slug];
+    const articles = cached ? cached.articles : [];
     const items = articles.slice(0, 30).map(a => `    <item>
       <title>${escapeXml(a.title)}</title>
       <link>${escapeXml(a.link)}</link>
@@ -1914,7 +1891,8 @@ ${items}
     const slug = req.params.slug;
     const entry = getBySlug(slug);
     if (!entry) return res.status(404).send("Not found");
-    const articles = await fetchIndustryNews(slug, entry.searchKeywords);
+    const cached = industryNewsCache[slug];
+    const articles = cached ? cached.articles : [];
     const entries = articles.slice(0, 30).map(a => `  <entry>
     <title>${escapeXml(a.title)}</title>
     <link href="${escapeXml(a.link)}" rel="alternate" type="text/html" />
