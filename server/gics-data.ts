@@ -92,6 +92,8 @@ export const GICS_HIERARCHY: GicsEntry[] = [
   { slug: "airport-services", name: "Airport Services", level: "subindustry", parentSlug: "transportation-infrastructure", searchKeywords: ["airport operator", "airport services", "ground handling", "air traffic"] },
   { slug: "highways-railtracks", name: "Highways & Railtracks", level: "subindustry", parentSlug: "transportation-infrastructure", searchKeywords: ["toll road", "highway operator", "rail track", "road infrastructure"] },
   { slug: "marine-ports-services", name: "Marine Ports & Services", level: "subindustry", parentSlug: "transportation-infrastructure", searchKeywords: ["port operator", "container terminal", "harbor", "dock", "port authority"] },
+  { slug: "agricultural-farm-machinery", name: "Agricultural & Farm Machinery", level: "subindustry", parentSlug: "machinery", searchKeywords: ["farm equipment", "tractor", "combine", "john deere", "agricultural machinery", "irrigation equipment"] },
+  { slug: "construction-machinery-heavy-trucks", name: "Construction Machinery & Heavy Trucks", level: "subindustry", parentSlug: "machinery", searchKeywords: ["construction equipment", "bulldozer", "excavator", "caterpillar", "heavy truck", "crane"] },
 
   // ═══════════════════════════════════════════════════
   // SECTOR 4: CONSUMER DISCRETIONARY
@@ -166,6 +168,7 @@ export const GICS_HIERARCHY: GicsEntry[] = [
   { slug: "tobacco-sub", name: "Tobacco", level: "subindustry", parentSlug: "tobacco", searchKeywords: ["tobacco company", "cigarette maker", "vaping company", "nicotine"] },
   { slug: "household-products-sub", name: "Household Products", level: "subindustry", parentSlug: "household-products", searchKeywords: ["household cleaning", "laundry", "dish soap", "air freshener", "trash bags"] },
   { slug: "personal-products-sub", name: "Personal Products", level: "subindustry", parentSlug: "personal-products", searchKeywords: ["beauty products", "skincare brand", "hair care", "cosmetics brand", "fragrance"] },
+  { slug: "agricultural-products-milling", name: "Agricultural Products & Services", level: "subindustry", parentSlug: "food-products", searchKeywords: ["agricultural processing", "grain milling", "sugar refining", "commodity processing", "food ingredients"] },
 
   // ═══════════════════════════════════════════════════
   // SECTOR 6: HEALTH CARE
@@ -216,6 +219,12 @@ export const GICS_HIERARCHY: GicsEntry[] = [
   { slug: "multi-line-insurance", name: "Multi-line Insurance", level: "subindustry", parentSlug: "insurance", searchKeywords: ["multi-line insurer", "aig", "allstate", "travelers", "bundled insurance"] },
   { slug: "property-casualty-insurance", name: "Property & Casualty Insurance", level: "subindustry", parentSlug: "insurance", searchKeywords: ["property insurance", "casualty insurance", "auto insurance", "home insurance", "geico", "progressive"] },
   { slug: "reinsurance", name: "Reinsurance", level: "subindustry", parentSlug: "insurance", searchKeywords: ["reinsurance", "reinsurer", "munich re", "swiss re", "berkshire reinsurance"] },
+  { slug: "mortgage-reits", name: "Mortgage Real Estate Investment Trusts (REITs)", level: "industry", parentSlug: "diversified-financials", searchKeywords: ["mortgage reit", "mbs", "mortgage-backed securities", "annaly", "agnc", "mfa financial", "mortgage investment"] },
+  { slug: "mortgage-reits-sub", name: "Mortgage REITs", level: "subindustry", parentSlug: "mortgage-reits", searchKeywords: ["mortgage reit company", "residential mbs", "commercial mbs", "mortgage investment trust"] },
+  { slug: "transaction-payment-processing", name: "Transaction & Payment Processing Services", level: "subindustry", parentSlug: "consumer-finance", searchKeywords: ["payment processing", "visa", "mastercard", "paypal", "stripe", "square", "fintech payments"] },
+  { slug: "financial-exchanges-data", name: "Financial Exchanges & Data", level: "subindustry", parentSlug: "capital-markets", searchKeywords: ["stock exchange", "financial data", "bloomberg", "nasdaq exchange", "ice", "cme group", "s&p global"] },
+  { slug: "thrifts-mortgage-finance", name: "Thrifts & Mortgage Finance", level: "industry", parentSlug: "banks-group", searchKeywords: ["thrift", "savings bank", "mortgage lender", "savings and loan", "home mortgage", "fannie mae", "freddie mac"] },
+  { slug: "thrifts-mortgage-finance-sub", name: "Thrifts & Mortgage Finance", level: "subindustry", parentSlug: "thrifts-mortgage-finance", searchKeywords: ["savings institution", "mortgage bank", "home loan lender", "savings association"] },
 
   // ═══════════════════════════════════════════════════
   // SECTOR 8: INFORMATION TECHNOLOGY
@@ -264,6 +273,8 @@ export const GICS_HIERARCHY: GicsEntry[] = [
   { slug: "movies-entertainment", name: "Movies & Entertainment", level: "subindustry", parentSlug: "entertainment", searchKeywords: ["movie studio", "film", "disney", "warner bros", "universal", "box office", "streaming service"] },
   { slug: "interactive-home-entertainment", name: "Interactive Home Entertainment", level: "subindustry", parentSlug: "entertainment", searchKeywords: ["video game", "gaming", "activision", "ea", "nintendo", "playstation", "xbox", "esports"] },
   { slug: "interactive-media-services-sub", name: "Interactive Media & Services", level: "subindustry", parentSlug: "interactive-media-services", searchKeywords: ["social network", "search engine", "google", "meta", "snapchat", "pinterest", "reddit"] },
+  { slug: "integrated-telecom-services", name: "Integrated Telecommunication Services", level: "subindustry", parentSlug: "diversified-telecom-services", searchKeywords: ["integrated telecom", "full-service telecom", "landline and wireless", "bundled telecom services"] },
+  { slug: "broadcasting", name: "Broadcasting", level: "subindustry", parentSlug: "media", searchKeywords: ["broadcast network", "tv station", "radio station", "abc", "cbs", "nbc", "fox broadcasting"] },
 
   // ═══════════════════════════════════════════════════
   // SECTOR 10: UTILITIES
@@ -296,6 +307,7 @@ export const GICS_HIERARCHY: GicsEntry[] = [
   { slug: "health-care-reits", name: "Health Care REITs", level: "subindustry", parentSlug: "equity-reits", searchKeywords: ["health care reit", "medical office", "senior living", "nursing facility reit"] },
   { slug: "residential-reits", name: "Residential REITs", level: "subindustry", parentSlug: "equity-reits", searchKeywords: ["residential reit", "apartment reit", "rental property", "multifamily", "equity residential"] },
   { slug: "retail-reits", name: "Retail REITs", level: "subindustry", parentSlug: "equity-reits", searchKeywords: ["retail reit", "shopping mall", "shopping center", "strip mall", "simon property"] },
+  { slug: "specialty-reits", name: "Specialty REITs", level: "subindustry", parentSlug: "equity-reits", searchKeywords: ["specialty reit", "data center reit", "cell tower reit", "timber reit", "infrastructure reit", "self-storage reit"] },
   { slug: "specialized-reits", name: "Specialized REITs", level: "subindustry", parentSlug: "equity-reits", searchKeywords: ["cell tower reit", "data center reit", "storage reit", "timber reit", "american tower", "equinix"] },
   { slug: "real-estate-operating-companies", name: "Real Estate Operating Companies", level: "subindustry", parentSlug: "real-estate-management-development", searchKeywords: ["real estate operator", "property company", "real estate holding"] },
   { slug: "real-estate-development", name: "Real Estate Development", level: "subindustry", parentSlug: "real-estate-management-development", searchKeywords: ["property developer", "real estate development", "land development", "new construction"] },

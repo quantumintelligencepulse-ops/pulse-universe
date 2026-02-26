@@ -15,6 +15,14 @@ import { GICS_HIERARCHY, getBySlug, getChildren, getParent, getSiblings, getByLe
 function escapeXml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
+function seoTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return mins + "m ago";
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + "h ago";
+  return Math.floor(hrs / 24) + "d ago";
+}
 
 const GROQ_API_KEY = "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";
 const groq = new Groq({ apiKey: GROQ_API_KEY });
@@ -322,6 +330,25 @@ export async function registerRoutes(
     return `${proto}://${host}`;
   }
 
+  // ═══ SEO UPGRADE #20/#21/#22: HTTP SEO HEADERS MIDDLEWARE ═══
+  app.use((req, res, next) => {
+    const url = req.path;
+    res.setHeader("X-Robots-Tag", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    if (url.match(/^\/(industry|news)\//)) {
+      res.setHeader("Cache-Control", "public, max-age=120, s-maxage=300, stale-while-revalidate=600");
+    } else if (url.match(/^\/sitemap|\.xml$/)) {
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600");
+    } else if (url === "/industries") {
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=600, stale-while-revalidate=900");
+    }
+    if (url.match(/^\/(industry|news)\//)) {
+      const baseUrl = getSiteUrl(req);
+      res.setHeader("Link", `<${baseUrl}${url}>; rel="canonical"`);
+    }
+    next();
+  });
+
   // ═══════ SEO: ROBOTS.TXT (Enhanced) ═══════
   app.get("/robots.txt", (_req, res) => {
     const baseUrl = getSiteUrl(_req);
@@ -331,6 +358,7 @@ Allow: /
 Allow: /feed
 Allow: /news/
 Allow: /industry/
+Allow: /industries
 Allow: /social
 Allow: /social/profile/
 Allow: /social/post/
@@ -344,6 +372,7 @@ Allow: /
 Allow: /feed
 Allow: /news/
 Allow: /industry/
+Allow: /industries
 Allow: /social
 Allow: /social/profile/
 Allow: /social/post/
@@ -408,6 +437,7 @@ Sitemap: ${baseUrl}/sitemap-news.xml
 Sitemap: ${baseUrl}/sitemap-profiles.xml
 Sitemap: ${baseUrl}/sitemap-posts.xml
 Sitemap: ${baseUrl}/sitemap-industries.xml
+Sitemap: ${baseUrl}/news-rss.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
 # AI Chat, Code Playground, News Feed, Social Network
@@ -602,6 +632,7 @@ ${posts.map(p => `  <url>
       </news:publication>
       <news:publication_date>${pubDate.toISOString()}</news:publication_date>
       <news:title>${escapeXml(a.title)}</news:title>
+      <news:keywords>${escapeXml((a.title || "").split(/\s+/).filter((w: string) => w.length > 3).slice(0, 10).join(", "))}</news:keywords>
     </news:news>
   </url>`;
       }).join("\n");
@@ -670,6 +701,7 @@ ${urls}
       <link>${baseUrl}</link>
     </image>
     <atom:link href="${baseUrl}/news-rss.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" />
 ${items}
   </channel>
 </rss>`);
@@ -733,6 +765,10 @@ ${items}
     const articleTitle = `${article.title} | ${SITE_NAME}`;
     const articleDesc = article.description || `Read this ${article.source} article on ${SITE_NAME}`;
 
+    const matchedIndustries = getAll().filter(e => {
+      const lower = (article.title + " " + article.description).toLowerCase();
+      return e.searchKeywords.some((k: string) => lower.includes(k.toLowerCase()));
+    }).slice(0, 3);
     const jsonLd = JSON.stringify([
       {
         "@context": "https://schema.org",
@@ -743,11 +779,17 @@ ${items}
         "datePublished": pubDate.toISOString(),
         "dateModified": pubDate.toISOString(),
         "author": { "@type": "Organization", "name": article.source },
-        "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` } },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`] },
         "mainEntityOfPage": { "@type": "WebPage", "@id": `${baseUrl}/news/${articleId}` },
         "url": `${baseUrl}/news/${articleId}`,
         "isAccessibleForFree": true,
-        ...(isVideo ? { "thumbnailUrl": article.image, "uploadDate": pubDate.toISOString() } : {}),
+        "inLanguage": "en",
+        "articleSection": article.category || "News",
+        "wordCount": (article.description || "").split(/\s+/).length,
+        "speakable": { "@type": "SpeakableSpecification", "cssSelector": ["h1", ".article-body p"] },
+        "potentialAction": { "@type": "ReadAction", "target": `${baseUrl}/news/${articleId}` },
+        ...(matchedIndustries.length > 0 ? { "isPartOf": matchedIndustries.map((ind: any) => ({ "@type": "CollectionPage", "name": `${ind.name} News`, "url": `${baseUrl}/industry/${ind.slug}` })) } : {}),
+        ...(isVideo ? { "thumbnailUrl": article.image, "uploadDate": pubDate.toISOString(), "embedUrl": article.videoUrl || article.link } : {}),
       },
       {
         "@context": "https://schema.org",
@@ -755,9 +797,17 @@ ${items}
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": SITE_NAME, "item": baseUrl },
           { "@type": "ListItem", "position": 2, "name": "News Feed", "item": `${baseUrl}/feed` },
-          { "@type": "ListItem", "position": 3, "name": article.title, "item": `${baseUrl}/news/${articleId}` },
+          { "@type": "ListItem", "position": 3, "name": article.source, "item": `${baseUrl}/feed` },
+          { "@type": "ListItem", "position": 4, "name": article.title, "item": `${baseUrl}/news/${articleId}` },
         ]
-      }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": SITE_NAME,
+        "url": baseUrl,
+        "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${baseUrl}/feed?search={search_term_string}` }, "query-input": "required name=search_term_string" },
+      },
     ]);
 
     const relatedHtml = allRelated.map(r => `
@@ -856,11 +906,13 @@ ${article.image ? `<img src="${escapeXml(article.image)}" alt="${escapeXml(artic
 ${article.link ? `<a href="${escapeXml(article.link)}" class="original-link" rel="noopener" target="_blank">Read Full Article on ${escapeXml(article.source)} →</a>` : ""}
 </article>
 ${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME}</h2>${relatedHtml}</section>` : ""}
+${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px solid #eee;padding-top:24px;margin-top:24px"><h2>Related Industry News</h2><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">${matchedIndustries.map((ind: any) => `<a href="/industry/${ind.slug}" style="display:inline-block;padding:8px 16px;border-radius:20px;border:1px solid #f97316;color:#f97316;font-size:13px;font-weight:600;text-decoration:none">${escapeXml(ind.name)} News →</a>`).join("")}</div></section>` : ""}
 </main>
 <footer>
 <div class="container">
 <p><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · AI Chat, Code Playground, News Feed & Social Network</p>
-<p style="margin-top:8px"><a href="/feed">Browse All News</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a></p>
+<p style="margin-top:8px"><a href="/feed">Browse All News</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a> · <a href="/industries">All Industries</a></p>
+<p style="margin-top:8px;font-size:12px;color:#aaa">Industry News: ${getByLevel("sector").map((s: any) => `<a href="/industry/${s.slug}" style="color:#f97316;text-decoration:none">${escapeXml(s.name)}</a>`).join(" · ")}</p>
 </div>
 </footer>
 <script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex/i.test(navigator.userAgent)){window.location.href="/feed";}</script>
@@ -967,7 +1019,8 @@ nav{margin-bottom:20px;font-size:14px}footer{margin-top:40px;text-align:center;f
 <h1>Industry News Directory</h1>
 <p style="color:#aeb1c2;margin-bottom:20px">${getAll().length} industry-specific news pages, auto-updating with live news from every GICS sector.</p>
 ${sectorHtml}
-<footer><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR}</footer>
+<footer><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · <a href="/feed">News Feed</a> · <a href="/social">Social Network</a></footer>
+<p style="text-align:center;margin-top:12px;font-size:11px;color:#555">Each industry page includes its own <a href="/industry/information-technology/rss.xml">RSS</a> and <a href="/industry/information-technology/atom.xml">Atom</a> feed for news readers.</p>
 </div>
 <script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex|facebookexternalhit|twitterbot|linkedinbot|discordbot/i.test(navigator.userAgent)){window.location.href="/feed";}</script>
 </body></html>`);
@@ -975,16 +1028,29 @@ ${sectorHtml}
 
   app.get("/sitemap-industries.xml", (req, res) => {
     const baseUrl = getSiteUrl(req);
-    const now = new Date().toISOString().split("T")[0];
+    const nowFull = new Date().toISOString();
     const entries = getAll();
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${entries.map(e => `  <url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${entries.map(e => {
+      const cached = industryNewsCache[e.slug];
+      const lastmod = cached?.lastFetch ? new Date(cached.lastFetch).toISOString() : nowFull;
+      const firstImage = cached?.articles?.[0]?.image;
+      return `  <url>
     <loc>${baseUrl}/industry/${e.slug}</loc>
-    <lastmod>${now}</lastmod>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>hourly</changefreq>
     <priority>${e.level === "sector" ? "0.9" : e.level === "group" ? "0.8" : e.level === "industry" ? "0.7" : "0.6"}</priority>
-  </url>`).join("\n")}
+    <xhtml:link rel="alternate" hreflang="en" href="${baseUrl}/industry/${e.slug}" />${firstImage ? `
+    <image:image>
+      <image:loc>${escapeXml(firstImage)}</image:loc>
+      <image:title>${escapeXml(e.name)} News</image:title>
+    </image:image>` : ""}
+  </url>`;
+    }).join("\n")}
 </urlset>`;
     res.type("application/xml").send(xml);
   });
@@ -1011,16 +1077,30 @@ ${entries.map(e => `  <url>
       { name: entry.name, url: `${baseUrl}/industry/${slug}` },
     ];
 
-    const jsonLd = JSON.stringify([
+    const nowISO = new Date().toISOString();
+    const jsonLdArr: any[] = [
       {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": pageTitle,
         "description": pageDesc,
         "url": `${baseUrl}/industry/${slug}`,
+        "datePublished": "2026-01-01T00:00:00Z",
+        "dateModified": nowISO,
+        "dateCreated": "2026-01-01T00:00:00Z",
+        "inLanguage": "en",
         "isPartOf": { "@type": "WebSite", "name": SITE_NAME, "url": baseUrl },
-        "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` } },
-        "about": { "@type": "Thing", "name": entry.name, "description": `${entry.level} in the GICS classification` },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`, `${baseUrl}/industries`] },
+        "author": { "@type": "Person", "name": SITE_CREATOR },
+        "about": { "@type": "Thing", "name": entry.name, "description": `${entry.level} in the GICS (Global Industry Classification Standard) hierarchy`, "identifier": slug },
+        "mainEntity": { "@type": "ItemList", "name": `${entry.name} News`, "numberOfItems": articles.length, "itemListOrder": "https://schema.org/ItemListOrderDescending",
+          "itemListElement": articles.slice(0, 10).map((a: any, i: number) => ({ "@type": "ListItem", "position": i + 1, "name": a.title, "url": a.link }))
+        },
+        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".hero h1", ".hero p", ".card-body h3"] },
+        "potentialAction": [
+          { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${baseUrl}/feed?search={search_term}` }, "query-input": "required name=search_term" },
+          { "@type": "ReadAction", "target": `${baseUrl}/industry/${slug}` }
+        ],
       },
       {
         "@context": "https://schema.org",
@@ -1029,7 +1109,46 @@ ${entries.map(e => `  <url>
           "@type": "ListItem", "position": i + 1, "name": b.name, "item": b.url,
         })),
       },
-    ]);
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": SITE_NAME,
+        "url": baseUrl,
+        "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${baseUrl}/feed?search={search_term_string}` }, "query-input": "required name=search_term_string" },
+      },
+    ];
+    if (articles.length >= 3) {
+      jsonLdArr.push({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": `What is the latest ${entry.name} news?`, "acceptedAnswer": { "@type": "Answer", "text": `The latest ${entry.name} headline: ${articles[0]?.title || "Check back soon"}. Updated in real-time on ${SITE_NAME}.` }},
+          { "@type": "Question", "name": `Where can I read ${entry.name} industry news?`, "acceptedAnswer": { "@type": "Answer", "text": `${SITE_NAME} provides auto-updating ${entry.name} news coverage at ${baseUrl}/industry/${slug}, curated by ${SITE_CREATOR}.` }},
+          { "@type": "Question", "name": `How often is ${entry.name} news updated?`, "acceptedAnswer": { "@type": "Answer", "text": `${entry.name} news on ${SITE_NAME} refreshes every 2 minutes with the latest headlines from top sources worldwide.` }},
+        ],
+      });
+    }
+    articles.slice(0, 5).forEach((a: any) => {
+      jsonLdArr.push({
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": a.title,
+        "description": (a.description || "").slice(0, 200),
+        "url": a.link,
+        "image": a.image || `${baseUrl}/favicon.png`,
+        "datePublished": new Date(a.pubDate).toISOString(),
+        "dateModified": new Date(a.pubDate).toISOString(),
+        "author": { "@type": "Organization", "name": a.source },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` } },
+        "articleSection": entry.name,
+        "wordCount": (a.description || "").split(/\s+/).length,
+        "isAccessibleForFree": true,
+        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".card-body h3", ".card-body p"] },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": `${baseUrl}/industry/${slug}` },
+        "isPartOf": { "@type": "CollectionPage", "name": `${entry.name} News`, "url": `${baseUrl}/industry/${slug}` },
+      });
+    });
+    const jsonLd = JSON.stringify(jsonLdArr);
 
     const newsCardsHtml = articles.length > 0
       ? articles.map(a => `
@@ -1065,21 +1184,51 @@ ${entries.map(e => `  <url>
 <title>${escapeXml(pageTitle)}</title>
 <meta name="description" content="${escapeXml(pageDesc)}" />
 <meta name="keywords" content="${entry.searchKeywords.slice(0, 10).join(", ")}, ${entry.name}, industry news, ${SITE_NAME}" />
-<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-<meta name="googlebot" content="index, follow, max-image-preview:large" />
+<meta name="news_keywords" content="${entry.searchKeywords.slice(0, 10).join(", ")}" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="googlebot-news" content="index, follow" />
+<meta name="bingbot" content="index, follow" />
+<meta name="author" content="${SITE_CREATOR}" />
+<meta name="publisher" content="${SITE_NAME}" />
+<meta name="article:published_time" content="2026-01-01T00:00:00Z" />
+<meta name="article:modified_time" content="${nowISO}" />
+<meta name="article:section" content="${escapeXml(entry.name)}" />
+<meta name="article:author" content="${SITE_CREATOR}" />
+<meta name="article:tag" content="${escapeXml(entry.name)}" />
+${entry.searchKeywords.slice(0, 5).map((k: string) => `<meta name="article:tag" content="${escapeXml(k)}" />`).join("\n")}
 <link rel="canonical" href="${baseUrl}/industry/${slug}" />
+${parent ? `<link rel="up" href="${baseUrl}/industry/${parent.slug}" />` : ""}
+${children.length > 0 ? children.slice(0, 5).map((c: any) => `<link rel="section" href="${baseUrl}/industry/${c.slug}" />`).join("\n") : ""}
+<link rel="alternate" type="application/rss+xml" title="${escapeXml(entry.name)} News RSS" href="${baseUrl}/industry/${slug}/rss.xml" />
+<link rel="alternate" type="application/atom+xml" title="${escapeXml(entry.name)} News Atom" href="${baseUrl}/industry/${slug}/atom.xml" />
 <meta property="og:title" content="${escapeXml(pageTitle)}" />
 <meta property="og:description" content="${escapeXml(pageDesc)}" />
-<meta property="og:type" content="website" />
+<meta property="og:type" content="article" />
 <meta property="og:url" content="${baseUrl}/industry/${slug}" />
 <meta property="og:site_name" content="${SITE_NAME}" />
-<meta property="og:image" content="${baseUrl}/favicon.png" />
+<meta property="og:image" content="${articles[0]?.image || `${baseUrl}/favicon.png`}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="${escapeXml(entry.name)} News - ${SITE_NAME}" />
 <meta property="og:locale" content="en_US" />
+<meta property="og:updated_time" content="${nowISO}" />
+<meta property="article:published_time" content="2026-01-01T00:00:00Z" />
+<meta property="article:modified_time" content="${nowISO}" />
+<meta property="article:section" content="${escapeXml(entry.name)}" />
+<meta property="article:publisher" content="${SITE_CREATOR}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escapeXml(pageTitle)}" />
 <meta name="twitter:description" content="${escapeXml(pageDesc)}" />
-<meta name="twitter:image" content="${baseUrl}/favicon.png" />
+<meta name="twitter:image" content="${articles[0]?.image || `${baseUrl}/favicon.png`}" />
+<meta name="twitter:image:alt" content="${escapeXml(entry.name)} News" />
 <meta name="twitter:site" content="@MyAiGpt" />
+<meta name="twitter:label1" content="Category" />
+<meta name="twitter:data1" content="${escapeXml(entry.name)}" />
+<meta name="twitter:label2" content="Updated" />
+<meta name="twitter:data2" content="${seoTimeAgo(nowISO)}" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="dns-prefetch" href="https://img.youtube.com" />
 <script type="application/ld+json">${jsonLd}</script>
 <style>
 *{margin:0;box-sizing:border-box}
@@ -1417,6 +1566,7 @@ ${crossLinksHtml}
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <generator>${SITE_NAME} RSS Engine</generator>
     <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" />
     <image>
       <url>${baseUrl}/favicon.png</url>
       <title>${SITE_NAME}</title>
@@ -1705,7 +1855,120 @@ Acknowledgments: /humans.txt
     }
   });
 
-  // ═══════ SEO: WELL-KNOWN CHANGE-PASSWORD ═══════
+  // ═══════ SEO UPGRADE #1: INDUSTRY SECTOR RSS FEEDS ═══════
+  app.get("/industry/:slug/rss.xml", async (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const slug = req.params.slug;
+    const entry = getBySlug(slug);
+    if (!entry) return res.status(404).send("Industry not found");
+    const articles = await fetchIndustryNews(slug, entry.searchKeywords);
+    const items = articles.slice(0, 30).map(a => `    <item>
+      <title>${escapeXml(a.title)}</title>
+      <link>${escapeXml(a.link)}</link>
+      <guid isPermaLink="false">${a.id}</guid>
+      <description>${escapeXml(a.description || "")}</description>
+      <pubDate>${new Date(a.pubDate).toUTCString()}</pubDate>
+      <source url="${baseUrl}/industry/${slug}">${escapeXml(entry.name)} News - ${SITE_NAME}</source>
+      <category>${escapeXml(entry.name)}</category>
+      ${a.image ? `<enclosure url="${escapeXml(a.image)}" type="image/jpeg" />` : ""}
+    </item>`).join("\n");
+    res.type("application/rss+xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>${escapeXml(entry.name)} News - ${SITE_NAME}</title>
+    <link>${baseUrl}/industry/${slug}</link>
+    <description>Latest ${escapeXml(entry.name)} industry news, curated by ${SITE_NAME}. Auto-updating coverage from ${SITE_CREATOR}.</description>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <generator>${SITE_NAME} Industry RSS</generator>
+    <managingEditor>${SITE_CREATOR}</managingEditor>
+    <webMaster>${SITE_CREATOR}</webMaster>
+    <ttl>10</ttl>
+    <atom:link href="${baseUrl}/industry/${slug}/rss.xml" rel="self" type="application/rss+xml" />
+    <image>
+      <url>${baseUrl}/favicon.png</url>
+      <title>${escapeXml(entry.name)} News - ${SITE_NAME}</title>
+      <link>${baseUrl}/industry/${slug}</link>
+    </image>
+${items}
+  </channel>
+</rss>`);
+  });
+
+  // ═══════ SEO UPGRADE #19: INDUSTRY NEWS ATOM FEED ═══════
+  app.get("/industry/:slug/atom.xml", async (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    const slug = req.params.slug;
+    const entry = getBySlug(slug);
+    if (!entry) return res.status(404).send("Not found");
+    const articles = await fetchIndustryNews(slug, entry.searchKeywords);
+    const entries = articles.slice(0, 30).map(a => `  <entry>
+    <title>${escapeXml(a.title)}</title>
+    <link href="${escapeXml(a.link)}" rel="alternate" type="text/html" />
+    <id>urn:myaigpt:industry:${slug}:${a.id}</id>
+    <updated>${new Date(a.pubDate).toISOString()}</updated>
+    <published>${new Date(a.pubDate).toISOString()}</published>
+    <summary>${escapeXml(a.description || "")}</summary>
+    <author><name>${escapeXml(a.source || "News")}</name></author>
+    <category term="${escapeXml(entry.name)}" />
+    ${a.image ? `<link rel="enclosure" type="image/jpeg" href="${escapeXml(a.image)}" />` : ""}
+  </entry>`).join("\n");
+    res.type("application/atom+xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+  <title>${escapeXml(entry.name)} News - ${SITE_NAME}</title>
+  <subtitle>Auto-updating ${escapeXml(entry.name)} industry news from ${SITE_NAME} by ${SITE_CREATOR}</subtitle>
+  <link href="${baseUrl}/industry/${slug}" rel="alternate" type="text/html" />
+  <link href="${baseUrl}/industry/${slug}/atom.xml" rel="self" type="application/atom+xml" />
+  <id>urn:myaigpt:industry:${slug}</id>
+  <updated>${new Date().toISOString()}</updated>
+  <author><name>${SITE_CREATOR}</name></author>
+  <generator uri="${baseUrl}" version="1.0">${SITE_NAME}</generator>
+  <icon>${baseUrl}/favicon.png</icon>
+  <rights>Copyright ${new Date().getFullYear()} ${SITE_CREATOR}</rights>
+${entries}
+</feed>`);
+  });
+
+  // ═══════ SEO UPGRADE #6: SITELINKS SEARCH BOX + SAMEAS ═══════
+  app.get("/api/seo/searchbox", (req, res) => {
+    const baseUrl = getSiteUrl(req);
+    res.json({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": SITE_NAME,
+      "alternateName": ["MyAiGpt", "My AI GPT", "MYAIGPT"],
+      "url": baseUrl,
+      "description": SITE_DESC,
+      "publisher": {
+        "@type": "Organization",
+        "name": SITE_NAME,
+        "url": baseUrl,
+        "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` },
+        "sameAs": [
+          `${baseUrl}/social`,
+          `${baseUrl}/feed`,
+          `${baseUrl}/industries`
+        ],
+        "founder": { "@type": "Person", "name": SITE_CREATOR },
+      },
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": `${baseUrl}/feed?search={search_term_string}` },
+          "query-input": "required name=search_term_string"
+        },
+        {
+          "@type": "ReadAction",
+          "target": `${baseUrl}/feed`
+        }
+      ],
+      "inLanguage": "en",
+      "copyrightHolder": { "@type": "Person", "name": SITE_CREATOR },
+      "copyrightYear": 2026,
+    });
+  });
+
+  // ═══════ SEO WELL-KNOWN CHANGE-PASSWORD ═══════
   app.get("/.well-known/change-password", (_req, res) => {
     res.redirect("/social");
   });
