@@ -11,7 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 import { GICS_HIERARCHY, getBySlug, getChildren, getParent, getSiblings, getByLevel, getAncestors, getSectorForEntry, getAll } from "./gics-data";
-import { initBrainCell, storeKnowledgeAtom, storeConversationAtom, storeCodeAtom, classifyIntent, classifyCodeIntent, extractTopics, detectCodeInMessage, summarizeCode, getQueueStatus } from "./brain-cell";
+import { initBrainCell, storeKnowledgeAtom, storeConversationAtom, storeCodeAtom, classifyIntent, classifyCodeIntent, extractTopics, detectCodeInMessage, summarizeCode, getQueueStatus, extractEntitiesFromHeadline, generateSummary } from "./brain-cell";
 
 function escapeXml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -960,13 +960,16 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
         const entry = getBySlug(slug);
         const sectorEntry = entry ? getSectorForEntry(entry) : null;
         for (const article of articles.slice(0, 3)) {
+          const headline = article.title || "";
+          const entities = extractEntitiesFromHeadline(headline);
+          if (article.source) entities.push({ name: article.source, type: "SOURCE" });
           storeKnowledgeAtom({
             factType: "EVENT",
             sector: sectorEntry?.name || entry?.name || slug,
             industry: entry?.name || slug,
-            headline: article.title || "",
-            summary: article.description || "",
-            entities: [{ name: article.source || "Unknown", type: "SOURCE" }],
+            headline,
+            summary: generateSummary(headline, article.description || ""),
+            entities,
             tags: keywords.slice(0, 4),
           });
         }

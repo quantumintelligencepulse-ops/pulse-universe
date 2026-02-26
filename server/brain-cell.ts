@@ -272,6 +272,46 @@ export function extractTopics(userText: string, aiText: string): string[] {
   return matched.length > 0 ? matched.slice(0, 5) : ["general"];
 }
 
+export function extractEntitiesFromHeadline(headline: string): { name: string; type: string }[] {
+  const entities: { name: string; type: string }[] = [];
+  const companyPatterns = /\b(Apple|Google|Microsoft|Amazon|Meta|Facebook|Tesla|Netflix|Nvidia|Intel|AMD|TSMC|Qualcomm|Broadcom|Samsung|IBM|Oracle|Salesforce|Adobe|Cisco|PayPal|Visa|Mastercard|JPMorgan|Goldman Sachs|Morgan Stanley|BlackRock|Vanguard|Disney|Warner Bros|Sony|Nintendo|Uber|Lyft|Airbnb|SpaceX|Boeing|Lockheed|Raytheon|Pfizer|Moderna|Johnson & Johnson|Merck|AstraZeneca|Roche|Novartis|UnitedHealth|Anthem|Cigna|Walmart|Target|Costco|Home Depot|Lowe's|Starbucks|McDonald's|Coca-Cola|PepsiCo|Procter & Gamble|ExxonMobil|Chevron|Shell|BP|ConocoPhillips|SambaNova|OpenAI|Anthropic|DeepMind|Palantir|Snowflake|Databricks|Stripe|Rivian|Lucid|NIO|BYD|Ford|GM|Toyota|Honda|BMW|Mercedes|Volkswagen|Hyundai|Coinbase|Binance|Robinhood|Block|Square|SoFi|Affirm|Klarna|Zoom|Slack|Shopify|Twilio|Atlassian|ServiceNow|Workday|CrowdStrike|Palo Alto|Fortinet|SentinelOne|Zscaler|Datadog|Elastic|Confluent|MongoDB|Cloudflare|Akamai|Fastly|DigitalOcean|Linode|Hetzner|OVH)\b/gi;
+  const personPatterns = /\b(Elon Musk|Tim Cook|Satya Nadella|Mark Zuckerberg|Jeff Bezos|Jensen Huang|Sam Altman|Sundar Pichai|Andy Jassy|Lisa Su|Pat Gelsinger|Jamie Dimon|Warren Buffett|Larry Fink|Cathie Wood|Jim Cramer|Jerome Powell|Janet Yellen|Joe Biden|Donald Trump|Kamala Harris|Xi Jinping|Vladimir Putin|Bill Gates|Steve Jobs)\b/gi;
+  const seen = new Set<string>();
+  let m;
+  while ((m = companyPatterns.exec(headline)) !== null) {
+    const name = m[1];
+    const key = name.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); entities.push({ name, type: "COMPANY" }); }
+  }
+  while ((m = personPatterns.exec(headline)) !== null) {
+    const name = m[1];
+    const key = name.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); entities.push({ name, type: "PERSON" }); }
+  }
+  const orgPatterns = /\b(FDA|SEC|FTC|EPA|NASA|DARPA|DOJ|DOD|WHO|UN|NATO|EU|IMF|World Bank|Federal Reserve|Fed|Congress|Senate|Pentagon|White House|Supreme Court|OPEC|G7|G20|CISA|NSA|CIA|FBI|IRS|NIH|CDC)\b/g;
+  while ((m = orgPatterns.exec(headline)) !== null) {
+    const name = m[1];
+    const key = name.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); entities.push({ name, type: "ORGANIZATION" }); }
+  }
+  return entities.length > 0 ? entities : [{ name: "News", type: "SOURCE" }];
+}
+
+export function generateSummary(headline: string, description: string): string {
+  if (description && description.length > 20) {
+    return description.length > 200 ? description.substring(0, 200) + "..." : description;
+  }
+  const words = headline.split(/\s+/);
+  if (words.length <= 5) return headline;
+  const actionVerbs = ["announces", "launches", "reveals", "reports", "acquires", "partners", "plans", "releases", "introduces", "expands", "cuts", "raises", "faces", "wins", "loses", "targets", "beats", "misses", "warns", "enters", "exits"];
+  for (const verb of actionVerbs) {
+    if (headline.toLowerCase().includes(verb)) {
+      return `${headline.split(/[,\-–—]/)[0].trim()} — key development in the industry.`;
+    }
+  }
+  return `${headline} — notable industry update.`;
+}
+
 export function detectCodeInMessage(text: string): boolean {
   return !!(
     text.match(/```[\s\S]*?```/) ||
