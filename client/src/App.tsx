@@ -225,7 +225,7 @@ function useMessages(chatId: number | null) {
   });
 }
 function useStats() {
-  return useQuery<{ chatCount: number; messageCount: number; codeFiles: number; discordConnected: boolean }>({
+  return useQuery<{ chatCount: number; messageCount: number; codeFiles: number }>({
     queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats"); return r.json(); }, refetchInterval: 600000,
   });
 }
@@ -1503,8 +1503,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           )}
           <div className="flex items-center justify-between px-2 text-[9px] text-muted-foreground/40">
             <div className="flex items-center gap-1">
-              {stats?.discordConnected ? <Wifi size={9} className="text-green-400" /> : <WifiOff size={9} className="text-red-400" />}
-              <span>{stats?.discordConnected ? "Connected" : "Offline"}</span>
+              <Wifi size={9} className="text-green-400" />
+              <span>Online</span>
             </div>
             <div className="flex items-center gap-2">
               <span>{stats?.chatCount || 0} chats</span>

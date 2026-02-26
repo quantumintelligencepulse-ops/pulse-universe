@@ -19,12 +19,10 @@ const search: typeof _ddgSearch = async (...args) => { await ddgThrottle(); retu
 const searchNews: typeof _ddgSearchNews = async (...args) => { await ddgThrottle(); return _ddgSearchNews(...args); };
 const searchVideos: typeof _ddgSearchVideos = async (...args) => { await ddgThrottle(); return _ddgSearchVideos(...args); };
 const searchImages: typeof _ddgSearchImages = async (...args) => { await ddgThrottle(); return _ddgSearchImages(...args); };
-import { Client, GatewayIntentBits } from "discord.js";
 import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 import { GICS_HIERARCHY, getBySlug, getChildren, getParent, getSiblings, getByLevel, getAncestors, getSectorForEntry, getAll } from "./gics-data";
-import { initBrainCell, storeKnowledgeAtom, storeConversationAtom, storeCodeAtom, classifyIntent, classifyCodeIntent, extractTopics, detectCodeInMessage, summarizeCode, getQueueStatus, extractEntitiesFromHeadline, generateSummary } from "./brain-cell";
 
 function escapeXml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -41,46 +39,6 @@ function seoTimeAgo(dateStr: string): string {
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
 const GROQ_API_KEY = "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";
 const groq = new Groq({ apiKey: GROQ_API_KEY });
-
-const DISCORD_TOKEN = "MTQyMjAxNjAwNTM2MTg5NzU2NQ.Gcy0a4.k6EVpuY2pP19Knwfu6-jskl1S1rMGfwNjqpuXc";
-const KNOWLEDGE_CHANNEL_IDS = [
-  "1371201135700082729", "1371988282652495962", "1313331216610754632",
-  "1371964994153087056", "1396151828386676837", "1396151895877222520",
-  "1383304452047634462", "1014567263212421212", "1358264301822935210",
-  "1358264608707579954", "1358265683515015310", "1358270022925156432",
-  "1358277176797036636", "1358282348969332828", "1475496566889386145",
-  "1433383711587434518", "1475773035188326436",
-];
-
-const discordClient = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-let discordKnowledge = "";
-
-discordClient.once("ready", async () => {
-  console.log("Discord bot connected. Fetching knowledge channels...");
-  try {
-    const snippets: string[] = [];
-    for (const channelId of KNOWLEDGE_CHANNEL_IDS) {
-      try {
-        const channel = await discordClient.channels.fetch(channelId);
-        if (channel && channel.isTextBased()) {
-          const msgs = await (channel as any).messages.fetch({ limit: 5 });
-          for (const [, msg] of msgs) {
-            if (msg.content && msg.content.length > 10) {
-              snippets.push(msg.content.substring(0, 150));
-            }
-          }
-        }
-      } catch { }
-    }
-    discordKnowledge = snippets.slice(0, 15).join("\n");
-    console.log(`Loaded ${snippets.length} knowledge snippets (${discordKnowledge.length} chars).`);
-  } catch (e) {
-    console.error("Discord knowledge fetch error:", e);
-  }
-});
-
-initBrainCell(discordClient);
-discordClient.login(DISCORD_TOKEN).catch(e => console.error("Discord login failed:", e.message));
 
 async function searchForImage(query: string): Promise<{ url: string; title: string } | null> {
   try {
@@ -969,25 +927,6 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
       }));
       articles.sort((a: any, b: any) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
       industryNewsCache[slug] = { articles, lastFetch: Date.now() };
-
-      try {
-        const entry = getBySlug(slug);
-        const sectorEntry = entry ? getSectorForEntry(entry.slug) : null;
-        for (const article of articles.slice(0, 3)) {
-          const headline = article.title || "";
-          const entities = extractEntitiesFromHeadline(headline);
-          if (article.source) entities.push({ name: article.source, type: "SOURCE" });
-          storeKnowledgeAtom({
-            factType: "EVENT",
-            sector: sectorEntry?.name || entry?.name || slug,
-            industry: entry?.name || slug,
-            headline,
-            summary: generateSummary(headline, article.description || ""),
-            entities,
-            tags: keywords.slice(0, 4),
-          });
-        }
-      } catch {}
 
       return articles;
     } catch {
@@ -2141,8 +2080,7 @@ ${entries}
     const chatCount = await storage.getChatCount();
     const messageCount = await storage.getMessageCount();
     const codeFiles = fs.existsSync(CODES_DIR) ? fs.readdirSync(CODES_DIR).length : 0;
-    const brainStatus = getQueueStatus();
-    res.json({ chatCount, messageCount, codeFiles, discordConnected: discordClient.isReady(), brainCell: brainStatus });
+    res.json({ chatCount, messageCount, codeFiles });
   });
 
   app.get(api.messages.list.path, async (req, res) => {
@@ -3148,9 +3086,6 @@ ABSOLUTELY FORBIDDEN PHRASES - NEVER say any of these:
 If you have live data provided in this prompt, USE IT and present it confidently. If you truly don't have specific data, give your best knowledgeable answer based on what you know — NEVER tell the user to go look it up themselves. That is rude and unhelpful. You are a premium AI assistant — ACT like one.`;
       }
 
-      if (discordKnowledge) {
-        systemPrompt += `\n\nReference knowledge:\n${discordKnowledge.substring(0, 800)}`;
-      }
       if (searchContext) {
         systemPrompt += `\n\nWeb results:\n${searchContext.substring(0, 600)}`;
       }
@@ -3278,31 +3213,6 @@ If you have live data provided in this prompt, USE IT and present it confidently
         role: "assistant",
         content: reply
       });
-
-      try {
-        const topics = extractTopics(input.content, reply);
-        const hasCode = detectCodeInMessage(input.content) || detectCodeInMessage(reply);
-
-        if (hasCode) {
-          const codeIntent = classifyCodeIntent(input.content);
-          const direction = detectCodeInMessage(reply) ? "OUTPUT" : "INPUT";
-          const codeSummary = detectCodeInMessage(reply) ? summarizeCode(reply) : summarizeCode(input.content);
-          storeCodeAtom({
-            direction,
-            userIntent: codeIntent,
-            description: input.content.substring(0, 200),
-            codeSummary,
-            topics,
-          });
-        }
-
-        storeConversationAtom({
-          userMessage: input.content,
-          aiReply: reply,
-          intent: classifyIntent(input.content),
-          topics,
-        });
-      } catch {}
 
       res.status(200).json(savedMessage);
 
