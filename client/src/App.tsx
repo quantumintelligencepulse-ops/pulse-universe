@@ -2709,18 +2709,40 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
 
         {isExpanded && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            {isVideo && article.videoUrl ? (
+            {isVideo && article.videoUrl && !["TikTok", "Instagram"].includes(article.source) ? (
               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                 <iframe src={article.videoUrl} className="absolute inset-0 w-full h-full rounded-lg" allowFullScreen
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
               </div>
+            ) : isVideo && article.link ? (
+              <a href={article.link} target="_blank" rel="noopener noreferrer" className="block relative group" data-testid={`feed-video-link-${article.id}`}>
+                {cardImage ? (
+                  <div className="relative">
+                    <img src={article.image} alt="" className="w-full max-h-96 object-cover rounded-lg" onError={() => setImgError(true)} />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg group-hover:bg-black/40 transition-colors">
+                      <div className="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+                        <Play size={24} className="text-gray-800 ml-1" fill="currentColor" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg mx-auto mb-2">
+                        <Play size={24} className="text-gray-800 ml-1" fill="currentColor" />
+                      </div>
+                      <span className="text-xs text-gray-500">Watch on {article.source}</span>
+                    </div>
+                  </div>
+                )}
+              </a>
             ) : cardImage ? (
               <img src={article.image} alt="" className="w-full max-h-96 object-cover rounded-lg" onError={() => setImgError(true)} />
             ) : null}
             <p className="text-sm text-foreground/80 leading-relaxed">{article.description}</p>
             <a href={article.link} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors" data-testid={`feed-readmore-${article.id}`}>
-              {isVideo ? "Watch on YouTube" : "Read full article"} <ChevronRight size={12} />
+              {isVideo ? `Watch on ${article.source}` : "Read full article"} <ChevronRight size={12} />
             </a>
 
             <div className="border-t border-border/20 pt-3">
