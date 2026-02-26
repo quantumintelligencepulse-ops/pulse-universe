@@ -4204,8 +4204,22 @@ function PlaygroundPage() {
   return <Layout><CodePlayground /></Layout>;
 }
 function FeedPage() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Live News & Videos from BBC, NPR, NY Times & More", description: "Stay informed with live news from BBC, NPR, NY Times, The Verge, TechCrunch, Reuters, Associated Press, The Guardian, and more. Watch videos, search any topic. AI-personalized news feed by Billy Banks.", ogTitle: "My Ai Gpt Feed - Live News, Videos & Search", ogDesc: "Live news from BBC, NPR, NY Times, TechCrunch. Search any topic for news, web, and video results.", ogType: "website", canonical: window.location.origin + "/feed", keywords: "live news, news feed, BBC news, NPR news, NY Times, The Verge, TechCrunch, trending news, video news, AI news, personalized news, Billy Banks, news aggregator, world news, tech news, video search", author: "Billy Banks", articleSection: "News", jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "My Ai Gpt Feed", "description": "Live news and video feed with AI personalization", "url": window.location.origin + "/feed", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "author": { "@type": "Person", "name": "Billy Banks" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "News Feed", "item": window.location.origin + "/feed" }] } } }); }, []);
-  return <Layout><NewsFeed /></Layout>;
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Coming Soon", description: "Live news feed coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Feed - Coming Soon", ogDesc: "Live news feed coming soon.", ogType: "website", canonical: window.location.origin + "/feed" }); }, []);
+  return <Layout><div className="flex-1 flex items-center justify-center p-6">
+    <div className="text-center max-w-md">
+      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-xl">
+        <Newspaper size={36} className="text-white" />
+      </div>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-feed-title">News Feed</h1>
+      <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 rounded-full border border-orange-200/50 mb-3 relative overflow-hidden">
+        <Sparkles size={14} className="text-orange-500" />
+        <span className="text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">Coming Soon</span>
+        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
+      </div>
+      <p className="text-muted-foreground text-sm mt-2">Live news from BBC, NPR, NY Times, and more — Billy Banks is building something incredible.</p>
+      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for any news or information!</p>
+    </div>
+  </div></Layout>;
 }
 // ─── AI STUDIO PAGE (Image + Video Generation) ──────────────────────────────
 
@@ -4836,8 +4850,22 @@ function SettingsPageWrapper() {
 }
 
 function SocialPageWrapper() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Free Social Network | Create Profile, Post, Follow & Get Verified", description: "Join My Ai Gpt Social network by Billy Banks. Create your profile, share posts, follow friends, discover trending content, get a verified badge, and connect with the AI-powered community. Free to join.", ogTitle: "My Ai Gpt Social Network - Connect, Share & Discover", ogDesc: "Free social network powered by AI. Create profiles, share posts, follow friends, get verified. By Billy Banks.", ogType: "website", canonical: window.location.origin + "/social", keywords: "social network, social media, create profile, follow friends, verified badge, trending posts, share posts, social platform, Billy Banks, free social network, AI social, community, connect, discover", author: "Billy Banks", articleSection: "Social Network", jsonLd: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "My Ai Gpt Social", "description": "AI-powered social network", "url": window.location.origin + "/social", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "Social", "item": window.location.origin + "/social" }] } } }); }, []);
-  return <Layout><SocialPage /></Layout>;
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Coming Soon", description: "Social network coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Social - Coming Soon", ogDesc: "Social network coming soon.", ogType: "website", canonical: window.location.origin + "/social" }); }, []);
+  return <Layout><div className="flex-1 flex items-center justify-center p-6">
+    <div className="text-center max-w-md">
+      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-xl">
+        <Users size={36} className="text-white" />
+      </div>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-social-title">Social Network</h1>
+      <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 rounded-full border border-purple-200/50 mb-3 relative overflow-hidden">
+        <Sparkles size={14} className="text-purple-500" />
+        <span className="text-sm font-bold bg-gradient-to-r from-purple-500 to-indigo-600 bg-clip-text text-transparent">Coming Soon</span>
+        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
+      </div>
+      <p className="text-muted-foreground text-sm mt-2">Connect, share, and discover — Billy Banks is building something incredible.</p>
+      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for anything you need!</p>
+    </div>
+  </div></Layout>;
 }
 
 function ChatViewPage() {
