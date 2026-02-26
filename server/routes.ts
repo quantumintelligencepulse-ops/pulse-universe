@@ -11,6 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 import { GICS_HIERARCHY, getBySlug, getChildren, getParent, getSiblings, getByLevel, getAncestors, getSectorForEntry, getAll } from "./gics-data";
+import { initBrainCell, storeKnowledgeAtom, storeConversationAtom, storeCodeAtom, classifyIntent, classifyCodeIntent, extractTopics, detectCodeInMessage, summarizeCode, getQueueStatus } from "./brain-cell";
 
 function escapeXml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -65,6 +66,7 @@ discordClient.once("ready", async () => {
   }
 });
 
+initBrainCell(discordClient);
 discordClient.login(DISCORD_TOKEN).catch(e => console.error("Discord login failed:", e.message));
 
 async function searchForImage(query: string): Promise<{ url: string; title: string } | null> {
@@ -953,6 +955,23 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
       }));
       articles.sort((a: any, b: any) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
       industryNewsCache[slug] = { articles, lastFetch: Date.now() };
+
+      try {
+        const entry = getBySlug(slug);
+        const sectorEntry = entry ? getSectorForEntry(entry) : null;
+        for (const article of articles.slice(0, 3)) {
+          storeKnowledgeAtom({
+            factType: "EVENT",
+            sector: sectorEntry?.name || entry?.name || slug,
+            industry: entry?.name || slug,
+            headline: (article.title || "").substring(0, 150),
+            summary: (article.description || "").substring(0, 250),
+            entities: [{ name: article.source || "Unknown", type: "SOURCE" }],
+            tags: keywords.slice(0, 4),
+          });
+        }
+      } catch {}
+
       return articles;
     } catch {
       if (feedCache.articles.length > 0) {
@@ -2105,7 +2124,8 @@ ${entries}
     const chatCount = await storage.getChatCount();
     const messageCount = await storage.getMessageCount();
     const codeFiles = fs.existsSync(CODES_DIR) ? fs.readdirSync(CODES_DIR).length : 0;
-    res.json({ chatCount, messageCount, codeFiles, discordConnected: discordClient.isReady() });
+    const brainStatus = getQueueStatus();
+    res.json({ chatCount, messageCount, codeFiles, discordConnected: discordClient.isReady(), brainCell: brainStatus });
   });
 
   app.get(api.messages.list.path, async (req, res) => {
@@ -3190,6 +3210,31 @@ If you have live data provided in this prompt, USE IT and present it confidently
         role: "assistant",
         content: reply
       });
+
+      try {
+        const topics = extractTopics(input.content, reply);
+        const hasCode = detectCodeInMessage(input.content) || detectCodeInMessage(reply);
+
+        if (hasCode) {
+          const codeIntent = classifyCodeIntent(input.content);
+          const direction = detectCodeInMessage(reply) ? "OUTPUT" : "INPUT";
+          const codeSummary = detectCodeInMessage(reply) ? summarizeCode(reply) : summarizeCode(input.content);
+          storeCodeAtom({
+            direction,
+            userIntent: codeIntent,
+            description: input.content.substring(0, 200),
+            codeSummary,
+            topics,
+          });
+        }
+
+        storeConversationAtom({
+          userMessage: input.content,
+          aiReply: reply,
+          intent: classifyIntent(input.content),
+          topics,
+        });
+      } catch {}
 
       res.status(200).json(savedMessage);
 

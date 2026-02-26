@@ -42,6 +42,7 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **AI Model**: Groq API (llama-3.1-8b-instant)
 - **Web Search**: duck-duck-scrape (for DuckDuckGo search)
 - **Knowledge Base**: Discord.js (for fetching from Discord channels)
+- **Brain Cell Memory**: Discord channel `#pulse-data-center` (1476404773455663165) — stores KNOWLEDGE_ATOM, CONVERSATION_ATOM, CODE_ATOM micro-messages under 2000 chars each. Adaptive rate-limit throttling (350–3000ms). System defined in `server/brain-cell.ts`.
 - **Weather API**: Open-Meteo API (geocoding + forecast)
 - **Cryptocurrency API**: CoinGecko API
 - **Stock Market API**: Yahoo Finance API
