@@ -24,6 +24,7 @@ function seoTimeAgo(dateStr: string): string {
   return Math.floor(hrs / 24) + "d ago";
 }
 
+const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
 const GROQ_API_KEY = "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";
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
@@ -688,7 +689,7 @@ ${urls}
   <channel>
     <title>${SITE_NAME} - Live News &amp; Videos</title>
     <link>${baseUrl}/feed</link>
-    <description>Live news feed from BBC, NPR, NY Times, The Verge, TechCrunch and more - curated by ${SITE_NAME}</description>
+    <description>Live news feed from BBC, NPR, NY Times, The Verge, TechCrunch and more - curated by ${SITE_NAME}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <managingEditor>billyotucker@gmail.com (${SITE_CREATOR})</managingEditor>
@@ -779,7 +780,7 @@ ${items}
         "datePublished": pubDate.toISOString(),
         "dateModified": pubDate.toISOString(),
         "author": { "@type": "Organization", "name": article.source },
-        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`] },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`, `${baseUrl}/industries`, DISCORD_INVITE] },
         "mainEntityOfPage": { "@type": "WebPage", "@id": `${baseUrl}/news/${articleId}` },
         "url": `${baseUrl}/news/${articleId}`,
         "isAccessibleForFree": true,
@@ -889,6 +890,7 @@ nav.site-nav a:hover{color:#f97316}
 <a href="/feed">News Feed</a>
 <a href="/social">Social</a>
 <a href="/code">Code Playground</a>
+<a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" style="color:#5865F2;font-weight:700">🎮 Discord</a>
 </nav>
 </div>
 </header>
@@ -907,10 +909,20 @@ ${article.link ? `<a href="${escapeXml(article.link)}" class="original-link" rel
 </article>
 ${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME}</h2>${relatedHtml}</section>` : ""}
 ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px solid #eee;padding-top:24px;margin-top:24px"><h2>Related Industry News</h2><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">${matchedIndustries.map((ind: any) => `<a href="/industry/${ind.slug}" style="display:inline-block;padding:8px 16px;border-radius:20px;border:1px solid #f97316;color:#f97316;font-size:13px;font-weight:600;text-decoration:none">${escapeXml(ind.name)} News →</a>`).join("")}</div></section>` : ""}
+<section style="margin-top:32px;padding:28px;background:linear-gradient(135deg,#fff5eb,#fff0e0);border:2px solid #f97316;border-radius:16px;text-align:center">
+<h2 style="font-size:22px;font-weight:800;margin-bottom:8px;color:#1a1a1a">🤖 Talk to My Ai GPT</h2>
+<p style="color:#555;font-size:15px;margin-bottom:16px;max-width:500px;margin-left:auto;margin-right:auto">Your AI best friend that learns you. Ask anything, get instant answers powered by live news, code in 30+ languages, and connect socially.</p>
+<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+<a href="/" style="display:inline-flex;align-items:center;gap:8px;background:#f97316;color:#fff;padding:12px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 4px 14px rgba(249,115,22,.35)">💬 Chat with AI Now</a>
+<a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:#5865F2;color:#fff;padding:12px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 4px 14px rgba(88,101,242,.35)">🎮 Join Our Discord</a>
+</div>
+<p style="margin-top:14px;font-size:12px;color:#888">Free forever · No sign-up required · By ${SITE_CREATOR}</p>
+</section>
 </main>
 <footer>
 <div class="container">
-<p><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · AI Chat, Code Playground, News Feed & Social Network</p>
+<p><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · <a href="/">AI Chat</a> · <a href="/code">Code Playground</a> · <a href="/feed">News Feed</a> · <a href="/social">Social Network</a></p>
+<p style="margin-top:8px"><a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" style="color:#5865F2;font-weight:600">🎮 Join the ${SITE_NAME} Discord Community</a></p>
 <p style="margin-top:8px"><a href="/feed">Browse All News</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a> · <a href="/industries">All Industries</a></p>
 <p style="margin-top:8px;font-size:12px;color:#aaa">Industry News: ${getByLevel("sector").map((s: any) => `<a href="/industry/${s.slug}" style="color:#f97316;text-decoration:none">${escapeXml(s.name)}</a>`).join(" · ")}</p>
 </div>
@@ -1019,7 +1031,17 @@ nav{margin-bottom:20px;font-size:14px}footer{margin-top:40px;text-align:center;f
 <h1>Industry News Directory</h1>
 <p style="color:#aeb1c2;margin-bottom:20px">${getAll().length} industry-specific news pages, auto-updating with live news from every GICS sector.</p>
 ${sectorHtml}
-<footer><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · <a href="/feed">News Feed</a> · <a href="/social">Social Network</a></footer>
+<div style="margin:32px 0;padding:28px;background:linear-gradient(135deg,rgba(249,115,22,.08),rgba(249,59,0,.05));border:2px solid rgba(249,115,22,.3);border-radius:16px;text-align:center">
+<h2 style="font-size:22px;font-weight:800;margin-bottom:8px">🤖 Talk to My Ai GPT</h2>
+<p style="color:#aeb1c2;font-size:15px;margin-bottom:16px;max-width:500px;margin-left:auto;margin-right:auto">Your AI best friend that learns you. Ask anything about any industry, get instant answers powered by live news.</p>
+<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+<a href="/" style="display:inline-flex;align-items:center;gap:8px;background:#f97316;color:#fff;padding:12px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none">💬 Chat with AI Now</a>
+<a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:#5865F2;color:#fff;padding:12px 28px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none">🎮 Join Our Discord</a>
+</div>
+<p style="margin-top:12px;font-size:12px;color:#555">Free forever · No sign-up required · By ${SITE_CREATOR}</p>
+</div>
+<footer><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · <a href="/">AI Chat</a> · <a href="/feed">News Feed</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a></footer>
+<p style="text-align:center;margin-top:10px"><a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:#5865F2;color:#fff;padding:8px 20px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">🎮 Join the ${SITE_NAME} Discord Community</a></p>
 <p style="text-align:center;margin-top:12px;font-size:11px;color:#555">Each industry page includes its own <a href="/industry/information-technology/rss.xml">RSS</a> and <a href="/industry/information-technology/atom.xml">Atom</a> feed for news readers.</p>
 </div>
 <script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex|facebookexternalhit|twitterbot|linkedinbot|discordbot/i.test(navigator.userAgent)){window.location.href="/feed";}</script>
@@ -1090,7 +1112,7 @@ ${entries.map(e => {
         "dateCreated": "2026-01-01T00:00:00Z",
         "inLanguage": "en",
         "isPartOf": { "@type": "WebSite", "name": SITE_NAME, "url": baseUrl },
-        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`, `${baseUrl}/industries`] },
+        "publisher": { "@type": "Organization", "name": SITE_NAME, "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/favicon.png` }, "sameAs": [`${baseUrl}/social`, `${baseUrl}/feed`, `${baseUrl}/industries`, DISCORD_INVITE] },
         "author": { "@type": "Person", "name": SITE_CREATOR },
         "about": { "@type": "Thing", "name": entry.name, "description": `${entry.level} in the GICS (Global Industry Classification Standard) hierarchy`, "identifier": slug },
         "mainEntity": { "@type": "ItemList", "name": `${entry.name} News`, "numberOfItems": articles.length, "itemListOrder": "https://schema.org/ItemListOrderDescending",
@@ -1286,6 +1308,7 @@ footer a{color:#f97316}
 <a href="/feed">News Feed</a>
 <a href="/social">Social</a>
 <a href="/code">Code Playground</a>
+<a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" style="color:#5865F2;font-weight:700">🎮 Discord</a>
 </nav>
 </div>
 </header>
@@ -1303,23 +1326,34 @@ footer a{color:#f97316}
 <div class="news-grid">${newsCardsHtml}</div>
 <aside class="sidebar">
 <div class="cta-box">
-<h3>Talk to My Ai GPT</h3>
+<h3>🤖 Talk to My Ai GPT</h3>
 <p>Ask our AI anything about ${escapeXml(entry.name)} — get instant, informed answers powered by live news.</p>
-<a href="/" class="cta-btn">Chat with AI →</a>
+<a href="/" class="cta-btn">💬 Chat with AI Now →</a>
+</div>
+<div class="cta-box" style="background:linear-gradient(135deg,rgba(88,101,242,.15),rgba(88,101,242,.08));border-color:rgba(88,101,242,.4)">
+<h3 style="color:#5865F2">🎮 Join Our Discord</h3>
+<p>Connect with ${SITE_NAME} community. Get AI tips, share code, discuss news, and meet other members.</p>
+<a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" class="cta-btn" style="background:#5865F2">Join Discord Server →</a>
 </div>
 ${crossLinksHtml}
 <div class="cta-box">
-<h3>Browse All News</h3>
+<h3>📰 Browse All News</h3>
 <p>Explore the full ${SITE_NAME} news feed with articles, videos, and more.</p>
 <a href="/feed" class="cta-btn">Open News Feed →</a>
+</div>
+<div class="cta-box">
+<h3>👥 Social Network</h3>
+<p>Join the ${SITE_NAME} social community — post, like, follow, and connect with other users.</p>
+<a href="/social" class="cta-btn">Visit Social →</a>
 </div>
 </aside>
 </div>
 </div>
 <footer>
 <div class="container">
-<p><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · AI Chat, Code Playground, News Feed & Social Network</p>
-<p style="margin-top:8px"><a href="/feed">Browse All News</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a></p>
+<p><a href="/">${SITE_NAME}</a> by ${SITE_CREATOR} · <a href="/">AI Chat</a> · <a href="/code">Code Playground</a> · <a href="/feed">News Feed</a> · <a href="/social">Social Network</a></p>
+<p style="margin-top:10px"><a href="${DISCORD_INVITE}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:#5865F2;color:#fff;padding:8px 20px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">🎮 Join the ${SITE_NAME} Discord</a></p>
+<p style="margin-top:10px"><a href="/feed">Browse All News</a> · <a href="/social">Social Network</a> · <a href="/code">Code Playground</a> · <a href="/industries">All Industries</a></p>
 <p style="margin-top:12px">Industry Pages: ${allSectors.map(s => `<a href="/industry/${s.slug}">${escapeXml(s.name)}</a>`).join(" · ")}</p>
 </div>
 </footer>
@@ -1559,7 +1593,7 @@ ${crossLinksHtml}
   <channel>
     <title>${SITE_NAME} Social Feed</title>
     <link>${baseUrl}/social</link>
-    <description>Latest posts from ${SITE_NAME} Social Network by ${SITE_CREATOR}</description>
+    <description>Latest posts from ${SITE_NAME} Social Network by ${SITE_CREATOR}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</description>
     <language>en-us</language>
     <managingEditor>${SITE_CREATOR}</managingEditor>
     <webMaster>${SITE_CREATOR}</webMaster>
@@ -1877,7 +1911,7 @@ Acknowledgments: /humans.txt
   <channel>
     <title>${escapeXml(entry.name)} News - ${SITE_NAME}</title>
     <link>${baseUrl}/industry/${slug}</link>
-    <description>Latest ${escapeXml(entry.name)} industry news, curated by ${SITE_NAME}. Auto-updating coverage from ${SITE_CREATOR}.</description>
+    <description>Latest ${escapeXml(entry.name)} industry news, curated by ${SITE_NAME}. Auto-updating coverage from ${SITE_CREATOR}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <generator>${SITE_NAME} Industry RSS</generator>
@@ -1916,7 +1950,7 @@ ${items}
     res.type("application/atom+xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
   <title>${escapeXml(entry.name)} News - ${SITE_NAME}</title>
-  <subtitle>Auto-updating ${escapeXml(entry.name)} industry news from ${SITE_NAME} by ${SITE_CREATOR}</subtitle>
+  <subtitle>Auto-updating ${escapeXml(entry.name)} industry news from ${SITE_NAME} by ${SITE_CREATOR}. Chat with AI at ${baseUrl} or join our Discord at ${DISCORD_INVITE}</subtitle>
   <link href="${baseUrl}/industry/${slug}" rel="alternate" type="text/html" />
   <link href="${baseUrl}/industry/${slug}/atom.xml" rel="self" type="application/atom+xml" />
   <id>urn:myaigpt:industry:${slug}</id>
