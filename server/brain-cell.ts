@@ -41,9 +41,34 @@ export function initBrainCell(client: Client) {
   });
 }
 
-function trimToLimit(text: string): string {
-  if (text.length <= MAX_ATOM_LENGTH) return text;
-  return text.substring(0, MAX_ATOM_LENGTH - 20) + "\n[...truncated]";
+function splitIntoParts(text: string): string[] {
+  if (text.length <= MAX_ATOM_LENGTH) return [text];
+  const parts: string[] = [];
+  let remaining = text;
+  let partNum = 1;
+  const estimatedTotal = Math.ceil(text.length / (MAX_ATOM_LENGTH - 40));
+  while (remaining.length > 0) {
+    const header = `[PART ${partNum}/${estimatedTotal}]\n`;
+    const maxChunk = MAX_ATOM_LENGTH - header.length;
+    let cutPoint = maxChunk;
+    if (remaining.length > maxChunk) {
+      const lastNewline = remaining.lastIndexOf("\n", maxChunk);
+      if (lastNewline > maxChunk * 0.5) {
+        cutPoint = lastNewline + 1;
+      }
+    }
+    const chunk = remaining.substring(0, cutPoint);
+    remaining = remaining.substring(cutPoint);
+    parts.push(header + chunk);
+    partNum++;
+  }
+  if (parts.length > 1) {
+    const actualTotal = parts.length;
+    for (let i = 0; i < parts.length; i++) {
+      parts[i] = parts[i].replace(/\[PART \d+\/\d+\]/, `[PART ${i + 1}/${actualTotal}]`);
+    }
+  }
+  return parts;
 }
 
 function getBurstCount(): number {
@@ -130,7 +155,11 @@ function enqueueAtom(content: string, priority: number = 1) {
   if (!discordClientRef) {
     console.warn("Brain Cell: Discord client not initialized, atom queued for later");
   }
-  atomQueue.push({ content: trimToLimit(content), priority, timestamp: Date.now() });
+  const parts = splitIntoParts(content);
+  const now = Date.now();
+  for (let i = 0; i < parts.length; i++) {
+    atomQueue.push({ content: parts[i], priority, timestamp: now + i });
+  }
   if (brainChannel) {
     processQueue().catch(() => {});
   }
@@ -167,13 +196,11 @@ export function storeConversationAtom(data: {
   intent: "QUESTION" | "REQUEST" | "OPINION";
   topics: string[];
 }) {
-  const shortenedUser = data.userMessage.substring(0, 300);
-  const shortenedAi = data.aiReply.substring(0, 500);
   const topicLines = data.topics.map(t => `- ${t}`).join("\n");
   const atom = `[CONVERSATION_ATOM]
 timestamp: ${new Date().toISOString()}
-user: "${shortenedUser}"
-ai: "${shortenedAi}"
+user: "${data.userMessage}"
+ai: "${data.aiReply}"
 intent: ${data.intent}
 topics:
 ${topicLines}`;

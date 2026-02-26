@@ -964,8 +964,8 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
             factType: "EVENT",
             sector: sectorEntry?.name || entry?.name || slug,
             industry: entry?.name || slug,
-            headline: (article.title || "").substring(0, 150),
-            summary: (article.description || "").substring(0, 250),
+            headline: article.title || "",
+            summary: article.description || "",
             entities: [{ name: article.source || "Unknown", type: "SOURCE" }],
             tags: keywords.slice(0, 4),
           });
