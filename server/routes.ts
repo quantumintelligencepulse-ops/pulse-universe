@@ -972,7 +972,7 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
 
       try {
         const entry = getBySlug(slug);
-        const sectorEntry = entry ? getSectorForEntry(entry) : null;
+        const sectorEntry = entry ? getSectorForEntry(entry.slug) : null;
         for (const article of articles.slice(0, 3)) {
           const headline = article.title || "";
           const entities = extractEntitiesFromHeadline(headline);
@@ -3212,8 +3212,8 @@ If you have live data provided in this prompt, USE IT and present it confidently
         const imageResult = await searchForImage(searchQuery);
         if (imageResult) {
           const imageReply = `Here's what I found! 📸\n\n![${searchQuery}](${imageResult.url})\n\n**${imageResult.title}**\n\nWant me to find more pictures? Just ask!`;
-          await storage.createMessage({ chatId: targetChatId, role: "user", content: input.content });
-          const savedReply = await storage.createMessage({ chatId: targetChatId, role: "assistant", content: imageReply });
+          await storage.createMessage({ chatId, role: "user", content: input.content });
+          const savedReply = await storage.createMessage({ chatId, role: "assistant", content: imageReply });
           return res.json(savedReply);
         }
       }
