@@ -5,7 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema } from "@shared/schema";
 import Groq from "groq-sdk";
-import { search, searchNews, searchVideos } from "duck-duck-scrape";
+import { search, searchNews, searchVideos, searchImages } from "duck-duck-scrape";
 import { Client, GatewayIntentBits } from "discord.js";
 import * as fs from "fs";
 import * as path from "path";
@@ -56,6 +56,23 @@ discordClient.once("ready", async () => {
 });
 
 discordClient.login(DISCORD_TOKEN).catch(e => console.error("Discord login failed:", e.message));
+
+async function searchForImage(query: string): Promise<{ url: string; title: string } | null> {
+  try {
+    const { SafeSearchType } = await import("duck-duck-scrape");
+    const results = await searchImages(query, { safeSearch: SafeSearchType.STRICT });
+    if (results?.results?.length) {
+      for (const img of results.results.slice(0, 5)) {
+        if (img.image && (img.image.startsWith("https://") || img.image.startsWith("http://")) && !img.image.includes(".svg")) {
+          return { url: img.image, title: img.title || query };
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Image search error:", e);
+  }
+  return null;
+}
 
 async function getSearchContext(query: string): Promise<string> {
   try {
@@ -2112,26 +2129,25 @@ If you have live data provided in this prompt, USE IT and present it confidently
         } catch {}
       }
 
-      const imageGenPatterns = /(?:generate|create|make|draw|design|paint|render|produce|show me|give me|can you (?:make|create|draw|generate))[\s\w]*(?:image|picture|photo|illustration|art|artwork|drawing|portrait|painting|icon|logo|poster|banner|thumbnail)/i;
-      const videoGenPatterns = /(?:generate|create|make|produce|render|show me|give me|can you (?:make|create|generate))[\s\w]*(?:video|movie|animation|clip|film|motion|animated)/i;
+      const imageRequestPatterns = /(?:show me|find me|get me|search for|look up|give me|can you (?:show|find|get)|i (?:want|need)|send me)[\s\w]*(?:image|picture|photo|pic|photograph|illustration)/i;
+      const imageRequestPatterns2 = /(?:image|picture|photo|pic|photograph)\s*(?:of|for|about|with|showing)\s+/i;
       const userContent = input.content.toLowerCase();
 
-      if (videoGenPatterns.test(userContent)) {
-        const videoReply = `🎬 **AI Studio Movie Maker — Coming Soon!**\n\nBilly Banks is working hard on the Video Generator to make it the absolute best for you! 🚀\n\nThe AI Studio Video Maker is being built to create stunning AI-generated videos from your text descriptions. Stay tuned — it's going to be amazing!\n\nIn the meantime, you can:\n- **Generate images** — just ask me to create any picture!\n- **Visit AI Studio** — check out the page in the sidebar\n- **Chat with me** about anything else you need!`;
-        await storage.createMessage({ chatId: targetChatId, role: "user", content: input.content });
-        const savedReply = await storage.createMessage({ chatId: targetChatId, role: "assistant", content: videoReply });
-        return res.json(savedReply);
-      }
+      if (imageRequestPatterns.test(userContent) || imageRequestPatterns2.test(userContent)) {
+        let searchQuery = input.content
+          .replace(/(?:show me|find me|get me|search for|look up|give me|can you (?:show|find|get)|i (?:want|need)|send me|please|a |an )/gi, "")
+          .replace(/(?:image|picture|photo|pic|photograph|illustration)\s*(?:of|for|about|with|showing)?\s*/gi, "")
+          .trim() || input.content;
+        searchQuery = searchQuery.replace(/[?.!,]+$/g, "").trim();
+        if (!searchQuery || searchQuery.length < 2) searchQuery = input.content;
 
-      if (imageGenPatterns.test(userContent)) {
-        const promptMatch = userContent.replace(imageGenPatterns, "").replace(/^[\s,of:]+|[\s,.]+$/g, "").trim();
-        const imagePrompt = promptMatch || input.content.replace(/(?:generate|create|make|draw|design|paint|render|produce|show me|give me|can you (?:make|create|draw|generate))[\s]*/i, "").replace(/(?:an?\s+)?(?:image|picture|photo|illustration|art|artwork|drawing|portrait|painting)\s*(?:of|for|about|with|showing)?\s*/i, "").trim() || "beautiful artwork";
-        const seed = Math.floor(Math.random() * 999999);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ", high quality, detailed, 4k")}?width=512&height=512&seed=${seed}&nologo=true`;
-        const imageReply = `Here's your generated image! 🎨\n\n![${imagePrompt}](${imageUrl})\n\n**Prompt:** ${imagePrompt}\n\nWant me to generate another one? Just describe what you'd like to see!`;
-        await storage.createMessage({ chatId: targetChatId, role: "user", content: input.content });
-        const savedReply = await storage.createMessage({ chatId: targetChatId, role: "assistant", content: imageReply });
-        return res.json(savedReply);
+        const imageResult = await searchForImage(searchQuery);
+        if (imageResult) {
+          const imageReply = `Here's what I found! 📸\n\n![${searchQuery}](${imageResult.url})\n\n**${imageResult.title}**\n\nWant me to find more pictures? Just ask!`;
+          await storage.createMessage({ chatId: targetChatId, role: "user", content: input.content });
+          const savedReply = await storage.createMessage({ chatId: targetChatId, role: "assistant", content: imageReply });
+          return res.json(savedReply);
+        }
       }
 
       const messagesForGroq = [
