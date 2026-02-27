@@ -22,7 +22,8 @@ import {
   SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle,
   ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight,
   Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
-  Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall
+  Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
+  LogIn, LogOut, Mail, KeyRound
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
@@ -102,7 +103,8 @@ function incrementMessageCount(): number {
   return count;
 }
 function isVIP(): boolean { const email = (localStorage.getItem("myaigpt_email") || "").toLowerCase(); return VIP_EMAILS.includes(email); }
-function isLimitReached(): boolean { if (isVIP()) return false; return getMessageCount() >= MESSAGE_LIMIT; }
+function isPaidUser(): boolean { return localStorage.getItem("myaigpt_pro") === "true"; }
+function isLimitReached(): boolean { if (isVIP() || isPaidUser()) return false; return getMessageCount() >= MESSAGE_LIMIT; }
 
 type AppSettings = {
   darkMode: boolean;
@@ -160,16 +162,146 @@ function AppSettingsProvider({ children }: { children: React.ReactNode }) {
   return <AppSettingsCtx.Provider value={{ settings, update }}>{children}</AppSettingsCtx.Provider>;
 }
 
+type AuthUser = { id: number; email: string; displayName: string; isPro: boolean; isFreeForever: boolean };
+const AuthCtx = createContext<{ user: AuthUser | null; loading: boolean; login: (email: string, password: string) => Promise<void>; register: (email: string, password: string, displayName: string) => Promise<void>; logout: () => Promise<void>; refresh: () => Promise<void>; showAuthModal: boolean; setShowAuthModal: (v: boolean) => void }>({ user: null, loading: true, login: async () => {}, register: async () => {}, logout: async () => {}, refresh: async () => {}, showAuthModal: false, setShowAuthModal: () => {} });
+function useAuth() { return useContext(AuthCtx); }
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const refresh = useCallback(async () => {
+    try {
+      const r = await fetch("/api/auth/me", { credentials: "include" });
+      if (r.ok) { const u = await r.json(); setUser(u); localStorage.setItem("myaigpt_email", u.email); if (u.isPro || u.isFreeForever) { localStorage.setItem("myaigpt_pro", "true"); localStorage.setItem("myaigpt_msg_count", "0"); } }
+      else { setUser(null); }
+    } catch { setUser(null); } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  const login = useCallback(async (email: string, password: string) => {
+    const r = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }), credentials: "include" });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Login failed"); }
+    const u = await r.json(); setUser(u); localStorage.setItem("myaigpt_email", u.email); if (u.isPro || u.isFreeForever) { localStorage.setItem("myaigpt_pro", "true"); localStorage.setItem("myaigpt_msg_count", "0"); } setShowAuthModal(false);
+  }, []);
+  const register = useCallback(async (email: string, password: string, displayName: string) => {
+    const r = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, displayName }), credentials: "include" });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Registration failed"); }
+    const u = await r.json(); setUser(u); localStorage.setItem("myaigpt_email", u.email); if (u.isPro || u.isFreeForever) { localStorage.setItem("myaigpt_pro", "true"); localStorage.setItem("myaigpt_msg_count", "0"); } setShowAuthModal(false);
+  }, []);
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    setUser(null); localStorage.removeItem("myaigpt_email"); localStorage.removeItem("myaigpt_pro");
+  }, []);
+  return <AuthCtx.Provider value={{ user, loading, login, register, logout, refresh, showAuthModal, setShowAuthModal }}>{children}</AuthCtx.Provider>;
+}
+
+function AuthModal() {
+  const { login, register, showAuthModal, setShowAuthModal } = useAuth();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  if (!showAuthModal) return null;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setError(""); setLoading(true);
+    try {
+      if (mode === "login") { await login(email, password); }
+      else { await register(email, password, displayName); }
+    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+  };
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowAuthModal(false)}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 relative" onClick={e => e.stopPropagation()} data-testid="auth-modal">
+        <button onClick={() => setShowAuthModal(false)} className="absolute top-3 right-3 p-1 text-muted-foreground/50 hover:text-foreground" data-testid="button-close-auth"><X size={18} /></button>
+        <div className="text-center mb-5">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg">
+            <Crown size={28} className="text-white" />
+          </div>
+          <h2 className="text-xl font-extrabold" data-testid="text-auth-title">{mode === "login" ? "Welcome Back" : "Create Account"}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{mode === "login" ? "Sign in to your My Ai Gpt account" : "Join My Ai Gpt for free"}</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {mode === "register" && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
+              <div className="relative">
+                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Billy Banks"
+                  className="w-full pl-9 pr-3 py-2.5 border border-border/40 rounded-xl text-sm focus:outline-none focus:border-amber-400" data-testid="input-display-name" />
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
+            <div className="relative">
+              <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required
+                className="w-full pl-9 pr-3 py-2.5 border border-border/40 rounded-xl text-sm focus:outline-none focus:border-amber-400" data-testid="input-auth-email" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Password</label>
+            <div className="relative">
+              <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required
+                className="w-full pl-9 pr-3 py-2.5 border border-border/40 rounded-xl text-sm focus:outline-none focus:border-amber-400" data-testid="input-auth-password" />
+            </div>
+          </div>
+          {error && <p className="text-xs text-red-500 text-center" data-testid="text-auth-error">{error}</p>}
+          <button type="submit" disabled={loading} data-testid="button-auth-submit"
+            className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold rounded-xl text-sm hover:from-amber-500 hover:to-yellow-600 transition-all shadow-md disabled:opacity-50">
+            {loading ? "..." : mode === "login" ? "Sign In" : "Create Account"}
+          </button>
+        </form>
+        <p className="text-xs text-center text-muted-foreground mt-4">
+          {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+          <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }} className="text-amber-600 font-semibold hover:underline" data-testid="button-auth-toggle">
+            {mode === "login" ? "Sign Up" : "Sign In"}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function StripePaywall() {
+  const { user, setShowAuthModal } = useAuth();
   const paywallRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (paywallRef.current && !paywallRef.current.querySelector("stripe-buy-button")) {
+    if (user && paywallRef.current && !paywallRef.current.querySelector("stripe-buy-button")) {
       const btn = document.createElement("stripe-buy-button");
       btn.setAttribute("buy-button-id", "buy_btn_1T4l1iB1ElS3CRgPLlvxieIS");
       btn.setAttribute("publishable-key", "pk_live_51LN4UmB1ElS3CRgPDMJle5JfwZh9iwzDtD900oHDTcPQfPaoGSKEUMhq3MYsFv9SfR1e8Ox5FOpDIALB7MIpEdVo0033Y4vBii");
+      btn.setAttribute("client-reference-id", String(user.id));
+      btn.setAttribute("customer-email", user.email);
       paywallRef.current.appendChild(btn);
     }
-  }, []);
+  }, [user]);
+
+  const handlePaidClick = async () => {
+    try {
+      const r = await fetch("/api/auth/upgrade", { method: "POST", credentials: "include" });
+      if (r.ok) { localStorage.setItem("myaigpt_msg_count", "0"); window.location.reload(); }
+    } catch {}
+  };
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 max-w-md mx-auto text-center" data-testid="paywall-section">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center mb-4 shadow-lg">
+          <Crown size={28} className="text-white" />
+        </div>
+        <h3 className="text-lg font-bold text-foreground mb-1">Sign in to Continue</h3>
+        <p className="text-sm text-muted-foreground mb-4">Create a free account or sign in to keep chatting with My Ai Gpt.</p>
+        <button onClick={() => setShowAuthModal(true)} data-testid="button-paywall-signin"
+          className="px-6 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold rounded-xl text-sm hover:from-amber-500 hover:to-yellow-600 transition-all shadow-md flex items-center gap-2">
+          <LogIn size={16} /> Sign In / Sign Up
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center p-6 max-w-md mx-auto text-center" data-testid="paywall-section">
       <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg">
@@ -180,10 +312,10 @@ function StripePaywall() {
         You've reached your free message limit. Upgrade to unlock unlimited access to My Ai Gpt and My Ai Coder.
       </p>
       <div ref={paywallRef} className="mb-4" />
-      <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer"
-        className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 mt-2" data-testid="link-discord-paywall">
-        <ExternalLink size={11} /> Join our Discord for support
-      </a>
+      <button onClick={handlePaidClick} data-testid="button-already-paid"
+        className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 mt-2 underline">
+        I already paid — unlock my account
+      </button>
     </div>
   );
 }
@@ -1111,7 +1243,9 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, isThinking]);
 
+  const { user } = useAuth();
   const [limitReached, setLimitReached] = useState(isLimitReached());
+  useEffect(() => { setLimitReached(isLimitReached()); }, [user]);
 
   const handleSend = useCallback(async (content: string) => {
     if (isLimitReached()) { setLimitReached(true); return; }
@@ -1320,6 +1454,36 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 
+function SidebarAuthButton() {
+  const { user, logout, setShowAuthModal } = useAuth();
+  if (user) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-amber-50 border border-amber-200/50">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center">
+            <User size={12} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] font-semibold text-foreground truncate">{user.displayName || user.email.split("@")[0]}</div>
+            <div className="text-[8px] text-muted-foreground/60 truncate">{user.email}</div>
+          </div>
+          {(user.isPro || user.isFreeForever) && <span className="text-[8px] bg-gradient-to-r from-amber-400 to-yellow-500 text-white px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
+        </div>
+        <button onClick={logout} data-testid="button-logout"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] text-muted-foreground/60 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+          <LogOut size={10} /> Sign Out
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button onClick={() => setShowAuthModal(true)} data-testid="button-sidebar-signin"
+      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold rounded-xl text-xs hover:from-amber-500 hover:to-yellow-600 transition-all shadow-sm">
+      <LogIn size={14} /> Sign In / Sign Up
+    </button>
+  );
+}
+
 function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolean) => void }) {
   const [location, setLocation] = useLocation();
   const { data: chats = [], isLoading } = useChats();
@@ -1413,10 +1577,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
           </Link>
           <div className="flex items-center gap-1.5">
-            <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" data-testid="link-discord-invite"
-              className="px-2 py-1 text-[10px] font-semibold bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors flex items-center gap-1" title="Join Discord">
-              <ExternalLink size={10} /> Discord
-            </a>
             <button onClick={() => setIsOpen(false)} className="md:hidden p-1.5 text-muted-foreground rounded-lg" data-testid="button-close-sidebar"><PanelLeftClose size={16} /></button>
           </div>
         </div>
@@ -1512,12 +1672,13 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               {(stats?.codeFiles || 0) > 0 && <span>{stats?.codeFiles} codes</span>}
             </div>
           </div>
+          <SidebarAuthButton />
           <div className="text-[9px] text-center text-muted-foreground/30 font-medium tracking-wide">Quantum Pulse Intelligence</div>
         </div>
       </div>
       {!isOpen && (
         <button onClick={() => setIsOpen(true)} data-testid="button-open-sidebar"
-          className="fixed top-4 left-4 z-40 p-2.5 bg-white border border-border/30 rounded-xl shadow-sm hover:shadow-md transition-all"><PanelLeftOpen size={16} /></button>
+          className="fixed top-4 left-4 z-40 p-3.5 bg-gradient-to-br from-amber-400 to-yellow-500 border border-amber-300 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"><PanelLeftOpen size={22} className="text-white" /></button>
       )}
     </>
   );
@@ -4827,10 +4988,9 @@ function SettingsPage() {
                 <div className="flex justify-between"><span>Created by</span><span className="font-medium">Billy Banks</span></div>
                 <div className="flex justify-between"><span>Powered by</span><span>Quantum Pulse Intelligence</span></div>
               </div>
-              <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 mt-4 px-4 py-2.5 bg-indigo-500 text-white rounded-xl text-xs font-medium hover:bg-indigo-600 transition-colors" data-testid="link-discord-settings">
-                <ExternalLink size={14} /> Join our Discord Community
-              </a>
+              <div className="flex items-center justify-center gap-2 mt-4 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white rounded-xl text-xs font-medium" data-testid="text-powered-by">
+                <Crown size={14} /> Powered by Quantum Pulse Intelligence
+              </div>
             </div>
           </div>
         )}
@@ -4931,10 +5091,13 @@ export default function App() {
   return (
     <SettingsCtx.Provider value={{ settings, set }}>
       <AppSettingsProvider>
-        <QueryClientProvider client={queryClient}>
-          <Toaster />
-          <Router />
-        </QueryClientProvider>
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <Toaster />
+            <AuthModal />
+            <Router />
+          </QueryClientProvider>
+        </AuthProvider>
       </AppSettingsProvider>
     </SettingsCtx.Provider>
   );

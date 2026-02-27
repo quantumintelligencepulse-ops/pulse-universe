@@ -1,10 +1,28 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema } from "@shared/schema";
 import Groq from "groq-sdk";
+
+const scryptAsync = promisify(scrypt);
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
+  const [hashed, salt] = stored.split(".");
+  const buf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(Buffer.from(hashed, "hex"), buf);
+}
+
+const FREE_FOREVER_EMAILS = ["quantumintelligencepulse@gmail.com", "billyotucker@gmail.com"];
 import { search as _ddgSearch, searchNews as _ddgSearchNews, searchVideos as _ddgSearchVideos, searchImages as _ddgSearchImages } from "duck-duck-scrape";
 
 let lastDdgCall = 0;
@@ -298,6 +316,63 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  const PgSession = connectPgSimple(session);
+  app.use(session({
+    store: new PgSession({ conString: process.env.DATABASE_URL, createTableIfMissing: true }),
+    secret: process.env.SESSION_SECRET || "myaigpt-session-secret-fallback",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, secure: false, sameSite: "lax" },
+  }));
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password, displayName } = req.body;
+      if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+      const normalizedEmail = email.toLowerCase().trim();
+      const existing = await storage.getUserByEmail(normalizedEmail);
+      if (existing) return res.status(409).json({ message: "Account already exists. Please sign in." });
+      const passwordHash = await hashPassword(password);
+      const isFreeForever = FREE_FOREVER_EMAILS.includes(normalizedEmail);
+      const user = await storage.createUser({ email: normalizedEmail, passwordHash, displayName: displayName || "", isPro: isFreeForever, isFreeForever });
+      (req.session as any).userId = user.id;
+      res.status(201).json({ id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever });
+    } catch (e: any) { res.status(500).json({ message: e.message || "Registration failed" }); }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+      const user = await storage.getUserByEmail(email.toLowerCase().trim());
+      if (!user) return res.status(401).json({ message: "Invalid email or password" });
+      const valid = await comparePasswords(password, user.passwordHash);
+      if (!valid) return res.status(401).json({ message: "Invalid email or password" });
+      (req.session as any).userId = user.id;
+      res.json({ id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever });
+    } catch (e: any) { res.status(500).json({ message: e.message || "Login failed" }); }
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUserById(userId);
+    if (!user) return res.status(401).json({ message: "User not found" });
+    res.json({ id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(() => { res.json({ ok: true }); });
+  });
+
+  app.post("/api/auth/upgrade", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.updateUser(userId, { isPro: true } as any);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever });
+  });
 
   const SITE_NAME = "My Ai Gpt";
   const SITE_CREATOR = "Billy Banks";

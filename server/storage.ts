@@ -1,5 +1,6 @@
 import { db } from "./db";
 import {
+  users,
   chats,
   messages,
   feedComments,
@@ -11,6 +12,8 @@ import {
   socialBookmarks,
   userPreferences,
   userInteractions,
+  type User,
+  type InsertUser,
   type Chat,
   type Message,
   type FeedComment,
@@ -87,6 +90,11 @@ export interface IStorage {
   upsertUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences>;
   recordInteraction(interaction: InsertUserInteraction): Promise<UserInteraction>;
   getRecentInteractions(userId: string, limit: number): Promise<UserInteraction[]>;
+
+  createUser(data: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserById(id: number): Promise<User | undefined>;
+  updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -375,6 +383,26 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userInteractions.userId, userId))
       .orderBy(desc(userInteractions.createdAt))
       .limit(limit);
+  }
+
+  async createUser(data: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(data).returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
+    return user;
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return user;
   }
 }
 
