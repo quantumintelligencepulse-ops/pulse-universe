@@ -126,6 +126,23 @@ type AppSettings = {
   aiPersonality: "professional" | "friendly" | "casual" | "mentor";
   useEmojis: boolean;
   greetingName: string;
+  chatWallpaper: string;
+  defaultPlaygroundLang: string;
+  terminalTheme: string;
+  codeFont: string;
+  startupPage: string;
+  messageDensity: "comfortable" | "cozy" | "compact";
+  sidebarPosition: "left" | "right";
+  sendWithEnter: boolean;
+  showKeyboardShortcuts: boolean;
+  timeFormat: "12h" | "24h";
+  reduceAnimations: boolean;
+  autoSaveCode: boolean;
+  exportFormat: "markdown" | "text" | "json";
+  notificationSound: "default" | "chime" | "bell" | "pop" | "none";
+  showWordCount: boolean;
+  enableCodeLens: boolean;
+  chatFontSize: "small" | "medium" | "large";
 };
 const defaultAppSettings: AppSettings = {
   darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
@@ -134,6 +151,12 @@ const defaultAppSettings: AppSettings = {
   chatBubbleStyle: "rounded", displayName: "",
   language: "en", responseStyle: "balanced", responseLength: "medium",
   aiPersonality: "friendly", useEmojis: true, greetingName: "",
+  chatWallpaper: "none", defaultPlaygroundLang: "javascript",
+  terminalTheme: "dark", codeFont: "jetbrains", startupPage: "/",
+  messageDensity: "comfortable", sidebarPosition: "left", sendWithEnter: true,
+  showKeyboardShortcuts: true, timeFormat: "12h", reduceAnimations: false,
+  autoSaveCode: true, exportFormat: "markdown", notificationSound: "default",
+  showWordCount: true, enableCodeLens: true, chatFontSize: "medium",
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
@@ -157,6 +180,26 @@ function AppSettingsProvider({ children }: { children: React.ReactNode }) {
     el.style.setProperty("--user-accent", hsl);
     el.setAttribute("data-font-size", s.fontSize);
     if (s.compactMode) { el.classList.add("compact"); } else { el.classList.remove("compact"); }
+    if (s.reduceAnimations) { el.classList.add("reduce-motion"); } else { el.classList.remove("reduce-motion"); }
+    el.setAttribute("data-sidebar-position", s.sidebarPosition);
+    el.setAttribute("data-message-density", s.messageDensity);
+    el.setAttribute("data-chat-font-size", s.chatFontSize);
+    el.setAttribute("data-time-format", s.timeFormat);
+    const codeFontMap: Record<string, string> = { jetbrains: "'JetBrains Mono', monospace", firacode: "'Fira Code', monospace", sourcecodepro: "'Source Code Pro', monospace", cascadia: "'Cascadia Code', monospace", system: "monospace" };
+    el.style.setProperty("--code-font", codeFontMap[s.codeFont] || "monospace");
+    const wallpaperMap: Record<string, string> = {
+      none: "none",
+      dots: "radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px)",
+      grid: "linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)",
+      "gradient-warm": "linear-gradient(135deg, #fff5f5 0%, #fffaf0 50%, #fff5f5 100%)",
+      "gradient-cool": "linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 50%, #f0f9ff 100%)",
+      "gradient-sunset": "linear-gradient(135deg, #fdf2f8 0%, #fef3c7 50%, #fce7f3 100%)",
+      circuit: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0v10M0 30h10M50 30h10M30 50v10' stroke='%23e5e7eb' fill='none' stroke-width='0.5'/%3E%3Ccircle cx='30' cy='30' r='2' fill='%23e5e7eb'/%3E%3C/svg%3E\")",
+      waves: "url(\"data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q25 0 50 10 Q75 20 100 10' stroke='%23e5e7eb' fill='none' stroke-width='0.5'/%3E%3C/svg%3E\")",
+    };
+    el.style.setProperty("--chat-wallpaper", wallpaperMap[s.chatWallpaper] || "none");
+    const wallpaperSizeMap: Record<string, string> = { dots: "20px 20px", grid: "20px 20px", circuit: "60px 60px", waves: "100px 20px" };
+    el.style.setProperty("--chat-wallpaper-size", wallpaperSizeMap[s.chatWallpaper] || "auto");
   }, []);
   const update = useCallback((partial: Partial<AppSettings>) => {
     setSettings(prev => {
@@ -561,6 +604,171 @@ function analyzeCode(code: string, lang: string) {
   return { totalLines, blankLines, commentLines, codeLines, functions, classes, imports, complexity };
 }
 
+// ─── SHARE MODAL ─────────────────────────────────────────────────────────────
+
+type ShareModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  shareUrl: string;
+  shareText: string;
+  shareType: "chat" | "code" | "playground" | "app";
+};
+
+function ShareModal({ isOpen, onClose, title, shareUrl, shareText, shareType }: ShareModalProps) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const hasNativeShare = typeof navigator !== "undefined" && !!navigator.share;
+
+  if (!isOpen) return null;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast({ title: "Link copied!", description: "Share link has been copied to your clipboard." });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const openShare = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer,width=600,height=400");
+  };
+
+  const handleNativeShare = async () => {
+    try {
+      await navigator.share({ title, text: shareText, url: shareUrl });
+    } catch {}
+  };
+
+  const handleInvite = () => {
+    const inviteUrl = window.location.origin;
+    const inviteText = "Check out My Ai Gpt - an amazing AI assistant!";
+    if (hasNativeShare) {
+      navigator.share({ title: "My Ai Gpt", text: inviteText, url: inviteUrl }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(inviteUrl);
+      toast({ title: "App link copied!", description: "Share My Ai Gpt with your friends!" });
+    }
+  };
+
+  const platforms = [
+    {
+      id: "twitter",
+      label: "X",
+      letter: "X",
+      bg: "bg-black dark:bg-white",
+      textColor: "text-white dark:text-black",
+      onClick: () => openShare(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`),
+    },
+    {
+      id: "facebook",
+      label: "Facebook",
+      letter: "f",
+      bg: "bg-[#1877F2]",
+      textColor: "text-white",
+      onClick: () => openShare(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`),
+    },
+    {
+      id: "whatsapp",
+      label: "WhatsApp",
+      letter: "W",
+      bg: "bg-[#25D366]",
+      textColor: "text-white",
+      onClick: () => openShare(`https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`),
+    },
+    {
+      id: "telegram",
+      label: "Telegram",
+      letter: "T",
+      bg: "bg-[#0088cc]",
+      textColor: "text-white",
+      onClick: () => openShare(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`),
+    },
+    {
+      id: "reddit",
+      label: "Reddit",
+      letter: "R",
+      bg: "bg-[#FF4500]",
+      textColor: "text-white",
+      onClick: () => openShare(`https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`),
+    },
+    {
+      id: "email",
+      label: "Email",
+      letter: "@",
+      bg: "bg-[#6366f1]",
+      textColor: "text-white",
+      onClick: () => { window.location.href = `mailto:?subject=${encodeURIComponent(shareText)}&body=${encodeURIComponent("Check this out: " + shareUrl)}`; },
+    },
+  ];
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
+
+  const typeLabel = shareType === "chat" ? "Conversation" : shareType === "code" ? "Code" : shareType === "playground" ? "Playground Creation" : "App";
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose} data-testid="share-modal-overlay">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="share-modal">
+        <button onClick={onClose} className="absolute top-3 right-3 p-1 text-muted-foreground/50 hover:text-foreground" data-testid="button-close-share">
+          <X size={18} />
+        </button>
+
+        <div className="text-center mb-5">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+            <Share2 size={24} className="text-white" />
+          </div>
+          <h2 className="text-lg font-extrabold text-foreground" data-testid="text-share-title">{title}</h2>
+          <p className="text-sm text-muted-foreground mt-1">Share this {typeLabel.toLowerCase()} with others</p>
+        </div>
+
+        <button onClick={handleCopyLink} data-testid="button-copy-share-link"
+          className="w-full flex items-center gap-3 p-3 mb-4 rounded-xl border border-border/40 hover-elevate transition-colors">
+          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+            {copied ? <Check size={16} className="text-green-500" /> : <Link2 size={16} className="text-foreground" />}
+          </div>
+          <div className="text-left flex-1 min-w-0">
+            <span className="text-sm font-semibold text-foreground block">{copied ? "Copied!" : "Copy Link"}</span>
+            <span className="text-xs text-muted-foreground truncate block">{shareUrl}</span>
+          </div>
+        </button>
+
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {platforms.map(p => (
+            <button key={p.id} onClick={p.onClick} data-testid={`button-share-${p.id}`}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl hover-elevate transition-colors">
+              <div className={`w-10 h-10 rounded-full ${p.bg} flex items-center justify-center`}>
+                <span className={`text-sm font-bold ${p.textColor}`}>{p.letter}</span>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">{p.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col items-center mb-5 p-4 rounded-xl bg-muted/30 border border-border/20">
+          <p className="text-xs text-muted-foreground font-medium mb-3">Scan QR Code</p>
+          <img src={qrUrl} alt="QR Code" className="w-[160px] h-[160px] rounded-lg" data-testid="img-share-qr" />
+        </div>
+
+        {hasNativeShare && (
+          <button onClick={handleNativeShare} data-testid="button-native-share"
+            className="w-full flex items-center justify-center gap-2 p-3 mb-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold text-sm hover:from-blue-600 hover:to-indigo-600 transition-all">
+            <ExternalLink size={16} />
+            Share via...
+          </button>
+        )}
+
+        <div className="border-t border-border/30 pt-4 mt-2">
+          <p className="text-xs text-muted-foreground text-center mb-3 font-medium">Share My Ai Gpt with friends!</p>
+          <button onClick={handleInvite} data-testid="button-invite-friends"
+            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold text-sm hover:from-amber-500 hover:to-yellow-600 transition-all shadow-md">
+            <UserPlus size={16} />
+            Invite Friends
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── CODE ACTION BUTTONS ─────────────────────────────────────────────────────
 
 function CopyBtn({ text }: { text: string }) {
@@ -725,6 +933,20 @@ function OpenInPlaygroundBtn({ code, language }: { code: string; language: strin
   );
 }
 
+function ShareCodeBtn({ code }: { code: string }) {
+  const [showShare, setShowShare] = useState(false);
+  const shareUrl = `${window.location.origin}/code`;
+  return (
+    <>
+      <button onClick={() => { sessionStorage.setItem("shared_code", code); setShowShare(true); }}
+        data-testid="button-share-code" className="p-1 rounded hover:bg-white/10 transition-colors" title="Share code">
+        <Share2 size={14} className="text-zinc-400" />
+      </button>
+      <ShareModal isOpen={showShare} onClose={() => setShowShare(false)} title="Share Code" shareUrl={shareUrl} shareText="Check out this code from My Ai Coder!" shareType="code" />
+    </>
+  );
+}
+
 function CodeBlock({ code, language, isCoder }: { code: string; language: string; isCoder?: boolean }) {
   const { settings } = useCoderSettings();
   const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
@@ -765,6 +987,7 @@ function CodeBlock({ code, language, isCoder }: { code: string; language: string
           <OpenInPlaygroundBtn code={code} language={language} />
           <RunBtn code={code} language={language} />
           <FullscreenBtn code={code} language={language} />
+          <ShareCodeBtn code={code} />
           {isCoder && <MetricsBtn code={code} language={language} />}
           {/* #7 - Collapse toggle */}
           {lines > 50 && (
@@ -937,8 +1160,10 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
   const [showTemplates, setShowTemplates] = useState(false);
   const [pastedCode, setPastedCode] = useState(false);
   const charCount = value.length;
+  const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   const { isListening, transcript, startListening, stopListening, setTranscript } = useSpeechRecognition();
   const { toast } = useToast();
+  const { settings: inputSettings } = useAppSettings();
 
   useEffect(() => {
     if (transcript) setValue(transcript);
@@ -974,7 +1199,8 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
+    if (e.key === "Enter" && inputSettings.sendWithEnter && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
+    if (e.key === "Enter" && !inputSettings.sendWithEnter && e.shiftKey) { e.preventDefault(); handleSubmit(); }
     if (e.key === "ArrowUp" && !value && history.length > 0) {
       e.preventDefault(); const n = Math.min(histIdx + 1, history.length - 1); setHistIdx(n); setValue(history[n]);
     }
@@ -1018,7 +1244,7 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
           className="w-full max-h-[200px] min-h-[44px] bg-transparent border-0 resize-none py-2.5 pl-3 pr-20 focus:ring-0 focus:outline-none scrollbar-hide text-base leading-relaxed placeholder:text-muted-foreground/50"
           rows={1} />
         <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
-          {charCount > 0 && <span className="text-[10px] text-muted-foreground/40 tabular-nums">{charCount}</span>}
+          {charCount > 0 && <span className="text-[10px] text-muted-foreground/40 tabular-nums">{charCount}{inputSettings.showWordCount && wordCount > 0 ? ` · ${wordCount}w` : ""}</span>}
           {isCoder && !value && (
             <button type="button" onClick={() => setShowTemplates(!showTemplates)} className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors" title="Code templates (/)">
               <Layers size={14} />
@@ -1288,6 +1514,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   const [showSavedCodes, setShowSavedCodes] = useState(false);
   // #22 - Settings panel
   const [showSettings, setShowSettings] = useState(false);
+  const [showShareChat, setShowShareChat] = useState(false);
 
   const isCoder = defaultType === "coder";
   const isEmpty = messages.length === 0 && localMessages.length === 0;
@@ -1316,7 +1543,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   }, [isCoder]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    if (scrollRef.current && appSettingsForChat.autoScroll) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, isThinking]);
 
   const { user } = useAuth();
@@ -1437,11 +1664,17 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
             <button onClick={handleExport} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Export" data-testid="button-export">
               <FileDown size={14} />
             </button>
+            {chatId && (
+              <button onClick={() => setShowShareChat(true)} className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground/50 hover:text-foreground transition-colors" title="Share" data-testid="button-share-chat">
+                <Share2 size={14} />
+              </button>
+            )}
           </div>
         </div>
       )}
+      <ShareModal isOpen={showShareChat} onClose={() => setShowShareChat(false)} title="Share Conversation" shareUrl={`${window.location.origin}/chat/${chatId}`} shareText="Check out this AI conversation on My Ai Gpt!" shareType="chat" />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto w-full scroll-smooth pt-4 pb-40">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto w-full scroll-smooth pt-4 pb-40" style={{ backgroundImage: "var(--chat-wallpaper)", backgroundSize: "var(--chat-wallpaper-size, auto)", fontSize: appSettingsForChat.chatFontSize === "small" ? "0.85rem" : appSettingsForChat.chatFontSize === "large" ? "1.1rem" : "0.95rem" }}>
         {isEmpty ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
             <div className="w-20 h-20 rounded-2xl bg-white shadow-xl border border-border/20 flex items-center justify-center mb-6 p-1.5 animate-[bounce_3s_ease-in-out_1]">
@@ -1566,6 +1799,19 @@ function SidebarAuthButton() {
       className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold rounded-xl text-xs hover:from-amber-500 hover:to-yellow-600 transition-all shadow-sm">
       <LogIn size={14} /> Sign In / Sign Up
     </button>
+  );
+}
+
+function SidebarInviteButton() {
+  const [showInvite, setShowInvite] = useState(false);
+  return (
+    <>
+      <button onClick={() => setShowInvite(true)} data-testid="button-sidebar-invite"
+        className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors">
+        <UserPlus size={11} /> Invite Friends
+      </button>
+      <ShareModal isOpen={showInvite} onClose={() => setShowInvite(false)} title="Invite Friends" shareUrl={window.location.origin} shareText="Check out My Ai Gpt - an amazing AI assistant!" shareType="app" />
+    </>
   );
 }
 
@@ -1774,6 +2020,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
           </div>
           <SidebarAuthButton />
+          <SidebarInviteButton />
           <div className="text-[9px] text-center text-muted-foreground/30 font-medium tracking-wide">Quantum Pulse Intelligence</div>
         </div>
       </div>
@@ -1858,11 +2105,13 @@ function ProjectsPanel({ loadProjects, openProject, createProject, activeProject
 
 function CodePlayground() {
   const { settings } = useCoderSettings();
+  const { settings: pgAppSettings } = useAppSettings();
   const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [lang, setLang] = useState("javascript");
-  const [code, setCode] = useState(STARTER_CODE.javascript);
+  const defaultLang = pgAppSettings.defaultPlaygroundLang || "javascript";
+  const [lang, setLang] = useState(defaultLang);
+  const [code, setCode] = useState(STARTER_CODE[defaultLang as keyof typeof STARTER_CODE] || STARTER_CODE.javascript);
   const [output, setOutput] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -1878,6 +2127,7 @@ function CodePlayground() {
   const [autoFixEnabled, setAutoFixEnabled] = useState(true);
   const [fixAttempt, setFixAttempt] = useState(0);
   const MAX_FIX_ATTEMPTS = 3;
+  const [showSharePlayground, setShowSharePlayground] = useState(false);
 
   // ═══════ POWER #1: SERVER-SIDE EXECUTION MODE ═══════
   const [execMode, setExecMode] = useState<"browser" | "server">("browser");
@@ -2600,8 +2850,10 @@ ${brokenCode.substring(0, 2000)}
         </button>
 
         <button onClick={activeProject ? saveFileToProject : handleSave} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Save"><Download size={13} /></button>
+        <button onClick={() => setShowSharePlayground(true)} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Share" data-testid="button-share-playground"><Share2 size={13} /></button>
         <button onClick={() => { setCode(""); setOutput([]); }} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Clear"><Eraser size={13} /></button>
       </div>
+      <ShareModal isOpen={showSharePlayground} onClose={() => setShowSharePlayground(false)} title="Share Playground" shareUrl={`${window.location.origin}/code`} shareText="Built in My Ai Coder Playground!" shareType="playground" />
 
       {/* Toolbar Row 2 - Power features */}
       <div className="flex items-center gap-1 px-3 py-1 border-b border-border/20 bg-zinc-50/80 overflow-x-auto">
@@ -2785,7 +3037,7 @@ ${brokenCode.substring(0, 2000)}
                   ref={textareaRef} value={code} onChange={e => setCode(e.target.value)}
                   data-testid="playground-editor"
                   className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-white resize-none z-10 focus:outline-none overflow-auto"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", tabSize: 2, padding: "1rem", paddingLeft: settings.showLineNumbers ? "4rem" : "1rem" }}
+                  style={{ fontFamily: "var(--code-font, 'JetBrains Mono', monospace)", fontSize: `${settings.fontSize}px`, lineHeight: "1.6", tabSize: 2, padding: "1rem", paddingLeft: settings.showLineNumbers ? "4rem" : "1rem" }}
                   spellCheck={false}
                   onKeyDown={e => {
                     if (e.key === "Tab") {
@@ -4472,9 +4724,10 @@ function SocialPage() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
+  const { settings: layoutSettings } = useAppSettings();
   useEffect(() => { const c = () => setIsOpen(window.innerWidth >= 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
   return (
-    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
+    <div className={`flex h-[100dvh] w-full bg-background overflow-hidden ${layoutSettings.sidebarPosition === "right" ? "flex-row-reverse" : ""}`}>
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
       <main className="flex-1 flex flex-col relative min-w-0 h-full">{children}</main>
     </div>
@@ -4776,7 +5029,9 @@ function SettingsPage() {
     { id: "personalization", name: "My AI", icon: Smile },
     { id: "pages", name: "Pages", icon: Layers },
     { id: "chat", name: "Chat", icon: MessageSquare },
+    { id: "playground-settings", name: "Playground", icon: SquareTerminal },
     { id: "feed-settings", name: "Feed", icon: Newspaper },
+    { id: "accessibility", name: "Accessibility", icon: Eye },
     { id: "permissions", name: "Permissions", icon: Shield },
     { id: "data", name: "Data & Privacy", icon: Database },
   ];
@@ -4806,11 +5061,21 @@ function SettingsPage() {
       userId: localStorage.getItem("myaigpt_user_id"),
       exportDate: new Date().toISOString(),
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    let content: string; let mimeType: string; let ext: string;
+    if (settings.exportFormat === "text") {
+      content = Object.entries(data).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join("\n");
+      mimeType = "text/plain"; ext = "txt";
+    } else if (settings.exportFormat === "markdown") {
+      content = `# My Ai Gpt Settings Export\n\n**Date:** ${data.exportDate}\n\n## Settings\n\n${Object.entries(data.settings).map(([k, v]) => `- **${k}:** ${JSON.stringify(v)}`).join("\n")}\n`;
+      mimeType = "text/markdown"; ext = "md";
+    } else {
+      content = JSON.stringify(data, null, 2); mimeType = "application/json"; ext = "json";
+    }
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `myaigpt-settings-${Date.now()}.json`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `myaigpt-settings-${Date.now()}.${ext}`; a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Settings exported" });
+    toast({ title: "Settings exported", description: `Saved as .${ext}` });
   };
 
   const categories = useMemo(() => {
@@ -4902,6 +5167,55 @@ function SettingsPage() {
                   <div className="text-xs text-muted-foreground">Tighter spacing for more content</div>
                 </div>
                 <ToggleSwitch on={settings.compactMode} onToggle={() => update({ compactMode: !settings.compactMode })} testId="toggle-compact-mode" />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Settings2 size={15} /> Layout & Preferences</h3>
+              <div className="mb-5">
+                <div className="text-sm font-medium mb-2">Time Format</div>
+                <div className="flex gap-2">
+                  {(["12h", "24h"] as const).map(fmt => (
+                    <button key={fmt} onClick={() => update({ timeFormat: fmt })} data-testid={`time-format-${fmt}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.timeFormat === fmt ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {fmt === "12h" ? "12-Hour (AM/PM)" : "24-Hour"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-5">
+                <div className="text-sm font-medium mb-2">Sidebar Position</div>
+                <div className="flex gap-2">
+                  {(["left", "right"] as const).map(pos => (
+                    <button key={pos} onClick={() => update({ sidebarPosition: pos })} data-testid={`sidebar-position-${pos}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all capitalize ${settings.sidebarPosition === pos ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-5">
+                <div className="text-sm font-medium mb-2">Startup Page</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: "/", label: "Home" },
+                    { id: "/coder", label: "Coder" },
+                    { id: "/code", label: "Playground" },
+                    { id: "/feed", label: "Feed" },
+                  ]).map(pg => (
+                    <button key={pg.id} onClick={() => update({ startupPage: pg.id })} data-testid={`startup-page-${pg.label.toLowerCase()}`}
+                      className={`py-2 rounded-lg text-xs font-medium border transition-all ${settings.startupPage === pg.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {pg.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Keyboard Shortcuts</div>
+                  <div className="text-xs text-muted-foreground">Display shortcut hints in the UI</div>
+                </div>
+                <ToggleSwitch on={settings.showKeyboardShortcuts} onToggle={() => update({ showKeyboardShortcuts: !settings.showKeyboardShortcuts })} testId="toggle-keyboard-shortcuts" />
               </div>
             </div>
 
@@ -5081,6 +5395,64 @@ function SettingsPage() {
                   ))}
                 </div>
               </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Chat Wallpaper</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {([
+                    { id: "none", name: "None", preview: "bg-white dark:bg-gray-900" },
+                    { id: "dots", name: "Dots", preview: "bg-gray-50 dark:bg-gray-800" },
+                    { id: "grid", name: "Grid", preview: "bg-gray-50 dark:bg-gray-800" },
+                    { id: "gradient-warm", name: "Warm", preview: "bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20" },
+                    { id: "gradient-cool", name: "Cool", preview: "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20" },
+                    { id: "gradient-sunset", name: "Sunset", preview: "bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20" },
+                    { id: "circuit", name: "Circuit", preview: "bg-emerald-50 dark:bg-emerald-900/20" },
+                    { id: "waves", name: "Waves", preview: "bg-sky-50 dark:bg-sky-900/20" },
+                  ]).map(wp => (
+                    <button key={wp.id} onClick={() => update({ chatWallpaper: wp.id })} data-testid={`wallpaper-${wp.id}`}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all ${settings.chatWallpaper === wp.id ? "border-orange-500 shadow-md" : "border-border/20 hover:border-border/50"}`}>
+                      <div className={`w-full h-8 rounded-md ${wp.preview}`} />
+                      <span className="text-[10px] text-muted-foreground">{wp.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Message Density</div>
+                <div className="flex gap-2">
+                  {(["comfortable", "cozy", "compact"] as const).map(density => (
+                    <button key={density} onClick={() => update({ messageDensity: density })} data-testid={`density-${density}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all capitalize ${settings.messageDensity === density ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {density}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Chat Font Size</div>
+                <div className="flex gap-2">
+                  {(["small", "medium", "large"] as const).map(sz => (
+                    <button key={sz} onClick={() => update({ chatFontSize: sz })} data-testid={`chat-font-size-${sz}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all capitalize ${settings.chatFontSize === sz ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      <span style={{ fontSize: sz === "small" ? 11 : sz === "medium" ? 13 : 15 }}>Aa</span>
+                      <div className="text-[10px] mt-0.5">{sz}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Send with Enter</div>
+                  <div className="text-xs text-muted-foreground">Press Enter to send, Shift+Enter for new line</div>
+                </div>
+                <ToggleSwitch on={settings.sendWithEnter} onToggle={() => update({ sendWithEnter: !settings.sendWithEnter })} testId="toggle-send-with-enter" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Word Count</div>
+                  <div className="text-xs text-muted-foreground">Display word count while typing</div>
+                </div>
+                <ToggleSwitch on={settings.showWordCount} onToggle={() => update({ showWordCount: !settings.showWordCount })} testId="toggle-word-count" />
+              </div>
             </div>
           </div>
         )}
@@ -5109,6 +5481,106 @@ function SettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeSection === "playground-settings" && (
+          <div className="space-y-5" data-testid="settings-section-playground">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><SquareTerminal size={15} /> Default Language</h3>
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { id: "javascript", name: "JS" }, { id: "html", name: "HTML" }, { id: "css", name: "CSS" },
+                  { id: "python", name: "Python" }, { id: "typescript", name: "TS" }, { id: "bash", name: "Bash" },
+                  { id: "go", name: "Go" }, { id: "rust", name: "Rust" }, { id: "java", name: "Java" },
+                  { id: "cpp", name: "C++" }, { id: "c", name: "C" }, { id: "ruby", name: "Ruby" },
+                  { id: "php", name: "PHP" }, { id: "sql", name: "SQL" }, { id: "json", name: "JSON" },
+                ]).map(lang => (
+                  <button key={lang.id} onClick={() => update({ defaultPlaygroundLang: lang.id })} data-testid={`pg-lang-${lang.id}`}
+                    className={`py-2 rounded-lg text-xs font-medium border transition-all ${settings.defaultPlaygroundLang === lang.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Type size={15} /> Code Font</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: "jetbrains", name: "JetBrains Mono", preview: "font-mono" },
+                  { id: "firacode", name: "Fira Code", preview: "font-mono" },
+                  { id: "sourcecodepro", name: "Source Code Pro", preview: "font-mono" },
+                  { id: "cascadia", name: "Cascadia Code", preview: "font-mono" },
+                  { id: "system", name: "System Default", preview: "font-sans" },
+                ]).map(f => (
+                  <button key={f.id} onClick={() => update({ codeFont: f.id })} data-testid={`code-font-${f.id}`}
+                    className={`p-3 rounded-xl border text-left transition-all ${settings.codeFont === f.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "border-border/30 hover:border-border"}`}>
+                    <div className={`text-sm font-medium ${f.preview}`}>{f.name}</div>
+                    <div className={`text-[10px] text-muted-foreground mt-0.5 ${f.preview}`}>const x = 42;</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Terminal size={15} /> Terminal Theme</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { id: "dark", name: "Dark", colors: ["#1a1a2e", "#e2e8f0", "#3b82f6"] },
+                  { id: "dracula", name: "Dracula", colors: ["#282a36", "#f8f8f2", "#bd93f9"] },
+                  { id: "monokai", name: "Monokai", colors: ["#272822", "#f8f8f2", "#a6e22e"] },
+                  { id: "solarized", name: "Solarized", colors: ["#002b36", "#839496", "#b58900"] },
+                  { id: "matrix", name: "Matrix", colors: ["#0d0208", "#00ff41", "#008f11"] },
+                ]).map(t => (
+                  <button key={t.id} onClick={() => update({ terminalTheme: t.id })} data-testid={`terminal-theme-${t.id}`}
+                    className={`p-3 rounded-xl border text-center transition-all ${settings.terminalTheme === t.id ? "border-orange-500 shadow-md" : "border-border/30 hover:border-border"}`}>
+                    <div className="flex gap-1 justify-center mb-1.5">
+                      {t.colors.map((c, i) => (
+                        <div key={i} className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-medium">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Settings2 size={15} /> Code Options</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Auto-Save Code</div>
+                  <div className="text-xs text-muted-foreground">Automatically save playground code</div>
+                </div>
+                <ToggleSwitch on={settings.autoSaveCode} onToggle={() => update({ autoSaveCode: !settings.autoSaveCode })} testId="toggle-auto-save-code" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Code Metrics</div>
+                  <div className="text-xs text-muted-foreground">Display code analysis and metrics</div>
+                </div>
+                <ToggleSwitch on={settings.enableCodeLens} onToggle={() => update({ enableCodeLens: !settings.enableCodeLens })} testId="toggle-code-lens" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "accessibility" && (
+          <div className="space-y-5" data-testid="settings-section-accessibility">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Eye size={15} /> Accessibility</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Reduce Animations</div>
+                  <div className="text-xs text-muted-foreground">Minimize motion and transitions for comfort</div>
+                </div>
+                <ToggleSwitch on={settings.reduceAnimations} onToggle={() => update({ reduceAnimations: !settings.reduceAnimations })} testId="toggle-reduce-animations" />
+              </div>
+              <div className="bg-muted/10 dark:bg-gray-800/30 rounded-lg p-3 mt-3">
+                <p className="text-xs text-muted-foreground">Additional accessibility options are available in the <strong>Appearance</strong> section (Font Size, Compact Mode) and <strong>Chat</strong> section (Chat Font Size, Message Density).</p>
+              </div>
             </div>
           </div>
         )}
@@ -5188,6 +5660,32 @@ function SettingsPage() {
 
         {activeSection === "data" && (
           <div className="space-y-3" data-testid="settings-section-data">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><FileDown size={15} /> Export & Notifications</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Export Format</div>
+                <div className="flex gap-2">
+                  {(["markdown", "text", "json"] as const).map(fmt => (
+                    <button key={fmt} onClick={() => update({ exportFormat: fmt })} data-testid={`export-format-${fmt}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.exportFormat === fmt ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {fmt === "markdown" ? "Markdown" : fmt === "text" ? "Plain Text" : "JSON"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Notification Sound</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["default", "chime", "bell", "pop", "none"] as const).map(snd => (
+                    <button key={snd} onClick={() => update({ notificationSound: snd })} data-testid={`notification-sound-${snd}`}
+                      className={`py-2 rounded-lg text-xs font-medium border transition-all capitalize ${settings.notificationSound === snd ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {snd === "none" ? "Silent" : snd.charAt(0).toUpperCase() + snd.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
               <h3 className="text-sm font-bold flex items-center gap-2"><Database size={15} /> Data Management</h3>
               <button onClick={handleExportData} data-testid="button-export-data"
@@ -5332,10 +5830,21 @@ function NotFound() {
   );
 }
 
+function StartupRedirect() {
+  const [, setLocation] = useLocation();
+  const { settings } = useAppSettings();
+  useEffect(() => {
+    if (settings.startupPage && settings.startupPage !== "/") {
+      const visited = sessionStorage.getItem("myaigpt_startup_done");
+      if (!visited) { sessionStorage.setItem("myaigpt_startup_done", "1"); setLocation(settings.startupPage); }
+    }
+  }, []);
+  return null;
+}
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomePage} />
+      <Route path="/">{() => <><StartupRedirect /><HomePage /></>}</Route>
       <Route path="/coder" component={CoderPage} />
       <Route path="/playground" component={PlaygroundPage} />
       <Route path="/feed" component={FeedPage} />

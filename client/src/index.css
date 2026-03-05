@@ -231,3 +231,21 @@ html[style*="--accent-color"] .focus\:ring-teal-500:focus { --tw-ring-color: var
   0%, 100% { opacity: 0.6; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.05); }
 }
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+:root {
+  --code-font: 'JetBrains Mono', monospace;
+  --chat-wallpaper: none;
+  --chat-wallpaper-size: auto;
+}
+
+code, pre, .font-mono {
+  font-family: var(--code-font, 'JetBrains Mono', monospace);
+}
