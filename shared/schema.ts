@@ -18,8 +18,9 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export const chats = pgTable("chats", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id"),
   title: text("title").notNull(),
-  type: text("type").notNull().default('general'), // 'general' or 'coder'
+  type: text("type").notNull().default('general'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

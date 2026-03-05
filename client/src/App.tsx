@@ -347,18 +347,18 @@ function useCoderSettings() { return useContext(SettingsCtx); }
 // ─── HOOKS ───────────────────────────────────────────────────────────────────
 
 function useChats() {
-  return useQuery<Chat[]>({ queryKey: [api.chats.list.path], queryFn: async () => { const r = await fetch(api.chats.list.path); return r.json(); } });
+  return useQuery<Chat[]>({ queryKey: [api.chats.list.path], queryFn: async () => { const r = await fetch(api.chats.list.path, { credentials: "include" }); return r.json(); } });
 }
 function useMessages(chatId: number | null) {
   return useQuery<Message[]>({
     queryKey: [api.messages.list.path, chatId],
-    queryFn: async () => { if (!chatId) return []; const r = await fetch(buildUrl(api.messages.list.path, { chatId })); return r.json(); },
+    queryFn: async () => { if (!chatId) return []; const r = await fetch(buildUrl(api.messages.list.path, { chatId }), { credentials: "include" }); return r.json(); },
     enabled: !!chatId,
   });
 }
 function useStats() {
   return useQuery<{ chatCount: number; messageCount: number; codeFiles: number }>({
-    queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats"); return r.json(); }, refetchInterval: 600000,
+    queryKey: ["/api/stats"], queryFn: async () => { const r = await fetch("/api/stats", { credentials: "include" }); return r.json(); }, refetchInterval: 600000,
   });
 }
 function useSavedCodes() {
@@ -1259,12 +1259,12 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
     setLastFailedMsg(null);
     try {
       if (!targetChatId) {
-        const r = await fetch(api.chats.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: content.slice(0, 40), type: defaultType }) });
-        if (!r.ok) throw new Error("Failed");
+        const r = await fetch(api.chats.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: content.slice(0, 40), type: defaultType }), credentials: "include" });
+        if (!r.ok) { const e = await r.json().catch(() => ({})); if (r.status === 401) { throw new Error("Please sign in to chat"); } throw new Error(e.message || "Failed"); }
         const c = await r.json(); targetChatId = c.id;
         qc.invalidateQueries({ queryKey: [api.chats.list.path] });
       }
-      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json", "x-user-id": getUserId() }, body: JSON.stringify({ content }) });
+      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }), credentials: "include" });
       trackInteraction("chat_message", { text: content, topic: content.slice(0, 60) });
       if (!r.ok) throw new Error("Failed to get response");
       if (!chatId) { setLocation(`/chat/${targetChatId}`); } else { qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] }); setLocalMessages([]); }
@@ -1281,7 +1281,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
     if (lastUserMsg) {
       setIsThinking(true);
       try {
-        const r = await fetch(buildUrl(api.messages.create.path, { chatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: lastUserMsg.content }) });
+        const r = await fetch(buildUrl(api.messages.create.path, { chatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: lastUserMsg.content }), credentials: "include" });
         if (!r.ok) throw new Error("Failed");
         qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] });
       } catch { toast({ title: "Regeneration failed", variant: "destructive" }); }
@@ -1292,7 +1292,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   const handleExport = useCallback(async () => {
     if (!chatId) return;
     try {
-      const r = await fetch(`/api/chats/${chatId}/export`, { method: "POST" });
+      const r = await fetch(`/api/chats/${chatId}/export`, { method: "POST", credentials: "include" });
       const t = await r.text();
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([t], { type: "text/markdown" }));
       a.download = `chat_${chatId}.md`; a.click();
@@ -1519,13 +1519,13 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   };
   const handleClearAll = async () => {
     if (!confirm("Delete ALL chats? This cannot be undone.")) return;
-    await fetch("/api/chats", { method: "DELETE" });
+    await fetch("/api/chats", { method: "DELETE", credentials: "include" });
     qc.invalidateQueries({ queryKey: [api.chats.list.path] });
     setLocation("/"); toast({ title: "All chats cleared" });
   };
   const handleRename = async (id: number) => {
     if (!renameValue.trim()) { setRenamingId(null); return; }
-    await fetch(`/api/chats/${id}/rename`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: renameValue }) });
+    await fetch(`/api/chats/${id}/rename`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: renameValue }), credentials: "include" });
     qc.invalidateQueries({ queryKey: [api.chats.list.path] });
     setRenamingId(null); toast({ title: "Chat renamed" });
   };
@@ -1917,7 +1917,7 @@ function CodePlayground() {
 
   const aiAutoFix = useCallback(async (brokenCode: string, errorMsg: string, language: string, attempt: number): Promise<string | null> => {
     try {
-      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Auto-Fix " + attempt, type: "coder" }) });
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Auto-Fix " + attempt, type: "coder" }), credentials: "include" });
       const chat = await chatRes.json();
       const prompt = `Fix this ${language} code that has this error: "${errorMsg}"
 
@@ -1928,7 +1928,7 @@ ${brokenCode.substring(0, 2000)}
 \`\`\``;
       const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: prompt })
+        body: JSON.stringify({ content: prompt }), credentials: "include"
       });
       const msg = await msgRes.json();
       const codeMatch = msg.content.match(/```(?:\w+)?\n([\s\S]*?)```/);
@@ -2332,13 +2332,13 @@ ${brokenCode.substring(0, 2000)}
     try {
       const chatRes = await fetch("/api/chats", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: `Voice: ${description.substring(0, 40)}`, type: "coder" })
+        body: JSON.stringify({ title: `Voice: ${description.substring(0, 40)}`, type: "coder" }), credentials: "include"
       });
       const chat = await chatRes.json();
       const prompt = `The user spoke this voice command describing what they want to build:\n\n"${description}"\n\nGenerate the complete ${lang} code that does exactly what they described. Return ONLY the code in a single code block. No explanation before or after. Make it fully working and runnable.\n\nIMPORTANT RULES:\n- To open any website/URL, use: window.open("https://example.com", "_blank")\n- NEVER use registerProtocolHandler, it does not work in sandboxed browsers\n- NEVER use require() or import for Node.js modules — this runs in a browser sandbox\n- For fetching data, use fetch() API\n- For DOM manipulation, use standard document methods\n- Keep it browser-compatible JavaScript unless the user specifically asks for server-side code`;
       const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: prompt })
+        body: JSON.stringify({ content: prompt }), credentials: "include"
       });
       const msg = await msgRes.json();
       const codeMatch = msg.content.match(/```(?:\w+)?\n([\s\S]*?)```/);
@@ -2368,11 +2368,11 @@ ${brokenCode.substring(0, 2000)}
     setIsReviewing(true);
     setReviewResult(null);
     try {
-      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Code Review", type: "coder" }) });
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Code Review", type: "coder" }), credentials: "include" });
       const chat = await chatRes.json();
       const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: `Review this ${lang} code. Rate it 1-10. List specific improvements for: performance, readability, security, best practices. Be concise.\n\n\`\`\`${lang}\n${code}\n\`\`\`` })
+        body: JSON.stringify({ content: `Review this ${lang} code. Rate it 1-10. List specific improvements for: performance, readability, security, best practices. Be concise.\n\n\`\`\`${lang}\n${code}\n\`\`\`` }), credentials: "include"
       });
       const msg = await msgRes.json();
       setReviewResult(msg.content);
@@ -2386,11 +2386,11 @@ ${brokenCode.substring(0, 2000)}
   const handleAIFix = useCallback(async () => {
     setIsRunning(true);
     try {
-      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Auto-Fix", type: "coder" }) });
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Auto-Fix", type: "coder" }), credentials: "include" });
       const chat = await chatRes.json();
       const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: `Fix and improve this ${lang} code. Return ONLY the fixed code in a single code block, no explanation:\n\n\`\`\`${lang}\n${code}\n\`\`\`` })
+        body: JSON.stringify({ content: `Fix and improve this ${lang} code. Return ONLY the fixed code in a single code block, no explanation:\n\n\`\`\`${lang}\n${code}\n\`\`\`` }), credentials: "include"
       });
       const msg = await msgRes.json();
       const codeMatch = msg.content.match(/```(?:\w+)?\n([\s\S]*?)```/);
@@ -2414,11 +2414,11 @@ ${brokenCode.substring(0, 2000)}
     setIsExplaining(true);
     setExplanation(null);
     try {
-      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Code Explain", type: "coder" }) });
+      const chatRes = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "Code Explain", type: "coder" }), credentials: "include" });
       const chat = await chatRes.json();
       const msgRes = await fetch(`/api/chats/${chat.id}/messages`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: `Explain this ${lang} code step by step. Use numbered steps. For each step explain what the code does and why. Be concise:\n\n\`\`\`${lang}\n${code}\n\`\`\`` })
+        body: JSON.stringify({ content: `Explain this ${lang} code step by step. Use numbered steps. For each step explain what the code does and why. Be concise:\n\n\`\`\`${lang}\n${code}\n\`\`\`` }), credentials: "include"
       });
       const msg = await msgRes.json();
       setExplanation(msg.content);

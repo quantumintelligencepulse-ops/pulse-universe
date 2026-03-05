@@ -55,8 +55,7 @@ function seoTimeAgo(dateStr: string): string {
 }
 
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
-const GROQ_API_KEY = "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";
-const groq = new Groq({ apiKey: GROQ_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 async function searchForImage(query: string): Promise<{ url: string; title: string } | null> {
   try {
@@ -2089,14 +2088,22 @@ ${entries}
     });
   });
 
-  app.get(api.chats.list.path, async (_req, res) => {
-    res.json(await storage.getChats());
+  function getSessionUserId(req: any): number | null {
+    return (req.session as any)?.userId || null;
+  }
+
+  app.get(api.chats.list.path, async (req, res) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.json([]);
+    res.json(await storage.getChatsByUser(userId));
   });
 
   app.post(api.chats.create.path, async (req, res) => {
     try {
+      const userId = getSessionUserId(req);
+      if (!userId) return res.status(401).json({ message: "Sign in to chat" });
       const input = api.chats.create.input.parse(req.body);
-      const chat = await storage.createChat(input);
+      const chat = await storage.createChat({ ...input, userId });
       res.status(201).json(chat);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -2105,43 +2112,67 @@ ${entries}
   });
 
   app.get(api.chats.get.path, async (req, res) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ message: "Sign in required" });
     const chat = await storage.getChat(Number(req.params.id));
     if (!chat) return res.status(404).json({ message: "Chat not found" });
+    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
     res.json(chat);
   });
 
   app.delete(api.chats.delete.path, async (req, res) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ message: "Sign in required" });
+    const chat = await storage.getChat(Number(req.params.id));
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
     await storage.deleteChat(Number(req.params.id));
     res.status(204).send();
   });
 
   app.patch("/api/chats/:id/rename", async (req, res) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ message: "Sign in required" });
     const { title } = req.body;
     if (!title) return res.status(400).json({ message: "Title required" });
-    const chat = await storage.renameChat(Number(req.params.id), title.substring(0, 80));
+    const chat = await storage.getChat(Number(req.params.id));
     if (!chat) return res.status(404).json({ message: "Chat not found" });
-    res.json(chat);
+    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    const updated = await storage.renameChat(Number(req.params.id), title.substring(0, 80));
+    res.json(updated);
   });
 
-  app.delete("/api/chats", async (_req, res) => {
-    await storage.deleteAllChats();
+  app.delete("/api/chats", async (req, res) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ message: "Sign in required" });
+    await storage.deleteAllChatsByUser(userId);
     res.status(204).send();
   });
 
   app.get("/api/chats/search/:query", async (req, res) => {
-    const results = await storage.searchChats(req.params.query);
+    const userId = getSessionUserId(req);
+    if (!userId) return res.json([]);
+    const results = await storage.searchChatsByUser(req.params.query, userId);
     res.json(results);
   });
 
-  app.get("/api/stats", async (_req, res) => {
-    const chatCount = await storage.getChatCount();
-    const messageCount = await storage.getMessageCount();
+  app.get("/api/stats", async (req, res) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.json({ chatCount: 0, messageCount: 0, codeFiles: 0 });
+    const chatCount = await storage.getChatCountByUser(userId);
+    const messageCount = await storage.getMessageCountByUser(userId);
     const codeFiles = fs.existsSync(CODES_DIR) ? fs.readdirSync(CODES_DIR).length : 0;
     res.json({ chatCount, messageCount, codeFiles });
   });
 
   app.get(api.messages.list.path, async (req, res) => {
-    res.json(await storage.getMessages(Number(req.params.chatId)));
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ message: "Sign in required" });
+    const chatId = Number(req.params.chatId);
+    const chat = await storage.getChat(chatId);
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    res.json(await storage.getMessages(chatId));
   });
 
   app.post("/api/save-code", async (req, res) => {
@@ -2195,9 +2226,12 @@ ${entries}
   });
 
   app.post("/api/chats/:chatId/export", async (req, res) => {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ message: "Sign in required" });
     const chatId = Number(req.params.chatId);
     const chat = await storage.getChat(chatId);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
+    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
     const msgs = await storage.getMessages(chatId);
     let md = `# ${chat.title}\n\nType: ${chat.type}\nDate: ${chat.createdAt}\n\n---\n\n`;
     for (const m of msgs) {
@@ -2210,7 +2244,11 @@ ${entries}
 
   // ═══════ SHELL EXECUTION HELPER ═══════
   const { execSync } = await import("child_process");
-  const EXEC_ENV = { ...process.env, NODE_PATH: path.join(process.cwd(), "node_modules") };
+  const SENSITIVE_KEYS = ["GROQ_API_KEY", "SESSION_SECRET", "DATABASE_URL", "PGPASSWORD", "PGHOST", "PGPORT", "PGUSER", "PGDATABASE", "REPL_ID", "REPLIT_DOMAINS", "REPLIT_DEV_DOMAIN"];
+  const safeEnv: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) { if (!SENSITIVE_KEYS.includes(k) && v) safeEnv[k] = v; }
+  safeEnv.NODE_PATH = path.join(process.cwd(), "node_modules");
+  const EXEC_ENV = safeEnv;
 
   function shellExec(cmd: string, opts: { timeout?: number; cwd?: string; maxBuffer?: number } = {}): { stdout: string; stderr: string; exitCode: number } {
     try {
@@ -2313,9 +2351,9 @@ ${entries}
     const { command } = req.body;
     if (!command) return res.status(400).json({ error: "No command" });
 
-    const blocked = ["rm -rf /", "rm -rf /*", "sudo", "shutdown", "reboot", "mkfs", "dd if=", "> /dev", ":(){ :|:&", "chmod -R 777 /"];
+    const blocked = ["rm -rf /", "rm -rf /*", "sudo", "shutdown", "reboot", "mkfs", "dd if=", "> /dev", ":(){ :|:&", "chmod -R 777 /", "printenv", "cat /proc", "/proc/self", "process.env", "$database_url", "$groq", "$session_secret", "$pgpassword", "cat .env", "cat *.env"];
     const lower = command.toLowerCase().trim();
-    if (blocked.some(b => lower.includes(b))) {
+    if (blocked.some(b => lower.includes(b)) || /^\s*env\s*$/.test(lower) || /\benv\b.*grep/i.test(lower) || /\$\{?[A-Z_]*KEY/i.test(lower) || /\$\{?[A-Z_]*SECRET/i.test(lower) || /\$\{?[A-Z_]*PASSWORD/i.test(lower) || /\$\{?DATABASE_URL/i.test(lower)) {
       return res.json({ stdout: "", stderr: "Command blocked for safety.", exitCode: 1 });
     }
 
@@ -3041,9 +3079,12 @@ ${entries}
 
   app.post(api.messages.create.path, async (req, res) => {
     try {
+      const userId = getSessionUserId(req);
+      if (!userId) return res.status(401).json({ message: "Sign in to chat" });
       const chatId = Number(req.params.chatId);
       const chat = await storage.getChat(chatId);
       if (!chat) return res.status(404).json({ message: "Chat not found" });
+      if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
 
       const input = api.messages.create.input.parse(req.body);
 

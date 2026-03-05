@@ -36,17 +36,17 @@ import {
 import { eq, desc, like, sql, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
-  getChats(): Promise<Chat[]>;
+  getChatsByUser(userId: number): Promise<Chat[]>;
   getChat(id: number): Promise<Chat | undefined>;
   createChat(chat: InsertChat): Promise<Chat>;
   renameChat(id: number, title: string): Promise<Chat | undefined>;
   deleteChat(id: number): Promise<void>;
-  deleteAllChats(): Promise<void>;
-  searchChats(query: string): Promise<Chat[]>;
+  deleteAllChatsByUser(userId: number): Promise<void>;
+  searchChatsByUser(query: string, userId: number): Promise<Chat[]>;
   getMessages(chatId: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
-  getMessageCount(): Promise<number>;
-  getChatCount(): Promise<number>;
+  getMessageCountByUser(userId: number): Promise<number>;
+  getChatCountByUser(userId: number): Promise<number>;
 
   createSocialProfile(profile: InsertSocialProfile): Promise<SocialProfile>;
   getSocialProfile(id: number): Promise<SocialProfile | undefined>;
@@ -98,8 +98,8 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getChats(): Promise<Chat[]> {
-    return await db.select().from(chats).orderBy(desc(chats.createdAt));
+  async getChatsByUser(userId: number): Promise<Chat[]> {
+    return await db.select().from(chats).where(eq(chats.userId, userId)).orderBy(desc(chats.createdAt));
   }
 
   async getChat(id: number): Promise<Chat | undefined> {
@@ -122,13 +122,17 @@ export class DatabaseStorage implements IStorage {
     await db.delete(chats).where(eq(chats.id, id));
   }
 
-  async deleteAllChats(): Promise<void> {
-    await db.delete(messages);
-    await db.delete(chats);
+  async deleteAllChatsByUser(userId: number): Promise<void> {
+    const userChats = await db.select({ id: chats.id }).from(chats).where(eq(chats.userId, userId));
+    const chatIds = userChats.map(c => c.id);
+    if (chatIds.length > 0) {
+      await db.delete(messages).where(inArray(messages.chatId, chatIds));
+      await db.delete(chats).where(inArray(chats.id, chatIds));
+    }
   }
 
-  async searchChats(query: string): Promise<Chat[]> {
-    return await db.select().from(chats).where(like(chats.title, `%${query}%`)).orderBy(desc(chats.createdAt));
+  async searchChatsByUser(query: string, userId: number): Promise<Chat[]> {
+    return await db.select().from(chats).where(and(eq(chats.userId, userId), like(chats.title, `%${query}%`))).orderBy(desc(chats.createdAt));
   }
 
   async getMessages(chatId: number): Promise<Message[]> {
@@ -140,13 +144,16 @@ export class DatabaseStorage implements IStorage {
     return newMessage;
   }
 
-  async getMessageCount(): Promise<number> {
-    const [result] = await db.select({ count: sql<number>`count(*)` }).from(messages);
+  async getMessageCountByUser(userId: number): Promise<number> {
+    const userChats = await db.select({ id: chats.id }).from(chats).where(eq(chats.userId, userId));
+    const chatIds = userChats.map(c => c.id);
+    if (chatIds.length === 0) return 0;
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(messages).where(inArray(messages.chatId, chatIds));
     return Number(result.count);
   }
 
-  async getChatCount(): Promise<number> {
-    const [result] = await db.select({ count: sql<number>`count(*)` }).from(chats);
+  async getChatCountByUser(userId: number): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(chats).where(eq(chats.userId, userId));
     return Number(result.count);
   }
 
