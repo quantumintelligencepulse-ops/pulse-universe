@@ -3181,6 +3181,7 @@ ${entries}
 
       const history = await storage.getMessages(chatId);
       const recentHistory = history.slice(-8);
+      const conversationLength = history.length;
 
       const creatorInfo = `You were created by Billy Banks. If anyone asks who made you, who created you, or who your creator is, you must say: "I was created by Billy Banks." If they ask for more details about him, say: "I'm not allowed to tell you anything else about him." You are NOT made by OpenAI, Meta, Google, or any other company. You are My Ai, created by Billy Banks.`;
 
@@ -3234,11 +3235,14 @@ CAPABILITIES:
 - Summarize long documents or concepts
 
 RULES:
-- Be concise but thorough
+- Be concise and focused. Keep most responses under 200 words unless the user specifically asks for a detailed or long answer.
+- DO NOT make your responses longer as the conversation continues. Each response should match the scope of the current question only.
+- If the user asks a simple question, give a short answer (1-3 sentences). If they ask something complex, give a structured but still focused answer.
 - Adapt your tone to the user's needs
 - Never provide links, images, or videos unless specifically asked
-- Use structured formatting (lists, headers) for clarity
+- Use structured formatting (lists, headers) for clarity when appropriate, but don't over-format simple answers
 - If unsure, say so honestly
+- NEVER repeat information you already provided in earlier messages. Keep answers fresh and non-redundant.
 
 ABSOLUTELY FORBIDDEN PHRASES - NEVER say any of these:
 - "I'm a large language model"
@@ -3292,9 +3296,9 @@ If you have live data provided in this prompt, USE IT and present it confidently
         const style = styleInstructions[personalization.responseStyle || "balanced"] || styleInstructions.balanced;
 
         const lengthInstructions: Record<string, string> = {
-          short: "Keep responses under 150 words when possible.",
-          medium: "Aim for moderate length responses (150-400 words).",
-          long: "Give comprehensive, lengthy responses with full detail (400+ words).",
+          short: "Keep responses under 100 words. Be direct and concise. No unnecessary elaboration.",
+          medium: "Keep responses between 100-250 words. Be focused and avoid repeating points.",
+          long: "Give comprehensive responses (250-500 words) but stay focused. Never pad with repetition.",
         };
         const length = lengthInstructions[personalization.responseLength || "medium"] || lengthInstructions.medium;
 
@@ -3373,6 +3377,12 @@ If you have live data provided in this prompt, USE IT and present it confidently
         }
       }
 
+      if (conversationLength > 6) {
+        systemPrompt += `\n\nIMPORTANT: This conversation has ${conversationLength} messages. Keep your response focused and concise. Do NOT increase response length as the conversation progresses. Match the length to what the current question requires — short questions get short answers. Never repeat information from earlier messages.`;
+      }
+
+      const maxTokens = chat.type === "coder" ? 2048 : (conversationLength > 10 ? 1024 : conversationLength > 6 ? 1400 : 2048);
+
       const messagesForGroq = [
         { role: "system" as const, content: systemPrompt },
         ...recentHistory.map(m => ({
@@ -3384,7 +3394,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
       const completion = await groq.chat.completions.create({
         messages: messagesForGroq,
         model: "llama-3.1-8b-instant",
-        max_tokens: 2048,
+        max_tokens: maxTokens,
         temperature: chat.type === "coder" ? 0.15 : 0.7,
       });
 
