@@ -1072,7 +1072,7 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
               <span className="text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded-full font-medium">{codeBlockCount} code block{codeBlockCount > 1 ? "s" : ""}</span>
             )}
           </div>
-          <div className="text-foreground leading-relaxed markdown-body">
+          <div className="text-black dark:text-white leading-relaxed markdown-body">
             {isThinking ? (
               <div className="flex items-center gap-2">
                 <div className="flex items-center h-6 gap-1.5">
@@ -1109,20 +1109,20 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
                       <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono border border-border/40" {...props}>{children}</code>
                     );
                   },
-                  a({ children, href, ...props }: any) { return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 font-semibold underline decoration-blue-700/30 dark:decoration-blue-400/30 hover:decoration-blue-700 dark:hover:decoration-blue-400 transition-colors" {...props}>{children}</a>; },
-                  strong({ children }: any) { return <strong className="font-bold text-gray-900 dark:text-gray-100">{children}</strong>; },
-                  em({ children }: any) { return <em className="italic text-gray-800 dark:text-gray-200">{children}</em>; },
-                  h1({ children }: any) { return <h1 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 mt-4 mb-2">{children}</h1>; },
-                  h2({ children }: any) { return <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-3 mb-1.5">{children}</h2>; },
-                  h3({ children }: any) { return <h3 className="text-base font-bold text-gray-800 dark:text-gray-200 mt-2 mb-1">{children}</h3>; },
-                  h4({ children }: any) { return <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-2 mb-1">{children}</h4>; },
-                  ul({ children }: any) { return <ul className="list-disc pl-5 my-2 space-y-1 text-gray-800 dark:text-gray-200">{children}</ul>; },
-                  ol({ children }: any) { return <ol className="list-decimal pl-5 my-2 space-y-1 text-gray-800 dark:text-gray-200">{children}</ol>; },
-                  li({ children }: any) { return <li className="text-gray-800 dark:text-gray-200">{children}</li>; },
-                  p({ children }: any) { return <p className="my-1.5 text-gray-800 dark:text-gray-200 leading-relaxed">{children}</p>; },
+                  a({ children, href, ...props }: any) { return <a href={href} target="_blank" rel="noopener noreferrer" className="text-black dark:text-white font-semibold underline" {...props}>{children}</a>; },
+                  strong({ children }: any) { return <strong className="font-bold text-black dark:text-white">{children}</strong>; },
+                  em({ children }: any) { return <em className="italic text-black dark:text-white">{children}</em>; },
+                  h1({ children }: any) { return <h1 className="text-xl font-extrabold text-black dark:text-white mt-4 mb-2">{children}</h1>; },
+                  h2({ children }: any) { return <h2 className="text-lg font-bold text-black dark:text-white mt-3 mb-1.5">{children}</h2>; },
+                  h3({ children }: any) { return <h3 className="text-base font-bold text-black dark:text-white mt-2 mb-1">{children}</h3>; },
+                  h4({ children }: any) { return <h4 className="text-sm font-bold text-black dark:text-white mt-2 mb-1">{children}</h4>; },
+                  ul({ children }: any) { return <ul className="list-disc pl-5 my-2 space-y-1 text-black dark:text-white">{children}</ul>; },
+                  ol({ children }: any) { return <ol className="list-decimal pl-5 my-2 space-y-1 text-black dark:text-white">{children}</ol>; },
+                  li({ children }: any) { return <li className="text-black dark:text-white">{children}</li>; },
+                  p({ children }: any) { return <p className="my-1.5 text-black dark:text-white leading-relaxed">{children}</p>; },
                   table({ children }: any) { return <div className="overflow-x-auto my-3 rounded-lg border border-border"><table className="min-w-full text-sm">{children}</table></div>; },
-                  th({ children }: any) { return <th className="border-b border-border bg-muted/50 px-3 py-2 text-left font-semibold text-xs uppercase tracking-wider">{children}</th>; },
-                  td({ children }: any) { return <td className="border-b border-border/50 px-3 py-2">{children}</td>; },
+                  th({ children }: any) { return <th className="border-b border-border bg-muted/50 px-3 py-2 text-left font-semibold text-xs uppercase tracking-wider text-black dark:text-white">{children}</th>; },
+                  td({ children }: any) { return <td className="border-b border-border/50 px-3 py-2 text-black dark:text-white">{children}</td>; },
                 }}
               >{content}</ReactMarkdown>
             )}
