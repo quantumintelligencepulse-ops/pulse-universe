@@ -23,7 +23,7 @@ import {
   ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight,
   Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
-  LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones
+  LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
@@ -234,7 +234,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const u = await r.json(); setUser(u); localStorage.setItem("myaigpt_email", u.email); if (u.isPro || u.isFreeForever) { localStorage.setItem("myaigpt_pro", "true"); localStorage.setItem("myaigpt_msg_count", "0"); } setShowAuthModal(false);
   }, []);
   const register = useCallback(async (email: string, password: string, displayName: string) => {
-    const r = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, displayName }), credentials: "include" });
+    const referralCode = localStorage.getItem("myaigpt_ref_code") || "";
+    const r = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, displayName, referralCode }), credentials: "include" });
     if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Registration failed"); }
     const u = await r.json(); setUser(u); localStorage.setItem("myaigpt_email", u.email); if (u.isPro || u.isFreeForever) { localStorage.setItem("myaigpt_pro", "true"); localStorage.setItem("myaigpt_msg_count", "0"); } setShowAuthModal(false);
   }, []);
@@ -4985,6 +4986,329 @@ function AIStudioPage() {
 
 // ─── PERMISSIONS PAGE ────────────────────────────────────────────────────────
 
+function EarningsTab() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [affiliateData, setAffiliateData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [payoutEmail, setPayoutEmail] = useState("");
+  const [payoutMethod, setPayoutMethod] = useState("paypal");
+  const [savingPayout, setSavingPayout] = useState(false);
+  const [requestingPayout, setRequestingPayout] = useState(false);
+  const [activeEarningsTab, setActiveEarningsTab] = useState<"overview" | "referrals" | "history" | "payouts">("overview");
+
+  const fetchAffiliateData = useCallback(async () => {
+    try {
+      const r = await fetch("/api/affiliate/me", { credentials: "include" });
+      if (r.ok) {
+        const data = await r.json();
+        setAffiliateData(data);
+        setPayoutEmail(data.payoutEmail || "");
+        setPayoutMethod(data.payoutMethod || "paypal");
+      }
+    } catch {} finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { if (user) fetchAffiliateData(); else setLoading(false); }, [user, fetchAffiliateData]);
+
+  const copyReferralLink = () => {
+    if (!affiliateData?.referralCode) return;
+    const link = `${window.location.origin}?ref=${affiliateData.referralCode}`;
+    navigator.clipboard.writeText(link);
+    toast({ title: "Referral link copied!", description: "Share this link to start earning" });
+  };
+
+  const copyReferralCode = () => {
+    if (!affiliateData?.referralCode) return;
+    navigator.clipboard.writeText(affiliateData.referralCode);
+    toast({ title: "Code copied!" });
+  };
+
+  const savePayoutInfo = async () => {
+    if (!payoutEmail.trim()) { toast({ title: "Enter your payout email", variant: "destructive" }); return; }
+    setSavingPayout(true);
+    try {
+      const r = await fetch("/api/affiliate/set-payout-info", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payoutEmail: payoutEmail.trim(), payoutMethod }), credentials: "include" });
+      if (r.ok) { toast({ title: "Payout info saved!" }); fetchAffiliateData(); }
+      else { const e = await r.json(); toast({ title: e.message || "Failed to save", variant: "destructive" }); }
+    } catch { toast({ title: "Failed to save", variant: "destructive" }); } finally { setSavingPayout(false); }
+  };
+
+  const requestPayout = async () => {
+    if (!affiliateData?.payoutEmail) { toast({ title: "Set your payout email first", variant: "destructive" }); return; }
+    setRequestingPayout(true);
+    try {
+      const r = await fetch("/api/affiliate/request-payout", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include" });
+      if (r.ok) { toast({ title: "Payout requested!", description: "You'll receive your payment soon" }); fetchAffiliateData(); }
+      else { const e = await r.json(); toast({ title: e.message || "Failed", variant: "destructive" }); }
+    } catch { toast({ title: "Request failed", variant: "destructive" }); } finally { setRequestingPayout(false); }
+  };
+
+  if (!user) {
+    return (
+      <div className="space-y-5" data-testid="settings-section-earnings">
+        <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center">
+            <DollarSign size={28} className="text-white" />
+          </div>
+          <h3 className="text-lg font-bold mb-2" data-testid="text-earnings-login-prompt">Earn Money with My Ai Gpt</h3>
+          <p className="text-sm text-muted-foreground mb-4">Sign in to access your affiliate dashboard and start earning 70% commission on every referral upgrade.</p>
+          <AuthPromptButton label="Sign In to Start Earning" />
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-5" data-testid="settings-section-earnings">
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-28 bg-muted/20 rounded-xl animate-pulse" />)}</div>
+      </div>
+    );
+  }
+
+  const balance = (affiliateData?.earningsBalance || 0) / 100;
+  const totalEarned = (affiliateData?.totalEarnings || 0) / 100;
+  const refLink = affiliateData?.referralCode ? `${window.location.origin}?ref=${affiliateData.referralCode}` : "";
+
+  return (
+    <div className="space-y-5" data-testid="settings-section-earnings">
+      <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 rounded-2xl p-6 text-white shadow-xl">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+            <DollarSign size={24} />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg" data-testid="text-earnings-title">Affiliate Earnings</h3>
+            <p className="text-white/70 text-xs">Earn 70% on every referral upgrade</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl font-extrabold" data-testid="text-earnings-balance">${balance.toFixed(2)}</div>
+            <div className="text-[10px] text-white/60 mt-0.5">Available</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl font-extrabold" data-testid="text-earnings-total">${totalEarned.toFixed(2)}</div>
+            <div className="text-[10px] text-white/60 mt-0.5">Total Earned</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl font-extrabold" data-testid="text-active-referrals">{affiliateData?.activeReferrals || 0}</div>
+            <div className="text-[10px] text-white/60 mt-0.5">Active Referrals</div>
+          </div>
+        </div>
+        {balance >= 0.70 && (
+          <button onClick={requestPayout} disabled={requestingPayout} data-testid="button-request-payout"
+            className="w-full mt-4 py-3 bg-white text-green-700 rounded-xl font-bold text-sm hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+            <Wallet size={16} /> {requestingPayout ? "Requesting..." : `Withdraw $${balance.toFixed(2)}`}
+          </button>
+        )}
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+        <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><Link2 size={15} /> Your Referral Link</h3>
+        <div className="bg-muted/10 dark:bg-gray-800 rounded-lg p-3 flex items-center gap-2 mb-3">
+          <input value={refLink} readOnly className="flex-1 bg-transparent text-xs font-mono text-foreground outline-none truncate" data-testid="input-referral-link" />
+          <button onClick={copyReferralLink} className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors shrink-0" data-testid="button-copy-referral-link">
+            <Copy size={14} />
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-muted-foreground">Code:</div>
+          <button onClick={copyReferralCode} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/20 dark:bg-gray-800 rounded-lg text-xs font-mono font-bold hover:bg-muted/40 transition-colors" data-testid="button-copy-referral-code">
+            {affiliateData?.referralCode || "..."} <ClipboardCopy size={12} />
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <button onClick={() => { window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent("Join My Ai Gpt - the AI platform where you can chat, code, and create! Use my link:")}&url=${encodeURIComponent(refLink)}`, "_blank"); }} data-testid="button-share-referral-x"
+            className="py-2 bg-black text-white rounded-lg text-[10px] font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-1">
+            Share on X
+          </button>
+          <button onClick={() => { window.open(`https://wa.me/?text=${encodeURIComponent("Join My Ai Gpt and start chatting with AI! " + refLink)}`, "_blank"); }} data-testid="button-share-referral-whatsapp"
+            className="py-2 bg-green-500 text-white rounded-lg text-[10px] font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-1">
+            WhatsApp
+          </button>
+          <button onClick={() => { if (navigator.share) { navigator.share({ title: "Join My Ai Gpt", text: "Check out My Ai Gpt - AI chat, coding & more!", url: refLink }); } else { copyReferralLink(); } }} data-testid="button-share-referral-native"
+            className="py-2 bg-blue-500 text-white rounded-lg text-[10px] font-bold hover:bg-blue-600 transition-colors flex items-center justify-center gap-1">
+            <Share2 size={12} /> Share
+          </button>
+        </div>
+      </div>
+
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        {([
+          { id: "overview" as const, label: "How It Works", icon: Gift },
+          { id: "referrals" as const, label: `Referrals (${affiliateData?.totalReferrals || 0})`, icon: Users },
+          { id: "history" as const, label: "Earnings Log", icon: BarChart3 },
+          { id: "payouts" as const, label: "Payouts", icon: Banknote },
+        ]).map(tab => (
+          <button key={tab.id} onClick={() => setActiveEarningsTab(tab.id)} data-testid={`earnings-tab-${tab.id}`}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 ${activeEarningsTab === tab.id ? "bg-emerald-500 text-white shadow-md" : "bg-muted/30 dark:bg-muted/10 text-muted-foreground hover:bg-muted/50"}`}>
+            <tab.icon size={13} /> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeEarningsTab === "overview" && (
+        <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+          <h3 className="text-sm font-bold flex items-center gap-2"><Gift size={15} className="text-emerald-500" /> How the Affiliate Program Works</h3>
+          <div className="space-y-3">
+            {[
+              { step: "1", title: "Share your referral link", desc: "Send your unique link to friends, followers, or anyone who might love My Ai Gpt" },
+              { step: "2", title: "They sign up and upgrade to Pro", desc: "When someone uses your link to sign up and upgrades to Pro ($1/month), you earn" },
+              { step: "3", title: "You earn 70% commission", desc: "$0.70 for every $1 they pay — credited to your balance automatically, every month" },
+              { step: "4", title: "Withdraw anytime", desc: "Request a payout whenever you want. Set your PayPal/CashApp and cash out" },
+            ].map(s => (
+              <div key={s.step} className="flex gap-3 items-start">
+                <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-sm font-extrabold text-emerald-600">{s.step}</span>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold">{s.title}</div>
+                  <div className="text-xs text-muted-foreground">{s.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 rounded-xl p-4 mt-4">
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Recurring forever — as long as your referrals stay subscribed, you keep earning every month. No limits on how many people you can refer.</p>
+          </div>
+        </div>
+      )}
+
+      {activeEarningsTab === "referrals" && (
+        <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+          <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Users size={15} /> Your Referrals</h3>
+          {(!affiliateData?.referrals || affiliateData.referrals.length === 0) ? (
+            <div className="text-center py-8">
+              <UserPlus size={32} className="mx-auto mb-3 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">No referrals yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Share your link to start inviting people</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {affiliateData.referrals.map((ref: any, i: number) => (
+                <div key={ref.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/5 dark:bg-gray-800/30 border border-border/20" data-testid={`referral-row-${i}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${ref.isPro ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-gray-100 dark:bg-gray-800"}`}>
+                    <User size={14} className={ref.isPro ? "text-emerald-600" : "text-muted-foreground"} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium truncate">{ref.email}</div>
+                    <div className="text-[10px] text-muted-foreground">Joined {new Date(ref.createdAt).toLocaleDateString()}</div>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ref.isPro ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" : ref.status === "signed_up" ? "bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-gray-100 dark:bg-gray-800 text-muted-foreground"}`}>
+                    {ref.isPro ? "Pro — Earning" : ref.status === "signed_up" ? "Signed Up" : ref.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeEarningsTab === "history" && (
+        <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+          <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><BarChart3 size={15} /> Earnings History</h3>
+          {(!affiliateData?.earningsHistory || affiliateData.earningsHistory.length === 0) ? (
+            <div className="text-center py-8">
+              <TrendingUp size={32} className="mx-auto mb-3 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">No earnings yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Your earnings will appear here when referrals upgrade</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {affiliateData.earningsHistory.map((entry: any, i: number) => (
+                <div key={entry.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/5 dark:bg-gray-800/30 border border-border/20" data-testid={`earnings-log-${i}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${entry.amount > 0 ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-orange-100 dark:bg-orange-900/30"}`}>
+                    {entry.amount > 0 ? <ArrowUpRight size={14} className="text-emerald-600" /> : <Banknote size={14} className="text-orange-600" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium">{entry.type === "commission" ? "Commission" : entry.type === "payout" ? "Payout" : entry.type === "refund" ? "Refund" : entry.type}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{entry.description}</div>
+                  </div>
+                  <div className={`text-sm font-bold ${entry.amount > 0 ? "text-emerald-600" : "text-orange-600"}`}>
+                    {entry.amount > 0 ? "+" : ""}${(entry.amount / 100).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeEarningsTab === "payouts" && (
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+            <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Wallet size={15} /> Payout Settings</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Payout Method</label>
+                <div className="flex gap-2">
+                  {(["paypal", "cashapp", "venmo", "zelle"] as const).map(m => (
+                    <button key={m} onClick={() => setPayoutMethod(m)} data-testid={`payout-method-${m}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all capitalize ${payoutMethod === m ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600" : "border-border/30 hover:border-border"}`}>
+                      {m === "cashapp" ? "CashApp" : m.charAt(0).toUpperCase() + m.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  {payoutMethod === "paypal" ? "PayPal Email" : payoutMethod === "cashapp" ? "CashApp $Cashtag" : payoutMethod === "venmo" ? "Venmo Username" : "Zelle Email/Phone"}
+                </label>
+                <input value={payoutEmail} onChange={e => setPayoutEmail(e.target.value)}
+                  placeholder={payoutMethod === "paypal" ? "your@email.com" : payoutMethod === "cashapp" ? "$YourCashtag" : payoutMethod === "venmo" ? "@YourUsername" : "your@email.com"}
+                  className="w-full px-3 py-2 text-sm border border-border/30 rounded-lg focus:outline-none focus:border-emerald-400 bg-muted/10 dark:bg-gray-800" data-testid="input-payout-email" />
+              </div>
+              <button onClick={savePayoutInfo} disabled={savingPayout} data-testid="button-save-payout-info"
+                className="w-full py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50">
+                {savingPayout ? "Saving..." : "Save Payout Info"}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+            <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Banknote size={15} /> Payout History</h3>
+            {(!affiliateData?.payoutHistory || affiliateData.payoutHistory.length === 0) ? (
+              <div className="text-center py-6">
+                <Banknote size={28} className="mx-auto mb-2 text-muted-foreground/30" />
+                <p className="text-xs text-muted-foreground">No payouts yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {affiliateData.payoutHistory.map((p: any, i: number) => (
+                  <div key={p.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/5 dark:bg-gray-800/30 border border-border/20" data-testid={`payout-row-${i}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${p.status === "paid" ? "bg-emerald-100 dark:bg-emerald-900/30" : p.status === "pending" ? "bg-amber-100 dark:bg-amber-900/30" : "bg-red-100 dark:bg-red-900/30"}`}>
+                      <Banknote size={14} className={p.status === "paid" ? "text-emerald-600" : p.status === "pending" ? "text-amber-600" : "text-red-600"} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium">${(p.amount / 100).toFixed(2)} via {p.method}</div>
+                      <div className="text-[10px] text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${p.status === "paid" ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600" : p.status === "pending" ? "bg-amber-100 dark:bg-amber-900/20 text-amber-600" : "bg-red-100 dark:bg-red-900/20 text-red-600"}`}>
+                      {p.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AuthPromptButton({ label }: { label: string }) {
+  const { setShowAuthModal } = useAuth();
+  return (
+    <button onClick={() => setShowAuthModal(true)} data-testid="button-auth-prompt"
+      className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-medium text-sm hover:opacity-90 transition-opacity">
+      {label}
+    </button>
+  );
+}
+
 function SettingsPage() {
   const { settings, update } = useAppSettings();
   const { permissions, loading: permLoading, requestPermission, refresh } = useDevicePermissions();
@@ -5042,6 +5366,7 @@ function SettingsPage() {
     { id: "chat", name: "Chat", icon: MessageSquare },
     { id: "playground-settings", name: "Playground", icon: SquareTerminal },
     { id: "feed-settings", name: "Feed", icon: Newspaper },
+    { id: "earnings", name: "Earnings", icon: DollarSign },
     { id: "accessibility", name: "Accessibility", icon: Eye },
     { id: "permissions", name: "Permissions", icon: Shield },
     { id: "data", name: "Data & Privacy", icon: Database },
@@ -5578,6 +5903,8 @@ function SettingsPage() {
           </div>
         )}
 
+        {activeSection === "earnings" && <EarningsTab />}
+
         {activeSection === "accessibility" && (
           <div className="space-y-5" data-testid="settings-section-accessibility">
             <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
@@ -5877,6 +6204,17 @@ export default function App() {
   });
   const set = useCallback((partial: Partial<CoderSettings>) => {
     setSettings(prev => { const next = { ...prev, ...partial }; localStorage.setItem("coderSettings", JSON.stringify(next)); return next; });
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("myaigpt_ref_code", ref);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("ref");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
   }, []);
 
   useEffect(() => {

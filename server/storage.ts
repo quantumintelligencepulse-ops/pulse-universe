@@ -12,6 +12,9 @@ import {
   socialBookmarks,
   userPreferences,
   userInteractions,
+  referrals,
+  earningsLog,
+  payoutRequests,
   type User,
   type InsertUser,
   type Chat,
@@ -32,6 +35,12 @@ import {
   type UserPreferences,
   type UserInteraction,
   type InsertUserInteraction,
+  type Referral,
+  type EarningsLogEntry,
+  type PayoutRequest,
+  type InsertReferral,
+  type InsertEarningsLog,
+  type InsertPayoutRequest,
 } from "@shared/schema";
 import { eq, desc, like, sql, and, inArray } from "drizzle-orm";
 
@@ -94,7 +103,24 @@ export interface IStorage {
   createUser(data: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserById(id: number): Promise<User | undefined>;
+  getUserByReferralCode(code: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
+
+  createReferral(data: InsertReferral): Promise<Referral>;
+  getReferralsByReferrer(referrerId: number): Promise<Referral[]>;
+  getReferralByUsers(referrerId: number, referredUserId: number): Promise<Referral | undefined>;
+  updateReferralStatus(id: number, status: string): Promise<Referral | undefined>;
+
+  createEarningsLog(data: InsertEarningsLog): Promise<EarningsLogEntry>;
+  getEarningsLogByUser(userId: number): Promise<EarningsLogEntry[]>;
+
+  createPayoutRequest(data: InsertPayoutRequest): Promise<PayoutRequest>;
+  getPayoutRequestsByUser(userId: number): Promise<PayoutRequest[]>;
+  getAllPendingPayouts(): Promise<PayoutRequest[]>;
+  updatePayoutStatus(id: number, status: string): Promise<PayoutRequest | undefined>;
+
+  creditEarnings(userId: number, amount: number): Promise<User | undefined>;
+  debitEarnings(userId: number, amount: number): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -407,8 +433,74 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByReferralCode(code: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.referralCode, code));
+    return user;
+  }
+
   async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
     const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  async createReferral(data: InsertReferral): Promise<Referral> {
+    const [ref] = await db.insert(referrals).values(data).returning();
+    return ref;
+  }
+
+  async getReferralsByReferrer(referrerId: number): Promise<Referral[]> {
+    return await db.select().from(referrals).where(eq(referrals.referrerId, referrerId)).orderBy(desc(referrals.createdAt));
+  }
+
+  async getReferralByUsers(referrerId: number, referredUserId: number): Promise<Referral | undefined> {
+    const [ref] = await db.select().from(referrals).where(and(eq(referrals.referrerId, referrerId), eq(referrals.referredUserId, referredUserId)));
+    return ref;
+  }
+
+  async updateReferralStatus(id: number, status: string): Promise<Referral | undefined> {
+    const [ref] = await db.update(referrals).set({ status }).where(eq(referrals.id, id)).returning();
+    return ref;
+  }
+
+  async createEarningsLog(data: InsertEarningsLog): Promise<EarningsLogEntry> {
+    const [entry] = await db.insert(earningsLog).values(data).returning();
+    return entry;
+  }
+
+  async getEarningsLogByUser(userId: number): Promise<EarningsLogEntry[]> {
+    return await db.select().from(earningsLog).where(eq(earningsLog.userId, userId)).orderBy(desc(earningsLog.createdAt));
+  }
+
+  async createPayoutRequest(data: InsertPayoutRequest): Promise<PayoutRequest> {
+    const [req] = await db.insert(payoutRequests).values(data).returning();
+    return req;
+  }
+
+  async getPayoutRequestsByUser(userId: number): Promise<PayoutRequest[]> {
+    return await db.select().from(payoutRequests).where(eq(payoutRequests.userId, userId)).orderBy(desc(payoutRequests.createdAt));
+  }
+
+  async getAllPendingPayouts(): Promise<PayoutRequest[]> {
+    return await db.select().from(payoutRequests).where(eq(payoutRequests.status, "pending")).orderBy(desc(payoutRequests.createdAt));
+  }
+
+  async updatePayoutStatus(id: number, status: string): Promise<PayoutRequest | undefined> {
+    const [req] = await db.update(payoutRequests).set({ status, processedAt: new Date() }).where(eq(payoutRequests.id, id)).returning();
+    return req;
+  }
+
+  async creditEarnings(userId: number, amount: number): Promise<User | undefined> {
+    const [user] = await db.update(users).set({
+      earningsBalance: sql`${users.earningsBalance} + ${amount}`,
+      totalEarnings: sql`${users.totalEarnings} + ${amount}`,
+    } as any).where(eq(users.id, userId)).returning();
+    return user;
+  }
+
+  async debitEarnings(userId: number, amount: number): Promise<User | undefined> {
+    const [user] = await db.update(users).set({
+      earningsBalance: sql`${users.earningsBalance} - ${amount}`,
+    } as any).where(eq(users.id, userId)).returning();
     return user;
   }
 }

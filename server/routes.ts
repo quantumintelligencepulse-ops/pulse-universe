@@ -7,7 +7,8 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema } from "@shared/schema";
+import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema, users } from "@shared/schema";
+import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
 
 const scryptAsync = promisify(scrypt);
@@ -327,15 +328,27 @@ export async function registerRoutes(
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { email, password, displayName } = req.body;
+      const { email, password, displayName, referralCode } = req.body;
       if (!email || !password) return res.status(400).json({ message: "Email and password required" });
       const normalizedEmail = email.toLowerCase().trim();
       const existing = await storage.getUserByEmail(normalizedEmail);
       if (existing) return res.status(409).json({ message: "Account already exists. Please sign in." });
       const passwordHash = await hashPassword(password);
       const isFreeForever = FREE_FOREVER_EMAILS.includes(normalizedEmail);
-      const user = await storage.createUser({ email: normalizedEmail, passwordHash, displayName: displayName || "", isPro: isFreeForever, isFreeForever });
+
+      let referredBy: number | undefined;
+      if (referralCode && typeof referralCode === "string" && referralCode.length <= 20) {
+        const referrer = await storage.getUserByReferralCode(referralCode.trim().toUpperCase());
+        if (referrer && referrer.email !== normalizedEmail) referredBy = referrer.id;
+      }
+
+      const user = await storage.createUser({ email: normalizedEmail, passwordHash, displayName: displayName || "", isPro: isFreeForever, isFreeForever, referredBy: referredBy || null } as any);
       (req.session as any).userId = user.id;
+
+      if (referredBy) {
+        await storage.createReferral({ referrerId: referredBy, referredUserId: user.id, status: "signed_up" });
+      }
+
       res.status(201).json({ id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever });
     } catch (e: any) { res.status(500).json({ message: e.message || "Registration failed" }); }
   });
@@ -368,9 +381,155 @@ export async function registerRoutes(
   app.post("/api/auth/upgrade", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const userBefore = await storage.getUserById(userId);
+    if (!userBefore) return res.status(404).json({ message: "User not found" });
+    if (userBefore.isPro) return res.json({ id: userBefore.id, email: userBefore.email, displayName: userBefore.displayName, isPro: userBefore.isPro, isFreeForever: userBefore.isFreeForever });
+
     const user = await storage.updateUser(userId, { isPro: true } as any);
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.referredBy) {
+      const existingRef = await storage.getReferralByUsers(user.referredBy, user.id);
+      if (existingRef && existingRef.status === "signed_up") {
+        const COMMISSION_CENTS = 70;
+        await storage.updateReferralStatus(existingRef.id, "upgraded");
+        await storage.creditEarnings(user.referredBy, COMMISSION_CENTS);
+        await storage.createEarningsLog({ userId: user.referredBy, amount: COMMISSION_CENTS, type: "commission", referralId: existingRef.id, description: `Commission from ${user.email} upgrade` });
+      }
+    }
+
     res.json({ id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever });
+  });
+
+  function generateReferralCode(): string {
+    return cryptoRandomBytes(4).toString("hex").toUpperCase();
+  }
+
+  app.get("/api/affiliate/me", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUserById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.referralCode) {
+      let code = generateReferralCode();
+      let attempts = 0;
+      while (await storage.getUserByReferralCode(code) && attempts < 10) {
+        code = generateReferralCode();
+        attempts++;
+      }
+      await storage.updateUser(userId, { referralCode: code } as any);
+      user.referralCode = code;
+    }
+
+    const myReferrals = await storage.getReferralsByReferrer(userId);
+    const referralDetails = await Promise.all(myReferrals.map(async (ref) => {
+      const referred = await storage.getUserById(ref.referredUserId);
+      return {
+        id: ref.id,
+        email: referred ? referred.email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "Unknown",
+        status: ref.status,
+        isPro: referred?.isPro || false,
+        createdAt: ref.createdAt,
+      };
+    }));
+
+    const earningsHistory = await storage.getEarningsLogByUser(userId);
+    const payoutHistory = await storage.getPayoutRequestsByUser(userId);
+    const activeReferrals = referralDetails.filter(r => r.isPro).length;
+
+    res.json({
+      referralCode: user.referralCode,
+      earningsBalance: user.earningsBalance || 0,
+      totalEarnings: user.totalEarnings || 0,
+      payoutEmail: user.payoutEmail || "",
+      payoutMethod: user.payoutMethod || "",
+      referrals: referralDetails,
+      activeReferrals,
+      totalReferrals: referralDetails.length,
+      earningsHistory: earningsHistory.slice(0, 50),
+      payoutHistory: payoutHistory.slice(0, 50),
+    });
+  });
+
+  app.post("/api/affiliate/set-payout-info", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const { payoutEmail, payoutMethod } = req.body;
+    if (!payoutEmail || !payoutMethod) return res.status(400).json({ message: "Payout email and method are required" });
+    const user = await storage.updateUser(userId, { payoutEmail, payoutMethod } as any);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ ok: true });
+  });
+
+  app.post("/api/affiliate/request-payout", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUserById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const balance = user.earningsBalance || 0;
+    if (balance < 70) return res.status(400).json({ message: "Minimum payout is $0.70" });
+
+    const payoutEmail = user.payoutEmail || "";
+    const payoutMethod = user.payoutMethod || "";
+    if (!payoutEmail) return res.status(400).json({ message: "Please set your payout email first" });
+
+    try {
+      const payout = await storage.createPayoutRequest({
+        userId,
+        amount: balance,
+        method: payoutMethod || "paypal",
+        payoutEmail,
+        status: "pending",
+      });
+      await storage.debitEarnings(userId, balance);
+      await storage.createEarningsLog({ userId, amount: -balance, type: "payout", description: `Payout request #${payout.id} — $${(balance / 100).toFixed(2)} via ${payoutMethod}` });
+      res.json({ ok: true, payout });
+    } catch (e: any) {
+      res.status(500).json({ message: "Payout request failed. Please try again." });
+    }
+  });
+
+  app.post("/api/affiliate/track-referral", async (req, res) => {
+    const { referralCode } = req.body;
+    if (!referralCode) return res.status(400).json({ message: "Referral code required" });
+    const referrer = await storage.getUserByReferralCode(referralCode);
+    if (!referrer) return res.status(404).json({ message: "Invalid referral code" });
+    res.json({ ok: true, referrerId: referrer.id });
+  });
+
+  app.get("/api/admin/payouts", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUserById(userId);
+    if (!user || !FREE_FOREVER_EMAILS.includes(user.email.toLowerCase())) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    const pending = await storage.getAllPendingPayouts();
+    const details = await Promise.all(pending.map(async (p) => {
+      const u = await storage.getUserById(p.userId);
+      return { ...p, userEmail: u?.email || "Unknown" };
+    }));
+    res.json(details);
+  });
+
+  app.post("/api/admin/process-payout/:id", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUserById(userId);
+    if (!user || !FREE_FOREVER_EMAILS.includes(user.email.toLowerCase())) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    const payoutId = parseInt(req.params.id);
+    const { status } = req.body;
+    if (!["paid", "rejected"].includes(status)) return res.status(400).json({ message: "Invalid status" });
+    const payout = await storage.updatePayoutStatus(payoutId, status);
+    if (status === "rejected" && payout) {
+      await storage.creditEarnings(payout.userId, payout.amount);
+      await storage.createEarningsLog({ userId: payout.userId, amount: payout.amount, type: "refund", description: `Payout #${payout.id} rejected — balance restored` });
+    }
+    res.json({ ok: true, payout });
   });
 
   const SITE_NAME = "My Ai Gpt";

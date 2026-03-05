@@ -9,7 +9,42 @@ export const users = pgTable("users", {
   displayName: text("display_name").default(""),
   isPro: boolean("is_pro").default(false),
   isFreeForever: boolean("is_free_forever").default(false),
+  referralCode: text("referral_code").unique(),
+  referredBy: integer("referred_by"),
+  earningsBalance: integer("earnings_balance").default(0),
+  totalEarnings: integer("total_earnings").default(0),
+  payoutEmail: text("payout_email").default(""),
+  payoutMethod: text("payout_method").default(""),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  referrerId: integer("referrer_id").notNull(),
+  referredUserId: integer("referred_user_id").notNull(),
+  status: text("status").notNull().default("signed_up"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const earningsLog = pgTable("earnings_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  amount: integer("amount").notNull(),
+  type: text("type").notNull(),
+  referralId: integer("referral_id"),
+  description: text("description").default(""),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const payoutRequests = pgTable("payout_requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  amount: integer("amount").notNull(),
+  method: text("method").notNull(),
+  payoutEmail: text("payout_email").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -39,6 +74,16 @@ export const feedComments = pgTable("feed_comments", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true });
+export const insertEarningsLogSchema = createInsertSchema(earningsLog).omit({ id: true, createdAt: true });
+export const insertPayoutRequestSchema = createInsertSchema(payoutRequests).omit({ id: true, createdAt: true, processedAt: true });
+export type Referral = typeof referrals.$inferSelect;
+export type EarningsLogEntry = typeof earningsLog.$inferSelect;
+export type PayoutRequest = typeof payoutRequests.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type InsertEarningsLog = z.infer<typeof insertEarningsLogSchema>;
+export type InsertPayoutRequest = z.infer<typeof insertPayoutRequestSchema>;
 
 export const insertChatSchema = createInsertSchema(chats).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
