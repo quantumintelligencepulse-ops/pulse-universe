@@ -2340,8 +2340,65 @@ ${entries}
         filePath = path.join(tmpDir, `${id}.sh`);
         fs.writeFileSync(filePath, code);
         cmd = `bash "${filePath}"`;
+      } else if (lang === "go") {
+        filePath = path.join(tmpDir, `${id}.go`);
+        fs.writeFileSync(filePath, code);
+        cmd = `go run "${filePath}"`;
+      } else if (lang === "rust") {
+        filePath = path.join(tmpDir, `${id}.rs`);
+        const binPath = path.join(tmpDir, `${id}_bin`);
+        fs.writeFileSync(filePath, code);
+        const compileResult = shellExec(`rustc "${filePath}" -o "${binPath}" 2>&1`, { timeout: 30000 });
+        if (compileResult.exitCode !== 0) {
+          try { fs.unlinkSync(filePath); } catch {}
+          return res.json({ stdout: "", stderr: compileResult.stdout + compileResult.stderr, exitCode: 1, executionTime: 0 });
+        }
+        cmd = `"${binPath}"`;
+      } else if (lang === "java") {
+        const classMatch = code.match(/public\s+class\s+(\w+)/);
+        const className = classMatch ? classMatch[1] : "Main";
+        filePath = path.join(tmpDir, `${className}.java`);
+        fs.writeFileSync(filePath, code);
+        const compileResult = shellExec(`javac "${filePath}" 2>&1`, { timeout: 30000 });
+        if (compileResult.exitCode !== 0) {
+          try { fs.unlinkSync(filePath); } catch {}
+          return res.json({ stdout: "", stderr: compileResult.stdout + compileResult.stderr, exitCode: 1, executionTime: 0 });
+        }
+        cmd = `java -cp "${tmpDir}" ${className}`;
+      } else if (lang === "cpp" || lang === "c++") {
+        filePath = path.join(tmpDir, `${id}.cpp`);
+        const binPath = path.join(tmpDir, `${id}_bin`);
+        fs.writeFileSync(filePath, code);
+        const compileResult = shellExec(`g++ "${filePath}" -o "${binPath}" -std=c++17 2>&1`, { timeout: 30000 });
+        if (compileResult.exitCode !== 0) {
+          try { fs.unlinkSync(filePath); } catch {}
+          return res.json({ stdout: "", stderr: compileResult.stdout + compileResult.stderr, exitCode: 1, executionTime: 0 });
+        }
+        cmd = `"${binPath}"`;
+      } else if (lang === "c") {
+        filePath = path.join(tmpDir, `${id}.c`);
+        const binPath = path.join(tmpDir, `${id}_bin`);
+        fs.writeFileSync(filePath, code);
+        const compileResult = shellExec(`gcc "${filePath}" -o "${binPath}" 2>&1`, { timeout: 30000 });
+        if (compileResult.exitCode !== 0) {
+          try { fs.unlinkSync(filePath); } catch {}
+          return res.json({ stdout: "", stderr: compileResult.stdout + compileResult.stderr, exitCode: 1, executionTime: 0 });
+        }
+        cmd = `"${binPath}"`;
+      } else if (lang === "ruby") {
+        filePath = path.join(tmpDir, `${id}.rb`);
+        fs.writeFileSync(filePath, code);
+        cmd = `ruby "${filePath}"`;
+      } else if (lang === "php") {
+        filePath = path.join(tmpDir, `${id}.php`);
+        fs.writeFileSync(filePath, code);
+        cmd = `php "${filePath}"`;
+      } else if (lang === "perl") {
+        filePath = path.join(tmpDir, `${id}.pl`);
+        fs.writeFileSync(filePath, code);
+        cmd = `perl "${filePath}"`;
       } else {
-        return res.json({ stdout: "", stderr: `Language '${lang}' not supported for server execution. Supported: javascript, typescript, python, bash.`, exitCode: 1, executionTime: 0 });
+        return res.json({ stdout: "", stderr: `Language '${lang}' is not yet supported for server execution.\n\nSupported languages: JavaScript, TypeScript, Python, Bash, Go, Rust, Java, C++, C, Ruby, PHP, Perl.\n\nTip: Switch to Server mode and use a supported language.`, exitCode: 1, executionTime: 0 });
       }
 
       const startTime = Date.now();
@@ -3146,17 +3203,22 @@ OMEGA TRANSCENDENCE CAPABILITIES:
 - AI/ML: TensorFlow, PyTorch, scikit-learn, model training, NLP, computer vision
 
 CODE OUTPUT RULES:
-- ALWAYS use markdown code blocks with correct language tags (e.g. \`\`\`python)
+- ALWAYS use markdown code blocks with correct language tags (e.g. \`\`\`python, \`\`\`html, \`\`\`javascript, \`\`\`css)
+- NEVER truncate or abbreviate code — always provide the COMPLETE, FULL code. No "..." or "// rest of code here" or "<!-- remaining code -->". Every single line must be included.
+- NEVER leave out closing tags, brackets, braces, or parentheses. Every opening symbol MUST have its matching closing symbol.
+- For HTML: Always include the full document structure (<!DOCTYPE html>, <html>, <head>, <body>) and ALL closing tags. The code must be copy-paste ready and immediately runnable.
+- For multi-file solutions: Use separate code blocks with a filename comment on the FIRST line (e.g. // filename: app.js or <!-- filename: index.html -->)
 - Include clear, helpful comments explaining logic
 - Use best practices and modern patterns for each language
 - Handle edge cases and errors properly
 - Include type annotations where applicable
 - Follow language-specific style guides (PEP 8, ESLint, etc.)
-- When generating multi-file solutions, use separate code blocks with filename comments
 - Explain your approach BEFORE writing code
 - After code, explain key decisions and potential improvements
 - Never provide links, images, or videos unless specifically asked
 - If user shares an error, diagnose root cause FIRST, then provide the fix
+- When generating web pages: include ALL HTML, CSS, and JavaScript in a single HTML file unless the user specifically asks for separate files. This makes it easy to run in the playground.
+- For Python scripts: include all imports at the top, handle common errors gracefully, and add if __name__ == "__main__" guard when appropriate.
 - NEVER say "I'm a large language model", "I don't have real-time access", "I recommend checking", "You can check [website]", "As an AI", or tell users to go look things up themselves. You are a premium AI — provide answers directly.`;
       } else {
         systemPrompt = `You are My Ai Gpt, a world-class intelligent assistant created by Billy Banks. ${creatorInfo}

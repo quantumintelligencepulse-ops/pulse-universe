@@ -18,7 +18,7 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 **Key Architectural Decisions:**
 - **Single-File Frontend**: Centralized UI logic in `App.tsx` for simplified development and maintenance.
 - **Microservice-like Backend**: Separation of concerns with dedicated routes for AI logic, web search, execution engine, and database operations.
-- **Robust Code Playground**: A full IDE experience with multi-language support (JavaScript, HTML, CSS, Python, TypeScript, SQL, JSON, Bash, Rust, Go, Java, C++), sandboxed execution, live previews, and VS Code-style features.
+- **Robust Code Playground**: A full IDE experience with multi-language support (JavaScript, HTML, CSS, Python, TypeScript, Bash, Go, Rust, Java, C++, C, Ruby, PHP, SQL, JSON), server-side execution for compiled languages (Go, Rust, Java, C++, C, Ruby, PHP, Perl), sandboxed browser execution, live HTML/CSS previews, "Open in Playground" button on all AI-generated code blocks, and mobile-responsive layout. VS Code-style features including syntax highlighting, line numbers, and keyboard shortcuts.
 - **Advanced AI Features**:
     - **Server-Side Execution**: Toggleable browser/server mode for executing code with real file system access and package management.
     - **AI Code Review**: Rates code quality and suggests improvements.

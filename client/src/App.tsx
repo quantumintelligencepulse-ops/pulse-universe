@@ -712,6 +712,19 @@ function MetricsBtn({ code, language }: { code: string; language: string }) {
 
 // ─── ENHANCED CODE BLOCK (#7-#15 combined) ───────────────────────────────────
 
+function OpenInPlaygroundBtn({ code, language }: { code: string; language: string }) {
+  const [, setLocation] = useLocation();
+  return (
+    <button onClick={() => {
+      sessionStorage.setItem("playground_code", code);
+      sessionStorage.setItem("playground_lang", language);
+      setLocation("/code");
+    }} data-testid="button-open-playground" className="p-1 rounded hover:bg-white/10 transition-colors" title="Open in Playground">
+      <SquareTerminal size={14} className="text-blue-400" />
+    </button>
+  );
+}
+
 function CodeBlock({ code, language, isCoder }: { code: string; language: string; isCoder?: boolean }) {
   const { settings } = useCoderSettings();
   const theme = CODE_THEMES[settings.codeTheme] || CODE_THEMES.oneDark;
@@ -749,10 +762,9 @@ function CodeBlock({ code, language, isCoder }: { code: string; language: string
           <CopyBtn text={code} />
           <SaveBtn code={code} language={language} />
           <DlBtn code={code} language={language} />
+          <OpenInPlaygroundBtn code={code} language={language} />
           <RunBtn code={code} language={language} />
-          {/* #5 - Fullscreen */}
           <FullscreenBtn code={code} language={language} />
-          {/* #6 - Metrics */}
           {isCoder && <MetricsBtn code={code} language={language} />}
           {/* #7 - Collapse toggle */}
           {lines > 50 && (
@@ -852,11 +864,24 @@ function ChatMsg({ role, content, isThinking, isCoder, timestamp, onRetry }: {
                   code({ node, inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || "");
                     const codeStr = String(children).replace(/\n$/, "");
+                    const detectBlockLang = (s: string): string => {
+                      const t = s.trim();
+                      if (/^\s*(def |class |import |from \w+ import|print\(|elif |if __name__)/m.test(t)) return "python";
+                      if (/^\s*<!DOCTYPE|^\s*<html|^\s*<div|^\s*<head/im.test(t)) return "html";
+                      if (/^\s*[.#@][\w-]+\s*\{|^\s*:root\s*\{|^\s*body\s*\{|^\s*@media/m.test(t)) return "css";
+                      if (/^\s*(const |let |var |function |=>|console\.log|import .* from)/m.test(t)) return "javascript";
+                      if (/^\s*(public\s+class|System\.out|import\s+java\.)/m.test(t)) return "java";
+                      if (/^\s*(#include|int main|cout|std::)/m.test(t)) return "cpp";
+                      if (/^\s*(fn main|let mut|println!|use std)/m.test(t)) return "rust";
+                      if (/^\s*(package main|import "fmt"|func main)/m.test(t)) return "go";
+                      if (/^\s*(#!\/bin\/bash|echo |if \[|for .* in)/m.test(t)) return "bash";
+                      if (/^\s*(<\?php|echo\s|function\s+\w+\s*\()/m.test(t)) return "php";
+                      return "plaintext";
+                    };
                     return !inline && match ? (
                       <CodeBlock code={codeStr} language={match[1]} isCoder={isCoder} />
                     ) : !inline && codeStr.includes("\n") ? (
-                      // #13 - Auto-detect untagged code blocks
-                      <CodeBlock code={codeStr} language="plaintext" isCoder={isCoder} />
+                      <CodeBlock code={codeStr} language={detectBlockLang(codeStr)} isCoder={isCoder} />
                     ) : (
                       <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono border border-border/40" {...props}>{children}</code>
                     );
@@ -1768,13 +1793,16 @@ const PG_LANGUAGES = [
   { id: "css", name: "CSS", icon: Palette, color: "text-purple-400", canRun: true },
   { id: "python", name: "Python", icon: Terminal, color: "text-green-400", canRun: true },
   { id: "typescript", name: "TypeScript", icon: Braces, color: "text-blue-400", canRun: true },
+  { id: "bash", name: "Bash", icon: Terminal, color: "text-green-300", canRun: true },
+  { id: "go", name: "Go", icon: Zap, color: "text-cyan-300", canRun: true },
+  { id: "rust", name: "Rust", icon: Lock, color: "text-orange-500", canRun: true },
+  { id: "java", name: "Java", icon: Package, color: "text-red-400", canRun: true },
+  { id: "cpp", name: "C++", icon: Cpu, color: "text-blue-300", canRun: true },
+  { id: "c", name: "C", icon: Cpu, color: "text-blue-200", canRun: true },
+  { id: "ruby", name: "Ruby", icon: Sparkles, color: "text-red-500", canRun: true },
+  { id: "php", name: "PHP", icon: Code2, color: "text-indigo-400", canRun: true },
   { id: "sql", name: "SQL", icon: Database, color: "text-cyan-400", canRun: false },
   { id: "json", name: "JSON", icon: Brackets, color: "text-yellow-300", canRun: false },
-  { id: "bash", name: "Bash", icon: Terminal, color: "text-green-300", canRun: false },
-  { id: "rust", name: "Rust", icon: Lock, color: "text-orange-500", canRun: false },
-  { id: "go", name: "Go", icon: Zap, color: "text-cyan-300", canRun: false },
-  { id: "java", name: "Java", icon: Package, color: "text-red-400", canRun: false },
-  { id: "cpp", name: "C++", icon: Cpu, color: "text-blue-300", canRun: false },
 ];
 
 const STARTER_CODE: Record<string, string> = {
@@ -1789,7 +1817,10 @@ const STARTER_CODE: Record<string, string> = {
   rust: `// Rust - Display mode\n\nfn main() {\n    let numbers = vec![1, 2, 3, 4, 5];\n    let sum: i32 = numbers.iter().sum();\n    println!("Sum: {}", sum);\n}`,
   go: `// Go - Display mode\n\npackage main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello from My Ai Coder!")\n}`,
   java: `// Java - Display mode\n\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello from My Ai Coder!");\n    }\n}`,
-  cpp: `// C++ - Display mode\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello from My Ai Coder!" << endl;\n    return 0;\n}`,
+  cpp: `// C++ - Runs on server!\n\n#include <iostream>\n#include <vector>\n#include <algorithm>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {5, 3, 8, 1, 9, 2, 7};\n    sort(nums.begin(), nums.end());\n    cout << "Sorted: ";\n    for (int n : nums) cout << n << " ";\n    cout << endl;\n    cout << "Hello from My Ai Coder! 🚀" << endl;\n    return 0;\n}`,
+  c: `// C - Runs on server!\n\n#include <stdio.h>\n\nint factorial(int n) {\n    if (n <= 1) return 1;\n    return n * factorial(n - 1);\n}\n\nint main() {\n    for (int i = 1; i <= 10; i++) {\n        printf("%d! = %d\\n", i, factorial(i));\n    }\n    printf("Hello from My Ai Coder! 🚀\\n");\n    return 0;\n}`,
+  ruby: `# Ruby - Runs on server!\n\ndef fizzbuzz(n)\n  (1..n).each do |i|\n    if i % 15 == 0\n      puts "FizzBuzz"\n    elsif i % 3 == 0\n      puts "Fizz"\n    elsif i % 5 == 0\n      puts "Buzz"\n    else\n      puts i\n    end\n  end\nend\n\nputs "FizzBuzz 1-20:"\nfizzbuzz(20)\nputs "\\nHello from My Ai Coder! 🚀"`,
+  php: `<?php\n// PHP - Runs on server!\n\nfunction fibonacci($n) {\n    $a = 0; $b = 1;\n    $result = [];\n    for ($i = 0; $i < $n; $i++) {\n        $result[] = $a;\n        [$a, $b] = [$b, $a + $b];\n    }\n    return $result;\n}\n\n$fibs = fibonacci(15);\necho "Fibonacci: " . implode(", ", $fibs) . "\\n";\necho "Hello from My Ai Coder! 🚀\\n";\n?>`,
 };
 
 function ProjectsPanel({ loadProjects, openProject, createProject, activeProject, projectFiles, activeFile, setActiveFile, addFileToProject, onClose }: any) {
@@ -1980,6 +2011,21 @@ function CodePlayground() {
     setOutput([]);
     toast({ title: `Loaded: ${t.name}` });
   }, [toast]);
+
+  useEffect(() => {
+    const pendingCode = sessionStorage.getItem("playground_code");
+    const pendingLang = sessionStorage.getItem("playground_lang");
+    if (pendingCode) {
+      setCode(pendingCode);
+      if (pendingLang) {
+        const validLang = PG_LANGUAGES.find(l => l.id === pendingLang);
+        if (validLang) setLang(pendingLang);
+      }
+      sessionStorage.removeItem("playground_code");
+      sessionStorage.removeItem("playground_lang");
+      setOutput(["Code loaded from AI Coder. Press Run to execute!"]);
+    }
+  }, []);
 
   const langInfo = PG_LANGUAGES.find(l => l.id === lang)!;
 
@@ -2331,7 +2377,15 @@ ${brokenCode.substring(0, 2000)}
       else if (detected === "css" && lang !== "css") { effectiveLang = "css"; setLang("css"); }
     }
 
+    const SERVER_ONLY_LANGS = new Set(["bash", "go", "rust", "java", "cpp", "c++", "c", "ruby", "php", "perl"]);
+
     if (execMode === "server" && (effectiveLang === "javascript" || effectiveLang === "typescript" || effectiveLang === "python" || effectiveLang === "bash")) {
+      await runOnServer(code, effectiveLang);
+      return;
+    }
+
+    if (SERVER_ONLY_LANGS.has(effectiveLang)) {
+      setOutput([`⚡ ${effectiveLang.toUpperCase()} runs on the server. Executing...`]);
       await runOnServer(code, effectiveLang);
       return;
     }
@@ -2340,18 +2394,16 @@ ${brokenCode.substring(0, 2000)}
       runJS(code);
     } else if (effectiveLang === "html") {
       setShowPreview(true);
-      setOutput(["✓ HTML rendered in preview panel"]);
+      setOutput(["✓ HTML rendered in preview panel — click the Preview tab to see it"]);
       setIsRunning(false);
     } else if (effectiveLang === "css") {
       setShowPreview(true);
-      setOutput(["✓ CSS applied to preview panel"]);
+      setOutput(["✓ CSS applied to preview panel — click the Preview tab to see it"]);
       setIsRunning(false);
     } else if (effectiveLang === "python") {
       await runPython(code);
-    } else if (effectiveLang === "bash") {
-      await runOnServer(code, "bash");
     } else {
-      setOutput([`Language: ${effectiveLang}`, "", "Switch to Server mode to run this language,", "or use JavaScript/Python/HTML/CSS for browser execution."]);
+      setOutput([`Language: ${effectiveLang}`, "", "This language is view-only in the playground.", "Try JavaScript, Python, HTML, CSS, or switch to Server mode."]);
       setIsRunning(false);
     }
   }, [code, lang, detectLang, runJS, runPython, execMode, runOnServer]);
@@ -2523,14 +2575,15 @@ ${brokenCode.substring(0, 2000)}
         <div className="flex-1" />
 
         <div className="flex items-center gap-0.5 bg-muted/30 rounded-lg p-0.5 shrink-0">
-          {PG_LANGUAGES.slice(0, 6).map(l => (
+          {PG_LANGUAGES.slice(0, 5).map(l => (
             <button key={l.id} onClick={() => switchLang(l.id)}
               className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] transition-all ${lang === l.id ? "bg-white shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}>
-              <l.icon size={10} className={l.color} />{l.name}
+              <l.icon size={10} className={l.color} /><span className="hidden sm:inline">{l.name}</span>
             </button>
           ))}
-          <select value={lang} onChange={e => switchLang(e.target.value)} className="text-[10px] bg-transparent border-none focus:outline-none text-muted-foreground cursor-pointer px-0.5">
-            {PG_LANGUAGES.slice(6).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          <select value={PG_LANGUAGES.slice(0, 5).find(l => l.id === lang) ? "" : lang} onChange={e => { if (e.target.value) switchLang(e.target.value); }} className="text-[10px] bg-transparent border-none focus:outline-none text-muted-foreground cursor-pointer px-0.5">
+            <option value="" disabled>More...</option>
+            {PG_LANGUAGES.slice(5).map(l => <option key={l.id} value={l.id}>{l.name}{l.canRun ? " ▶" : ""}</option>)}
           </select>
         </div>
 
@@ -2679,7 +2732,7 @@ ${brokenCode.substring(0, 2000)}
       )}
 
       {/* Main Editor + Output */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Multi-file sidebar */}
         {activeProject && projectFiles.length > 0 && (
           <div className="w-40 bg-zinc-900 border-r border-zinc-800 flex flex-col">
@@ -2704,7 +2757,7 @@ ${brokenCode.substring(0, 2000)}
         )}
 
         {/* Code Editor */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 h-[60%] md:h-full">
           <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
             <div className="flex items-center gap-2">
               <div className="flex gap-1"><div className="w-2.5 h-2.5 rounded-full bg-red-500/80"/><div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"/><div className="w-2.5 h-2.5 rounded-full bg-green-500/80"/></div>
@@ -2760,7 +2813,7 @@ ${brokenCode.substring(0, 2000)}
         </div>
 
         {/* Output / Preview panel */}
-        <div className="w-[45%] flex flex-col border-l border-zinc-800 bg-zinc-950 min-w-0">
+        <div className="w-full md:w-[45%] h-[40%] md:h-full flex flex-col border-t md:border-t-0 md:border-l border-zinc-800 bg-zinc-950 min-w-0">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
             <div className="flex gap-1">
               <button onClick={() => setShowPreview(false)} className={`px-2 py-0.5 rounded text-[11px] transition-colors ${!showPreview ? "bg-zinc-800 text-zinc-300" : "text-zinc-600 hover:text-zinc-400"}`}>Console</button>
@@ -2773,7 +2826,7 @@ ${brokenCode.substring(0, 2000)}
           </div>
 
           {showPreview && (lang === "html" || lang === "css") ? (
-            <iframe ref={iframeRef} srcDoc={previewHtml} sandbox="allow-scripts" className="flex-1 bg-white" title="preview" />
+            <iframe ref={iframeRef} srcDoc={previewHtml} sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups" className="flex-1 bg-white" title="preview" />
           ) : (
             <div className="flex-1 overflow-auto p-4 font-mono text-sm" style={{ fontSize: `${settings.fontSize - 1}px` }}>
               {output.length === 0 ? (
