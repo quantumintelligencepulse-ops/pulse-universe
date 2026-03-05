@@ -23,7 +23,7 @@ import {
   ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight,
   Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
-  LogIn, LogOut, Mail, KeyRound
+  LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
@@ -120,12 +120,20 @@ type AppSettings = {
   feedRefreshInterval: number;
   chatBubbleStyle: "rounded" | "sharp" | "minimal";
   displayName: string;
+  language: string;
+  responseStyle: "concise" | "balanced" | "detailed";
+  responseLength: "short" | "medium" | "long";
+  aiPersonality: "professional" | "friendly" | "casual" | "mentor";
+  useEmojis: boolean;
+  greetingName: string;
 };
 const defaultAppSettings: AppSettings = {
   darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
   hiddenPages: [], autoScroll: true, messageSound: false, compactMode: false,
   showTimestamps: true, feedAutoRefresh: false, feedRefreshInterval: 30,
   chatBubbleStyle: "rounded", displayName: "",
+  language: "en", responseStyle: "balanced", responseLength: "medium",
+  aiPersonality: "friendly", useEmojis: true, greetingName: "",
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
@@ -1025,36 +1033,74 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
 
 // ─── SUGGESTIONS ─────────────────────────────────────────────────────────────
 
-const GENERAL_SUGGESTIONS = [
+const ALL_GENERAL_SUGGESTIONS = [
   { icon: Sparkles, text: "Explain quantum computing in simple terms", color: "text-amber-500", cat: "Science" },
   { icon: Globe, text: "What are the biggest tech trends in 2026?", color: "text-blue-500", cat: "Trends" },
   { icon: Lightbulb, text: "Give me 10 creative startup ideas", color: "text-yellow-500", cat: "Ideas" },
   { icon: BookOpen, text: "Write a professional email declining a job offer", color: "text-purple-500", cat: "Writing" },
   { icon: Shield, text: "Explain cryptocurrency and blockchain to a beginner", color: "text-emerald-500", cat: "Finance" },
   { icon: BarChart3, text: "Help me create a weekly productivity plan", color: "text-pink-500", cat: "Planning" },
+  { icon: Brain, text: "How does artificial intelligence actually learn?", color: "text-violet-500", cat: "AI" },
+  { icon: Heart, text: "Write a heartfelt birthday message for my best friend", color: "text-red-400", cat: "Writing" },
+  { icon: TrendingUp, text: "What stocks should I watch this week?", color: "text-green-500", cat: "Finance" },
+  { icon: Globe, text: "Teach me basic phrases in Japanese", color: "text-cyan-500", cat: "Language" },
+  { icon: Lightbulb, text: "How can I improve my public speaking skills?", color: "text-orange-500", cat: "Growth" },
+  { icon: BookOpen, text: "Summarize the key ideas from Atomic Habits", color: "text-indigo-500", cat: "Books" },
+  { icon: Sparkles, text: "Write a short sci-fi story about time travel", color: "text-purple-400", cat: "Creative" },
+  { icon: BarChart3, text: "Create a personal budget template for me", color: "text-emerald-500", cat: "Finance" },
+  { icon: Cpu, text: "Explain how neural networks work like I'm 10", color: "text-blue-400", cat: "Science" },
+  { icon: Lightbulb, text: "Give me 5 side hustle ideas I can start today", color: "text-amber-400", cat: "Ideas" },
+  { icon: Globe, text: "What's happening in world news right now?", color: "text-teal-500", cat: "News" },
+  { icon: Heart, text: "How do I deal with stress and anxiety?", color: "text-pink-400", cat: "Wellness" },
+  { icon: BookOpen, text: "Help me write a compelling cover letter", color: "text-blue-500", cat: "Career" },
+  { icon: Sparkles, text: "Come up with a viral social media content strategy", color: "text-orange-400", cat: "Marketing" },
+  { icon: Brain, text: "Explain the theory of relativity simply", color: "text-yellow-500", cat: "Science" },
+  { icon: Shield, text: "What are the best practices for online privacy?", color: "text-green-600", cat: "Security" },
+  { icon: Lightbulb, text: "Design a 30-day fitness challenge for beginners", color: "text-red-500", cat: "Health" },
+  { icon: Globe, text: "Plan a 7-day trip to Tokyo on a budget", color: "text-cyan-400", cat: "Travel" },
+  { icon: BarChart3, text: "Explain how compound interest works", color: "text-emerald-400", cat: "Finance" },
+  { icon: BookOpen, text: "Write a poem about the ocean at sunset", color: "text-purple-500", cat: "Creative" },
+  { icon: Sparkles, text: "What skills will be most valuable in 5 years?", color: "text-blue-500", cat: "Future" },
+  { icon: Heart, text: "Give me tips for better sleep habits", color: "text-indigo-400", cat: "Wellness" },
+  { icon: Lightbulb, text: "How do I learn a new language fast?", color: "text-amber-500", cat: "Learning" },
+  { icon: Brain, text: "Explain the difference between AI, ML, and deep learning", color: "text-violet-400", cat: "Tech" },
 ];
 
-// #18 - Categorized coder suggestions
-const CODER_CATEGORIES = [
+function pickRandom<T>(arr: T[], count: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+const ALL_CODER_CATEGORIES = [
   { name: "Full Stack", items: [
     { icon: Rocket, text: "Build a complete SaaS app with auth, billing, and dashboard", color: "text-blue-500" },
     { icon: Globe, text: "Create a real-time chat app with WebSockets", color: "text-cyan-500" },
+    { icon: Layers, text: "Build a full-stack blog with comments and likes", color: "text-violet-500" },
+    { icon: Database, text: "Create a project management tool with drag-and-drop", color: "text-indigo-500" },
   ]},
   { name: "Backend", items: [
     { icon: Database, text: "Design a scalable REST API with rate limiting and caching", color: "text-green-500" },
     { icon: Lock, text: "Implement JWT authentication with refresh tokens", color: "text-amber-500" },
+    { icon: Zap, text: "Build a GraphQL API with subscriptions", color: "text-yellow-500" },
+    { icon: Shield, text: "Create a secure file upload system with validation", color: "text-emerald-500" },
   ]},
   { name: "Frontend", items: [
     { icon: Braces, text: "Build an interactive data dashboard with React and D3", color: "text-purple-500" },
     { icon: Smartphone, text: "Create a responsive e-commerce product page", color: "text-pink-500" },
+    { icon: Palette, text: "Build a design system with reusable components", color: "text-orange-500" },
+    { icon: Wand2, text: "Create smooth page transitions and animations", color: "text-cyan-400" },
   ]},
   { name: "DevOps", items: [
     { icon: Cloud, text: "Set up a CI/CD pipeline with Docker and GitHub Actions", color: "text-teal-500" },
     { icon: Package, text: "Create a microservices architecture with Docker Compose", color: "text-indigo-500" },
+    { icon: Terminal, text: "Write infrastructure as code with Terraform", color: "text-green-400" },
+    { icon: Gauge, text: "Set up application monitoring with Prometheus and Grafana", color: "text-amber-400" },
   ]},
   { name: "Debug & Test", items: [
     { icon: Bug, text: "Debug and fix my code with detailed explanations", color: "text-red-500" },
     { icon: FlaskConical, text: "Write comprehensive tests with 100% coverage", color: "text-orange-500" },
+    { icon: Search, text: "Find and fix performance bottlenecks in my app", color: "text-blue-400" },
+    { icon: Shield, text: "Audit my code for security vulnerabilities", color: "text-red-400" },
   ]},
 ];
 
@@ -1221,6 +1267,11 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   const isCoder = defaultType === "coder";
   const isEmpty = messages.length === 0 && localMessages.length === 0;
 
+  const [generalSuggestions] = useState(() => pickRandom(ALL_GENERAL_SUGGESTIONS, 6));
+  const [coderCategories] = useState(() =>
+    ALL_CODER_CATEGORIES.map(cat => ({ ...cat, items: pickRandom(cat.items, 2) }))
+  );
+
   // #23 - Code block extraction from conversation
   const allCodeBlocks = useMemo(() => {
     const blocks: { code: string; language: string; msgIndex: number }[] = [];
@@ -1247,6 +1298,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   const [limitReached, setLimitReached] = useState(isLimitReached());
   useEffect(() => { setLimitReached(isLimitReached()); }, [user]);
 
+  const { settings: appSettingsForChat } = useAppSettings();
   const handleSend = useCallback(async (content: string) => {
     if (isLimitReached()) { setLimitReached(true); return; }
     const newCount = incrementMessageCount();
@@ -1264,7 +1316,15 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
         const c = await r.json(); targetChatId = c.id;
         qc.invalidateQueries({ queryKey: [api.chats.list.path] });
       }
-      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }), credentials: "include" });
+      const personalization = {
+        language: appSettingsForChat.language,
+        responseStyle: appSettingsForChat.responseStyle,
+        responseLength: appSettingsForChat.responseLength,
+        aiPersonality: appSettingsForChat.aiPersonality,
+        useEmojis: appSettingsForChat.useEmojis,
+        greetingName: appSettingsForChat.greetingName || appSettingsForChat.displayName,
+      };
+      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content, personalization }), credentials: "include" });
       trackInteraction("chat_message", { text: content, topic: content.slice(0, 60) });
       if (!r.ok) throw new Error("Failed to get response");
       if (!chatId) { setLocation(`/chat/${targetChatId}`); } else { qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] }); setLocalMessages([]); }
@@ -1273,7 +1333,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setLocalMessages(prev => prev.filter(m => m.content !== content));
     } finally { setIsThinking(false); }
-  }, [chatId, defaultType, qc, setLocation, toast]);
+  }, [chatId, defaultType, qc, setLocation, toast, appSettingsForChat]);
 
   const handleRegenerate = useCallback(async () => {
     if (!chatId || messages.length < 2) return;
@@ -1383,7 +1443,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
                 </div>
                 {/* #18 - Categorized suggestions */}
                 <div className="w-full max-w-4xl space-y-3 mt-2">
-                  {CODER_CATEGORIES.map((cat, ci) => (
+                  {coderCategories.map((cat, ci) => (
                     <div key={ci}>
                       <div className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest mb-1.5 text-left px-1">{cat.name}</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1402,7 +1462,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
             )}
             {!isCoder && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-4 max-w-3xl w-full">
-                {GENERAL_SUGGESTIONS.map((s, i) => (
+                {generalSuggestions.map((s, i) => (
                   <button key={i} onClick={() => handleSend(s.text)} data-testid={`button-suggestion-${i}`}
                     className="p-3.5 text-sm text-left border border-border/30 rounded-xl bg-white hover:bg-muted/20 hover:shadow-md hover:border-border/60 transition-all group">
                     <div className="flex items-center gap-2 mb-1.5">
@@ -1626,6 +1686,22 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
             <span className="flex-1">AI Studio</span>
             <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("games") && (
+          <Link href="/games" data-testid="link-games"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/games" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/games" ? "bg-rose-500/15" : "bg-rose-500/5"}`}><Gamepad2 size={14} className="text-rose-600" /></div>
+            <span className="flex-1">Games</span>
+            <span className="text-[9px] bg-gradient-to-r from-rose-500 to-red-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("music") && (
+          <Link href="/music" data-testid="link-music"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/music" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/music" ? "bg-sky-500/15" : "bg-sky-500/5"}`}><Music size={14} className="text-sky-600" /></div>
+            <span className="flex-1">Music</span>
+            <span className="text-[9px] bg-gradient-to-r from-sky-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           )}
         </div>
@@ -4625,6 +4701,8 @@ function SettingsPage() {
     { id: "social", name: "Social", icon: Users, color: "text-purple-600", desc: "Public social network" },
     { id: "create", name: "AI Studio", icon: Paintbrush, color: "text-pink-600", desc: "AI image & video generation" },
     { id: "coder", name: "My Ai Coder", icon: Code2, color: "text-blue-600", desc: "AI coding assistant" },
+    { id: "games", name: "Games", icon: Gamepad2, color: "text-rose-600", desc: "Fun games & entertainment" },
+    { id: "music", name: "Music", icon: Music, color: "text-sky-600", desc: "Music player & discovery" },
   ];
 
   const bgPresets = [
@@ -4642,6 +4720,7 @@ function SettingsPage() {
 
   const sections = [
     { id: "appearance", name: "Appearance", icon: Palette },
+    { id: "personalization", name: "My AI", icon: Smile },
     { id: "pages", name: "Pages", icon: Layers },
     { id: "chat", name: "Chat", icon: MessageSquare },
     { id: "feed-settings", name: "Feed", icon: Newspaper },
@@ -4780,6 +4859,104 @@ function SettingsPage() {
                 <input value={settings.displayName} onChange={e => update({ displayName: e.target.value })} placeholder="Your name (optional)"
                   className="w-full px-3 py-2 text-sm border border-border/30 rounded-lg focus:outline-none focus:border-orange-300 bg-muted/10 dark:bg-gray-800" data-testid="input-display-name" />
                 <p className="text-[10px] text-muted-foreground/50 mt-1">Shown in social posts and comments</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "personalization" && (
+          <div className="space-y-5" data-testid="settings-section-personalization">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Languages size={15} /> Language</h3>
+              <div className="mb-4">
+                <div className="text-sm font-medium mb-2">AI Response Language</div>
+                <div className="text-xs text-muted-foreground mb-2">Choose the language for AI responses</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { code: "en", name: "English" }, { code: "es", name: "Espanol" }, { code: "fr", name: "Francais" },
+                    { code: "de", name: "Deutsch" }, { code: "pt", name: "Portugues" }, { code: "zh", name: "Chinese" },
+                    { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" }, { code: "ar", name: "Arabic" },
+                    { code: "hi", name: "Hindi" }, { code: "ru", name: "Russian" }, { code: "it", name: "Italiano" },
+                  ] as const).map(lang => (
+                    <button key={lang.code} onClick={() => update({ language: lang.code })} data-testid={`lang-${lang.code}`}
+                      className={`py-2 px-2 rounded-lg text-xs font-medium border transition-all ${settings.language === lang.code ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {lang.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Smile size={15} /> AI Personality</h3>
+              <div className="grid grid-cols-2 gap-2 mb-5">
+                {([
+                  { id: "professional" as const, label: "Professional", desc: "Formal and precise", icon: Shield },
+                  { id: "friendly" as const, label: "Friendly", desc: "Warm and approachable", icon: Heart },
+                  { id: "casual" as const, label: "Casual", desc: "Relaxed and fun", icon: Smile },
+                  { id: "mentor" as const, label: "Mentor", desc: "Teaching and guiding", icon: Brain },
+                ]).map(p => (
+                  <button key={p.id} onClick={() => update({ aiPersonality: p.id })} data-testid={`personality-${p.id}`}
+                    className={`p-3 rounded-xl border text-left transition-all ${settings.aiPersonality === p.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "border-border/30 hover:border-border"}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p.icon size={14} className={settings.aiPersonality === p.id ? "text-orange-500" : "text-muted-foreground"} />
+                      <span className="text-sm font-medium">{p.label}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{p.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Gauge size={15} /> Response Style</h3>
+              <div className="mb-5">
+                <div className="text-sm font-medium mb-2">Response Detail Level</div>
+                <div className="flex gap-2">
+                  {([
+                    { id: "concise" as const, label: "Concise", desc: "Quick, to-the-point" },
+                    { id: "balanced" as const, label: "Balanced", desc: "Right amount of detail" },
+                    { id: "detailed" as const, label: "Detailed", desc: "In-depth explanations" },
+                  ]).map(style => (
+                    <button key={style.id} onClick={() => update({ responseStyle: style.id })} data-testid={`style-${style.id}`}
+                      className={`flex-1 py-3 px-2 rounded-xl border text-center transition-all ${settings.responseStyle === style.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20" : "border-border/30 hover:border-border"}`}>
+                      <div className="text-xs font-medium mb-0.5">{style.label}</div>
+                      <div className="text-[10px] text-muted-foreground">{style.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-5">
+                <div className="text-sm font-medium mb-2">Response Length</div>
+                <div className="flex gap-2">
+                  {([
+                    { id: "short" as const, label: "Short" },
+                    { id: "medium" as const, label: "Medium" },
+                    { id: "long" as const, label: "Long" },
+                  ]).map(len => (
+                    <button key={len.id} onClick={() => update({ responseLength: len.id })} data-testid={`length-${len.id}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.responseLength === len.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {len.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Use Emojis</div>
+                  <div className="text-xs text-muted-foreground">Let AI use emojis in responses</div>
+                </div>
+                <ToggleSwitch on={settings.useEmojis} onToggle={() => update({ useEmojis: !settings.useEmojis })} testId="toggle-emojis" />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><User size={15} /> Greeting</h3>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">What should AI call you?</label>
+                <input value={settings.greetingName} onChange={e => update({ greetingName: e.target.value })} placeholder="e.g. Boss, Friend, Chief..."
+                  className="w-full px-3 py-2 text-sm border border-border/30 rounded-lg focus:outline-none focus:border-orange-300 bg-muted/10 dark:bg-gray-800" data-testid="input-greeting-name" />
+                <p className="text-[10px] text-muted-foreground/50 mt-1">AI will use this when greeting you or addressing you</p>
               </div>
             </div>
           </div>
@@ -5028,6 +5205,54 @@ function SocialPageWrapper() {
   </div></Layout>;
 }
 
+function GamesPageWrapper() {
+  useEffect(() => { updateSEO({ title: "Games - Coming Soon | My Ai Gpt", description: "Fun games and entertainment coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Games - Coming Soon", ogDesc: "Games and entertainment coming soon.", ogType: "website", canonical: window.location.origin + "/games" }); }, []);
+  return <Layout><div className="flex-1 flex items-center justify-center p-6">
+    <div className="text-center max-w-md">
+      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-xl animate-[bounce_3s_ease-in-out_infinite]">
+        <Gamepad2 size={36} className="text-white" />
+      </div>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-games-title">Games</h1>
+      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500/10 via-red-500/10 to-rose-500/10 rounded-full border border-rose-200/50 mb-3 relative overflow-hidden animate-pulse">
+        <Sparkles size={14} className="text-rose-500 animate-spin" style={{ animationDuration: "3s" }} />
+        <span className="text-sm font-bold bg-gradient-to-r from-rose-500 to-red-600 bg-clip-text text-transparent">Coming Soon</span>
+        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
+      </div>
+      <p className="text-muted-foreground text-sm mt-2">Fun games, trivia, puzzles, and more — Billy Banks is cooking up something amazing.</p>
+      <div className="flex flex-wrap justify-center gap-2 mt-4">
+        {["Trivia", "Word Games", "Puzzles", "Brain Teasers", "AI Challenges"].map(g => (
+          <span key={g} className="text-[10px] px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-full font-medium border border-rose-200/50 dark:border-rose-800/30">{g}</span>
+        ))}
+      </div>
+      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for anything you need!</p>
+    </div>
+  </div></Layout>;
+}
+
+function MusicPageWrapper() {
+  useEffect(() => { updateSEO({ title: "Music - Coming Soon | My Ai Gpt", description: "Music player and discovery coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Music - Coming Soon", ogDesc: "Music player coming soon.", ogType: "website", canonical: window.location.origin + "/music" }); }, []);
+  return <Layout><div className="flex-1 flex items-center justify-center p-6">
+    <div className="text-center max-w-md">
+      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-xl">
+        <Headphones size={36} className="text-white animate-pulse" />
+      </div>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-music-title">Music</h1>
+      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500/10 via-blue-500/10 to-sky-500/10 rounded-full border border-sky-200/50 mb-3 relative overflow-hidden animate-pulse">
+        <Music size={14} className="text-sky-500" />
+        <span className="text-sm font-bold bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">Coming Soon</span>
+        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
+      </div>
+      <p className="text-muted-foreground text-sm mt-2">Discover music, create playlists, and vibe — Billy Banks is crafting something special.</p>
+      <div className="flex flex-wrap justify-center gap-2 mt-4">
+        {["AI Playlists", "Music Discovery", "Mood Radio", "Lo-fi Beats", "Podcast Hub"].map(f => (
+          <span key={f} className="text-[10px] px-3 py-1.5 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-full font-medium border border-sky-200/50 dark:border-sky-800/30">{f}</span>
+        ))}
+      </div>
+      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for anything you need!</p>
+    </div>
+  </div></Layout>;
+}
+
 function ChatViewPage() {
   const [, params] = useRoute("/chat/:id");
   const chatId = params?.id ? parseInt(params.id, 10) : undefined;
@@ -5063,6 +5288,8 @@ function Router() {
       <Route path="/feed" component={FeedPage} />
       <Route path="/social" component={SocialPageWrapper} />
       <Route path="/create" component={AIStudioPageWrapper} />
+      <Route path="/games" component={GamesPageWrapper} />
+      <Route path="/music" component={MusicPageWrapper} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

@@ -2175,12 +2175,20 @@ ${entries}
     res.json(await storage.getMessages(chatId));
   });
 
+  function getUserCodesDir(req: any): string {
+    const userId = getSessionUserId(req);
+    const userDir = userId ? path.join(CODES_DIR, String(userId)) : CODES_DIR;
+    if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
+    return userDir;
+  }
+
   app.post("/api/save-code", async (req, res) => {
     try {
       const { code, filename, language } = req.body;
       if (!code || !filename) return res.status(400).json({ message: "Missing code or filename" });
       const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = path.join(CODES_DIR, safeName);
+      const userDir = getUserCodesDir(req);
+      const filePath = path.join(userDir, safeName);
       fs.writeFileSync(filePath, code, "utf-8");
       res.json({ message: "Code saved", path: filePath, filename: safeName });
     } catch {
@@ -2188,11 +2196,12 @@ ${entries}
     }
   });
 
-  app.get("/api/saved-codes", async (_req, res) => {
+  app.get("/api/saved-codes", async (req, res) => {
     try {
-      const files = fs.readdirSync(CODES_DIR).map(f => {
-        const stat = fs.statSync(path.join(CODES_DIR, f));
-        const content = fs.readFileSync(path.join(CODES_DIR, f), "utf-8");
+      const userDir = getUserCodesDir(req);
+      const files = fs.readdirSync(userDir).filter(f => !fs.statSync(path.join(userDir, f)).isDirectory()).map(f => {
+        const stat = fs.statSync(path.join(userDir, f));
+        const content = fs.readFileSync(path.join(userDir, f), "utf-8");
         const ext = f.split(".").pop() || "";
         return { name: f, size: stat.size, modified: stat.mtime, lines: content.split("\n").length, ext };
       });
@@ -2205,14 +2214,16 @@ ${entries}
 
   app.get("/api/saved-codes/:filename", async (req, res) => {
     const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = path.join(CODES_DIR, safeName);
+    const userDir = getUserCodesDir(req);
+    const filePath = path.join(userDir, safeName);
     if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File not found" });
     res.download(filePath);
   });
 
   app.get("/api/saved-codes/:filename/content", async (req, res) => {
     const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = path.join(CODES_DIR, safeName);
+    const userDir = getUserCodesDir(req);
+    const filePath = path.join(userDir, safeName);
     if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File not found" });
     const content = fs.readFileSync(filePath, "utf-8");
     res.json({ content, filename: safeName });
@@ -2220,7 +2231,8 @@ ${entries}
 
   app.delete("/api/saved-codes/:filename", async (req, res) => {
     const safeName = req.params.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = path.join(CODES_DIR, safeName);
+    const userDir = getUserCodesDir(req);
+    const filePath = path.join(userDir, safeName);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.status(204).send();
   });
@@ -3194,6 +3206,46 @@ If you have live data provided in this prompt, USE IT and present it confidently
         systemPrompt += `\n\n${financeContext}\n\nIMPORTANT: You have LIVE financial data above. Present this data naturally and confidently as current market data. Format prices nicely. Do NOT say you can't access real-time prices. Do NOT tell users to check other websites. You HAVE the data — just present it. Include relevant context like whether the price is up or down, market cap significance, etc.`;
       }
 
+      const personalization = req.body.personalization as { language?: string; responseStyle?: string; responseLength?: string; aiPersonality?: string; useEmojis?: boolean; greetingName?: string } | undefined;
+      if (personalization) {
+        const langMap: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", pt: "Portuguese", zh: "Chinese", ja: "Japanese", ko: "Korean", ar: "Arabic", hi: "Hindi", ru: "Russian", it: "Italian" };
+        const lang = langMap[personalization.language || "en"] || "English";
+        if (lang !== "English") {
+          systemPrompt += `\n\nLANGUAGE: You MUST respond in ${lang}. All your responses should be in ${lang}.`;
+        }
+
+        const personalityInstructions: Record<string, string> = {
+          professional: "Be formal, precise, and business-like. Use proper terminology and structured responses.",
+          friendly: "Be warm, approachable, and encouraging. Use a conversational tone like a supportive friend.",
+          casual: "Be relaxed, fun, and use everyday language. Keep it chill and natural, like texting a buddy.",
+          mentor: "Be patient, educational, and guiding. Explain concepts step-by-step and encourage learning.",
+        };
+        const personality = personalityInstructions[personalization.aiPersonality || "friendly"] || personalityInstructions.friendly;
+
+        const styleInstructions: Record<string, string> = {
+          concise: "Keep responses brief and to the point. No unnecessary filler.",
+          balanced: "Provide a good balance of detail and brevity.",
+          detailed: "Give thorough, in-depth explanations with examples and context.",
+        };
+        const style = styleInstructions[personalization.responseStyle || "balanced"] || styleInstructions.balanced;
+
+        const lengthInstructions: Record<string, string> = {
+          short: "Keep responses under 150 words when possible.",
+          medium: "Aim for moderate length responses (150-400 words).",
+          long: "Give comprehensive, lengthy responses with full detail (400+ words).",
+        };
+        const length = lengthInstructions[personalization.responseLength || "medium"] || lengthInstructions.medium;
+
+        const emojiRule = personalization.useEmojis ? "Feel free to use emojis to make responses more expressive and fun." : "Do NOT use any emojis in your responses.";
+        const greeting = personalization.greetingName ? `When greeting or addressing the user, call them "${personalization.greetingName}".` : "";
+
+        systemPrompt += `\n\nPERSONALIZATION SETTINGS (follow these strictly):
+- Personality: ${personality}
+- Style: ${style}
+- Length: ${length}
+- ${emojiRule}${greeting ? `\n- ${greeting}` : ""}`;
+      }
+
       const chatUserId = req.headers["x-user-id"] as string;
       if (chatUserId) {
         try {
@@ -3202,12 +3254,20 @@ If you have live data provided in this prompt, USE IT and present it confidently
             const topSectors = Object.entries(userPrefs.sectorScores as Record<string, number> || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
             const topTopics = Object.entries(userPrefs.topicScores as Record<string, number> || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
             const topChatTopics = Object.entries(userPrefs.chatTopics as Record<string, number> || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+            const behavior = (userPrefs.behaviorProfile as Record<string, any>) || {};
+            const peakHours = Object.entries(behavior).filter(([k]) => k.startsWith("hour_")).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 3).map(([k]) => k.replace("hour_", ""));
+            const topInteractionTypes = Object.entries(behavior).filter(([k]) => k.startsWith("type_")).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 3).map(([k]) => k.replace("type_", ""));
+
             if (topSectors.length > 0 || topTopics.length > 0) {
-              systemPrompt += `\n\nUSER PROFILE (adapt your tone and depth to this user):`;
+              systemPrompt += `\n\nUSER PROFILE (deeply adapt to this specific user — they are your close friend):`;
               if (topSectors.length > 0) systemPrompt += `\nTop interests: ${topSectors.join(", ")}`;
               if (topTopics.length > 0) systemPrompt += `\nFavorite topics: ${topTopics.join(", ")}`;
               if (topChatTopics.length > 0) systemPrompt += `\nRecent chat focus: ${topChatTopics.join(", ")}`;
-              systemPrompt += `\nTailor your responses to their interests. Use relevant examples from their domains. Be their knowledgeable best friend.`;
+              if (peakHours.length > 0) systemPrompt += `\nMost active hours: ${peakHours.join(", ")}`;
+              if (topInteractionTypes.length > 0) systemPrompt += `\nPreferred activities: ${topInteractionTypes.join(", ")}`;
+              const expertiseLevel = (userPrefs.totalInteractions || 0) > 50 ? "advanced" : (userPrefs.totalInteractions || 0) > 15 ? "intermediate" : "beginner";
+              systemPrompt += `\nUser expertise level: ${expertiseLevel} (${userPrefs.totalInteractions || 0} interactions)`;
+              systemPrompt += `\nTailor your responses deeply to their interests. Use relevant examples from their domains. Reference their interests naturally. Be their knowledgeable best friend who truly knows them.`;
             }
           }
           learnFromInteraction(chatUserId, "chat_message", { text: input.content, topic: chat.title }).catch(() => {});
