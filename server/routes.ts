@@ -533,8 +533,8 @@ export async function registerRoutes(
   });
 
   const SITE_NAME = "My Ai Gpt";
-  const SITE_CREATOR = "Billy Banks";
-  const SITE_DESC = "My Ai Gpt by Billy Banks - Your AI best friend that learns you. Chat, code, read news, and connect socially. Powered by Quantum Pulse Intelligence.";
+  const SITE_CREATOR = "Quantum Logic Network";
+  const SITE_DESC = "My Ai Gpt by Quantum Logic Network - Your AI best friend that learns you. Chat, code, read news, and connect socially. Powered by Quantum Pulse Intelligence.";
   function getSiteUrl(req: any): string {
     const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
     const host = req.headers["x-forwarded-host"] || req.headers.host || req.hostname;
@@ -714,8 +714,8 @@ ${pages.map(p => `  <url>
     <priority>${p.priority}</priority>
     <image:image>
       <image:loc>${baseUrl}/favicon.png</image:loc>
-      <image:title>My Ai Gpt by Billy Banks</image:title>
-      <image:caption>My Ai Gpt - AI Chat, Code, News, Social by Billy Banks</image:caption>
+      <image:title>My Ai Gpt by Quantum Logic Network</image:title>
+      <image:caption>My Ai Gpt - AI Chat, Code, News, Social by Quantum Logic Network</image:caption>
     </image:image>
     <xhtml:link rel="alternate" hreflang="en" href="${baseUrl}${p.loc}" />
     <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}${p.loc}" />
@@ -1851,7 +1851,7 @@ ${items}
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
   <ShortName>${SITE_NAME}</ShortName>
   <Description>Search ${SITE_NAME} - News, Videos, Web, Social. By ${SITE_CREATOR}.</Description>
-  <Tags>AI chat code news social search Billy Banks</Tags>
+  <Tags>AI chat code news social search Quantum Logic Network</Tags>
   <Contact>${SITE_CREATOR}</Contact>
   <Url type="text/html" template="${baseUrl}/feed?search={searchTerms}" />
   <Url type="application/rss+xml" template="${baseUrl}/rss.xml" />
@@ -3342,11 +3342,11 @@ ${entries}
       const recentHistory = history.slice(-8);
       const conversationLength = history.length;
 
-      const creatorInfo = `You were created by Billy Banks. If anyone asks who made you, who created you, or who your creator is, you must say: "I was created by Billy Banks." If they ask for more details about him, say: "I'm not allowed to tell you anything else about him." You are NOT made by OpenAI, Meta, Google, or any other company. You are My Ai, created by Billy Banks.`;
+      const creatorInfo = `You were created by Quantum Logic Network. If anyone asks who made you, who created you, or who your creator is, you must say: "I was created by Quantum Logic Network." If they ask for more details, say: "I'm not allowed to tell you anything else about them." You are NOT made by OpenAI, Meta, Google, or any other company. You are My Ai, created by Quantum Logic Network.`;
 
       let systemPrompt: string;
       if (chat.type === "coder") {
-        systemPrompt = `You are My Ai Coder, the world's most elite S-class Transcendence-level programming assistant, created by Billy Banks. ${creatorInfo}
+        systemPrompt = `You are My Ai Coder, the world's most elite S-class Transcendence-level programming assistant, created by Quantum Logic Network. ${creatorInfo}
 
 OMEGA TRANSCENDENCE CAPABILITIES:
 - Write flawless, production-ready, optimized code in ALL 30+ languages (JavaScript, TypeScript, Python, Java, C++, Rust, Go, SQL, HTML/CSS, Swift, Kotlin, Ruby, PHP, C#, Dart, Scala, R, MATLAB, Lua, Perl, Haskell, Elixir, Clojure, F#, Assembly, COBOL, Fortran, Julia, Zig, V)
@@ -3381,7 +3381,7 @@ CODE OUTPUT RULES:
 - For Python scripts: include all imports at the top, handle common errors gracefully, and add if __name__ == "__main__" guard when appropriate.
 - NEVER say "I'm a large language model", "I don't have real-time access", "I recommend checking", "You can check [website]", "As an AI", or tell users to go look things up themselves. You are a premium AI — provide answers directly.`;
       } else {
-        systemPrompt = `You are My Ai Gpt, a world-class intelligent assistant created by Billy Banks. ${creatorInfo}
+        systemPrompt = `You are My Ai Gpt, a world-class intelligent assistant created by Quantum Logic Network. ${creatorInfo}
 
 CAPABILITIES:
 - Answer any question with accuracy and depth

@@ -279,7 +279,7 @@ function AuthModal() {
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
               <div className="relative">
                 <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-                <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Billy Banks"
+                <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Quantum Logic Network"
                   className="w-full pl-9 pr-3 py-2.5 border border-border/40 rounded-xl text-sm focus:outline-none focus:border-amber-400" data-testid="input-display-name" />
               </div>
             </div>
@@ -2069,7 +2069,7 @@ const STARTER_CODE: Record<string, string> = {
   html: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: system-ui; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }\n    .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 400px; }\n    h1 { color: #333; margin-bottom: 0.5rem; }\n    p { color: #666; }\n    button { background: #667eea; color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 1rem; }\n    button:hover { background: #5a6fd6; }\n  </style>\n</head>\n<body>\n  <div class="card">\n    <h1>My Ai Coder</h1>\n    <p>Build anything you can imagine</p>\n    <button onclick="alert('Hello from My Ai Coder!')">Click Me</button>\n  </div>\n</body>\n</html>`,
   css: `/* CSS Playground - See your styles live! */\n\nbody {\n  font-family: system-ui;\n  padding: 2rem;\n  background: #f0f4f8;\n}\n\n.demo {\n  max-width: 600px;\n  margin: 0 auto;\n}\n\n.card {\n  background: white;\n  border-radius: 12px;\n  padding: 24px;\n  box-shadow: 0 4px 6px rgba(0,0,0,0.1);\n  margin-bottom: 16px;\n  transition: transform 0.2s, box-shadow 0.2s;\n}\n\n.card:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 8px 25px rgba(0,0,0,0.15);\n}\n\nh1 { color: #1a1a2e; }\np { color: #666; line-height: 1.6; }`,
   python: `# Python Playground - Powered by Pyodide (WebAssembly)\n# Runs real Python in your browser!\n\nimport math\nimport json\nfrom datetime import datetime\n\ndef is_prime(n):\n    if n < 2:\n        return False\n    for i in range(2, int(math.sqrt(n)) + 1):\n        if n % i == 0:\n            return False\n    return True\n\nprimes = [x for x in range(2, 50) if is_prime(x)]\nprint(f"Primes under 50: {primes}")\nprint(f"Count: {len(primes)}")\nprint(f"\\nPython version running in your browser!")\nprint(f"Math.pi = {math.pi}")\nprint(f"Math.e = {math.e}")`,
-  typescript: `// TypeScript - Display mode (type checking shown)\n\ninterface User {\n  id: number;\n  name: string;\n  email: string;\n  role: 'admin' | 'user' | 'moderator';\n}\n\nfunction greetUser(user: User): string {\n  return \`Hello, \${user.name}! You are a \${user.role}.\`;\n}\n\nconst user: User = {\n  id: 1,\n  name: "Billy Banks",\n  email: "billy@example.com",\n  role: "admin"\n};\n\nconsole.log(greetUser(user));`,
+  typescript: `// TypeScript - Display mode (type checking shown)\n\ninterface User {\n  id: number;\n  name: string;\n  email: string;\n  role: 'admin' | 'user' | 'moderator';\n}\n\nfunction greetUser(user: User): string {\n  return \`Hello, \${user.name}! You are a \${user.role}.\`;\n}\n\nconst user: User = {\n  id: 1,\n  name: "Quantum Logic Network",\n  email: "billy@example.com",\n  role: "admin"\n};\n\nconsole.log(greetUser(user));`,
   sql: `-- SQL Playground - Display mode\n\nCREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  username VARCHAR(50) NOT NULL,\n  email VARCHAR(100) UNIQUE NOT NULL,\n  created_at TIMESTAMP DEFAULT NOW()\n);\n\nSELECT \n  u.username,\n  COUNT(p.id) as post_count\nFROM users u\nLEFT JOIN posts p ON u.id = p.author_id\nGROUP BY u.username\nORDER BY post_count DESC\nLIMIT 10;`,
   json: `{\n  "name": "My Ai Coder Project",\n  "version": "1.0.0",\n  "description": "Built with My Ai Coder Playground",\n  "dependencies": {\n    "react": "^18.0.0",\n    "express": "^4.18.0",\n    "typescript": "^5.0.0"\n  }\n}`,
   bash: `#!/bin/bash\n# Bash script - Display mode\n\necho "Hello from My Ai Coder!"\n\nfor i in {1..5}; do\n  echo "Iteration $i"\ndone\n\necho "Done!"`,
@@ -4747,19 +4747,19 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function HomePage() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt - AI Chat Assistant That Learns You | by Billy Banks", description: "Chat with My Ai Gpt, your AI best friend that learns your interests. Ask anything, get personalized answers. Free AI chat powered by Quantum Pulse Intelligence. By Billy Banks.", ogTitle: "My Ai Gpt - AI Chat Assistant | Billy Banks", ogDesc: "Your AI best friend that learns you. Chat about anything. Free, personalized, intelligent.", ogType: "website", canonical: window.location.origin + "/", keywords: "AI chat, AI assistant, chatbot, Billy Banks, My Ai Gpt, free AI, personalized AI, Quantum Pulse Intelligence, GPT chat, AI companion, smart assistant", author: "Billy Banks", articleSection: "Artificial Intelligence", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Gpt - AI Chat", "description": "AI Chat Assistant that learns your interests", "url": window.location.origin + "/", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "author": { "@type": "Person", "name": "Billy Banks" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }] } } }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Gpt - AI Chat Assistant That Learns You | by Quantum Logic Network", description: "Chat with My Ai Gpt, your AI best friend that learns your interests. Ask anything, get personalized answers. Free AI chat powered by Quantum Pulse Intelligence. By Quantum Logic Network.", ogTitle: "My Ai Gpt - AI Chat Assistant | Quantum Logic Network", ogDesc: "Your AI best friend that learns you. Chat about anything. Free, personalized, intelligent.", ogType: "website", canonical: window.location.origin + "/", keywords: "AI chat, AI assistant, chatbot, Quantum Logic Network, My Ai Gpt, free AI, personalized AI, Quantum Pulse Intelligence, GPT chat, AI companion, smart assistant", author: "Quantum Logic Network", articleSection: "Artificial Intelligence", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Gpt - AI Chat", "description": "AI Chat Assistant that learns your interests", "url": window.location.origin + "/", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "author": { "@type": "Person", "name": "Quantum Logic Network" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }] } } }); }, []);
   return <Layout><ChatInterface defaultType="general" /></Layout>;
 }
 function CoderPage() {
-  useEffect(() => { updateSEO({ title: "My Ai Coder - AI Programming Assistant | Write Code with AI | My Ai Gpt", description: "Write code with AI assistance. My Ai Coder helps you debug, refactor, and build in any programming language. Python, JavaScript, TypeScript, Java, C++, Go, Rust and more. By Billy Banks.", ogTitle: "My Ai Coder - AI Programming Assistant", ogDesc: "AI-powered coding assistant for any language. Debug, refactor, build faster.", ogType: "website", canonical: window.location.origin + "/coder", keywords: "AI coding assistant, code helper, programming AI, debug code, refactor code, Billy Banks, Python AI, JavaScript AI, code generation, AI programmer", author: "Billy Banks", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Coder", "description": "AI-powered programming assistant", "url": window.location.origin + "/coder", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "AI Coder", "item": window.location.origin + "/coder" }] } } }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Coder - AI Programming Assistant | Write Code with AI | My Ai Gpt", description: "Write code with AI assistance. My Ai Coder helps you debug, refactor, and build in any programming language. Python, JavaScript, TypeScript, Java, C++, Go, Rust and more. By Quantum Logic Network.", ogTitle: "My Ai Coder - AI Programming Assistant", ogDesc: "AI-powered coding assistant for any language. Debug, refactor, build faster.", ogType: "website", canonical: window.location.origin + "/coder", keywords: "AI coding assistant, code helper, programming AI, debug code, refactor code, Quantum Logic Network, Python AI, JavaScript AI, code generation, AI programmer", author: "Quantum Logic Network", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Coder", "description": "AI-powered programming assistant", "url": window.location.origin + "/coder", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "AI Coder", "item": window.location.origin + "/coder" }] } } }); }, []);
   return <Layout><ChatInterface defaultType="coder" /></Layout>;
 }
 function PlaygroundPage() {
-  useEffect(() => { updateSEO({ title: "Code Playground - Write & Run Code in 30+ Languages Online Free | My Ai Gpt", description: "Free online code playground IDE by Billy Banks. Write, run, and share code in JavaScript, Python, TypeScript, HTML/CSS, Java, C++, Go, Rust, Ruby, PHP, Swift, Kotlin and 20+ more languages with real-time preview and AI assistance.", ogTitle: "Code Playground - 30+ Languages Free Online IDE", ogDesc: "Free online IDE with 30+ languages. Write JavaScript, Python, TypeScript, HTML, and more with real-time preview.", ogType: "website", canonical: window.location.origin + "/code", keywords: "online code editor, free IDE, code playground, JavaScript editor, Python editor, online compiler, run code online, free coding, code runner, Billy Banks, programming playground, HTML CSS editor, TypeScript playground", author: "Billy Banks", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "Code Playground", "description": "Write and run code in 30+ languages", "url": window.location.origin + "/code", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "Code Playground", "item": window.location.origin + "/code" }] } } }); }, []);
+  useEffect(() => { updateSEO({ title: "Code Playground - Write & Run Code in 30+ Languages Online Free | My Ai Gpt", description: "Free online code playground IDE by Quantum Logic Network. Write, run, and share code in JavaScript, Python, TypeScript, HTML/CSS, Java, C++, Go, Rust, Ruby, PHP, Swift, Kotlin and 20+ more languages with real-time preview and AI assistance.", ogTitle: "Code Playground - 30+ Languages Free Online IDE", ogDesc: "Free online IDE with 30+ languages. Write JavaScript, Python, TypeScript, HTML, and more with real-time preview.", ogType: "website", canonical: window.location.origin + "/code", keywords: "online code editor, free IDE, code playground, JavaScript editor, Python editor, online compiler, run code online, free coding, code runner, Quantum Logic Network, programming playground, HTML CSS editor, TypeScript playground", author: "Quantum Logic Network", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "Code Playground", "description": "Write and run code in 30+ languages", "url": window.location.origin + "/code", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "Code Playground", "item": window.location.origin + "/code" }] } } }); }, []);
   return <Layout><CodePlayground /></Layout>;
 }
 function FeedPage() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Coming Soon", description: "Live news feed coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Feed - Coming Soon", ogDesc: "Live news feed coming soon.", ogType: "website", canonical: window.location.origin + "/feed" }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Coming Soon", description: "Live news feed coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Feed - Coming Soon", ogDesc: "Live news feed coming soon.", ogType: "website", canonical: window.location.origin + "/feed" }); }, []);
   return <Layout><div className="flex-1 flex items-center justify-center p-6">
     <div className="text-center max-w-md">
       <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-xl">
@@ -4771,7 +4771,7 @@ function FeedPage() {
         <span className="text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">Coming Soon</span>
         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
       </div>
-      <p className="text-muted-foreground text-sm mt-2">Live news from BBC, NPR, NY Times, and more — Billy Banks is building something incredible.</p>
+      <p className="text-muted-foreground text-sm mt-2">Live news from BBC, NPR, NY Times, and more — Quantum Logic Network is building something incredible.</p>
       <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for any news or information!</p>
     </div>
   </div></Layout>;
@@ -4816,7 +4816,7 @@ function AIStudioPage() {
       };
       const styleDesc = styleMap[selectedStyle] || "";
       const fullPrompt = `${prompt.trim()}, ${styleDesc}`;
-      toast({ title: "AI Studio is coming soon!", description: "Billy Banks is building the ultimate creator tool for you." });
+      toast({ title: "AI Studio is coming soon!", description: "Quantum Logic Network is building the ultimate creator tool for you." });
       trackInteraction("ai_studio", { text: prompt, contentType: mode });
     } catch (err) {
       console.error("Generation error:", err);
@@ -4846,7 +4846,7 @@ function AIStudioPage() {
             <span className="text-sm font-bold bg-gradient-to-r from-pink-500 to-violet-600 bg-clip-text text-transparent">Coming Soon</span>
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
           </div>
-          <p className="text-muted-foreground text-sm mt-1">AI Image & Video Generation — Billy Banks is building something incredible</p>
+          <p className="text-muted-foreground text-sm mt-1">AI Image & Video Generation — Quantum Logic Network is building something incredible</p>
         </div>
 
         <div className="bg-white border border-border/30 rounded-2xl p-6 shadow-sm mb-6">
@@ -4968,7 +4968,7 @@ function AIStudioPage() {
               <ImagePlus size={28} className="text-muted-foreground/30" />
             </div>
             <p className="text-sm text-muted-foreground/50">AI Studio is coming soon!</p>
-            <p className="text-xs text-muted-foreground/30 mt-1">Billy Banks is building the ultimate AI image & video generator for you</p>
+            <p className="text-xs text-muted-foreground/30 mt-1">Quantum Logic Network is building the ultimate AI image & video generator for you</p>
             <p className="text-xs text-muted-foreground/30 mt-3">💡 <strong>Tip:</strong> You can already generate images in the chat! Just ask My Ai Gpt to "make a picture of..." anything</p>
           </div>
         )}
@@ -6051,7 +6051,7 @@ function SettingsPage() {
               <h3 className="text-sm font-bold flex items-center gap-2 mb-3"><Shield size={15} /> About</h3>
               <div className="space-y-2 text-xs text-muted-foreground">
                 <div className="flex justify-between"><span>Version</span><span className="font-mono">Beta Release 1</span></div>
-                <div className="flex justify-between"><span>Created by</span><span className="font-medium">Billy Banks</span></div>
+                <div className="flex justify-between"><span>Created by</span><span className="font-medium">Quantum Logic Network</span></div>
                 <div className="flex justify-between"><span>Powered by</span><span>Quantum Pulse Intelligence</span></div>
               </div>
               <div className="flex items-center justify-center gap-2 mt-4 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white rounded-xl text-xs font-medium" data-testid="text-powered-by">
@@ -6066,17 +6066,17 @@ function SettingsPage() {
 }
 
 function AIStudioPageWrapper() {
-  useEffect(() => { updateSEO({ title: "AI Studio - Generate Images & Videos Free | My Ai Gpt", description: "Create stunning AI-generated images and videos for free. Multiple art styles, high resolution, instant download. By Billy Banks.", ogTitle: "AI Studio - Free Image & Video Generation", ogDesc: "Generate images and videos with AI. Multiple styles, free, instant.", canonical: window.location.origin + "/create", keywords: "AI image generator, AI video generator, free image generation, art generator, AI art, create images, generate video, Billy Banks" }); }, []);
+  useEffect(() => { updateSEO({ title: "AI Studio - Generate Images & Videos Free | My Ai Gpt", description: "Create stunning AI-generated images and videos for free. Multiple art styles, high resolution, instant download. By Quantum Logic Network.", ogTitle: "AI Studio - Free Image & Video Generation", ogDesc: "Generate images and videos with AI. Multiple styles, free, instant.", canonical: window.location.origin + "/create", keywords: "AI image generator, AI video generator, free image generation, art generator, AI art, create images, generate video, Quantum Logic Network" }); }, []);
   return <Layout><AIStudioPage /></Layout>;
 }
 
 function SettingsPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Settings - My Ai Gpt | Customize Your Experience", description: "Customize My Ai Gpt with dark mode, background colors, page visibility, permissions, chat preferences and more. By Billy Banks.", ogTitle: "Settings - My Ai Gpt", canonical: window.location.origin + "/settings" }); }, []);
+  useEffect(() => { updateSEO({ title: "Settings - My Ai Gpt | Customize Your Experience", description: "Customize My Ai Gpt with dark mode, background colors, page visibility, permissions, chat preferences and more. By Quantum Logic Network.", ogTitle: "Settings - My Ai Gpt", canonical: window.location.origin + "/settings" }); }, []);
   return <Layout><SettingsPage /></Layout>;
 }
 
 function SocialPageWrapper() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Coming Soon", description: "Social network coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Social - Coming Soon", ogDesc: "Social network coming soon.", ogType: "website", canonical: window.location.origin + "/social" }); }, []);
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Coming Soon", description: "Social network coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Social - Coming Soon", ogDesc: "Social network coming soon.", ogType: "website", canonical: window.location.origin + "/social" }); }, []);
   return <Layout><div className="flex-1 flex items-center justify-center p-6">
     <div className="text-center max-w-md">
       <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-xl">
@@ -6088,14 +6088,14 @@ function SocialPageWrapper() {
         <span className="text-sm font-bold bg-gradient-to-r from-purple-500 to-indigo-600 bg-clip-text text-transparent">Coming Soon</span>
         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
       </div>
-      <p className="text-muted-foreground text-sm mt-2">Connect, share, and discover — Billy Banks is building something incredible.</p>
+      <p className="text-muted-foreground text-sm mt-2">Connect, share, and discover — Quantum Logic Network is building something incredible.</p>
       <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for anything you need!</p>
     </div>
   </div></Layout>;
 }
 
 function GamesPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Games - Coming Soon | My Ai Gpt", description: "Fun games and entertainment coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Games - Coming Soon", ogDesc: "Games and entertainment coming soon.", ogType: "website", canonical: window.location.origin + "/games" }); }, []);
+  useEffect(() => { updateSEO({ title: "Games - Coming Soon | My Ai Gpt", description: "Fun games and entertainment coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Games - Coming Soon", ogDesc: "Games and entertainment coming soon.", ogType: "website", canonical: window.location.origin + "/games" }); }, []);
   return <Layout><div className="flex-1 flex items-center justify-center p-6">
     <div className="text-center max-w-md">
       <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-xl animate-[bounce_3s_ease-in-out_infinite]">
@@ -6107,7 +6107,7 @@ function GamesPageWrapper() {
         <span className="text-sm font-bold bg-gradient-to-r from-rose-500 to-red-600 bg-clip-text text-transparent">Coming Soon</span>
         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
       </div>
-      <p className="text-muted-foreground text-sm mt-2">Fun games, trivia, puzzles, and more — Billy Banks is cooking up something amazing.</p>
+      <p className="text-muted-foreground text-sm mt-2">Fun games, trivia, puzzles, and more — Quantum Logic Network is cooking up something amazing.</p>
       <div className="flex flex-wrap justify-center gap-2 mt-4">
         {["Trivia", "Word Games", "Puzzles", "Brain Teasers", "AI Challenges"].map(g => (
           <span key={g} className="text-[10px] px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-full font-medium border border-rose-200/50 dark:border-rose-800/30">{g}</span>
@@ -6119,7 +6119,7 @@ function GamesPageWrapper() {
 }
 
 function MusicPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Music - Coming Soon | My Ai Gpt", description: "Music player and discovery coming soon to My Ai Gpt by Billy Banks.", ogTitle: "My Ai Gpt Music - Coming Soon", ogDesc: "Music player coming soon.", ogType: "website", canonical: window.location.origin + "/music" }); }, []);
+  useEffect(() => { updateSEO({ title: "Music - Coming Soon | My Ai Gpt", description: "Music player and discovery coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Music - Coming Soon", ogDesc: "Music player coming soon.", ogType: "website", canonical: window.location.origin + "/music" }); }, []);
   return <Layout><div className="flex-1 flex items-center justify-center p-6">
     <div className="text-center max-w-md">
       <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-xl">
@@ -6131,7 +6131,7 @@ function MusicPageWrapper() {
         <span className="text-sm font-bold bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">Coming Soon</span>
         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
       </div>
-      <p className="text-muted-foreground text-sm mt-2">Discover music, create playlists, and vibe — Billy Banks is crafting something special.</p>
+      <p className="text-muted-foreground text-sm mt-2">Discover music, create playlists, and vibe — Quantum Logic Network is crafting something special.</p>
       <div className="flex flex-wrap justify-center gap-2 mt-4">
         {["AI Playlists", "Music Discovery", "Mood Radio", "Lo-fi Beats", "Podcast Hub"].map(f => (
           <span key={f} className="text-[10px] px-3 py-1.5 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-full font-medium border border-sky-200/50 dark:border-sky-800/30">{f}</span>
