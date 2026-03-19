@@ -980,6 +980,11 @@ ${items}
       return res.redirect("/feed");
     }
 
+    // Load AI-written story if available
+    let aiStory: any = null;
+    try { aiStory = await storage.getAiStory(articleId); } catch {}
+    if (aiStory) { try { await storage.incrementStoryViews(articleId); } catch {} }
+
     const relatedArticles = feedCache.articles
       .filter(a => a.id !== articleId && a.source === article.source)
       .slice(0, 6);
@@ -989,8 +994,9 @@ ${items}
 
     const pubDate = new Date(article.pubDate);
     const isVideo = article.type === "video";
-    const articleTitle = `${article.title} | ${SITE_NAME}`;
-    const articleDesc = article.description || `Read this ${article.source} article on ${SITE_NAME}`;
+    const displayTitle = aiStory?.seoTitle || article.title;
+    const articleTitle = `${displayTitle} | ${SITE_NAME}`;
+    const articleDesc = aiStory?.summary || article.description || `Read this ${article.source} article on ${SITE_NAME}`;
 
     const matchedIndustries = getAll().filter(e => {
       const lower = (article.title + " " + article.description).toLowerCase();
@@ -1051,8 +1057,8 @@ ${items}
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
 <title>${escapeXml(articleTitle)}</title>
 <meta name="description" content="${escapeXml(articleDesc)}" />
-<meta name="keywords" content="${escapeXml(article.title.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 10).join(", "))}, ${article.source}, news, ${SITE_NAME}" />
-<meta name="author" content="${escapeXml(article.source)}" />
+<meta name="keywords" content="${escapeXml((aiStory?.keywords || article.title.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 10)).join(", "))}, ${article.source}, news, ${SITE_NAME}" />
+<meta name="author" content="${aiStory ? "Quantum Pulse Intelligence" : escapeXml(article.source)}" />
 <meta name="publisher" content="${SITE_NAME}" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 <meta name="googlebot" content="index, follow, max-image-preview:large" />
@@ -1080,32 +1086,57 @@ ${items}
 <meta name="twitter:site" content="@MyAiGpt" />
 <script type="application/ld+json">${jsonLd}</script>
 <style>
-*{margin:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#fafafa;color:#1a1a1a;line-height:1.7}
-header{background:#fff;border-bottom:1px solid #eee;padding:16px 0}
-.container{max-width:800px;margin:0 auto;padding:0 20px}
-.breadcrumb{font-size:13px;color:#666;margin-bottom:20px;padding-top:20px}
+*{margin:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Georgia,serif;background:#f8f8f6;color:#1a1a1a;line-height:1.75}
+header{background:#fff;border-bottom:2px solid #f97316;padding:14px 0;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.container{max-width:820px;margin:0 auto;padding:0 20px}
+.breadcrumb{font-size:12px;color:#888;margin-bottom:24px;padding-top:28px;font-family:system-ui,sans-serif;letter-spacing:.02em}
 .breadcrumb a{color:#f97316;text-decoration:none}
-.article-header{margin-bottom:24px}
-.source-badge{display:inline-block;background:#f97316;color:#fff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;margin-bottom:12px}
-h1{font-size:28px;font-weight:700;line-height:1.3;margin-bottom:12px}
-.meta{font-size:14px;color:#666;margin-bottom:20px}
-.article-image{width:100%;border-radius:12px;margin-bottom:24px;aspect-ratio:16/9;object-fit:cover}
-.article-body{font-size:16px;margin-bottom:32px}
-.original-link{display:inline-block;background:#f97316;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-bottom:40px}
+.article-meta-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;font-family:system-ui,sans-serif}
+.source-badge{display:inline-block;background:#f97316;color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
+.ai-badge{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em}
+.category-badge{display:inline-block;border:1px solid #e5e7eb;color:#666;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;font-family:system-ui,sans-serif}
+h1.article-title{font-size:clamp(22px,4vw,36px);font-weight:800;line-height:1.25;margin-bottom:16px;color:#111;letter-spacing:-.02em}
+.byline{font-size:14px;color:#555;margin-bottom:6px;font-family:system-ui,sans-serif;border-left:3px solid #f97316;padding-left:12px}
+.byline strong{color:#f97316}
+.read-meta{display:flex;gap:16px;font-size:12px;color:#999;margin-bottom:28px;font-family:system-ui,sans-serif}
+.hero-image{width:100%;border-radius:16px;margin-bottom:32px;aspect-ratio:16/9;object-fit:cover;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.article-body{font-size:17px;margin-bottom:40px;max-width:680px}
+.article-body h2{font-size:22px;font-weight:700;margin:32px 0 12px;color:#111;border-left:4px solid #f97316;padding-left:14px;line-height:1.3}
+.article-body h3{font-size:18px;font-weight:600;margin:24px 0 10px;color:#222}
+.article-body p{margin-bottom:20px;line-height:1.8;color:#2a2a2a}
+.article-body ul,.article-body ol{margin:0 0 20px 24px;line-height:1.8}
+.article-body li{margin-bottom:8px}
+.article-body strong{color:#111;font-weight:700}
+.article-body em{color:#555;font-style:italic}
+.article-body hr{border:none;border-top:2px solid #f0f0f0;margin:32px 0}
+.article-body a{color:#f97316;text-decoration:underline;text-decoration-color:rgba(249,115,22,.4);font-weight:500}
+.article-body a:hover{text-decoration-color:#f97316}
+.article-body blockquote{border-left:4px solid #f97316;padding:12px 20px;margin:24px 0;background:#fff9f5;border-radius:0 8px 8px 0;font-style:italic;color:#555}
+.source-attribution{background:linear-gradient(135deg,#fff9f5,#fff3e8);border:1px solid #fed7aa;border-radius:16px;padding:20px 24px;margin-bottom:32px;font-family:system-ui,sans-serif}
+.source-attribution h4{font-size:13px;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.source-attribution p{font-size:14px;color:#7c2d12;margin:0;line-height:1.6}
+.source-attribution a{color:#ea580c;font-weight:600}
+.original-link{display:inline-flex;align-items:center;gap:8px;background:#f97316;color:#fff;padding:12px 28px;border-radius:12px;text-decoration:none;font-weight:700;margin-bottom:40px;font-size:15px;font-family:system-ui,sans-serif;box-shadow:0 4px 14px rgba(249,115,22,.35)}
 .original-link:hover{background:#ea580c}
-.related{border-top:1px solid #eee;padding-top:32px;margin-top:32px}
-.related h2{font-size:20px;font-weight:700;margin-bottom:16px}
-.related-article{padding:12px 0;border-bottom:1px solid #f0f0f0}
-.related-article h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.related{border-top:2px solid #f0f0f0;padding-top:36px;margin-top:40px}
+.related h2{font-size:22px;font-weight:700;margin-bottom:20px;font-family:system-ui,sans-serif}
+.related-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.related-article{background:#fff;padding:16px;border-radius:12px;border:1px solid #eee;transition:box-shadow .2s}
+.related-article:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.related-article h3{font-size:15px;font-weight:600;margin-bottom:6px;line-height:1.4}
 .related-article a{color:#1a1a1a;text-decoration:none}
 .related-article a:hover{color:#f97316}
-.related-article p{font-size:14px;color:#666;margin-bottom:4px}
-.related-article .source{font-size:12px;color:#999}
-footer{background:#fff;border-top:1px solid #eee;padding:24px 0;margin-top:40px;text-align:center;font-size:13px;color:#999}
+.related-article p{font-size:13px;color:#777;margin-bottom:6px;line-height:1.5}
+.related-article .source{font-size:11px;color:#aaa;font-family:system-ui,sans-serif}
+.views-count{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#aaa;font-family:system-ui,sans-serif}
+footer{background:#fff;border-top:2px solid #f0f0f0;padding:28px 0;margin-top:48px;text-align:center;font-size:13px;color:#999;font-family:system-ui,sans-serif}
 footer a{color:#f97316;text-decoration:none}
-nav.site-nav{text-align:center}
-nav.site-nav a{display:inline-block;margin:0 12px;color:#333;text-decoration:none;font-weight:500;font-size:14px}
-nav.site-nav a:hover{color:#f97316}
+nav.site-nav{display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:center}
+nav.site-nav a{display:inline-block;padding:6px 12px;color:#333;text-decoration:none;font-weight:500;font-size:14px;font-family:system-ui,sans-serif;border-radius:8px}
+nav.site-nav a:hover{background:#fff5eb;color:#f97316}
+nav.site-nav .brand{font-weight:800;font-size:16px;color:#f97316}
+@media(max-width:600px){h1.article-title{font-size:24px}.article-body{font-size:16px}}
 </style>
 </head>
 <body>
@@ -1121,19 +1152,60 @@ nav.site-nav a:hover{color:#f97316}
 </div>
 </header>
 <main class="container">
-<div class="breadcrumb"><a href="/">${SITE_NAME}</a> › <a href="/feed">News</a> › ${escapeXml(article.source)}</div>
-<article class="article-header">
-<span class="source-badge">${escapeXml(article.source)}</span>
-<h1>${escapeXml(article.title)}</h1>
-<div class="meta">Published ${pubDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} · Source: ${escapeXml(article.source)}</div>
-${article.image ? `<img src="${escapeXml(article.image)}" alt="${escapeXml(article.title)}" class="article-image" loading="lazy" />` : ""}
-<div class="article-body">
-<p>${escapeXml(article.description)}</p>
-<p style="margin-top:16px">Read the full article from ${escapeXml(article.source)} for complete coverage and details.</p>
+<div class="breadcrumb"><a href="/">${SITE_NAME}</a> › <a href="/feed">Omega News Hub</a> › <a href="/feed">${escapeXml(article.source)}</a> › ${escapeXml((aiStory?.seoTitle || article.title).slice(0, 50))}…</div>
+<article>
+<div class="article-meta-bar">
+  <span class="source-badge">${escapeXml(article.source)}</span>
+  ${aiStory ? '<span class="ai-badge">🤖 AI Written</span>' : ""}
+  ${article.category && article.category !== "General" ? `<span class="category-badge">${escapeXml(article.category)}</span>` : ""}
 </div>
-${article.link ? `<a href="${escapeXml(article.link)}" class="original-link" rel="noopener" target="_blank">Read Full Article on ${escapeXml(article.source)} →</a>` : ""}
+<h1 class="article-title">${escapeXml(aiStory?.seoTitle || article.title)}</h1>
+<div class="byline"><strong>By Quantum Pulse Intelligence</strong> | My Ai Gpt News · Powered by AI</div>
+<div class="read-meta">
+  <span>📅 ${pubDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+  ${aiStory ? `<span>⏱️ ${aiStory.readTimeMinutes} min read</span>` : ""}
+  ${aiStory && aiStory.views > 0 ? `<span>👁️ ${aiStory.views.toLocaleString()} views</span>` : ""}
+  <span>📰 ${escapeXml(article.source)}</span>
+</div>
+${(article.image || aiStory?.heroImage) ? `<img src="${escapeXml(article.image || aiStory?.heroImage)}" alt="${escapeXml(aiStory?.seoTitle || article.title)}" class="hero-image" loading="lazy" />` : ""}
+<div class="article-body">
+${aiStory ? (() => {
+  // Convert markdown to HTML
+  let md = aiStory.body;
+  // Strip the h1 from the body (already shown as article-title)
+  md = md.replace(/^# .+\n+/, "");
+  // Convert ## headings
+  md = md.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  // Convert ### headings
+  md = md.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  // Convert **bold**
+  md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Convert *italic*
+  md = md.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Convert [text](url) links
+  md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Convert --- hr
+  md = md.replace(/^---+$/gm, '<hr>');
+  // Convert bullet lists
+  md = md.replace(/^- (.+)$/gm, '<li>$1</li>');
+  md = md.replace(/(<li>.*<\/li>\n?)+/g, (m) => '<ul>' + m + '</ul>');
+  // Convert blockquotes
+  md = md.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  // Convert paragraphs (lines that aren't already HTML)
+  const lines = md.split('\n');
+  const htmlLines = lines.map(line => {
+    const t = line.trim();
+    if (!t) return '';
+    if (t.startsWith('<h') || t.startsWith('<ul') || t.startsWith('<li') || t.startsWith('<hr') || t.startsWith('<blockquote')) return t;
+    return `<p>${t}</p>`;
+  });
+  return htmlLines.filter(l => l).join('\n');
+})() : `<p>${escapeXml(article.description)}</p><p>This story is being written by our AI. Check back soon for the full AI-written report, or read the original below.</p>`}
+</div>
+${aiStory ? `<div class="source-attribution"><h4>📌 Original Source</h4><p>This article was written by <strong>Quantum Pulse Intelligence AI</strong> based on reporting by <a href="${escapeXml(aiStory.sourceUrl || article.link || "#")}" target="_blank" rel="noopener">${escapeXml(aiStory.sourceName || article.source)}</a>. All facts are sourced from the original publication. <a href="${escapeXml(article.link || "#")}" target="_blank" rel="noopener noreferrer">Read the original report →</a></p></div>` : ""}
+${article.link ? `<a href="${escapeXml(article.link)}" class="original-link" rel="noopener" target="_blank">📖 Read Original at ${escapeXml(article.source)} →</a>` : ""}
 </article>
-${allRelated.length > 0 ? `<section class="related"><h2>More News on ${SITE_NAME}</h2>${relatedHtml}</section>` : ""}
+${allRelated.length > 0 ? `<section class="related"><h2>More Stories from the Omega News Hub</h2><div class="related-grid">${relatedHtml}</div></section>` : ""}
 ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px solid #eee;padding-top:24px;margin-top:24px"><h2>Related Industry News</h2><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">${matchedIndustries.map((ind: any) => `<a href="/industry/${ind.slug}" style="display:inline-block;padding:8px 16px;border-radius:20px;border:1px solid #f97316;color:#f97316;font-size:13px;font-weight:600;text-decoration:none">${escapeXml(ind.name)} News →</a>`).join("")}</div></section>` : ""}
 <section style="margin-top:32px;padding:28px;background:linear-gradient(135deg,#fff5eb,#fff0e0);border:2px solid #f97316;border-radius:16px;text-align:center">
 <h2 style="font-size:22px;font-weight:800;margin-bottom:8px;color:#1a1a1a">🤖 Talk to My Ai GPT</h2>
@@ -3247,6 +3319,175 @@ ${entries}
       res.json(prefs);
     } catch {
       res.status(500).json({ message: "Failed to get preferences" });
+    }
+  });
+
+  // ═══════ AI STORY WRITER ═══════
+  const AI_STORY_WRITE_COOLDOWN_MS = 500; // Don't hammer Groq
+  let lastStoryWrite = 0;
+
+  app.post("/api/news/write", async (req, res) => {
+    try {
+      const { articleId, title, description, source, sourceUrl, image, category, domain } = req.body;
+      if (!articleId || !title) return res.status(400).json({ error: "articleId and title required" });
+
+      const cached = await storage.getAiStory(articleId);
+      if (cached) return res.json({ story: cached, cached: true });
+
+      const now = Date.now();
+      if (now - lastStoryWrite < AI_STORY_WRITE_COOLDOWN_MS) {
+        await new Promise(r => setTimeout(r, AI_STORY_WRITE_COOLDOWN_MS));
+      }
+      lastStoryWrite = Date.now();
+
+      const Groq = (await import("groq-sdk")).default;
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+      const wordCount = title.split(" ").length + (description || "").split(" ").length;
+      const hasGoodContext = wordCount > 15;
+
+      const systemPrompt = `You are a world-class investigative journalist and AI news editor for My Ai Gpt, powered by Quantum Pulse Intelligence. You write professional, engaging, accurate news stories that inform and educate readers. Your writing style blends the precision of Reuters, the depth of The Atlantic, and the readability of the BBC. Always cite sources transparently. Never fabricate quotes or statistics. Write in active voice. Lead with the most important information. Always include context that educates the reader about why this story matters globally.`;
+
+      const userPrompt = `Write a COMPLETE, PROFESSIONAL news article in VALID MARKDOWN based on this source material:
+
+**SOURCE TITLE:** ${title}
+**SOURCE DESCRIPTION:** ${description || "(no description available)"}
+**ORIGINAL SOURCE:** ${source || "News Source"}
+**SOURCE URL:** ${sourceUrl || ""}
+**CATEGORY:** ${category || "General News"}
+**DOMAIN:** ${domain || "General"}
+
+REQUIREMENTS — write ALL of these sections:
+
+# [SEO-Optimized Headline — rewrite for maximum clarity and search discovery]
+
+**By Quantum Pulse Intelligence | My Ai Gpt News** · *[Today's Date: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}]* · *Est. read: 4–6 min*
+
+---
+
+## The Story
+
+[Lead paragraph: 2-3 sentences. WHO, WHAT, WHEN, WHERE, WHY. The most newsworthy fact goes first. No fluff.]
+
+[Second paragraph: Essential background context — what readers need to understand why this matters.]
+
+[Third paragraph: Deeper analysis — the broader trend, pattern, or system this event is part of.]
+
+## Why This Matters
+
+[1-2 paragraphs explaining the real-world impact. Who is affected? What changes? What are the stakes?]
+
+## Expert Perspective
+
+[1 paragraph presenting multiple perspectives on this issue — pro/con, different stakeholders, differing expert viewpoints. Be balanced.]
+
+## Historical Context
+
+[1 paragraph: Where does this fit in history? What precedents exist? What does the past tell us about this development?]
+
+## What Happens Next
+
+[1-2 paragraphs on likely next steps, timeline, what to watch for, and what questions remain unanswered.]
+
+---
+
+## Key Takeaways
+
+- [Bullet 1: Most important fact]
+- [Bullet 2: Who is affected]  
+- [Bullet 3: What changes]
+- [Bullet 4: What to watch]
+- [Bullet 5: Bigger picture context]
+
+---
+
+*Source: [${source || "Original Source"}](${sourceUrl || "#"}) — This article was written by Quantum Pulse Intelligence AI based on publicly available information. [Read the original report →](${sourceUrl || "#"})*
+
+---
+
+**IMPORTANT RULES:**
+- Write 600–900 words of actual article content (not counting headers)
+- Use journalistic, professional language
+- No bullet points in main body — use flowing paragraphs
+- Add 2-3 relevant hyperlinks naturally in the text (use markdown [text](url) format for credible sources like Wikipedia, government sites, or major publications)
+- Never fabricate specific quotes, statistics, or numbers not in the source
+- The article must be self-contained — readers should fully understand the story without clicking away
+- End with the source attribution linking back to original
+
+Generate ONLY the markdown article. No preamble, no explanation, no meta-commentary.`;
+
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      const body = completion.choices[0]?.message?.content?.trim() || "";
+      if (!body || body.length < 200) return res.status(500).json({ error: "Story generation failed" });
+
+      const headlineMatch = body.match(/^#\s+(.+)$/m);
+      const seoTitle = headlineMatch ? headlineMatch[1].trim() : title;
+      const slug = seoTitle.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").slice(0, 80);
+      const wordCountBody = body.split(/\s+/).length;
+      const readTimeMinutes = Math.max(2, Math.ceil(wordCountBody / 200));
+
+      const summaryMatch = body.match(/^#.*\n+\*\*By.*\n+---\n+([\s\S]{100,400}?)(?:\n\n|\n##)/m);
+      const summary = summaryMatch ? summaryMatch[1].replace(/\n/g, " ").trim() : description?.slice(0, 200) || "";
+
+      const keywords: string[] = [
+        ...title.split(/\s+/).filter((w: string) => w.length > 4).slice(0, 5),
+        category || "news",
+        domain || "general",
+        source || "news",
+      ].map((k: string) => k.toLowerCase().replace(/[^a-z0-9]/g, "")).filter(Boolean);
+
+      const story = await storage.saveAiStory({
+        articleId,
+        title,
+        seoTitle,
+        slug,
+        heroImage: image || "",
+        body,
+        summary,
+        category: category || "General",
+        domain: domain || "",
+        keywords: [...new Set(keywords)],
+        sourceTitle: title,
+        sourceUrl: sourceUrl || "",
+        sourceName: source || "",
+        readTimeMinutes,
+      });
+
+      res.json({ story, cached: false });
+    } catch (e: any) {
+      console.error("AI story write error:", e?.message || e);
+      res.status(500).json({ error: "Story generation failed", details: e?.message });
+    }
+  });
+
+  app.get("/api/news/story/:articleId", async (req, res) => {
+    try {
+      const { articleId } = req.params;
+      const story = await storage.getAiStory(articleId);
+      if (!story) return res.status(404).json({ error: "Story not found" });
+      await storage.incrementStoryViews(articleId);
+      res.json({ story });
+    } catch (e: any) {
+      res.status(500).json({ error: "Failed to fetch story" });
+    }
+  });
+
+  app.get("/api/news/recent", async (req, res) => {
+    try {
+      const limit = Math.min(50, parseInt(req.query.limit as string || "20", 10));
+      const stories = await storage.getRecentAiStories(limit);
+      res.json({ stories });
+    } catch (e: any) {
+      res.status(500).json({ error: "Failed to fetch recent stories" });
     }
   });
 

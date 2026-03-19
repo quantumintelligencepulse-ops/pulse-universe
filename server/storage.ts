@@ -41,6 +41,9 @@ import {
   type InsertReferral,
   type InsertEarningsLog,
   type InsertPayoutRequest,
+  aiStories,
+  type AiStory,
+  type InsertAiStory,
 } from "@shared/schema";
 import { eq, desc, like, sql, and, inArray } from "drizzle-orm";
 
@@ -121,6 +124,11 @@ export interface IStorage {
 
   creditEarnings(userId: number, amount: number): Promise<User | undefined>;
   debitEarnings(userId: number, amount: number): Promise<User | undefined>;
+
+  getAiStory(articleId: string): Promise<AiStory | undefined>;
+  saveAiStory(story: InsertAiStory): Promise<AiStory>;
+  incrementStoryViews(articleId: string): Promise<void>;
+  getRecentAiStories(limit: number): Promise<AiStory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -502,6 +510,29 @@ export class DatabaseStorage implements IStorage {
       earningsBalance: sql`${users.earningsBalance} - ${amount}`,
     } as any).where(eq(users.id, userId)).returning();
     return user;
+  }
+
+  async getAiStory(articleId: string): Promise<AiStory | undefined> {
+    const [story] = await db.select().from(aiStories).where(eq(aiStories.articleId, articleId));
+    return story;
+  }
+
+  async saveAiStory(story: InsertAiStory): Promise<AiStory> {
+    const [existing] = await db.select().from(aiStories).where(eq(aiStories.articleId, story.articleId));
+    if (existing) {
+      const [updated] = await db.update(aiStories).set({ ...story, updatedAt: new Date() } as any).where(eq(aiStories.articleId, story.articleId)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(aiStories).values(story as any).returning();
+    return created;
+  }
+
+  async incrementStoryViews(articleId: string): Promise<void> {
+    await db.update(aiStories).set({ views: sql`${aiStories.views} + 1` } as any).where(eq(aiStories.articleId, articleId));
+  }
+
+  async getRecentAiStories(limit: number): Promise<AiStory[]> {
+    return await db.select().from(aiStories).orderBy(desc(aiStories.createdAt)).limit(limit);
   }
 }
 

@@ -207,3 +207,28 @@ export type UserPreferences = typeof userPreferences.$inferSelect;
 export type UserInteraction = typeof userInteractions.$inferSelect;
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 export type InsertUserInteraction = z.infer<typeof insertUserInteractionSchema>;
+
+export const aiStories = pgTable("ai_stories", {
+  id: serial("id").primaryKey(),
+  articleId: text("article_id").notNull().unique(),
+  title: text("title").notNull(),
+  seoTitle: text("seo_title").notNull().default(""),
+  slug: text("slug").notNull().default(""),
+  heroImage: text("hero_image").default(""),
+  body: text("body").notNull(),
+  summary: text("summary").default(""),
+  category: text("category").default("General"),
+  domain: text("domain").default(""),
+  keywords: text("keywords").array().default([]),
+  sourceTitle: text("source_title").default(""),
+  sourceUrl: text("source_url").default(""),
+  sourceName: text("source_name").default(""),
+  readTimeMinutes: integer("read_time_minutes").default(4),
+  views: integer("views").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAiStorySchema = createInsertSchema(aiStories).omit({ id: true, createdAt: true, updatedAt: true, views: true });
+export type AiStory = typeof aiStories.$inferSelect;
+export type InsertAiStory = z.infer<typeof insertAiStorySchema>;
