@@ -1966,7 +1966,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/social" || location.startsWith("/social") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/social" || location.startsWith("/social") ? "bg-purple-500/15" : "bg-purple-500/5"}`}><Users size={14} className="text-purple-600" /></div>
             <span className="flex-1">Social</span>
-            <span className="text-[9px] bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="text-[9px] bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("create") && (
@@ -1982,7 +1982,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/games" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/games" ? "bg-rose-500/15" : "bg-rose-500/5"}`}><Gamepad2 size={14} className="text-rose-600" /></div>
             <span className="flex-1">Games</span>
-            <span className="text-[9px] bg-gradient-to-r from-rose-500 to-red-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="text-[9px] bg-gradient-to-r from-rose-500 to-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("music") && (
@@ -1990,7 +1990,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/music" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/music" ? "bg-sky-500/15" : "bg-sky-500/5"}`}><Music size={14} className="text-sky-600" /></div>
             <span className="flex-1">Music</span>
-            <span className="text-[9px] bg-gradient-to-r from-sky-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="text-[9px] bg-gradient-to-r from-sky-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("education") && (
@@ -1998,7 +1998,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/education" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/education" ? "bg-teal-500/15" : "bg-teal-500/5"}`}><GraduationCap size={14} className="text-teal-600" /></div>
             <span className="flex-1">Education</span>
-            <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("shopping") && (
