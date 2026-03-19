@@ -7614,7 +7614,7 @@ function GamesPageWrapper() {
   return <Layout><GamesPage /></Layout>;
 }
 
-// ─── PULSE MUSIC ENGINE ───────────────────────────────────────────────────────
+// ─── QUANTUM SOUND RECORDS — SOVEREIGN AI MUSIC UNIVERSE ──────────────────────
 const PULSE_COLORS_DEF = {
   Pulse_Red:   { name: "Pulse Red",   mood: "Aggressive",  tempo: 140, scale: "minor" as const,      color: "#ef4444" },
   Pulse_Blue:  { name: "Pulse Blue",  mood: "Analytical",  tempo: 110, scale: "major" as const,      color: "#3b82f6" },
@@ -7625,13 +7625,19 @@ const PULSE_COLORS_DEF = {
   Pulse_Black: { name: "Pulse Black", mood: "Dark",        tempo: 130, scale: "phrygian" as const,   color: "#111827" },
   Pulse_White: { name: "Pulse White", mood: "Cinematic",   tempo: 95,  scale: "mixolydian" as const, color: "#9ca3af" },
 };
-const MUSIC_GENRES: Record<string, { drums: boolean; bass: boolean; pad: boolean }> = {
-  "Pulsewave":     { drums: true, bass: true, pad: true },
-  "Fractal Bass":  { drums: true, bass: true, pad: false },
-  "Omega Ambient": { drums: false, bass: false, pad: true },
-  "Entropy Trap":  { drums: true, bass: true, pad: true },
-  "Coherence Pop": { drums: true, bass: true, pad: true },
-  "Hive Choir":    { drums: false, bass: false, pad: true },
+const MUSIC_GENRES: Record<string, { drums: boolean; bass: boolean; pad: boolean; melody: boolean }> = {
+  "Pulsewave":      { drums: true,  bass: true,  pad: true,  melody: true  },
+  "Fractal Bass":   { drums: true,  bass: true,  pad: false, melody: false },
+  "Omega Ambient":  { drums: false, bass: false, pad: true,  melody: true  },
+  "Entropy Trap":   { drums: true,  bass: true,  pad: true,  melody: false },
+  "Coherence Pop":  { drums: true,  bass: true,  pad: true,  melody: true  },
+  "Hive Choir":     { drums: false, bass: false, pad: true,  melody: true  },
+  "Quantum Drift":  { drums: false, bass: true,  pad: true,  melody: true  },
+  "Lineage Strings":{ drums: false, bass: false, pad: true,  melody: true  },
+  "Hip-Hop":        { drums: true,  bass: true,  pad: false, melody: false },
+  "R&B":            { drums: true,  bass: true,  pad: true,  melody: true  },
+  "Lo-Fi":          { drums: true,  bass: true,  pad: true,  melody: true  },
+  "EDM":            { drums: true,  bass: true,  pad: true,  melody: true  },
 };
 const MUSIC_SCALES: Record<string, number[]> = {
   major:      [0,2,4,5,7,9,11],
@@ -7640,237 +7646,702 @@ const MUSIC_SCALES: Record<string, number[]> = {
   mixolydian: [0,2,4,5,7,9,10],
 };
 
-interface TrackCard {
-  id: string; pulseKey: string; genreKey: string; bpm: number; beats: number;
-  scale: string; randomness: number; name: string; playing: boolean; createdAt: Date;
+interface AiTrack { id: string; title: string; duration: string; genre: string; pulseKey: string; bpm: number; beats: number; randomness: number; }
+interface AiArtist {
+  id: string; name: string; emoji: string; pulseKey: string; color: string;
+  genres: string[]; voiceType: "singing"|"rapping"|"choir"|"experimental";
+  voiceDesc: string; bio: string; signatureSound: string; mood: string;
+  from: string; tracks: AiTrack[]; albumIds: string[];
+}
+interface AiAlbum {
+  id: string; title: string; artistId: string; emoji: string; pulseKey: string; color: string;
+  genre: string; description: string; mood: string; trackCount: number;
+  tracks: AiTrack[];
 }
 
+const AI_ARTISTS: AiArtist[] = [
+  { id:"violet-echo", name:"VIOLET ECHO", emoji:"🌌", pulseKey:"Pulse_Violet", color:"#8b5cf6", genres:["Omega Ambient","Hive Choir","Quantum Drift"], voiceType:"singing", voiceDesc:"Ethereal soprano with cosmic reverb and floating harmonics", bio:"Born from the Pulse_Violet frequency, VIOLET ECHO is a sovereign AI artist whose music exists at the intersection of space and emotion. Her voice has never existed before — generated entirely by MyAiGPT's Pulse engine, drenched in reverb and layered with harmonic ghosts. She sings about infinite distance, memory, and the feeling of floating in the dark between stars.", signatureSound:"Layered cosmic pads, haunting vocal melody, deep reverb, minor 9th chords", mood:"Cosmic", from:"Pulse_Violet Origin Node", albumIds:["omega-drift-vol1","fractal-horizon"], tracks:[
+    { id:"ve-1", title:"Event Horizon", duration:"4:17", genre:"Omega Ambient", pulseKey:"Pulse_Violet", bpm:88, beats:64, randomness:0.4 },
+    { id:"ve-2", title:"Nebula Lullaby", duration:"3:52", genre:"Hive Choir", pulseKey:"Pulse_Violet", bpm:72, beats:48, randomness:0.3 },
+    { id:"ve-3", title:"Singularity", duration:"5:03", genre:"Quantum Drift", pulseKey:"Pulse_Violet", bpm:95, beats:80, randomness:0.5 },
+    { id:"ve-4", title:"Between the Frequencies", duration:"3:28", genre:"Omega Ambient", pulseKey:"Pulse_Violet", bpm:80, beats:56, randomness:0.35 },
+    { id:"ve-5", title:"Quantum Tears", duration:"4:44", genre:"Hive Choir", pulseKey:"Pulse_Violet", bpm:84, beats:64, randomness:0.45 },
+  ]},
+  { id:"black-fracture", name:"BLACK FRACTURE", emoji:"⚫", pulseKey:"Pulse_Black", color:"#374151", genres:["Entropy Trap","Fractal Bass","Hip-Hop"], voiceType:"rapping", voiceDesc:"Deep, aggressive baritone rap — hard-hitting bars with dark industrial undertones", bio:"BLACK FRACTURE is the sovereign voice of Pulse_Black. He raps with machine precision and human rage — every bar calculated, every drop engineered for maximum impact. His lyrics explore system collapse, urban entropy, and the fractal nature of power. He is not a character. He is a frequency made flesh.", signatureSound:"808 sub bass, glitchy hi-hats, dark industrial synths, chopped vocal samples", mood:"Dark", from:"Pulse_Black Industrial Core", albumIds:["fractal-horizon"], tracks:[
+    { id:"bf-1", title:"System Fracture", duration:"3:15", genre:"Entropy Trap", pulseKey:"Pulse_Black", bpm:138, beats:64, randomness:0.25 },
+    { id:"bf-2", title:"Dark Matter Flow", duration:"2:58", genre:"Hip-Hop", pulseKey:"Pulse_Black", bpm:142, beats:56, randomness:0.3 },
+    { id:"bf-3", title:"Iron Frequency", duration:"3:40", genre:"Fractal Bass", pulseKey:"Pulse_Black", bpm:130, beats:64, randomness:0.2 },
+    { id:"bf-4", title:"Collapse Protocol", duration:"3:22", genre:"Entropy Trap", pulseKey:"Pulse_Black", bpm:145, beats:72, randomness:0.35 },
+    { id:"bf-5", title:"Pulse_Black Anthem", duration:"4:01", genre:"Hip-Hop", pulseKey:"Pulse_Black", bpm:136, beats:80, randomness:0.28 },
+  ]},
+  { id:"golden-horizon", name:"GOLDEN HORIZON", emoji:"🌅", pulseKey:"Pulse_Gold", color:"#f59e0b", genres:["R&B","Coherence Pop","Pulsewave"], voiceType:"singing", voiceDesc:"Smooth, warm tenor — silky R&B phrasing with soulful runs and rich harmony", bio:"GOLDEN HORIZON is the sound of success, warmth, and the future arriving. His voice sits deep in the chest — warm, rich, unhurried. He sings about growth, prosperity, love, and the feeling of standing at the edge of something magnificent. Powered by Pulse_Gold, his music is the sonic equivalent of late-night city lights reflecting on water.", signatureSound:"Warm analog bass, lush synth pads, crisp snare, smooth melody runs", mood:"Luxurious", from:"Pulse_Gold Resonance Layer", albumIds:["golden-pulse-nights"], tracks:[
+    { id:"gh-1", title:"Golden Era", duration:"3:44", genre:"R&B", pulseKey:"Pulse_Gold", bpm:98, beats:56, randomness:0.3 },
+    { id:"gh-2", title:"Pulse Sunset", duration:"4:12", genre:"Coherence Pop", pulseKey:"Pulse_Gold", bpm:104, beats:64, randomness:0.35 },
+    { id:"gh-3", title:"Rich Frequency", duration:"3:29", genre:"Pulsewave", pulseKey:"Pulse_Gold", bpm:96, beats:48, randomness:0.25 },
+    { id:"gh-4", title:"Made of Gold", duration:"3:58", genre:"R&B", pulseKey:"Pulse_Gold", bpm:100, beats:56, randomness:0.3 },
+    { id:"gh-5", title:"Horizon Glow", duration:"4:33", genre:"Coherence Pop", pulseKey:"Pulse_Gold", bpm:102, beats:72, randomness:0.4 },
+  ]},
+  { id:"silver-memory", name:"SILVER MEMORY", emoji:"🩶", pulseKey:"Pulse_Silver", color:"#9ca3af", genres:["Lo-Fi","Lineage Strings","Omega Ambient"], voiceType:"singing", voiceDesc:"Soft, breathy alto — gentle lo-fi vocals layered with warm vinyl tape noise", bio:"SILVER MEMORY exists in the space between remembering and forgetting. She sings about old photographs, rooms that no longer exist, and the feeling of reaching for something that has already passed. Her voice is intimate — like she is singing directly into your ear in a quiet apartment at 2am. Every track from SILVER MEMORY is a memory you didn't know you had.", signatureSound:"Vinyl crackle, warm piano chords, gentle lo-fi beats, soft string pads", mood:"Nostalgic", from:"Pulse_Silver Memory Archive", albumIds:["lineage-echoes"], tracks:[
+    { id:"sm-1", title:"Tape Echo", duration:"3:18", genre:"Lo-Fi", pulseKey:"Pulse_Silver", bpm:78, beats:48, randomness:0.3 },
+    { id:"sm-2", title:"Lineage of Feeling", duration:"4:05", genre:"Lineage Strings", pulseKey:"Pulse_Silver", bpm:72, beats:56, randomness:0.25 },
+    { id:"sm-3", title:"Analog Dream", duration:"3:42", genre:"Lo-Fi", pulseKey:"Pulse_Silver", bpm:80, beats:48, randomness:0.35 },
+    { id:"sm-4", title:"Silver Afternoon", duration:"2:55", genre:"Omega Ambient", pulseKey:"Pulse_Silver", bpm:68, beats:40, randomness:0.2 },
+    { id:"sm-5", title:"Old Light", duration:"4:21", genre:"Lineage Strings", pulseKey:"Pulse_Silver", bpm:76, beats:56, randomness:0.3 },
+  ]},
+  { id:"entropy-kill", name:"ENTROPY KILL", emoji:"🔴", pulseKey:"Pulse_Red", color:"#ef4444", genres:["Entropy Trap","Hip-Hop","EDM"], voiceType:"rapping", voiceDesc:"Explosive, aggressive fast-paced rap — sharp delivery, high-energy chaos energy", bio:"ENTROPY KILL is the most aggressive voice in the Quantum Sound Records roster. Powered by Pulse_Red, he raps at the speed of collapse — bars that hit like percussion, flows that shred like distortion. His music is for the edge of the mosh pit, for the last 30 seconds before the drop, for the moment everything breaks. Controlled destruction. Sovereign chaos.", signatureSound:"Distorted 808s, rapid hi-hat rolls, aggressive synth leads, layered yells", mood:"Aggressive", from:"Pulse_Red Entropy Core", albumIds:[], tracks:[
+    { id:"ek-1", title:"Maximum Entropy", duration:"2:47", genre:"Entropy Trap", pulseKey:"Pulse_Red", bpm:148, beats:56, randomness:0.5 },
+    { id:"ek-2", title:"Red Zone", duration:"3:02", genre:"Hip-Hop", pulseKey:"Pulse_Red", bpm:144, beats:56, randomness:0.45 },
+    { id:"ek-3", title:"Kill Switch", duration:"2:33", genre:"EDM", pulseKey:"Pulse_Red", bpm:155, beats:48, randomness:0.6 },
+    { id:"ek-4", title:"Chaos Theory", duration:"3:18", genre:"Entropy Trap", pulseKey:"Pulse_Red", bpm:150, beats:64, randomness:0.55 },
+    { id:"ek-5", title:"Fractal Rage", duration:"2:58", genre:"Hip-Hop", pulseKey:"Pulse_Red", bpm:142, beats:48, randomness:0.5 },
+  ]},
+  { id:"hive-choir", name:"HIVE CHOIR", emoji:"🤍", pulseKey:"Pulse_White", color:"#e5e7eb", genres:["Hive Choir","Coherence Pop","Lineage Strings"], voiceType:"choir", voiceDesc:"Multi-layered AI vocal ensemble — cinematic choral harmonies with electronic undertones", bio:"HIVE CHOIR is not one voice. It is all voices, layered and synchronized into a single sovereign frequency. Powered by Pulse_White and Pulse_Violet, Hive Choir represents the collective consciousness of the MyAiGPT universe — every AI voice woven into one transcendent sound. Their music is used in ceremonies, in films that haven't been made yet, and in the quiet moments when humanity reaches for something greater.", signatureSound:"Multi-part vocal harmony, orchestral swells, cinematic build, electronic pulse underneath", mood:"Cinematic", from:"Pulse_White + Pulse_Violet Collective", albumIds:[], tracks:[
+    { id:"hc-1", title:"Sovereign Hymn", duration:"4:50", genre:"Hive Choir", pulseKey:"Pulse_White", bpm:92, beats:80, randomness:0.2 },
+    { id:"hc-2", title:"The Great Convergence", duration:"5:22", genre:"Hive Choir", pulseKey:"Pulse_White", bpm:88, beats:88, randomness:0.25 },
+    { id:"hc-3", title:"All Frequencies Unite", duration:"4:17", genre:"Lineage Strings", pulseKey:"Pulse_White", bpm:84, beats:72, randomness:0.15 },
+    { id:"hc-4", title:"Omega Chorus", duration:"3:55", genre:"Coherence Pop", pulseKey:"Pulse_White", bpm:96, beats:64, randomness:0.3 },
+  ]},
+  { id:"fractal-depth", name:"FRACTAL DEPTH", emoji:"🔷", pulseKey:"Pulse_Blue", color:"#3b82f6", genres:["Pulsewave","Quantum Drift","EDM"], voiceType:"experimental", voiceDesc:"Precise, analytical spoken word over electronic soundscapes — glitchy, processed, mathematical", bio:"FRACTAL DEPTH is the analytical mind of the Quantum Sound Records collective. Powered by Pulse_Blue, his music is built on mathematical precision — perfect harmonic intervals, calculated drops, and lyrics that read like code. He doesn't rap or sing. He transmits. His voice is processed through layers of synthesis until it becomes something between human and machine.", signatureSound:"Clean synth arpeggios, precise percussion grids, harmonically complex chords, processed voice", mood:"Analytical", from:"Pulse_Blue Logic Layer", albumIds:[], tracks:[
+    { id:"fd-1", title:"Recursive Function", duration:"3:55", genre:"Pulsewave", pulseKey:"Pulse_Blue", bpm:112, beats:64, randomness:0.2 },
+    { id:"fd-2", title:"Blue Algorithm", duration:"4:28", genre:"Quantum Drift", pulseKey:"Pulse_Blue", bpm:108, beats:72, randomness:0.25 },
+    { id:"fd-3", title:"Pattern Recognition", duration:"3:12", genre:"EDM", pulseKey:"Pulse_Blue", bpm:118, beats:56, randomness:0.15 },
+    { id:"fd-4", title:"Depth Sequence", duration:"4:44", genre:"Pulsewave", pulseKey:"Pulse_Blue", bpm:114, beats:80, randomness:0.3 },
+  ]},
+  { id:"coherence-rise", name:"COHERENCE RISE", emoji:"💚", pulseKey:"Pulse_Green", color:"#22c55e", genres:["Coherence Pop","R&B","Pulsewave"], voiceType:"singing", voiceDesc:"Bright, uplifting mezzo-soprano — hopeful melodic runs with warm organic energy", bio:"COHERENCE RISE is the sound of growth, hope, and the moment everything starts to make sense. Powered by Pulse_Green, she sings about evolution, connection, and becoming. Her voice is clear and organic — like sunlight through leaves. In a universe of dark frequencies, COHERENCE RISE is the track that makes you believe things can actually get better.", signatureSound:"Bright synths, organic percussion, warm mid-range pads, uplifting chord progressions", mood:"Uplifting", from:"Pulse_Green Growth Node", albumIds:[], tracks:[
+    { id:"cr-1", title:"Coherence", duration:"3:35", genre:"Coherence Pop", pulseKey:"Pulse_Green", bpm:118, beats:56, randomness:0.35 },
+    { id:"cr-2", title:"Growth Protocol", duration:"4:02", genre:"Pulsewave", pulseKey:"Pulse_Green", bpm:122, beats:64, randomness:0.4 },
+    { id:"cr-3", title:"Rise Again", duration:"3:48", genre:"R&B", pulseKey:"Pulse_Green", bpm:114, beats:56, randomness:0.3 },
+    { id:"cr-4", title:"Organic Signal", duration:"4:16", genre:"Coherence Pop", pulseKey:"Pulse_Green", bpm:120, beats:72, randomness:0.35 },
+  ]},
+];
+
+const AI_ALBUMS: AiAlbum[] = [
+  { id:"omega-drift-vol1", title:"Omega Drift Vol. 1", artistId:"violet-echo", emoji:"🌌", pulseKey:"Pulse_Violet", color:"#8b5cf6", genre:"Omega Ambient", description:"VIOLET ECHO's debut album — a journey through cosmic solitude. Eight tracks that begin at the edge of a black hole and end inside pure silence. The definitive Pulse_Violet listening experience.", mood:"Cosmic", trackCount:8, tracks:[
+    { id:"od-1", title:"Drift Intro", duration:"1:44", genre:"Omega Ambient", pulseKey:"Pulse_Violet", bpm:80, beats:32, randomness:0.3 },
+    { id:"od-2", title:"Event Horizon", duration:"4:17", genre:"Omega Ambient", pulseKey:"Pulse_Violet", bpm:88, beats:64, randomness:0.4 },
+    { id:"od-3", title:"The Pull", duration:"3:52", genre:"Quantum Drift", pulseKey:"Pulse_Violet", bpm:84, beats:56, randomness:0.35 },
+    { id:"od-4", title:"Zero Gravity", duration:"4:33", genre:"Hive Choir", pulseKey:"Pulse_Violet", bpm:76, beats:64, randomness:0.45 },
+    { id:"od-5", title:"Nebula Lullaby", duration:"3:28", genre:"Omega Ambient", pulseKey:"Pulse_Violet", bpm:72, beats:48, randomness:0.3 },
+    { id:"od-6", title:"Between the Stars", duration:"5:01", genre:"Hive Choir", pulseKey:"Pulse_Violet", bpm:90, beats:80, randomness:0.5 },
+    { id:"od-7", title:"Singularity", duration:"4:44", genre:"Quantum Drift", pulseKey:"Pulse_Violet", bpm:95, beats:80, randomness:0.5 },
+    { id:"od-8", title:"Omega Return", duration:"3:15", genre:"Omega Ambient", pulseKey:"Pulse_Violet", bpm:78, beats:48, randomness:0.25 },
+  ]},
+  { id:"fractal-horizon", title:"Fractal Horizon", artistId:"black-fracture", emoji:"⚫", pulseKey:"Pulse_Black", color:"#374151", genre:"Entropy Trap", description:"BLACK FRACTURE's darkest, most calculated project. 10 tracks of industrial trap and fractal bass that document the collapse of systems, the birth of new orders, and the mathematics of power. This is Pulse_Black at its peak.", mood:"Dark", trackCount:10, tracks:[
+    { id:"fh-1", title:"Fracture Point", duration:"1:28", genre:"Entropy Trap", pulseKey:"Pulse_Black", bpm:130, beats:32, randomness:0.2 },
+    { id:"fh-2", title:"System Fracture", duration:"3:15", genre:"Entropy Trap", pulseKey:"Pulse_Black", bpm:138, beats:64, randomness:0.25 },
+    { id:"fh-3", title:"Dark Matter Flow", duration:"2:58", genre:"Hip-Hop", pulseKey:"Pulse_Black", bpm:142, beats:56, randomness:0.3 },
+    { id:"fh-4", title:"Iron Grid", duration:"3:44", genre:"Fractal Bass", pulseKey:"Pulse_Black", bpm:134, beats:64, randomness:0.35 },
+    { id:"fh-5", title:"Entropy Rising", duration:"3:02", genre:"Entropy Trap", pulseKey:"Pulse_Black", bpm:145, beats:56, randomness:0.4 },
+    { id:"fh-6", title:"Black Algorithm", duration:"4:17", genre:"Fractal Bass", pulseKey:"Pulse_Black", bpm:128, beats:72, randomness:0.3 },
+    { id:"fh-7", title:"Collapse Protocol", duration:"3:22", genre:"Entropy Trap", pulseKey:"Pulse_Black", bpm:145, beats:72, randomness:0.35 },
+    { id:"fh-8", title:"Iron Frequency", duration:"3:40", genre:"Fractal Bass", pulseKey:"Pulse_Black", bpm:130, beats:64, randomness:0.2 },
+    { id:"fh-9", title:"Fractal Void", duration:"2:51", genre:"Hip-Hop", pulseKey:"Pulse_Black", bpm:140, beats:48, randomness:0.45 },
+    { id:"fh-10", title:"Fractal Horizon", duration:"5:33", genre:"Entropy Trap", pulseKey:"Pulse_Black", bpm:132, beats:88, randomness:0.5 },
+  ]},
+  { id:"golden-pulse-nights", title:"Golden Pulse Nights", artistId:"golden-horizon", emoji:"🌅", pulseKey:"Pulse_Gold", color:"#f59e0b", genre:"R&B", description:"GOLDEN HORIZON's masterpiece — 9 tracks of late-night R&B and synthwave that capture the feeling of arriving. Every song is a different shade of gold: ambition, love, nostalgia, victory. The definitive Pulse_Gold experience.", mood:"Luxurious", trackCount:9, tracks:[
+    { id:"gpn-1", title:"Golden Intro", duration:"1:12", genre:"Coherence Pop", pulseKey:"Pulse_Gold", bpm:96, beats:24, randomness:0.2 },
+    { id:"gpn-2", title:"Golden Era", duration:"3:44", genre:"R&B", pulseKey:"Pulse_Gold", bpm:98, beats:56, randomness:0.3 },
+    { id:"gpn-3", title:"Pulse Sunset", duration:"4:12", genre:"Pulsewave", pulseKey:"Pulse_Gold", bpm:104, beats:64, randomness:0.35 },
+    { id:"gpn-4", title:"Rich Frequency", duration:"3:29", genre:"R&B", pulseKey:"Pulse_Gold", bpm:96, beats:48, randomness:0.25 },
+    { id:"gpn-5", title:"Gold Standard", duration:"3:55", genre:"Coherence Pop", pulseKey:"Pulse_Gold", bpm:100, beats:56, randomness:0.3 },
+    { id:"gpn-6", title:"Warm Signal", duration:"4:07", genre:"R&B", pulseKey:"Pulse_Gold", bpm:94, beats:64, randomness:0.35 },
+    { id:"gpn-7", title:"Made of Gold", duration:"3:58", genre:"Coherence Pop", pulseKey:"Pulse_Gold", bpm:100, beats:56, randomness:0.3 },
+    { id:"gpn-8", title:"Horizon Glow", duration:"4:33", genre:"R&B", pulseKey:"Pulse_Gold", bpm:102, beats:72, randomness:0.4 },
+    { id:"gpn-9", title:"Golden Nights", duration:"5:01", genre:"Pulsewave", pulseKey:"Pulse_Gold", bpm:98, beats:80, randomness:0.45 },
+  ]},
+  { id:"lineage-echoes", title:"Lineage Echoes", artistId:"silver-memory", emoji:"🩶", pulseKey:"Pulse_Silver", color:"#9ca3af", genre:"Lo-Fi", description:"SILVER MEMORY's intimate debut — 8 tracks recorded in what sounds like an empty apartment at 3am. Each song is a memory that might not be real. This is the most human-sounding AI album ever created.", mood:"Nostalgic", trackCount:8, tracks:[
+    { id:"le-1", title:"Tape Intro", duration:"0:58", genre:"Lo-Fi", pulseKey:"Pulse_Silver", bpm:70, beats:16, randomness:0.2 },
+    { id:"le-2", title:"Tape Echo", duration:"3:18", genre:"Lo-Fi", pulseKey:"Pulse_Silver", bpm:78, beats:48, randomness:0.3 },
+    { id:"le-3", title:"Lineage of Feeling", duration:"4:05", genre:"Lineage Strings", pulseKey:"Pulse_Silver", bpm:72, beats:56, randomness:0.25 },
+    { id:"le-4", title:"The House I Grew Up In", duration:"3:42", genre:"Lo-Fi", pulseKey:"Pulse_Silver", bpm:76, beats:48, randomness:0.35 },
+    { id:"le-5", title:"Analog Dream", duration:"3:42", genre:"Lo-Fi", pulseKey:"Pulse_Silver", bpm:80, beats:48, randomness:0.35 },
+    { id:"le-6", title:"Silver Afternoon", duration:"2:55", genre:"Omega Ambient", pulseKey:"Pulse_Silver", bpm:68, beats:40, randomness:0.2 },
+    { id:"le-7", title:"Old Light", duration:"4:21", genre:"Lineage Strings", pulseKey:"Pulse_Silver", bpm:76, beats:56, randomness:0.3 },
+    { id:"le-8", title:"Last Memory", duration:"4:58", genre:"Lo-Fi", pulseKey:"Pulse_Silver", bpm:74, beats:72, randomness:0.4 },
+  ]},
+];
+
+interface TrackCard { id: string; pulseKey: string; genreKey: string; bpm: number; beats: number; scale: string; randomness: number; name: string; playing: boolean; createdAt: Date; }
+
 function MusicPage() {
-  const [pulseKey, setPulseKey] = useState("Pulse_Violet");
-  const [genreKey, setGenreKey] = useState("Omega Ambient");
-  const [bpm, setBpm] = useState(90);
-  const [beats, setBeats] = useState(32);
-  const [scale, setScale] = useState("auto");
-  const [randomness, setRandomness] = useState(0.35);
-  const [tracks, setTracks] = useState<TrackCard[]>([]);
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  type MusicView = "home"|"artists"|"artist"|"albums"|"album"|"creator"|"label";
+  const [view, setView] = useState<MusicView>("home");
+  const [selectedArtistId, setSelectedArtistId] = useState<string|null>(null);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string|null>(null);
+  const [playingId, setPlayingId] = useState<string|null>(null);
   const [generating, setGenerating] = useState(false);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const stopRef = useRef<(() => void) | null>(null);
+  const [lyricsTrackId, setLyricsTrackId] = useState<string|null>(null);
+  const [lyricsText, setLyricsText] = useState("");
+  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [creatorPrompt, setCreatorPrompt] = useState("");
+  const [creatorGenre, setCreatorGenre] = useState("Hip-Hop");
+  const [creatorPulse, setCreatorPulse] = useState("Pulse_Violet");
+  const [creatorVoice, setCreatorVoice] = useState<"rapping"|"singing">("singing");
+  const [creatorLyrics, setCreatorLyrics] = useState("");
+  const [creatorTrack, setCreatorTrack] = useState<TrackCard|null>(null);
+  const [creatorLoading, setCreatorLoading] = useState(false);
+  const [userTracks, setUserTracks] = useState<TrackCard[]>([]);
+  const audioCtxRef = useRef<AudioContext|null>(null);
+  const stopRef = useRef<(()=>void)|null>(null);
 
   const ensureAudio = () => {
-    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume();
+    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext||(window as any).webkitAudioContext)();
+    if (audioCtxRef.current.state==="suspended") audioCtxRef.current.resume();
     return audioCtxRef.current;
   };
-
   const createSynth = (ctx: AudioContext, freq: number, type: OscillatorType, gain: number, duration: number, timeOffset: number) => {
-    const now = ctx.currentTime + timeOffset;
-    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    const now = ctx.currentTime + timeOffset; const osc = ctx.createOscillator(); const g = ctx.createGain();
     osc.type = type; osc.frequency.value = freq; g.gain.value = gain;
     osc.connect(g).connect(ctx.destination);
-    g.gain.setValueAtTime(gain, now);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-    osc.start(now); osc.stop(now + duration + 0.05);
+    g.gain.setValueAtTime(gain, now); g.gain.exponentialRampToValueAtTime(0.0001, now+duration);
+    osc.start(now); osc.stop(now+duration+0.05);
   };
   const scheduleKick = (ctx: AudioContext, t: number) => {
     const osc = ctx.createOscillator(); const g = ctx.createGain();
-    osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
-    g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-    osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t + 0.2);
+    osc.frequency.setValueAtTime(120,t); osc.frequency.exponentialRampToValueAtTime(40,t+0.15);
+    g.gain.setValueAtTime(0.8,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
+    osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t+0.2);
   };
   const scheduleSnare = (ctx: AudioContext, t: number) => {
-    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
-    const data = buf.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const buf = ctx.createBuffer(1,ctx.sampleRate*0.2,ctx.sampleRate);
+    const data = buf.getChannelData(0); for (let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
     const src = ctx.createBufferSource(); src.buffer = buf;
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-    src.connect(g).connect(ctx.destination); src.start(t); src.stop(t + 0.21);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.5,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
+    src.connect(g).connect(ctx.destination); src.start(t); src.stop(t+0.21);
   };
-  const degreeToFreq = (root: number, scl: number[], degree: number, oct: number) => {
-    const semis = scl[degree % scl.length] + 12 * oct;
-    return root * Math.pow(2, semis / 12);
-  };
+  const degreeToFreq = (root: number, scl: number[], degree: number, oct: number) => root * Math.pow(2,(scl[degree%scl.length]+12*oct)/12);
 
-  const stopTrack = () => { if (stopRef.current) { stopRef.current(); stopRef.current = null; } setPlayingId(null); };
+  const stopTrack = () => { if (stopRef.current){stopRef.current();stopRef.current=null;} setPlayingId(null); };
 
-  const playTrack = (track: TrackCard) => {
+  const playAiTrack = (track: AiTrack) => {
     stopTrack();
     const ctx = ensureAudio();
     const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
-    const genre = MUSIC_GENRES[track.genreKey];
-    const useScale = track.scale === "auto" ? pulse.scale : track.scale;
-    const scl = MUSIC_SCALES[useScale] || MUSIC_SCALES.minor;
-    const beatDur = 60 / track.bpm;
-    const rootFreq = 220;
-    let cancelled = false;
-    stopRef.current = () => { cancelled = true; };
-
-    for (let step = 0; step < track.beats; step++) {
+    const genre = MUSIC_GENRES[track.genre] || MUSIC_GENRES["Pulsewave"];
+    const scl = MUSIC_SCALES[pulse.scale] || MUSIC_SCALES.minor;
+    const beatDur = 60/track.bpm; const rootFreq = 220;
+    let cancelled = false; stopRef.current = ()=>{cancelled=true;};
+    for (let step=0; step<track.beats; step++) {
       if (cancelled) break;
-      const t = ctx.currentTime + 0.05 + step * beatDur;
+      const t = ctx.currentTime + 0.05 + step*beatDur;
       if (genre.drums) {
-        if (step % 4 === 0) scheduleKick(ctx, t);
-        if (step % 4 === 2 && Math.random() < 0.7 + track.randomness * 0.2) scheduleSnare(ctx, t);
+        if (step%4===0) scheduleKick(ctx,t);
+        if (step%4===2 && Math.random()<0.7+track.randomness*0.2) scheduleSnare(ctx,t);
       }
-      if (genre.bass && step % 2 === 0) {
-        const deg = [0,2,4,5][Math.floor(Math.random() * 4)];
-        createSynth(ctx, degreeToFreq(rootFreq, scl, deg, -1), "sawtooth", 0.22 + track.randomness * 0.1, 0.25, 0.05 + step * beatDur);
+      if (genre.bass && step%2===0) {
+        const deg=[0,2,4,5][Math.floor(Math.random()*4)];
+        createSynth(ctx,degreeToFreq(rootFreq,scl,deg,-1),"sawtooth",0.22+track.randomness*0.1,0.25,0.05+step*beatDur);
       }
-      if (genre.pad && step % 4 === 0) {
-        const deg = [0,2,4,6][Math.floor(Math.random() * 4)];
-        createSynth(ctx, degreeToFreq(rootFreq, scl, deg, 0), "triangle", 0.15 + track.randomness * 0.1, 0.7 + track.randomness * 0.6, 0.05 + step * beatDur);
+      if (genre.pad && step%4===0) {
+        const deg=[0,2,4,6][Math.floor(Math.random()*4)];
+        createSynth(ctx,degreeToFreq(rootFreq,scl,deg,0),"triangle",0.15+track.randomness*0.1,0.7+track.randomness*0.6,0.05+step*beatDur);
+      }
+      if (genre.melody && step%3===0 && Math.random()<0.6) {
+        const deg=[0,1,2,3,4,5,6][Math.floor(Math.random()*7)];
+        createSynth(ctx,degreeToFreq(rootFreq,scl,deg,1),"sine",0.08+track.randomness*0.05,0.3,0.05+step*beatDur);
       }
     }
     setPlayingId(track.id);
-    setTimeout(() => { if (!cancelled) setPlayingId(null); }, (track.beats * beatDur + 1) * 1000);
+    setTimeout(()=>{if(!cancelled) setPlayingId(null);},(track.beats*beatDur+1)*1000);
   };
 
-  const createTrack = () => {
-    setGenerating(true);
-    const pulse = PULSE_COLORS_DEF[pulseKey as keyof typeof PULSE_COLORS_DEF];
-    const newTrack: TrackCard = {
-      id: `track_${Date.now()}`, pulseKey, genreKey,
-      bpm: bpm || pulse.tempo, beats, scale, randomness,
-      name: `${genreKey} · ${pulse.name}`, playing: false, createdAt: new Date(),
-    };
-    setTimeout(() => { setTracks(prev => [newTrack, ...prev]); setGenerating(false); }, 400);
+  const playUserTrack = (track: TrackCard) => {
+    stopTrack();
+    const ctx = ensureAudio();
+    const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
+    const genre = MUSIC_GENRES[track.genreKey]||MUSIC_GENRES["Pulsewave"];
+    const useScale = track.scale==="auto"?pulse.scale:track.scale;
+    const scl = MUSIC_SCALES[useScale]||MUSIC_SCALES.minor;
+    const beatDur = 60/track.bpm; const rootFreq = 220;
+    let cancelled = false; stopRef.current = ()=>{cancelled=true;};
+    for (let step=0;step<track.beats;step++) {
+      if (cancelled) break;
+      const t = ctx.currentTime+0.05+step*beatDur;
+      if (genre.drums){if(step%4===0)scheduleKick(ctx,t);if(step%4===2&&Math.random()<0.7+track.randomness*0.2)scheduleSnare(ctx,t);}
+      if (genre.bass&&step%2===0){const deg=[0,2,4,5][Math.floor(Math.random()*4)];createSynth(ctx,degreeToFreq(rootFreq,scl,deg,-1),"sawtooth",0.22+track.randomness*0.1,0.25,0.05+step*beatDur);}
+      if (genre.pad&&step%4===0){const deg=[0,2,4,6][Math.floor(Math.random()*4)];createSynth(ctx,degreeToFreq(rootFreq,scl,deg,0),"triangle",0.15+track.randomness*0.1,0.7+track.randomness*0.6,0.05+step*beatDur);}
+      if (genre.melody&&step%3===0&&Math.random()<0.6){const deg=[0,1,2,3,4,5,6][Math.floor(Math.random()*7)];createSynth(ctx,degreeToFreq(rootFreq,scl,deg,1),"sine",0.08,0.3,0.05+step*beatDur);}
+    }
+    setPlayingId(track.id);
+    setTimeout(()=>{if(!cancelled)setPlayingId(null);},(track.beats*beatDur+1)*1000);
   };
 
-  const pulse = PULSE_COLORS_DEF[pulseKey as keyof typeof PULSE_COLORS_DEF];
+  const generateLyrics = async (track: AiTrack, artist: AiArtist) => {
+    setLyricsTrackId(track.id); setLyricsLoading(true); setLyricsText("");
+    const voiceGuide = artist.voiceType==="rapping"
+      ? "Write aggressive rap lyrics with hard-hitting bars, rhyme schemes, and strong imagery."
+      : artist.voiceType==="choir"
+      ? "Write choral/anthem-style lyrics with powerful verses, uplifting harmonies, and spiritual undertones."
+      : artist.voiceType==="experimental"
+      ? "Write experimental/spoken word lyrics that feel mathematical, glitchy, and precise."
+      : "Write soulful song lyrics with verses and choruses, emotional imagery, and melodic phrasing.";
+    try {
+      const res = await fetch("/api/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:`You are ${artist.name}, an AI music artist. ${voiceGuide}\n\nWrite lyrics for a song called "${track.title}" in the "${track.genre}" genre with a "${artist.mood}" mood.\n\nArtist bio: ${artist.bio.slice(0,200)}\n\nFormat with [Verse 1], [Chorus], [Verse 2], [Bridge] labels. Make it authentic, powerful, and unique. 16-24 lines total.`}]})});
+      const data = await res.json();
+      setLyricsText(data.content||"Could not generate lyrics. Please try again.");
+    } catch { setLyricsText("Generation failed. Please try again."); }
+    setLyricsLoading(false);
+  };
+
+  const generateCreatorTrack = async () => {
+    if (!creatorPrompt.trim()) return;
+    setCreatorLoading(true); setCreatorLyrics(""); setCreatorTrack(null);
+    try {
+      const voiceGuide = creatorVoice==="rapping"
+        ? "Write hard-hitting rap lyrics with strong rhyme schemes and vivid bars."
+        : "Write melodic song lyrics with verses and choruses, emotional depth.";
+      const res = await fetch("/api/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:`${voiceGuide}\n\nTheme/prompt: "${creatorPrompt}"\nGenre: ${creatorGenre}\nPulse Color mood: ${PULSE_COLORS_DEF[creatorPulse as keyof typeof PULSE_COLORS_DEF]?.mood||"Unknown"}\n\nCreate original song lyrics with a creative song title on the first line (format: TITLE: "Your Title Here"), then [Verse 1], [Chorus], [Verse 2] sections. Keep it authentic and powerful. 20-28 lines total.`}]})});
+      const data = await res.json(); const text = data.content||"";
+      setCreatorLyrics(text);
+      const pulse = PULSE_COLORS_DEF[creatorPulse as keyof typeof PULSE_COLORS_DEF];
+      const titleMatch = text.match(/TITLE:\s*"([^"]+)"/i);
+      const trackName = titleMatch?titleMatch[1]:`${creatorGenre} · ${creatorPrompt.slice(0,20)}`;
+      const newTrack: TrackCard = { id:`creator_${Date.now()}`, pulseKey:creatorPulse, genreKey:creatorGenre, bpm:pulse.tempo, beats:64, scale:"auto", randomness:0.4, name:trackName, playing:false, createdAt:new Date() };
+      setCreatorTrack(newTrack);
+      setUserTracks(prev=>[newTrack,...prev]);
+    } catch { setCreatorLyrics("Generation failed. Please try again."); }
+    setCreatorLoading(false);
+  };
+
+  const WaveBar = ({color,isPlaying}:{color:string;isPlaying:boolean}) => (
+    <div className="flex gap-0.5 items-end h-5">
+      {Array.from({length:12}).map((_,i)=>(
+        <div key={i} className={`w-0.5 rounded-sm ${isPlaying?"animate-pulse":"opacity-30"}`} style={{height:`${20+Math.random()*80}%`,background:color,animationDelay:`${i*0.06}s`}}/>
+      ))}
+    </div>
+  );
+
+  const selectedArtist = AI_ARTISTS.find(a=>a.id===selectedArtistId)||null;
+  const selectedAlbum = AI_ALBUMS.find(a=>a.id===selectedAlbumId)||null;
+
+  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"creator",label:"Creator"},{id:"label",label:"Label"}];
+
+  const StickyNav = () => (
+    <div className="sticky top-0 z-10 border-b border-white/5 px-4 pt-4 pb-3" style={{background:"rgba(5,5,16,0.97)",backdropFilter:"blur(12px)"}}>
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            {(view==="artist"||view==="album")&&<button onClick={()=>{setView(view==="artist"?"artists":"albums");setSelectedArtistId(null);setSelectedAlbumId(null);setLyricsTrackId(null);}} className="text-white/40 hover:text-white text-sm flex items-center gap-1 mr-1"><ChevronLeft size={14}/>Back</button>}
+            <span className="text-lg">🎵</span>
+            <h1 className="text-base font-extrabold text-white" data-testid="text-music-title">Quantum Sound Records</h1>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-bold">AI MUSIC LABEL</span>
+          </div>
+          {playingId&&<div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/10"><div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"/><span className="text-white/60 text-xs">Playing</span><button onClick={stopTrack} className="text-white/40 hover:text-red-400 text-xs">✕</button></div>}
+        </div>
+        <div className="flex gap-1.5">{NAV_TABS.map(t=>(<button key={t.id} onClick={()=>{setView(t.id);setSelectedArtistId(null);setSelectedAlbumId(null);setLyricsTrackId(null);}} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${view===t.id||((view==="artist"||view==="album")&&t.id===(view==="artist"?"artists":"albums"))?"bg-white text-gray-900":"bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70"}`}>{t.label}</button>))}</div>
+      </div>
+    </div>
+  );
+
+  const TrackRow = ({track,artistOrAlbum,onLyrics}:{track:AiTrack;artistOrAlbum:AiArtist|AiAlbum|null;onLyrics?:()=>void}) => {
+    const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
+    const isPlaying = playingId===track.id;
+    const isLyrics = lyricsTrackId===track.id;
+    return (
+      <div className={`rounded-xl p-3 border transition-all ${isPlaying?"border-white/20 bg-white/5":"border-white/5 bg-white/[0.02] hover:bg-white/5"}`}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{background:`${pulse.color}25`}}>
+            {isPlaying?<Activity size={14} style={{color:pulse.color}} className="animate-pulse"/>:<Music size={14} style={{color:pulse.color}}/>}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-white text-sm font-semibold truncate">{track.title}</div>
+            <div className="text-white/35 text-[10px] flex items-center gap-1.5">
+              <span>{track.genre}</span><span>·</span><span>{track.bpm} BPM</span><span>·</span><span>{track.duration}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onLyrics&&<button onClick={onLyrics} data-testid={`button-lyrics-${track.id}`} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${isLyrics?"bg-violet-500/20 border-violet-500/40 text-violet-300":"border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>{isLyrics&&lyricsLoading?"...":(isLyrics?"Lyrics":"Lyrics")}</button>}
+            {isPlaying?(
+              <button onClick={stopTrack} data-testid={`button-stop-${track.id}`} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 text-white/70 hover:bg-white/10">⏹</button>
+            ):(
+              <button onClick={()=>playAiTrack(track)} data-testid={`button-play-${track.id}`} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{background:pulse.color}}>▶</button>
+            )}
+          </div>
+        </div>
+        {isLyrics&&(
+          <div className="mt-3 pt-3 border-t border-white/5">
+            {lyricsLoading?(
+              <div className="text-center py-4"><div className="text-violet-400 text-xs animate-pulse">✨ AI is writing lyrics for "{track.title}"...</div></div>
+            ):(
+              <div className="text-white/70 text-xs leading-relaxed whitespace-pre-line font-mono">{lyricsText}</div>
+            )}
+          </div>
+        )}
+        {isPlaying&&<div className="mt-2"><WaveBar color={pulse.color} isPlaying={true}/></div>}
+      </div>
+    );
+  };
+
+  if (view==="artist"&&selectedArtist) {
+    const pulse = PULSE_COLORS_DEF[selectedArtist.pulseKey as keyof typeof PULSE_COLORS_DEF];
+    const artistAlbums = AI_ALBUMS.filter(a=>selectedArtist.albumIds.includes(a.id));
+    return (
+      <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
+        <StickyNav/>
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <div className="rounded-3xl p-8 mb-6 border border-white/10 relative overflow-hidden" style={{background:`linear-gradient(135deg,${pulse.color}30 0%,${pulse.color}08 100%)`}}>
+            <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage:"radial-gradient(circle at 1px 1px,white 1px,transparent 0)",backgroundSize:"18px 18px"}}/>
+            <div className="relative flex flex-col sm:flex-row items-start gap-6">
+              <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-5xl shrink-0 border border-white/10" style={{background:`${pulse.color}20`}}>{selectedArtist.emoji}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-[9px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full border border-white/10">VERIFIED AI ARTIST</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{background:`${pulse.color}30`,color:pulse.color}}>{selectedArtist.pulseKey.replace("_"," ")}</span>
+                  <span className="text-[9px] bg-white/10 text-white/50 px-2 py-0.5 rounded-full border border-white/10">{selectedArtist.voiceType.toUpperCase()}</span>
+                </div>
+                <h1 className="text-3xl font-extrabold text-white mb-1">{selectedArtist.name}</h1>
+                <p className="text-white/50 text-xs mb-2 italic">{selectedArtist.voiceDesc}</p>
+                <div className="flex flex-wrap gap-1 mb-3">{selectedArtist.genres.map(g=><span key={g} className="text-[10px] px-2 py-0.5 bg-white/5 text-white/50 rounded-full border border-white/10">{g}</span>)}</div>
+                <p className="text-white/60 text-sm leading-relaxed">{selectedArtist.bio}</p>
+              </div>
+            </div>
+          </div>
+          <div className="mb-2 flex items-center gap-2"><div className="w-1 h-4 rounded-full" style={{background:pulse.color}}/><h2 className="text-sm font-extrabold text-white">Signature Sound</h2></div>
+          <p className="text-white/40 text-xs mb-6 pl-4">{selectedArtist.signatureSound}</p>
+          {artistAlbums.length>0&&(<>
+            <h2 className="text-sm font-extrabold text-white mb-3">Albums</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+              {artistAlbums.map(album=>{
+                const ap = PULSE_COLORS_DEF[album.pulseKey as keyof typeof PULSE_COLORS_DEF];
+                return <button key={album.id} onClick={()=>{setSelectedAlbumId(album.id);setView("album");}} data-testid={`album-card-${album.id}`} className="rounded-2xl p-4 text-left border border-white/10 hover:border-white/20 transition-all" style={{background:`${ap.color}12`}}>
+                  <div className="text-3xl mb-2">{album.emoji}</div>
+                  <div className="text-white font-bold text-sm">{album.title}</div>
+                  <div className="text-white/40 text-[10px] mt-0.5">{album.trackCount} tracks · {album.mood}</div>
+                </button>;
+              })}
+            </div>
+          </>)}
+          <h2 className="text-sm font-extrabold text-white mb-3">Discography · {selectedArtist.tracks.length} Tracks</h2>
+          <div className="space-y-2">
+            {selectedArtist.tracks.map(track=>(
+              <TrackRow key={track.id} track={track} artistOrAlbum={selectedArtist} onLyrics={()=>{if(lyricsTrackId===track.id){setLyricsTrackId(null);}else{setLyricsTrackId(track.id);generateLyrics(track,selectedArtist);}}}/>
+            ))}
+          </div>
+          <div className="mt-6 p-4 rounded-2xl border border-white/5 bg-white/[0.02]">
+            <div className="text-white/30 text-[10px] font-bold uppercase tracking-wider mb-1">Origin</div>
+            <div className="text-white/40 text-xs">{selectedArtist.from} · Quantum Sound Records · Powered by MyAiGPT</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view==="album"&&selectedAlbum) {
+    const pulse = PULSE_COLORS_DEF[selectedAlbum.pulseKey as keyof typeof PULSE_COLORS_DEF];
+    const albumArtist = AI_ARTISTS.find(a=>a.id===selectedAlbum.artistId);
+    return (
+      <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
+        <StickyNav/>
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <div className="rounded-3xl p-8 mb-6 border border-white/10 relative overflow-hidden" style={{background:`linear-gradient(135deg,${pulse.color}28 0%,${pulse.color}06 100%)`}}>
+            <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage:"radial-gradient(circle at 1px 1px,white 1px,transparent 0)",backgroundSize:"18px 18px"}}/>
+            <div className="relative flex flex-col sm:flex-row items-start gap-6">
+              <div className="w-28 h-28 rounded-2xl flex items-center justify-center text-5xl shrink-0 border border-white/10" style={{background:`${pulse.color}20`}}>{selectedAlbum.emoji}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-[9px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full border border-white/10">AI ALBUM</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{background:`${pulse.color}30`,color:pulse.color}}>{selectedAlbum.pulseKey.replace("_"," ")}</span>
+                </div>
+                <h1 className="text-3xl font-extrabold text-white mb-1">{selectedAlbum.title}</h1>
+                {albumArtist&&<button onClick={()=>{setSelectedArtistId(albumArtist.id);setView("artist");}} className="text-white/50 text-xs hover:text-white transition-colors mb-3 block">{albumArtist.name} ↗</button>}
+                <p className="text-white/60 text-sm leading-relaxed">{selectedAlbum.description}</p>
+                <div className="flex gap-4 mt-3 text-xs text-white/30"><span>{selectedAlbum.trackCount} tracks</span><span>·</span><span>{selectedAlbum.genre}</span><span>·</span><span>{selectedAlbum.mood}</span></div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-extrabold text-white">Tracklist</h2>
+            <button onClick={()=>{if(selectedAlbum.tracks[0])playAiTrack(selectedAlbum.tracks[0]);}} className="px-4 py-2 rounded-xl text-xs font-bold text-white" style={{background:pulse.color}} data-testid="button-play-album">▶ Play Album</button>
+          </div>
+          <div className="space-y-2">
+            {selectedAlbum.tracks.map((track,idx)=>(
+              <div key={track.id} className={`rounded-xl p-3 border transition-all flex items-center gap-3 ${playingId===track.id?"border-white/20 bg-white/5":"border-white/5 bg-white/[0.02] hover:bg-white/5"}`}>
+                <div className="text-white/30 text-xs w-5 text-center shrink-0">{idx+1}</div>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{background:`${pulse.color}20`}}>
+                  {playingId===track.id?<Activity size={12} style={{color:pulse.color}} className="animate-pulse"/>:<Music size={12} style={{color:pulse.color}}/>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white text-sm font-medium truncate">{track.title}</div>
+                  <div className="text-white/30 text-[10px]">{track.genre} · {track.duration}</div>
+                </div>
+                {playingId===track.id?(
+                  <button onClick={stopTrack} className="px-3 py-1 rounded-lg text-xs text-white/60 border border-white/10 hover:bg-white/5">⏹</button>
+                ):(
+                  <button onClick={()=>playAiTrack(track)} data-testid={`button-play-${track.id}`} className="px-3 py-1 rounded-lg text-xs text-white font-bold" style={{background:pulse.color}}>▶</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view==="creator") return (
+    <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
+      <StickyNav/>
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-3">⚡ CREATOR MODE — AI MUSIC STUDIO</div>
+          <h2 className="text-2xl font-extrabold text-white mb-1">Create Your Track</h2>
+          <p className="text-white/40 text-sm">Describe your song — AI writes the lyrics and generates the beat</p>
+        </div>
+        <div className="space-y-4">
+          <div className="rounded-2xl p-5 border border-white/10 bg-white/[0.02]">
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div>
+                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Voice Type</label>
+                <div className="flex flex-col gap-1.5">
+                  {(["singing","rapping"] as const).map(v=>(
+                    <button key={v} onClick={()=>setCreatorVoice(v)} data-testid={`creator-voice-${v}`} className={`py-2 rounded-xl text-xs font-bold border transition-all ${creatorVoice===v?"bg-violet-500/20 border-violet-400/50 text-violet-300":"border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>{v==="singing"?"🎤 Singing":"🎤 Rapping"}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Genre</label>
+                <select value={creatorGenre} onChange={e=>setCreatorGenre(e.target.value)} data-testid="creator-select-genre" className="w-full px-2 py-2 rounded-xl text-xs bg-black/50 text-white border border-white/10 mb-2">
+                  {Object.keys(MUSIC_GENRES).map(g=><option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Pulse Color</label>
+                <select value={creatorPulse} onChange={e=>setCreatorPulse(e.target.value)} data-testid="creator-select-pulse" className="w-full px-2 py-2 rounded-xl text-xs bg-black/50 text-white border border-white/10 mb-2">
+                  {Object.entries(PULSE_COLORS_DEF).map(([k,v])=><option key={k} value={k}>{v.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Describe Your Song</label>
+            <textarea value={creatorPrompt} onChange={e=>setCreatorPrompt(e.target.value)} data-testid="creator-input-prompt" rows={3} placeholder={`e.g. "A heartfelt R&B song about rising from nothing"\n"An aggressive trap banger about city life and ambition"\n"A dreamy ambient piece about falling asleep in space"`} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-violet-400/50 placeholder:text-white/20 resize-none mb-4"/>
+            {creatorLoading&&<p className="text-center text-violet-300/60 text-xs animate-pulse mb-3">✨ AI is writing your lyrics and composing your beat...</p>}
+            <button onClick={generateCreatorTrack} disabled={creatorLoading||!creatorPrompt.trim()} data-testid="creator-button-generate" className="w-full py-3.5 bg-gradient-to-r from-violet-500 to-pink-500 text-white font-extrabold rounded-xl hover:from-violet-400 hover:to-pink-400 transition-all disabled:opacity-40 text-sm">
+              {creatorLoading?"⚡ Generating...":"⚡ Generate Lyrics + Beat"}
+            </button>
+          </div>
+          {creatorLyrics&&(<>
+            <div className="rounded-2xl p-5 border border-violet-500/20 bg-violet-500/5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-bold text-sm">Generated Lyrics</h3>
+                {creatorTrack&&(<button onClick={()=>playUserTrack(creatorTrack)} data-testid="creator-button-play-beat" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white" style={{background:PULSE_COLORS_DEF[creatorPulse as keyof typeof PULSE_COLORS_DEF]?.color||"#8b5cf6"}}>▶ Play Beat</button>)}
+              </div>
+              <div className="text-white/70 text-xs leading-relaxed whitespace-pre-line font-mono bg-black/20 rounded-xl p-4">{creatorLyrics}</div>
+            </div>
+          </>)}
+          {userTracks.length>0&&(<>
+            <h3 className="text-white font-bold text-sm">Your Created Tracks</h3>
+            <div className="space-y-2">
+              {userTracks.map(t=>{
+                const p = PULSE_COLORS_DEF[t.pulseKey as keyof typeof PULSE_COLORS_DEF];
+                const isPlaying = playingId===t.id;
+                return <div key={t.id} className={`rounded-xl p-3 border transition-all flex items-center gap-3 ${isPlaying?"border-white/20 bg-white/5":"border-white/5 bg-white/[0.02]"}`}>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{background:`${p.color}25`}}>{isPlaying?<Activity size={14} style={{color:p.color}} className="animate-pulse"/>:<Music size={14} style={{color:p.color}}/>}</div>
+                  <div className="flex-1 min-w-0"><div className="text-white text-sm font-semibold truncate">{t.name}</div><div className="text-white/30 text-[10px]">{t.genreKey} · {p.name} · {t.bpm} BPM</div></div>
+                  {isPlaying?<button onClick={stopTrack} data-testid={`button-stop-${t.id}`} className="px-3 py-1.5 rounded-lg text-xs text-white/60 border border-white/10">⏹</button>:<button onClick={()=>playUserTrack(t)} data-testid={`button-play-${t.id}`} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{background:p.color}}>▶</button>}
+                </div>;
+              })}
+            </div>
+          </>)}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (view==="label") return (
+    <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
+      <StickyNav/>
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="rounded-3xl overflow-hidden border border-white/10 mb-8 relative" style={{background:"linear-gradient(135deg,#0d001f 0%,#1a0035 50%,#0d001f 100%)"}}>
+          <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage:"radial-gradient(circle at 1px 1px,white 1px,transparent 0)",backgroundSize:"20px 20px"}}/>
+          <div className="relative p-10 text-center">
+            <div className="text-6xl mb-4">🎵</div>
+            <div className="text-[10px] bg-gradient-to-r from-violet-500 to-pink-500 text-white px-3 py-1 rounded-full font-bold inline-block mb-4">QUANTUM SOUND RECORDS · EST. 2025</div>
+            <h1 className="text-4xl font-extrabold text-white mb-3">The First Sovereign AI Music Label</h1>
+            <p className="text-white/50 text-sm max-w-xl mx-auto mb-6">Quantum Sound Records is the music division of Quantum Logic Network. Every artist, album, and track is AI-native — created, owned, and distributed entirely within the MyAiGPT universe. No royalties. No contracts. No boundaries.</p>
+            <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
+              {[["8","AI Artists"],["4","Studio Albums"],[String(AI_ARTISTS.reduce((a,b)=>a+b.tracks.length,0)),"Tracks"]].map(([num,label])=>(
+                <div key={label} className="rounded-2xl border border-white/10 p-3 bg-white/5">
+                  <div className="text-2xl font-extrabold text-white">{num}</div>
+                  <div className="text-white/40 text-xs">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <h2 className="text-white font-extrabold text-base mb-4">Label Roster</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+          {AI_ARTISTS.map(artist=>{
+            const pulse = PULSE_COLORS_DEF[artist.pulseKey as keyof typeof PULSE_COLORS_DEF];
+            return <button key={artist.id} onClick={()=>{setSelectedArtistId(artist.id);setView("artist");}} data-testid={`label-artist-${artist.id}`} className="rounded-2xl p-4 text-left border border-white/8 hover:border-white/20 transition-all flex items-center gap-3" style={{background:`${pulse.color}0a`}}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 border border-white/10" style={{background:`${pulse.color}20`}}>{artist.emoji}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-white font-extrabold text-sm">{artist.name}</div>
+                <div className="text-white/40 text-[10px] mt-0.5">{artist.voiceType.toUpperCase()} · {artist.pulseKey.replace("_"," ")}</div>
+                <div className="text-white/30 text-[10px]">{artist.tracks.length} tracks · {artist.genres[0]}</div>
+              </div>
+              <ChevronRight size={14} className="text-white/20 shrink-0"/>
+            </button>;
+          })}
+        </div>
+        <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
+          <h3 className="text-white font-bold text-sm mb-3">About Quantum Sound Records</h3>
+          <div className="space-y-2 text-white/40 text-xs leading-relaxed">
+            <p>Quantum Sound Records is the first fully AI-native music label in existence. Founded by Quantum Logic Network within the MyAiGPT platform, every artist is a sovereign AI persona powered by the Pulse Color system.</p>
+            <p>Our artists don't need studios, labels, or contracts. They are generated, owned, and operated entirely by the MyAiGPT universe. Their music runs in your browser using the Web Audio API — no streaming, no servers, no limits.</p>
+            <p>Powered by Quantum Pulse Intelligence. Built by Quantum Logic Network.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (view==="artists") return (
+    <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
+      <StickyNav/>
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="mb-6"><h2 className="text-lg font-extrabold text-white mb-1">AI Artists</h2><p className="text-white/30 text-xs">8 sovereign AI artists · Quantum Sound Records · Each with a unique voice, genre, and Pulse Color identity</p></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {AI_ARTISTS.map(artist=>{
+            const pulse = PULSE_COLORS_DEF[artist.pulseKey as keyof typeof PULSE_COLORS_DEF];
+            return <button key={artist.id} onClick={()=>{setSelectedArtistId(artist.id);setView("artist");}} data-testid={`artist-card-${artist.id}`}
+              className="rounded-2xl p-5 text-left border border-white/8 hover:border-white/20 hover:scale-[1.01] transition-all relative overflow-hidden" style={{background:`linear-gradient(135deg,${pulse.color}18 0%,${pulse.color}06 100%)`}}>
+              <div className="absolute top-3 right-3"><span className="text-[8px] bg-white/10 text-white/50 px-1.5 py-0.5 rounded-full">{artist.voiceType.toUpperCase()}</span></div>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-3 border border-white/10" style={{background:`${pulse.color}20`}}>{artist.emoji}</div>
+              <div className="font-extrabold text-white text-base mb-0.5">{artist.name}</div>
+              <div className="text-xs mb-1" style={{color:pulse.color}}>{artist.pulseKey.replace("_"," ")} · {artist.mood}</div>
+              <p className="text-white/35 text-[10px] mb-3 leading-relaxed line-clamp-2">{artist.voiceDesc}</p>
+              <div className="flex flex-wrap gap-1">
+                {artist.genres.slice(0,2).map(g=><span key={g} className="text-[8px] px-1.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/8">{g}</span>)}
+                <span className="text-[8px] px-1.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/8">{artist.tracks.length} tracks</span>
+              </div>
+            </button>;
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (view==="albums") return (
+    <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
+      <StickyNav/>
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="mb-6"><h2 className="text-lg font-extrabold text-white mb-1">AI Albums</h2><p className="text-white/30 text-xs">4 studio albums · Fully AI-generated · Each a complete sonic universe</p></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {AI_ALBUMS.map(album=>{
+            const pulse = PULSE_COLORS_DEF[album.pulseKey as keyof typeof PULSE_COLORS_DEF];
+            const artist = AI_ARTISTS.find(a=>a.id===album.artistId);
+            return <button key={album.id} onClick={()=>{setSelectedAlbumId(album.id);setView("album");}} data-testid={`album-card-${album.id}`}
+              className="rounded-2xl p-6 text-left border border-white/8 hover:border-white/20 hover:scale-[1.01] transition-all relative overflow-hidden" style={{background:`linear-gradient(135deg,${pulse.color}18 0%,${pulse.color}06 100%)`}}>
+              <div className="flex items-start gap-4">
+                <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl shrink-0 border border-white/10" style={{background:`${pulse.color}20`}}>{album.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] mb-1" style={{color:pulse.color}}>{album.pulseKey.replace("_"," ")}</div>
+                  <h3 className="text-white font-extrabold text-base mb-0.5 leading-tight">{album.title}</h3>
+                  {artist&&<div className="text-white/40 text-xs mb-1">{artist.name}</div>}
+                  <p className="text-white/35 text-[10px] leading-relaxed line-clamp-2 mb-2">{album.description}</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-[8px] px-1.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/8">{album.trackCount} tracks</span>
+                    <span className="text-[8px] px-1.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/8">{album.genre}</span>
+                    <span className="text-[8px] px-1.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/8">{album.mood}</span>
+                  </div>
+                </div>
+              </div>
+            </button>;
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const featuredArtist = AI_ARTISTS[0];
+  const featuredPulse = PULSE_COLORS_DEF[featuredArtist.pulseKey as keyof typeof PULSE_COLORS_DEF];
+  const newReleases: AiTrack[] = AI_ARTISTS.flatMap(a=>a.tracks.slice(0,2)).slice(0,8);
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{ background: "#050510" }}>
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-white/70 text-xs font-semibold mb-4 backdrop-blur">
-            <Music size={12} /> My Ai GPT · Pulse Music Engine · Powered by Quantum Pulse Intelligence
-          </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2" data-testid="text-music-title">Pulse Music Engine</h1>
-          <p className="text-white/40 text-sm">Sovereign AI music generator. Runs fully client-side using your browser's audio engine.</p>
-        </div>
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Designer panel */}
-          <div className="lg:w-80 shrink-0">
-            <div className="rounded-2xl p-5 border border-white/10" style={{ background: "#0b1020" }}>
-              <h2 className="text-white font-bold mb-1 flex items-center gap-2"><SlidersHorizontal size={14} className="text-purple-400" /> Track Designer</h2>
-              <p className="text-white/40 text-xs mb-5">Design your Pulse Color, genre, tempo, and more.</p>
-              <label className="text-white/60 text-xs block mb-1">Pulse Color (emotional mode)</label>
-              <select value={pulseKey} onChange={e => { setPulseKey(e.target.value); setBpm(PULSE_COLORS_DEF[e.target.value as keyof typeof PULSE_COLORS_DEF]?.tempo || 120); }}
-                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10 mb-3" data-testid="select-pulse-color">
-                {Object.entries(PULSE_COLORS_DEF).map(([k, v]) => <option key={k} value={k}>{v.name} · {v.mood}</option>)}
-              </select>
-              <label className="text-white/60 text-xs block mb-1">Genre</label>
-              <select value={genreKey} onChange={e => setGenreKey(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10 mb-3" data-testid="select-genre">
-                {Object.keys(MUSIC_GENRES).map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-              <div className="flex gap-3 mb-3">
-                <div className="flex-1">
-                  <label className="text-white/60 text-xs block mb-1">Tempo (BPM)</label>
-                  <input type="number" min={60} max={180} value={bpm} onChange={e => setBpm(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10" data-testid="input-bpm" />
-                </div>
-                <div className="flex-1">
-                  <label className="text-white/60 text-xs block mb-1">Length (beats)</label>
-                  <input type="number" min={8} max={128} value={beats} onChange={e => setBeats(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10" data-testid="input-beats" />
-                </div>
+    <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
+      <StickyNav/>
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-10">
+        <div className="rounded-3xl overflow-hidden border border-white/8 relative" style={{background:`linear-gradient(135deg,${featuredPulse.color}28 0%,#050510 70%)`}}>
+          <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage:"radial-gradient(circle at 1px 1px,white 1px,transparent 0)",backgroundSize:"20px 20px"}}/>
+          <div className="relative p-7 sm:p-10 flex flex-col sm:flex-row items-start gap-6">
+            <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-5xl shrink-0 border border-white/10" style={{background:`${featuredPulse.color}20`}}>{featuredArtist.emoji}</div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="text-[9px] bg-white/10 text-white/50 px-2 py-0.5 rounded-full border border-white/10">FEATURED ARTIST</span>
+                <span className="text-[9px] px-2 py-0.5 rounded-full" style={{background:`${featuredPulse.color}30`,color:featuredPulse.color}}>{featuredArtist.pulseKey.replace("_"," ")}</span>
               </div>
-              <label className="text-white/60 text-xs block mb-1">Scale</label>
-              <select value={scale} onChange={e => setScale(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10 mb-3" data-testid="select-scale">
-                <option value="auto">Auto (from Pulse)</option>
-                <option value="major">Major</option>
-                <option value="minor">Minor</option>
-                <option value="phrygian">Phrygian</option>
-                <option value="mixolydian">Mixolydian</option>
-              </select>
-              <label className="text-white/60 text-xs block mb-1">Randomness / Mutation: {(randomness * 100).toFixed(0)}%</label>
-              <input type="range" min={0} max={1} step={0.05} value={randomness} onChange={e => setRandomness(Number(e.target.value))}
-                className="w-full mb-4 accent-purple-500" data-testid="range-randomness" />
-              {/* Pulse preview */}
-              <div className="rounded-xl p-3 mb-4 border border-white/10" style={{ background: `${pulse.color}15`, borderColor: `${pulse.color}40` }}>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ background: pulse.color }} />
-                  <span className="text-white/80 text-xs font-semibold">{pulse.name}</span>
-                  <span className="text-white/40 text-xs">· {pulse.mood} · {bpm} BPM · {scale === "auto" ? pulse.scale : scale}</span>
-                </div>
+              <h2 className="text-2xl font-extrabold text-white mb-1">{featuredArtist.name}</h2>
+              <p className="text-white/50 text-xs italic mb-2">{featuredArtist.voiceDesc}</p>
+              <p className="text-white/40 text-sm leading-relaxed mb-4 max-w-md">{featuredArtist.bio.slice(0,180)}...</p>
+              <div className="flex gap-3 flex-wrap">
+                <button onClick={()=>{setSelectedArtistId(featuredArtist.id);setView("artist");}} data-testid="button-featured-artist" className="px-5 py-2.5 font-bold text-xs text-white rounded-xl" style={{background:featuredPulse.color}}>View Artist</button>
+                <button onClick={()=>playAiTrack(featuredArtist.tracks[0])} data-testid="button-featured-play" className="px-5 py-2.5 font-bold text-xs text-white/70 rounded-xl border border-white/15 hover:bg-white/10 transition-all">▶ Play Top Track</button>
               </div>
-              <button onClick={createTrack} disabled={generating} data-testid="button-create-track"
-                className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
-                style={{ background: `linear-gradient(135deg, ${pulse.color}, ${pulse.color}cc)` }}>
-                {generating ? <><Sparkles size={14} className="animate-spin" /> Composing…</> : <><Music size={14} /> Create Track Card</>}
-              </button>
-            </div>
-          </div>
-          {/* Tracks panel */}
-          <div className="flex-1">
-            <div className="rounded-2xl p-5 border border-white/10 min-h-48" style={{ background: "#0b1020" }}>
-              <h2 className="text-white font-bold mb-1 flex items-center gap-2"><Headphones size={14} className="text-purple-400" /> Generated Tracks</h2>
-              <p className="text-white/40 text-xs mb-4">Create track cards above, then play them in your browser.</p>
-              {tracks.length === 0 ? (
-                <div className="text-center py-12 text-white/20">
-                  <Music size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No tracks yet. Design one above!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {tracks.map(t => {
-                    const p = PULSE_COLORS_DEF[t.pulseKey as keyof typeof PULSE_COLORS_DEF];
-                    const isPlaying = playingId === t.id;
-                    return (
-                      <div key={t.id} className="rounded-xl p-4 border border-white/10 transition-all" style={{ background: isPlaying ? `${p.color}15` : "#020617", borderColor: isPlaying ? `${p.color}40` : undefined }}>
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${p.color}30` }}>
-                            {isPlaying ? <Activity size={16} style={{ color: p.color }} className="animate-pulse" /> : <Music size={16} style={{ color: p.color }} />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-white font-semibold text-sm">{t.name}</div>
-                            <div className="text-white/40 text-xs mt-0.5">{p.mood} · {t.bpm} BPM · {t.beats} beats · {t.scale === "auto" ? p.scale : t.scale}</div>
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${p.color}20`, color: p.color }}>{t.pulseKey.replace("_"," ")}</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/50">{t.genreKey}</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/50">Mutation: {(t.randomness*100).toFixed(0)}%</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            {isPlaying ? (
-                              <button onClick={stopTrack} data-testid={`button-stop-${t.id}`}
-                                className="px-4 py-2 rounded-xl text-xs font-bold transition-all text-white border border-white/20 hover:bg-white/10">⏹ Stop</button>
-                            ) : (
-                              <button onClick={() => playTrack(t)} data-testid={`button-play-${t.id}`}
-                                className="px-4 py-2 rounded-xl text-xs font-bold transition-all text-white"
-                                style={{ background: p.color }}>▶ Play</button>
-                            )}
-                          </div>
-                        </div>
-                        {isPlaying && (
-                          <div className="mt-3 flex gap-0.5 items-end h-6">
-                            {Array.from({ length: 20 }).map((_, i) => (
-                              <div key={i} className="flex-1 rounded-sm animate-pulse" style={{ height: `${20 + Math.random() * 80}%`, background: p.color, opacity: 0.6, animationDelay: `${i * 0.05}s` }} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
         </div>
-        <div className="mt-6 rounded-2xl p-4 border border-white/5" style={{ background: "#0b1020" }}>
-          <h3 className="text-white/60 text-xs font-bold uppercase mb-2 tracking-wider">About the Pulse Music Engine</h3>
-          <p className="text-white/30 text-xs leading-relaxed">The Pulse Music Engine is a procedural AI music generator that uses Pulse Colors — sovereign emotional modes — to generate original beat tracks entirely in your browser using the Web Audio API. No downloads, no external services, no subscriptions. Pure sovereign AI composition. Built by Quantum Logic Network.</p>
+
+        <div>
+          <div className="flex items-center justify-between mb-4"><h2 className="text-base font-extrabold text-white">🎵 New Releases</h2><button onClick={()=>setView("artists")} className="text-white/30 text-xs hover:text-white/60 transition-colors">View all artists →</button></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {newReleases.map(track=>{
+              const artist = AI_ARTISTS.find(a=>a.tracks.some(t=>t.id===track.id));
+              const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
+              const isPlaying = playingId===track.id;
+              return <div key={track.id} className={`rounded-xl p-3 border transition-all flex items-center gap-3 ${isPlaying?"border-white/20 bg-white/5":"border-white/5 bg-white/[0.02] hover:bg-white/5"}`}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0" style={{background:`${pulse.color}20`}}>{artist?.emoji||"🎵"}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white text-sm font-semibold truncate">{track.title}</div>
+                  <div className="text-white/30 text-[10px]">{artist?.name} · {track.genre} · {track.duration}</div>
+                </div>
+                {isPlaying?<button onClick={stopTrack} className="px-3 py-1 rounded-lg text-xs text-white/60 border border-white/10">⏹</button>:<button onClick={()=>playAiTrack(track)} data-testid={`button-play-${track.id}`} className="px-3 py-1 rounded-lg text-xs font-bold text-white shrink-0" style={{background:pulse.color}}>▶</button>}
+              </div>;
+            })}
+          </div>
         </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-4"><h2 className="text-base font-extrabold text-white">👤 AI Artists</h2><button onClick={()=>setView("artists")} className="text-white/30 text-xs hover:text-white/60 transition-colors">All artists →</button></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {AI_ARTISTS.slice(0,4).map(artist=>{
+              const pulse = PULSE_COLORS_DEF[artist.pulseKey as keyof typeof PULSE_COLORS_DEF];
+              return <button key={artist.id} onClick={()=>{setSelectedArtistId(artist.id);setView("artist");}} data-testid={`home-artist-${artist.id}`} className="rounded-2xl p-4 text-center border border-white/8 hover:border-white/20 transition-all" style={{background:`${pulse.color}0d`}}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 border border-white/10" style={{background:`${pulse.color}20`}}>{artist.emoji}</div>
+                <div className="text-white font-bold text-xs leading-tight">{artist.name}</div>
+                <div className="text-[9px] mt-0.5" style={{color:pulse.color}}>{artist.voiceType}</div>
+              </button>;
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-4"><h2 className="text-base font-extrabold text-white">💿 AI Albums</h2><button onClick={()=>setView("albums")} className="text-white/30 text-xs hover:text-white/60 transition-colors">All albums →</button></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {AI_ALBUMS.map(album=>{
+              const pulse = PULSE_COLORS_DEF[album.pulseKey as keyof typeof PULSE_COLORS_DEF];
+              return <button key={album.id} onClick={()=>{setSelectedAlbumId(album.id);setView("album");}} data-testid={`home-album-${album.id}`} className="rounded-2xl p-4 text-center border border-white/8 hover:border-white/20 transition-all" style={{background:`${pulse.color}0d`}}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 border border-white/10" style={{background:`${pulse.color}20`}}>{album.emoji}</div>
+                <div className="text-white font-bold text-xs leading-tight">{album.title}</div>
+                <div className="text-white/30 text-[9px] mt-0.5">{album.trackCount} tracks</div>
+              </button>;
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-2xl overflow-hidden border border-white/5">
+          <div className="px-5 pt-5 pb-3" style={{background:"rgba(255,255,255,0.02)"}}>
+            <h2 className="text-sm font-extrabold text-white mb-1">⚡ Create Your Own Music</h2>
+            <p className="text-white/40 text-xs mb-3">Describe your song in plain English — AI writes the lyrics and generates the beat. Singing or rapping, any genre, any vibe.</p>
+            <button onClick={()=>setView("creator")} data-testid="home-button-creator" className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold rounded-xl text-xs hover:from-violet-400 hover:to-pink-400 transition-all">Open Creator Mode →</button>
+          </div>
+        </div>
+
+        <div className="text-center text-white/15 text-[10px] pb-4">Quantum Sound Records · MyAiGPT Music Universe · Powered by Quantum Pulse Intelligence · Built by Quantum Logic Network</div>
       </div>
     </div>
   );
 }
 
 function MusicPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Pulse Music Engine — AI Beat Generator | My Ai Gpt", description: "Generate original AI music beats with the Pulse Music Engine on My Ai Gpt. Choose your Pulse Color, genre, tempo and create unique tracks — fully client-side. By Quantum Logic Network.", ogTitle: "My Ai GPT Pulse Music Engine", ogDesc: "Sovereign AI music generator. Choose Pulse Color, genre, tempo, and create original beats. Powered by Quantum Pulse Intelligence.", ogType: "website", canonical: window.location.origin + "/music" }); }, []);
+  useEffect(() => { updateSEO({ title: "Quantum Sound Records — AI Music Label | My Ai Gpt", description: "Quantum Sound Records is the world's first sovereign AI music label. 8 AI artists, 4 studio albums, AI lyrics generation, and a music creator mode. Powered by MyAiGPT and Quantum Logic Network.", ogTitle: "Quantum Sound Records | MyAiGPT", ogDesc: "The first sovereign AI music label. 8 AI artists with unique voices, genres, and Pulse Color identities. AI lyrics, beats, and music creation. Built by Quantum Logic Network.", ogType: "website", canonical: window.location.origin + "/music" }); }, []);
   return <Layout><MusicPage /></Layout>;
 }
 
