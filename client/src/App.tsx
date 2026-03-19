@@ -23,7 +23,8 @@ import {
   ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight,
   Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
-  LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet
+  LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
+  GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
@@ -143,6 +144,10 @@ type AppSettings = {
   showWordCount: boolean;
   enableCodeLens: boolean;
   chatFontSize: "small" | "medium" | "large";
+  feedNewsPerPage: number;
+  feedShowImages: boolean;
+  feedCompactNews: boolean;
+  feedTopCategories: string[];
 };
 const defaultAppSettings: AppSettings = {
   darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
@@ -157,6 +162,7 @@ const defaultAppSettings: AppSettings = {
   showKeyboardShortcuts: true, timeFormat: "12h", reduceAnimations: false,
   autoSaveCode: true, exportFormat: "markdown", notificationSound: "default",
   showWordCount: true, enableCodeLens: true, chatFontSize: "medium",
+  feedNewsPerPage: 18, feedShowImages: true, feedCompactNews: false, feedTopCategories: [],
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
@@ -1951,8 +1957,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           <Link href="/feed" data-testid="link-feed"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
-            <span className="flex-1">Feed</span>
-            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="flex-1">News Hub</span>
+            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">LIVE<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("social") && (
@@ -1985,6 +1991,22 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/music" ? "bg-sky-500/15" : "bg-sky-500/5"}`}><Music size={14} className="text-sky-600" /></div>
             <span className="flex-1">Music</span>
             <span className="text-[9px] bg-gradient-to-r from-sky-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("education") && (
+          <Link href="/education" data-testid="link-education"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/education" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/education" ? "bg-teal-500/15" : "bg-teal-500/5"}`}><GraduationCap size={14} className="text-teal-600" /></div>
+            <span className="flex-1">Education</span>
+            <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("shopping") && (
+          <Link href="/shopping" data-testid="link-shopping"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/shopping" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/shopping" ? "bg-lime-500/15" : "bg-lime-500/5"}`}><ShoppingBag size={14} className="text-lime-600" /></div>
+            <span className="flex-1">Shopping</span>
+            <span className="text-[9px] bg-gradient-to-r from-lime-500 to-green-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           )}
         </div>
@@ -4759,22 +4781,8 @@ function PlaygroundPage() {
   return <Layout><CodePlayground /></Layout>;
 }
 function FeedPage() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Feed - Coming Soon", description: "Live news feed coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Feed - Coming Soon", ogDesc: "Live news feed coming soon.", ogType: "website", canonical: window.location.origin + "/feed" }); }, []);
-  return <Layout><div className="flex-1 flex items-center justify-center p-6">
-    <div className="text-center max-w-md">
-      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-xl">
-        <Newspaper size={36} className="text-white" />
-      </div>
-      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-feed-title">News Feed</h1>
-      <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 rounded-full border border-orange-200/50 mb-3 relative overflow-hidden">
-        <Sparkles size={14} className="text-orange-500" />
-        <span className="text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">Coming Soon</span>
-        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
-      </div>
-      <p className="text-muted-foreground text-sm mt-2">Live news from BBC, NPR, NY Times, and more — Quantum Logic Network is building something incredible.</p>
-      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for any news or information!</p>
-    </div>
-  </div></Layout>;
+  useEffect(() => { updateSEO({ title: "My Ai Gpt News Hub - World Class AI News | Quantum Logic Network", description: "Read AI-written world news across every category — Technology, Finance, Science, Sports, Health, Energy, Government, Culture and more. Powered by the Omega News System by Quantum Logic Network.", ogTitle: "My Ai Gpt News Hub - Live AI News", ogDesc: "World-class AI-written news across every topic. Updated constantly. Powered by Quantum Logic Network.", ogType: "website", canonical: window.location.origin + "/feed", keywords: "AI news, world news, technology news, science news, finance news, AI written news, My Ai Gpt news, Quantum Logic Network, breaking news, industry news" }); }, []);
+  return <NewsFeed />;
 }
 // ─── AI STUDIO PAGE (Image + Video Generation) ──────────────────────────────
 
@@ -5338,12 +5346,14 @@ function SettingsPage() {
 
   const pages = [
     { id: "playground", name: "Playground", icon: SquareTerminal, color: "text-emerald-600", desc: "Code IDE with 30+ languages" },
-    { id: "feed", name: "Feed", icon: Newspaper, color: "text-orange-600", desc: "News & video feed" },
+    { id: "feed", name: "News Hub", icon: Newspaper, color: "text-orange-600", desc: "World-class AI news feed" },
     { id: "social", name: "Social", icon: Users, color: "text-purple-600", desc: "Public social network" },
     { id: "create", name: "AI Studio", icon: Paintbrush, color: "text-pink-600", desc: "AI image & video generation" },
     { id: "coder", name: "My Ai Coder", icon: Code2, color: "text-blue-600", desc: "AI coding assistant" },
     { id: "games", name: "Games", icon: Gamepad2, color: "text-rose-600", desc: "Fun games & entertainment" },
     { id: "music", name: "Music", icon: Music, color: "text-sky-600", desc: "Music player & discovery" },
+    { id: "education", name: "Education", icon: GraduationCap, color: "text-teal-600", desc: "AI-powered learning platform" },
+    { id: "shopping", name: "Shopping", icon: ShoppingBag, color: "text-lime-600", desc: "AI smart shopping" },
   ];
 
   const bgPresets = [
@@ -5537,7 +5547,9 @@ function SettingsPage() {
                     { id: "/", label: "Home" },
                     { id: "/coder", label: "Coder" },
                     { id: "/code", label: "Playground" },
-                    { id: "/feed", label: "Feed" },
+                    { id: "/feed", label: "News Hub" },
+                    { id: "/education", label: "Education" },
+                    { id: "/shopping", label: "Shopping" },
                   ]).map(pg => (
                     <button key={pg.id} onClick={() => update({ startupPage: pg.id })} data-testid={`startup-page-${pg.label.toLowerCase()}`}
                       className={`py-2 rounded-lg text-xs font-medium border transition-all ${settings.startupPage === pg.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
@@ -5794,9 +5806,9 @@ function SettingsPage() {
         )}
 
         {activeSection === "feed-settings" && (
-          <div className="space-y-3" data-testid="settings-section-feed">
+          <div className="space-y-4" data-testid="settings-section-feed">
             <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
-              <h3 className="text-sm font-bold flex items-center gap-2"><Newspaper size={15} /> Feed Preferences</h3>
+              <h3 className="text-sm font-bold flex items-center gap-2"><Newspaper size={15} /> News Hub Preferences</h3>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-medium">Auto-Refresh</div>
@@ -5816,6 +5828,70 @@ function SettingsPage() {
                     ))}
                   </div>
                 </div>
+              )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Article Images</div>
+                  <div className="text-xs text-muted-foreground">Display thumbnails on news cards</div>
+                </div>
+                <ToggleSwitch on={settings.feedShowImages} onToggle={() => update({ feedShowImages: !settings.feedShowImages })} testId="toggle-feed-show-images" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Compact News View</div>
+                  <div className="text-xs text-muted-foreground">Smaller cards, more articles visible</div>
+                </div>
+                <ToggleSwitch on={settings.feedCompactNews} onToggle={() => update({ feedCompactNews: !settings.feedCompactNews })} testId="toggle-feed-compact" />
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Articles Per Load</div>
+                <div className="flex gap-2">
+                  {[9, 18, 36].map(n => (
+                    <button key={n} onClick={() => update({ feedNewsPerPage: n })} data-testid={`feed-per-page-${n}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.feedNewsPerPage === n ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2"><ListFilter size={15} /> Top News Categories</h3>
+              <p className="text-xs text-muted-foreground mb-3">Pin categories to show at the top of your feed. Leave empty to show all.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "information-technology", label: "Tech & AI" },
+                  { id: "financials", label: "Finance" },
+                  { id: "health-care", label: "Health" },
+                  { id: "sports", label: "Sports" },
+                  { id: "science-and-mathematics", label: "Science" },
+                  { id: "communication-services", label: "Media" },
+                  { id: "government-law-and-civilization", label: "Politics" },
+                  { id: "energy", label: "Energy" },
+                  { id: "consumer-discretionary", label: "Consumer" },
+                  { id: "real-estate", label: "Real Estate" },
+                  { id: "education-and-knowledge", label: "Education" },
+                  { id: "deep-root-domains", label: "Deep Topics" },
+                ].map(cat => {
+                  const active = (settings.feedTopCategories || []).includes(cat.id);
+                  return (
+                    <button key={cat.id} data-testid={`feed-cat-${cat.id}`}
+                      onClick={() => {
+                        const cats = settings.feedTopCategories || [];
+                        update({ feedTopCategories: active ? cats.filter(c => c !== cat.id) : [...cats, cat.id] });
+                      }}
+                      className={`py-2 px-1 rounded-lg text-[10px] font-medium border transition-all text-center ${active ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {(settings.feedTopCategories || []).length > 0 && (
+                <button onClick={() => update({ feedTopCategories: [] })} data-testid="button-clear-feed-cats"
+                  className="mt-3 text-xs text-muted-foreground hover:text-foreground underline">
+                  Clear all category pins
+                </button>
               )}
             </div>
           </div>
@@ -6142,6 +6218,54 @@ function MusicPageWrapper() {
   </div></Layout>;
 }
 
+function EducationPageWrapper() {
+  useEffect(() => { updateSEO({ title: "Education - Coming Soon | My Ai Gpt", description: "AI-powered education platform coming soon to My Ai Gpt by Quantum Logic Network. Learn anything with personalized AI tutoring, courses, and interactive lessons.", ogTitle: "My Ai Gpt Education - AI Learning Platform", ogDesc: "Personalized AI-powered education and learning platform. Coming soon.", ogType: "website", canonical: window.location.origin + "/education" }); }, []);
+  return <Layout><div className="flex-1 flex items-center justify-center p-6">
+    <div className="text-center max-w-md">
+      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
+        <GraduationCap size={36} className="text-white" />
+      </div>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-education-title">Education</h1>
+      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500/10 via-cyan-500/10 to-teal-500/10 rounded-full border border-teal-200/50 mb-3 relative overflow-hidden animate-pulse">
+        <Sparkles size={14} className="text-teal-500" />
+        <span className="text-sm font-bold bg-gradient-to-r from-teal-500 to-cyan-600 bg-clip-text text-transparent">Coming Soon</span>
+        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
+      </div>
+      <p className="text-muted-foreground text-sm mt-2">AI-powered personalized learning — Quantum Logic Network is building the future of education.</p>
+      <div className="flex flex-wrap justify-center gap-2 mt-4">
+        {["AI Tutoring", "Interactive Courses", "Live Q&A", "Study Plans", "Certifications", "K-12", "College Prep", "Coding Classes"].map(f => (
+          <span key={f} className="text-[10px] px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-600 rounded-full font-medium border border-teal-200/50 dark:border-teal-800/30">{f}</span>
+        ))}
+      </div>
+      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, ask My Ai GPT to teach you anything!</p>
+    </div>
+  </div></Layout>;
+}
+
+function ShoppingPageWrapper() {
+  useEffect(() => { updateSEO({ title: "Shopping - Coming Soon | My Ai Gpt", description: "AI-powered smart shopping platform coming soon to My Ai Gpt by Quantum Logic Network. Discover the best deals, products, and personalized recommendations powered by AI.", ogTitle: "My Ai Gpt Shopping - AI Smart Shopping", ogDesc: "AI-powered smart shopping with personalized recommendations. Coming soon.", ogType: "website", canonical: window.location.origin + "/shopping" }); }, []);
+  return <Layout><div className="flex-1 flex items-center justify-center p-6">
+    <div className="text-center max-w-md">
+      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-lime-500 to-green-600 flex items-center justify-center shadow-xl">
+        <ShoppingBag size={36} className="text-white" />
+      </div>
+      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-shopping-title">Shopping</h1>
+      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-lime-500/10 via-green-500/10 to-lime-500/10 rounded-full border border-lime-200/50 mb-3 relative overflow-hidden animate-pulse">
+        <Sparkles size={14} className="text-lime-500" />
+        <span className="text-sm font-bold bg-gradient-to-r from-lime-500 to-green-600 bg-clip-text text-transparent">Coming Soon</span>
+        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
+      </div>
+      <p className="text-muted-foreground text-sm mt-2">AI-powered smart shopping — Quantum Logic Network is building something game-changing for shoppers.</p>
+      <div className="flex flex-wrap justify-center gap-2 mt-4">
+        {["AI Deal Finder", "Price Tracking", "Smart Recommendations", "Gift Ideas", "Best Reviews", "Flash Deals", "Wishlist", "Compare Products"].map(f => (
+          <span key={f} className="text-[10px] px-3 py-1.5 bg-lime-50 dark:bg-lime-900/20 text-lime-600 rounded-full font-medium border border-lime-200/50 dark:border-lime-800/30">{f}</span>
+        ))}
+      </div>
+      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, ask My Ai GPT to help you find the best deals!</p>
+    </div>
+  </div></Layout>;
+}
+
 function ChatViewPage() {
   const [, params] = useRoute("/chat/:id");
   const chatId = params?.id ? parseInt(params.id, 10) : undefined;
@@ -6190,6 +6314,8 @@ function Router() {
       <Route path="/create" component={AIStudioPageWrapper} />
       <Route path="/games" component={GamesPageWrapper} />
       <Route path="/music" component={MusicPageWrapper} />
+      <Route path="/education" component={EducationPageWrapper} />
+      <Route path="/shopping" component={ShoppingPageWrapper} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

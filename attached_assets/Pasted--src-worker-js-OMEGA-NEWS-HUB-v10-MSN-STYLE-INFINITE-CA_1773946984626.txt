@@ -1,0 +1,3694 @@
+// /src/worker.js
+// OMEGA NEWS HUB - v10 MSN-STYLE INFINITE CATEGORY FEEDS
+// - each page is its own category-locked infinite world
+// - MSN-style fresh + archive merged stream
+// - short recent dedupe, not long-term disappearance
+// - route archive snapshots in caches.default
+// - client resume cursor + scroll restoration
+// - deep scroll allows controlled recirculation
+// - no Google sources
+// - cache-only architecture
+// - on-site AI writer intact
+
+///////////////////////////////
+// BRANDING
+///////////////////////////////
+const BRAND = {
+  companyName: "My Ai Gpt News",
+  productName: "Omega News Hub",
+  tagline: "Top news by world - On-site AI writing - Route-locked worlds",
+  appName: "My Ai Gpt",
+  appUrl: "https://myaigpt.online/",
+};
+
+const SITE_NAME = "My Ai Gpt News Hub";
+const SITE_DESCRIPTION =
+  "Read AI-written news across a full universe taxonomy, with route-locked pages and on-site writing.";
+
+const SECURITY_HEADERS = {
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "geolocation=(), microphone=(), camera=()",
+};
+
+///////////////////////////////
+// SETTINGS
+///////////////////////////////
+const VERSION = "omega-hivemind-v10-msn-category-infinite";
+
+const FEED_CACHE_TTL_SECONDS = 180;
+const ARTICLE_FETCH_TIMEOUT_MS = 11000;
+
+const API_PAGE_SIZE = 18;
+const HOME_DOMAIN_LIMIT = 6;
+
+const RECENCY_DAYS_STRICT = 21;
+const RECENCY_DAYS_FALLBACK = 365;
+
+// FEED CARD DEDUPE POLICY
+// do NOT make articles disappear for weeks
+const RESPONSE_DEDUPE_TTL_SECONDS = 15 * 60; // same response / near-immediate anti-repeat
+const ROUTE_RECENT_TTL_SECONDS = 90 * 60; // short anti-repeat on the same route
+const HIVE_MEM_TTL_SECONDS = 21 * 24 * 60 * 60;
+const ARTICLE_CACHE_TTL_SECONDS = 6 * 60 * 60;
+
+// archive
+const ARCHIVE_BUCKET_MINUTES = 10;
+const ARCHIVE_INDEX_TTL_SECONDS = 3 * 24 * 60 * 60;
+const ARCHIVE_BUCKET_TTL_SECONDS = 3 * 24 * 60 * 60;
+const MAX_ARCHIVE_BUCKETS_PER_ROUTE = 72; // 12 hours of 10-min snapshots or more as cache allows
+const MAX_ARCHIVE_ITEMS_PER_BUCKET = 260;
+const ARCHIVE_BLEND_LIMIT = 900;
+
+// ingestion
+const FEED_FETCH_TIMEOUT_MS = 4800;
+const MAX_FEED_CONCURRENCY = 18;
+const MAX_ITEMS_PER_FEED_PARSE = 140;
+
+// hard budgets so pages never hang
+const LIVE_TIME_BUDGET_MS = 8200;
+const LIVE_FETCH_ROUND_BUDGET_MS = 5200;
+const MAX_FETCH_ROUNDS_PER_REQUEST = 4;
+
+const SLICE_SIZE_BASE = 65;
+const SLICE_SIZE_BOOST = 40;
+const MAX_SLICE_PASSES = 4;
+
+const MAX_CANDIDATES_PER_BAG = 3200;
+
+// seek
+const SEEK_WINDOW_BASE = 2600;
+const SEEK_WINDOW_MAX = 18000;
+
+// controlled recirculation
+const RECIRCULATION_START_CURSOR = 180;
+const RECIRCULATION_INTERVAL = 120;
+const RECIRCULATION_RATE_DEEP = 0.22;
+const WINDOW_OVERLAP_RATE = 0.18;
+
+const DDG_ENABLED = true;
+const DDG_TIMEOUT_MS = 6500;
+const DDG_TIME_FILTER = "w";
+const DDG_MAX_RESULTS = 40;
+const DDG_MIN_FILL_THRESHOLD = 32;
+const DDG_QUERY_COUNT = 6;
+
+const MIN_TITLE_LEN = 12;
+const MAX_TITLE_LEN = 180;
+const MIN_DESC_LEN = 35;
+const MIN_CARD_QUALITY_SCORE = 16;
+
+const EXTRACT_MAX_PARAGRAPHS = 22;
+const EXTRACT_MAX_CHARS = 12000;
+const STORY_MIN_PARAGRAPHS = 3;
+const STORY_MIN_CHARS = 900;
+const STORY_MAX_PARAGRAPHS = 6;
+const STORY_MAX_SENTENCES = 36;
+const MUTATION_COUNT = 4;
+
+const EXTRA_SOURCES_PER_ROUTE = 7;
+
+///////////////////////////////
+// SPINE
+///////////////////////////////
+const SPINE = [
+  {
+    label: "Meta Systems & Ontology",
+    key: "meta-systems-and-ontology",
+    children: [
+      { label: "Ontology & Taxonomy", key: "ontology-and-taxonomy" },
+      { label: "Narrative & Canon", key: "narrative-and-canon" },
+      { label: "Metadata & Identity", key: "metadata-and-identity" },
+      { label: "Pulse Substrate", key: "pulse-substrate" },
+    ],
+  },
+  {
+    label: "Energy",
+    key: "energy",
+    children: [
+      { label: "Energy (GICS)", key: "energy-gics" },
+      { label: "Energy Systems", key: "energy-systems" },
+      { label: "Environmental Impact", key: "environmental-impact" },
+    ],
+  },
+  {
+    label: "Materials",
+    key: "materials",
+    children: [
+      { label: "Materials (GICS)", key: "materials-gics" },
+      { label: "Physical Matter", key: "physical-matter" },
+    ],
+  },
+  {
+    label: "Industrials",
+    key: "industrials",
+    children: [
+      { label: "Capital Goods (GICS)", key: "capital-goods-gics" },
+      {
+        label: "Commercial & Professional Services (GICS)",
+        key: "commercial-and-professional-services-gics",
+      },
+      { label: "Infrastructure", key: "infrastructure" },
+      { label: "Transportation Systems", key: "transportation-systems" },
+    ],
+  },
+  {
+    label: "Consumer Discretionary",
+    key: "consumer-discretionary",
+    children: [
+      { label: "Autos & EVs", key: "autos-and-evs" },
+      { label: "Apparel", key: "apparel" },
+      { label: "Retail & E-commerce", key: "retail-and-ecommerce" },
+      { label: "Lifestyle", key: "lifestyle" },
+    ],
+  },
+  {
+    label: "Consumer Staples",
+    key: "consumer-staples",
+    children: [
+      { label: "Staples (GICS)", key: "staples-gics" },
+      { label: "Food & Cuisine", key: "food-and-cuisine" },
+      { label: "Agriculture", key: "agriculture" },
+    ],
+  },
+  {
+    label: "Health Care",
+    key: "health-care",
+    children: [
+      { label: "Health Care (GICS)", key: "health-care-gics" },
+      { label: "Anatomy", key: "anatomy" },
+      { label: "Diseases", key: "diseases" },
+      { label: "Fitness", key: "fitness" },
+    ],
+  },
+  {
+    label: "Financials",
+    key: "financials",
+    children: [
+      { label: "Financials (GICS)", key: "financials-gics" },
+      { label: "Markets", key: "markets" },
+      { label: "Economics", key: "economics" },
+      { label: "Trading", key: "trading" },
+      { label: "Crypto", key: "crypto" },
+    ],
+  },
+  {
+    label: "Information Technology",
+    key: "information-technology",
+    children: [
+      { label: "IT (GICS)", key: "it-gics" },
+      { label: "Computing", key: "computing" },
+      { label: "AI", key: "ai" },
+      { label: "Cybersecurity", key: "cybersecurity" },
+    ],
+  },
+  {
+    label: "Communication Services",
+    key: "communication-services",
+    children: [
+      { label: "Comm Services (GICS)", key: "comm-services-gics" },
+      { label: "Media Forms", key: "media-forms" },
+      { label: "Entertainment", key: "entertainment" },
+    ],
+  },
+  {
+    label: "Utilities",
+    key: "utilities",
+    children: [
+      { label: "Utilities (GICS)", key: "utilities-gics" },
+      { label: "Ecology", key: "ecology" },
+      { label: "Climate", key: "climate" },
+    ],
+  },
+  {
+    label: "Real Estate",
+    key: "real-estate",
+    children: [
+      { label: "Real Estate (GICS)", key: "real-estate-gics" },
+      { label: "Geography", key: "geography" },
+      { label: "Space", key: "space" },
+    ],
+  },
+  {
+    label: "Sports",
+    key: "sports",
+    children: [
+      { label: "Team Sports", key: "team-sports" },
+      { label: "Individual Sports", key: "individual-sports" },
+      { label: "Motorsports", key: "motorsports" },
+      { label: "Esports", key: "esports" },
+      { label: "Betting", key: "betting" },
+      { label: "Sports Media", key: "sports-media" },
+    ],
+  },
+  {
+    label: "Government, Law & Civilization",
+    key: "government-law-and-civilization",
+    children: [
+      { label: "Government", key: "government" },
+      { label: "Law", key: "law" },
+      { label: "Military", key: "military" },
+      { label: "Global Orgs", key: "global-orgs" },
+    ],
+  },
+  {
+    label: "Education & Knowledge",
+    key: "education-and-knowledge",
+    children: [
+      { label: "K-12", key: "k-12" },
+      { label: "Higher Ed", key: "higher-ed" },
+      { label: "Research", key: "research" },
+    ],
+  },
+  {
+    label: "Religion, Mythology & Culture",
+    key: "religion-mythology-and-culture",
+    children: [
+      { label: "Religions", key: "religions" },
+      { label: "Mythology", key: "mythology" },
+      { label: "Culture", key: "culture" },
+    ],
+  },
+  {
+    label: "Human Experience & Psychology",
+    key: "human-experience-and-psychology",
+    children: [
+      { label: "Emotions", key: "emotions" },
+      { label: "Cognition", key: "cognition" },
+      { label: "Personality", key: "personality" },
+      { label: "Social Systems", key: "social-systems" },
+      { label: "Life Stages", key: "life-stages" },
+    ],
+  },
+  {
+    label: "Science & Mathematics",
+    key: "science-and-mathematics",
+    children: [
+      { label: "Physics", key: "physics" },
+      { label: "Chemistry", key: "chemistry" },
+      { label: "Biology", key: "biology" },
+      { label: "Earth Science", key: "earth-science" },
+      { label: "Mathematics", key: "mathematics" },
+      { label: "Space", key: "space" },
+    ],
+  },
+  {
+    label: "Time, History & Events",
+    key: "time-history-and-events",
+    children: [
+      { label: "Eras", key: "eras" },
+      { label: "Civilizations", key: "civilizations" },
+      { label: "Wars", key: "wars" },
+      { label: "Inventions", key: "inventions" },
+      { label: "Timelines", key: "timelines" },
+    ],
+  },
+  {
+    label: "Deep Root Domains",
+    key: "deep-root-domains",
+    children: [
+      { label: "Information Theory", key: "information-theory" },
+      { label: "Systems Theory", key: "systems-theory" },
+      { label: "Game Theory", key: "game-theory" },
+      { label: "Ethics", key: "ethics" },
+      { label: "Linguistics", key: "linguistics" },
+      { label: "Future Tech", key: "future-tech" },
+      { label: "Deep Economics", key: "deep-economics" },
+      { label: "Consciousness", key: "consciousness" },
+      { label: "Cosmology", key: "cosmology" },
+      { label: "Mythic Structure", key: "mythic-structure" },
+      { label: "AI Agents", key: "ai-agents" },
+      { label: "Evolution Layer", key: "evolution-layer" },
+    ],
+  },
+];
+
+function domainLabelByKey(domainKey) {
+  return SPINE.find((d) => d.key === domainKey)?.label || domainKey;
+}
+function categoryLabelByKey(domainKey, catKey) {
+  const d = SPINE.find((x) => x.key === domainKey);
+  return d?.children?.find((c) => c.key === catKey)?.label || catKey;
+}
+
+///////////////////////////////
+// ROUTES
+///////////////////////////////
+function flattenRoutes() {
+  const routes = new Map();
+  routes.set("/", { path: "/", title: SITE_NAME, desc: SITE_DESCRIPTION, label: "Home" });
+  routes.set("/explore", {
+    path: "/explore",
+    title: `Explore - ${SITE_NAME}`,
+    desc: "Full index of domains and categories.",
+    label: "Explore",
+  });
+  for (const d of SPINE) {
+    const dPath = `/${d.key}`;
+    routes.set(dPath, {
+      path: dPath,
+      title: `${d.label} - ${SITE_NAME}`,
+      desc: `Top + recent stories for ${d.label}.`,
+      label: d.label,
+    });
+    for (const c of d.children || []) {
+      const cPath = `/${d.key}/${c.key}`;
+      routes.set(cPath, {
+        path: cPath,
+        title: `${d.label} - ${c.label} - ${SITE_NAME}`,
+        desc: `Top + recent stories for ${d.label} -> ${c.label}.`,
+        label: `${d.label} -> ${c.label}`,
+      });
+    }
+  }
+  return routes;
+}
+const ROUTES = flattenRoutes();
+
+///////////////////////////////
+// UTIL
+///////////////////////////////
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+function clamp01(n) { return Math.max(0, Math.min(1, Number(n || 0))); }
+function nowIso() { return new Date().toISOString(); }
+function toIsoDate(input) {
+  try {
+    const d = new Date(input);
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+  } catch {
+    return "";
+  }
+}
+function daysAgoIso(days) { return new Date(Date.now() - days * 86400000).toISOString(); }
+function isNewerThan(iso, cutoffIso) {
+  try { return new Date(iso).getTime() >= new Date(cutoffIso).getTime(); }
+  catch { return true; }
+}
+function safeText(s, max = 240) {
+  const t = String(s ?? "").replace(/\s+/g, " ").trim();
+  return t.length <= max ? t : t.slice(0, max - 1).trim() + "...";
+}
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function stripCDATA(str) { return String(str || "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1"); }
+function stripHTML(str) { return String(str || "").replace(/<[^>]*>/g, " "); }
+function decodeEntities(str) {
+  return String(str || "")
+    .replace(/&nbsp;/gi," ").replace(/&mdash;|&ndash;/gi,"-")
+    .replace(/&lsquo;|&rsquo;|&#39;|&#x27;|&apos;/gi,"'")
+    .replace(/&ldquo;|&rdquo;/gi,'"').replace(/&hellip;/gi,"...")
+    .replace(/&lt;/g,"<").replace(/&gt;/g,">")
+    .replace(/&quot;/g,'"').replace(/&amp;/g,"&");
+}
+function hash32(str) {
+  let h = 2166136261;
+  const s = String(str ?? "");
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+function canonicalizeUrl(maybeUrl) {
+  try {
+    const u = new URL(maybeUrl);
+    const kill = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content","fbclid","gclid","ref","ref_src","cmpid","output"];
+    for (const k of kill) u.searchParams.delete(k);
+    u.hash = "";
+    if (u.pathname.length > 1) u.pathname = u.pathname.replace(/\/+$/, "");
+    if (u.pathname.endsWith("/amp")) u.pathname = u.pathname.replace(/\/amp$/i, "");
+    if (u.pathname.endsWith(".amp")) u.pathname = u.pathname.replace(/\.amp$/i, "");
+    return u.toString();
+  } catch {
+    return String(maybeUrl ?? "");
+  }
+}
+function hostnameOf(u) {
+  try { return new URL(u).hostname.replace(/^www\./,"").toLowerCase(); }
+  catch { return ""; }
+}
+function isGoogleHostUrl(u) {
+  try {
+    const h = hostnameOf(u);
+    return h === "google.com" || h === "news.google.com" || h.endsWith(".google.com");
+  } catch {
+    return false;
+  }
+}
+function uniqueBy(items, keyFn) {
+  const seen = new Set();
+  const out = [];
+  for (const it of items || []) {
+    const k = String(keyFn(it) ?? "").trim().toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(it);
+  }
+  return out;
+}
+async function fetchWithTimeout(url, init, ms) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal, redirect: "follow" });
+  } finally {
+    clearTimeout(t);
+  }
+}
+function json(data, status = 200, cacheSeconds = 0) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=UTF-8",
+      "access-control-allow-origin": "*",
+      "cache-control": cacheSeconds ? `public, max-age=0, s-maxage=${cacheSeconds}` : "no-store",
+      ...SECURITY_HEADERS,
+    },
+  });
+}
+function routeDepth(path) { return String(path || "/").split("/").filter(Boolean).length; }
+function routeInfo(routePath) {
+  const parts = String(routePath || "/").split("/").filter(Boolean);
+  const domainKey = parts[0] || "";
+  const catKey = parts[1] || "";
+  const domainLabel = domainKey ? domainLabelByKey(domainKey) : "";
+  const catLabel = catKey ? categoryLabelByKey(domainKey, catKey) : "";
+  return {
+    domainKey,
+    catKey,
+    domainLabel,
+    catLabel,
+    isHome: routePath === "/",
+    isExplore: routePath === "/explore",
+  };
+}
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (t >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+async function mapWithConcurrency(items, limit, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+  async function worker() {
+    while (true) {
+      const idx = i++;
+      if (idx >= items.length) return;
+      try {
+        out[idx] = await fn(items[idx], idx);
+      } catch {
+        out[idx] = null;
+      }
+    }
+  }
+  const n = Math.max(1, Math.min(limit, items.length || 1));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return out;
+}
+function stableShuffle(arr, seedKey) {
+  const a = arr.slice();
+  const rng = mulberry32(parseInt(hash32(seedKey), 16) >>> 0);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = a[i];
+    a[i] = a[j];
+    a[j] = tmp;
+  }
+  return a;
+}
+
+///////////////////////////////
+// CLEANUP
+///////////////////////////////
+function escapeRegex(str) { return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function normalizeBrokenMarkupText(input) {
+  let t = String(input || "");
+  for (let i = 0; i < 4; i++) t = decodeEntities(t);
+  return t
+    .replace(/\\n|\\t|\\r/g," ")
+    .replace(/<\/?(p|br|div|span|strong|em|b|i|li|ul|ol|h[1-6])[^>]*>/gi," ")
+    .replace(/<[^>]+>/g," ")
+    .replace(/&[a-z0-9#]+;/gi," ")
+    .replace(/[<>]/g," ")
+    .replace(/\u00a0/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function cleanDescription(str) { return normalizeBrokenMarkupText(stripCDATA(stripHTML(str || ""))); }
+function deepCleanText(text) {
+  return normalizeBrokenMarkupText(text).replace(/[ ]{2,}/g," ").replace(/\n{3,}/g,"\n\n").trim();
+}
+function cleanFinalText(text) {
+  let t = deepCleanText(text);
+  const banned = ["use the original link","open the original","read the full story","for full context","go to the publisher","click through"];
+  for (const phrase of banned) t = t.replace(new RegExp(escapeRegex(phrase),"gi"), "");
+  return t.replace(/\s+/g," ").trim();
+}
+function fixGrammarLite(text) {
+  let t = String(text || "").trim();
+  t = t.replace(/\s+/g," ").replace(/\s+([,.;:?!])/g,"$1").replace(/([,;:])([A-Za-z])/g,"$1 $2")
+    .replace(/\b(i)\b/g,"I").replace(/\b(dont)\b/gi,"don't").replace(/\b(cant)\b/gi,"can't").replace(/\b(wont)\b/gi,"won't")
+    .replace(/\b(doesnt)\b/gi,"doesn't").replace(/\b(im)\b/gi,"I'm").replace(/\b(ive)\b/gi,"I've").replace(/\b(youre)\b/gi,"you're")
+    .replace(/\bthe the\b/gi,"the").replace(/\bto to\b/gi,"to").trim();
+  return t.replace(/(^|[.?!]\s+)([a-z])/g, (m,p1,p2)=>p1+p2.toUpperCase());
+}
+function hardCap(text, maxChars) {
+  const s = String(text || "");
+  if (s.length <= maxChars) return s;
+  return s.slice(0,maxChars).replace(/\s+\S*$/,"").trim();
+}
+
+///////////////////////////////
+// EDGE CACHE HELPERS
+///////////////////////////////
+function edgeKey(url) { return new Request(url, { method: "GET" }); }
+async function edgeGetJson(cache, keyUrl) {
+  const res = await cache.match(edgeKey(keyUrl));
+  if (!res) return null;
+  try { return await res.json(); } catch { return null; }
+}
+async function edgePutJson(cache, keyUrl, obj, ttlSeconds) {
+  const res = new Response(JSON.stringify(obj), {
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": `public, max-age=0, s-maxage=${ttlSeconds}`,
+    },
+  });
+  await cache.put(edgeKey(keyUrl), res);
+}
+async function edgeHas(cache, keyUrl) { return !!(await cache.match(edgeKey(keyUrl))); }
+async function edgePutFlag(cache, keyUrl, ttlSeconds) {
+  await cache.put(
+    edgeKey(keyUrl),
+    new Response("1", {
+      headers: { "cache-control": `public, max-age=0, s-maxage=${ttlSeconds}` },
+    })
+  );
+}
+
+///////////////////////////////
+// SHORT DEDUPE ONLY
+///////////////////////////////
+function dedupeKeyForUrl(url) { return hash32(canonicalizeUrl(url || "")); }
+function seenResponseUrl(origin, routePath, h) {
+  return `${origin}/__edge/seen/response/${VERSION}/${hash32(routePath)}/${h}`;
+}
+function seenRouteRecentUrl(origin, routePath, h) {
+  return `${origin}/__edge/seen/route-recent/${VERSION}/${hash32(routePath)}/${h}`;
+}
+async function isSeenEdge(cache, origin, routePath, h, allowRecirculation = false) {
+  if (await edgeHas(cache, seenResponseUrl(origin, routePath, h))) return true;
+  if (!allowRecirculation && await edgeHas(cache, seenRouteRecentUrl(origin, routePath, h))) return true;
+  return false;
+}
+async function markSeenEdge(cache, origin, routePath, h) {
+  await edgePutFlag(cache, seenResponseUrl(origin, routePath, h), RESPONSE_DEDUPE_TTL_SECONDS);
+  await edgePutFlag(cache, seenRouteRecentUrl(origin, routePath, h), ROUTE_RECENT_TTL_SECONDS);
+}
+function articleCacheUrl(origin, routePath, canonicalUrl) {
+  return `${origin}/__edge/article/${VERSION}/${hash32(routePath)}:${hash32(canonicalUrl || "x")}`;
+}
+
+///////////////////////////////
+// ARCHIVE SNAPSHOTS
+///////////////////////////////
+function archiveIndexUrl(origin, routePath) {
+  return `${origin}/__edge/archive-index/${VERSION}/${hash32(routePath)}`;
+}
+function archiveBucketUrl(origin, routePath, bucketId) {
+  return `${origin}/__edge/archive-bucket/${VERSION}/${hash32(routePath)}/${bucketId}`;
+}
+function currentArchiveBucketId() {
+  return Math.floor(Date.now() / (ARCHIVE_BUCKET_MINUTES * 60 * 1000));
+}
+async function readArchiveIndex(cache, origin, routePath) {
+  const data = await edgeGetJson(cache, archiveIndexUrl(origin, routePath));
+  if (!data || !Array.isArray(data.buckets)) return [];
+  return data.buckets.filter((x) => Number.isFinite(Number(x)));
+}
+async function writeArchiveIndex(cache, origin, routePath, buckets) {
+  await edgePutJson(
+    cache,
+    archiveIndexUrl(origin, routePath),
+    { v: 1, routePath, buckets: buckets.slice(0, MAX_ARCHIVE_BUCKETS_PER_ROUTE), updatedAt: nowIso() },
+    ARCHIVE_INDEX_TTL_SECONDS
+  );
+}
+async function appendArchiveBucket(cache, origin, routePath, items) {
+  const bucketId = currentArchiveBucketId();
+  const bucketUrl = archiveBucketUrl(origin, routePath, bucketId);
+  const existing = (await edgeGetJson(cache, bucketUrl)) || { v: 1, routePath, bucketId, items: [], updatedAt: nowIso() };
+
+  const normalized = uniqueBy(
+    [...(existing.items || []), ...(items || [])].filter(Boolean),
+    (x) => canonicalizeUrl(x.link) || x.id || x.title
+  ).slice(0, MAX_ARCHIVE_ITEMS_PER_BUCKET);
+
+  await edgePutJson(
+    cache,
+    bucketUrl,
+    { v: 1, routePath, bucketId, items: normalized, updatedAt: nowIso() },
+    ARCHIVE_BUCKET_TTL_SECONDS
+  );
+
+  const index = await readArchiveIndex(cache, origin, routePath);
+  const merged = uniqueBy([bucketId, ...index], (x) => String(x)).slice(0, MAX_ARCHIVE_BUCKETS_PER_ROUTE);
+  await writeArchiveIndex(cache, origin, routePath, merged);
+}
+async function readArchiveBuckets(cache, origin, routePath, cursorPage) {
+  const index = await readArchiveIndex(cache, origin, routePath);
+  if (!index.length) return [];
+
+  const bucketCountBase = 8 + Math.floor(cursorPage / 4) * 2;
+  const bucketCount = clamp(bucketCountBase, 8, Math.min(24, index.length));
+  const selected = index.slice(0, bucketCount);
+
+  const loaded = await mapWithConcurrency(selected, 8, async (bucketId) =>
+    edgeGetJson(cache, archiveBucketUrl(origin, routePath, bucketId))
+  );
+
+  const items = [];
+  for (const row of loaded || []) {
+    if (row?.items?.length) items.push(...row.items);
+  }
+  return uniqueBy(items, (x) => canonicalizeUrl(x.link) || x.id || x.title).slice(0, ARCHIVE_BLEND_LIMIT);
+}
+
+///////////////////////////////
+// HIVE MEMORY
+///////////////////////////////
+function hiveUrl(origin, key) { return `${origin}/__edge/hive/${VERSION}/${hash32(key)}`; }
+function defaultHiveMemory() {
+  return {
+    v: 3,
+    n: 0,
+    overused_phrases: {},
+    penalties: {
+      repetition: 1.0,
+      shortness: 1.0,
+      offroute: 1.0,
+      low_entity_diversity: 1.0,
+      low_fact_density: 1.0,
+      opener_repetition: 1.0,
+    },
+    targets: { min_paras: STORY_MIN_PARAGRAPHS, min_chars: STORY_MIN_CHARS, max_paras: STORY_MAX_PARAGRAPHS },
+    style: { transition_rate: 0.18, transition_pool: [], avoid_openers: {}, lead_openers: {} },
+    updated_at: nowIso(),
+  };
+}
+async function readHive(cache, origin, routePath) {
+  const global = await edgeGetJson(cache, hiveUrl(origin, "global"));
+  const route = await edgeGetJson(cache, hiveUrl(origin, `route:${routePath}`));
+  return { global: global || defaultHiveMemory(), route: route || defaultHiveMemory() };
+}
+async function writeHive(cache, origin, routePath, mem) {
+  const toWriteGlobal = mem?.global || defaultHiveMemory();
+  const toWriteRoute = mem?.route || defaultHiveMemory();
+  toWriteGlobal.updated_at = nowIso();
+  toWriteRoute.updated_at = nowIso();
+  await edgePutJson(cache, hiveUrl(origin, "global"), toWriteGlobal, HIVE_MEM_TTL_SECONDS);
+  await edgePutJson(cache, hiveUrl(origin, `route:${routePath}`), toWriteRoute, HIVE_MEM_TTL_SECONDS);
+}
+function bumpPhrase(map, phrase) {
+  const p = String(phrase || "").trim().toLowerCase();
+  if (!p) return;
+  map[p] = (map[p] || 0) + 1;
+}
+function topOverusedPhrases(mem, limit = 12) {
+  return Object.entries(mem?.overused_phrases || {}).sort((a,b)=>b[1]-a[1]).slice(0,limit).map(([k])=>k);
+}
+function bumpMap(map, k, amt = 1) {
+  const key = String(k || "").trim().toLowerCase();
+  if (!key) return;
+  map[key] = (map[key] || 0) + amt;
+}
+function topKeys(map, limit = 12) {
+  return Object.entries(map || {}).sort((a,b)=>b[1]-a[1]).slice(0,limit).map(([k])=>k);
+}
+function ensureRouteStyle(routePath, hiveRouteMem) {
+  const mem = hiveRouteMem || defaultHiveMemory();
+  mem.style = mem.style || defaultHiveMemory().style;
+  mem.style.avoid_openers = mem.style.avoid_openers || {};
+  mem.style.lead_openers = mem.style.lead_openers || {};
+  if (Array.isArray(mem.style.transition_pool) && mem.style.transition_pool.length >= 10) return mem;
+
+  const { domainKey } = routeInfo(routePath);
+  const domain = (domainKey || "general").toLowerCase();
+  const seed = parseInt(hash32(`style:${routePath}`), 16) >>> 0;
+  const rng = mulberry32(seed);
+
+  const POOLS = {
+    "real-estate": ["In the housing market,","For buyers,","For sellers,","In mortgage pricing,","In rate markets,","In inventory data,","In rental trends,","In homebuilding,","Across metro areas,"],
+    "financials": ["In markets,","In rates,","In inflation data,","In earnings,","In dealmaking,","In credit,","In volatility,"],
+    "sports": ["In the matchup,","On the schedule,","In the standings,","In the locker room,","In coaching decisions,"],
+    "health-care": ["In clinical guidance,","For patients,","In public health,","In new research,"],
+    "science-and-mathematics": ["In the research,","In the data,","In peer review,","In new models,"],
+    "government-law-and-civilization": ["In policy,","In legal terms,","In official statements,","In negotiations,"],
+    "information-technology": ["In product updates,","In security terms,","In developer circles,","In the rollout,"],
+    "energy": ["In energy markets,","In power grids,","In emissions policy,","In fuel demand,"],
+    "utilities": ["In grid planning,","In reliability concerns,","In generation mix,"],
+    "materials": ["In commodity pricing,","In supply chains,","In mining output,"],
+    "industrials": ["In logistics,","In shipping lanes,","In factory output,"],
+  };
+  const generic = ["Still,","That said,","In contrast,","By comparison,","In response,","As a result,","In the short term,","Over the longer term,"];
+  const basePool = (POOLS[domain] || []).slice();
+  const pool = uniqueBy([...basePool, ...generic.filter(()=>rng()<0.85), ...generic.filter(()=>rng()<0.35)], (x)=>String(x).toLowerCase()).slice(0, 22);
+
+  mem.style.transition_pool = pool;
+  mem.style.transition_rate = clamp01(0.10 + rng() * 0.14);
+  return mem;
+}
+function addTransitions(paras, routePath, hiveRouteMem) {
+  const out = [];
+  const mem = ensureRouteStyle(routePath, hiveRouteMem || defaultHiveMemory());
+  const style = mem.style || defaultHiveMemory().style;
+  const seed = parseInt(hash32(`trans:${routePath}:${mem.n || 0}`), 16) >>> 0;
+  const rng = mulberry32(seed);
+  const pool = Array.isArray(style.transition_pool) ? style.transition_pool : [];
+  const rate = clamp01(style.transition_rate);
+
+  const overused = new Set(
+    [...topKeys(style.avoid_openers || {}, 14), ...topOverusedPhrases(mem, 10)].map((x)=>String(x).toLowerCase())
+  );
+
+  let prefixesUsed = 0;
+  const MAX_PREFIXES_PER_STORY = 1;
+
+  function alreadyHasOpener(p) {
+    return /^(Still,|That said,|In contrast,|By comparison,|In response,|As a result,|In the short term,|Over the longer term,|In the housing market,|For buyers,|For sellers,|In mortgage pricing,|In markets,|In rates,|In the matchup,|On the schedule,)/i.test(p);
+  }
+  function maybePrefix(i, p) {
+    if (i === 0) return p;
+    if (prefixesUsed >= MAX_PREFIXES_PER_STORY) return p;
+    if (rng() > rate) return p;
+    if (alreadyHasOpener(p)) return p;
+
+    let picked = "";
+    for (let k = 0; k < 8; k++) {
+      const cand = pool[Math.floor(rng() * pool.length)] || "";
+      if (!cand) break;
+      const low = String(cand).toLowerCase();
+      if (!overused.has(low)) { picked = cand; break; }
+      picked = cand;
+    }
+    if (!picked) return p;
+    prefixesUsed++;
+    const next = p.charAt(0).toLowerCase() + p.slice(1);
+    return `${picked} ${next}`;
+  }
+
+  for (let i = 0; i < (paras || []).length; i++) {
+    const p = String(paras[i] || "").trim();
+    if (!p) continue;
+    out.push(maybePrefix(i, p));
+  }
+  return out;
+}
+
+///////////////////////////////
+// FEEDS
+///////////////////////////////
+function guardianRss(sectionUrl) {
+  const u = String(sectionUrl || "").trim().replace(/\/+$/, "");
+  return u ? `${u}/rss` : "";
+}
+
+const EXTRA_FEED_POOL = uniqueBy([
+  // global / institutions
+  "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+  "https://www.oecd.org/newsroom/rss.xml",
+  "https://www.sec.gov/news/pressreleases.rss",
+  "https://www.federalreserve.gov/feeds/press_all.xml",
+  "https://www.bankofengland.co.uk/rss/news",
+  "https://www.ecb.europa.eu/press/pr/date/html/index.en.rss",
+  "https://www.bis.org/rss/bis.xml",
+  "https://www.imf.org/en/News/RSS?rss=News",
+  "https://www.worldbank.org/en/news/all?format=rss",
+  "https://www.bls.gov/feed/bls_latest.rss",
+  "https://www.bea.gov/rss.xml",
+  "https://www.eia.gov/rss/todayinenergy.xml",
+  "https://www.iea.org/rss/news.xml",
+  "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-announcements/rss.xml",
+  "https://www.ema.europa.eu/en/news-events/news/rss",
+
+  // general / world / national
+  "https://feeds.bbci.co.uk/news/rss.xml",
+  "https://feeds.bbci.co.uk/news/world/rss.xml",
+  "https://feeds.bbci.co.uk/news/us_and_canada/rss.xml",
+  "https://feeds.bbci.co.uk/news/europe/rss.xml",
+  "https://feeds.bbci.co.uk/news/asia/rss.xml",
+  "https://feeds.bbci.co.uk/news/middle_east/rss.xml",
+  "https://feeds.bbci.co.uk/news/africa/rss.xml",
+  "https://feeds.bbci.co.uk/news/latin_america/rss.xml",
+  "https://feeds.npr.org/1001/rss.xml",
+  "https://feeds.npr.org/1003/rss.xml",
+  "https://feeds.npr.org/1004/rss.xml",
+  "https://apnews.com/apf-topnews?output=rss",
+  "https://www.aljazeera.com/xml/rss/all.xml",
+  "https://www.cbc.ca/cmlink/rss-topstories",
+  "https://www.france24.com/en/rss",
+  "https://www.dw.com/en/top-stories/rss",
+  guardianRss("https://www.theguardian.com/world"),
+  guardianRss("https://www.theguardian.com/international"),
+  guardianRss("https://www.theguardian.com/us-news"),
+  guardianRss("https://www.theguardian.com/world/europe-news"),
+  guardianRss("https://www.theguardian.com/world/asia"),
+  guardianRss("https://www.theguardian.com/world/middleeast"),
+  guardianRss("https://www.theguardian.com/world/africa"),
+  "https://rss.cnn.com/rss/cnn_topstories.rss",
+  "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+  "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+  "https://rss.nytimes.com/services/xml/rss/nyt/US.xml",
+  "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+  "https://www.politico.com/rss/politicopicks.xml",
+  "https://www.usnews.com/rss/news",
+  "https://www.euronews.com/rss?level=top-news",
+  "https://www.axios.com/feeds/news.xml",
+  "https://www.economist.com/the-world-this-week/rss.xml",
+  "https://www.nbcnews.com/id/3032091/device/rss/rss.xml",
+
+  // finance / macro / markets
+  "https://www.fxstreet.com/rss/news",
+  "https://www.benzinga.com/feed",
+  "https://www.thestreet.com/.rss/full/",
+  "https://www.nasdaq.com/feed/rssoutbound?category=markets",
+  "https://www.nasdaq.com/feed/rssoutbound?category=stocks",
+  "https://www.nasdaq.com/feed/rssoutbound?category=economy",
+  "https://www.marketwatch.com/rss/topstories",
+  "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+  "https://www.investing.com/rss/news_25.rss",
+  "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+  "https://fortune.com/feed/",
+  "https://www.ft.com/?format=rss",
+  "https://www.businessinsider.com/rss",
+  "https://www.forbes.com/real-time/feed2/",
+  "https://www.economist.com/finance-and-economics/rss.xml",
+  "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best",
+
+  // technology / AI / security
+  "https://www.theverge.com/rss/index.xml",
+  "http://feeds.arstechnica.com/arstechnica/index",
+  "https://www.wired.com/feed/rss",
+  "https://techcrunch.com/feed/",
+  "https://www.bleepingcomputer.com/feed/",
+  "https://www.engadget.com/rss.xml",
+  "https://krebsonsecurity.com/feed/",
+  "https://www.securityweek.com/feed/",
+  "https://feeds.feedburner.com/TheHackersNews",
+  "https://www.technologyreview.com/feed/",
+  "https://venturebeat.com/category/ai/feed/",
+  "https://www.marktechpost.com/feed/",
+  "https://www.schneier.com/feed/atom/",
+  "https://www.theregister.com/security/headlines.atom",
+  "https://huggingface.co/blog/feed.xml",
+  "https://openai.com/news/rss.xml",
+  "https://blog.google/technology/ai/rss/",
+  "https://blog.google/technology/developers/rss/",
+  "https://aws.amazon.com/blogs/machine-learning/feed/",
+  "https://blogs.microsoft.com/ai/feed/",
+  "https://blogs.nvidia.com/blog/category/ai-data-science/feed/",
+  "https://stability.ai/feed",
+  "https://www.infoq.com/ai-ml-data-eng/feed/",
+  "https://www.unite.ai/feed/",
+  "https://machinelearningmastery.com/blog/feed/",
+  "https://deepmind.google/blog/rss.xml",
+
+  // energy / climate / industrials / materials
+  "https://www.noaa.gov/news/feed",
+  "https://insideclimatenews.org/feed/",
+  "https://www.utilitydive.com/feeds/news/",
+  "https://www.pv-magazine.com/feed/",
+  "https://www.renewableenergyworld.com/feed/",
+  "https://www.mining.com/feed/",
+  "https://www.freightwaves.com/news/feed",
+  "https://www.constructiondive.com/feeds/news/",
+  "https://oilprice.com/rss/main",
+  "https://www.kitco.com/rss/news",
+
+  // government / law / defense
+  "https://www.courthousenews.com/feed/",
+  "https://www.scotusblog.com/feed/",
+  "https://www.lawfaremedia.org/rss.xml",
+  "https://www.justsecurity.org/feed/",
+  "https://www.defensenews.com/arc/outboundfeeds/rss/",
+
+  // science / space / research
+  "https://www.nature.com/nature.rss",
+  "https://www.science.org/rss/news_current.xml",
+  "https://www.pnas.org/action/showFeed?type=etoc&feed=rss&jc=pnas",
+  "https://www.eurekalert.org/rss.xml",
+  "https://www.esa.int/rssfeed/Our_Activities",
+  "https://www.space.com/feeds/all",
+  "https://www.quantamagazine.org/feed/",
+  "https://www.scientificamerican.com/feed/",
+  "https://phys.org/rss-feed/",
+  "https://www.sciencedaily.com/rss/top/science.xml",
+  "https://www.sciencenews.org/feed",
+  "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+
+  // health
+  "https://www.healthline.com/rss",
+  "https://www.statnews.com/feed/",
+  "https://www.who.int/rss-feeds/news-english.xml",
+  "https://www.nih.gov/news-events/news-releases/feed",
+  "https://www.cdc.gov/rss/rss.xml",
+
+  // education
+  "https://www.edweek.org/feeds/rss",
+  "https://www.insidehighered.com/rss/news",
+  "https://hechingerreport.org/feed/",
+  "https://www.chronicle.com/section/news/feed",
+  "https://www.timeshighereducation.com/rss",
+  "https://phys.org/rss-feed/education-news/",
+  "https://www.edsurge.com/articles.rss",
+  "https://www.educationnext.org/feed/",
+  "https://www.highereddive.com/feeds/news/",
+  "https://www.universityworldnews.com/rss.php",
+
+  // real estate
+  "https://www.housingwire.com/feed/",
+  "https://www.redfin.com/blog/feed/",
+  "https://www.realtor.com/news/feed/",
+  "https://www.zillow.com/research/feed/",
+
+  // sports
+  "https://www.espn.com/espn/rss/news",
+  "https://www.cbssports.com/rss/headlines/",
+  "https://sports.yahoo.com/rss/",
+  "https://www.skysports.com/rss/12040",
+  "https://www.nbcsports.com/rss",
+  "https://www.si.com/rss/si_topstories.rss",
+  "https://www.foxsports.com/rss",
+  "https://www.sportingnews.com/us/rss",
+  "https://www.theringer.com/rss/index.xml",
+  "https://www.mlb.com/feeds/news/rss.xml",
+  "https://www.nba.com/rss/nba_rss.xml",
+  "https://www.nhl.com/rss/news.xml",
+  "https://www.nfl.com/rss/rsslanding?searchString=home",
+  "https://www.formula1.com/en/latest/all.xml",
+  "https://www.motorsport.com/rss/all/news/",
+  "https://www.autosport.com/rss/feed/all/",
+  "https://www.espn.com/espn/rss/nfl/news",
+  "https://www.espn.com/espn/rss/nba/news",
+  "https://www.espn.com/espn/rss/mlb/news",
+  "https://www.espn.com/espn/rss/nhl/news",
+  "https://www.espn.com/espn/rss/soccer/news",
+  "https://www.espn.com/espn/rss/ncf/news",
+  "https://www.espn.com/espn/rss/ncb/news",
+  "https://www.cbssports.com/rss/headlines/nfl/",
+  "https://www.cbssports.com/rss/headlines/nba/",
+  "https://www.cbssports.com/rss/headlines/mlb/",
+  "https://www.cbssports.com/rss/headlines/nhl/",
+  "https://www.cbssports.com/rss/headlines/soccer/",
+  "https://sports.yahoo.com/nfl/rss.xml",
+  "https://sports.yahoo.com/nba/rss.xml",
+  "https://sports.yahoo.com/mlb/rss.xml",
+  "https://sports.yahoo.com/nhl/rss.xml",
+  "https://sports.yahoo.com/soccer/rss.xml",
+  "https://sports.yahoo.com/ncaaf/rss.xml",
+  "https://sports.yahoo.com/ncaab/rss.xml",
+
+  // entertainment / culture
+  "https://variety.com/feed/",
+  "https://www.billboard.com/feed/",
+  "https://www.rollingstone.com/feed/",
+], (x)=>x);
+
+const FEEDS_BASE = {
+  latest: [
+    "https://feeds.bbci.co.uk/news/rss.xml",
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "https://feeds.npr.org/1001/rss.xml",
+    "https://apnews.com/apf-topnews?output=rss",
+    "https://www.aljazeera.com/xml/rss/all.xml",
+    "https://www.cbc.ca/cmlink/rss-topstories",
+    "https://www.france24.com/en/rss",
+    "https://www.dw.com/en/top-stories/rss",
+    guardianRss("https://www.theguardian.com/world"),
+    guardianRss("https://www.theguardian.com/international"),
+    "https://fortune.com/feed/",
+    "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best",
+    "https://rss.cnn.com/rss/cnn_topstories.rss",
+    "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+    "https://www.politico.com/rss/politicopicks.xml",
+    "https://www.usnews.com/rss/news",
+    "https://www.euronews.com/rss?level=top-news",
+    "https://www.axios.com/feeds/news.xml",
+    "https://www.economist.com/the-world-this-week/rss.xml",
+    "https://www.nbcnews.com/id/3032091/device/rss/rss.xml",
+    "https://www.theguardian.com/world/rss",
+    guardianRss("https://www.theguardian.com/us-news"),
+    guardianRss("https://www.theguardian.com/world/europe-news"),
+    guardianRss("https://www.theguardian.com/world/asia"),
+    guardianRss("https://www.theguardian.com/world/middleeast"),
+    guardianRss("https://www.theguardian.com/world/africa"),
+    "https://feeds.bbci.co.uk/news/us_and_canada/rss.xml",
+    "https://feeds.bbci.co.uk/news/europe/rss.xml",
+    "https://feeds.bbci.co.uk/news/asia/rss.xml",
+    "https://feeds.bbci.co.uk/news/middle_east/rss.xml",
+    "https://feeds.bbci.co.uk/news/africa/rss.xml",
+    "https://feeds.bbci.co.uk/news/latin_america/rss.xml",
+    "https://feeds.npr.org/1004/rss.xml",
+    "https://feeds.npr.org/1003/rss.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/US.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+    "https://www.euronews.com/rss?level=program",
+  ],
+  business: [
+    "https://feeds.bbci.co.uk/news/business/rss.xml",
+    "https://apnews.com/apf-business?output=rss",
+    guardianRss("https://www.theguardian.com/business"),
+    "https://fortune.com/feed/",
+    "https://www.ft.com/?format=rss",
+    "https://www.marketwatch.com/rss/topstories",
+    "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+    "https://www.investing.com/rss/news_25.rss",
+    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+    "https://www.economist.com/finance-and-economics/rss.xml",
+    "https://www.businessinsider.com/rss",
+    "https://www.forbes.com/real-time/feed2/",
+    "https://www.nasdaq.com/feed/rssoutbound?category=markets",
+    "https://www.nasdaq.com/feed/rssoutbound?category=stocks",
+    "https://www.nasdaq.com/feed/rssoutbound?category=economy",
+    "https://www.fxstreet.com/rss/news",
+    "https://www.thestreet.com/.rss/full/",
+    "https://www.benzinga.com/feed",
+    guardianRss("https://www.theguardian.com/business/economics-blog"),
+    guardianRss("https://www.theguardian.com/business/companies"),
+    guardianRss("https://www.theguardian.com/business/markets"),
+    guardianRss("https://www.theguardian.com/business/banking"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml",
+    "https://feeds.bbci.co.uk/news/business/market_data/rss.xml",
+    "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "https://www.cnbc.com/id/100727362/device/rss/rss.html",
+    "https://www.cnbc.com/id/15839135/device/rss/rss.html",
+    "https://www.cnbc.com/id/19854910/device/rss/rss.html",
+    "https://www.economist.com/business/rss.xml",
+    "https://www.economist.com/finance-and-economics/rss.xml",
+    "https://www.economist.com/economic-and-financial-indicators/rss.xml",
+    "https://www.ft.com/markets?format=rss",
+    "https://www.ft.com/companies?format=rss",
+    "https://www.ft.com/us-economy?format=rss",
+    "https://www.ft.com/world/us?format=rss",
+  ],
+  technology: [
+    "https://www.theverge.com/rss/index.xml",
+    "http://feeds.arstechnica.com/arstechnica/index",
+    "https://www.wired.com/feed/rss",
+    "https://techcrunch.com/feed/",
+    "https://www.bleepingcomputer.com/feed/",
+    guardianRss("https://www.theguardian.com/technology"),
+    "https://www.engadget.com/rss.xml",
+    "https://krebsonsecurity.com/feed/",
+    "https://www.securityweek.com/feed/",
+    "https://feeds.feedburner.com/TheHackersNews",
+    "https://www.technologyreview.com/feed/",
+    "https://venturebeat.com/category/ai/feed/",
+    "https://www.marktechpost.com/feed/",
+    "https://www.schneier.com/feed/atom/",
+    "https://www.theregister.com/security/headlines.atom",
+    "https://huggingface.co/blog/feed.xml",
+    "https://openai.com/news/rss.xml",
+    "https://blog.google/technology/ai/rss/",
+    "https://blog.google/technology/developers/rss/",
+    "https://aws.amazon.com/blogs/machine-learning/feed/",
+    "https://blogs.microsoft.com/ai/feed/",
+    "https://blogs.nvidia.com/blog/category/ai-data-science/feed/",
+    "https://stability.ai/feed",
+    "https://www.infoq.com/ai-ml-data-eng/feed/",
+    "https://www.unite.ai/feed/",
+    "https://machinelearningmastery.com/blog/feed/",
+    "https://deepmind.google/blog/rss.xml",
+    guardianRss("https://www.theguardian.com/technology/artificialintelligenceai"),
+    guardianRss("https://www.theguardian.com/technology/google"),
+    guardianRss("https://www.theguardian.com/technology/meta"),
+    guardianRss("https://www.theguardian.com/technology/apple"),
+    guardianRss("https://www.theguardian.com/technology/microsoft"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+    "https://www.wired.com/feed/category/business/latest/rss",
+    "https://www.wired.com/feed/tag/ai/latest/rss",
+    "https://www.wired.com/feed/tag/security/latest/rss",
+    "https://www.engadget.com/mobile/rss.xml",
+    "https://www.engadget.com/computing/rss.xml",
+    "https://www.engadget.com/ai/rss.xml",
+    "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+    "https://www.theverge.com/tech/rss/index.xml",
+    "https://www.theverge.com/cybersecurity/rss/index.xml",
+    "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "https://techcrunch.com/category/security/feed/",
+    "https://arstechnica.com/gadgets/feed/",
+    "https://arstechnica.com/information-technology/feed/",
+  ],
+  science: [
+    "https://www.sciencedaily.com/rss/top/science.xml",
+    "https://phys.org/rss-feed/",
+    "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+    guardianRss("https://www.theguardian.com/science"),
+    "https://www.quantamagazine.org/feed/",
+    "https://www.scientificamerican.com/feed/",
+    "https://www.space.com/feeds/all",
+    "https://www.sciencenews.org/feed",
+    "https://www.nature.com/nature.rss",
+    "https://www.science.org/rss/news_current.xml",
+    "https://www.pnas.org/action/showFeed?type=etoc&feed=rss&jc=pnas",
+    "https://www.eurekalert.org/rss.xml",
+    "https://www.esa.int/rssfeed/Our_Activities",
+    guardianRss("https://www.theguardian.com/science/space"),
+    guardianRss("https://www.theguardian.com/science/climate-change"),
+    guardianRss("https://www.theguardian.com/science/medical-research"),
+    guardianRss("https://www.theguardian.com/science/biology"),
+    guardianRss("https://www.theguardian.com/science/environment"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Space.xml",
+    "https://www.scientificamerican.com/feed/sa",
+    "https://www.scientificamerican.com/section/space-and-physics/feed/",
+    "https://www.scientificamerican.com/section/health-and-medicine/feed/",
+    "https://www.sciencedaily.com/rss/top/space_time.xml",
+    "https://www.sciencedaily.com/rss/top/environment.xml",
+    "https://www.sciencedaily.com/rss/top/health_medicine.xml",
+    "https://phys.org/rss-feed/space-news/",
+    "https://phys.org/rss-feed/earth-news/",
+    "https://phys.org/rss-feed/biology-news/",
+    "https://phys.org/rss-feed/technology-news/",
+  ],
+  health: [
+    "https://www.who.int/rss-feeds/news-english.xml",
+    "https://www.cdc.gov/rss/rss.xml",
+    "https://www.nih.gov/news-events/news-releases/feed",
+    guardianRss("https://www.theguardian.com/society/health"),
+    "https://www.statnews.com/feed/",
+    "https://www.healthline.com/rss",
+    "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-announcements/rss.xml",
+    "https://www.ema.europa.eu/en/news-events/news/rss",
+    guardianRss("https://www.theguardian.com/society/public-health"),
+    guardianRss("https://www.theguardian.com/society/mental-health"),
+    guardianRss("https://www.theguardian.com/society/nhs"),
+    guardianRss("https://www.theguardian.com/society/medicalresearch"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Well.xml",
+    "https://www.healthline.com/health-news/rss",
+    "https://www.statnews.com/category/health/feed/",
+    "https://www.statnews.com/category/biotech/feed/",
+    "https://www.statnews.com/category/pharma/feed/",
+    "https://www.nih.gov/news-events/feed",
+    "https://www.cdc.gov/media/rss.xml",
+  ],
+  crypto: [
+    "https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml",
+    "https://cointelegraph.com/rss",
+    "https://decrypt.co/feed",
+    "https://www.theblock.co/rss",
+    "https://www.coindesk.com/tag/markets/feed/",
+    "https://www.coindesk.com/tag/bitcoin/feed/",
+    "https://www.coindesk.com/tag/ethereum/feed/",
+    "https://cointelegraph.com/tags/bitcoin/rss",
+    "https://cointelegraph.com/tags/ethereum/rss",
+    "https://cointelegraph.com/tags/defi/rss",
+    "https://decrypt.co/feed?category=bitcoin",
+    "https://decrypt.co/feed?category=ethereum",
+  ],
+  sports: [
+    "https://www.espn.com/espn/rss/news",
+    guardianRss("https://www.theguardian.com/sport"),
+    "https://www.skysports.com/rss/12040",
+    "https://www.cbssports.com/rss/headlines/",
+    "https://sports.yahoo.com/rss/",
+    "https://www.nbcsports.com/rss",
+    "https://www.si.com/rss/si_topstories.rss",
+    "https://www.foxsports.com/rss",
+    "https://www.sportingnews.com/us/rss",
+    "https://www.theringer.com/rss/index.xml",
+    guardianRss("https://www.theguardian.com/football"),
+    guardianRss("https://www.theguardian.com/sport/nfl"),
+    guardianRss("https://www.theguardian.com/sport/nba"),
+    guardianRss("https://www.theguardian.com/sport/mlb"),
+    guardianRss("https://www.theguardian.com/sport/nhl"),
+    guardianRss("https://www.theguardian.com/sport/tennis"),
+    guardianRss("https://www.theguardian.com/sport/golf"),
+    guardianRss("https://www.theguardian.com/sport/formulaone"),
+    guardianRss("https://www.theguardian.com/sport/motorsports"),
+    guardianRss("https://www.theguardian.com/sport/us-sport"),
+    "https://www.espn.com/espn/rss/nfl/news",
+    "https://www.espn.com/espn/rss/nba/news",
+    "https://www.espn.com/espn/rss/mlb/news",
+    "https://www.espn.com/espn/rss/nhl/news",
+    "https://www.espn.com/espn/rss/soccer/news",
+    "https://www.espn.com/espn/rss/ncf/news",
+    "https://www.espn.com/espn/rss/ncb/news",
+    "https://www.cbssports.com/rss/headlines/nfl/",
+    "https://www.cbssports.com/rss/headlines/nba/",
+    "https://www.cbssports.com/rss/headlines/mlb/",
+    "https://www.cbssports.com/rss/headlines/nhl/",
+    "https://www.cbssports.com/rss/headlines/soccer/",
+    "https://sports.yahoo.com/nfl/rss.xml",
+    "https://sports.yahoo.com/nba/rss.xml",
+    "https://sports.yahoo.com/mlb/rss.xml",
+    "https://sports.yahoo.com/nhl/rss.xml",
+    "https://sports.yahoo.com/soccer/rss.xml",
+    "https://sports.yahoo.com/ncaaf/rss.xml",
+    "https://sports.yahoo.com/ncaab/rss.xml",
+    "https://www.mlb.com/feeds/news/rss.xml",
+    "https://www.nba.com/rss/nba_rss.xml",
+    "https://www.nhl.com/rss/news.xml",
+    "https://www.nfl.com/rss/rsslanding?searchString=home",
+    "https://www.formula1.com/en/latest/all.xml",
+    "https://www.motorsport.com/rss/all/news/",
+    "https://www.autosport.com/rss/feed/all/",
+  ],
+  education: [
+    "https://www.insidehighered.com/rss/news",
+    "https://hechingerreport.org/feed/",
+    guardianRss("https://www.theguardian.com/education"),
+    "https://www.edweek.org/feeds/rss",
+    "https://www.eurekalert.org/rss.xml",
+    "https://www.chronicle.com/section/news/feed",
+    "https://www.timeshighereducation.com/rss",
+    "https://phys.org/rss-feed/education-news/",
+    "https://www.edsurge.com/articles.rss",
+    "https://www.educationnext.org/feed/",
+    "https://www.highereddive.com/feeds/news/",
+    "https://www.universityworldnews.com/rss.php",
+    guardianRss("https://www.theguardian.com/education/schools"),
+    guardianRss("https://www.theguardian.com/education/higher-education-network"),
+    guardianRss("https://www.theguardian.com/teacher-network/rss"),
+    "https://www.insidehighered.com/news/rss.xml",
+    "https://www.insidehighered.com/quicktakes/rss",
+    "https://www.edweek.org/leadership/feed/rss",
+    "https://www.edweek.org/policy-politics/feed/rss",
+    "https://www.edweek.org/teaching-learning/feed/rss",
+    "https://www.edweek.org/technology/feed/rss",
+    "https://www.chronicle.com/feed",
+    "https://www.timeshighereducation.com/news/rss.xml",
+    "https://www.edsurge.com/news.rss",
+    "https://www.educationnext.org/education-next/feed/",
+    "https://www.highereddive.com/rss/",
+    "https://www.universityworldnews.com/page.php?page=UW_Main_RSS",
+  ],
+  realestate: [
+    guardianRss("https://www.theguardian.com/money"),
+    "https://www.housingwire.com/feed/",
+    "https://www.redfin.com/blog/feed/",
+    "https://www.realtor.com/news/feed/",
+    "https://www.zillow.com/research/feed/",
+    guardianRss("https://www.theguardian.com/money/mortgages"),
+    guardianRss("https://www.theguardian.com/money/houseprices"),
+    guardianRss("https://www.theguardian.com/money/renting"),
+    "https://www.housingwire.com/category/housing-market/feed/",
+    "https://www.housingwire.com/category/mortgage/feed/",
+    "https://www.realtor.com/news/trends/feed/",
+    "https://www.realtor.com/news/unique-homes/feed/",
+    "https://www.redfin.com/news/feed/",
+    "https://www.zillow.com/research/category/market-reports/feed/",
+  ],
+};
+
+const DOMAIN_FEED_ADDONS = {
+  energy: [
+    "https://www.eia.gov/rss/todayinenergy.xml",
+    guardianRss("https://www.theguardian.com/environment/energy"),
+    "https://www.iea.org/rss/news.xml",
+    "https://oilprice.com/rss/main",
+    "https://www.utilitydive.com/feeds/news/",
+    "https://www.pv-magazine.com/feed/",
+    "https://www.renewableenergyworld.com/feed/",
+    "https://insideclimatenews.org/feed/",
+    guardianRss("https://www.theguardian.com/environment/renewableenergy"),
+    guardianRss("https://www.theguardian.com/environment/oilandgascompanies"),
+    guardianRss("https://www.theguardian.com/environment/nuclear"),
+    "https://www.pv-magazine.com/news/feed/",
+    "https://www.renewableenergyworld.com/baseload/feed/",
+  ],
+  materials: [
+    "https://www.mining.com/feed/",
+    "https://www.kitco.com/rss/news",
+    "https://www.mining.com/category/commodities/feed/",
+    "https://www.mining.com/category/gold/feed/",
+    "https://www.mining.com/category/copper/feed/",
+    "https://www.mining.com/category/lithium/feed/",
+    "https://www.kitco.com/rss",
+  ],
+  industrials: [
+    "https://www.freightwaves.com/news/feed",
+    "https://www.aviationweek.com/rss.xml",
+    "https://www.constructiondive.com/feeds/news/",
+    "https://www.utilitydive.com/feeds/news/",
+    "https://www.freightwaves.com/category/news/feed",
+    "https://www.constructiondive.com/topic/commercial-construction/rss/",
+    "https://www.constructiondive.com/topic/infrastructure/rss/",
+    "https://www.constructiondive.com/topic/materials/rss/",
+  ],
+  "information-technology": [
+    "https://krebsonsecurity.com/feed/",
+    "https://www.securityweek.com/feed/",
+    "https://feeds.feedburner.com/TheHackersNews",
+    "https://venturebeat.com/category/ai/feed/",
+    "https://www.marktechpost.com/feed/",
+    "https://www.technologyreview.com/feed/",
+    "https://www.schneier.com/feed/atom/",
+    "https://www.theregister.com/security/headlines.atom",
+    "https://www.theverge.com/rss/index.xml",
+    "https://techcrunch.com/feed/",
+    "https://www.wired.com/feed/rss",
+    "http://feeds.arstechnica.com/arstechnica/index",
+    "https://www.bleepingcomputer.com/feed/",
+    "https://www.engadget.com/rss.xml",
+    "https://huggingface.co/blog/feed.xml",
+    "https://openai.com/news/rss.xml",
+    "https://blog.google/technology/ai/rss/",
+    "https://aws.amazon.com/blogs/machine-learning/feed/",
+    "https://blogs.microsoft.com/ai/feed/",
+    "https://blogs.nvidia.com/blog/category/ai-data-science/feed/",
+    "https://stability.ai/feed",
+    "https://www.infoq.com/ai-ml-data-eng/feed/",
+    "https://www.unite.ai/feed/",
+    "https://machinelearningmastery.com/blog/feed/",
+    "https://deepmind.google/blog/rss.xml",
+    guardianRss("https://www.theguardian.com/technology"),
+    guardianRss("https://www.theguardian.com/technology/artificialintelligenceai"),
+  ],
+  "government-law-and-civilization": [
+    "https://www.scotusblog.com/feed/",
+    "https://www.lawfaremedia.org/rss.xml",
+    "https://www.justsecurity.org/feed/",
+    "https://www.defensenews.com/arc/outboundfeeds/rss/",
+    "https://www.courthousenews.com/feed/",
+    "https://www.sec.gov/news/pressreleases.rss",
+    "https://www.politico.com/rss/politicopicks.xml",
+    "https://feeds.bbci.co.uk/news/politics/rss.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+    guardianRss("https://www.theguardian.com/politics"),
+    guardianRss("https://www.theguardian.com/law"),
+    guardianRss("https://www.theguardian.com/us-news/us-politics"),
+    guardianRss("https://www.theguardian.com/world/ukraine"),
+    guardianRss("https://www.theguardian.com/world/middleeast"),
+  ],
+  "communication-services": [
+    "https://variety.com/feed/",
+    "https://www.billboard.com/feed/",
+    "https://www.rollingstone.com/feed/",
+    guardianRss("https://www.theguardian.com/media"),
+    guardianRss("https://www.theguardian.com/music"),
+    guardianRss("https://www.theguardian.com/film"),
+    guardianRss("https://www.theguardian.com/tv-and-radio"),
+    "https://www.hollywoodreporter.com/feed/",
+    "https://deadline.com/feed/",
+  ],
+  financials: [
+    "https://www.bis.org/rss/bis.xml",
+    "https://www.bls.gov/feed/bls_latest.rss",
+    "https://www.federalreserve.gov/feeds/press_all.xml",
+    "https://www.bea.gov/rss.xml",
+    "https://www.imf.org/en/News/RSS?rss=News",
+    "https://www.worldbank.org/en/news/all?format=rss",
+    "https://www.sec.gov/news/pressreleases.rss",
+    "https://www.fxstreet.com/rss/news",
+    "https://www.nasdaq.com/feed/rssoutbound?category=markets",
+    "https://www.nasdaq.com/feed/rssoutbound?category=stocks",
+    "https://www.nasdaq.com/feed/rssoutbound?category=economy",
+    "https://www.marketwatch.com/rss/topstories",
+    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+    "https://www.investing.com/rss/news_25.rss",
+    "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+    "https://www.benzinga.com/feed",
+    "https://www.thestreet.com/.rss/full/",
+    "https://fortune.com/feed/",
+    "https://www.ft.com/?format=rss",
+    "https://www.economist.com/finance-and-economics/rss.xml",
+  ],
+  "education-and-knowledge": [
+    "https://www.insidehighered.com/rss/news",
+    "https://hechingerreport.org/feed/",
+    "https://www.edweek.org/feeds/rss",
+    "https://www.eurekalert.org/rss.xml",
+    "https://www.chronicle.com/section/news/feed",
+    "https://www.timeshighereducation.com/rss",
+    "https://phys.org/rss-feed/education-news/",
+    "https://www.edsurge.com/articles.rss",
+    "https://www.educationnext.org/feed/",
+    "https://www.highereddive.com/feeds/news/",
+    "https://www.universityworldnews.com/rss.php",
+    guardianRss("https://www.theguardian.com/education"),
+    guardianRss("https://www.theguardian.com/education/schools"),
+    guardianRss("https://www.theguardian.com/teacher-network/rss"),
+  ],
+  "science-and-mathematics": [
+    "https://www.nature.com/nature.rss",
+    "https://www.science.org/rss/news_current.xml",
+    "https://www.quantamagazine.org/feed/",
+    "https://phys.org/rss-feed/",
+    "https://www.sciencedaily.com/rss/top/science.xml",
+    "https://www.eurekalert.org/rss.xml",
+    "https://www.space.com/feeds/all",
+    "https://www.esa.int/rssfeed/Our_Activities",
+    "https://www.scientificamerican.com/feed/",
+    "https://www.sciencenews.org/feed",
+    "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+    guardianRss("https://www.theguardian.com/science"),
+  ],
+  "real-estate": [
+    "https://www.housingwire.com/feed/",
+    "https://www.redfin.com/blog/feed/",
+    "https://www.realtor.com/news/feed/",
+    "https://www.zillow.com/research/feed/",
+    guardianRss("https://www.theguardian.com/money"),
+    guardianRss("https://www.theguardian.com/money/mortgages"),
+    guardianRss("https://www.theguardian.com/money/houseprices"),
+    "https://www.housingwire.com/category/housing-market/feed/",
+    "https://www.housingwire.com/category/mortgage/feed/",
+    "https://www.realtor.com/news/trends/feed/",
+    "https://www.zillow.com/research/category/market-reports/feed/",
+  ],
+  sports: [
+    "https://www.espn.com/espn/rss/news",
+    "https://www.cbssports.com/rss/headlines/",
+    "https://sports.yahoo.com/rss/",
+    "https://www.skysports.com/rss/12040",
+    "https://www.nbcsports.com/rss",
+    "https://www.si.com/rss/si_topstories.rss",
+    "https://www.foxsports.com/rss",
+    "https://www.sportingnews.com/us/rss",
+    "https://www.theringer.com/rss/index.xml",
+    guardianRss("https://www.theguardian.com/sport"),
+    guardianRss("https://www.theguardian.com/football"),
+    guardianRss("https://www.theguardian.com/sport/nfl"),
+    guardianRss("https://www.theguardian.com/sport/nba"),
+    "https://www.espn.com/espn/rss/nfl/news",
+    "https://www.espn.com/espn/rss/nba/news",
+    "https://www.espn.com/espn/rss/mlb/news",
+    "https://www.espn.com/espn/rss/nhl/news",
+    "https://www.espn.com/espn/rss/soccer/news",
+    "https://www.cbssports.com/rss/headlines/nfl/",
+    "https://www.cbssports.com/rss/headlines/nba/",
+    "https://www.cbssports.com/rss/headlines/mlb/",
+    "https://www.cbssports.com/rss/headlines/nhl/",
+  ],
+};
+
+const CATEGORY_FEED_ADDONS = {
+  markets: [
+    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+    "https://www.marketwatch.com/rss/topstories",
+    "https://www.investing.com/rss/news_25.rss",
+    "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+    "https://www.economist.com/finance-and-economics/rss.xml",
+    "https://www.nasdaq.com/feed/rssoutbound?category=markets",
+    "https://www.nasdaq.com/feed/rssoutbound?category=stocks",
+    "https://www.benzinga.com/feed",
+    "https://www.thestreet.com/.rss/full/",
+    "https://www.fxstreet.com/rss/news",
+    "https://fortune.com/feed/",
+    "https://www.ft.com/markets?format=rss",
+    guardianRss("https://www.theguardian.com/business/markets"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+    "https://feeds.bbci.co.uk/news/business/market_data/rss.xml",
+    "https://www.cnbc.com/id/15839135/device/rss/rss.html",
+    "https://www.cnbc.com/id/19854910/device/rss/rss.html",
+    "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "https://www.cnbc.com/id/100727362/device/rss/rss.html",
+  ],
+  economics: [
+    "https://www.imf.org/en/News/RSS?rss=News",
+    "https://www.worldbank.org/en/news/all?format=rss",
+    "https://www.federalreserve.gov/feeds/press_all.xml",
+    "https://www.bls.gov/feed/bls_latest.rss",
+    "https://www.bea.gov/rss.xml",
+    "https://www.bankofengland.co.uk/rss/news",
+    "https://www.ecb.europa.eu/press/pr/date/html/index.en.rss",
+    "https://www.bis.org/rss/bis.xml",
+    "https://www.oecd.org/newsroom/rss.xml",
+    "https://www.economist.com/economic-and-financial-indicators/rss.xml",
+    guardianRss("https://www.theguardian.com/business/economics-blog"),
+    guardianRss("https://www.theguardian.com/business/banking"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml",
+    "https://www.ft.com/us-economy?format=rss",
+    "https://www.ft.com/world/us?format=rss",
+    "https://www.ft.com/global-economy?format=rss",
+  ],
+  trading: [
+    "https://www.investing.com/rss/news_25.rss",
+    "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+    "https://www.marketwatch.com/rss/topstories",
+    "https://www.fxstreet.com/rss/news",
+    "https://www.benzinga.com/feed",
+    "https://www.thestreet.com/.rss/full/",
+    "https://www.nasdaq.com/feed/rssoutbound?category=markets",
+    "https://www.nasdaq.com/feed/rssoutbound?category=stocks",
+    "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+    guardianRss("https://www.theguardian.com/business/markets"),
+  ],
+  crypto: [
+    "https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml",
+    "https://cointelegraph.com/rss",
+    "https://decrypt.co/feed",
+    "https://www.theblock.co/rss",
+    "https://www.coindesk.com/tag/markets/feed/",
+    "https://www.coindesk.com/tag/bitcoin/feed/",
+    "https://www.coindesk.com/tag/ethereum/feed/",
+    "https://cointelegraph.com/tags/bitcoin/rss",
+    "https://cointelegraph.com/tags/ethereum/rss",
+    "https://cointelegraph.com/tags/defi/rss",
+    "https://decrypt.co/feed?category=bitcoin",
+    "https://decrypt.co/feed?category=ethereum",
+  ],
+  ai: [
+    "https://www.technologyreview.com/feed/",
+    "https://venturebeat.com/category/ai/feed/",
+    "https://www.marktechpost.com/feed/",
+    "https://www.theverge.com/rss/index.xml",
+    "https://techcrunch.com/feed/",
+    "https://www.wired.com/feed/rss",
+    "http://feeds.arstechnica.com/arstechnica/index",
+    "https://huggingface.co/blog/feed.xml",
+    "https://openai.com/news/rss.xml",
+    "https://blog.google/technology/ai/rss/",
+    "https://blog.google/technology/developers/rss/",
+    "https://aws.amazon.com/blogs/machine-learning/feed/",
+    "https://blogs.microsoft.com/ai/feed/",
+    "https://blogs.nvidia.com/blog/category/ai-data-science/feed/",
+    "https://stability.ai/feed",
+    "https://www.infoq.com/ai-ml-data-eng/feed/",
+    "https://www.unite.ai/feed/",
+    "https://machinelearningmastery.com/blog/feed/",
+    "https://deepmind.google/blog/rss.xml",
+    guardianRss("https://www.theguardian.com/technology/artificialintelligenceai"),
+    guardianRss("https://www.theguardian.com/technology"),
+    "https://www.engadget.com/ai/rss.xml",
+    "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml",
+  ],
+  cybersecurity: [
+    "https://www.bleepingcomputer.com/feed/",
+    "https://www.securityweek.com/feed/",
+    "https://feeds.feedburner.com/TheHackersNews",
+    "https://www.theregister.com/security/headlines.atom",
+    "https://krebsonsecurity.com/feed/",
+    "https://www.schneier.com/feed/atom/",
+    "https://www.wired.com/feed/tag/security/latest/rss",
+    guardianRss("https://www.theguardian.com/technology/cybersecurity"),
+    "https://techcrunch.com/category/security/feed/",
+    "https://arstechnica.com/information-technology/feed/",
+    "https://www.theverge.com/cybersecurity/rss/index.xml",
+  ],
+  climate: [
+    guardianRss("https://www.theguardian.com/environment/climate-crisis"),
+    "https://www.noaa.gov/news/feed",
+    "https://insideclimatenews.org/feed/",
+    "https://www.pv-magazine.com/feed/",
+    "https://www.renewableenergyworld.com/feed/",
+    guardianRss("https://www.theguardian.com/environment"),
+    guardianRss("https://www.theguardian.com/environment/renewableenergy"),
+    guardianRss("https://www.theguardian.com/environment/oceans"),
+    guardianRss("https://www.theguardian.com/environment/extreme-weather"),
+    "https://www.sciencedaily.com/rss/top/environment.xml",
+  ],
+  space: [
+    "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+    "https://www.space.com/feeds/all",
+    "https://www.esa.int/rssfeed/Our_Activities",
+    "https://www.scientificamerican.com/feed/",
+    guardianRss("https://www.theguardian.com/science/space"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Space.xml",
+    "https://www.sciencedaily.com/rss/top/space_time.xml",
+    "https://phys.org/rss-feed/space-news/",
+    "https://www.sciencenews.org/feed",
+    "https://www.nature.com/nature.rss",
+  ],
+  law: [
+    "https://www.scotusblog.com/feed/",
+    "https://www.courthousenews.com/feed/",
+    "https://www.lawfaremedia.org/rss.xml",
+    "https://www.justsecurity.org/feed/",
+    guardianRss("https://www.theguardian.com/law"),
+    guardianRss("https://www.theguardian.com/us-news/us-politics"),
+    "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+    "https://www.defensenews.com/arc/outboundfeeds/rss/",
+  ],
+  research: [
+    "https://www.eurekalert.org/rss.xml",
+    "https://www.nature.com/nature.rss",
+    "https://www.science.org/rss/news_current.xml",
+    "https://www.pnas.org/action/showFeed?type=etoc&feed=rss&jc=pnas",
+    "https://www.quantamagazine.org/feed/",
+    "https://phys.org/rss-feed/",
+    "https://www.sciencedaily.com/rss/top/science.xml",
+    "https://www.sciencenews.org/feed",
+    "https://www.scientificamerican.com/feed/",
+    guardianRss("https://www.theguardian.com/science"),
+  ],
+  "higher-ed": [
+    "https://www.insidehighered.com/rss/news",
+    "https://www.chronicle.com/section/news/feed",
+    "https://www.timeshighereducation.com/rss",
+    "https://www.highereddive.com/feeds/news/",
+    "https://www.universityworldnews.com/rss.php",
+    guardianRss("https://www.theguardian.com/education/higher-education-network"),
+    "https://www.insidehighered.com/quicktakes/rss",
+    "https://www.edsurge.com/articles.rss",
+  ],
+  "team-sports": [
+    "https://www.espn.com/espn/rss/nfl/news",
+    "https://www.espn.com/espn/rss/nba/news",
+    "https://www.espn.com/espn/rss/mlb/news",
+    "https://www.espn.com/espn/rss/nhl/news",
+    "https://www.espn.com/espn/rss/soccer/news",
+    "https://www.cbssports.com/rss/headlines/nfl/",
+    "https://www.cbssports.com/rss/headlines/nba/",
+    "https://www.cbssports.com/rss/headlines/mlb/",
+    "https://www.cbssports.com/rss/headlines/nhl/",
+    "https://www.cbssports.com/rss/headlines/soccer/",
+    "https://sports.yahoo.com/nfl/rss.xml",
+    "https://sports.yahoo.com/nba/rss.xml",
+    "https://sports.yahoo.com/mlb/rss.xml",
+    "https://sports.yahoo.com/nhl/rss.xml",
+    "https://sports.yahoo.com/soccer/rss.xml",
+  ],
+  motorsports: [
+    "https://www.formula1.com/en/latest/all.xml",
+    "https://www.motorsport.com/rss/all/news/",
+    "https://www.autosport.com/rss/feed/all/",
+    guardianRss("https://www.theguardian.com/sport/formulaone"),
+    guardianRss("https://www.theguardian.com/sport/motorsports"),
+  ],
+  esports: [
+    "https://www.espn.com/espn/rss/esports/news",
+    "https://www.dexerto.com/feed/",
+    "https://esportsinsider.com/feed",
+    "https://www.theloadout.com/feed",
+    "https://www.si.com/esports/.rss/full/",
+  ],
+};
+
+function groupForPath(path) {
+  const parts = String(path || "/").split("/").filter(Boolean);
+  const domain = (parts[0] || "").toLowerCase();
+  const cat = (parts[1] || "").toLowerCase();
+
+  if (!domain) return "latest";
+  if (domain.includes("education-and-knowledge")) return "education";
+  if (domain.includes("financial")) return cat.includes("crypto") ? "crypto" : "business";
+  if (domain.includes("real-estate")) return "realestate";
+  if (domain.includes("information-technology") || domain.includes("communication-services")) return "technology";
+  if (domain.includes("health")) return "health";
+  if (domain.includes("science")) return "science";
+  if (domain.includes("sports")) return "sports";
+  if (domain.includes("energy") || domain.includes("utilities") || domain.includes("materials") || domain.includes("industrials")) return "business";
+  return "latest";
+}
+function buildBaseUniverseForPath(path) {
+  const parts = String(path || "/").split("/").filter(Boolean);
+  const domainKey = (parts[0] || "").trim();
+  const catKey = (parts[1] || "").trim();
+  const group = groupForPath(path);
+
+  const base = FEEDS_BASE[group] || FEEDS_BASE.latest;
+  const addDomain = domainKey && DOMAIN_FEED_ADDONS[domainKey] ? DOMAIN_FEED_ADDONS[domainKey] : [];
+  const addCat = catKey && CATEGORY_FEED_ADDONS[catKey] ? CATEGORY_FEED_ADDONS[catKey] : [];
+
+  const cross = [];
+  if (domainKey === "financials") cross.push(...(FEEDS_BASE.business || []));
+  if (catKey === "markets") cross.push(...(FEEDS_BASE.business || []));
+  if (domainKey === "real-estate") cross.push(...(FEEDS_BASE.business || []));
+  if (domainKey === "government-law-and-civilization") cross.push(...(FEEDS_BASE.latest || []));
+  if (domainKey === "science-and-mathematics") cross.push(...(FEEDS_BASE.science || []));
+  if (domainKey === "education-and-knowledge") cross.push(...(FEEDS_BASE.education || []));
+  if (domainKey === "sports") cross.push(...(FEEDS_BASE.sports || []));
+  if (domainKey === "information-technology") cross.push(...(FEEDS_BASE.technology || []));
+  if (domainKey === "health-care") cross.push(...(FEEDS_BASE.health || []));
+  if (domainKey === "communication-services") cross.push(...(FEEDS_BASE.technology || []));
+  if (domainKey === "energy") cross.push(...(FEEDS_BASE.business || []));
+  if (domainKey === "industrials") cross.push(...(FEEDS_BASE.business || []));
+  if (catKey === "ai") cross.push(...(FEEDS_BASE.technology || []));
+  if (catKey === "cybersecurity") cross.push(...(FEEDS_BASE.technology || []));
+  if (catKey === "higher-ed" || catKey === "research") cross.push(...(FEEDS_BASE.education || []));
+  if (catKey === "team-sports" || catKey === "motorsports" || catKey === "sports-media" || catKey === "esports") cross.push(...(FEEDS_BASE.sports || []));
+
+  return uniqueBy([...addCat, ...addDomain, ...cross, ...base].filter(Boolean), (x)=>x);
+}
+function extraFeedsForRoute(routePath, baseUniverse) {
+  const baseSet = new Set((baseUniverse || []).map((u)=>String(u).trim()));
+  const candidates = EXTRA_FEED_POOL.filter((u)=>u && !baseSet.has(u));
+  if (!candidates.length) return [];
+
+  const epochBucket = Math.floor(Date.now() / (1000 * 60 * 60 * 6));
+  const shuffled = stableShuffle(candidates, `extras:${routePath}:${epochBucket}`);
+  return shuffled.slice(0, Math.min(EXTRA_SOURCES_PER_ROUTE, shuffled.length));
+}
+function buildFeedUniverseForPath(path) {
+  const baseUniverse = buildBaseUniverseForPath(path);
+  const extras = extraFeedsForRoute(path, baseUniverse);
+  return uniqueBy([...extras, ...baseUniverse], (x)=>x);
+}
+function selectFeedSlice(universe, routePath, cursorPage, roundIndex, passIndex, sliceSize) {
+  const feeds = universe || [];
+  if (!feeds.length) return [];
+
+  const epochBucket = Math.floor(Date.now() / (1000 * 60 * 10));
+  const shuffled = stableShuffle(feeds, `feedsel:${routePath}:${epochBucket}:p${cursorPage}:r${roundIndex}:k${passIndex}`);
+  return shuffled.slice(0, Math.min(sliceSize, shuffled.length));
+}
+
+///////////////////////////////
+// RSS PARSING
+///////////////////////////////
+function pickFirst(text, patterns) {
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m && m[1]) return m[1].trim();
+  }
+  return "";
+}
+function parseRssItems(xml, feedUrl) {
+  const out = [];
+
+  const itemMatches = (xml.match(/<item[\s\S]*?<\/item>/gi) || []).slice(0, MAX_ITEMS_PER_FEED_PARSE);
+  for (const block of itemMatches) {
+    const title = normalizeBrokenMarkupText(pickFirst(block, [/<title[^>]*>([\s\S]*?)<\/title>/i])) || "";
+    const linkRaw = normalizeBrokenMarkupText(pickFirst(block, [/<link[^>]*>([\s\S]*?)<\/link>/i])) || "";
+    const link = canonicalizeUrl(linkRaw);
+    if (!title || !link || isGoogleHostUrl(link)) continue;
+
+    const guid = normalizeBrokenMarkupText(pickFirst(block, [/<guid[^>]*>([\s\S]*?)<\/guid>/i])) || link || title;
+    const pubDate = normalizeBrokenMarkupText(pickFirst(block, [/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i])) || "";
+    const desc = pickFirst(block, [/<description[^>]*>([\s\S]*?)<\/description>/i, /<content:encoded[^>]*>([\s\S]*?)<\/content:encoded>/i]) || "";
+    const mediaThumb = pickFirst(block, [/<media:thumbnail[^>]*url="([^"]+)"/i, /<media:content[^>]*url="([^"]+)"/i, /<enclosure[^>]*url="([^"]+)"/i]) || "";
+
+    out.push({
+      id: `rss:${hash32(feedUrl + "::" + guid)}`,
+      title: safeText(normalizeBrokenMarkupText(title), 180),
+      link,
+      publishedAt: toIsoDate(pubDate || Date.now()),
+      description: safeText(cleanDescription(desc), 700),
+      image: mediaThumb ? canonicalizeUrl(mediaThumb) : "",
+      feedUrl,
+      sourceKind: "rss",
+    });
+  }
+
+  const entryMatches = (xml.match(/<entry[\s\S]*?<\/entry>/gi) || []).slice(0, MAX_ITEMS_PER_FEED_PARSE);
+  for (const block of entryMatches) {
+    const title = normalizeBrokenMarkupText(pickFirst(block, [/<title[^>]*>([\s\S]*?)<\/title>/i])) || "";
+    const link = pickFirst(block, [
+      /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']alternate["'][^>]*\/?>/i,
+      /<link[^>]*href=["']([^"']+)["'][^>]*\/?>/i,
+    ]) || "";
+    const url = canonicalizeUrl(normalizeBrokenMarkupText(link));
+    if (!title || !url || isGoogleHostUrl(url)) continue;
+
+    const guid = normalizeBrokenMarkupText(pickFirst(block, [/<id[^>]*>([\s\S]*?)<\/id>/i])) || url || title;
+    const updated = normalizeBrokenMarkupText(pickFirst(block, [/<updated[^>]*>([\s\S]*?)<\/updated>/i, /<published[^>]*>([\s\S]*?)<\/published>/i])) || "";
+    const summary = pickFirst(block, [/<summary[^>]*>([\s\S]*?)<\/summary>/i, /<content[^>]*>([\s\S]*?)<\/content>/i]) || "";
+
+    out.push({
+      id: `atom:${hash32(feedUrl + "::" + guid)}`,
+      title: safeText(normalizeBrokenMarkupText(title), 180),
+      link: url,
+      publishedAt: toIsoDate(updated || Date.now()),
+      description: safeText(cleanDescription(summary), 700),
+      image: "",
+      feedUrl,
+      sourceKind: "atom",
+    });
+  }
+
+  return out;
+}
+function sortNewest(items) {
+  return [...(items || [])].sort((a, b) => {
+    const ta = a?.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+    const tb = b?.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+    return tb - ta;
+  });
+}
+async function fetchTextCached(feedUrl) {
+  const cache = caches.default;
+  const req = new Request(feedUrl, { method: "GET" });
+
+  const cached = await cache.match(req);
+  if (cached) return await cached.text();
+
+  const res = await fetchWithTimeout(feedUrl, {
+    method: "GET",
+    cf: { cacheTtl: FEED_CACHE_TTL_SECONDS, cacheEverything: true },
+    headers: {
+      "user-agent": "OMEGA-HIVE/1.0 (+https://myaigpt.online/)",
+      accept: "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1",
+    },
+  }, FEED_FETCH_TIMEOUT_MS);
+
+  if (!res.ok) throw new Error(`Feed fetch failed ${res.status}`);
+
+  const clone = new Response(res.body, res);
+  clone.headers.set("cache-control", `public, s-maxage=${FEED_CACHE_TTL_SECONDS}`);
+  await cache.put(req, clone);
+
+  return await res.text();
+}
+async function loadFeedItems(feedUrl) {
+  try {
+    if (!feedUrl) return [];
+    const xml = await fetchTextCached(feedUrl);
+    return parseRssItems(xml, feedUrl);
+  } catch {
+    return [];
+  }
+}
+
+///////////////////////////////
+// DDG (last resort)
+///////////////////////////////
+function parseDdgHtmlResults(html) {
+  const out = [];
+  const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const href = canonicalizeUrl(normalizeBrokenMarkupText(m[1] || ""));
+    const title = safeText(normalizeBrokenMarkupText(m[2] || ""), 180);
+    if (!href || !title) continue;
+    if (isGoogleHostUrl(href)) continue;
+    out.push({ href, title });
+    if (out.length >= DDG_MAX_RESULTS) break;
+  }
+  return uniqueBy(out, (x) => x.href);
+}
+async function ddgSearchOnce(query) {
+  if (!DDG_ENABLED) return [];
+  const q = String(query || "").trim();
+  if (!q || q.length < 4) return [];
+  try {
+    const body = new URLSearchParams({ q, kl: "us-en", df: DDG_TIME_FILTER });
+    const res = await fetchWithTimeout("https://html.duckduckgo.com/html", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "user-agent": "OMEGA-HIVE/1.0 (+https://myaigpt.online/)",
+        accept: "text/html,*/*;q=0.8",
+      },
+      body,
+    }, DDG_TIMEOUT_MS);
+    if (!res.ok) return [];
+    return parseDdgHtmlResults(await res.text());
+  } catch {
+    return [];
+  }
+}
+function ddgQueriesForPath(routePath) {
+  const { domainLabel, catLabel, domainKey } = routeInfo(routePath);
+  const d = domainLabel || "news";
+  const c = catLabel || "";
+  const domain = String(domainKey || "").toLowerCase();
+
+  const base = [
+    c ? `${d} ${c}` : d,
+    c ? `${c} latest news` : `${d} latest news`,
+    c ? `${c} analysis` : `${d} analysis`,
+    c ? `${c} updates` : `${d} updates`,
+  ];
+
+  const boosts = [];
+  if (domain === "real-estate") boosts.push(
+    `${c ? c+" " : ""}housing market mortgage rates`,
+    `${c ? c+" " : ""}home prices inventory housing supply`,
+    "rent inflation housing supply",
+  );
+  if (domain === "financials") boosts.push(
+    "stock market futures bonds yields",
+    "earnings outlook markets rates",
+    "inflation jobs report central bank",
+  );
+  if (domain === "information-technology") boosts.push(
+    "software security patch vulnerability",
+    "AI model release update",
+  );
+  if (domain === "sports") boosts.push(
+    "scores injuries roster trade",
+    "playoff standings schedule",
+  );
+
+  return uniqueBy([...boosts, ...base].map((x)=>safeText(x, 120)), (x)=>x).filter(Boolean).slice(0, DDG_QUERY_COUNT);
+}
+async function ddgExpandForPath(routePath) {
+  const qs = ddgQueriesForPath(routePath);
+  const all = [];
+  for (const q of qs) {
+    const hits = await ddgSearchOnce(q);
+    for (const h of hits) all.push(h);
+  }
+  return uniqueBy(all, (x)=>x.href);
+}
+function ddgHitsToItems(hits, routePath) {
+  return (hits || []).map((x) => ({
+    id: `ddg:${hash32(x.href + "::" + x.title + "::" + routePath)}`,
+    title: safeText(normalizeBrokenMarkupText(x.title), 180),
+    link: x.href,
+    publishedAt: "",
+    description: "",
+    image: "",
+    feedUrl: "duckduckgo-html",
+    sourceKind: "ddg",
+  }));
+}
+
+///////////////////////////////
+// ROUTE LOCK
+///////////////////////////////
+const DOMAIN_SIGNAL_MAP = {
+  "meta-systems-and-ontology": ["ontology","taxonomy","metadata","identity","classification","semantic","schema","canon","narrative","substrate","knowledge graph"],
+  "energy": ["energy","oil","gas","solar","wind","battery","nuclear","power grid","electricity","refinery","renewable","fuel","lng","emissions"],
+  "materials": ["materials","metal","mining","steel","copper","aluminum","lithium","cement","chemical","commodity","ore","rare earth"],
+  "industrials": ["industrial","manufacturing","factory","infrastructure","logistics","shipping","freight","rail","construction","aviation","transportation"],
+  "consumer-discretionary": ["consumer","retail","e-commerce","shopping","auto","vehicle","ev","apparel","fashion","luxury","lifestyle","travel","restaurant"],
+  "consumer-staples": ["food","beverage","grocery","agriculture","farm","crop","packaged food","household goods","cuisine"],
+  "health-care": ["health","hospital","medical","doctor","patient","disease","drug","therapy","biotech","clinical","wellness","fitness","anatomy","treatment","vaccine"],
+  "financials": ["market","stock","bond","economy","bank","finance","trading","investor","earnings","inflation","fed","rates","crypto","bitcoin","ethereum","yields","futures"],
+  "information-technology": ["technology","software","hardware","chip","semiconductor","ai","artificial intelligence","cloud","developer","computing","cyber","cybersecurity","data center","robotics"],
+  "communication-services": ["media","streaming","telecom","advertising","social media","entertainment","film","tv","music","broadcast"],
+  "utilities": ["utilities","water","power","electricity","grid","climate","ecology","wastewater","transmission"],
+  "real-estate": ["real estate","housing","home","mortgage","rent","rental","property","realtor","zoning","homebuilder","commercial property","apartment","inventory"],
+  "sports": ["sports","game","team","player","coach","league","season","match","tournament","playoff","betting","esports","race","score"],
+  "government-law-and-civilization": ["government","policy","law","legal","court","judge","congress","senate","military","defense","diplomacy","treaty","regulation","un","nato"],
+  "education-and-knowledge": ["education","school","student","teacher","classroom","college","university","k-12","research","academic","learning","curriculum"],
+  "religion-mythology-and-culture": ["religion","church","faith","myth","mythology","culture","tradition","ritual","festival","museum","heritage"],
+  "human-experience-and-psychology": ["psychology","emotion","cognition","personality","mental","behavior","social","relationships","identity","well-being"],
+  "science-and-mathematics": ["science","physics","chemistry","biology","earth science","mathematics","space","astronomy","research","experiment","theory"],
+  "time-history-and-events": ["history","era","civilization","war","timeline","event","ancient","archive","invention","historic"],
+  "deep-root-domains": ["systems theory","game theory","information theory","ethics","linguistics","future tech","consciousness","cosmology","evolution","ai agents","deep economics"],
+};
+
+const CATEGORY_SIGNAL_MAP = {
+  markets: ["stock market","markets","equities","bond market","wall street","futures","yields","treasuries","rates"],
+  economics: ["economics","gdp","inflation","jobs report","central bank","macro","growth"],
+  trading: ["trading","options","price action","volume"],
+  crypto: ["crypto","bitcoin","ethereum","blockchain","token","defi"],
+  ai: ["ai","artificial intelligence","llm","machine learning","generative ai"],
+  cybersecurity: ["cybersecurity","malware","breach","ransomware","phishing"],
+  climate: ["climate","warming","storm","carbon","climate policy"],
+  space: ["space","astronomy","nasa","rocket","satellite","orbit"],
+  government: ["government","policy","congress","senate","white house","regulation"],
+  law: ["law","court","legal","judge","lawsuit","ruling"],
+  military: ["military","defense","missile","troops","navy","air force"],
+  "higher-ed": ["higher education","college","university","campus","academic"],
+  research: ["research","study","paper","scientists","lab","peer review"],
+  "team-sports": ["team","league","coach","roster","playoff","season"],
+  betting: ["betting","odds","sportsbook","wager","lines"],
+};
+
+function routeTokens(routePath) {
+  const { domainLabel, catLabel, domainKey, catKey } = routeInfo(routePath);
+  const raw = `${domainLabel} ${catLabel} ${domainKey} ${catKey}`.toLowerCase().replace(/[^a-z0-9\s-]/g," ").replace(/\s+/g," ").trim();
+  return uniqueBy(raw.split(" ").filter((w)=>w.length>=3), (x)=>x).slice(0, 40);
+}
+function routeSignalTerms(routePath) {
+  const { domainKey, catKey, domainLabel, catLabel } = routeInfo(routePath);
+  const parts = [];
+  if (domainKey && DOMAIN_SIGNAL_MAP[domainKey]) parts.push(...DOMAIN_SIGNAL_MAP[domainKey]);
+  if (catKey && CATEGORY_SIGNAL_MAP[catKey]) parts.push(...CATEGORY_SIGNAL_MAP[catKey]);
+  if (domainLabel) parts.push(domainLabel.toLowerCase());
+  if (catLabel) parts.push(catLabel.toLowerCase());
+  parts.push(...routeTokens(routePath));
+  return uniqueBy(parts.map((x)=>String(x||"").trim().toLowerCase()).filter(Boolean), (x)=>x);
+}
+function itemHaystack(item) {
+  return `${item?.title || ""} ${item?.description || ""} ${item?.link || ""} ${item?.feedUrl || ""}`.toLowerCase();
+}
+function countSignalHits(item, terms) {
+  const hay = itemHaystack(item);
+  let hits = 0;
+  for (const t of (terms || [])) if (t && hay.includes(t)) hits++;
+  return hits;
+}
+function isLooseGenericRoute(routePath) {
+  const { domainKey } = routeInfo(routePath);
+  return !domainKey || routePath === "/" || routePath === "/explore";
+}
+function requiredSignalHitsForRoute(routePath) {
+  if (routePath === "/" || routePath === "/explore") return 0;
+  return 1;
+}
+function passesHardRouteLock(item, routePath) {
+  if (isLooseGenericRoute(routePath)) return true;
+  const terms = routeSignalTerms(routePath);
+  const hits = countSignalHits(item, terms);
+  return hits >= requiredSignalHitsForRoute(routePath);
+}
+function filterItemsForRouteLock(items, routePath) {
+  if (routePath === "/" || routePath === "/explore") return items || [];
+  return (items || []).filter((it)=>passesHardRouteLock(it, routePath));
+}
+
+///////////////////////////////
+// SCORING + QUALITY
+///////////////////////////////
+function titleQuality(title) {
+  const t = String(title || "").trim();
+  if (!t) return -30;
+  if (t.length < MIN_TITLE_LEN) return -20;
+  if (t.length > MAX_TITLE_LEN) return -8;
+  if (/^untitled\b/i.test(t)) return -30;
+  if (/^here'?s the latest\.?$/i.test(t)) return -24;
+  if (/^(latest|story|news update)$/i.test(t)) return -24;
+  if (/^[^a-zA-Z0-9]+$/.test(t)) return -20;
+  return 8;
+}
+function descQuality(desc) {
+  const d = String(desc || "").trim();
+  if (!d) return -8;
+  if (d.length < MIN_DESC_LEN) return -3;
+  if (/^no summary available\.?$/i.test(d)) return -20;
+  if (/^loading/i.test(d)) return -20;
+  return 6;
+}
+function sourceTier(host) {
+  const h = String(host || "").toLowerCase();
+  if (!h) return 0;
+  if (/(reuters|apnews|bbc|npr|ft\.com|theguardian|cnbc|marketwatch|fortune|aljazeera|dw\.com|france24|cbc\.ca|economist|nytimes\.com|cnn\.com|nasdaq\.com)\b/.test(h)) return 10;
+  if (/(axios|politico|wired|techcrunch|theverge|arstechnica|krebsonsecurity|securityweek|bleepingcomputer|who\.int|cdc\.gov|nih\.gov|statnews|scientificamerican|nature\.com|science\.org|sec\.gov|federalreserve\.gov|bankofengland\.co\.uk|ecb\.europa\.eu|bis\.org|imf\.org|worldbank\.org|oecd\.org|news\.un\.org|lawfaremedia|scotusblog|courthousenews)\b/.test(h)) return 8;
+  return 5;
+}
+function matchHits(item, tokens) {
+  const hay = itemHaystack(item);
+  let hits = 0;
+  for (const t of tokens) if (t && hay.includes(t)) hits++;
+  return hits;
+}
+function safeAgeHours(publishedAt) {
+  try {
+    if (!publishedAt) return 999;
+    const t = new Date(publishedAt).getTime();
+    if (!Number.isFinite(t) || Number.isNaN(t)) return 999;
+    return Math.max(0, (Date.now() - t) / 3600000);
+  } catch {
+    return 999;
+  }
+}
+function buildFallbackDesc(item) {
+  const t = normalizeBrokenMarkupText(item?.title || "");
+  if (!t) return "";
+  const host = hostnameOf(item?.link || "");
+  const hint = host ? `Source: ${host}.` : "Source coverage.";
+  return safeText(`${t}. ${hint} On-site writing for this route.`, 240);
+}
+function passesCardQualityStrict(item) {
+  if (!item?.link) return false;
+  if (isGoogleHostUrl(item.link)) return false;
+  const title = String(item?.title || "").trim();
+  const desc = String(item?.description || "").trim();
+  const q = titleQuality(title) + descQuality(desc) + sourceTier(hostnameOf(item.link));
+  if (!title || title.length < MIN_TITLE_LEN) return false;
+  if (!desc || desc.length < MIN_DESC_LEN) return false;
+  if (q < MIN_CARD_QUALITY_SCORE) return false;
+  return true;
+}
+function passesCardQualityRelaxed(item) {
+  if (!item?.link) return false;
+  if (isGoogleHostUrl(item.link)) return false;
+  const title = String(item?.title || "").trim();
+  if (!title || title.length < MIN_TITLE_LEN) return false;
+  return true;
+}
+function scoreItemForRoute(item, routePath) {
+  const host = hostnameOf(item?.link || "");
+  const sourceScore = sourceTier(host);
+  const hits = matchHits(item, routeTokens(routePath));
+  const signalHits = countSignalHits(item, routeSignalTerms(routePath));
+  const ageHours = safeAgeHours(item?.publishedAt || "");
+  const freshness = Math.max(0, 96 - ageHours);
+  const titleScore = titleQuality(item?.title || "");
+  const descriptionScore = descQuality(item?.description || "");
+  const hardPenalty = passesHardRouteLock(item, routePath) ? 0 : 1000;
+  return sourceScore * 4 + hits * 10 + signalHits * 22 + freshness * 0.6 + titleScore + descriptionScore - hardPenalty;
+}
+
+///////////////////////////////
+// CANDIDATE BAG
+///////////////////////////////
+function applyRecency(items) {
+  const strictCutoff = daysAgoIso(RECENCY_DAYS_STRICT);
+  let strict = (items || []).filter((it)=>it?.publishedAt && isNewerThan(it.publishedAt, strictCutoff));
+  if (strict.length < 20) {
+    const fallbackCutoff = daysAgoIso(RECENCY_DAYS_FALLBACK);
+    strict = (items || []).filter((it)=>it?.publishedAt && isNewerThan(it.publishedAt, fallbackCutoff));
+  }
+  return strict.length ? strict : (items || []);
+}
+function normalizeCandidateItem(it) {
+  if (!it?.link) return null;
+  const link = canonicalizeUrl(it.link);
+  if (!link || isGoogleHostUrl(link)) return null;
+  const title = safeText(normalizeBrokenMarkupText(it.title || ""), 180);
+  if (!title) return null;
+  const description = String(it.description || "").trim();
+  return {
+    ...it,
+    id: it.id || hash32(link + "::" + title),
+    link,
+    title,
+    description: description || buildFallbackDesc({ ...it, title, link }),
+  };
+}
+async function collectLiveCandidateBag(routePath, cursorPage, roundIndex, timeBudgetMs) {
+  const startMs = Date.now();
+  const universe = buildFeedUniverseForPath(routePath);
+
+  let all = [];
+  let pass = 0;
+
+  while (pass < MAX_SLICE_PASSES && Date.now() - startMs < timeBudgetMs) {
+    const sliceSize = SLICE_SIZE_BASE + pass * SLICE_SIZE_BOOST;
+    const feedSlice = selectFeedSlice(universe, routePath, cursorPage, roundIndex, pass, sliceSize);
+
+    const loaded = await mapWithConcurrency(feedSlice, MAX_FEED_CONCURRENCY, async (u) => loadFeedItems(u));
+    const items = uniqueBy((loaded || []).flat().filter(Boolean), (x)=>canonicalizeUrl(x.link) || x.id || x.title)
+      .filter((x)=>x?.link && !isGoogleHostUrl(x.link));
+
+    all = uniqueBy([...all, ...items], (x)=>canonicalizeUrl(x.link) || x.id || x.title);
+    if (all.length >= 1200) break;
+    pass++;
+  }
+
+  all = sortNewest(all);
+  all = applyRecency(all);
+
+  let strict = filterItemsForRouteLock(all.filter(passesCardQualityStrict), routePath);
+
+  if (strict.length < 24) {
+    let relaxed = filterItemsForRouteLock(
+      all.filter(passesCardQualityRelaxed).map((it)=> {
+        const desc = String(it.description || "").trim();
+        if (!desc || desc.length < MIN_DESC_LEN) return { ...it, description: buildFallbackDesc(it) };
+        return it;
+      }),
+      routePath
+    );
+
+    if (DDG_ENABLED && relaxed.length < DDG_MIN_FILL_THRESHOLD && Date.now() - startMs < timeBudgetMs) {
+      const ddgItems = filterItemsForRouteLock(
+        ddgHitsToItems(await ddgExpandForPath(routePath), routePath).map((it)=>({ ...it, description: buildFallbackDesc(it) })),
+        routePath
+      );
+      relaxed = uniqueBy([...relaxed, ...ddgItems], (x)=>canonicalizeUrl(x.link) || x.id || x.title);
+    }
+
+    const finalRelaxed = relaxed
+      .map(normalizeCandidateItem)
+      .filter(Boolean)
+      .slice(0, MAX_CANDIDATES_PER_BAG)
+      .sort((a,b)=>scoreItemForRoute(b, routePath) - scoreItemForRoute(a, routePath));
+
+    return finalRelaxed;
+  }
+
+  const finalStrict = strict
+    .map(normalizeCandidateItem)
+    .filter(Boolean)
+    .slice(0, MAX_CANDIDATES_PER_BAG)
+    .sort((a,b)=>scoreItemForRoute(b, routePath) - scoreItemForRoute(a, routePath));
+
+  return finalStrict;
+}
+function shouldAllowRecirculation(cursor) {
+  const c = Math.max(0, parseInt(cursor || 0, 10) || 0);
+  return c >= RECIRCULATION_START_CURSOR;
+}
+function computeSeekWindow(cursor) {
+  const c = Math.max(0, parseInt(cursor || 0, 10) || 0);
+  const growth = Math.floor(c / 120) * 900;
+  return clamp(SEEK_WINDOW_BASE + growth, SEEK_WINDOW_BASE, SEEK_WINDOW_MAX);
+}
+function recirculationTargetCount(limit, cursor) {
+  if (!shouldAllowRecirculation(cursor)) return 0;
+  const depthFactor = Math.floor((cursor - RECIRCULATION_START_CURSOR) / RECIRCULATION_INTERVAL);
+  const rate = clamp01(RECIRCULATION_RATE_DEEP + depthFactor * 0.03);
+  return clamp(Math.floor(limit * rate), 1, Math.max(1, Math.floor(limit * 0.55)));
+}
+function mergeBagsForInfiniteFeed(liveBag, archiveBag, routePath, cursorPage, roundIndex) {
+  const live = (liveBag || []).map(normalizeCandidateItem).filter(Boolean);
+  const archive = (archiveBag || []).map(normalizeCandidateItem).filter(Boolean);
+
+  const freshWeighted = [];
+  for (const it of live) {
+    freshWeighted.push({ ...it, _layer: "live", _score: scoreItemForRoute(it, routePath) + 28 });
+  }
+  for (const it of archive) {
+    freshWeighted.push({ ...it, _layer: "archive", _score: scoreItemForRoute(it, routePath) + 6 });
+  }
+
+  const deduped = uniqueBy(freshWeighted, (x)=>canonicalizeUrl(x.link) || x.id || x.title);
+  const sorted = deduped.sort((a,b)=>b._score - a._score);
+
+  const overlapCount = clamp(Math.floor(sorted.length * WINDOW_OVERLAP_RATE), 0, 160);
+  if (overlapCount > 0 && cursorPage > 0) {
+    const overlapSource = sorted.slice(0, overlapCount);
+    const overlapShuffle = stableShuffle(overlapSource, `overlap:${routePath}:${cursorPage}:${roundIndex}`);
+    return uniqueBy([...sorted, ...overlapShuffle], (x)=>`${canonicalizeUrl(x.link)}::${x._layer || ""}`);
+  }
+  return sorted;
+}
+
+///////////////////////////////
+// CARDS
+///////////////////////////////
+function cardImg(origin, seed) { return `${origin}/api/img?seed=${encodeURIComponent(seed)}&w=1200&h=800`; }
+function buildCleanDescription(item) {
+  const desc = normalizeBrokenMarkupText(item?.description || "");
+  const title = normalizeBrokenMarkupText(item?.title || "");
+  if (desc && !/^no summary available\.?$/i.test(desc)) return safeText(desc, 260);
+  if (title.length > 18) return safeText(`${title} - on-site coverage on this route.`, 260);
+  return safeText(buildFallbackDesc(item), 260);
+}
+function toCard(origin, routePath, feedItem) {
+  const title = safeText(normalizeBrokenMarkupText(feedItem?.title || "").trim(), 180);
+  const desc = buildCleanDescription(feedItem);
+  if (!title || !desc) return null;
+  if (!passesHardRouteLock(feedItem, routePath)) return null;
+
+  const can = canonicalizeUrl(feedItem.link || "");
+  const h = dedupeKeyForUrl(can);
+  const img = feedItem.image
+    ? `${origin}/api/imgproxy?u=${encodeURIComponent(feedItem.image)}&seed=${encodeURIComponent(`rss:${h}`)}`
+    : cardImg(origin, `hero:${hash32(routePath)}:${h}`);
+
+  return {
+    id: h,
+    title,
+    description: desc,
+    pubDate: feedItem.publishedAt || "",
+    link: can,
+    image: img,
+    hub: routePath,
+    layer: feedItem._layer || "live",
+  };
+}
+function cardUniqueKey(card) { return canonicalizeUrl(card?.link || "") || card?.id || card?.title || ""; }
+
+///////////////////////////////
+// TRUE MSN-STYLE NON-STOP WINDOW
+///////////////////////////////
+async function buildNonStopWindow(cache, origin, routePath, cursor, limit) {
+  const startMs = Date.now();
+  const start = clamp(parseInt(cursor || 0, 10) || 0, 0, 10000000);
+  const cursorPage = Math.floor(start / Math.max(1, limit));
+  const seekWindow = computeSeekWindow(start);
+  const recircTarget = recirculationTargetCount(limit, start);
+
+  const out = [];
+  let roundIndex = 0;
+  let recircAdded = 0;
+
+  while (out.length < limit && roundIndex < MAX_FETCH_ROUNDS_PER_REQUEST && Date.now() - startMs < LIVE_TIME_BUDGET_MS) {
+    const roundBudget = Math.min(LIVE_FETCH_ROUND_BUDGET_MS, Math.max(1200, LIVE_TIME_BUDGET_MS - (Date.now() - startMs)));
+
+    const liveBag = await collectLiveCandidateBag(routePath, cursorPage, roundIndex, roundBudget);
+    if (liveBag.length) {
+      // archive every live round so the route builds history
+      try { await appendArchiveBucket(cache, origin, routePath, liveBag.slice(0, MAX_ARCHIVE_ITEMS_PER_BUCKET)); } catch {}
+    }
+
+    const archiveBag = await readArchiveBuckets(cache, origin, routePath, cursorPage);
+    const bag = mergeBagsForInfiniteFeed(liveBag, archiveBag, routePath, cursorPage, roundIndex);
+
+    const overlapOffset = Math.floor(Math.max(0, start - limit) * WINDOW_OVERLAP_RATE);
+    const scanStart = roundIndex === 0 ? Math.max(0, start - overlapOffset) : 0;
+    const scanEnd = Math.min(bag.length, scanStart + seekWindow);
+
+    for (let i = scanStart; i < scanEnd && out.length < limit; i++) {
+      const it = bag[i];
+      if (!it?.link) continue;
+
+      const can = canonicalizeUrl(it.link);
+      const h = dedupeKeyForUrl(can);
+
+      const allowRecirculation = shouldAllowRecirculation(start) && recircAdded < recircTarget && (it._layer === "archive" || i > Math.floor(scanEnd * 0.55));
+      const seen = await isSeenEdge(cache, origin, routePath, h, allowRecirculation);
+      if (seen) continue;
+
+      const card = toCard(origin, routePath, it);
+      if (!card) continue;
+
+      await markSeenEdge(cache, origin, routePath, h);
+      if (allowRecirculation) recircAdded++;
+      out.push(card);
+    }
+
+    roundIndex++;
+  }
+
+  return {
+    items: uniqueBy(out, (x)=>cardUniqueKey(x)).slice(0, limit),
+    nextCursor: start + Math.max(1, limit),
+    hasMore: true,
+    source: "msn-style-fresh-archive-nonstop",
+  };
+}
+
+///////////////////////////////
+// /api/live
+///////////////////////////////
+async function handleLive(request, origin, routePath) {
+  const url = new URL(request.url);
+  const cursor = clamp(parseInt(url.searchParams.get("cursor") || "0", 10) || 0, 0, 10000000);
+  const limit = clamp(parseInt(url.searchParams.get("limit") || String(API_PAGE_SIZE), 10) || API_PAGE_SIZE, 6, 80);
+  const cache = caches.default;
+
+  const stream = await buildNonStopWindow(cache, origin, routePath, cursor, limit);
+  return json({
+    ok: true,
+    hub: routePath,
+    items: stream.items,
+    nextCursor: stream.nextCursor,
+    hasMore: true,
+    source: stream.source,
+  }, 200, 5);
+}
+
+///////////////////////////////
+// ARTICLE WRITER
+///////////////////////////////
+function extractTag(html, tag) {
+  const m = html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i"));
+  return m ? normalizeBrokenMarkupText(m[1]) : "";
+}
+function extractMeta(html, attrName, attrValue) {
+  const regex = new RegExp(`<meta[^>]+${attrName}=["']${escapeRegex(attrValue)}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i");
+  const reverseRegex = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+${attrName}=["']${escapeRegex(attrValue)}["'][^>]*>`, "i");
+  const m1 = html.match(regex), m2 = html.match(reverseRegex);
+  return normalizeBrokenMarkupText(m1 ? m1[1] : m2 ? m2[1] : "");
+}
+function isBoilerplate(text) {
+  const t = String(text || "").toLowerCase();
+  return ["all rights reserved","subscribe","newsletter","advertisement","privacy policy","terms of service","cookie policy","recommended stories","sign up","manage cookies"].some((x)=>t.includes(x));
+}
+function looksLikeLooseCaption(text) {
+  const s = String(text || "").trim();
+  return /^[A-Z][^.]{0,120}\s[A-Z][^.]{0,120}$/.test(s) && !/[.?!:]/.test(s);
+}
+function extractArticleContent(html, url = "") {
+  const title = extractMeta(html,"property","og:title") || extractMeta(html,"name","twitter:title") || extractTag(html,"title") || "";
+  const byline = extractMeta(html,"name","author") || extractMeta(html,"property","article:author") || "";
+
+  let body = html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ")
+    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi," ")
+    .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi," ")
+    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi," ")
+    .replace(/<!--[\s\S]*?-->/g," ");
+
+  const articleMatch =
+    body.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i) ||
+    body.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i) ||
+    body.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+  if (articleMatch) body = articleMatch[1];
+
+  body = body
+    .replace(/<\/p>/gi,"\n\n").replace(/<\/div>/gi,"\n").replace(/<\/section>/gi,"\n")
+    .replace(/<\/h1>|<\/h2>|<\/h3>/gi,"\n\n").replace(/<br\s*\/?>/gi,"\n")
+    .replace(/<\/li>/gi,"\n").replace(/<li\b[^>]*>/gi,"* ")
+    .replace(/<[^>]+>/g," ");
+
+  body = deepCleanText(body);
+
+  const paragraphs = body.split(/\n{2,}/)
+    .map((x)=>deepCleanText(x)).filter(Boolean)
+    .filter((x)=>x.length>70).filter((x)=>!isBoilerplate(x)).filter((x)=>!looksLikeLooseCaption(x))
+    .slice(0, EXTRACT_MAX_PARAGRAPHS);
+
+  return { url, title: cleanFinalText(title), byline: cleanFinalText(byline), text: hardCap(paragraphs.join("\n\n"), EXTRACT_MAX_CHARS) };
+}
+function sentenceSplit(text) {
+  return String(text || "")
+    .replace(/([.?!])\s+(?=[A-Z0-9])/g,"$1|")
+    .split("|")
+    .map((x)=>fixGrammarLite(cleanFinalText(x)))
+    .filter((x)=>x.length>35 && x.length<420);
+}
+function tokenizeForFrequency(text) {
+  const stop = new Set(["the","a","an","and","or","but","if","then","this","that","these","those","to","of","in","on","for","with","as","at","by","from","is","are","was","were","be","been","being","it","its","their","there","they","them","he","she","his","her","you","your","we","our","has","have","had","will","would","can","could","should","may","might","after","before","during","about","into","over","under","more","most","less","least","than","also","not","no","yes","do","does","did"]);
+  return String(text || "").toLowerCase().replace(/[^a-z0-9\s-]/g," ").split(/\s+/)
+    .filter(Boolean).filter((w)=>w.length>2 && !stop.has(w));
+}
+function wordFrequency(text) {
+  const words = tokenizeForFrequency(text);
+  const map = {};
+  for (const w of words) map[w] = (map[w] || 0) + 1;
+  return map;
+}
+function entityDiversityScore(text) {
+  const s = String(text || "");
+  const caps = s.match(/\b[A-Z][a-z]{2,}\b/g) || [];
+  const acr = s.match(/\b[A-Z]{2,}\b/g) || [];
+  return new Set([...caps, ...acr].map((x)=>x.toLowerCase())).size;
+}
+function repetitionScore(text) {
+  const s = String(text || "").toLowerCase();
+  if (!s) return 0;
+  const grams = s.replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean);
+  const seen = {};
+  let rep = 0;
+  for (let i = 0; i < grams.length - 3; i++) {
+    const g = `${grams[i]} ${grams[i+1]} ${grams[i+2]} ${grams[i+3]}`;
+    seen[g] = (seen[g] || 0) + 1;
+    if (seen[g] >= 2) rep += 1;
+  }
+  return rep;
+}
+function routeMatchConfidence(routePath, title, desc, url) {
+  const tokens = routeSignalTerms(routePath);
+  const hay = `${title || ""} ${desc || ""} ${url || ""}`.toLowerCase();
+  let hits = 0;
+  for (const t of tokens) if (t && hay.includes(t)) hits++;
+  return hits / Math.max(1, tokens.length);
+}
+function toneForRoute(routePath) {
+  const { domainKey } = routeInfo(routePath);
+  if (/sports/.test(domainKey)) return "energetic";
+  if (/government|law/.test(domainKey)) return "formal";
+  if (/health/.test(domainKey)) return "calm";
+  if (/finance/.test(domainKey)) return "analytical";
+  if (/science/.test(domainKey)) return "curious";
+  if (/education/.test(domainKey)) return "clear";
+  if (/real-estate/.test(domainKey)) return "practical";
+  return "neutral";
+}
+function applyTone(sentence, tone) {
+  const s = String(sentence || "").trim();
+  if (!s) return "";
+  if (tone === "formal") return s.replace(/\bguys\b/gi,"people");
+  if (tone === "analytical") return s.replace(/\bhuge\b/gi,"significant");
+  if (tone === "calm") return s.replace(/\bpanic\b/gi,"concern");
+  return s;
+}
+function failsStoryQuality(draft, routePath, feedTitle, feedDesc, articleUrl) {
+  const headline = String(draft?.headline || "").trim();
+  const lead = String(draft?.lead || "").trim();
+  const paras = Array.isArray(draft?.paragraphs) ? draft.paragraphs : [];
+  const joined = [headline, lead, ...paras].join("\n\n");
+
+  const tooShort = paras.length < STORY_MIN_PARAGRAPHS || joined.length < STORY_MIN_CHARS;
+  const tooRepetitive = repetitionScore(joined) >= 4;
+  const lowEntities = entityDiversityScore(joined) <= 3;
+  const conf = routeMatchConfidence(routePath, feedTitle, feedDesc, articleUrl);
+  const offRoute = routeDepth(routePath) >= 1 && conf < 0.01;
+  const echo = headline && joined.toLowerCase().includes(headline.toLowerCase().slice(0, Math.min(60, headline.length))) && paras.length <= 2;
+  return tooShort || tooRepetitive || lowEntities || offRoute || echo;
+}
+function writeCandidate({ routePath, feedTitle, feedDesc, pageTitle, byline, text, url, mut, hive }) {
+  const tone = toneForRoute(routePath);
+  const raw = deepCleanText(text);
+  const sents = sentenceSplit(raw).slice(0, STORY_MAX_SENTENCES);
+
+  const freq = wordFrequency(sents.join(" "));
+  const overused = new Set([...(topOverusedPhrases(hive?.global, 10)), ...(topOverusedPhrases(hive?.route, 10))]);
+
+  function sentScore(s, idx) {
+    const words = tokenizeForFrequency(s);
+    let score = 0;
+    for (const w of words) score += freq[w] || 0;
+    if (/\bsaid\b|\baccording\b|\breported\b|\bannounced\b|\bconfirmed\b/i.test(s)) score += 5 + mut.factBoost;
+    if (/\b\d{4}\b|\b\d+(?:\.\d+)?%|\$\d+|\bmillion\b|\bbillion\b/i.test(s)) score += 3 + mut.numberBoost;
+    for (const p of overused) if (p && s.toLowerCase().includes(p)) score -= 2 + mut.overusePenalty;
+    if (idx < 3) score += 4;
+    if (s.length > 290) score -= 2;
+    if (s.length < 70) score -= 1;
+    score += idx % 2 === 0 ? mut.evenBoost : mut.oddBoost;
+    return score;
+  }
+
+  const ranked = sents.map((s,i)=>({ s, sc: sentScore(s,i) })).sort((a,b)=>b.sc-a.sc).map((x)=>x.s);
+  const headlineSeed = pageTitle && pageTitle.length > 12 ? pageTitle : ranked[0] || feedTitle || "News Update";
+  const headline = safeText(cleanFinalText(String(headlineSeed).replace(/\s*[-|:]\s*[^-|:]+$/, "").replace(/\.$/,"").trim()), 105);
+  const subheadlineSeed = cleanFinalText(feedDesc || ranked[1] || "");
+  const subheadline = safeText(subheadlineSeed, 220);
+
+  const leadCore = ranked.slice(0,2).join(" ");
+  const lead = applyTone(fixGrammarLite(cleanFinalText(leadCore || "")), tone) || applyTone("New developments are shaping the latest coverage.", tone);
+
+  const body = ranked.slice(2,16);
+  const buckets = [body.slice(0,2), body.slice(2,4), body.slice(4,6), body.slice(6,8), body.slice(8,10)].filter((b)=>b.length);
+  const paragraphs = [];
+  for (const b of buckets) {
+    const p = b.map((x)=>applyTone(fixGrammarLite(cleanFinalText(x)), tone)).filter(Boolean).join(" ");
+    if (p) paragraphs.push(p);
+    if (paragraphs.length >= (hive?.route?.targets?.max_paras || STORY_MAX_PARAGRAPHS) || paragraphs.length >= STORY_MAX_PARAGRAPHS) break;
+  }
+
+  const finalParas = addTransitions(paragraphs, routePath, hive?.route).slice(0, hive?.route?.targets?.max_paras || STORY_MAX_PARAGRAPHS);
+  const whySeed = body[0] ? safeText(cleanFinalText(body[0]), 240) : safeText(cleanFinalText(feedDesc || ""), 240);
+
+  return {
+    headline,
+    subheadline,
+    byline: cleanFinalText(byline || ""),
+    lead: cleanFinalText(lead),
+    paragraphs: finalParas,
+    why_it_matters: cleanFinalText(`Why it matters: ${whySeed || "this story highlights a shift unfolding in real time."}`),
+    source_url: canonicalizeUrl(url || ""),
+    article_label: "AI-written story",
+    article_fine_print: "This is an on-site AI story built for this universe route. It's designed to be read here.",
+    seo_title: headline ? `${headline} | ${SITE_NAME}` : `${SITE_NAME}`,
+    seo_description: subheadline || cleanFinalText(lead) || SITE_DESCRIPTION,
+  };
+}
+function scoreCandidate(candidate, routePath, feedTitle, feedDesc, articleUrl, hive) {
+  const paras = Array.isArray(candidate?.paragraphs) ? candidate.paragraphs : [];
+  const joined = [candidate?.headline || "", candidate?.lead || "", ...paras].join("\n\n");
+
+  const rep = repetitionScore(joined);
+  const ent = entityDiversityScore(joined);
+  const conf = routeMatchConfidence(routePath, feedTitle, feedDesc, articleUrl);
+  const offRoutePenalty = routeDepth(routePath) >= 1 && conf < 0.01 ? 28 : 0;
+  const shortPenalty = paras.length < (hive?.targets?.min_paras || STORY_MIN_PARAGRAPHS) || joined.length < (hive?.targets?.min_chars || STORY_MIN_CHARS) ? 35 : 0;
+  const lowEntityPenalty = ent <= 3 ? 16 : ent <= 5 ? 8 : 0;
+
+  const factSignals = (joined.match(/\bsaid\b|\baccording\b|\breported\b|\bannounced\b|\bconfirmed\b/gi) || []).length;
+  const numbers = (joined.match(/\b\d{4}\b|\b\d+(?:\.\d+)?%|\$\d+|\bmillion\b|\bbillion\b/gi) || []).length;
+  const factDensity = factSignals + numbers;
+  const lowFactPenalty = factDensity <= 1 ? 10 : 0;
+
+  const penalties = hive?.penalties || defaultHiveMemory().penalties;
+  const base = 100 + paras.length * 6 + Math.min(joined.length / 120, 25) + Math.min(ent * 2, 22) + Math.min(factDensity * 3, 24);
+
+  return (
+    base -
+    rep * 7 * (penalties.repetition || 1) -
+    shortPenalty * (penalties.shortness || 1) -
+    offRoutePenalty * (penalties.offroute || 1) -
+    lowEntityPenalty * (penalties.low_entity_diversity || 1) -
+    lowFactPenalty * (penalties.low_fact_density || 1)
+  );
+}
+function learnFromOutput(mem, candidate) {
+  const m = mem || defaultHiveMemory();
+  m.style = m.style || defaultHiveMemory().style;
+  m.style.avoid_openers = m.style.avoid_openers || {};
+  m.style.lead_openers = m.style.lead_openers || {};
+
+  const joined = [candidate?.headline || "", candidate?.lead || "", ...(candidate?.paragraphs || [])].join(" ");
+  const low = joined.toLowerCase();
+
+  for (const p of ["new details may be limited","coverage is evolving fast","will keep updating","in real time"])
+    if (low.includes(p)) bumpPhrase(m.overused_phrases, p);
+
+  const paras = Array.isArray(candidate?.paragraphs) ? candidate.paragraphs : [];
+  let openerHits = 0;
+  for (const p of paras) {
+    const s = String(p || "").trim();
+    if (/^(Still,|That said,|In contrast,|By comparison,|In response,|As a result,|In the short term,|Over the longer term,)/i.test(s)) {
+      openerHits++;
+      bumpMap(m.style.avoid_openers, s.split(" ")[0]);
+    }
+  }
+  if (openerHits >= 2) m.style.transition_rate = clamp01((m.style.transition_rate || 0.18) - 0.03);
+  else m.style.transition_rate = clamp01((m.style.transition_rate || 0.18) + 0.003);
+
+  const rep = repetitionScore(joined);
+  if (rep >= 5) m.penalties.repetition = Math.min(2.5, (m.penalties.repetition || 1) + 0.05);
+  if (paras.length < STORY_MIN_PARAGRAPHS || joined.length < STORY_MIN_CHARS) m.penalties.shortness = Math.min(2.5, (m.penalties.shortness || 1) + 0.06);
+  const ent = entityDiversityScore(joined);
+  if (ent <= 3) m.penalties.low_entity_diversity = Math.min(2.5, (m.penalties.low_entity_diversity || 1) + 0.05);
+
+  m.n = (m.n || 0) + 1;
+  return m;
+}
+async function hiveWriteStory(cache, origin, routePath, inputs) {
+  const hive = await readHive(cache, origin, routePath);
+  hive.route = ensureRouteStyle(routePath, hive.route);
+  hive.global = hive.global || defaultHiveMemory();
+
+  const muts = [
+    { factBoost: 0, numberBoost: 0, overusePenalty: 0, evenBoost: 0, oddBoost: 0 },
+    { factBoost: 2, numberBoost: 1, overusePenalty: 1, evenBoost: 1, oddBoost: 0 },
+    { factBoost: 1, numberBoost: 2, overusePenalty: 2, evenBoost: 0, oddBoost: 1 },
+    { factBoost: 3, numberBoost: 1, overusePenalty: 2, evenBoost: 1, oddBoost: 1 },
+  ].slice(0, MUTATION_COUNT);
+
+  const candidates = muts.map((mut)=>writeCandidate({ ...inputs, mut, hive: { global: hive.global, route: hive.route } }));
+
+  let best = candidates[0], bestScore = -1e9;
+  for (const c of candidates) {
+    const sc = scoreCandidate(c, routePath, inputs.feedTitle, inputs.feedDesc, inputs.url, hive.route);
+    if (sc > bestScore) { bestScore = sc; best = c; }
+  }
+
+  hive.global = learnFromOutput(hive.global, best);
+  hive.route = learnFromOutput(hive.route, best);
+  await writeHive(cache, origin, routePath, hive);
+
+  return { story: best, debug: { score: bestScore } };
+}
+async function handleArticle(request) {
+  const cache = caches.default;
+
+  try {
+    const reqUrl = new URL(request.url);
+    const articleUrl = reqUrl.searchParams.get("url") || "";
+    const feedTitle = cleanFinalText(reqUrl.searchParams.get("title") || "");
+    const feedDesc = cleanFinalText(reqUrl.searchParams.get("desc") || "");
+    const hub = String(reqUrl.searchParams.get("hub") || "/").trim() || "/";
+    const routePath = ROUTES.has(hub) ? hub : "/";
+    const origin = reqUrl.origin;
+
+    if (!articleUrl) return json({ ok: false, error: "Missing article URL" }, 400);
+    if (!/^https?:\/\//i.test(articleUrl)) return json({ ok: false, error: "Article URL must start with http:// or https://" }, 400);
+    if (isGoogleHostUrl(articleUrl)) return json({ ok: false, error: "Google is disabled." }, 400);
+
+    const routeCheckItem = { title: feedTitle, description: feedDesc, link: articleUrl };
+    if (!passesHardRouteLock(routeCheckItem, routePath)) {
+      return json({ ok: false, error: "This story does not match the current page lock." }, 400);
+    }
+
+    const canonical = canonicalizeUrl(articleUrl);
+    const cacheKeyUrl = articleCacheUrl(origin, routePath, canonical);
+    const cached = await edgeGetJson(cache, cacheKeyUrl);
+    if (cached?.ok && cached?.article?.headline) return json(cached, 200, 60);
+
+    let fetchedUrl = canonical;
+    let extracted = { url: fetchedUrl, title: "", byline: "", text: "" };
+    let blocked = false;
+
+    try {
+      const res = await fetchWithTimeout(articleUrl, {
+        headers: { "user-agent": "Mozilla/5.0 Cloudflare Article Reader", accept: "text/html,*/*;q=0.8" },
+        cf: { cacheTtl: 300, cacheEverything: true },
+      }, ARTICLE_FETCH_TIMEOUT_MS);
+
+      if (!res.ok) blocked = true;
+      else {
+        fetchedUrl = canonicalizeUrl(res.url || articleUrl);
+        const html = await res.text();
+        extracted = extractArticleContent(html, fetchedUrl);
+      }
+    } catch {
+      blocked = true;
+    }
+
+    const extractedCheckItem = {
+      title: extracted.title || feedTitle,
+      description: `${feedDesc} ${String(extracted.text || "").slice(0, 700)}`,
+      link: fetchedUrl,
+    };
+
+    if (!passesHardRouteLock(extractedCheckItem, routePath)) {
+      return json({ ok: false, error: "Fetched article content does not match the current page lock." }, 400);
+    }
+
+    const basePieces = [extracted.title || feedTitle, feedDesc || "", extracted.text || ""].filter(Boolean);
+    const baseText = hardCap(deepCleanText(basePieces.join("\n\n")), EXTRACT_MAX_CHARS);
+
+    let { story } = await hiveWriteStory(cache, origin, routePath, {
+      routePath,
+      feedTitle,
+      feedDesc,
+      pageTitle: extracted.title || feedTitle,
+      byline: extracted.byline || "",
+      text: baseText,
+      url: fetchedUrl,
+    });
+
+    if (failsStoryQuality(story, routePath, extracted.title || feedTitle, feedDesc, fetchedUrl)) story._fallback = true;
+
+    if (!Array.isArray(story.paragraphs)) story.paragraphs = [];
+    story.paragraphs = story.paragraphs.filter(Boolean).slice(0, STORY_MAX_PARAGRAPHS);
+    if (blocked) story._fallback = true;
+
+    story.article_fine_print = "This is an on-site AI story built for this universe route. It's designed to be read here.";
+
+    const payload = { ok: true, source: { url: fetchedUrl }, article: story };
+    await edgePutJson(cache, cacheKeyUrl, payload, ARTICLE_CACHE_TTL_SECONDS);
+    return json(payload, 200, 60);
+  } catch {
+    return json({
+      ok: true,
+      source: { url: "" },
+      article: {
+        headline: "Story brief",
+        subheadline: "Coverage is updating on this route.",
+        byline: "",
+        lead: "The hive mind writer is generating a clean story for this page.",
+        paragraphs: [
+          "This route updates continuously and will refresh as coverage changes.",
+          "If an upstream source restricts access, the route will still show live cards and on-site writing.",
+          "That keeps the story readable inside this world - without sending readers away.",
+        ],
+        why_it_matters: "Why it matters: nonstop reading without broken text or empty stories.",
+        source_url: "",
+        article_label: "AI-written story",
+        article_fine_print: "On-site fallback story.",
+        seo_title: `Story brief | ${SITE_NAME}`,
+        seo_description: SITE_DESCRIPTION,
+        _fallback: true,
+      },
+    }, 200, 10);
+  }
+}
+
+///////////////////////////////
+// UI
+///////////////////////////////
+function renderHTML(requestUrl, activePath, origin) {
+  const canonicalUrl = new URL(requestUrl);
+  canonicalUrl.search = "";
+  canonicalUrl.hash = "";
+
+  const active = ROUTES.get(activePath) || ROUTES.get("/") || {
+    title: SITE_NAME,
+    desc: SITE_DESCRIPTION,
+    label: "Home",
+  };
+  const isHome = activePath === "/";
+  const isExplore = activePath === "/explore";
+
+  const topNav = [{ path: "/", label: "Home" }, { path: "/explore", label: "Explore" }, ...SPINE.map((d)=>({ path: `/${d.key}`, label: d.label }))];
+  const navLinks = topNav.map((n)=>`<a class="pill ${n.path===activePath?"active":""}" href="${escapeHtml(n.path)}">${escapeHtml(n.label)}</a>`).join("");
+
+  const parts = String(activePath).split("/").filter(Boolean);
+  const domainKey = parts[0] || "";
+  const catKey = parts[1] || "";
+  const isDomain = domainKey && !catKey && !isExplore;
+  const domainNode = isDomain ? SPINE.find((d)=>d.key===domainKey) : null;
+
+  const categoryRow = domainNode?.children?.length
+    ? `<div class="catRow">${domainNode.children.map((c)=>`<a class="chip" href="${escapeHtml(`/${domainNode.key}/${c.key}`)}">${escapeHtml(c.label)}</a>`).join("")}</div>`
+    : "";
+
+  const exploreHtml = isExplore
+    ? `<div class="exploreGrid">${SPINE.map((d)=> {
+        const cats = (d.children||[]).map((c)=>`<a class="chip" href="${escapeHtml(`/${d.key}/${c.key}`)}">${escapeHtml(c.label)}</a>`).join("");
+        return `<div class="exploreBlock"><a class="exploreTitle" href="${escapeHtml(`/${d.key}`)}">${escapeHtml(d.label)}</a><div class="chipRow">${cats}</div></div>`;
+      }).join("")}</div>`
+    : "";
+
+  return `<!doctype html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${escapeHtml(active.title || SITE_NAME)}</title>
+<meta name="description" content="${escapeHtml(active.desc || SITE_DESCRIPTION)}"/>
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta property="og:type" content="website"/><meta property="og:site_name" content="${escapeHtml(SITE_NAME)}"/>
+<meta property="og:title" content="${escapeHtml(active.title || SITE_NAME)}"/>
+<meta property="og:description" content="${escapeHtml(active.desc || SITE_DESCRIPTION)}"/>
+<meta property="og:url" content="${escapeHtml(canonicalUrl.toString())}"/>
+<meta property="og:image" content="${escapeHtml(cardImg(origin, `og:${activePath || "home"}`))}"/>
+<link rel="canonical" href="${escapeHtml(canonicalUrl.toString())}"/>
+<style>
+:root{--bg:#070812;--line:rgba(255,255,255,.10);--text:rgba(255,255,255,.92);--muted:rgba(255,255,255,.68);--muted2:rgba(255,255,255,.55);--accent:#4f8fff;--gold:#ffc857;--shadow:0 18px 55px rgba(0,0,0,.45);--shadow2:0 12px 40px rgba(0,0,0,.30);--max:1560px;--r:22px}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:
+radial-gradient(1100px 700px at 20% -10%, rgba(79,143,255,.14), transparent 55%),
+radial-gradient(900px 600px at 85% 8%, rgba(0,255,200,.09), transparent 55%),
+radial-gradient(900px 700px at 20% 95%, rgba(255,140,0,.06), transparent 55%),var(--bg);
+color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+header{position:sticky;top:0;z-index:50;background:rgba(7,8,18,.76);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.topbar{max-width:var(--max);margin:0 auto;padding:12px 16px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px}.mark{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg, rgba(255,200,87,.9), rgba(79,143,255,.9));box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.logotxt{display:flex;flex-direction:column;gap:2px}.logotxt b{letter-spacing:.08em;font-size:13px}.logotxt small{color:var(--muted);font-size:12px}
+.btn{font-size:12px;padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:900}
+.navRow{max-width:var(--max);margin:0 auto;padding:0 16px 12px;display:flex;gap:10px;flex-wrap:wrap}
+.pill{font-size:12px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);white-space:nowrap}
+.pill:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22)}
+.pill.active{background:rgba(255,255,255,.10);border-color:rgba(255,200,87,.42)}
+.wrap{max-width:var(--max);margin:0 auto;padding:16px}
+.hero{border:1px solid var(--line);border-radius:calc(var(--r) + 6px);background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));box-shadow:var(--shadow);overflow:hidden;position:relative}
+.heroGlow{position:absolute;inset:-140px -140px auto -140px;height:320px;background:radial-gradient(closest-side, rgba(79,143,255,.24), transparent 70%);filter:blur(14px)}
+.heroInner{position:relative;padding:20px 18px}
+.kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:900}
+.htitle{margin:8px 0 10px;font-size:40px;line-height:1.04;letter-spacing:-.03em;font-weight:980}
+.hdesc{margin:0;color:var(--muted);line-height:1.75;font-size:15px;max-width:110ch}
+.catRow{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{font-size:12px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted)}
+.chip:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22)}
+.panel{margin-top:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:var(--r);box-shadow:var(--shadow2);overflow:hidden}
+.panelHead{padding:14px 14px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.panelHead h2{margin:0;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.78)}
+.panelBody{padding:14px}
+.sectionHead{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.sectionTitle{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.78);font-weight:900}
+.sectionSub{font-size:12px;color:var(--muted)}
+.controlRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.controlBtn{font-size:12px;padding:8px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:900;cursor:pointer}
+.controlBtn.active{background:rgba(79,143,255,.18);border-color:rgba(79,143,255,.45)}
+.storiesGrid{display:grid;grid-template-columns:repeat(12, 1fr);gap:12px}
+.storyCard{grid-column:span 4;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:rgba(255,255,255,.03);box-shadow:0 12px 40px rgba(0,0,0,.28);transition:.16s transform,.16s border,.16s background;display:flex;flex-direction:column;min-height:320px}
+.storyCard:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.045)}
+.sThumb{position:relative;height:168px;background:rgba(255,255,255,.04)}.sThumb img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.02)}
+.sBadge{position:absolute;left:12px;top:12px;font-size:11px;letter-spacing:.06em;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.24);background:rgba(0,0,0,.45)}
+.sBody{padding:12px 12px 14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.sTitle{margin:0;font-size:16px;line-height:1.25;font-weight:950}
+.sDesc{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+.btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.miniBtn{font-size:12px;padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);cursor:pointer;font-weight:900}
+.miniBtn.primary{border:none;background:linear-gradient(180deg,var(--accent),#397ef5);color:#fff}
+.sMeta{margin-top:auto;color:var(--muted2);font-size:12px;display:flex;gap:10px;flex-wrap:wrap}
+.loading{color:rgba(180,210,255,.95);font-weight:850}.empty{color:var(--muted);font-size:14px;line-height:1.7}
+.sentinelWrap{height:1px;overflow:hidden;opacity:0;pointer-events:none}.sentinel{height:1px;opacity:0;pointer-events:none}
+.loadMoreHidden{display:none !important}
+.homeSections{display:flex;flex-direction:column;gap:14px}
+.homeBlock{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.02);overflow:hidden}
+.homeBlockHead{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.homeBlockHead a{font-weight:950}.homeBlockBody{padding:12px 14px}
+.homeGrid{display:grid;grid-template-columns:repeat(12, 1fr);gap:12px}.homeGrid .storyCard{grid-column:span 4}
+.exploreGrid{display:grid;grid-template-columns:repeat(12, 1fr);gap:12px;margin-top:14px}
+.exploreBlock{grid-column:span 6;border:1px solid var(--line);border-radius:18px;padding:12px 14px;background:rgba(255,255,255,.03)}
+.exploreTitle{display:block;font-weight:950;margin-bottom:10px}.chipRow{display:flex;gap:8px;flex-wrap:wrap}
+footer{max-width:var(--max);margin:0 auto;padding:18px 16px 36px;color:var(--muted2);font-size:12px;line-height:1.7;border-top:1px solid var(--line)}
+@media (max-width:1180px){.storyCard{grid-column:span 6}.homeGrid .storyCard{grid-column:span 6}.exploreBlock{grid-column:span 12}}
+@media (max-width:680px){.htitle{font-size:30px}.storyCard{grid-column:span 12}.homeGrid .storyCard{grid-column:span 12}}
+.modal{position:fixed;inset:0;z-index:100;display:none}
+.modal.open{display:block}
+.modalBackdrop{position:absolute;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(8px)}
+.modalPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(980px,calc(100vw - 28px));max-height:calc(100vh - 28px);overflow:auto;border:1px solid rgba(255,255,255,.14);border-radius:22px;background:linear-gradient(180deg, rgba(10,12,22,.92), rgba(10,12,22,.78));box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.modalHead{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.10);background:rgba(10,12,22,.88);backdrop-filter:blur(12px)}
+.modalHead b{letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:rgba(255,255,255,.78)}
+.modalClose{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:999px;padding:8px 10px;font-weight:950;cursor:pointer}
+.article{padding:12px 14px 16px}
+.labelRow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.article h1{margin:0 0 10px;font-size:26px;line-height:1.12;letter-spacing:-.02em}
+.subheadline{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:12px}
+.lead{font-size:14px;line-height:1.8;margin-bottom:10px;font-weight:650}
+.article p{margin:0 0 10px;color:rgba(220,232,255,.95);line-height:1.85;font-size:13px}
+.why{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(79,143,255,.08)}
+.why strong{display:block;margin-bottom:8px;color:rgba(180,210,255,.95);letter-spacing:.12em;text-transform:uppercase;font-size:11px}
+.fine{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025);color:var(--muted);font-size:12px;line-height:1.7}
+</style></head><body>
+<header><div class="topbar">
+  <div class="logo"><div class="mark" aria-hidden="true"></div><div class="logotxt"><b>${escapeHtml(BRAND.companyName)}</b><small>${escapeHtml(BRAND.productName)}</small></div></div>
+  <div><a class="btn" href="/explore">Explore</a></div>
+</div><nav class="navRow" aria-label="Universe pages">${navLinks}</nav></header>
+
+<div class="wrap"><section class="hero"><div class="heroGlow"></div><div class="heroInner">
+  <div><div class="kicker">${escapeHtml(BRAND.tagline)}</div>
+  <div class="htitle">${escapeHtml(isHome ? BRAND.companyName : active.label || "World")}</div>
+  <div class="hdesc">${escapeHtml(active.desc || SITE_DESCRIPTION)}</div>${categoryRow}</div>
+</div></section>
+
+<section class="panel"><div class="panelHead">
+  <h2>${escapeHtml(isHome ? "Top stories by page" : isExplore ? "Explore index" : "Top + recent")}</h2>
+  <div class="sectionSub">${escapeHtml(isHome ? "Home shows newest across each domain page." : "MSN-style fresh + archive infinite feed - route locked - on-site writer.")}</div>
+</div>
+<div class="panelBody">
+  ${exploreHtml}
+  ${isHome
+    ? `<div id="homeSections" class="homeSections"></div><div id="homeStatus" class="empty">Loading page sections...</div>`
+    : `<div class="sectionHead">
+         <div>
+           <div class="sectionTitle">${escapeHtml(active.label || "Stories")}</div>
+           <div class="sectionSub">${escapeHtml(activePath)}</div>
+         </div>
+         <div class="controlRow">
+           <button class="controlBtn" id="resumeBtn" type="button">Resume feed</button>
+           <button class="controlBtn" id="latestBtn" type="button">Latest top</button>
+           <div class="sectionSub" id="pageMeta">Cursor: 0</div>
+         </div>
+       </div>
+       <div id="stories" class="storiesGrid"></div><div id="feedEmpty" class="empty">Loading live stream...</div>
+       <div class="sentinelWrap"><div class="sentinel" id="sentinel"></div></div><button class="loadMoreHidden" id="loadMore" type="button">Load more</button>`}
+</div></section></div>
+
+<footer><div><b>${escapeHtml(SITE_NAME)}</b> - ${escapeHtml(SITE_DESCRIPTION)}</div></footer>
+
+<div class="modal" id="modal">
+  <div class="modalBackdrop" id="modalBackdrop"></div>
+  <div class="modalPanel" role="dialog" aria-modal="true" aria-label="On-site story">
+    <div class="modalHead">
+      <b>On-site Writing</b>
+      <button class="modalClose" type="button" id="modalClose">Close</button>
+    </div>
+    <div class="article" id="modalBody"><div class="loading">Writing...</div></div>
+  </div>
+</div>
+
+<script>
+const ACTIVE_PATH=${JSON.stringify(activePath)};
+const IS_HOME=${JSON.stringify(isHome)};
+const IS_EXPLORE=${JSON.stringify(isExplore)};
+const HOME_DOMAIN_LIMIT=${JSON.stringify(HOME_DOMAIN_LIMIT)};
+const SPINE=${JSON.stringify(SPINE)};
+const SITE_NAME=${JSON.stringify(SITE_NAME)};
+const SITE_DESCRIPTION=${JSON.stringify(SITE_DESCRIPTION)};
+const API_PAGE_SIZE=${JSON.stringify(API_PAGE_SIZE)};
+const PAGE_BADGE=${JSON.stringify(active.label || BRAND.companyName)};
+const RESUME_KEY_PREFIX="omega-feed-state:";
+const SESSION_SEEN_PREFIX="omega-session-seen:";
+const MAX_SESSION_SEEN=3000;
+
+function escapeHtml(str){return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
+function truncate(text,n=180){const t=String(text||"");return t.length>n?t.slice(0,n).trim()+"...":t;}
+function formatDate(value){if(!value)return"Date unknown";const d=new Date(value);if(isNaN(d.getTime()))return"Date unknown";return d.toLocaleString();}
+function upsertMeta(selector,attr,value){let el=document.head.querySelector(selector);if(!el){el=document.createElement("meta");document.head.appendChild(el);}el.setAttribute(attr,value);}
+function updateSeoForArticle(article){
+  const title=article?.seo_title||SITE_NAME,desc=article?.seo_description||SITE_DESCRIPTION;
+  document.title=title;
+  upsertMeta('meta[name="description"]',"content",desc);
+  upsertMeta('meta[property="og:title"]',"content",title);
+  upsertMeta('meta[property="og:description"]',"content",desc);
+}
+function routeStateKey(route){return RESUME_KEY_PREFIX+route;}
+function sessionSeenKey(route){return SESSION_SEEN_PREFIX+route;}
+function readRouteState(route){
+  try{
+    const raw=localStorage.getItem(routeStateKey(route));
+    if(!raw) return null;
+    const x=JSON.parse(raw);
+    if(!x || typeof x!=="object") return null;
+    return x;
+  }catch{return null;}
+}
+function writeRouteState(route,state){
+  try{
+    localStorage.setItem(routeStateKey(route), JSON.stringify({
+      route,
+      cursor: Number(state?.cursor||0),
+      scrollY: Number(state?.scrollY||0),
+      renderedCount: Number(state?.renderedCount||0),
+      updatedAt: Date.now()
+    }));
+  }catch{}
+}
+function clearRouteState(route){
+  try{ localStorage.removeItem(routeStateKey(route)); }catch{}
+}
+function readSessionSeen(route){
+  try{
+    const raw=sessionStorage.getItem(sessionSeenKey(route));
+    if(!raw) return [];
+    const arr=JSON.parse(raw);
+    return Array.isArray(arr)?arr:[];
+  }catch{return [];}
+}
+function hasSessionSeen(route, link){
+  const arr=readSessionSeen(route);
+  return arr.includes(String(link||""));
+}
+function markSessionSeen(route, link){
+  const v=String(link||"");
+  if(!v) return;
+  const arr=readSessionSeen(route);
+  if(arr.includes(v)) return;
+  arr.push(v);
+  const next=arr.slice(Math.max(0, arr.length-MAX_SESSION_SEEN));
+  try{ sessionStorage.setItem(sessionSeenKey(route), JSON.stringify(next)); }catch{}
+}
+function resetSessionSeen(route){
+  try{ sessionStorage.removeItem(sessionSeenKey(route)); }catch{}
+}
+function storyCardHtml(it){
+  const img=it.image||("/api/img?seed="+encodeURIComponent("fallback:"+(it.id||it.title))+"&w=1200&h=800");
+  const when=formatDate(it.pubDate||"");
+  const id=it.id||"",hub=it.hub||"",src=it.link||"#",title=it.title||"",desc=it.description||"",layer=it.layer||"live";
+  return \`
+  <div class="storyCard" id="card-\${escapeHtml(id)}">
+    <div class="sThumb">
+      <img loading="lazy" alt="\${escapeHtml(title)}" src="\${escapeHtml(img)}"
+        onerror="this.onerror=null;this.src='/api/img?seed='+encodeURIComponent('fallback:x')+'&w=1200&h=800';"/>
+      <div class="sBadge">\${escapeHtml(layer==="archive"?"Archive":"Fresh")} · \${escapeHtml(PAGE_BADGE)}</div>
+    </div>
+    <div class="sBody">
+      <h3 class="sTitle">\${escapeHtml(title)}</h3>
+      <p class="sDesc">\${escapeHtml(truncate(desc))}</p>
+      <div class="btnRow">
+        <button class="miniBtn primary js-read"
+          data-id="\${escapeHtml(id)}"
+          data-hub="\${escapeHtml(hub)}"
+          data-url="\${escapeHtml(src)}"
+          data-title="\${escapeHtml(title)}"
+          data-desc="\${escapeHtml(desc)}">Read story</button>
+      </div>
+      <div class="sMeta"><span>\${escapeHtml(when)}</span><span>\${escapeHtml(layer==="archive"?"From route archive":"Live now")}</span></div>
+    </div>
+  </div>\`;
+}
+function renderArticleHtml(a){
+  const paragraphs=Array.isArray(a.paragraphs)?a.paragraphs:[];
+  return \`
+  <div class="labelRow">
+    <span class="chip">\${escapeHtml(a.article_label||"AI-written story")}</span>
+    <span class="chip">\${escapeHtml(a._collective?"Collective expanded":a._fallback?"Fallback":"Written")}</span>
+  </div>
+  <h1>\${escapeHtml(a.headline||"Story")}</h1>
+  <div class="subheadline">\${escapeHtml(a.subheadline||"")}</div>
+  <div class="lead">\${escapeHtml(a.lead||"")}</div>
+  \${paragraphs.map(p=>"<p>"+escapeHtml(p)+"</p>").join("")}
+  <div class="why"><strong>Why it matters</strong><div>\${escapeHtml(a.why_it_matters||"")}</div></div>
+  <div class="fine">\${escapeHtml(a.article_fine_print||"On-site AI story.")}</div>\`;
+}
+
+const modal=document.getElementById("modal");
+const modalBody=document.getElementById("modalBody");
+const modalClose=document.getElementById("modalClose");
+const modalBackdrop=document.getElementById("modalBackdrop");
+let modalOpen=false;
+let lastFocus=null;
+
+function openModal(){ if(!modal) return; modal.classList.add("open"); modalOpen=true; document.body.style.overflow="hidden"; }
+function closeModal(){
+  if(!modal) return;
+  modal.classList.remove("open"); modalOpen=false; document.body.style.overflow="";
+  if(lastFocus && lastFocus.focus) try{ lastFocus.focus(); }catch{}
+}
+if(modalClose) modalClose.addEventListener("click", closeModal);
+if(modalBackdrop) modalBackdrop.addEventListener("click", closeModal);
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && modalOpen) closeModal(); });
+
+async function openStory(payload){
+  lastFocus = document.activeElement;
+  openModal();
+  modalBody.innerHTML='<div class="loading">Writing...</div>';
+  try{
+    const qs=new URLSearchParams({ hub:payload.hub||"", url:payload.url||"", title:payload.title||"", desc:payload.desc||"" });
+    const res=await fetch("/api/article?"+qs.toString(),{ cache:"no-store" });
+    const data=await res.json();
+    if(!data.ok) throw new Error(data.error||"Could not write story");
+    const a=data.article||{};
+    updateSeoForArticle(a);
+    modalBody.innerHTML=renderArticleHtml(a);
+    try{ modal.querySelector(".modalPanel").scrollTo({ top:0, behavior:"smooth" }); }catch{}
+  }catch(err){
+    const msg=err&&err.message?err.message:"Unknown error";
+    modalBody.innerHTML='<div class="empty">Error: '+escapeHtml(msg)+'</div>';
+  }
+}
+document.addEventListener("click",(e)=>{
+  const btn=e.target && e.target.closest ? e.target.closest(".js-read") : null;
+  if(!btn) return;
+  openStory({
+    id: btn.getAttribute("data-id") || "",
+    hub: btn.getAttribute("data-hub") || "",
+    url: btn.getAttribute("data-url") || "",
+    title: btn.getAttribute("data-title") || "",
+    desc: btn.getAttribute("data-desc") || "",
+  });
+});
+
+async function fetchLive(hubPath,cursor,limit){
+  const qs=new URLSearchParams({ hub:hubPath, cursor:String(cursor||0), limit:String(limit||18) });
+  const res=await fetch("/api/live?"+qs.toString(),{ cache:"no-store" });
+  const data=await res.json();
+  if(!data.ok) throw new Error(data.error||"live fetch failed");
+  return { items:Array.isArray(data.items)?data.items:[], nextCursor:data.nextCursor ?? (Number(cursor||0)+Number(limit||18)), hasMore:!!data.hasMore, source:data.source||"" };
+}
+
+async function initInfinitePage(){
+  const grid=document.getElementById("stories");
+  const empty=document.getElementById("feedEmpty");
+  const sentinel=document.getElementById("sentinel");
+  const loadMoreBtn=document.getElementById("loadMore");
+  const pageMeta=document.getElementById("pageMeta");
+  const resumeBtn=document.getElementById("resumeBtn");
+  const latestBtn=document.getElementById("latestBtn");
+  if(!grid||!empty||!sentinel||!loadMoreBtn) return;
+
+  const priorState=readRouteState(ACTIVE_PATH);
+  let cursor=priorState && Number.isFinite(Number(priorState.cursor)) ? Number(priorState.cursor) : 0;
+  let loading=false,hasMore=true,restoredScroll=false;
+  let renderedCount=0;
+
+  function refreshButtons(mode){
+    if(resumeBtn) resumeBtn.classList.toggle("active", mode==="resume");
+    if(latestBtn) latestBtn.classList.toggle("active", mode==="latest");
+  }
+
+  function persistState(){
+    writeRouteState(ACTIVE_PATH,{ cursor, scrollY: window.scrollY || 0, renderedCount });
+    if(pageMeta) pageMeta.textContent="Cursor: "+cursor+" · Cards: "+renderedCount;
+  }
+
+  async function loadMore(){
+    if(loading||!hasMore) return;
+    loading=true;
+    persistState();
+    try{
+      const out=await fetchLive(ACTIVE_PATH,cursor,API_PAGE_SIZE);
+      let items=(out.items||[]).filter((x)=>x&&x.title&&x.description&&x.link);
+
+      items = items.filter((x)=>{
+        const link=String(x.link||"");
+        if(!link) return false;
+        if(hasSessionSeen(ACTIVE_PATH, link)) return false;
+        return true;
+      });
+
+      if(!items.length){
+        empty.style.display="block";
+        empty.textContent="Refreshing live stream...";
+        setTimeout(()=>{ loading=false; loadMore(); },650);
+        return;
+      }
+
+      empty.style.display="none";
+      for(const it of items) markSessionSeen(ACTIVE_PATH, it.link||"");
+      grid.insertAdjacentHTML("beforeend", items.map((it)=>storyCardHtml(it)).join(""));
+      renderedCount += items.length;
+      cursor = out.nextCursor;
+      hasMore = true;
+      persistState();
+
+      if(!restoredScroll && priorState && Number(priorState.scrollY||0) > 0){
+        restoredScroll = true;
+        setTimeout(()=>{ try{ window.scrollTo({ top:Number(priorState.scrollY||0), behavior:"auto" }); }catch{} }, 40);
+      }
+    }catch{
+      empty.style.display="block";
+      empty.textContent="Refreshing live stream...";
+      setTimeout(()=>{ loading=false; loadMore(); },900);
+      return;
+    }finally{
+      loading=false;
+    }
+  }
+
+  async function startLatest(){
+    refreshButtons("latest");
+    cursor=0; renderedCount=0; restoredScroll=true;
+    clearRouteState(ACTIVE_PATH);
+    resetSessionSeen(ACTIVE_PATH);
+    grid.innerHTML="";
+    empty.style.display="block";
+    empty.textContent="Loading latest top...";
+    try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch{}
+    await loadMore();
+  }
+
+  async function resumeFeed(){
+    refreshButtons("resume");
+    grid.innerHTML="";
+    empty.style.display="block";
+    empty.textContent="Resuming feed...";
+    resetSessionSeen(ACTIVE_PATH);
+    renderedCount=0;
+    restoredScroll=false;
+
+    const st=readRouteState(ACTIVE_PATH);
+    cursor=st && Number.isFinite(Number(st.cursor)) ? Math.max(0, Number(st.cursor||0) - API_PAGE_SIZE) : 0;
+    await loadMore();
+  }
+
+  loadMoreBtn.addEventListener("click", loadMore);
+  if(latestBtn) latestBtn.addEventListener("click", startLatest);
+  if(resumeBtn) resumeBtn.addEventListener("click", resumeFeed);
+
+  window.addEventListener("scroll", ()=>{
+    persistState();
+  }, { passive:true });
+
+  try{
+    const io=new IntersectionObserver((entries)=>{ for(const en of entries) if(en.isIntersecting) loadMore(); },{ rootMargin:"1400px 0px" });
+    io.observe(sentinel);
+  }catch{}
+
+  refreshButtons(priorState ? "resume" : "latest");
+  await loadMore();
+}
+
+async function loadHomeSections(){
+  const host=document.getElementById("homeSections");
+  const status=document.getElementById("homeStatus");
+  if(!host||!status) return;
+
+  status.textContent="Loading page sections...";
+  const domains=SPINE.map((d)=>({ label:d.label, path:"/"+d.key }));
+  let loaded=0;
+
+  for(const d of domains){
+    try{
+      const out=await fetchLive(d.path,0,HOME_DOMAIN_LIMIT);
+      const items=(out.items||[]).filter((x)=>x&&x.title&&x.description);
+      if(items.length){
+        const block=document.createElement("div");
+        block.className="homeBlock";
+        block.innerHTML=\`
+          <div class="homeBlockHead"><a href="\${escapeHtml(d.path)}">\${escapeHtml(d.label)}</a>
+            <span class="sectionSub">\${escapeHtml("Top "+HOME_DOMAIN_LIMIT)}</span></div>
+          <div class="homeBlockBody"><div class="homeGrid">\${items.map((it)=>storyCardHtml(it)).join("")}</div></div>\`;
+        host.appendChild(block);
+      }
+    }catch{}
+    loaded++;
+    status.textContent="Loaded "+loaded+" / "+domains.length+" pages...";
+  }
+  status.textContent = host.children.length ? "Loaded." : "Refreshing sections...";
+}
+
+if(IS_HOME) loadHomeSections();
+if(!IS_HOME && !IS_EXPLORE) initInfinitePage();
+</script></body></html>`;
+}
+
+///////////////////////////////
+// WORKER
+///////////////////////////////
+
+// ------------------------------
+// PATH → HUB LOCK (NO DNS NEEDED)
+// ------------------------------
+// Works on your workers.dev domain like:
+//   /health     -> /health-care
+//   /energy     -> /energy
+//   /technology -> /information-technology
+//
+// Users visit:
+//   https://myaigptnews.quantumintelligencepulse.workers.dev/health
+// and that “site” is locked to that category (same template, different branding).
+const PATH_LOCK = {
+  "/health": "/health-care",
+  "/energy": "/energy",
+  "/materials": "/materials",
+  "/industrials": "/industrials",
+  "/sports": "/sports",
+  "/realestate": "/real-estate",
+  "/technology": "/information-technology",
+  "/finance": "/financials",
+  "/crypto": "/financials/crypto",
+  "/science": "/science-and-mathematics",
+  "/education": "/education-and-knowledge",
+  "/government": "/government-law-and-civilization",
+};
+
+function _pathKey(pathname) {
+  const p = String(pathname || "/").toLowerCase().replace(/\/+$/, "") || "/";
+  return p;
+}
+
+// If request is /health or /health/... => return locked hub for that “site”.
+function _lockedHubForPath(pathname) {
+  const p = String(pathname || "/");
+  const parts = p.split("/").filter(Boolean);
+  if (!parts.length) return "";
+  const root = "/" + parts[0].toLowerCase();
+  const hub = PATH_LOCK[root];
+  return hub && ROUTES.has(hub) ? hub : "";
+}
+
+// Keep users inside the locked “site” root (e.g. /health only)
+function _lockedRootForPath(pathname) {
+  const p = String(pathname || "/");
+  const parts = p.split("/").filter(Boolean);
+  if (!parts.length) return "";
+  const root = "/" + parts[0].toLowerCase();
+  return PATH_LOCK[root] ? root : "";
+}
+
+function _rewriteWithHub(request, hub) {
+  const u = new URL(request.url);
+  u.searchParams.set("hub", hub);
+  return new Request(u.toString(), request);
+}
+
+// Per-site naming (swap branding per locked hub)
+function _siteNameForHub(hub) {
+  const info = routeInfo(hub);
+  const label = (info?.domainLabel || "News").replace(/\s+/g, " ").trim();
+  return `My Ai Gpt ${label} News`;
+}
+
+// Post-process rendered HTML for per-site branding
+function _swapHtmlBranding(html, siteName) {
+  if (!siteName) return html;
+  let out = String(html || "");
+
+  // <title>...</title>
+  out = out.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(siteName)}</title>`);
+
+  // og:site_name
+  out = out.replace(
+    /<meta\s+property="og:site_name"\s+content="[^"]*"\s*\/?>/i,
+    `<meta property="og:site_name" content="${escapeHtml(siteName)}"/>`
+  );
+
+  // og:title
+  out = out.replace(
+    /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i,
+    `<meta property="og:title" content="${escapeHtml(siteName)}"/>`
+  );
+
+  // Footer bold site name (first <b> inside footer block)
+  out = out.replace(/<footer><div><b>[\s\S]*?<\/b>/i, `<footer><div><b>${escapeHtml(siteName)}</b>`);
+
+  return out;
+}
+
+// ------------------------------
+// Editorial + Janitorial Crew
+// ------------------------------
+function _edNorm(s) { return String(s || "").replace(/\s+/g, " ").trim(); }
+function _edLow(s) { return _edNorm(s).toLowerCase(); }
+function _edHardCap(s, n) { return hardCap(_edNorm(s), n); }
+function _edStripDup(a, b) {
+  const A = _edLow(a), B = _edLow(b);
+  if (!A || !B) return a;
+  if (A === B) return "";
+  if (A.startsWith(B)) return _edNorm(a.slice(b.length));
+  return a;
+}
+function _edUniqParas(paras) {
+  const seen = new Set();
+  const out = [];
+  for (const p of paras || []) {
+    const t = _edNorm(p);
+    const k = _edLow(t).slice(0, 180);
+    if (!t || t.length < 70) continue;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t);
+  }
+  return out;
+}
+function _edSentencePool(text) {
+  return (sentenceSplit(deepCleanText(text || "")) || [])
+    .map(_edNorm)
+    .filter((x) => x.length >= 45 && x.length <= 360);
+}
+function _edBuildParas(sents, targetParas) {
+  const out = [];
+  let i = 0;
+  while (out.length < targetParas && i < sents.length) {
+    const p = _edNorm([sents[i++], sents[i++], sents[i++]].filter(Boolean).join(" "));
+    if (p.length >= 160) out.push(p);
+  }
+  return out;
+}
+function _edFinalizeStory(story, routePath) {
+  const minParas = STORY_MIN_PARAGRAPHS || 3;
+  const minChars = STORY_MIN_CHARS || 900;
+  const maxParas = STORY_MAX_PARAGRAPHS || 6;
+
+  story.headline = _edHardCap(cleanFinalText(story?.headline || ""), 110);
+  story.subheadline = _edHardCap(cleanFinalText(story?.subheadline || ""), 240);
+  story.lead = _edHardCap(cleanFinalText(story?.lead || ""), 520);
+
+  story.subheadline = _edStripDup(story.subheadline, story.headline);
+  story.lead = _edStripDup(story.lead, story.headline);
+  story.lead = _edStripDup(story.lead, story.subheadline);
+
+  let paras = Array.isArray(story?.paragraphs) ? story.paragraphs : [];
+  paras = _edUniqParas(paras).slice(0, maxParas);
+
+  const seedText = deepCleanText(
+    [story.headline, story.subheadline, story.lead, ...paras, story.why_it_matters].filter(Boolean).join("\n\n")
+  );
+  const sents = _edSentencePool(seedText);
+
+  if (paras.length < minParas) {
+    const built = _edBuildParas(sents, Math.max(minParas, 4));
+    paras = _edUniqParas([...paras, ...built]).slice(0, maxParas);
+    story._janitorial_fill = true;
+  }
+
+  const why = _edLow(story?.why_it_matters || "");
+  const leadL = _edLow(story?.lead || "");
+  const subL = _edLow(story?.subheadline || "");
+  if (!why || why.includes(leadL.slice(0, 80)) || why.includes(subL.slice(0, 80))) {
+    const pick = sents.find((x) => {
+      const lx = _edLow(x);
+      return lx && !lx.includes(leadL.slice(0, 60)) && !lx.includes(subL.slice(0, 60));
+    });
+    const seed = _edHardCap(pick || story.lead || story.subheadline || "", 240);
+    story.why_it_matters = cleanFinalText(`Why it matters: ${seed || "this development changes expectations for this route."}`);
+    story._janitorial_why = true;
+  }
+
+  story.paragraphs = _edUniqParas(paras).slice(0, maxParas);
+
+  const joined = [story.headline, story.subheadline, story.lead, ...story.paragraphs].join("\n\n");
+  if (story.paragraphs.length < minParas || joined.length < minChars) {
+    const tail = _edBuildParas(sents.slice(6), 2);
+    story.paragraphs = _edUniqParas([...story.paragraphs, ...tail]).slice(0, maxParas);
+    story._janitorial_finish = true;
+  }
+
+  if (!story.paragraphs.length) {
+    story.paragraphs = [
+      "Developments are evolving and this route is updating as new details emerge.",
+      "This page keeps coverage readable on-site even when upstream sources restrict access.",
+      "Check back soon for additional context, reactions, and confirmed specifics.",
+    ].slice(0, maxParas);
+    story._janitorial_emergency = true;
+  }
+
+  story.article_fine_print = "This is an on-site AI story built for this universe route. It's designed to be read here.";
+  return story;
+}
+
+// ------------------------------
+// Route Classification + Auto-Reroute (unchanged)
+// ------------------------------
+function _hubCandidates() {
+  const hubs = ["/", "/explore"];
+  for (const d of SPINE || []) {
+    const dh = `/${d.key}`;
+    if (ROUTES.has(dh)) hubs.push(dh);
+    for (const c of d.children || []) {
+      const ch = `/${d.key}/${c.key}`;
+      if (ROUTES.has(ch)) hubs.push(ch);
+    }
+  }
+  return hubs;
+}
+function _hubScore(hub, item) {
+  const info = routeInfo(hub);
+  const hay = itemHaystack({
+    title: item?.title || "",
+    description: item?.description || "",
+    link: item?.link || "",
+    feedUrl: item?.feedUrl || "",
+  });
+
+  const routeTerms = routeSignalTerms(hub);
+  const routeHits = countSignalHits({ ...item, feedUrl: item?.feedUrl || "" }, routeTerms);
+
+  const domainTerms = info.domainKey ? (DOMAIN_SIGNAL_MAP[info.domainKey] || []) : [];
+  const catTerms = info.catKey ? (CATEGORY_SIGNAL_MAP[info.catKey] || []) : [];
+
+  const domainHits = domainTerms.length ? domainTerms.filter((t) => hay.includes(String(t).toLowerCase())).length : 0;
+  const catHits = catTerms.length ? catTerms.filter((t) => hay.includes(String(t).toLowerCase())).length : 0;
+
+  const depth = routeDepth(hub);
+  const specificityBonus = depth >= 2 ? 2.0 : depth === 1 ? 0.8 : 0;
+
+  return routeHits * 4.0 + catHits * 2.5 + domainHits * 1.8 + specificityBonus;
+}
+function _bestHubForItem(item, currentHub) {
+  const cur = routeInfo(currentHub || "/");
+  const hubs = _hubCandidates();
+
+  let best = "/";
+  let bestScore = -1e9;
+
+  for (const h of hubs) {
+    if (h === "/explore") continue;
+    const inf = routeInfo(h);
+
+    let sc = _hubScore(h, item);
+    if (cur.domainKey && inf.domainKey && inf.domainKey !== cur.domainKey) sc -= 1.2;
+
+    if (sc > bestScore) {
+      bestScore = sc;
+      best = h;
+    }
+  }
+
+  const curScore = currentHub ? _hubScore(currentHub, item) : -1e9;
+  const shouldReroute = best !== currentHub && bestScore >= curScore + 2.5 && bestScore >= 5.0;
+
+  return { bestHub: best, bestScore, curScore, shouldReroute };
+}
+function _rewriteRequestHub(request, newHub) {
+  const u = new URL(request.url);
+  u.searchParams.set("hub", newHub);
+  return new Request(u.toString(), request);
+}
+
+// ------------------------------
+// Article handler wrapper (unchanged)
+// ------------------------------
+async function _handleArticleWithCrew(request) {
+  const u = new URL(request.url);
+  const hub = String(u.searchParams.get("hub") || "/").trim() || "/";
+  const routePath = ROUTES.has(hub) ? hub : "/";
+
+  const item = {
+    title: cleanFinalText(u.searchParams.get("title") || ""),
+    description: cleanFinalText(u.searchParams.get("desc") || ""),
+    link: String(u.searchParams.get("url") || ""),
+    feedUrl: "",
+  };
+
+  let res = await handleArticle(request);
+
+  if (res && (res.status === 400 || res.status === 409)) {
+    try {
+      const data = await res.clone().json();
+      const msg = String(data?.error || "");
+      if (msg.includes("does not match the current page lock") || msg.includes("Fetched article content does not match")) {
+        const pick = _bestHubForItem(item, routePath);
+        if (pick.shouldReroute && ROUTES.has(pick.bestHub)) {
+          const reroutedReq = _rewriteRequestHub(request, pick.bestHub);
+          const reroutedRes = await handleArticle(reroutedReq);
+          if (reroutedRes?.headers?.get("content-type")?.toLowerCase().includes("application/json")) {
+            const reroutedData = await reroutedRes.clone().json();
+            if (reroutedData?.ok && reroutedData?.article) {
+              reroutedData.article._rerouted_from = routePath;
+              reroutedData.article._rerouted_to = pick.bestHub;
+              reroutedData.article = _edFinalizeStory(reroutedData.article, pick.bestHub);
+              return json(reroutedData, 200, 60);
+            }
+          }
+          res = reroutedRes;
+        }
+      }
+    } catch {}
+  }
+
+  try {
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("application/json")) {
+      const data = await res.clone().json();
+      if (!data?.ok) {
+        const pick = _bestHubForItem(item, routePath);
+        const fallbackHub = pick?.bestHub && ROUTES.has(pick.bestHub) ? pick.bestHub : routePath;
+
+        const story = _edFinalizeStory(
+          {
+            headline: safeText(item.title || "Story brief", 105),
+            subheadline: safeText(item.description || "Coverage is updating on this route.", 220),
+            byline: "",
+            lead: cleanFinalText(
+              item.description ||
+                "This route is generating on-site coverage using the best available signals from the feed card."
+            ),
+            paragraphs: [
+              cleanFinalText("This story is being organized into the correct page world based on signal terms and route taxonomy."),
+              cleanFinalText("If an upstream source restricts access or provides thin metadata, the hub will still produce a readable on-site story."),
+              cleanFinalText("Check back as the route refreshes; additional sources and context are merged into the on-site write-up."),
+            ],
+            why_it_matters: cleanFinalText(`Why it matters: ${safeText(item.description || item.title || "route-locked coverage improves relevance.", 220)}`),
+            source_url: canonicalizeUrl(item.link || ""),
+            article_label: "AI-written story",
+            article_fine_print: "On-site fallback story (auto-reroute enabled).",
+            seo_title: `${safeText(item.title || "Story brief", 90)} | ${SITE_NAME}`,
+            seo_description: safeText(item.description || SITE_DESCRIPTION, 200),
+            _fallback: true,
+            _rerouted_to: fallbackHub,
+          },
+          fallbackHub
+        );
+
+        return json({ ok: true, source: { url: item.link || "" }, article: story }, 200, 10);
+      }
+
+      if (data?.ok && data?.article) {
+        data.article = _edFinalizeStory(data.article, routePath);
+        return json(data, res.status, 60);
+      }
+    }
+  } catch {}
+
+  return res;
+}
+
+// ------------------------------
+// Worker fetch (UPDATED for PATH LOCK)
+// ------------------------------
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    const lockedHub = _lockedHubForPath(url.pathname);     // "" if not locked site
+    const lockedRoot = _lockedRootForPath(url.pathname);   // "/health" etc, "" if not locked
+
+    const origin = String(env.BASE_URL || url.origin).replace(/\/$/, "");
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: { ...SECURITY_HEADERS } });
+    }
+
+    if (path === "/api/img") {
+      const seed = (url.searchParams.get("seed") || "news").slice(0, 140);
+      const w = clamp(parseInt(url.searchParams.get("w") || "1200", 10) || 1200, 64, 1600);
+      const h = clamp(parseInt(url.searchParams.get("h") || "800", 10) || 800, 64, 1200);
+      return Response.redirect(`https://picsum.photos/seed/${encodeURIComponent(seed)}/${w}/${h}`, 302);
+    }
+
+    if (path === "/api/imgproxy") {
+      const u = url.searchParams.get("u");
+      const seed = (url.searchParams.get("seed") || `proxy:${hash32(u || "x")}`).slice(0, 140);
+      if (!u) return Response.redirect(`${origin}/api/img?seed=${encodeURIComponent(seed)}&w=1200&h=800`, 302);
+
+      try {
+        const res = await fetchWithTimeout(
+          u,
+          { headers: { "user-agent": "Mozilla/5.0", accept: "image/*,*/*;q=0.8" } },
+          6500
+        );
+        const ct = (res.headers.get("content-type") || "").toLowerCase();
+        if (!res.ok || !ct.startsWith("image/")) {
+          return Response.redirect(`${origin}/api/img?seed=${encodeURIComponent(seed)}&w=1200&h=800`, 302);
+        }
+        return new Response(res.body, {
+          headers: {
+            "content-type": ct || "image/jpeg",
+            "cache-control": "public, max-age=86400, s-maxage=86400",
+            ...SECURITY_HEADERS,
+          },
+        });
+      } catch {
+        return Response.redirect(`${origin}/api/img?seed=${encodeURIComponent(seed)}&w=1200&h=800`, 302);
+      }
+    }
+
+    // ✅ PATH-LOCKED “site”: force hub for writer
+    if (path === "/api/article") {
+      const req = lockedHub ? _rewriteWithHub(request, lockedHub) : request;
+      return _handleArticleWithCrew(req);
+    }
+
+    // ✅ PATH-LOCKED “site”: force hub for feed
+    if (path === "/api/live") {
+      const hub = lockedHub || String(url.searchParams.get("hub") || "/").trim() || "/";
+      const routePath = ROUTES.has(hub) ? hub : "/";
+      return handleLive(request, origin, routePath);
+    }
+
+    // ✅ PATH-LOCKED “site”: keep user inside that root (e.g. /health)
+    if (lockedHub && lockedRoot) {
+      // Any deep path like /health/something -> /health
+      if (_pathKey(url.pathname) !== lockedRoot) {
+        return Response.redirect(`${origin}${lockedRoot}`, 302);
+      }
+
+      // Render locked hub but keep requestUrl = /health for canonical
+      const html = renderHTML(request.url, lockedHub, origin);
+      const siteName = _siteNameForHub(lockedHub);
+      return new Response(_swapHtmlBranding(html, siteName), {
+        headers: {
+          "content-type": "text/html; charset=UTF-8",
+          "cache-control": "no-store",
+          ...SECURITY_HEADERS,
+        },
+      });
+    }
+
+    // normal (non-locked) behavior
+    const activePath = ROUTES.has(path) ? path : "/";
+    return new Response(renderHTML(request.url, activePath, origin), {
+      headers: {
+        "content-type": "text/html; charset=UTF-8",
+        "cache-control": "no-store",
+        ...SECURITY_HEADERS,
+      },
+    });
+  },
+
+  async scheduled(event, env, ctx) {
+    // No cron warmers required.
+  },
+};

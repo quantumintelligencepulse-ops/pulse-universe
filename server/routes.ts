@@ -575,6 +575,11 @@ Allow: /social/profile/
 Allow: /social/post/
 Allow: /code
 Allow: /coder
+Allow: /education
+Allow: /shopping
+Allow: /games
+Allow: /music
+Allow: /create
 Disallow: /api/
 Crawl-delay: 1
 
@@ -589,6 +594,11 @@ Allow: /social/profile/
 Allow: /social/post/
 Allow: /code
 Allow: /coder
+Allow: /education
+Allow: /shopping
+Allow: /games
+Allow: /music
+Allow: /create
 Disallow: /api/
 
 User-agent: Googlebot-Image
@@ -698,10 +708,16 @@ Sitemap: ${baseUrl}/news-rss.xml
     const pages = [
       { loc: "/", changefreq: "daily", priority: "1.0" },
       { loc: "/coder", changefreq: "daily", priority: "0.9" },
-      { loc: "/feed", changefreq: "hourly", priority: "0.95" },
+      { loc: "/feed", changefreq: "hourly", priority: "0.98" },
       { loc: "/social", changefreq: "hourly", priority: "0.95" },
       { loc: "/industries", changefreq: "daily", priority: "0.85" },
       { loc: "/code", changefreq: "weekly", priority: "0.8" },
+      { loc: "/education", changefreq: "weekly", priority: "0.75" },
+      { loc: "/shopping", changefreq: "weekly", priority: "0.75" },
+      { loc: "/games", changefreq: "weekly", priority: "0.7" },
+      { loc: "/music", changefreq: "weekly", priority: "0.7" },
+      { loc: "/create", changefreq: "weekly", priority: "0.8" },
+      { loc: "/settings", changefreq: "monthly", priority: "0.4" },
     ];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
