@@ -15,6 +15,8 @@ import {
   referrals,
   earningsLog,
   payoutRequests,
+  savedArticles,
+  followedTopics,
   type User,
   type InsertUser,
   type Chat,
@@ -44,6 +46,10 @@ import {
   aiStories,
   type AiStory,
   type InsertAiStory,
+  type SavedArticle,
+  type InsertSavedArticle,
+  type FollowedTopic,
+  type InsertFollowedTopic,
 } from "@shared/schema";
 import { eq, desc, like, sql, and, inArray } from "drizzle-orm";
 
@@ -129,6 +135,16 @@ export interface IStorage {
   saveAiStory(story: InsertAiStory): Promise<AiStory>;
   incrementStoryViews(articleId: string): Promise<void>;
   getRecentAiStories(limit: number): Promise<AiStory[]>;
+
+  getSavedArticles(userId: number): Promise<SavedArticle[]>;
+  saveArticle(data: InsertSavedArticle): Promise<SavedArticle>;
+  unsaveArticle(userId: number, articleId: string): Promise<void>;
+  isArticleSaved(userId: number, articleId: string): Promise<boolean>;
+
+  getFollowedTopics(userId: number): Promise<FollowedTopic[]>;
+  followTopic(data: InsertFollowedTopic): Promise<FollowedTopic>;
+  unfollowTopic(userId: number, topic: string): Promise<void>;
+  isTopicFollowed(userId: number, topic: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -533,6 +549,46 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentAiStories(limit: number): Promise<AiStory[]> {
     return await db.select().from(aiStories).orderBy(desc(aiStories.createdAt)).limit(limit);
+  }
+
+  async getSavedArticles(userId: number): Promise<SavedArticle[]> {
+    return await db.select().from(savedArticles).where(eq(savedArticles.userId, userId)).orderBy(desc(savedArticles.savedAt));
+  }
+
+  async saveArticle(data: InsertSavedArticle): Promise<SavedArticle> {
+    const [existing] = await db.select().from(savedArticles).where(and(eq(savedArticles.userId, data.userId), eq(savedArticles.articleId, data.articleId)));
+    if (existing) return existing;
+    const [created] = await db.insert(savedArticles).values(data as any).returning();
+    return created;
+  }
+
+  async unsaveArticle(userId: number, articleId: string): Promise<void> {
+    await db.delete(savedArticles).where(and(eq(savedArticles.userId, userId), eq(savedArticles.articleId, articleId)));
+  }
+
+  async isArticleSaved(userId: number, articleId: string): Promise<boolean> {
+    const [row] = await db.select({ id: savedArticles.id }).from(savedArticles).where(and(eq(savedArticles.userId, userId), eq(savedArticles.articleId, articleId)));
+    return !!row;
+  }
+
+  async getFollowedTopics(userId: number): Promise<FollowedTopic[]> {
+    return await db.select().from(followedTopics).where(eq(followedTopics.userId, userId)).orderBy(desc(followedTopics.createdAt));
+  }
+
+  async followTopic(data: InsertFollowedTopic): Promise<FollowedTopic> {
+    const [existing] = await db.select().from(followedTopics).where(and(eq(followedTopics.userId, data.userId), eq(followedTopics.topic, data.topic)));
+    if (existing) return existing;
+    const [created] = await db.insert(followedTopics).values(data as any).returning();
+    return created;
+  }
+
+  async unfollowTopic(userId: number, topic: string): Promise<void> {
+    await db.delete(followedTopics).where(and(eq(followedTopics.userId, userId), eq(followedTopics.topic, topic)));
+  }
+
+  async isTopicFollowed(userId: number, topic: string): Promise<boolean> {
+    const [row] = await db.select({ id: followedTopics.id }).from(followedTopics).where(and(eq(followedTopics.userId, userId), eq(followedTopics.topic, topic)));
+    return !!row;
   }
 }
 

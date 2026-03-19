@@ -3621,7 +3621,11 @@ function NewsSkeletonGrid({ count = 6 }: { count?: number }) {
   );
 }
 
-function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle; onExpand: () => void; isExpanded: boolean }) {
+function OmegaNewsCard({ article, onExpand, isExpanded, onSave, isSaved, onFollow, followedTopics }: {
+  article: FeedArticle; onExpand: () => void; isExpanded: boolean;
+  onSave?: (article: FeedArticle) => void; isSaved?: boolean;
+  onFollow?: (topic: string) => void; followedTopics?: string[];
+}) {
   const [imgError, setImgError] = useState(false);
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -3632,6 +3636,8 @@ function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle
   const isVideo = article.type === "video";
   const color = article.sourceColor || "#f97316";
   const hasImg = article.image && !imgError && !article.image.includes("gstatic.com/favicon");
+  const topic = article.category || article.source || "General";
+  const isFollowing = followedTopics?.includes(topic) || followedTopics?.includes(article.source);
 
   const openStory = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -3685,7 +3691,7 @@ function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle
           </div>
           <h2 className="text-xl font-bold mb-3 text-foreground leading-snug">{article.title}</h2>
           <p className="text-sm text-foreground/75 leading-relaxed mb-4">{article.description}</p>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             {isVideo ? (
               <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors" data-testid={`omega-watch-${article.id}`}>
                 <Play size={13} fill="white" /> Watch Video
@@ -3695,8 +3701,24 @@ function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle
                 <BookOpen size={14} /> Read Full Story <ChevronRight size={14} />
               </button>
             )}
+            {onSave && (
+              <button onClick={e => { e.stopPropagation(); onSave(article); }} data-testid={`omega-save-${article.id}`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${isSaved ? "border-orange-300 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 text-muted-foreground hover:border-orange-300 hover:text-orange-500"}`}
+                title={isSaved ? "Remove from saved" : "Save article"}>
+                <Bookmark size={13} fill={isSaved ? "currentColor" : "none"} />
+                {isSaved ? "Saved" : "Save"}
+              </button>
+            )}
+            {onFollow && (
+              <button onClick={e => { e.stopPropagation(); onFollow(topic); }} data-testid={`omega-follow-${article.id}`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${isFollowing ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20 text-blue-600" : "border-border/30 text-muted-foreground hover:border-blue-300 hover:text-blue-500"}`}
+                title={isFollowing ? `Unfollow ${topic}` : `Follow ${topic}`}>
+                <Bell size={13} fill={isFollowing ? "currentColor" : "none"} />
+                {isFollowing ? "Following" : "Follow"}
+              </button>
+            )}
             <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <MessageCircle size={15} /> {comments.length} Comment{comments.length !== 1 ? "s" : ""}
+              <MessageCircle size={15} /> {comments.length}
             </button>
           </div>
           {showComments && (
@@ -3758,6 +3780,8 @@ function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle
   );
 }
 
+type FeedMode = "all" | "news" | "videos" | "saved" | "following";
+
 function NewsFeed() {
   const [activeDomainKey, setActiveDomainKey] = useState<string | null>(null);
   const [activeCatKey, setActiveCatKey] = useState<string | null>(null);
@@ -3775,8 +3799,79 @@ function NewsFeed() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [filter, setFilter] = useState<string>("All");
   const [showAllDomains, setShowAllDomains] = useState(false);
+  const [feedMode, setFeedMode] = useState<FeedMode>("all");
+  const [savedArticleIds, setSavedArticleIds] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("omega_saved_articles") || "[]")); } catch { return new Set(); }
+  });
+  const [savedArticlesList, setSavedArticlesList] = useState<FeedArticle[]>(() => {
+    try { return JSON.parse(localStorage.getItem("omega_saved_articles_data") || "[]"); } catch { return []; }
+  });
+  const [followedTopicsList, setFollowedTopicsList] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("omega_followed_topics") || "[]"); } catch { return []; }
+  });
+  const [followingStories, setFollowingStories] = useState<any[]>([]);
+  const [fractalLoading, setFractalLoading] = useState(false);
+  const [fractalGenerated, setFractalGenerated] = useState<any | null>(null);
+  const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+
+  const saveArticle = (article: FeedArticle) => {
+    const newIds = new Set(savedArticleIds);
+    const newList = savedArticlesList.filter(a => a.id !== article.id);
+    if (savedArticleIds.has(article.id)) {
+      newIds.delete(article.id);
+      toast({ title: "Removed from saved" });
+    } else {
+      newIds.add(article.id);
+      newList.unshift(article);
+      toast({ title: "Saved!", description: "Article saved to your reading list" });
+    }
+    setSavedArticleIds(newIds);
+    setSavedArticlesList(newList);
+    localStorage.setItem("omega_saved_articles", JSON.stringify([...newIds]));
+    localStorage.setItem("omega_saved_articles_data", JSON.stringify(newList));
+  };
+
+  const followTopic = (topic: string) => {
+    const current = followedTopicsList;
+    if (current.includes(topic)) {
+      const next = current.filter(t => t !== topic);
+      setFollowedTopicsList(next);
+      localStorage.setItem("omega_followed_topics", JSON.stringify(next));
+      toast({ title: `Unfollowed "${topic}"` });
+    } else {
+      const next = [...current, topic];
+      setFollowedTopicsList(next);
+      localStorage.setItem("omega_followed_topics", JSON.stringify(next));
+      toast({ title: `Following "${topic}"`, description: "You'll see AI updates for this topic" });
+    }
+  };
+
+  const generateFractalStory = async (topic: string) => {
+    setFractalLoading(true);
+    setFractalGenerated(null);
+    try {
+      const r = await fetch("/api/news/generate-topic", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic }),
+      });
+      const data = await r.json();
+      if (data.story) {
+        setFractalGenerated(data);
+        toast({ title: "AI Story Generated!", description: `New story about "${topic}" is ready` });
+      }
+    } catch {
+      toast({ title: "Generation failed", description: "Try again in a moment", variant: "destructive" });
+    }
+    setFractalLoading(false);
+  };
+
+  useEffect(() => {
+    if (feedMode === "following" && followedTopicsList.length > 0) {
+      fetch("/api/news/feed/following").then(r => r.json()).then(d => setFollowingStories(d.stories || [])).catch(() => {});
+    }
+  }, [feedMode, followedTopicsList]);
 
   const activeDomain = OMEGA_SPINE.find(d => d.key === activeDomainKey) || null;
   const activeCategory = activeDomain?.children?.find(c => c.key === activeCatKey) || null;
@@ -3799,7 +3894,9 @@ function NewsFeed() {
         feedUrl = `/api/feed/search?q=${encodeURIComponent(q)}&page=${p}`;
       } else {
         feedUrl = `/api/feed?page=${p}`;
-        if (filter === "Videos") feedUrl += "&type=video";
+        if (feedMode === "videos") feedUrl += "&type=video";
+        else if (feedMode === "news") feedUrl += "&type=article";
+        else if (filter === "Videos") feedUrl += "&type=video";
         else if (filter !== "All") feedUrl += `&source=${encodeURIComponent(filter)}`;
       }
       const r = await fetch(feedUrl);
@@ -3976,8 +4073,26 @@ function NewsFeed() {
             </div>
           </form>
 
+          {/* Feed Mode Tabs */}
+          <div className="flex gap-1 mb-2.5 bg-muted/20 p-0.5 rounded-xl" data-testid="feed-mode-tabs">
+            {([
+              { id: "all", label: "All", emoji: "🔥" },
+              { id: "news", label: "News", emoji: "📰" },
+              { id: "videos", label: "Videos", emoji: "🎥" },
+              { id: "saved", label: "Saved", emoji: "🔖", count: savedArticleIds.size },
+              { id: "following", label: "Following", emoji: "👁", count: followedTopicsList.length },
+            ] as const).map(m => (
+              <button key={m.id} onClick={() => { setFeedMode(m.id); setActiveDomainKey(null); setActiveCatKey(null); setSearchQuery(""); setSearchInput(""); setExpandedId(null); setFractalGenerated(null); if (m.id !== "saved" && m.id !== "following") { setFeedLoaded(false); } }} data-testid={`feed-mode-${m.id}`}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${feedMode === m.id ? "bg-white dark:bg-zinc-800 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                <span>{m.emoji}</span>
+                <span className="hidden sm:inline">{m.label}</span>
+                {"count" in m && (m.count ?? 0) > 0 && <span className="ml-0.5 bg-orange-500 text-white text-[8px] rounded-full px-1 min-w-[14px] text-center leading-[14px]">{m.count}</span>}
+              </button>
+            ))}
+          </div>
+
           {/* Domain tabs */}
-          {!searchQuery && (
+          {!searchQuery && feedMode === "all" && (
             <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1.5">
               <button onClick={() => selectDomain(null)} data-testid="feed-domain-all"
                 className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all shrink-0 flex items-center gap-1 ${!activeDomainKey ? "bg-orange-500 text-white shadow-sm" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"}`}>
@@ -4091,16 +4206,127 @@ function NewsFeed() {
           </div>
         )}
 
-        {/* ── ARTICLES GRID ── */}
-        {loading && articles.length === 0 ? (
-          <div className="p-4"><NewsSkeletonGrid count={6} /></div>
-        ) : feedLoaded && articles.length === 0 && !loading ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="text-4xl mb-3">{activeDomain?.emoji || "📰"}</div>
-            <p className="text-sm text-muted-foreground/60 mb-4">No articles found for this topic yet.</p>
-            <button onClick={handleRefresh} className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors" data-testid="button-retry-feed">Try Refreshing</button>
+        {/* ── SAVED ARTICLES VIEW ── */}
+        {feedMode === "saved" && (
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Bookmark size={16} className="text-orange-500" />
+              <h2 className="text-sm font-bold">Saved Articles</h2>
+              <span className="text-xs text-muted-foreground/50">{savedArticlesList.length} saved</span>
+            </div>
+            {savedArticlesList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Bookmark size={40} className="text-muted-foreground/20 mb-4" />
+                <p className="text-sm font-semibold text-muted-foreground/60 mb-1">No saved articles yet</p>
+                <p className="text-xs text-muted-foreground/40">Tap the bookmark icon on any article to save it</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {savedArticlesList.map(article => (
+                  <OmegaNewsCard key={article.id} article={article} isExpanded={expandedId === article.id}
+                    onExpand={() => setExpandedId(expandedId === article.id ? null : article.id)}
+                    onSave={saveArticle} isSaved={savedArticleIds.has(article.id)}
+                    onFollow={followTopic} followedTopics={followedTopicsList}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        ) : articles.length > 0 ? (
+        )}
+
+        {/* ── FOLLOWING VIEW ── */}
+        {feedMode === "following" && (
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Bell size={16} className="text-orange-500" />
+              <h2 className="text-sm font-bold">Following</h2>
+              <span className="text-xs text-muted-foreground/50">{followedTopicsList.length} topics</span>
+            </div>
+            {followedTopicsList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Bell size={40} className="text-muted-foreground/20 mb-4" />
+                <p className="text-sm font-semibold text-muted-foreground/60 mb-1">Not following any topics</p>
+                <p className="text-xs text-muted-foreground/40">Tap "Follow Topic" on any article to track AI updates</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {followedTopicsList.map(topic => (
+                    <div key={topic} className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-full text-xs font-medium text-orange-700 dark:text-orange-400" data-testid={`followed-topic-${topic}`}>
+                      <Bell size={11} />
+                      {topic}
+                      <button onClick={() => followTopic(topic)} className="ml-1 hover:text-red-500 transition-colors" title="Unfollow"><X size={11} /></button>
+                    </div>
+                  ))}
+                </div>
+                {followingStories.length > 0 ? (
+                  <>
+                    <p className="text-xs text-muted-foreground/50 mb-3">AI-matched stories for your topics:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {followingStories.map((story: any) => (
+                        <div key={story.articleId} className="bg-white dark:bg-zinc-900 border border-border/20 rounded-2xl p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => { const a: FeedArticle = { id: story.articleId, title: story.seoTitle || story.title, description: story.summary || "", link: `/story/${story.articleId}`, image: story.heroImage || "", source: story.sourceName || "Quantum Pulse Intelligence", pubDate: story.createdAt, category: story.category, type: "article", videoUrl: "", sourceColor: "#f97316" }; sessionStorage.setItem(`article_${story.articleId}`, JSON.stringify(a)); window.location.href = `/story/${story.articleId}`; }} data-testid={`following-story-${story.articleId}`}>
+                          {story.heroImage && <img src={story.heroImage} alt={story.title} className="w-full h-32 object-cover rounded-xl mb-3" onError={e => { (e.target as any).style.display = "none"; }} />}
+                          <div className="text-[10px] text-orange-500 font-bold uppercase tracking-wider mb-1">{story.category}</div>
+                          <h3 className="text-sm font-bold leading-snug mb-2">{story.seoTitle || story.title}</h3>
+                          <p className="text-xs text-muted-foreground/70 line-clamp-2">{story.summary}</p>
+                          <div className="flex items-center gap-2 mt-3 text-[10px] text-muted-foreground/50">
+                            <span>⚡ Quantum Pulse Intelligence</span>
+                            <span>·</span>
+                            <span>{story.readTimeMinutes || 4} min read</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-xs text-muted-foreground/50">No matched stories yet. More AI stories will appear here as they're generated.</p>
+                    <button onClick={() => generateFractalStory(followedTopicsList[0])} className="mt-3 px-4 py-2 bg-orange-500 text-white text-xs font-semibold rounded-xl hover:bg-orange-600 transition-colors" data-testid="button-generate-following">Generate story about "{followedTopicsList[0]}"</button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── ARTICLES GRID ── */}
+        {(feedMode === "all" || feedMode === "news" || feedMode === "videos") && loading && articles.length === 0 ? (
+          <div className="p-4"><NewsSkeletonGrid count={6} /></div>
+        ) : (feedMode === "all" || feedMode === "news" || feedMode === "videos") && feedLoaded && articles.length === 0 && !loading ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="text-4xl mb-3">{activeDomain?.emoji || (searchQuery ? "🔍" : "📰")}</div>
+            <p className="text-sm font-semibold text-foreground/70 mb-1">{searchQuery ? `No news found for "${searchQuery}"` : "No articles found"}</p>
+            <p className="text-xs text-muted-foreground/50 mb-5">{searchQuery ? "But our AI can generate a story about this topic for you!" : "Try refreshing or browsing a different category."}</p>
+            {searchQuery && (
+              <div className="mb-4 w-full max-w-sm">
+                <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                      <Sparkles size={16} className="text-white" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold">AI Fractal Generation</div>
+                      <div className="text-[10px] text-muted-foreground/60">Powered by Quantum Pulse Intelligence</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70 mb-4">Generate a comprehensive AI-written article about <strong>"{searchQuery}"</strong> — brand new knowledge created just for you.</p>
+                  {fractalGenerated ? (
+                    <button onClick={() => { const s = fractalGenerated.story; sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify({ id: s.articleId, title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${s.articleId}`, image: s.heroImage || "", source: "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category, type: "article", videoUrl: "", sourceColor: "#f97316" })); window.location.href = `/story/${s.articleId}`; }}
+                      className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2" data-testid="button-read-fractal">
+                      <BookOpen size={13} /> Read Generated Story →
+                    </button>
+                  ) : (
+                    <button onClick={() => generateFractalStory(searchQuery)} disabled={fractalLoading}
+                      className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60" data-testid="button-generate-fractal">
+                      {fractalLoading ? <><RefreshCw size={13} className="animate-spin" /> Generating AI Story...</> : <><Sparkles size={13} /> Generate AI Story about "{searchQuery}"</>}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            <button onClick={handleRefresh} className="px-4 py-2 bg-muted/30 text-muted-foreground text-xs font-medium rounded-xl hover:bg-muted/50 transition-colors" data-testid="button-retry-feed">Try Refreshing</button>
+          </div>
+        ) : (feedMode === "all" || feedMode === "news" || feedMode === "videos") && articles.length > 0 ? (
           <div className="p-4">
             {/* Breadcrumb */}
             {(activeDomain || searchQuery) && (
@@ -4131,6 +4357,8 @@ function NewsFeed() {
                       if (scrollRef.current && expanding) setTimeout(() => scrollRef.current?.scrollTo({ top: 0 }), 50);
                     }
                   }}
+                  onSave={saveArticle} isSaved={savedArticleIds.has(article.id)}
+                  onFollow={followTopic} followedTopics={followedTopicsList}
                 />
               ))}
             </div>
@@ -6600,13 +6828,59 @@ function StoryReaderPage() {
   const [posting, setPosting] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [relatedStories, setRelatedStories] = useState<any[]>([]);
+  const [isSaved, setIsSaved] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("omega_saved_articles") || "[]").includes(articleId); } catch { return false; }
+  });
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     if (!articleId) return;
     updateSEO({ title: article?.title ? `${article.title} | My Ai Gpt News` : "Story | My Ai Gpt", description: article?.description || "Read this AI-written story on My Ai Gpt", canonical: window.location.origin + `/story/${articleId}` });
     loadStory();
     fetch(`/api/feed/comments/${articleId}`).then(r => r.json()).then(setComments).catch(() => {});
+    fetch(`/api/news/related/${articleId}`).then(r => r.json()).then(d => setRelatedStories(d.related || [])).catch(() => {});
+    // Check follow status
+    const followed = JSON.parse(localStorage.getItem("omega_followed_topics") || "[]");
+    const cat = article?.category || article?.source || "";
+    setIsFollowing(followed.includes(cat));
   }, [articleId]);
+
+  const toggleSave = () => {
+    const savedIds: string[] = JSON.parse(localStorage.getItem("omega_saved_articles") || "[]");
+    const savedData: FeedArticle[] = JSON.parse(localStorage.getItem("omega_saved_articles_data") || "[]");
+    if (isSaved) {
+      const newIds = savedIds.filter(id => id !== articleId);
+      const newData = savedData.filter(a => a.id !== articleId);
+      localStorage.setItem("omega_saved_articles", JSON.stringify(newIds));
+      localStorage.setItem("omega_saved_articles_data", JSON.stringify(newData));
+      setIsSaved(false);
+      toast({ title: "Removed from saved" });
+    } else {
+      const newIds = [...savedIds, articleId];
+      const a: FeedArticle = article || { id: articleId, title: story?.seoTitle || story?.title || "", description: story?.summary || "", link: "", image: story?.heroImage || "", source: story?.sourceName || "Quantum Pulse Intelligence", pubDate: story?.createdAt || new Date().toISOString(), category: story?.category || "General", type: "article", videoUrl: "", sourceColor: "#f97316" };
+      localStorage.setItem("omega_saved_articles", JSON.stringify(newIds));
+      localStorage.setItem("omega_saved_articles_data", JSON.stringify([a, ...savedData.filter(x => x.id !== articleId)]));
+      setIsSaved(true);
+      toast({ title: "Saved!", description: "Article saved to your reading list" });
+    }
+  };
+
+  const toggleFollow = () => {
+    const topic = article?.category || article?.source || story?.category || "General";
+    const current: string[] = JSON.parse(localStorage.getItem("omega_followed_topics") || "[]");
+    if (isFollowing) {
+      const next = current.filter(t => t !== topic);
+      localStorage.setItem("omega_followed_topics", JSON.stringify(next));
+      setIsFollowing(false);
+      toast({ title: `Unfollowed "${topic}"` });
+    } else {
+      const next = [...current, topic];
+      localStorage.setItem("omega_followed_topics", JSON.stringify(next));
+      setIsFollowing(true);
+      toast({ title: `Following "${topic}"`, description: "You'll see AI updates for this topic in your Following feed" });
+    }
+  };
 
   const loadStory = async () => {
     setLoading(true); setError("");
@@ -6653,7 +6927,11 @@ function StoryReaderPage() {
         em: ({ children }) => <em className="italic text-foreground/70">{children}</em>,
         blockquote: ({ children }) => <blockquote className="border-l-4 border-orange-400 pl-4 py-2 my-5 bg-orange-50/50 dark:bg-orange-900/10 rounded-r-lg italic text-foreground/70">{children}</blockquote>,
         hr: () => <hr className="border-border/30 my-8" />,
-        a: ({ href, children }) => <span className="text-orange-500 font-medium underline underline-offset-2 cursor-default">{children}</span>,
+        a: ({ href, children }) => href?.startsWith("/story/") ? (
+          <button onClick={() => setLocation(href)} className="text-orange-500 font-medium underline underline-offset-2 hover:text-orange-600 transition-colors">{children}</button>
+        ) : href?.startsWith("/") ? (
+          <button onClick={() => setLocation(href)} className="text-orange-500 font-medium underline underline-offset-2 hover:text-orange-600 transition-colors">{children}</button>
+        ) : <span className="text-orange-500 font-medium underline underline-offset-2">{children}</span>,
         code: ({ children }) => <code className="bg-muted/60 rounded px-1.5 py-0.5 text-sm font-mono text-foreground/80">{children}</code>,
       }}>{stripped}</ReactMarkdown>
     );
@@ -6666,13 +6944,23 @@ function StoryReaderPage() {
       <div className="flex-1 overflow-y-auto bg-[#f9f8f6] dark:bg-gray-950">
         <div className="max-w-[780px] mx-auto px-4 pb-20">
           {/* Nav bar */}
-          <div className="sticky top-0 z-10 bg-[#f9f8f6]/95 dark:bg-gray-950/95 backdrop-blur border-b border-border/20 py-3 flex items-center gap-3 mb-6">
-            <button onClick={() => setLocation("/feed")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="button-story-back">
-              <ChevronLeft size={16} /> Back to News Hub
+          <div className="sticky top-0 z-10 bg-[#f9f8f6]/95 dark:bg-gray-950/95 backdrop-blur border-b border-border/20 py-3 flex items-center gap-2 mb-6">
+            <button onClick={() => setLocation("/feed")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0" data-testid="button-story-back">
+              <ChevronLeft size={16} /> Back
             </button>
             <div className="flex-1" />
-            <button onClick={() => setShowShare(true)} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-orange-500 transition-colors" data-testid="button-story-share">
-              <Share2 size={14} /> Share
+            <button onClick={toggleSave} data-testid="button-story-save"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${isSaved ? "border-orange-300 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 text-muted-foreground hover:border-orange-300 hover:text-orange-500"}`}
+              title={isSaved ? "Remove from saved" : "Save article"}>
+              <Bookmark size={12} fill={isSaved ? "currentColor" : "none"} /> {isSaved ? "Saved" : "Save"}
+            </button>
+            <button onClick={toggleFollow} data-testid="button-story-follow"
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${isFollowing ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20 text-blue-600" : "border-border/30 text-muted-foreground hover:border-blue-300 hover:text-blue-500"}`}
+              title={isFollowing ? "Unfollow topic" : "Follow topic for AI updates"}>
+              <Bell size={12} fill={isFollowing ? "currentColor" : "none"} /> {isFollowing ? "Following" : "Follow"}
+            </button>
+            <button onClick={() => setShowShare(true)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-border/30 text-muted-foreground hover:text-orange-500 hover:border-orange-300 transition-colors" data-testid="button-story-share">
+              <Share2 size={12} /> Share
             </button>
           </div>
 
@@ -6752,6 +7040,30 @@ function StoryReaderPage() {
                   <MessageSquare size={15} /> Ask AI About This
                 </button>
               </div>
+
+              {/* Related Stories Cross-Links */}
+              {relatedStories.length > 0 && (
+                <div className="border-t border-border/20 pt-8 mb-8">
+                  <h3 className="text-base font-bold mb-4 flex items-center gap-2">
+                    <Newspaper size={16} className="text-orange-500" /> More from My Ai Gpt News
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {relatedStories.slice(0, 4).map((s: any) => (
+                      <button key={s.articleId} onClick={() => { sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify({ id: s.articleId, title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${s.articleId}`, image: s.heroImage || "", source: s.sourceName || "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category || "General", type: "article", videoUrl: "", sourceColor: "#f97316" })); setLocation(`/story/${s.articleId}`); }}
+                        className="flex gap-3 p-3 bg-white dark:bg-zinc-900 border border-border/20 rounded-xl hover:border-orange-300 hover:shadow-sm transition-all text-left" data-testid={`related-story-${s.articleId}`}>
+                        {s.heroImage && <img src={s.heroImage} alt="" className="w-16 h-16 object-cover rounded-lg shrink-0" onError={e => { (e.target as any).style.display = "none"; }} />}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[10px] text-orange-500 font-bold uppercase mb-1">{s.category}</div>
+                          <h4 className="text-xs font-semibold leading-snug text-foreground line-clamp-3">{s.seoTitle || s.title}</h4>
+                          <div className="text-[10px] text-muted-foreground/50 mt-1.5 flex items-center gap-1">
+                            <Zap size={9} className="text-orange-400" /> {s.readTimeMinutes || 4} min read
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Comments */}
               <div className="border-t border-border/20 pt-8">

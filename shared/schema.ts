@@ -208,6 +208,33 @@ export type UserInteraction = typeof userInteractions.$inferSelect;
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 export type InsertUserInteraction = z.infer<typeof insertUserInteractionSchema>;
 
+export const savedArticles = pgTable("saved_articles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  articleId: text("article_id").notNull(),
+  title: text("title").notNull(),
+  source: text("source").default(""),
+  imageUrl: text("image_url").default(""),
+  category: text("category").default("General"),
+  savedAt: timestamp("saved_at").defaultNow().notNull(),
+});
+
+export const followedTopics = pgTable("followed_topics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  topic: text("topic").notNull(),
+  category: text("category").default("General"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
+export const insertSavedArticleSchema = createInsertSchema(savedArticles).omit({ id: true, savedAt: true });
+export const insertFollowedTopicSchema = createInsertSchema(followedTopics).omit({ id: true, createdAt: true, lastUpdated: true });
+export type SavedArticle = typeof savedArticles.$inferSelect;
+export type FollowedTopic = typeof followedTopics.$inferSelect;
+export type InsertSavedArticle = z.infer<typeof insertSavedArticleSchema>;
+export type InsertFollowedTopic = z.infer<typeof insertFollowedTopicSchema>;
+
 export const aiStories = pgTable("ai_stories", {
   id: serial("id").primaryKey(),
   articleId: text("article_id").notNull().unique(),

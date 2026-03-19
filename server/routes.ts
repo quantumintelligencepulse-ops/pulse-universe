@@ -864,11 +864,37 @@ ${posts.map(p => `  <url>
   </url>`;
       }).join("\n");
 
+      // Also include AI-written stories in the news sitemap
+      const aiStoriesList = await storage.getRecentAiStories(200).catch(() => []);
+      const aiUrls = aiStoriesList.map(s => {
+        const pubDate = new Date(s.createdAt);
+        return `  <url>
+    <loc>${baseUrl}/story/${s.articleId}</loc>
+    <lastmod>${pubDate.toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>${s.heroImage ? `
+    <image:image>
+      <image:loc>${escapeXml(s.heroImage)}</image:loc>
+      <image:title>${escapeXml(s.seoTitle || s.title)}</image:title>
+    </image:image>` : ""}
+    <news:news>
+      <news:publication>
+        <news:name>${escapeXml(SITE_NAME)}</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${pubDate.toISOString()}</news:publication_date>
+      <news:title>${escapeXml(s.seoTitle || s.title)}</news:title>
+      <news:keywords>${escapeXml((s.keywords || []).join(", ") || s.category || "AI News")}</news:keywords>
+    </news:news>
+  </url>`;
+      }).join("\n");
+
       res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${urls}
+${aiUrls}
 </urlset>`);
     } catch (e) {
       res.status(500).type("text/plain").send("News sitemap error");
@@ -3362,6 +3388,13 @@ ${entries}
       const Groq = (await import("groq-sdk")).default;
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+      // Fetch recent stories for cross-linking
+      const recentForLinks = await storage.getRecentAiStories(8);
+      const crossLinkBlock = recentForLinks.length > 0
+        ? `\n\nCROSS-REFERENCE THESE RELATED My Ai Gpt STORIES (use as inline links where topically relevant, format: [Story Title](/story/articleId)):\n` +
+          recentForLinks.slice(0, 5).map(s => `- "${s.seoTitle || s.title}" → /story/${s.articleId} [${s.category}]`).join("\n")
+        : "";
+
       const wordCount = title.split(" ").length + (description || "").split(" ").length;
       const hasGoodContext = wordCount > 15;
 
@@ -3439,8 +3472,9 @@ OMEGA-CLASS ARTICLE STRUCTURE — write ALL sections:
 *This story was written by **Quantum Pulse Intelligence AI** — the sovereign journalism engine of My Ai Gpt. Original reporting credited to ${source || "the original source"}. All analysis and commentary is original.*
 
 ---
+${crossLinkBlock ? `\n## More From My Ai Gpt\n\n${recentForLinks.slice(0, 3).map(s => `- [${s.seoTitle || s.title}](/story/${s.articleId})`).join("\n")}\n\n---` : ""}
 
-Generate ONLY the markdown article. No preamble, no explanation, no meta-commentary. Just the article.`;
+Generate ONLY the markdown article. No preamble, no explanation, no meta-commentary. Just the article.${crossLinkBlock}`;
 
       const completion = await groq.chat.completions.create({
         model: "llama-3.1-8b-instant",
@@ -3515,6 +3549,227 @@ Generate ONLY the markdown article. No preamble, no explanation, no meta-comment
     } catch (e: any) {
       res.status(500).json({ error: "Failed to fetch recent stories" });
     }
+  });
+
+  // ── Related stories for cross-linking ──
+  app.get("/api/news/related/:articleId", async (req, res) => {
+    try {
+      const { articleId } = req.params;
+      const recent = await storage.getRecentAiStories(30);
+      const related = recent.filter(s => s.articleId !== articleId).slice(0, 5);
+      res.json({ related });
+    } catch {
+      res.json({ related: [] });
+    }
+  });
+
+  // ── AI Fractal Knowledge Generation — generate a story on any topic ──
+  app.post("/api/news/generate-topic", async (req, res) => {
+    try {
+      const { topic } = req.body as { topic: string };
+      if (!topic || typeof topic !== "string" || topic.trim().length < 3) {
+        return res.status(400).json({ error: "Topic is required (min 3 characters)" });
+      }
+      const cleanTopic = topic.trim().substring(0, 200);
+      const articleId = createHash("sha256").update("fractal:" + cleanTopic.toLowerCase()).digest("hex").substring(0, 16);
+
+      // Check if we already generated this
+      const existing = await storage.getAiStory(articleId);
+      if (existing) {
+        return res.json({ story: existing, articleId, cached: true });
+      }
+
+      const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+      // Fetch related stories for cross-linking
+      const recentStories = await storage.getRecentAiStories(8);
+      const crossLinks = recentStories.length > 0
+        ? `\n\nRELATED STORIES ON My Ai Gpt (reference these with internal links using format [Story Title](/story/${recentStories[0]?.articleId})):\n` +
+          recentStories.slice(0, 5).map(s => `- "${s.seoTitle || s.title}" — /story/${s.articleId} (${s.category})`).join("\n")
+        : "";
+
+      const GroqLib = (await import("groq-sdk")).default;
+      const groqClient = new GroqLib({ apiKey: process.env.GROQ_API_KEY });
+
+      const completion = await groqClient.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content: `You are an Omega-Class Fractal Knowledge Journalist for My Ai Gpt, powered by Quantum Pulse Intelligence. You can write authoritative, educational, and informative articles about ANY topic — whether it's trending news, a niche subject, history, science, culture, philosophy, or something completely unique. You generate comprehensive, original content that educates and informs readers. You ALWAYS cross-reference related stories on My Ai Gpt using internal links. You NEVER send users to external competitor sites. All your internal links use the format [text](/story/articleId).`
+          },
+          {
+            role: "user",
+            content: `Generate a comprehensive Omega-Class article about: "${cleanTopic}"
+
+This is a FRACTAL KNOWLEDGE GENERATION request — the user searched for this topic and we're creating a brand new story for them.
+
+Today's date: ${today}${crossLinks}
+
+ARTICLE STRUCTURE (write in valid Markdown):
+
+# [SEO-Optimized Title about: ${cleanTopic}]
+
+**By Quantum Pulse Intelligence** | My Ai Gpt Intelligence Hub · *${today}*
+
+---
+
+## What Is ${cleanTopic}?
+
+[2-3 paragraphs: comprehensive explanation of the topic. What is it? Why does it exist? What are its key components?]
+
+## The Full Picture
+
+[2-3 paragraphs: deeper analysis, history, context, key facts, developments, trends]
+
+## Why This Matters
+
+[1-2 paragraphs: real-world significance, who cares about this and why, impact on society/technology/culture/economy]
+
+## Key Insights
+
+[2-3 paragraphs: expert analysis, multiple perspectives, nuanced view of the topic]
+
+## What You Need to Know
+
+[Practical information: what readers should understand, do, or think about related to this topic]
+
+---
+
+## Key Takeaways
+
+- [Most important fact about ${cleanTopic}]
+- [Context or background]
+- [Current significance]
+- [What to watch]
+- [Bigger picture]
+
+---
+
+${recentStories.length > 0 ? `## Related Coverage on My Ai Gpt\n\nExplore more stories:\n${recentStories.slice(0, 3).map(s => `- [${s.seoTitle || s.title}](/story/${s.articleId})`).join("\n")}\n\n---\n` : ""}
+
+*This article was independently researched and written by **Quantum Pulse Intelligence AI** — the fractal knowledge engine of My Ai Gpt. New knowledge, discovered on demand.*
+
+---
+
+Write 700-1000 words of original article content. No preamble. Just the article.`
+          }
+        ],
+        temperature: 0.75,
+        max_tokens: 3000,
+      });
+
+      const body = completion.choices[0]?.message?.content || "";
+      if (!body || body.length < 100) return res.status(500).json({ error: "Failed to generate story" });
+
+      const titleMatch = body.match(/^#\s+(.+)/m);
+      const seoTitle = titleMatch ? titleMatch[1].trim().replace(/\[|\]/g, "") : cleanTopic;
+      const slug = seoTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").substring(0, 80);
+      const summary = body.replace(/^#.+/m, "").replace(/\*\*[^*]+\*\*/g, "").replace(/[#*[\]]/g, "").trim().substring(0, 300);
+      const wordCount = body.split(/\s+/).length;
+      const readTime = Math.max(3, Math.ceil(wordCount / 200));
+
+      const storyData = {
+        articleId,
+        title: cleanTopic,
+        seoTitle,
+        slug,
+        heroImage: `https://source.unsplash.com/1200x630/?${encodeURIComponent(cleanTopic.split(" ").slice(0, 3).join(","))}`,
+        body,
+        summary,
+        category: "AI Knowledge",
+        domain: "Fractal Intelligence",
+        keywords: cleanTopic.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3).slice(0, 10),
+        sourceTitle: cleanTopic,
+        sourceUrl: "",
+        sourceName: "Quantum Pulse Intelligence",
+        readTimeMinutes: readTime,
+      };
+
+      const saved = await storage.saveAiStory(storyData);
+      res.json({ story: saved, articleId, cached: false });
+    } catch (e: any) {
+      console.error("fractal generation error:", e?.message);
+      res.status(500).json({ error: "Failed to generate story" });
+    }
+  });
+
+  // ── Save Article APIs ──
+  app.get("/api/news/saved", async (req, res) => {
+    if (!req.session?.userId) return res.json({ saved: [] });
+    try {
+      const saved = await storage.getSavedArticles(req.session.userId);
+      res.json({ saved });
+    } catch { res.json({ saved: [] }); }
+  });
+
+  app.post("/api/news/saved", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const { articleId, title, source, imageUrl, category } = req.body;
+      if (!articleId || !title) return res.status(400).json({ error: "articleId and title required" });
+      const saved = await storage.saveArticle({ userId: req.session.userId, articleId, title, source: source || "", imageUrl: imageUrl || "", category: category || "General" });
+      res.json({ saved });
+    } catch (e: any) { res.status(500).json({ error: "Failed to save" }); }
+  });
+
+  app.delete("/api/news/saved/:articleId", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      await storage.unsaveArticle(req.session.userId, req.params.articleId);
+      res.json({ ok: true });
+    } catch { res.status(500).json({ error: "Failed to unsave" }); }
+  });
+
+  app.get("/api/news/saved/:articleId/status", async (req, res) => {
+    if (!req.session?.userId) return res.json({ saved: false });
+    try {
+      const isSaved = await storage.isArticleSaved(req.session.userId, req.params.articleId);
+      res.json({ saved: isSaved });
+    } catch { res.json({ saved: false }); }
+  });
+
+  // ── Follow Topic APIs ──
+  app.get("/api/news/following", async (req, res) => {
+    if (!req.session?.userId) return res.json({ topics: [] });
+    try {
+      const topics = await storage.getFollowedTopics(req.session.userId);
+      res.json({ topics });
+    } catch { res.json({ topics: [] }); }
+  });
+
+  app.post("/api/news/following", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      const { topic, category } = req.body;
+      if (!topic) return res.status(400).json({ error: "topic required" });
+      const followed = await storage.followTopic({ userId: req.session.userId, topic, category: category || "General" });
+      res.json({ followed });
+    } catch { res.status(500).json({ error: "Failed to follow" }); }
+  });
+
+  app.delete("/api/news/following/:topic", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
+    try {
+      await storage.unfollowTopic(req.session.userId, decodeURIComponent(req.params.topic));
+      res.json({ ok: true });
+    } catch { res.status(500).json({ error: "Failed to unfollow" }); }
+  });
+
+  app.get("/api/news/feed/following", async (req, res) => {
+    if (!req.session?.userId) return res.json({ stories: [] });
+    try {
+      const topics = await storage.getFollowedTopics(req.session.userId);
+      if (topics.length === 0) return res.json({ stories: [] });
+      // Return most recent AI stories that match followed topics
+      const recent = await storage.getRecentAiStories(50);
+      const topicKeywords = topics.map(t => t.topic.toLowerCase());
+      const matched = recent.filter(s => {
+        const haystack = `${s.title} ${s.category} ${s.domain} ${(s.keywords || []).join(" ")}`.toLowerCase();
+        return topicKeywords.some(kw => haystack.includes(kw));
+      }).slice(0, 20);
+      res.json({ stories: matched, topics });
+    } catch { res.json({ stories: [], topics: [] }); }
   });
 
   app.get("/api/feed/personalized", async (req, res) => {
