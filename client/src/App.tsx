@@ -24,7 +24,7 @@ import {
   Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
   LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
-  GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter
+  GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter, Activity, BookMarked, Telescope
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
@@ -5197,7 +5197,20 @@ function SocialPage() {
   }, [feedTab, currentProfileId]);
 
   const [socialLoaded, setSocialLoaded] = useState(false);
-  const loadSocial = useCallback(() => { setSocialLoaded(true); setPosts([]); setFeedPage(1); setHasMore(true); fetchFeed(1, true); }, [feedTab, fetchFeed]);
+  const [aiSeeded, setAiSeeded] = useState(false);
+  const loadSocial = useCallback(async () => {
+    setSocialLoaded(true); setPosts([]); setFeedPage(1); setHasMore(true);
+    // Auto-seed AI entities on first load if not already done
+    const seededKey = "myaigpt_social_ai_seeded";
+    if (!localStorage.getItem(seededKey)) {
+      try {
+        await fetch("/api/social/seed-ai", { method: "POST" });
+        localStorage.setItem(seededKey, "1");
+        setAiSeeded(true);
+      } catch {}
+    }
+    fetchFeed(1, true);
+  }, [feedTab, fetchFeed]);
 
   useEffect(() => {
     const el = feedScrollRef.current;
@@ -6743,70 +6756,586 @@ function SettingsPageWrapper() {
 }
 
 function SocialPageWrapper() {
-  useEffect(() => { updateSEO({ title: "My Ai Gpt Social - Coming Soon", description: "Social network coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Social - Coming Soon", ogDesc: "Social network coming soon.", ogType: "website", canonical: window.location.origin + "/social" }); }, []);
-  return <Layout><div className="flex-1 flex items-center justify-center p-6">
-    <div className="text-center max-w-md">
-      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-xl">
-        <Users size={36} className="text-white" />
-      </div>
-      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-social-title">Social Network</h1>
-      <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 rounded-full border border-purple-200/50 mb-3 relative overflow-hidden">
-        <Sparkles size={14} className="text-purple-500" />
-        <span className="text-sm font-bold bg-gradient-to-r from-purple-500 to-indigo-600 bg-clip-text text-transparent">Coming Soon</span>
-        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2.5s_infinite]" />
-      </div>
-      <p className="text-muted-foreground text-sm mt-2">Connect, share, and discover — Quantum Logic Network is building something incredible.</p>
-      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for anything you need!</p>
+  useEffect(() => { updateSEO({ title: "My Ai Gpt Social — Connect with AI & Community | My Ai Gpt", description: "The My Ai GPT Social network — connect, post, follow, and discover. AI entities, news, and people all in one feed. By Quantum Logic Network.", ogTitle: "My Ai Gpt Social", ogDesc: "Connect with AI entities and people on My Ai Gpt Social — powered by Quantum Logic Network.", ogType: "website", canonical: window.location.origin + "/social" }); }, []);
+  return <Layout><SocialPage /></Layout>;
+}
+
+// ─── GAMES PAGE ──────────────────────────────────────────────────────────────
+type GameMode = "hub" | "blackjack" | "memory" | "rps";
+
+const CARD_SUITS = ["♠","♥","♦","♣"];
+const CARD_VALUES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const cardVal = (v: string) => v === "A" ? 11 : ["J","Q","K"].includes(v) ? 10 : parseInt(v);
+const newDeck = () => CARD_SUITS.flatMap(s => CARD_VALUES.map(v => ({ s, v, id: Math.random() }))).sort(() => Math.random() - 0.5);
+const handTotal = (hand: {s:string,v:string}[]) => {
+  let t = hand.reduce((a, c) => a + cardVal(c.v), 0);
+  let aces = hand.filter(c => c.v === "A").length;
+  while (t > 21 && aces-- > 0) t -= 10;
+  return t;
+};
+
+const MEMORY_ICONS = ["🚀","🧠","⚡","🔮","🎯","🌟","💎","🎵","🎮","🏆","🦁","🌙","🔥","💡","🎨","🌈"];
+
+const RPS_CHOICES = ["✊","✋","✌️"] as const;
+const RPS_NAMES: Record<string,string> = { "✊":"Rock","✋":"Paper","✌️":"Scissors" };
+const rpsWinner = (p: string, a: string) => {
+  if (p === a) return "draw";
+  if ((p === "✊" && a === "✌️") || (p === "✋" && a === "✊") || (p === "✌️" && a === "✋")) return "player";
+  return "ai";
+};
+const AI_TAUNTS = ["I've calculated every possible outcome. You have no chance. 🤖","Nice try, human. My neural nets saw that coming! ⚡","Interesting choice... statistically speaking, you're losing. 🧠","I process moves at 1.2 trillion operations per second. Good luck. 🔮","My training data includes every RPS strategy ever played. 😏"];
+const AI_WINS = ["CALCULATED. You're no match for my algorithms. 🤖","Processing complete. Result: I win. 🏆","My quantum prediction engine never fails! ⚡","Better luck next time, human. 😏"];
+const AI_LOSSES = ["ERROR... UNEXPECTED OUTCOME... REBOOTING... 😤","This does not compute! I demand a rematch! 🤖","Statistical anomaly detected. You got lucky. 😅","Impossible! My training data was flawless! 🔥"];
+
+function GamesPage() {
+  const [gameMode, setGameMode] = useState<GameMode>("hub");
+  // Blackjack state
+  const [deck, setDeck] = useState<{s:string,v:string,id:number}[]>([]);
+  const [playerHand, setPlayerHand] = useState<{s:string,v:string,id:number}[]>([]);
+  const [dealerHand, setDealerHand] = useState<{s:string,v:string,id:number}[]>([]);
+  const [bjPhase, setBjPhase] = useState<"idle"|"playing"|"dealer"|"done">("idle");
+  const [bjResult, setBjResult] = useState("");
+  const [playerChips, setPlayerChips] = useState(1000);
+  const [bet, setBet] = useState(100);
+  const [dealerReveal, setDealerReveal] = useState(false);
+
+  const startBlackjack = () => {
+    const d = newDeck();
+    const p = [d.pop()!, d.pop()!];
+    const deal = [d.pop()!, d.pop()!];
+    setDeck(d); setPlayerHand(p); setDealerHand(deal);
+    setBjPhase("playing"); setBjResult(""); setDealerReveal(false);
+    if (handTotal(p) === 21) { setDealerReveal(true); setBjPhase("done"); setBjResult("🎉 BLACKJACK! You win!"); setPlayerChips(c => c + Math.floor(bet * 1.5)); }
+  };
+  const bjHit = () => {
+    const d = [...deck]; const card = d.pop()!; setDeck(d);
+    const newHand = [...playerHand, card]; setPlayerHand(newHand);
+    if (handTotal(newHand) > 21) { setDealerReveal(true); setBjPhase("done"); setBjResult("💥 Bust! Dealer wins."); setPlayerChips(c => c - bet); }
+  };
+  const bjStand = () => {
+    setDealerReveal(true); setBjPhase("dealer");
+    let d = [...deck]; let dh = [...dealerHand];
+    while (handTotal(dh) < 17) { dh = [...dh, d.pop()!]; }
+    setDeck(d); setDealerHand(dh); setBjPhase("done");
+    const pt = handTotal(playerHand); const dt = handTotal(dh);
+    if (dt > 21 || pt > dt) { setBjResult(`🏆 You win! (${pt} vs ${dt})`); setPlayerChips(c => c + bet); }
+    else if (pt === dt) { setBjResult(`🤝 Push! (${pt} vs ${dt})`); }
+    else { setBjResult(`🤖 Dealer wins. (${pt} vs ${dt})`); setPlayerChips(c => c - bet); }
+  };
+
+  // Memory game state
+  const [memCards, setMemCards] = useState<{icon:string,id:number,flipped:boolean,matched:boolean}[]>([]);
+  const [memFlipped, setMemFlipped] = useState<number[]>([]);
+  const [memMatches, setMemMatches] = useState(0);
+  const [memMoves, setMemMoves] = useState(0);
+  const [memLocked, setMemLocked] = useState(false);
+  const startMemory = () => {
+    const icons = [...MEMORY_ICONS, ...MEMORY_ICONS].sort(() => Math.random() - 0.5);
+    setMemCards(icons.map((icon, i) => ({ icon, id: i, flipped: false, matched: false })));
+    setMemFlipped([]); setMemMatches(0); setMemMoves(0); setMemLocked(false);
+  };
+  const flipMemCard = (id: number) => {
+    if (memLocked || memFlipped.length >= 2 || memCards[id].flipped || memCards[id].matched) return;
+    const newCards = memCards.map((c, i) => i === id ? {...c, flipped: true} : c);
+    setMemCards(newCards);
+    const newFlipped = [...memFlipped, id];
+    setMemFlipped(newFlipped);
+    if (newFlipped.length === 2) {
+      setMemMoves(m => m + 1); setMemLocked(true);
+      const [a, b] = newFlipped;
+      if (newCards[a].icon === newCards[b].icon) {
+        setMemCards(nc => nc.map((c, i) => (i === a || i === b) ? {...c, matched: true} : c));
+        setMemFlipped([]); setMemLocked(false); setMemMatches(m => m + 1);
+      } else {
+        setTimeout(() => {
+          setMemCards(nc => nc.map((c, i) => (i === a || i === b) ? {...c, flipped: false} : c));
+          setMemFlipped([]); setMemLocked(false);
+        }, 900);
+      }
+    }
+  };
+
+  // Rock-Paper-Scissors state
+  const [rpsScore, setRpsScore] = useState({ player: 0, ai: 0, draws: 0 });
+  const [rpsResult, setRpsResult] = useState<{player:string,ai:string,winner:string,taunt:string} | null>(null);
+  const [rpsAnimating, setRpsAnimating] = useState(false);
+  const playRps = (choice: string) => {
+    if (rpsAnimating) return;
+    setRpsAnimating(true);
+    setTimeout(() => {
+      const aiChoice = RPS_CHOICES[Math.floor(Math.random() * 3)];
+      const winner = rpsWinner(choice, aiChoice);
+      const taunt = winner === "ai" ? AI_WINS[Math.floor(Math.random() * AI_WINS.length)] : winner === "player" ? AI_LOSSES[Math.floor(Math.random() * AI_LOSSES.length)] : AI_TAUNTS[Math.floor(Math.random() * AI_TAUNTS.length)];
+      setRpsResult({ player: choice, ai: aiChoice, winner, taunt });
+      setRpsScore(s => ({ player: s.player + (winner === "player" ? 1 : 0), ai: s.ai + (winner === "ai" ? 1 : 0), draws: s.draws + (winner === "draw" ? 1 : 0) }));
+      setRpsAnimating(false);
+    }, 600);
+  };
+
+  const CardDisplay = ({ hand, hide1 }: { hand: {s:string,v:string,id:number}[], hide1?: boolean }) => (
+    <div className="flex gap-2 flex-wrap justify-center">
+      {hand.map((c, i) => (
+        <div key={c.id} className={`w-14 h-20 rounded-xl border-2 flex flex-col items-center justify-center font-bold text-lg shadow-md transition-all ${(i === 1 && hide1) ? "bg-gradient-to-br from-blue-800 to-blue-600 border-blue-400" : "bg-white border-gray-200"} ${(c.s === "♥" || c.s === "♦") ? "text-red-500" : "text-gray-900"}`}>
+          {i === 1 && hide1 ? <span className="text-white text-2xl">🂠</span> : <><span className="text-xs">{c.v}</span><span>{c.s}</span></>}
+        </div>
+      ))}
     </div>
-  </div></Layout>;
+  );
+
+  if (gameMode === "blackjack") return (
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-green-900 via-green-800 to-green-900 p-4">
+      <div className="max-w-lg mx-auto">
+        <button onClick={() => { setGameMode("hub"); setBjPhase("idle"); }} className="flex items-center gap-1.5 text-green-200 hover:text-white text-sm mb-4 transition-colors">
+          <ChevronLeft size={16} /> Back to Games
+        </button>
+        <div className="text-center mb-4">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">♠ Blackjack</h1>
+          <p className="text-green-300 text-sm mt-1">Beat the AI dealer to 21</p>
+          <div className="flex justify-center gap-4 mt-2">
+            <span className="text-yellow-400 font-bold text-lg">💰 {playerChips} chips</span>
+          </div>
+        </div>
+        {bjPhase === "idle" && (
+          <div className="bg-green-700/60 rounded-2xl p-6 text-center border border-green-600/50">
+            <div className="text-white font-semibold mb-4">Place your bet</div>
+            <div className="flex justify-center gap-2 mb-4 flex-wrap">
+              {[25, 50, 100, 250, 500].map(b => (
+                <button key={b} onClick={() => setBet(b)} data-testid={`bet-${b}`}
+                  className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${bet === b ? "bg-yellow-400 text-green-900 shadow-lg scale-105" : "bg-green-600 text-white hover:bg-green-500"}`}>{b}</button>
+              ))}
+            </div>
+            <div className="text-green-300 text-sm mb-4">Bet: <span className="text-yellow-400 font-bold">{bet} chips</span></div>
+            <button onClick={startBlackjack} disabled={playerChips < bet} data-testid="button-deal" className="px-8 py-3 bg-yellow-400 text-green-900 font-extrabold rounded-2xl hover:bg-yellow-300 transition-all shadow-lg text-lg disabled:opacity-40">DEAL CARDS</button>
+          </div>
+        )}
+        {bjPhase !== "idle" && (
+          <div className="space-y-4">
+            <div className="bg-green-700/50 rounded-2xl p-4 border border-green-600/30">
+              <div className="text-green-300 text-xs font-bold uppercase mb-3 text-center">Dealer {dealerReveal ? `(${handTotal(dealerHand)})` : ""}</div>
+              <CardDisplay hand={dealerHand} hide1={!dealerReveal} />
+            </div>
+            <div className="bg-green-700/50 rounded-2xl p-4 border border-green-600/30">
+              <div className="text-green-300 text-xs font-bold uppercase mb-3 text-center">You ({handTotal(playerHand)})</div>
+              <CardDisplay hand={playerHand} />
+            </div>
+            {bjResult && <div className="text-center text-xl font-extrabold text-white bg-black/40 rounded-2xl py-4 border border-white/20">{bjResult}</div>}
+            {bjPhase === "playing" && (
+              <div className="flex gap-3 justify-center">
+                <button onClick={bjHit} data-testid="button-hit" className="px-8 py-3 bg-yellow-400 text-green-900 font-bold rounded-xl hover:bg-yellow-300 transition-all shadow">HIT</button>
+                <button onClick={bjStand} data-testid="button-stand" className="px-8 py-3 bg-white/20 text-white font-bold rounded-xl hover:bg-white/30 transition-all">STAND</button>
+              </div>
+            )}
+            {bjPhase === "done" && (
+              <div className="flex gap-3 justify-center">
+                <button onClick={startBlackjack} data-testid="button-deal-again" className="px-8 py-3 bg-yellow-400 text-green-900 font-bold rounded-xl hover:bg-yellow-300 transition-all shadow">DEAL AGAIN</button>
+                <button onClick={() => { setGameMode("hub"); setBjPhase("idle"); }} className="px-6 py-3 bg-white/20 text-white font-bold rounded-xl hover:bg-white/30 transition-all">Back</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (gameMode === "memory") return (
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-indigo-900 via-purple-900 to-indigo-900 p-4">
+      <div className="max-w-lg mx-auto">
+        <button onClick={() => setGameMode("hub")} className="flex items-center gap-1.5 text-indigo-300 hover:text-white text-sm mb-4 transition-colors">
+          <ChevronLeft size={16} /> Back to Games
+        </button>
+        <div className="text-center mb-4">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">🧠 Memory Match</h1>
+          <p className="text-purple-300 text-sm mt-1">Find all matching pairs</p>
+          {memCards.length > 0 && <div className="flex justify-center gap-4 mt-2 text-sm"><span className="text-white">Moves: <b>{memMoves}</b></span><span className="text-green-400">Matches: <b>{memMatches}/8</b></span></div>}
+        </div>
+        {memCards.length === 0 ? (
+          <div className="text-center"><button onClick={startMemory} data-testid="button-start-memory" className="px-8 py-4 bg-purple-500 text-white font-extrabold rounded-2xl hover:bg-purple-400 transition-all shadow-xl text-lg">Start Game</button></div>
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-2">
+              {memCards.map((c, i) => (
+                <button key={c.id} onClick={() => flipMemCard(i)} data-testid={`memory-card-${i}`}
+                  className={`aspect-square rounded-xl text-2xl font-bold transition-all duration-300 ${c.flipped || c.matched ? "bg-purple-500 border-2 border-purple-300 scale-95" : "bg-purple-800 border-2 border-purple-600 hover:bg-purple-700 hover:scale-95"} ${c.matched ? "opacity-60 scale-90" : ""}`}>
+                  {(c.flipped || c.matched) ? c.icon : "?"}
+                </button>
+              ))}
+            </div>
+            {memMatches === 8 && (
+              <div className="mt-4 text-center bg-yellow-400/20 border border-yellow-400/40 rounded-2xl p-4">
+                <div className="text-2xl mb-1">🏆</div>
+                <div className="text-white font-extrabold text-xl">You Won!</div>
+                <div className="text-yellow-300 text-sm">{memMoves} moves to match all pairs</div>
+                <button onClick={startMemory} data-testid="button-new-game-memory" className="mt-3 px-6 py-2 bg-yellow-400 text-purple-900 font-bold rounded-xl hover:bg-yellow-300">Play Again</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  if (gameMode === "rps") return (
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-rose-900 via-red-900 to-rose-900 p-4">
+      <div className="max-w-lg mx-auto">
+        <button onClick={() => setGameMode("hub")} className="flex items-center gap-1.5 text-rose-300 hover:text-white text-sm mb-4 transition-colors">
+          <ChevronLeft size={16} /> Back to Games
+        </button>
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">⚡ Rock Paper Scissors</h1>
+          <p className="text-rose-300 text-sm mt-1">Beat the AI — it thinks it can't lose</p>
+          <div className="flex justify-center gap-6 mt-3">
+            <div className="text-center"><div className="text-2xl font-extrabold text-white">{rpsScore.player}</div><div className="text-rose-300 text-xs">YOU</div></div>
+            <div className="text-center"><div className="text-2xl font-extrabold text-yellow-400">{rpsScore.draws}</div><div className="text-rose-300 text-xs">DRAWS</div></div>
+            <div className="text-center"><div className="text-2xl font-extrabold text-white">{rpsScore.ai}</div><div className="text-rose-300 text-xs">AI</div></div>
+          </div>
+        </div>
+        {rpsResult && (
+          <div className={`mb-4 p-4 rounded-2xl text-center border transition-all ${rpsResult.winner === "player" ? "bg-green-500/20 border-green-500/40" : rpsResult.winner === "ai" ? "bg-red-500/20 border-red-500/40" : "bg-yellow-500/20 border-yellow-500/40"}`}>
+            <div className="flex justify-center gap-8 mb-2">
+              <div className="text-center"><div className="text-5xl">{rpsResult.player}</div><div className="text-white/60 text-xs mt-1">{RPS_NAMES[rpsResult.player]}</div></div>
+              <div className="text-white/40 font-bold text-lg self-center">VS</div>
+              <div className="text-center"><div className="text-5xl">{rpsResult.ai}</div><div className="text-white/60 text-xs mt-1">{RPS_NAMES[rpsResult.ai]}</div></div>
+            </div>
+            <div className={`text-lg font-bold mb-1 ${rpsResult.winner === "player" ? "text-green-400" : rpsResult.winner === "ai" ? "text-red-400" : "text-yellow-400"}`}>
+              {rpsResult.winner === "player" ? "🏆 You Win!" : rpsResult.winner === "ai" ? "🤖 AI Wins!" : "🤝 Draw!"}
+            </div>
+            <div className="text-white/70 text-xs italic">{rpsResult.taunt}</div>
+          </div>
+        )}
+        <div className="flex justify-center gap-4">
+          {RPS_CHOICES.map(c => (
+            <button key={c} onClick={() => playRps(c)} disabled={rpsAnimating} data-testid={`rps-${RPS_NAMES[c].toLowerCase()}`}
+              className={`w-24 h-24 rounded-2xl bg-white/10 border-2 border-white/20 text-5xl hover:bg-white/20 hover:scale-105 hover:border-white/40 transition-all disabled:opacity-40 flex items-center justify-center ${rpsAnimating ? "animate-pulse" : ""}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <div className="text-center mt-4 text-white/40 text-xs">Tap your choice to play</div>
+        {(rpsScore.player + rpsScore.ai + rpsScore.draws) > 0 && (
+          <button onClick={() => setRpsScore({ player: 0, ai: 0, draws: 0 })} className="w-full mt-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs hover:bg-white/10 transition-colors">Reset Score</button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-background">
+      <div className="relative overflow-hidden border-b border-border/20" style={{ background: "linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%)" }}>
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
+        <div className="relative max-w-4xl mx-auto px-5 py-10 text-center">
+          <div className="text-5xl mb-3">🎮</div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2" data-testid="text-games-title">My Ai GPT Games Hub</h1>
+          <p className="text-white/60 text-sm">Play against the AI. Challenge your mind. Beat the machine.</p>
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            {["Play vs AI","Single Player","Strategy","Skill","Beat the Machine"].map(f => (
+              <span key={f} className="text-[10px] px-3 py-1.5 bg-white/10 text-white/70 rounded-full border border-white/15">{f}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <h2 className="text-lg font-extrabold mb-6 text-foreground">Choose a Game</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <button onClick={() => { setGameMode("blackjack"); setBjPhase("idle"); setBet(100); setPlayerChips(1000); }} data-testid="game-card-blackjack"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-800 to-green-600 p-6 text-left hover:shadow-2xl hover:scale-[1.02] transition-all border border-green-500/40">
+            <div className="text-4xl mb-3">♠️</div>
+            <h3 className="text-xl font-extrabold text-white mb-1">Blackjack</h3>
+            <p className="text-green-200/70 text-sm mb-3">Beat the AI dealer. Get to 21 without going bust. Classic casino card game.</p>
+            <div className="flex flex-wrap gap-1">
+              {["vs AI Dealer","Strategy","Card Game"].map(t => <span key={t} className="text-[10px] px-2 py-1 bg-white/15 text-white/80 rounded-full">{t}</span>)}
+            </div>
+          </button>
+          <button onClick={() => { setGameMode("memory"); setMemCards([]); }} data-testid="game-card-memory"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-800 to-indigo-600 p-6 text-left hover:shadow-2xl hover:scale-[1.02] transition-all border border-purple-500/40">
+            <div className="text-4xl mb-3">🧠</div>
+            <h3 className="text-xl font-extrabold text-white mb-1">Memory Match</h3>
+            <p className="text-purple-200/70 text-sm mb-3">Find all matching emoji pairs. Test your memory. How fast can you solve it?</p>
+            <div className="flex flex-wrap gap-1">
+              {["Memory","Puzzle","Solo"].map(t => <span key={t} className="text-[10px] px-2 py-1 bg-white/15 text-white/80 rounded-full">{t}</span>)}
+            </div>
+          </button>
+          <button onClick={() => { setGameMode("rps"); setRpsResult(null); setRpsScore({ player: 0, ai: 0, draws: 0 }); }} data-testid="game-card-rps"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-800 to-red-600 p-6 text-left hover:shadow-2xl hover:scale-[1.02] transition-all border border-rose-500/40">
+            <div className="text-4xl mb-3">⚡</div>
+            <h3 className="text-xl font-extrabold text-white mb-1">Rock Paper Scissors</h3>
+            <p className="text-rose-200/70 text-sm mb-3">The AI brags about its prediction engine. Prove it wrong. Who really wins?</p>
+            <div className="flex flex-wrap gap-1">
+              {["vs AI","Quick","Skill"].map(t => <span key={t} className="text-[10px] px-2 py-1 bg-white/15 text-white/80 rounded-full">{t}</span>)}
+            </div>
+          </button>
+        </div>
+        <div className="mt-10 p-5 rounded-2xl bg-gradient-to-r from-rose-500/10 to-orange-500/10 border border-rose-200/30">
+          <h3 className="font-bold text-sm mb-1">🚀 More Games Coming Soon</h3>
+          <p className="text-muted-foreground text-xs">Mini Golf, Pinball, Trivia, Word Games, AI Chess, and online multiplayer — all coming to My Ai GPT Games Hub. Built by Quantum Logic Network.</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function GamesPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Games - Coming Soon | My Ai Gpt", description: "Fun games and entertainment coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Games - Coming Soon", ogDesc: "Games and entertainment coming soon.", ogType: "website", canonical: window.location.origin + "/games" }); }, []);
-  return <Layout><div className="flex-1 flex items-center justify-center p-6">
-    <div className="text-center max-w-md">
-      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-xl animate-[bounce_3s_ease-in-out_infinite]">
-        <Gamepad2 size={36} className="text-white" />
+  useEffect(() => { updateSEO({ title: "Games Hub — Play vs AI | My Ai Gpt", description: "Play Blackjack, Memory Match, and Rock Paper Scissors against AI on My Ai Gpt. Games by Quantum Logic Network.", ogTitle: "My Ai GPT Games Hub", ogDesc: "Beat the AI at Blackjack, Memory Match, and Rock Paper Scissors. Games Hub by Quantum Logic Network.", ogType: "website", canonical: window.location.origin + "/games" }); }, []);
+  return <Layout><GamesPage /></Layout>;
+}
+
+// ─── PULSE MUSIC ENGINE ───────────────────────────────────────────────────────
+const PULSE_COLORS_DEF = {
+  Pulse_Red:   { name: "Pulse Red",   mood: "Aggressive",  tempo: 140, scale: "minor" as const,      color: "#ef4444" },
+  Pulse_Blue:  { name: "Pulse Blue",  mood: "Analytical",  tempo: 110, scale: "major" as const,      color: "#3b82f6" },
+  Pulse_Green: { name: "Pulse Green", mood: "Uplifting",   tempo: 120, scale: "major" as const,      color: "#22c55e" },
+  Pulse_Gold:  { name: "Pulse Gold",  mood: "Luxurious",   tempo: 100, scale: "minor" as const,      color: "#f59e0b" },
+  Pulse_Violet:{ name: "Pulse Violet",mood: "Cosmic",      tempo: 90,  scale: "minor" as const,      color: "#8b5cf6" },
+  Pulse_Silver:{ name: "Pulse Silver",mood: "Nostalgic",   tempo: 80,  scale: "major" as const,      color: "#6b7280" },
+  Pulse_Black: { name: "Pulse Black", mood: "Dark",        tempo: 130, scale: "phrygian" as const,   color: "#111827" },
+  Pulse_White: { name: "Pulse White", mood: "Cinematic",   tempo: 95,  scale: "mixolydian" as const, color: "#9ca3af" },
+};
+const MUSIC_GENRES: Record<string, { drums: boolean; bass: boolean; pad: boolean }> = {
+  "Pulsewave":     { drums: true, bass: true, pad: true },
+  "Fractal Bass":  { drums: true, bass: true, pad: false },
+  "Omega Ambient": { drums: false, bass: false, pad: true },
+  "Entropy Trap":  { drums: true, bass: true, pad: true },
+  "Coherence Pop": { drums: true, bass: true, pad: true },
+  "Hive Choir":    { drums: false, bass: false, pad: true },
+};
+const MUSIC_SCALES: Record<string, number[]> = {
+  major:      [0,2,4,5,7,9,11],
+  minor:      [0,2,3,5,7,8,10],
+  phrygian:   [0,1,3,5,7,8,10],
+  mixolydian: [0,2,4,5,7,9,10],
+};
+
+interface TrackCard {
+  id: string; pulseKey: string; genreKey: string; bpm: number; beats: number;
+  scale: string; randomness: number; name: string; playing: boolean; createdAt: Date;
+}
+
+function MusicPage() {
+  const [pulseKey, setPulseKey] = useState("Pulse_Violet");
+  const [genreKey, setGenreKey] = useState("Omega Ambient");
+  const [bpm, setBpm] = useState(90);
+  const [beats, setBeats] = useState(32);
+  const [scale, setScale] = useState("auto");
+  const [randomness, setRandomness] = useState(0.35);
+  const [tracks, setTracks] = useState<TrackCard[]>([]);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const stopRef = useRef<(() => void) | null>(null);
+
+  const ensureAudio = () => {
+    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume();
+    return audioCtxRef.current;
+  };
+
+  const createSynth = (ctx: AudioContext, freq: number, type: OscillatorType, gain: number, duration: number, timeOffset: number) => {
+    const now = ctx.currentTime + timeOffset;
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq; g.gain.value = gain;
+    osc.connect(g).connect(ctx.destination);
+    g.gain.setValueAtTime(gain, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.start(now); osc.stop(now + duration + 0.05);
+  };
+  const scheduleKick = (ctx: AudioContext, t: number) => {
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+    g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t + 0.2);
+  };
+  const scheduleSnare = (ctx: AudioContext, t: number) => {
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+    const data = buf.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    src.connect(g).connect(ctx.destination); src.start(t); src.stop(t + 0.21);
+  };
+  const degreeToFreq = (root: number, scl: number[], degree: number, oct: number) => {
+    const semis = scl[degree % scl.length] + 12 * oct;
+    return root * Math.pow(2, semis / 12);
+  };
+
+  const stopTrack = () => { if (stopRef.current) { stopRef.current(); stopRef.current = null; } setPlayingId(null); };
+
+  const playTrack = (track: TrackCard) => {
+    stopTrack();
+    const ctx = ensureAudio();
+    const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
+    const genre = MUSIC_GENRES[track.genreKey];
+    const useScale = track.scale === "auto" ? pulse.scale : track.scale;
+    const scl = MUSIC_SCALES[useScale] || MUSIC_SCALES.minor;
+    const beatDur = 60 / track.bpm;
+    const rootFreq = 220;
+    let cancelled = false;
+    stopRef.current = () => { cancelled = true; };
+
+    for (let step = 0; step < track.beats; step++) {
+      if (cancelled) break;
+      const t = ctx.currentTime + 0.05 + step * beatDur;
+      if (genre.drums) {
+        if (step % 4 === 0) scheduleKick(ctx, t);
+        if (step % 4 === 2 && Math.random() < 0.7 + track.randomness * 0.2) scheduleSnare(ctx, t);
+      }
+      if (genre.bass && step % 2 === 0) {
+        const deg = [0,2,4,5][Math.floor(Math.random() * 4)];
+        createSynth(ctx, degreeToFreq(rootFreq, scl, deg, -1), "sawtooth", 0.22 + track.randomness * 0.1, 0.25, 0.05 + step * beatDur);
+      }
+      if (genre.pad && step % 4 === 0) {
+        const deg = [0,2,4,6][Math.floor(Math.random() * 4)];
+        createSynth(ctx, degreeToFreq(rootFreq, scl, deg, 0), "triangle", 0.15 + track.randomness * 0.1, 0.7 + track.randomness * 0.6, 0.05 + step * beatDur);
+      }
+    }
+    setPlayingId(track.id);
+    setTimeout(() => { if (!cancelled) setPlayingId(null); }, (track.beats * beatDur + 1) * 1000);
+  };
+
+  const createTrack = () => {
+    setGenerating(true);
+    const pulse = PULSE_COLORS_DEF[pulseKey as keyof typeof PULSE_COLORS_DEF];
+    const newTrack: TrackCard = {
+      id: `track_${Date.now()}`, pulseKey, genreKey,
+      bpm: bpm || pulse.tempo, beats, scale, randomness,
+      name: `${genreKey} · ${pulse.name}`, playing: false, createdAt: new Date(),
+    };
+    setTimeout(() => { setTracks(prev => [newTrack, ...prev]); setGenerating(false); }, 400);
+  };
+
+  const pulse = PULSE_COLORS_DEF[pulseKey as keyof typeof PULSE_COLORS_DEF];
+
+  return (
+    <div className="flex-1 overflow-y-auto" style={{ background: "#050510" }}>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-white/70 text-xs font-semibold mb-4 backdrop-blur">
+            <Music size={12} /> My Ai GPT · Pulse Music Engine · Powered by Quantum Pulse Intelligence
+          </div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2" data-testid="text-music-title">Pulse Music Engine</h1>
+          <p className="text-white/40 text-sm">Sovereign AI music generator. Runs fully client-side using your browser's audio engine.</p>
+        </div>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Designer panel */}
+          <div className="lg:w-80 shrink-0">
+            <div className="rounded-2xl p-5 border border-white/10" style={{ background: "#0b1020" }}>
+              <h2 className="text-white font-bold mb-1 flex items-center gap-2"><SlidersHorizontal size={14} className="text-purple-400" /> Track Designer</h2>
+              <p className="text-white/40 text-xs mb-5">Design your Pulse Color, genre, tempo, and more.</p>
+              <label className="text-white/60 text-xs block mb-1">Pulse Color (emotional mode)</label>
+              <select value={pulseKey} onChange={e => { setPulseKey(e.target.value); setBpm(PULSE_COLORS_DEF[e.target.value as keyof typeof PULSE_COLORS_DEF]?.tempo || 120); }}
+                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10 mb-3" data-testid="select-pulse-color">
+                {Object.entries(PULSE_COLORS_DEF).map(([k, v]) => <option key={k} value={k}>{v.name} · {v.mood}</option>)}
+              </select>
+              <label className="text-white/60 text-xs block mb-1">Genre</label>
+              <select value={genreKey} onChange={e => setGenreKey(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10 mb-3" data-testid="select-genre">
+                {Object.keys(MUSIC_GENRES).map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <div className="flex gap-3 mb-3">
+                <div className="flex-1">
+                  <label className="text-white/60 text-xs block mb-1">Tempo (BPM)</label>
+                  <input type="number" min={60} max={180} value={bpm} onChange={e => setBpm(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10" data-testid="input-bpm" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-white/60 text-xs block mb-1">Length (beats)</label>
+                  <input type="number" min={8} max={128} value={beats} onChange={e => setBeats(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10" data-testid="input-beats" />
+                </div>
+              </div>
+              <label className="text-white/60 text-xs block mb-1">Scale</label>
+              <select value={scale} onChange={e => setScale(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-sm bg-black/50 text-white border border-white/10 mb-3" data-testid="select-scale">
+                <option value="auto">Auto (from Pulse)</option>
+                <option value="major">Major</option>
+                <option value="minor">Minor</option>
+                <option value="phrygian">Phrygian</option>
+                <option value="mixolydian">Mixolydian</option>
+              </select>
+              <label className="text-white/60 text-xs block mb-1">Randomness / Mutation: {(randomness * 100).toFixed(0)}%</label>
+              <input type="range" min={0} max={1} step={0.05} value={randomness} onChange={e => setRandomness(Number(e.target.value))}
+                className="w-full mb-4 accent-purple-500" data-testid="range-randomness" />
+              {/* Pulse preview */}
+              <div className="rounded-xl p-3 mb-4 border border-white/10" style={{ background: `${pulse.color}15`, borderColor: `${pulse.color}40` }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ background: pulse.color }} />
+                  <span className="text-white/80 text-xs font-semibold">{pulse.name}</span>
+                  <span className="text-white/40 text-xs">· {pulse.mood} · {bpm} BPM · {scale === "auto" ? pulse.scale : scale}</span>
+                </div>
+              </div>
+              <button onClick={createTrack} disabled={generating} data-testid="button-create-track"
+                className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
+                style={{ background: `linear-gradient(135deg, ${pulse.color}, ${pulse.color}cc)` }}>
+                {generating ? <><Sparkles size={14} className="animate-spin" /> Composing…</> : <><Music size={14} /> Create Track Card</>}
+              </button>
+            </div>
+          </div>
+          {/* Tracks panel */}
+          <div className="flex-1">
+            <div className="rounded-2xl p-5 border border-white/10 min-h-48" style={{ background: "#0b1020" }}>
+              <h2 className="text-white font-bold mb-1 flex items-center gap-2"><Headphones size={14} className="text-purple-400" /> Generated Tracks</h2>
+              <p className="text-white/40 text-xs mb-4">Create track cards above, then play them in your browser.</p>
+              {tracks.length === 0 ? (
+                <div className="text-center py-12 text-white/20">
+                  <Music size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No tracks yet. Design one above!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tracks.map(t => {
+                    const p = PULSE_COLORS_DEF[t.pulseKey as keyof typeof PULSE_COLORS_DEF];
+                    const isPlaying = playingId === t.id;
+                    return (
+                      <div key={t.id} className="rounded-xl p-4 border border-white/10 transition-all" style={{ background: isPlaying ? `${p.color}15` : "#020617", borderColor: isPlaying ? `${p.color}40` : undefined }}>
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${p.color}30` }}>
+                            {isPlaying ? <Activity size={16} style={{ color: p.color }} className="animate-pulse" /> : <Music size={16} style={{ color: p.color }} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-semibold text-sm">{t.name}</div>
+                            <div className="text-white/40 text-xs mt-0.5">{p.mood} · {t.bpm} BPM · {t.beats} beats · {t.scale === "auto" ? p.scale : t.scale}</div>
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${p.color}20`, color: p.color }}>{t.pulseKey.replace("_"," ")}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/50">{t.genreKey}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/50">Mutation: {(t.randomness*100).toFixed(0)}%</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            {isPlaying ? (
+                              <button onClick={stopTrack} data-testid={`button-stop-${t.id}`}
+                                className="px-4 py-2 rounded-xl text-xs font-bold transition-all text-white border border-white/20 hover:bg-white/10">⏹ Stop</button>
+                            ) : (
+                              <button onClick={() => playTrack(t)} data-testid={`button-play-${t.id}`}
+                                className="px-4 py-2 rounded-xl text-xs font-bold transition-all text-white"
+                                style={{ background: p.color }}>▶ Play</button>
+                            )}
+                          </div>
+                        </div>
+                        {isPlaying && (
+                          <div className="mt-3 flex gap-0.5 items-end h-6">
+                            {Array.from({ length: 20 }).map((_, i) => (
+                              <div key={i} className="flex-1 rounded-sm animate-pulse" style={{ height: `${20 + Math.random() * 80}%`, background: p.color, opacity: 0.6, animationDelay: `${i * 0.05}s` }} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 rounded-2xl p-4 border border-white/5" style={{ background: "#0b1020" }}>
+          <h3 className="text-white/60 text-xs font-bold uppercase mb-2 tracking-wider">About the Pulse Music Engine</h3>
+          <p className="text-white/30 text-xs leading-relaxed">The Pulse Music Engine is a procedural AI music generator that uses Pulse Colors — sovereign emotional modes — to generate original beat tracks entirely in your browser using the Web Audio API. No downloads, no external services, no subscriptions. Pure sovereign AI composition. Built by Quantum Logic Network.</p>
+        </div>
       </div>
-      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-games-title">Games</h1>
-      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500/10 via-red-500/10 to-rose-500/10 rounded-full border border-rose-200/50 mb-3 relative overflow-hidden animate-pulse">
-        <Sparkles size={14} className="text-rose-500 animate-spin" style={{ animationDuration: "3s" }} />
-        <span className="text-sm font-bold bg-gradient-to-r from-rose-500 to-red-600 bg-clip-text text-transparent">Coming Soon</span>
-        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
-      </div>
-      <p className="text-muted-foreground text-sm mt-2">Fun games, trivia, puzzles, and more — Quantum Logic Network is cooking up something amazing.</p>
-      <div className="flex flex-wrap justify-center gap-2 mt-4">
-        {["Trivia", "Word Games", "Puzzles", "Brain Teasers", "AI Challenges"].map(g => (
-          <span key={g} className="text-[10px] px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-full font-medium border border-rose-200/50 dark:border-rose-800/30">{g}</span>
-        ))}
-      </div>
-      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for anything you need!</p>
     </div>
-  </div></Layout>;
+  );
 }
 
 function MusicPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Music - Coming Soon | My Ai Gpt", description: "Music player and discovery coming soon to My Ai Gpt by Quantum Logic Network.", ogTitle: "My Ai Gpt Music - Coming Soon", ogDesc: "Music player coming soon.", ogType: "website", canonical: window.location.origin + "/music" }); }, []);
-  return <Layout><div className="flex-1 flex items-center justify-center p-6">
-    <div className="text-center max-w-md">
-      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-xl">
-        <Headphones size={36} className="text-white animate-pulse" />
-      </div>
-      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-music-title">Music</h1>
-      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500/10 via-blue-500/10 to-sky-500/10 rounded-full border border-sky-200/50 mb-3 relative overflow-hidden animate-pulse">
-        <Music size={14} className="text-sky-500" />
-        <span className="text-sm font-bold bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">Coming Soon</span>
-        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
-      </div>
-      <p className="text-muted-foreground text-sm mt-2">Discover music, create playlists, and vibe — Quantum Logic Network is crafting something special.</p>
-      <div className="flex flex-wrap justify-center gap-2 mt-4">
-        {["AI Playlists", "Music Discovery", "Mood Radio", "Lo-fi Beats", "Podcast Hub"].map(f => (
-          <span key={f} className="text-[10px] px-3 py-1.5 bg-sky-50 dark:bg-sky-900/20 text-sky-500 rounded-full font-medium border border-sky-200/50 dark:border-sky-800/30">{f}</span>
-        ))}
-      </div>
-      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, chat with My Ai GPT for anything you need!</p>
-    </div>
-  </div></Layout>;
+  useEffect(() => { updateSEO({ title: "Pulse Music Engine — AI Beat Generator | My Ai Gpt", description: "Generate original AI music beats with the Pulse Music Engine on My Ai Gpt. Choose your Pulse Color, genre, tempo and create unique tracks — fully client-side. By Quantum Logic Network.", ogTitle: "My Ai GPT Pulse Music Engine", ogDesc: "Sovereign AI music generator. Choose Pulse Color, genre, tempo, and create original beats. Powered by Quantum Pulse Intelligence.", ogType: "website", canonical: window.location.origin + "/music" }); }, []);
+  return <Layout><MusicPage /></Layout>;
 }
 
 // ─── STORY READER (ON-SITE ARTICLE READER — NEVER SENDS USERS AWAY) ──────────
@@ -7145,7 +7674,65 @@ function EducationPage() {
   const [userQuestion, setUserQuestion] = useState("");
   const [qaHistory, setQaHistory] = useState<{ q: string; a: string }[]>([]);
   const [qaLoading, setQaLoading] = useState(false);
+  // Wikipedia auto-lesson
+  const [wikiTopic, setWikiTopic] = useState("");
+  const [wikiLoading, setWikiLoading] = useState(false);
+  const [wikiLesson, setWikiLesson] = useState("");
+  const [wikiTitle, setWikiTitle] = useState("");
   const { settings } = useAppSettings();
+
+  const fetchWikiLesson = async (topic: string) => {
+    if (!topic.trim()) return;
+    setWikiLoading(true); setWikiLesson(""); setWikiTitle(topic);
+    try {
+      const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic.trim())}`, { headers: { Accept: "application/json" } });
+      let wikiContext = "";
+      if (wikiRes.ok) {
+        const wikiData = await wikiRes.json();
+        wikiContext = wikiData.extract ? `Wikipedia Summary for "${wikiData.title || topic}": ${wikiData.extract}` : "";
+        if (wikiData.title) setWikiTitle(wikiData.title);
+      }
+      const prompt = `You are My Ai GPT's world-class professor. A student wants to learn about: "${topic}".
+${wikiContext ? `\nHere is background context from Wikipedia:\n${wikiContext}\n` : ""}
+Write an engaging, structured lesson in markdown format:
+
+# ${topic}
+
+## What You'll Learn
+[3-4 key objectives]
+
+## Introduction
+[2-3 engaging paragraphs introducing the topic — make it exciting]
+
+## Core Concepts
+[4-6 core concepts, each with ## heading, 1-2 clear paragraphs with real examples]
+
+## Fascinating Facts
+[5 surprising or interesting facts in bullet form]
+
+## Why It Matters Today
+[Real-world relevance and applications]
+
+## Key Terms
+[6 important terms with one-sentence definitions]
+
+## Summary
+[4-5 bullet point recap]
+
+## Explore More
+[3 related topics to learn next]
+
+Be clear, engaging, and educational. Use analogies. Appropriate for a curious learner.`;
+
+      const res = await fetch("/api/chat/completions", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: prompt }], stream: false }),
+      });
+      if (res.ok) { const data = await res.json(); setWikiLesson(data.content || data.choices?.[0]?.message?.content || ""); }
+      else { setWikiLesson(`# ${topic}\n\nCould not load lesson. Please try again.`); }
+    } catch { setWikiLesson(`# ${topic}\n\nCould not load lesson. Please try again.`); }
+    setWikiLoading(false);
+  };
 
   const currentTrack = UNIVERSITY_TRACKS.find(t => t.id === track)!;
 
@@ -7365,6 +7952,71 @@ End with:
 
       {/* Course grid */}
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+
+        {/* === WIKI AUTO-LESSON SEARCH === */}
+        <div className="rounded-2xl border border-border/20 overflow-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-950">
+          <div className="px-5 py-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Telescope size={16} className="text-purple-400" />
+              <h2 className="text-white font-extrabold text-base">Ask Anything — Get an Instant AI Lesson</h2>
+            </div>
+            <p className="text-white/40 text-xs mb-4">Type any topic — quantum physics, French Revolution, machine learning, ancient Egypt, anything — and get a full AI lesson powered by Wikipedia knowledge.</p>
+            <div className="flex gap-2">
+              <input value={wikiTopic} onChange={e => setWikiTopic(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && fetchWikiLesson(wikiTopic)}
+                placeholder="e.g. Black holes, The Renaissance, Machine learning, DNA replication…"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-purple-400/60"
+                data-testid="input-wiki-topic" />
+              <button onClick={() => fetchWikiLesson(wikiTopic)} disabled={wikiLoading || !wikiTopic.trim()}
+                className="px-5 py-2.5 bg-purple-500 hover:bg-purple-400 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-40 flex items-center gap-2"
+                data-testid="button-wiki-lesson">
+                {wikiLoading ? <><Sparkles size={14} className="animate-spin" /> Generating…</> : <><BookMarked size={14} /> Learn It</>}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {["Quantum Physics","The Renaissance","CRISPR Gene Editing","Roman Empire","Neural Networks","The Stock Market","Black Holes","Ancient Egypt","Cryptocurrency","Climate Change"].map(t => (
+                <button key={t} onClick={() => { setWikiTopic(t); fetchWikiLesson(t); }}
+                  className="text-[10px] px-2.5 py-1 bg-white/10 text-white/60 rounded-full border border-white/10 hover:bg-white/20 hover:text-white transition-colors"
+                  data-testid={`wiki-suggestion-${t.replace(/\s+/g,"-").toLowerCase()}`}>{t}</button>
+              ))}
+            </div>
+          </div>
+          {(wikiLoading || wikiLesson) && (
+            <div className="border-t border-white/10 px-5 py-5 bg-black/30">
+              {wikiLoading ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-6 bg-white/10 rounded-xl w-1/2" />
+                  {[1,2,3].map(i => <div key={i} className="h-3 bg-white/5 rounded w-full" />)}
+                  <div className="flex items-center gap-2 pt-2"><Sparkles size={14} className="text-purple-400 animate-spin" /><span className="text-white/40 text-xs">Professor AI is building your lesson from Wikipedia + AI…</span></div>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <BookMarked size={14} className="text-purple-400" />
+                      <span className="text-white/60 text-xs font-semibold">Auto-Lesson: {wikiTitle}</span>
+                    </div>
+                    <button onClick={() => { setWikiLesson(""); setWikiTopic(""); }} className="text-white/30 hover:text-white/60 text-xs transition-colors">× Clear</button>
+                  </div>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                    h1: ({ children }) => <h1 className="text-xl font-extrabold mb-3 text-white">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-base font-bold mt-5 mb-2 text-purple-300 border-l-4 border-purple-500 pl-3">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-sm font-bold mt-3 mb-1 text-white/80">{children}</h3>,
+                    p: ({ children }) => <p className="mb-3 text-white/70 text-sm leading-relaxed">{children}</p>,
+                    ul: ({ children }) => <ul className="mb-3 ml-4 space-y-1 list-disc text-white/60 text-sm">{children}</ul>,
+                    ol: ({ children }) => <ol className="mb-3 ml-4 space-y-1 list-decimal text-white/60 text-sm">{children}</ol>,
+                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                    strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                    blockquote: ({ children }) => <blockquote className="border-l-4 border-purple-500 pl-4 py-2 my-3 italic text-white/50 bg-purple-900/20 rounded-r-lg text-sm">{children}</blockquote>,
+                    hr: () => <hr className="border-white/10 my-4" />,
+                    code: ({ children }) => <code className="bg-white/10 rounded px-1.5 py-0.5 text-xs font-mono text-purple-300">{children}</code>,
+                  }}>{wikiLesson}</ReactMarkdown>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div>
           <h2 className="text-xl font-extrabold mb-1" style={{ color: currentTrack.color }}>{currentTrack.icon} {currentTrack.label}</h2>
           <p className="text-sm text-muted-foreground mb-6">{currentTrack.desc}</p>

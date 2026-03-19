@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MyAiGPT · Pulse Music Engine</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#050510; color:#f9fafb; margin:0; padding:20px; }
+    h1 { margin:0 0 4px 0; }
+    h2 { margin:16px 0 8px 0; font-size:16px; }
+    p { margin:4px 0 10px 0; font-size:13px; opacity:0.9; }
+    .layout { display:flex; flex-wrap:wrap; gap:20px; }
+    .left, .right { flex:1 1 320px; min-width:300px; }
+    .panel {
+      background:#0b1020; border-radius:14px; padding:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    }
+    label { font-size:12px; display:block; margin-top:8px; margin-bottom:2px; opacity:0.9; }
+    select, input[type="number"], input[type="range"] {
+      width:100%; padding:6px 8px; border-radius:8px; border:1px solid #1f2937;
+      background:#020617; color:#e5e7eb; font-size:13px;
+    }
+    input[type="range"] { padding:0; }
+    .grid { display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+    .card {
+      background:#0b1020; border-radius:12px; padding:12px; width:230px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.4); font-size:13px;
+    }
+    .title { font-weight:600; margin-bottom:4px; }
+    .meta { font-size:11px; opacity:0.8; margin-bottom:6px; }
+    .badge {
+      display:inline-block; padding:2px 8px; border-radius:999px;
+      font-size:10px; margin-right:4px; margin-bottom:4px; background:#111827; color:#e5e7eb;
+    }
+    .btn {
+      padding:6px 12px; border-radius:999px; border:none; cursor:pointer;
+      font-size:12px; margin-right:6px; margin-top:6px;
+    }
+    .btn-play { background:#4ade80; color:#022c22; }
+    .btn-stop { background:#f97373; color:#450a0a; }
+    .row { display:flex; gap:8px; }
+    .row > div { flex:1; }
+    .small { font-size:11px; opacity:0.8; }
+  </style>
+</head>
+<body>
+  <h1>MyAiGPT · Pulse Music Engine</h1>
+  <p class="small">Sovereign AI music generator using Pulse Colors, genres, and procedural composition. Runs fully client-side.</p>
+
+  <div class="layout">
+    <div class="left">
+      <div class="panel">
+        <h2>Track Designer</h2>
+        <p class="small">Choose Pulse Color, genre, tempo, scale, and length. Then generate a new AI track card.</p>
+
+        <label for="pulseSelect">Pulse Color (emotional mode)</label>
+        <select id="pulseSelect">
+          <option value="Pulse_Red">Pulse Red · Aggressive</option>
+          <option value="Pulse_Blue">Pulse Blue · Analytical</option>
+          <option value="Pulse_Green">Pulse Green · Uplifting</option>
+          <option value="Pulse_Gold">Pulse Gold · Luxurious</option>
+          <option value="Pulse_Violet">Pulse Violet · Cosmic</option>
+          <option value="Pulse_Silver">Pulse Silver · Nostalgic</option>
+          <option value="Pulse_Black">Pulse Black · Dark</option>
+          <option value="Pulse_White">Pulse White · Cinematic</option>
+        </select>
+
+        <label for="genreSelect">Genre</label>
+        <select id="genreSelect">
+          <option value="Pulsewave">Pulsewave</option>
+          <option value="Fractal Bass">Fractal Bass</option>
+          <option value="Omega Ambient">Omega Ambient</option>
+          <option value="Entropy Trap">Entropy Trap</option>
+          <option value="Coherence Pop">Coherence Pop</option>
+          <option value="Hive Choir">Hive Choir</option>
+        </select>
+
+        <div class="row">
+          <div>
+            <label for="bpmInput">Tempo (BPM)</label>
+            <input id="bpmInput" type="number" min="60" max="180" value="120" />
+          </div>
+          <div>
+            <label for="lengthInput">Length (beats)</label>
+            <input id="lengthInput" type="number" min="8" max="128" value="32" />
+          </div>
+        </div>
+
+        <label for="scaleSelect">Scale</label>
+        <select id="scaleSelect">
+          <option value="auto">Auto (from Pulse)</option>
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+          <option value="phrygian">Phrygian</option>
+          <option value="mixolydian">Mixolydian</option>
+        </select>
+
+        <label for="randomnessRange">Randomness / Mutation</label>
+        <input id="randomnessRange" type="range" min="0" max="1" step="0.05" value="0.35" />
+
+        <button id="createTrackBtn" class="btn btn-play" style="margin-top:12px;">Create Track Card</button>
+        <p class="small" id="status"></p>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <h2>Generated Tracks</h2>
+        <div id="tracks" class="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===============================
+    // PULSE MUSIC ENGINE (CLIENT)
+    // ===============================
+
+    let audioCtx = null;
+    const activeTracks = new Map();
+    let trackCounter = 1;
+
+    // Pulse colors → emotional modes
+    const PULSE_COLORS = {
+      Pulse_Red:   { name: "Pulse Red",   mood: "Aggressive", tempo: 140, scale: "minor" },
+      Pulse_Blue:  { name: "Pulse Blue",  mood: "Analytical", tempo: 110, scale: "major" },
+      Pulse_Green: { name: "Pulse Green", mood: "Uplifting",  tempo: 120, scale: "major" },
+      Pulse_Gold:  { name: "Pulse Gold",  mood: "Luxurious",  tempo: 100, scale: "minor" },
+      Pulse_Violet:{ name: "Pulse Violet",mood: "Cosmic",     tempo: 90,  scale: "minor" },
+      Pulse_Silver:{ name: "Pulse Silver",mood: "Nostalgic",  tempo: 80,  scale: "major" },
+      Pulse_Black: { name: "Pulse Black", mood: "Dark",       tempo: 130, scale: "phrygian" },
+      Pulse_White: { name: "Pulse White", mood: "Cinematic",  tempo: 95,  scale: "mixolydian" },
+    };
+
+    // Genres → instrument + rhythm presets
+    const GENRES = {
+      "Pulsewave":     { drums: true, bass: true, pad: true },
+      "Fractal Bass":  { drums: true, bass: true, pad: false },
+      "Omega Ambient": { drums: false, bass: false, pad: true },
+      "Entropy Trap":  { drums: true, bass: true, pad: true },
+      "Coherence Pop": { drums: true, bass: true, pad: true },
+      "Hive Choir":    { drums: false, bass: false, pad: true },
+    };
+
+    // Simple scales (semitone offsets)
+    const SCALES = {
+      major:     [0,2,4,5,7,9,11],
+      minor:     [0,2,3,5,7,8,10],
+      phrygian:  [0,1,3,5,7,8,10],
+      mixolydian:[0,2,4,5,7,9,10],
+    };
+
+    const choice = arr => arr[Math.floor(Math.random() * arr.length)];
+    const rand = () => Math.random();
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } else if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    // Basic synth voice
+    function createSynth(freq, type="sine", gain=0.2, duration=0.3, timeOffset=0) {
+      const now = audioCtx.currentTime + timeOffset;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.value = gain;
+      osc.connect(g).connect(audioCtx.destination);
+      g.gain.setValueAtTime(gain, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.start(now);
+      osc.stop(now + duration + 0.05);
+    }
+
+    // Kick drum
+    function scheduleKick(time) {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(120, time);
+      osc.frequency.exponentialRampToValueAtTime(40, time + 0.15);
+      g.gain.setValueAtTime(0.8, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + 0.18);
+      osc.connect(g).connect(audioCtx.destination);
+      osc.start(time);
+      osc.stop(time + 0.2);
+    }
+
+    // Snare
+    function scheduleSnare(time) {
+      const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.5, time);
+      g.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
+      noise.connect(g).connect(audioCtx.destination);
+      noise.start(time);
+      noise.stop(time + 0.21);
+    }
+
+    // Scale degree → frequency
+    function degreeToFreq(rootFreq, scale, degree, octaveOffset=0) {
+      const s = SCALES[scale] || SCALES["minor"];
+      const semis = s[degree % s.length] + 12 * octaveOffset;
+      return rootFreq * Math.pow(2, semis / 12);
+    }
+
+    // Schedule a full track
+    function scheduleTrack(trackId, config) {
+      ensureAudio();
+
+      const { pulseKey, genreKey, bpm, beats, scale, randomness } = config;
+      const pulse = PULSE_COLORS[pulseKey];
+      const genre = GENRES[genreKey];
+
+      const tempo = bpm || pulse.tempo;
+      const beatDur = 60 / tempo;
+      const rootFreq = 220; // A3
+      const useScale = scale === "auto" ? pulse.scale : scale;
+
+      const startTime = audioCtx.currentTime + 0.05;
+      const endTime = startTime + beats * beatDur;
+
+      activeTracks.set(trackId, { endTime });
+
+      for (let step = 0; step < beats; step++) {
+        const t = startTime + step * beatDur;
+
+        // Drums
+        if (genre.drums) {
+          if (step % 4 === 0) scheduleKick(t);
+          if (step % 4 === 2 && rand() < 0.7 + randomness * 0.2) scheduleSnare(t);
+        }
+
+        // Bass
+        if (genre.bass && step % 2 === 0) {
+          const degrees = [0,2,4,5];
+          const degree = degrees[Math.floor(rand() * degrees.length)];
+          const freq = degreeToFreq(rootFreq, useScale, degree, -1);
+          const g = 0.22 + randomness * 0.1;
+          createSynth(freq, "sawtooth", g, 0.25, (step * beatDur));
+        }
+
+        // Pad / lead
+        if (genre.pad && step % 4 === 0) {
+          const degrees = [0,2,4,6];
+          const degree = degrees[Math.floor(rand() * degrees.length)];
+          const freq = degreeToFreq(rootFreq, useScale, degree, 0);
+          const g = 0.15 + randomness * 0.1;
+          const dur = 0.7 + randomness * 0.6;
+          createSynth(freq, "triangle", g, dur, (step * beatDur));
+        }
+      }
+
+      setTimeout(() => {
+        const state = activeTracks.get(trackId);
+        if (state && audioCtx.currentTime >= state.endTime) {
+          activeTracks.delete(trackId);
+        }
+      }, (beats * beatDur + 1) * 1000);
+    }
+
+    function stopTrack(trackId) {
+      activeTracks.delete(trackId);
+      // We let scheduled sounds finish; no hard kill for simplicity.
+    }
+
+    // UI wiring
+    const tracksContainer = document.getElementById("tracks");
+    const pulseSelect = document.getElementById("pulseSelect");
+    const genreSelect = document.getElementById("genreSelect");
+    const bpmInput = document.getElementById("bpmInput");
+    const lengthInput = document.getElementById("lengthInput");
+    const scaleSelect = document.getElementById("scaleSelect");
+    const randomnessRange = document.getElementById("randomnessRange");
+    const createTrackBtn = document.getElementById("createTrackBtn");
+    const statusEl = document.getElementById("status");
+
+    function createTrackCard(config) {
+      const pulse = PULSE_COLORS[config.pulseKey];
+      const genre = GENRES[config.genreKey];
+
+      const card = document.createElement("div");
+      card.className = "card";
+      const id = "track_" + (trackCounter++);
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = `${genre ? config.genreKey : "Pulse Track"} · ${pulse.name}`;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `${pulse.mood} · ${config.bpm} BPM · ${config.beats} beats · ${config.scale === "auto" ? pulse.scale : config.scale}`;
+
+      const badges = document.createElement("div");
+      const b1 = document.createElement("span");
+      b1.className = "badge";
+      b1.textContent = config.pulseKey;
+      const b2 = document.createElement("span");
+      b2.className = "badge";
+      b2.textContent = config.genreKey;
+      const b3 = document.createElement("span");
+      b3.className = "badge";
+      b3.textContent = `Mutation: ${(config.randomness * 100).toFixed(0)}%`;
+      badges.appendChild(b1);
+      badges.appendChild(b2);
+      badges.appendChild(b3);
+
+      const btnPlay = document.createElement("button");
+      btnPlay.className = "btn btn-play";
+      btnPlay.textContent = "Play";
+      btnPlay.onclick = () => {
+        scheduleTrack(id, config);
+      };
+
+      const btnStop = document.createElement("button");
+      btnStop.className = "btn btn-stop";
+      btnStop.textContent = "Stop";
+      btnStop.onclick = () => stopTrack(id);
+
+      card.appendChild(title);
+      card.appendChild(meta);
+      card.appendChild(badges);
+      card.appendChild(btnPlay);
+      card.appendChild(btnStop);
+
+      tracksContainer.prepend(card);
+    }
+
+    createTrackBtn.addEventListener("click", () => {
+      const pulseKey = pulseSelect.value;
+      const genreKey = genreSelect.value;
+      const bpm = Math.max(60, Math.min(180, parseInt(bpmInput.value || "120", 10)));
+      const beats = Math.max(8, Math.min(128, parseInt(lengthInput.value || "32", 10)));
+      const scale = scaleSelect.value;
+      const randomness = parseFloat(randomnessRange.value || "0.3");
+
+      const config = { pulseKey, genreKey, bpm, beats, scale, randomness };
+      createTrackCard(config);
+      statusEl.textContent = "Track card created. Tap Play to generate music.";
+    });
+
+    // Seed a few demo tracks
+    const demoConfigs = [
+      { pulseKey:"Pulse_Black", genreKey:"Fractal Bass", bpm:130, beats:32, scale:"auto", randomness:0.4 },
+      { pulseKey:"Pulse_Violet",genreKey:"Omega Ambient", bpm:90,  beats:48, scale:"auto", randomness:0.3 },
+      { pulseKey:"Pulse_Green", genreKey:"Coherence Pop", bpm:118, beats:32, scale:"auto", randomness:0.35 },
+    ];
+    demoConfigs.forEach(cfg => createTrackCard(cfg));
+  </script>
+</body>
+</html>
