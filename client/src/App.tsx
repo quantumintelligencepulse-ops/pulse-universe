@@ -1969,14 +1969,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("create") && (
-          <Link href="/create" data-testid="link-create"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
-            <span className="flex-1">AI Studio</span>
-            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
-          </Link>
-          )}
           {!appSettings.hiddenPages.includes("games") && (
           <Link href="/games" data-testid="link-games"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/games" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2007,6 +1999,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/shopping" ? "bg-lime-500/15" : "bg-lime-500/5"}`}><ShoppingBag size={14} className="text-lime-600" /></div>
             <span className="flex-1">Shopping</span>
             <span className="text-[9px] bg-gradient-to-r from-lime-500 to-green-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("create") && (
+          <Link href="/create" data-testid="link-create"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
+            <span className="flex-1">AI Studio</span>
+            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           )}
         </div>
