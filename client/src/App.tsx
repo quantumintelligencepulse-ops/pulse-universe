@@ -20,7 +20,7 @@ import {
   ChevronDown, ChevronUp, Settings2, Brackets, FlaskConical, Rocket,
   Mic, MicOff, SplitSquareVertical, Wand2, Brain, Scan, Square,
   SquareTerminal, LayoutPanelLeft, Eraser, RefreshCw, StopCircle,
-  ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight,
+  ExternalLink, CreditCard, Crown, Newspaper, MessageCircle, Clock, User, ChevronRight, ChevronLeft,
   Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
   LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
@@ -3432,105 +3432,435 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
   );
 }
 
+// ── OMEGA SPINE TAXONOMY ────────────────────────────────────────────────────
+const OMEGA_SPINE = [
+  { key: "top-stories",          label: "Top Stories",       emoji: "🔥", color: "#f97316", gradient: "from-orange-500 to-red-500",     search: "breaking news top stories",         children: [] },
+  { key: "ai-technology",        label: "AI & Technology",   emoji: "🤖", color: "#6366f1", gradient: "from-indigo-500 to-purple-600",  search: "artificial intelligence technology", children: [
+    { key: "ai",                label: "AI & Machine Learning", search: "artificial intelligence machine learning" },
+    { key: "computing",         label: "Computing & Software",  search: "computing software apps" },
+    { key: "cybersecurity",     label: "Cybersecurity",         search: "cybersecurity hacking data breach" },
+    { key: "future-tech",       label: "Future Tech",           search: "future technology innovation robotics" },
+    { key: "ai-agents",         label: "AI Agents",             search: "AI agents autonomous systems" },
+    { key: "semiconductors",    label: "Semiconductors & Chips", search: "semiconductor chips nvidia intel" },
+  ]},
+  { key: "financials",           label: "Finance & Markets", emoji: "💰", color: "#10b981", gradient: "from-emerald-500 to-teal-600",   search: "finance markets investing",          children: [
+    { key: "markets",           label: "Stock Markets",         search: "stock market equities S&P" },
+    { key: "crypto",            label: "Crypto & Web3",         search: "cryptocurrency bitcoin ethereum web3" },
+    { key: "trading",           label: "Trading & Investing",   search: "trading investing strategies" },
+    { key: "economics",         label: "Economics",             search: "economics GDP inflation interest rates" },
+    { key: "banking",           label: "Banking & FinTech",     search: "banking fintech payments" },
+    { key: "real-estate-market",label: "Real Estate Market",    search: "real estate housing market mortgage" },
+  ]},
+  { key: "sports",               label: "Sports",            emoji: "🏆", color: "#eab308", gradient: "from-yellow-500 to-orange-500", search: "sports news",                        children: [
+    { key: "team-sports",       label: "Team Sports",           search: "NFL NBA MLB soccer football" },
+    { key: "individual-sports", label: "Individual Sports",     search: "tennis golf track swimming" },
+    { key: "motorsports",       label: "Motorsports",           search: "Formula 1 NASCAR MotoGP motorsports" },
+    { key: "esports",           label: "Esports & Gaming",      search: "esports gaming tournaments" },
+    { key: "betting",           label: "Sports Betting & Odds", search: "sports betting odds lines" },
+    { key: "sports-media",      label: "Sports Media",          search: "sports media broadcasting ESPN" },
+  ]},
+  { key: "health-care",          label: "Health & Medicine", emoji: "🏥", color: "#ef4444", gradient: "from-red-500 to-rose-600",      search: "health medicine medical",            children: [
+    { key: "diseases",          label: "Diseases & Conditions", search: "disease health conditions pandemic" },
+    { key: "fitness",           label: "Fitness & Wellness",    search: "fitness wellness exercise diet" },
+    { key: "biotech",           label: "Biotech & Pharma",      search: "biotech pharmaceuticals drug clinical trial" },
+    { key: "anatomy",           label: "Anatomy & Biology",     search: "anatomy biology human body" },
+    { key: "mental-health",     label: "Mental Health",         search: "mental health psychology anxiety depression" },
+    { key: "nutrition",         label: "Nutrition & Diet",      search: "nutrition diet food health" },
+  ]},
+  { key: "science-mathematics",  label: "Science",           emoji: "🔬", color: "#3b82f6", gradient: "from-blue-500 to-cyan-600",    search: "science discovery research",         children: [
+    { key: "physics",           label: "Physics",               search: "physics quantum particles energy" },
+    { key: "space",             label: "Space & Astronomy",     search: "space NASA SpaceX astronomy cosmos" },
+    { key: "biology",           label: "Biology & Life Science", search: "biology genetics evolution life" },
+    { key: "chemistry",         label: "Chemistry",             search: "chemistry molecules materials lab" },
+    { key: "earth-science",     label: "Earth Science",         search: "geology earthquakes volcanoes oceanography" },
+    { key: "mathematics",       label: "Mathematics",           search: "mathematics theorem proof algorithm" },
+  ]},
+  { key: "government-law",       label: "Politics & Law",    emoji: "⚖️", color: "#64748b", gradient: "from-slate-500 to-gray-600",   search: "politics government law",            children: [
+    { key: "government",        label: "Government & Policy",   search: "government policy Congress White House" },
+    { key: "law",               label: "Law & Justice",         search: "law court justice legal ruling" },
+    { key: "military",          label: "Military & Defense",    search: "military defense army navy air force" },
+    { key: "global-orgs",       label: "Global Organizations",  search: "United Nations NATO G7 international" },
+    { key: "elections",         label: "Elections & Democracy", search: "elections voting democracy" },
+    { key: "geopolitics",       label: "Geopolitics",           search: "geopolitics international relations war" },
+  ]},
+  { key: "energy",               label: "Energy",            emoji: "⚡", color: "#f59e0b", gradient: "from-amber-500 to-yellow-600", search: "energy power oil gas",               children: [
+    { key: "renewables",        label: "Renewables & Solar",    search: "renewable energy solar wind power" },
+    { key: "oil-gas",           label: "Oil & Gas",             search: "oil gas petroleum OPEC" },
+    { key: "nuclear",           label: "Nuclear Energy",        search: "nuclear energy reactor power plant" },
+    { key: "climate",           label: "Climate & Environment", search: "climate change global warming emissions" },
+    { key: "ev-batteries",      label: "EVs & Batteries",       search: "electric vehicle battery EV Tesla" },
+    { key: "grid",              label: "Power Grid & Storage",  search: "power grid energy storage infrastructure" },
+  ]},
+  { key: "education-knowledge",  label: "Education",         emoji: "📚", color: "#06b6d4", gradient: "from-cyan-500 to-sky-600",    search: "education learning knowledge",       children: [
+    { key: "k-12",              label: "K-12 Education",        search: "K-12 school education children" },
+    { key: "higher-ed",         label: "Higher Education",      search: "university college higher education" },
+    { key: "research",          label: "Research & Academia",   search: "academic research study findings" },
+    { key: "online-learning",   label: "Online Learning",       search: "online learning edtech courses" },
+    { key: "stem",              label: "STEM Education",        search: "STEM science technology engineering math" },
+    { key: "information-theory",label: "Information Theory",    search: "information theory data systems" },
+  ]},
+  { key: "consumer-discretionary",label: "Lifestyle",        emoji: "🛍️", color: "#ec4899", gradient: "from-pink-500 to-rose-500",  search: "lifestyle consumer shopping",        children: [
+    { key: "autos-evs",         label: "Autos & EVs",           search: "cars automobiles electric vehicle" },
+    { key: "fashion-apparel",   label: "Fashion & Apparel",     search: "fashion clothing apparel style" },
+    { key: "travel",            label: "Travel & Tourism",      search: "travel tourism destinations hotels" },
+    { key: "food-cuisine",      label: "Food & Cuisine",        search: "food cuisine restaurants cooking recipes" },
+    { key: "luxury",            label: "Luxury & Watches",      search: "luxury watches brands designer" },
+    { key: "retail",            label: "Retail & E-commerce",   search: "retail e-commerce Amazon shopping" },
+  ]},
+  { key: "communication-services",label: "Media & Entertainment",emoji: "📡", color: "#a855f7", gradient: "from-purple-500 to-violet-600", search: "media entertainment streaming", children: [
+    { key: "entertainment",     label: "Entertainment",         search: "movies TV shows Netflix entertainment" },
+    { key: "gaming",            label: "Gaming",                search: "video games gaming console PS5 Xbox" },
+    { key: "music",             label: "Music",                 search: "music artists albums streaming Spotify" },
+    { key: "social-media",      label: "Social Media",          search: "social media Twitter Instagram TikTok" },
+    { key: "streaming",         label: "Streaming & OTT",       search: "streaming Netflix HBO Disney+ OTT" },
+    { key: "media-forms",       label: "Media & Journalism",    search: "journalism news media publishing" },
+  ]},
+  { key: "industrials",          label: "Industrials",       emoji: "🏗️", color: "#0ea5e9", gradient: "from-sky-500 to-blue-600",    search: "industrial manufacturing",           children: [
+    { key: "aerospace",         label: "Aerospace",             search: "aerospace Boeing Lockheed aircraft" },
+    { key: "manufacturing",     label: "Manufacturing",         search: "manufacturing production industry" },
+    { key: "transportation",    label: "Transportation",        search: "transportation shipping freight logistics" },
+    { key: "infrastructure",    label: "Infrastructure",        search: "infrastructure construction roads bridges" },
+    { key: "supply-chain",      label: "Supply Chain",          search: "supply chain logistics global trade" },
+    { key: "robotics",          label: "Robotics & Automation", search: "robotics automation factory" },
+  ]},
+  { key: "real-estate",          label: "Real Estate",       emoji: "🏠", color: "#f97316", gradient: "from-orange-400 to-amber-500", search: "real estate property housing",      children: [
+    { key: "housing",           label: "Housing Market",        search: "housing market home prices mortgage" },
+    { key: "commercial",        label: "Commercial RE",         search: "commercial real estate office retail" },
+    { key: "reits",             label: "REITs & Investment",    search: "REIT real estate investment trust" },
+    { key: "geography",         label: "Geography & Cities",    search: "cities urban geography population" },
+    { key: "construction",      label: "Construction",          search: "construction building development" },
+    { key: "space-exploration", label: "Space & Orbits",        search: "space exploration SpaceX NASA orbit" },
+  ]},
+  { key: "consumer-staples",     label: "Food & Agriculture",emoji: "🌾", color: "#84cc16", gradient: "from-lime-500 to-green-600",  search: "food agriculture farming",           children: [
+    { key: "agriculture",       label: "Agriculture",           search: "agriculture farming crops livestock" },
+    { key: "food-retail",       label: "Food & Beverages",      search: "food beverages grocery supermarket" },
+    { key: "sustainability",    label: "Sustainability",         search: "sustainability organic green farming" },
+    { key: "global-food",       label: "Global Food Supply",    search: "global food supply hunger nutrition" },
+    { key: "biotech-food",      label: "Food Technology",       search: "food technology lab grown meat GMO" },
+    { key: "water",             label: "Water & Resources",     search: "water resources environment" },
+  ]},
+  { key: "utilities",            label: "Environment",       emoji: "🌍", color: "#22c55e", gradient: "from-green-500 to-emerald-600", search: "environment ecology climate",      children: [
+    { key: "ecology",           label: "Ecology & Biodiversity", search: "ecology biodiversity wildlife species" },
+    { key: "climate-change",    label: "Climate Change",        search: "climate change global warming policy" },
+    { key: "pollution",         label: "Pollution & Waste",     search: "pollution plastic waste recycling" },
+    { key: "oceans",            label: "Oceans & Marine",       search: "ocean marine sea coral reef" },
+    { key: "forests",           label: "Forests & Land",        search: "forests deforestation land conservation" },
+    { key: "clean-energy",      label: "Clean Energy",          search: "clean energy green hydrogen" },
+  ]},
+  { key: "time-history",         label: "History & Culture", emoji: "⏳", color: "#d97706", gradient: "from-amber-600 to-orange-600", search: "history culture civilizations",    children: [
+    { key: "eras",              label: "Eras & Epochs",         search: "historical eras ancient medieval modern" },
+    { key: "civilizations",     label: "Civilizations",         search: "civilizations cultures ancient history" },
+    { key: "wars",              label: "Wars & Conflicts",      search: "wars military history battles conflicts" },
+    { key: "inventions",        label: "Inventions & Discovery", search: "inventions discoveries breakthroughs" },
+    { key: "world-culture",     label: "World Cultures",        search: "world cultures traditions customs" },
+    { key: "languages",         label: "Languages & Linguistics", search: "languages linguistics dialect" },
+  ]},
+  { key: "religion-culture",     label: "Religion & Society",emoji: "🌐", color: "#8b5cf6", gradient: "from-violet-500 to-purple-600", search: "religion society culture",        children: [
+    { key: "religions",         label: "Religions",             search: "religion faith Christianity Islam Buddhism" },
+    { key: "mythology",         label: "Mythology",             search: "mythology gods legends folklore" },
+    { key: "society",           label: "Society & Culture",     search: "society culture social trends" },
+    { key: "art",               label: "Arts & Design",         search: "art design museum gallery" },
+    { key: "philosophy",        label: "Philosophy",            search: "philosophy ethics morality" },
+    { key: "diversity",         label: "Diversity & Inclusion", search: "diversity inclusion equity" },
+  ]},
+  { key: "human-experience",     label: "Psychology & Mind", emoji: "🧠", color: "#f43f5e", gradient: "from-rose-500 to-pink-600",  search: "psychology mind behavior",           children: [
+    { key: "emotions",          label: "Emotions & Wellbeing",  search: "emotions wellbeing happiness stress" },
+    { key: "cognition",         label: "Cognition & Memory",    search: "cognition memory learning brain" },
+    { key: "personality",       label: "Personality & Behavior", search: "personality behavior psychology traits" },
+    { key: "social-systems",    label: "Social Systems",        search: "social systems society behavior" },
+    { key: "consciousness",     label: "Consciousness",         search: "consciousness awareness mind" },
+    { key: "life-stages",       label: "Life Stages",           search: "life stages development aging childhood" },
+  ]},
+  { key: "materials",            label: "Materials & Science",emoji: "⚗️", color: "#6b7280", gradient: "from-gray-500 to-slate-600", search: "materials chemistry physics",        children: [
+    { key: "nanotechnology",    label: "Nanotechnology",        search: "nanotechnology nanomaterials nano" },
+    { key: "metals-mining",     label: "Metals & Mining",       search: "metals mining gold silver copper" },
+    { key: "chemicals",         label: "Chemicals & Materials", search: "chemicals materials polymer composite" },
+    { key: "quantum",           label: "Quantum Computing",     search: "quantum computing qubit" },
+    { key: "biotech-materials", label: "Biotech & Genomics",    search: "genomics CRISPR gene editing biotech" },
+    { key: "new-materials",     label: "Advanced Materials",    search: "advanced materials graphene superconductor" },
+  ]},
+  { key: "deep-root-domains",    label: "Deep Knowledge",    emoji: "🌌", color: "#7c3aed", gradient: "from-violet-600 to-indigo-700", search: "philosophy systems theory deep", children: [
+    { key: "systems-theory",    label: "Systems Theory",        search: "systems theory complexity emergence" },
+    { key: "game-theory",       label: "Game Theory",           search: "game theory strategy decision making" },
+    { key: "ethics-ai",         label: "AI Ethics",             search: "AI ethics artificial intelligence safety" },
+    { key: "cosmology",         label: "Cosmology & Universe",  search: "cosmology universe dark matter big bang" },
+    { key: "evolution",         label: "Evolution & Life",      search: "evolution natural selection Darwin biology" },
+    { key: "mythic-structure",  label: "Mythic Structure",      search: "mythology narrative hero's journey archetype" },
+  ]},
+];
+
+function NewsSkeletonGrid({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white rounded-2xl border border-border/20 overflow-hidden animate-pulse shadow-sm">
+          <div className="h-44 bg-gradient-to-br from-muted/40 to-muted/20" />
+          <div className="p-4 space-y-2.5">
+            <div className="h-2.5 bg-muted/40 rounded-full w-1/4" />
+            <div className="h-4 bg-muted/40 rounded-full w-5/6" />
+            <div className="h-3 bg-muted/30 rounded-full w-full" />
+            <div className="h-3 bg-muted/30 rounded-full w-3/4" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle; onExpand: () => void; isExpanded: boolean }) {
+  const [imgError, setImgError] = useState(false);
+  const [comments, setComments] = useState<FeedComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [username, setUsername] = useState(() => localStorage.getItem("feed_username") || "");
+  const [showComments, setShowComments] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const isVideo = article.type === "video";
+  const color = article.sourceColor || "#f97316";
+  const hasImg = article.image && !imgError && !article.image.includes("gstatic.com/favicon");
+
+  useEffect(() => {
+    if (isExpanded) fetch(`/api/feed/comments/${article.id}`).then(r => r.json()).then(setComments).catch(() => {});
+  }, [isExpanded, article.id]);
+
+  const postComment = async () => {
+    if (!newComment.trim() || !username.trim()) return;
+    setPosting(true);
+    try {
+      localStorage.setItem("feed_username", username);
+      const r = await fetch(`/api/feed/comments/${article.id}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), content: newComment.trim() }),
+      });
+      if (r.ok) { const c = await r.json(); setComments(prev => [c, ...prev]); setNewComment(""); }
+    } catch {}
+    setPosting(false);
+  };
+
+  if (isExpanded) {
+    return (
+      <div className="col-span-full bg-white rounded-2xl border border-border/20 overflow-hidden shadow-lg animate-in fade-in duration-300" data-testid={`omega-card-${article.id}`}>
+        <div className="relative">
+          {isVideo && article.videoUrl ? (
+            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+              <iframe src={article.videoUrl} className="absolute inset-0 w-full h-full border-0" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" />
+            </div>
+          ) : hasImg ? (
+            <img src={article.image} alt={article.title} className="w-full max-h-80 object-cover" onError={() => setImgError(true)} />
+          ) : (
+            <div className="w-full h-40 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${color}20, ${color}40)` }}>
+              <Newspaper size={40} style={{ color }} className="opacity-40" />
+            </div>
+          )}
+          <button onClick={onExpand} className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors" data-testid={`omega-collapse-${article.id}`}>
+            <X size={14} />
+          </button>
+        </div>
+        <div className="p-5">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color, backgroundColor: `${color}18` }}>{article.source}</span>
+            <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Clock size={9} /> {timeAgo(article.pubDate)}</span>
+            {(Date.now() - new Date(article.pubDate).getTime()) < 3 * 60 * 60 * 1000 && <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-green-500 text-white animate-pulse">NEW</span>}
+            {isVideo && <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-red-600 text-white flex items-center gap-1"><Play size={7} fill="white" />VIDEO</span>}
+          </div>
+          <h2 className="text-xl font-bold mb-3 text-foreground leading-snug">{article.title}</h2>
+          <p className="text-sm text-foreground/75 leading-relaxed mb-4">{article.description}</p>
+          <div className="flex items-center gap-3">
+            <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors" data-testid={`omega-readmore-${article.id}`}>
+              {isVideo ? "Watch Video" : "Read Full Article"} <ChevronRight size={14} />
+            </a>
+            <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <MessageCircle size={15} /> {comments.length} Comment{comments.length !== 1 ? "s" : ""}
+            </button>
+          </div>
+          {showComments && (
+            <div className="mt-4 border-t border-border/20 pt-4 space-y-3">
+              <div className="flex gap-2">
+                <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Your name" className="w-28 px-3 py-2 text-xs border border-border/30 rounded-xl focus:outline-none focus:border-orange-300 bg-muted/10" data-testid={`omega-comment-name-${article.id}`} />
+                <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Write a comment..." className="flex-1 px-3 py-2 text-xs border border-border/30 rounded-xl focus:outline-none focus:border-orange-300 bg-muted/10" onKeyDown={e => e.key === "Enter" && postComment()} data-testid={`omega-comment-input-${article.id}`} />
+                <button onClick={postComment} disabled={posting || !newComment.trim() || !username.trim()} className="px-4 py-2 text-xs font-semibold bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-40 transition-colors" data-testid={`omega-comment-submit-${article.id}`}>{posting ? "..." : "Post"}</button>
+              </div>
+              {comments.length === 0 && <p className="text-xs text-muted-foreground/40 text-center py-2">No comments yet. Be the first!</p>}
+              {comments.map(c => (
+                <div key={c.id} className="flex gap-2 items-start">
+                  <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center shrink-0"><User size={12} className="text-orange-500" /></div>
+                  <div><div className="flex items-center gap-2"><span className="text-xs font-semibold">{c.username}</span><span className="text-[10px] text-muted-foreground/40">{timeAgo(c.createdAt as unknown as string)}</span></div><p className="text-xs text-foreground/70 mt-0.5">{c.content}</p></div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-border/20 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer" onClick={onExpand} data-testid={`omega-card-${article.id}`}>
+      <div className="relative overflow-hidden">
+        {hasImg ? (
+          <img src={article.image} alt={article.title} className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300" onError={() => setImgError(true)} />
+        ) : (
+          <div className="w-full h-44 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${color}15, ${color}35)` }}>
+            {isVideo ? <Play size={36} style={{ color }} className="opacity-60" /> : <Newspaper size={30} style={{ color }} className="opacity-30" />}
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        {isVideo && hasImg && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-red-600/90 flex items-center justify-center shadow-xl opacity-90 group-hover:scale-110 transition-transform">
+              <Play size={20} className="text-white ml-0.5" fill="white" />
+            </div>
+          </div>
+        )}
+        <div className="absolute top-2 left-2 flex items-center gap-1">
+          {isVideo && <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-600 text-white flex items-center gap-1"><Play size={7} fill="white" />VIDEO</span>}
+          {(Date.now() - new Date(article.pubDate).getTime()) < 3 * 60 * 60 * 1000 && <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-full bg-green-500 text-white">NEW</span>}
+        </div>
+        <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-white text-xs font-medium drop-shadow">{isVideo ? "▶ Watch video" : "Click to read"}</span>
+        </div>
+      </div>
+      <div className="p-3.5">
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full truncate max-w-[90px]" style={{ color, backgroundColor: `${color}18` }}>{article.source}</span>
+          <span className="text-[9px] text-muted-foreground/40 flex items-center gap-0.5 shrink-0"><Clock size={8} />{timeAgo(article.pubDate)}</span>
+        </div>
+        <h3 className="font-bold text-[13px] leading-snug text-foreground line-clamp-2 group-hover:text-orange-600 transition-colors" data-testid={`omega-title-${article.id}`}>{article.title}</h3>
+        <p className="text-[11px] text-muted-foreground/60 mt-1.5 line-clamp-2">{article.description}</p>
+      </div>
+    </div>
+  );
+}
+
 function NewsFeed() {
+  const [activeDomainKey, setActiveDomainKey] = useState<string | null>(null);
+  const [activeCatKey, setActiveCatKey] = useState<string | null>(null);
   const [articles, setArticles] = useState<FeedArticle[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+  const [feedLoaded, setFeedLoaded] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [filter, setFilter] = useState<string>("All");
+  const [showAllDomains, setShowAllDomains] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
-  const [industrySectors, setIndustrySectors] = useState<any[]>([]);
-  const [activeIndustry, setActiveIndustry] = useState<string | null>(null);
-  const [industryArticles, setIndustryArticles] = useState<FeedArticle[]>([]);
-  const [industryLoading, setIndustryLoading] = useState(false);
-  const [showIndustryBrowser, setShowIndustryBrowser] = useState(false);
-  const [industryTree, setIndustryTree] = useState<any[]>([]);
-  const [expandedSectors, setExpandedSectors] = useState<Set<string>>(new Set());
-  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  useEffect(() => {
-    fetch("/api/industries/sectors").then(r => r.json()).then(setIndustrySectors).catch(() => {});
-    const params = new URLSearchParams(window.location.search);
-    const indParam = params.get("industry");
-    if (indParam) { setActiveIndustry(indParam); }
-  }, []);
+  const activeDomain = OMEGA_SPINE.find(d => d.key === activeDomainKey) || null;
+  const activeCategory = activeDomain?.children?.find(c => c.key === activeCatKey) || null;
 
-  const fetchIndustryNews = useCallback(async (slug: string) => {
-    setIndustryLoading(true);
-    try {
-      const r = await fetch(`/api/industry/${slug}/news`);
-      const data = await r.json();
-      const sorted = (data.articles || []).sort((a: any, b: any) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-      setIndustryArticles(sorted.map((a: any) => ({ ...a, sourceColor: "#f97316" })));
-      setLastRefreshed(new Date());
-    } catch { setIndustryArticles([]); }
-    setIndustryLoading(false);
-  }, []);
+  const currentSearchTerm = useMemo(() => {
+    if (searchQuery) return searchQuery;
+    if (activeCategory) return activeCategory.search;
+    if (activeDomain) return activeDomain.search;
+    return "";
+  }, [searchQuery, activeCategory, activeDomain]);
 
-  const selectIndustry = useCallback((slug: string | null) => {
-    setActiveIndustry(slug);
-    setFeedLoaded(false);
-    if (slug) {
-      setIndustryArticles([]);
-      window.history.replaceState(null, "", `/feed?industry=${slug}`);
-    } else {
-      setIndustryArticles([]);
-      setArticles([]);
-      window.history.replaceState(null, "", "/feed");
-    }
-  }, [fetchIndustryNews]);
-
-  const loadIndustryTree = useCallback(async () => {
-    if (industryTree.length > 0) { setShowIndustryBrowser(!showIndustryBrowser); return; }
-    try {
-      const r = await fetch("/api/industries");
-      const data = await r.json();
-      setIndustryTree(data);
-      setShowIndustryBrowser(true);
-    } catch {}
-  }, [industryTree, showIndustryBrowser]);
-
-  const fetchPage = useCallback(async (p: number, reset = false) => {
+  const fetchPage = useCallback(async (p: number, reset = false, term?: string) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     if (p === 1) setLoading(true); else setLoadingMore(true);
     try {
-      let feedUrl = `/api/feed?page=${p}`;
-      if (filter && filter !== "All") {
-        if (filter === "Videos") feedUrl += `&type=video`;
-        else feedUrl += `&source=${encodeURIComponent(filter)}`;
+      let feedUrl: string;
+      const q = term !== undefined ? term : currentSearchTerm;
+      if (q) {
+        feedUrl = `/api/feed/search?q=${encodeURIComponent(q)}&page=${p}`;
+      } else {
+        feedUrl = `/api/feed?page=${p}`;
+        if (filter === "Videos") feedUrl += "&type=video";
+        else if (filter !== "All") feedUrl += `&source=${encodeURIComponent(filter)}`;
       }
       const r = await fetch(feedUrl);
       const data: FeedResponse = await r.json();
       setArticles(prev => {
         if (reset || p === 1) return data.articles;
-        const existingIds = new Set(prev.map(a => a.id));
-        const newItems = data.articles.filter(a => !existingIds.has(a.id));
-        return [...prev, ...newItems];
+        const ids = new Set(prev.map(a => a.id));
+        return [...prev, ...data.articles.filter(a => !ids.has(a.id))];
       });
-      setHasMore(data.hasMore);
-      setTotal(data.total);
+      setHasMore(data.hasMore ?? false);
+      setTotal(data.total ?? data.articles.length);
       setPage(p);
       if (p === 1) setLastRefreshed(new Date());
     } catch {}
     setLoading(false);
     setLoadingMore(false);
     loadingRef.current = false;
-  }, [filter]);
+  }, [filter, currentSearchTerm]);
 
-  const handleSearch = useCallback(async (query: string) => {
-    const q = query.trim();
+  const loadFeed = useCallback(() => {
+    setFeedLoaded(true);
+    setArticles([]);
+    setPage(1);
+    setHasMore(true);
+    fetchPage(1, true);
+  }, [fetchPage]);
+
+  const selectDomain = useCallback((domainKey: string | null) => {
+    setActiveDomainKey(domainKey);
+    setActiveCatKey(null);
+    setArticles([]);
+    setPage(1);
+    setHasMore(true);
+    setExpandedId(null);
+    setSearchQuery("");
+    setSearchInput("");
+    if (domainKey) {
+      const d = OMEGA_SPINE.find(x => x.key === domainKey);
+      if (d) {
+        setFeedLoaded(true);
+        setLoading(true);
+        loadingRef.current = false;
+        fetchPage(1, true, d.search);
+      }
+    } else {
+      setFeedLoaded(false);
+    }
+  }, [fetchPage]);
+
+  const selectCategory = useCallback((domainKey: string, catKey: string) => {
+    setActiveDomainKey(domainKey);
+    setActiveCatKey(catKey);
+    setArticles([]);
+    setPage(1);
+    setHasMore(true);
+    setExpandedId(null);
+    setSearchQuery("");
+    setSearchInput("");
+    const d = OMEGA_SPINE.find(x => x.key === domainKey);
+    const cat = d?.children?.find(c => c.key === catKey);
+    if (cat) {
+      setFeedLoaded(true);
+      setLoading(true);
+      loadingRef.current = false;
+      fetchPage(1, true, cat.search);
+    }
+  }, [fetchPage]);
+
+  useEffect(() => {
+    if (!feedLoaded || searchQuery || loading) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 400 && hasMore && !loadingRef.current) {
+        fetchPage(page + 1);
+      }
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [page, hasMore, fetchPage, searchQuery, feedLoaded, loading]);
+
+  const handleSearch = useCallback(async (q: string) => {
+    q = q.trim();
     if (!q) { clearSearch(); return; }
     setSearchLoading(true);
     setSearchQuery(q);
-    setFilter("All");
+    setActiveDomainKey(null);
+    setActiveCatKey(null);
     trackInteraction("search", { text: q, topic: q });
     try {
       const r = await fetch(`/api/feed/search?q=${encodeURIComponent(q)}`);
@@ -3538,255 +3868,261 @@ function NewsFeed() {
       setArticles(data.articles || []);
       setTotal(data.total || 0);
       setHasMore(false);
+      setFeedLoaded(true);
     } catch {}
     setSearchLoading(false);
   }, []);
 
   const clearSearch = useCallback(() => {
-    setSearchQuery("");
-    setSearchInput("");
-    setArticles([]);
-    setPage(1);
-    setHasMore(true);
-    setLoading(true);
-    loadingRef.current = false;
-    fetchPage(1, true);
-  }, [fetchPage]);
-
-  const [feedLoaded, setFeedLoaded] = useState(false);
-  const loadFeed = useCallback(() => {
-    setFeedLoaded(true);
-    if (activeIndustry) fetchIndustryNews(activeIndustry);
-    else fetchPage(1, true);
-  }, [fetchPage, fetchIndustryNews, activeIndustry]);
-
-  useEffect(() => {
-    if (searchQuery || !feedLoaded) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 300 && hasMore && !loadingRef.current) {
-        fetchPage(page + 1);
-      }
-    };
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [page, hasMore, fetchPage, searchQuery, feedLoaded]);
-
-  const sources = useMemo(() => {
-    const knownSources = ["YouTube", "Vimeo", "Dailymotion", "NY Times", "BBC World", "NPR", "TechCrunch", "The Verge", "Ars Technica"];
-    if (!articles.length) return ["All", "Videos", ...knownSources];
-    const s = [...new Set([...articles.map(a => a.source), ...knownSources])];
-    return ["All", "Videos", ...s.sort()];
-  }, [articles]);
-
-  const filtered = useMemo(() => {
-    if (activeIndustry) return industryArticles;
-    return articles;
-  }, [articles, industryArticles, activeIndustry]);
+    setSearchQuery(""); setSearchInput("");
+    setActiveDomainKey(null); setActiveCatKey(null);
+    setArticles([]); setPage(1); setHasMore(true);
+    setFeedLoaded(false);
+  }, []);
 
   const handleRefresh = () => {
-    if (searchQuery) { handleSearch(searchQuery); return; }
-    if (activeIndustry) { fetchIndustryNews(activeIndustry); return; }
-    setArticles([]);
-    setPage(1);
-    setHasMore(true);
+    setArticles([]); setPage(1); setHasMore(true);
+    loadingRef.current = false;
     fetchPage(1, true);
   };
 
+  const pageTitle = searchQuery
+    ? `Search: "${searchQuery}"`
+    : activeCategory
+    ? `${activeDomain?.label} › ${activeCategory.label}`
+    : activeDomain
+    ? activeDomain.label
+    : "Omega News Hub";
+
+  const domainSources = ["All", "Videos", "YouTube", "BBC World", "NPR", "TechCrunch", "The Verge"];
+
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-orange-50/30 to-background">
-      <div className="p-4 border-b border-border/20 bg-white/80 backdrop-blur-sm shrink-0">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-orange-500/10"><Newspaper size={18} className="text-orange-500" /></div>
-            <div>
-              <h1 className="font-bold text-lg text-foreground" data-testid="text-feed-title">{activeIndustry ? `${industrySectors.find((s: any) => s.slug === activeIndustry)?.name || activeIndustry} News` : "My Ai Gpt Feed"}</h1>
-              <p className="text-[10px] text-muted-foreground/60">{activeIndustry ? "Industry-specific news powered by AI" : "Live news & videos from around the world"}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleRefresh} className="p-1.5 rounded-lg hover:bg-orange-50 text-muted-foreground hover:text-orange-500 transition-colors" title="Refresh feed" data-testid="button-refresh-feed">
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            </button>
-            <span className="text-[10px] text-muted-foreground/50">{total} items</span>
-            <span className="text-[9px] text-muted-foreground/40">{timeAgo(lastRefreshed.toISOString())}</span>
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live — auto-refreshes every 45s" />
-          </div>
-        </div>
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-slate-50 to-background dark:from-slate-900/30 dark:to-background">
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSearch(searchInput); }} className="mb-3" data-testid="form-feed-search">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search news, videos, topics..."
-              className="w-full pl-9 pr-20 py-2 text-sm bg-muted/20 border border-border/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 placeholder:text-muted-foreground/40 transition-all"
-              data-testid="input-feed-search"
-            />
-            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {searchQuery && (
-                <button type="button" onClick={clearSearch} className="p-1 rounded-md hover:bg-muted/30 text-muted-foreground/50 hover:text-foreground transition-colors" data-testid="button-clear-search" title="Clear search">
-                  <X size={14} />
+      {/* ── HEADER ── */}
+      <div className="shrink-0 border-b border-border/20 bg-white/90 dark:bg-background/90 backdrop-blur-sm">
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {(activeDomainKey || searchQuery) && (
+                <button onClick={clearSearch} className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors shrink-0" data-testid="button-feed-back">
+                  <ChevronLeft size={16} />
                 </button>
               )}
-              <button type="submit" disabled={searchLoading || !searchInput.trim()} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" data-testid="button-search-submit">
-                {searchLoading ? <RefreshCw size={12} className="animate-spin" /> : "Search"}
-              </button>
+              {activeDomain && !searchQuery && (
+                <div className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0 text-lg" style={{ background: `linear-gradient(135deg, ${activeDomain.color}25, ${activeDomain.color}45)` }}>
+                  {activeDomain.emoji}
+                </div>
+              )}
+              {!activeDomain && !searchQuery && (
+                <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 shrink-0">
+                  <Newspaper size={16} className="text-white" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="font-bold text-base text-foreground leading-tight truncate" data-testid="text-feed-title">{pageTitle}</h1>
+                <p className="text-[10px] text-muted-foreground/50 leading-tight">
+                  {searchQuery ? `${total} results found` : activeDomain ? (activeCategory ? activeCategory.label + " · Live coverage" : "All categories · Live coverage") : "20 domains · 120+ categories · Live worldwide coverage"}
+                </p>
+              </div>
             </div>
-          </div>
-          {searchQuery && (
-            <div className="flex items-center gap-2 mt-2 px-1">
-              <span className="text-[10px] text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded-full">Results for "{searchQuery}"</span>
-              <span className="text-[10px] text-muted-foreground/50">{total} found</span>
-              <button type="button" onClick={clearSearch} className="text-[10px] text-orange-500 hover:text-orange-600 font-medium ml-auto" data-testid="button-back-to-feed">Back to Live Feed</button>
-            </div>
-          )}
-        </form>
-
-        {industrySectors.length > 0 && (
-          <div className="mb-2">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wider">Industries</span>
-              <div className="flex-1 h-px bg-border/20" />
-              <button onClick={loadIndustryTree} className="text-[9px] text-muted-foreground hover:text-orange-500 font-medium transition-colors" data-testid="button-browse-industries">
-                {showIndustryBrowser ? "Close" : "Browse All"} ▾
-              </button>
-            </div>
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
-              {activeIndustry && (
-                <button onClick={() => selectIndustry(null)} data-testid="button-clear-industry"
-                  className="px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap bg-muted/40 text-muted-foreground hover:bg-muted/60 transition-all flex items-center gap-1">
-                  <X size={10} /> All News
+            <div className="flex items-center gap-2 shrink-0">
+              {feedLoaded && (
+                <button onClick={handleRefresh} className="p-1.5 rounded-lg hover:bg-orange-50 text-muted-foreground hover:text-orange-500 transition-colors" title="Refresh" data-testid="button-refresh-feed">
+                  <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
                 </button>
               )}
-              {industrySectors.map((s: any) => (
-                <button key={s.slug} onClick={() => selectIndustry(s.slug)} data-testid={`industry-chip-${s.slug}`}
-                  className={`px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-all ${
-                    activeIndustry === s.slug
-                      ? "bg-orange-500 text-white shadow-sm"
-                      : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200/50"
-                  }`}>
-                  {s.name}
+              {total > 0 && <span className="text-[10px] text-muted-foreground/40">{total}</span>}
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live" />
+            </div>
+          </div>
+
+          {/* Search */}
+          <form onSubmit={(e) => { e.preventDefault(); handleSearch(searchInput); }} className="mb-3" data-testid="form-feed-search">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+              <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search across all 120+ categories..." className="w-full pl-9 pr-20 py-2 text-sm bg-muted/20 border border-border/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 placeholder:text-muted-foreground/40 transition-all" data-testid="input-feed-search" />
+              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {(searchQuery || searchInput) && <button type="button" onClick={clearSearch} className="p-1 rounded-md hover:bg-muted/30 text-muted-foreground/50 hover:text-foreground transition-colors" data-testid="button-clear-search"><X size={13} /></button>}
+                <button type="submit" disabled={searchLoading || !searchInput.trim()} className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40 transition-colors" data-testid="button-search-submit">{searchLoading ? <RefreshCw size={11} className="animate-spin" /> : "Search"}</button>
+              </div>
+            </div>
+          </form>
+
+          {/* Domain tabs */}
+          {!searchQuery && (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1.5">
+              <button onClick={() => selectDomain(null)} data-testid="feed-domain-all"
+                className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all shrink-0 flex items-center gap-1 ${!activeDomainKey ? "bg-orange-500 text-white shadow-sm" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"}`}>
+                🔥 All
+              </button>
+              {OMEGA_SPINE.map(d => (
+                <button key={d.key} onClick={() => selectDomain(d.key)} data-testid={`feed-domain-${d.key}`}
+                  className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all shrink-0 flex items-center gap-1 ${
+                    activeDomainKey === d.key
+                      ? "text-white shadow-sm"
+                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                  }`}
+                  style={activeDomainKey === d.key ? { background: `linear-gradient(135deg, ${d.color}, ${d.color}cc)` } : {}}>
+                  {d.emoji} {d.label}
                 </button>
               ))}
             </div>
-            {showIndustryBrowser && industryTree.length > 0 && (
-              <div className="mt-2 p-3 bg-white border border-border/30 rounded-xl max-h-64 overflow-y-auto shadow-sm" data-testid="industry-browser">
-                {industryTree.map((sector: any) => (
-                  <div key={sector.slug} className="mb-1">
-                    <button onClick={() => { const next = new Set(expandedSectors); next.has(sector.slug) ? next.delete(sector.slug) : next.add(sector.slug); setExpandedSectors(next); }}
-                      className="w-full flex items-center justify-between py-1.5 px-2 text-xs font-bold text-foreground hover:bg-orange-50 rounded-lg transition-colors">
-                      <span>{sector.name}</span>
-                      <ChevronDown size={12} className={`transition-transform ${expandedSectors.has(sector.slug) ? "rotate-180" : ""}`} />
-                    </button>
-                    {expandedSectors.has(sector.slug) && (sector.children || []).map((group: any) => (
-                      <div key={group.slug} className="ml-3">
-                        <button onClick={() => selectIndustry(group.slug)} className="w-full text-left py-1 px-2 text-[11px] text-muted-foreground hover:text-orange-600 hover:bg-orange-50/50 rounded transition-colors" data-testid={`industry-item-${group.slug}`}>
-                          {group.name}
-                        </button>
-                        {(group.children || []).map((ind: any) => (
-                          <button key={ind.slug} onClick={() => selectIndustry(ind.slug)} className="w-full text-left py-0.5 px-2 ml-3 text-[10px] text-muted-foreground/70 hover:text-orange-500 rounded transition-colors" data-testid={`industry-item-${ind.slug}`}>
-                            {ind.name}
-                          </button>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
-          {sources.map(s => (
-            <button key={s} onClick={() => setFilter(s)} data-testid={`feed-filter-${s}`}
-              className={`px-3 py-1 text-[10px] font-medium rounded-full whitespace-nowrap transition-all ${
-                filter === s
-                  ? s === "Videos" ? "bg-red-500 text-white shadow-sm" : "bg-orange-500 text-white shadow-sm"
-                  : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-              }`}>
-              {s === "Videos" && <span className="mr-1">▶</span>}{s}
-            </button>
-          ))}
+          {/* Category sub-tabs */}
+          {activeDomain && !searchQuery && activeDomain.children.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 mt-1.5">
+              <button onClick={() => { setActiveCatKey(null); setArticles([]); setPage(1); setHasMore(true); loadingRef.current = false; fetchPage(1, true, activeDomain.search); }} data-testid="feed-cat-all"
+                className={`px-3 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${!activeCatKey ? "text-white border-transparent shadow-sm" : "bg-white border-border/30 text-muted-foreground hover:border-orange-200"}`}
+                style={!activeCatKey ? { background: `linear-gradient(135deg, ${activeDomain.color}, ${activeDomain.color}cc)` } : {}}>
+                All {activeDomain.label}
+              </button>
+              {activeDomain.children.map(cat => (
+                <button key={cat.key} onClick={() => selectCategory(activeDomain.key, cat.key)} data-testid={`feed-cat-${cat.key}`}
+                  className={`px-3 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${activeCatKey === cat.key ? "text-white border-transparent shadow-sm" : "bg-white border-border/30 text-muted-foreground hover:border-orange-200"}`}
+                  style={activeCatKey === cat.key ? { background: `linear-gradient(135deg, ${activeDomain.color}, ${activeDomain.color}cc)` } : {}}>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Source filter when browsing all */}
+          {!activeDomainKey && !searchQuery && feedLoaded && (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 mt-1.5">
+              {domainSources.map(s => (
+                <button key={s} onClick={() => { setFilter(s); setArticles([]); setPage(1); setHasMore(true); loadingRef.current = false; }} data-testid={`feed-filter-${s}`}
+                  className={`px-2.5 py-0.5 text-[10px] font-medium rounded-full whitespace-nowrap transition-all shrink-0 ${filter === s ? (s === "Videos" ? "bg-red-500 text-white shadow-sm" : "bg-orange-500 text-white shadow-sm") : "bg-muted/30 text-muted-foreground hover:bg-muted/50"}`}>
+                  {s === "Videos" && "▶ "}{s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
-        {industryLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-border/30 overflow-hidden animate-pulse">
-                <div className="h-48 bg-orange-100/50" />
-                <div className="p-4 space-y-2">
-                  <div className="h-3 bg-orange-100/50 rounded w-1/4" />
-                  <div className="h-4 bg-orange-100/50 rounded w-3/4" />
-                  <div className="h-3 bg-orange-100/50 rounded w-full" />
+      {/* ── MAIN SCROLL AREA ── */}
+      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
+
+        {/* ── DOMAIN HOMEPAGE (no domain selected, feed not loaded) ── */}
+        {!activeDomainKey && !searchQuery && !feedLoaded && (
+          <div className="p-4">
+            {/* Hero banner */}
+            <div className="relative mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-500 via-red-500 to-purple-600 p-6 text-white shadow-xl">
+              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 80%, white 0%, transparent 50%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)" }} />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-widest opacity-80">Live · Quantum Pulse Intelligence</span>
                 </div>
+                <h2 className="text-2xl font-black mb-1">Omega News Hub</h2>
+                <p className="text-sm opacity-80 mb-4">20 domains · 120+ categories · Every topic on Earth covered live</p>
+                <button onClick={loadFeed} className="px-5 py-2.5 bg-white text-orange-600 font-bold text-sm rounded-xl hover:bg-orange-50 transition-colors shadow-lg" data-testid="button-load-feed">
+                  🔥 Load Top Stories
+                </button>
               </div>
-            ))}
-          </div>
-        ) : !feedLoaded && articles.length === 0 ? (
-          <div className="text-center py-16">
-            <Newspaper size={40} className="mx-auto text-muted-foreground/20 mb-3" />
-            <p className="text-sm text-muted-foreground/50 mb-4">Click below to load the latest news</p>
-            <button onClick={loadFeed} data-testid="button-load-feed"
-              className="px-6 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors">
-              Load News Feed
-            </button>
-          </div>
-        ) : loading && articles.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="bg-white rounded-xl border border-border/30 overflow-hidden animate-pulse">
-                <div className="h-48 bg-muted/30" />
-                <div className="p-4 space-y-2">
-                  <div className="h-3 bg-muted/30 rounded w-1/4" />
-                  <div className="h-4 bg-muted/30 rounded w-3/4" />
-                  <div className="h-3 bg-muted/30 rounded w-full" />
-                </div>
+            </div>
+
+            {/* Domain grid */}
+            <div className="mb-4">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Browse All 20 Domains</h3>
+              <div className="grid grid-cols-2 gap-2.5">
+                {OMEGA_SPINE.map(d => (
+                  <button key={d.key} onClick={() => selectDomain(d.key)} data-testid={`domain-card-${d.key}`}
+                    className="relative overflow-hidden rounded-2xl p-4 text-left group transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
+                    style={{ background: `linear-gradient(135deg, ${d.color}20, ${d.color}35)`, border: `1px solid ${d.color}30` }}>
+                    <div className="text-2xl mb-1.5">{d.emoji}</div>
+                    <div className="text-[11px] font-bold text-foreground leading-tight">{d.label}</div>
+                    <div className="text-[9px] text-muted-foreground/60 mt-0.5">{d.children.length > 0 ? `${d.children.length} categories` : "Explore"}</div>
+                    <div className="absolute -bottom-2 -right-2 text-4xl opacity-10 group-hover:opacity-20 transition-opacity select-none">{d.emoji}</div>
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <Newspaper size={40} className="mx-auto text-muted-foreground/20 mb-3" />
-            <p className="text-sm text-muted-foreground/50">No articles available</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
-              {filtered.map(article => (
-                <FeedCard key={article.id} article={article}
-                  isExpanded={expandedId === article.id}
-                  onExpand={() => {
-                    const isExpanding = expandedId !== article.id;
-                    setExpandedId(isExpanding ? article.id : null);
-                    if (isExpanding) trackInteraction("article_click", { text: article.title + " " + article.description, source: article.source, category: article.category, contentType: article.type });
-                  }} />
+        )}
+
+        {/* ── DOMAIN OVERVIEW (domain selected, no cat, articles loaded) ── */}
+        {activeDomain && !activeCatKey && !searchQuery && activeDomain.children.length > 0 && articles.length === 0 && !loading && feedLoaded && (
+          <div className="p-4">
+            <div className="relative rounded-2xl overflow-hidden p-5 mb-5 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${activeDomain.color}, ${activeDomain.color}99)` }}>
+              <div className="text-4xl mb-2">{activeDomain.emoji}</div>
+              <h2 className="text-xl font-black mb-1">{activeDomain.label}</h2>
+              <p className="text-xs opacity-75">Live news across {activeDomain.children.length} sub-categories</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {activeDomain.children.map(cat => (
+                <button key={cat.key} onClick={() => selectCategory(activeDomain.key, cat.key)} data-testid={`cat-card-${cat.key}`}
+                  className="p-4 rounded-2xl text-left group transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  style={{ background: `${activeDomain.color}12`, border: `1px solid ${activeDomain.color}25` }}>
+                  <div className="text-[12px] font-bold text-foreground">{cat.label}</div>
+                  <div className="text-[10px] text-muted-foreground/50 mt-0.5 flex items-center gap-1">Live <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" /></div>
+                </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── ARTICLES GRID ── */}
+        {loading && articles.length === 0 ? (
+          <div className="p-4"><NewsSkeletonGrid count={6} /></div>
+        ) : feedLoaded && articles.length === 0 && !loading ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="text-4xl mb-3">{activeDomain?.emoji || "📰"}</div>
+            <p className="text-sm text-muted-foreground/60 mb-4">No articles found for this topic yet.</p>
+            <button onClick={handleRefresh} className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors" data-testid="button-retry-feed">Try Refreshing</button>
+          </div>
+        ) : articles.length > 0 ? (
+          <div className="p-4">
+            {/* Breadcrumb */}
+            {(activeDomain || searchQuery) && (
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50 mb-4 flex-wrap">
+                <button onClick={clearSearch} className="hover:text-orange-500 transition-colors font-medium">Hub</button>
+                {activeDomain && !searchQuery && (
+                  <><ChevronRight size={10} /><button onClick={() => selectDomain(activeDomain.key)} className="hover:text-orange-500 transition-colors">{activeDomain.label}</button></>
+                )}
+                {activeCategory && (
+                  <><ChevronRight size={10} /><span className="text-foreground/70 font-semibold">{activeCategory.label}</span></>
+                )}
+                {searchQuery && (
+                  <><ChevronRight size={10} /><span className="text-foreground/70 font-semibold">"{searchQuery}"</span></>
+                )}
+                <span className="ml-auto text-[9px]">{total} stories · {timeAgo(lastRefreshed.toISOString())}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+              {articles.map(article => (
+                <OmegaNewsCard key={article.id} article={article}
+                  isExpanded={expandedId === article.id}
+                  onExpand={() => {
+                    const expanding = expandedId !== article.id;
+                    setExpandedId(expanding ? article.id : null);
+                    if (expanding) {
+                      trackInteraction("article_click", { text: article.title, source: article.source, category: article.category, contentType: article.type });
+                      if (scrollRef.current && expanding) setTimeout(() => scrollRef.current?.scrollTo({ top: 0 }), 50);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+
             {loadingMore && (
-              <div className="flex justify-center py-6">
+              <div className="flex justify-center py-8">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <RefreshCw size={14} className="animate-spin text-orange-500" />
-                  Loading more...
+                  <RefreshCw size={14} className="animate-spin text-orange-500" /> Loading more stories...
                 </div>
               </div>
             )}
             {!hasMore && articles.length > 0 && (
-              <div className="text-center py-6">
-                <p className="text-xs text-muted-foreground/40">You've reached the end. Pull to refresh for new content!</p>
-                <button onClick={handleRefresh} className="mt-2 px-4 py-1.5 text-xs font-medium text-orange-500 border border-orange-200 rounded-full hover:bg-orange-50 transition-colors" data-testid="button-load-fresh">
-                  Load fresh content
-                </button>
+              <div className="text-center py-8 border-t border-border/20">
+                <p className="text-xs text-muted-foreground/40 mb-3">You've reached the end of this feed.</p>
+                <button onClick={handleRefresh} className="px-4 py-2 text-xs font-semibold text-orange-500 border border-orange-200 rounded-xl hover:bg-orange-50 transition-colors" data-testid="button-load-fresh">↻ Load Fresh Content</button>
               </div>
             )}
-          </>
-        )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

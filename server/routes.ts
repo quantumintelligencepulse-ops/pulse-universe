@@ -2923,7 +2923,11 @@ ${entries}
 
       const cacheKey = q.toLowerCase();
       if (searchCache[cacheKey] && Date.now() - searchCache[cacheKey].time < SEARCH_CACHE_TTL) {
-        return res.json({ articles: searchCache[cacheKey].results, total: searchCache[cacheKey].results.length, query: q, searchMode: true });
+        const cachedAll = searchCache[cacheKey].results;
+        const cachePage = Math.max(1, parseInt(req.query.page as string || "1", 10));
+        const cachePerPage = 18;
+        const cacheStart = (cachePage - 1) * cachePerPage;
+        return res.json({ articles: cachedAll.slice(cacheStart, cacheStart + cachePerPage), total: cachedAll.length, page: cachePage, hasMore: cacheStart + cachePerPage < cachedAll.length, query: q, searchMode: true });
       }
 
       const { SafeSearchType } = await import("duck-duck-scrape");
@@ -3011,7 +3015,11 @@ ${entries}
 
       allResults.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
       searchCache[cacheKey] = { results: allResults, time: Date.now() };
-      res.json({ articles: allResults, total: allResults.length, query: q, searchMode: true });
+      const page = Math.max(1, parseInt(req.query.page as string || "1", 10));
+      const perPage = 18;
+      const start = (page - 1) * perPage;
+      const pageResults = allResults.slice(start, start + perPage);
+      res.json({ articles: pageResults, total: allResults.length, page, hasMore: start + perPage < allResults.length, query: q, searchMode: true });
     } catch (e: any) {
       console.error("Feed search error:", e?.message || e);
       res.json({ articles: [], total: 0, query: req.query.q || "", searchMode: true, error: "Search temporarily unavailable" });
