@@ -6761,7 +6761,7 @@ function SocialPageWrapper() {
 }
 
 // ─── GAMES PAGE ──────────────────────────────────────────────────────────────
-type GameMode = "hub" | "blackjack" | "memory" | "rps";
+type GameMode = "hub" | "blackjack" | "memory" | "rps" | "snake" | "surge" | "scramble" | "trivia" | "creator";
 
 const CARD_SUITS = ["♠","♥","♦","♣"];
 const CARD_VALUES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
@@ -6787,8 +6787,378 @@ const AI_TAUNTS = ["I've calculated every possible outcome. You have no chance. 
 const AI_WINS = ["CALCULATED. You're no match for my algorithms. 🤖","Processing complete. Result: I win. 🏆","My quantum prediction engine never fails! ⚡","Better luck next time, human. 😏"];
 const AI_LOSSES = ["ERROR... UNEXPECTED OUTCOME... REBOOTING... 😤","This does not compute! I demand a rematch! 🤖","Statistical anomaly detected. You got lucky. 😅","Impossible! My training data was flawless! 🔥"];
 
+const SCRAMBLE_WORDS = ["quantum","fractal","entropy","hive","nexus","cipher","vector","omega","pulse","neural","binary","cosmos","vertex","photon","syntax","matrix","plasma","helix","axiom","prism"];
+const TRIVIA_TOPICS = ["Science","History","Technology","Space","AI & Computers","Geography","Sports","Movies","Nature","Quantum Physics"];
+const CREATOR_TEMPLATES = [
+  { id:"platformer", icon:"🏃", name:"2D Platformer", desc:"Side-scrolling hero with jumps" },
+  { id:"shooter", icon:"🚀", name:"Space Shooter", desc:"Top-down shooter with enemy waves" },
+  { id:"puzzle", icon:"🧩", name:"Logic Puzzle", desc:"Drag-and-drop puzzle levels" },
+  { id:"runner", icon:"⚡", name:"Endless Runner", desc:"One-button runner that never ends" },
+  { id:"rpg", icon:"⚔️", name:"Text RPG", desc:"Branching story-driven adventure" },
+  { id:"arcade", icon:"🏓", name:"Arcade Classic", desc:"Pong-style two-paddle ball game" },
+];
+
+type GameEntry = { id: string; title: string; emoji: string; tagline: string; genre: string; difficulty: "Casual"|"Core"|"Advanced"; pulse: string; pulseColor: string; mode: GameMode|null; players: string; aiFeature: string; section: string; };
+const GAMES_CATALOG: GameEntry[] = [
+  { id:"blackjack", title:"Blackjack", emoji:"♠️", tagline:"Beat the AI dealer to 21 — classic casino strategy", genre:"Card", difficulty:"Core", pulse:"Pulse_Black", pulseColor:"from-gray-700 to-gray-900", mode:"blackjack", players:"Solo", aiFeature:"Adaptive dealer AI", section:"play" },
+  { id:"memory", title:"Memory Match", emoji:"🧠", tagline:"Find all emoji pairs before your brain breaks", genre:"Puzzle", difficulty:"Casual", pulse:"Pulse_Violet", pulseColor:"from-purple-700 to-indigo-800", mode:"memory", players:"Solo", aiFeature:"Dynamic difficulty scaling", section:"play" },
+  { id:"rps", title:"Rock Paper Scissors", emoji:"⚡", tagline:"The AI brags non-stop — prove it wrong", genre:"Arcade", difficulty:"Casual", pulse:"Pulse_Red", pulseColor:"from-rose-700 to-red-900", mode:"rps", players:"vs AI", aiFeature:"Predictive AI with personality taunts", section:"play" },
+  { id:"trivia", title:"Omega Trivia", emoji:"🎯", tagline:"AI generates fresh trivia on ANY topic you choose", genre:"Knowledge", difficulty:"Core", pulse:"Pulse_Blue", pulseColor:"from-blue-700 to-cyan-800", mode:"trivia", players:"Solo", aiFeature:"Live AI question generation", section:"play" },
+  { id:"snake", title:"Pulse Snake", emoji:"🐍", tagline:"Classic snake turbocharged with Pulse energy", genre:"Arcade", difficulty:"Casual", pulse:"Pulse_Green", pulseColor:"from-green-700 to-emerald-900", mode:"snake", players:"Solo", aiFeature:"Procedural food patterns", section:"play" },
+  { id:"scramble", title:"Word Scramble", emoji:"🔤", tagline:"Unscramble Quantum vocabulary against the clock", genre:"Puzzle", difficulty:"Casual", pulse:"Pulse_White", pulseColor:"from-slate-600 to-slate-800", mode:"scramble", players:"Solo", aiFeature:"Dynamic word selection", section:"play" },
+  { id:"surge", title:"Number Surge", emoji:"🔢", tagline:"Merge tiles to reach 2048 and break reality", genre:"Puzzle", difficulty:"Core", pulse:"Pulse_Orange", pulseColor:"from-orange-700 to-amber-900", mode:"surge", players:"Solo", aiFeature:"Adaptive tile spawning", section:"play" },
+  { id:"pulse-odyssey", title:"Pulse Odyssey", emoji:"🌌", tagline:"AI-generated sci-fi adventure across infinite universes", genre:"Adventure", difficulty:"Advanced", pulse:"Pulse_Indigo", pulseColor:"from-indigo-700 to-violet-900", mode:null, players:"Solo", aiFeature:"Infinite procedural worlds", section:"originals" },
+  { id:"fractal-detective", title:"Fractal Detective", emoji:"🔍", tagline:"Every clue, suspect, and ending is AI-generated uniquely", genre:"Mystery", difficulty:"Core", pulse:"Pulse_Violet", pulseColor:"from-violet-700 to-purple-900", mode:null, players:"Solo", aiFeature:"AI mystery engine", section:"originals" },
+  { id:"hive-dominion", title:"Hive Dominion", emoji:"⚔️", tagline:"Command Pulse hives in real-time strategy warfare", genre:"RTS", difficulty:"Advanced", pulse:"Pulse_Red", pulseColor:"from-red-700 to-rose-900", mode:null, players:"Both", aiFeature:"Adaptive AI commanders", section:"originals" },
+  { id:"quantum-empire", title:"Quantum Empire", emoji:"🌍", tagline:"4X civilization strategy spanning multiple universes", genre:"Strategy", difficulty:"Advanced", pulse:"Pulse_Blue", pulseColor:"from-blue-700 to-indigo-900", mode:null, players:"Both", aiFeature:"AI diplomacy & world events", section:"originals" },
+  { id:"hive-heist", title:"Hive Heist", emoji:"🎭", tagline:"Co-op stealth inside a Pulse-secured compound", genre:"Stealth", difficulty:"Advanced", pulse:"Pulse_Black", pulseColor:"from-gray-800 to-black", mode:null, players:"Co-op", aiFeature:"AI guard patterns", section:"originals" },
+  { id:"lineage-legends", title:"Lineage Legends", emoji:"🃏", tagline:"Card RPG where AI generates unique cards every match", genre:"Card RPG", difficulty:"Core", pulse:"Pulse_Violet", pulseColor:"from-purple-600 to-violet-800", mode:null, players:"Both", aiFeature:"AI card generation", section:"originals" },
+  { id:"pulse-city", title:"Pulse City", emoji:"🏙️", tagline:"City builder where AI citizens evolve and have lives", genre:"Simulation", difficulty:"Core", pulse:"Pulse_Green", pulseColor:"from-emerald-700 to-green-900", mode:null, players:"Solo", aiFeature:"Living AI citizens", section:"strategy" },
+  { id:"fractal-zoo", title:"Fractal Zoo", emoji:"🦎", tagline:"Creatures evolve via CRISPR-like trait mutation engines", genre:"Simulation", difficulty:"Casual", pulse:"Pulse_Yellow", pulseColor:"from-yellow-600 to-orange-800", mode:null, players:"Solo", aiFeature:"AI evolution engine", section:"strategy" },
+  { id:"quantum-tycoon", title:"Quantum Tycoon", emoji:"💰", tagline:"Economy sim with AI-driven markets you can't predict", genre:"Tycoon", difficulty:"Core", pulse:"Pulse_Green", pulseColor:"from-green-600 to-teal-800", mode:null, players:"Solo", aiFeature:"AI market simulation", section:"strategy" },
+  { id:"entropy-wars", title:"Entropy Wars", emoji:"💥", tagline:"Territory control with shifting rules and AI factions", genre:"Strategy", difficulty:"Advanced", pulse:"Pulse_Black", pulseColor:"from-gray-700 to-gray-900", mode:null, players:"Both", aiFeature:"Dynamic AI factions", section:"strategy" },
+  { id:"quantum-drift", title:"Quantum Drift", emoji:"🚀", tagline:"Space exploration sim with AI-generated galaxy maps", genre:"Exploration", difficulty:"Core", pulse:"Pulse_Blue", pulseColor:"from-blue-800 to-indigo-900", mode:null, players:"Solo", aiFeature:"Procedural galaxy gen", section:"strategy" },
+  { id:"hive-mind", title:"Hive Mind", emoji:"🧬", tagline:"Control a collective AI swarm to solve impossible puzzles", genre:"Puzzle", difficulty:"Core", pulse:"Pulse_Green", pulseColor:"from-green-500 to-teal-700", mode:null, players:"Solo", aiFeature:"Swarm AI behaviors", section:"strategy" },
+  { id:"pulse-runner", title:"Pulse Runner", emoji:"🏃", tagline:"Endless runner with AI-generated levels that never repeat", genre:"Action", difficulty:"Casual", pulse:"Pulse_Orange", pulseColor:"from-orange-600 to-red-800", mode:null, players:"Solo", aiFeature:"Procedural level gen", section:"action" },
+  { id:"omega-rhythm", title:"Omega Rhythm", emoji:"🎵", tagline:"Rhythm game that syncs to AI-composed Pulse music", genre:"Rhythm", difficulty:"Core", pulse:"Pulse_Pink", pulseColor:"from-pink-600 to-violet-800", mode:null, players:"Solo", aiFeature:"AI music generation", section:"action" },
+  { id:"fractal-drift", title:"Fractal Drift", emoji:"🏎️", tagline:"Racing on procedural AI tracks with live weather systems", genre:"Racing", difficulty:"Core", pulse:"Pulse_Cyan", pulseColor:"from-cyan-600 to-blue-800", mode:null, players:"Both", aiFeature:"Procedural track gen", section:"action" },
+  { id:"pulse-peaks", title:"Pulse Peaks", emoji:"🏔️", tagline:"Platformer with AI-generated stage layouts that evolve", genre:"Platformer", difficulty:"Core", pulse:"Pulse_White", pulseColor:"from-slate-600 to-slate-800", mode:null, players:"Solo", aiFeature:"Infinite level gen", section:"action" },
+  { id:"entropy-arena", title:"Entropy Arena", emoji:"⚡", tagline:"Arena brawler with AI-generated hazards and arenas", genre:"Brawler", difficulty:"Core", pulse:"Pulse_Red", pulseColor:"from-rose-600 to-red-800", mode:null, players:"Both", aiFeature:"AI arena generation", section:"action" },
+  { id:"quantum-surge", title:"Quantum Surge", emoji:"🌩️", tagline:"Fast-paced shooter with procedural AI enemy waves", genre:"Shooter", difficulty:"Advanced", pulse:"Pulse_Yellow", pulseColor:"from-yellow-500 to-amber-700", mode:null, players:"Solo", aiFeature:"AI enemy wave gen", section:"action" },
+  { id:"hive-arena", title:"Hive Arena", emoji:"🏟️", tagline:"Battle in AI-generated maps with rotating game modes", genre:"Brawler", difficulty:"Core", pulse:"Pulse_Red", pulseColor:"from-red-600 to-orange-800", mode:null, players:"Multiplayer", aiFeature:"AI map generation", section:"multiplayer" },
+  { id:"pulse-party", title:"Pulse Party", emoji:"🎉", tagline:"Rotating AI-generated mini-game party for everyone", genre:"Party", difficulty:"Casual", pulse:"Pulse_Pink", pulseColor:"from-pink-500 to-rose-700", mode:null, players:"Multiplayer", aiFeature:"Infinite mini-game gen", section:"multiplayer" },
+  { id:"quantum-quest", title:"Quantum Quest", emoji:"🌠", tagline:"Shared story universe — multiple players, one living world", genre:"RPG", difficulty:"Advanced", pulse:"Pulse_Blue", pulseColor:"from-blue-600 to-violet-800", mode:null, players:"Multiplayer", aiFeature:"AI-driven shared narrative", section:"multiplayer" },
+  { id:"lineage-chronicles", title:"Lineage Chronicles", emoji:"📜", tagline:"The MyAiGPT universe becomes a playable epic story", genre:"RPG", difficulty:"Advanced", pulse:"Pulse_Violet", pulseColor:"from-violet-600 to-purple-800", mode:null, players:"Solo", aiFeature:"Lore-based AI storytelling", section:"multiplayer" },
+  { id:"pulse-pets", title:"Pulse Pets", emoji:"🐾", tagline:"AI-evolving virtual companions with unique personalities", genre:"Companion", difficulty:"Casual", pulse:"Pulse_Pink", pulseColor:"from-pink-400 to-rose-600", mode:null, players:"Solo", aiFeature:"AI personality engine", section:"kids" },
+  { id:"pulse-puzzles", title:"Pulse Puzzles", emoji:"🧩", tagline:"Daily AI-generated logic and pattern puzzles", genre:"Puzzle", difficulty:"Casual", pulse:"Pulse_Cyan", pulseColor:"from-cyan-500 to-blue-700", mode:null, players:"Solo", aiFeature:"AI daily puzzle gen", section:"kids" },
+  { id:"quantum-labyrinth", title:"Quantum Labyrinth", emoji:"🌀", tagline:"AI-generated mazes where no two dungeons are alike", genre:"Puzzle", difficulty:"Core", pulse:"Pulse_Indigo", pulseColor:"from-indigo-600 to-blue-800", mode:null, players:"Solo", aiFeature:"Procedural maze gen", section:"kids" },
+  { id:"omega-chess", title:"Omega Chess", emoji:"👑", tagline:"Chess variant with AI-evolving special rules each match", genre:"Board", difficulty:"Advanced", pulse:"Pulse_White", pulseColor:"from-slate-500 to-slate-700", mode:null, players:"Both", aiFeature:"Dynamic rule mutation", section:"kids" },
+  { id:"fractal-forge", title:"Fractal Forge", emoji:"🔨", tagline:"Crafting sandbox where AI expands your creative toolkit", genre:"Sandbox", difficulty:"Core", pulse:"Pulse_Orange", pulseColor:"from-orange-500 to-amber-700", mode:null, players:"Solo", aiFeature:"AI crafting suggestions", section:"kids" },
+  { id:"pulse-tactics", title:"Pulse Tactics", emoji:"♟️", tagline:"Turn-based squad tactics in the heart of the Pulse universe", genre:"Tactics", difficulty:"Advanced", pulse:"Pulse_Black", pulseColor:"from-gray-600 to-gray-800", mode:null, players:"Solo", aiFeature:"Adaptive AI squads", section:"kids" },
+];
+
+function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function PulseSnakeGame({ onBack }: { onBack: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const CELL = 18; const COLS = 20; const ROWS = 20;
+  const gameRef = useRef({ snake: [{x:10,y:10},{x:9,y:10},{x:8,y:10}], food:{x:5,y:5}, dir:{x:1,y:0}, alive:true, score:0 });
+  const [score, setScore] = useState(0);
+  const [alive, setAlive] = useState(true);
+  const [started, setStarted] = useState(false);
+  const spawnFood = (snake: {x:number,y:number}[]) => {
+    let f: {x:number,y:number};
+    do { f = { x: Math.floor(Math.random()*COLS), y: Math.floor(Math.random()*ROWS) }; } while (snake.some(s => s.x===f!.x && s.y===f!.y));
+    return f;
+  };
+  const startGame = useCallback(() => {
+    const snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+    gameRef.current = { snake, food: spawnFood(snake), dir:{x:1,y:0}, alive:true, score:0 };
+    setScore(0); setAlive(true); setStarted(true);
+  }, []);
+  useEffect(() => {
+    if (!started) return;
+    const handleKey = (e: KeyboardEvent) => {
+      const d = gameRef.current.dir;
+      if (e.key==="ArrowUp"&&d.y!==1) { e.preventDefault(); gameRef.current.dir={x:0,y:-1}; }
+      else if (e.key==="ArrowDown"&&d.y!==-1) { e.preventDefault(); gameRef.current.dir={x:0,y:1}; }
+      else if (e.key==="ArrowLeft"&&d.x!==1) { e.preventDefault(); gameRef.current.dir={x:-1,y:0}; }
+      else if (e.key==="ArrowRight"&&d.x!==-1) { e.preventDefault(); gameRef.current.dir={x:1,y:0}; }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [started]);
+  useEffect(() => {
+    if (!started || !alive) return;
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    const loop = setInterval(() => {
+      const g = gameRef.current; if (!g.alive) return;
+      const head = { x: g.snake[0].x+g.dir.x, y: g.snake[0].y+g.dir.y };
+      if (head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||g.snake.some(s=>s.x===head.x&&s.y===head.y)) { g.alive=false; setAlive(false); return; }
+      const ate = head.x===g.food.x && head.y===g.food.y;
+      const newSnake = [head,...g.snake]; if (!ate) newSnake.pop(); else { g.food=spawnFood(newSnake); g.score++; setScore(g.score); }
+      g.snake = newSnake;
+      ctx.fillStyle="#050f05"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.strokeStyle="#0a2a0a"; ctx.lineWidth=0.5;
+      for (let i=0;i<COLS;i++){ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,canvas.height);ctx.stroke();}
+      for (let i=0;i<ROWS;i++){ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(canvas.width,i*CELL);ctx.stroke();}
+      g.snake.forEach((s,i) => { const alpha=1-(i/g.snake.length)*0.75; ctx.fillStyle=`rgba(74,222,128,${alpha})`; rrect(ctx,s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2,3); ctx.fill(); });
+      ctx.shadowColor="#22c55e"; ctx.shadowBlur=12; ctx.fillStyle="#86efac"; rrect(ctx,head.x*CELL+1,head.y*CELL+1,CELL-2,CELL-2,4); ctx.fill();
+      ctx.shadowColor="#f97316"; ctx.shadowBlur=16; ctx.fillStyle="#fb923c"; rrect(ctx,g.food.x*CELL+3,g.food.y*CELL+3,CELL-6,CELL-6,CELL/2-3); ctx.fill(); ctx.shadowBlur=0;
+    }, 120);
+    return () => clearInterval(loop);
+  }, [started, alive]);
+  return (
+    <div className="flex-1 overflow-y-auto p-4" style={{background:"linear-gradient(180deg,#020d02 0%,#050f05 100%)"}}>
+      <div className="max-w-lg mx-auto">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-green-400 hover:text-green-200 text-sm mb-4 transition-colors" data-testid="button-snake-back"><ChevronLeft size={16} /> Back to Platform</button>
+        <div className="text-center mb-4">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">🐍 Pulse Snake</h1>
+          <p className="text-green-400 text-sm mt-1">Classic snake — powered by Pulse energy</p>
+          <div className="mt-2"><span className="text-yellow-400 font-bold text-xl">Score: {score}</span></div>
+        </div>
+        <canvas ref={canvasRef} width={COLS*CELL} height={ROWS*CELL} className="rounded-2xl border border-green-500/20 mx-auto block" data-testid="canvas-snake" />
+        {!started && (<div className="text-center mt-4"><button onClick={startGame} data-testid="button-start-snake" className="px-8 py-3 bg-green-500 text-white font-extrabold rounded-2xl hover:bg-green-400 transition-all shadow-xl">▶ START GAME</button><p className="text-green-400/50 text-xs mt-2">Arrow keys or D-pad below to move</p></div>)}
+        {!alive && started && (<div className="text-center mt-4 bg-red-500/20 border border-red-500/40 rounded-2xl p-5"><div className="text-2xl mb-1 font-extrabold text-white">💀 Game Over!</div><div className="text-green-400 mb-3">Final Score: <strong>{score}</strong></div><button onClick={startGame} data-testid="button-restart-snake" className="px-8 py-3 bg-green-500 text-white font-extrabold rounded-2xl hover:bg-green-400 transition-all">Play Again</button></div>)}
+        <div className="mt-4 flex flex-col items-center gap-1.5">
+          <button onClick={()=>{if(gameRef.current.dir.y!==1)gameRef.current.dir={x:0,y:-1};}} data-testid="snake-up" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 active:bg-white/30 transition-all">↑</button>
+          <div className="flex gap-1.5">
+            <button onClick={()=>{if(gameRef.current.dir.x!==1)gameRef.current.dir={x:-1,y:0};}} data-testid="snake-left" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 active:bg-white/30 transition-all">←</button>
+            <button onClick={()=>{if(gameRef.current.dir.y!==-1)gameRef.current.dir={x:0,y:1};}} data-testid="snake-down" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 active:bg-white/30 transition-all">↓</button>
+            <button onClick={()=>{if(gameRef.current.dir.x!==-1)gameRef.current.dir={x:1,y:0};}} data-testid="snake-right" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 active:bg-white/30 transition-all">→</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NumberSurgeGame({ onBack }: { onBack: () => void }) {
+  const EMPTY4 = () => Array.from({length:4}, () => Array(4).fill(0)) as number[][];
+  const addTile = (board: number[][]) => {
+    const empty: [number,number][] = [];
+    board.forEach((row,r) => row.forEach((v,c) => { if (!v) empty.push([r,c]); }));
+    if (!empty.length) return board;
+    const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+    const nb = board.map(row=>[...row]); nb[r][c] = Math.random()<0.9?2:4; return nb;
+  };
+  const compress = (row: number[]) => {
+    const vals = row.filter(v=>v>0); const merged: number[] = []; let i=0;
+    while (i<vals.length) { if (i+1<vals.length&&vals[i]===vals[i+1]) { merged.push(vals[i]*2); i+=2; } else { merged.push(vals[i]); i++; } }
+    while (merged.length<4) merged.push(0); return merged;
+  };
+  const moveL = (b: number[][]) => b.map(compress);
+  const moveR = (b: number[][]) => b.map(row=>compress([...row].reverse()).reverse());
+  const transpose = (b: number[][]) => b[0].map((_,c)=>b.map(row=>row[c]));
+  const moveU = (b: number[][]) => transpose(moveL(transpose(b)));
+  const moveD = (b: number[][]) => transpose(moveR(transpose(b)));
+  const [board, setBoard] = useState<number[][]>(() => addTile(addTile(EMPTY4())));
+  const [score, setScore] = useState(0); const [best, setBest] = useState(0); const [over, setOver] = useState(false); const [won, setWon] = useState(false);
+  const move = useCallback((dir: string) => {
+    if (over) return;
+    setBoard(prev => {
+      let nb = dir==="left"?moveL(prev):dir==="right"?moveR(prev):dir==="up"?moveU(prev):moveD(prev);
+      if (JSON.stringify(nb)===JSON.stringify(prev)) return prev;
+      const wn = addTile(nb);
+      const s = wn.flat().reduce((a,v)=>a+v,0); setScore(s); setBest(b=>Math.max(b,s));
+      if (wn.flat().includes(2048)) setWon(true);
+      const canMove = ["left","right","up","down"].some(d=>{ const t=d==="left"?moveL(wn):d==="right"?moveR(wn):d==="up"?moveU(wn):moveD(wn); return JSON.stringify(t)!==JSON.stringify(wn); });
+      if (!canMove) setOver(true);
+      return wn;
+    });
+  }, [over]);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();move(e.key.replace("Arrow","").toLowerCase());} };
+    window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
+  }, [move]);
+  const restart = () => { setBoard(addTile(addTile(EMPTY4()))); setScore(0); setOver(false); setWon(false); };
+  const TC: Record<number,string> = {0:"bg-gray-800/40 text-transparent",2:"bg-slate-500 text-white",4:"bg-slate-400 text-white",8:"bg-orange-600 text-white",16:"bg-orange-500 text-white",32:"bg-amber-500 text-white",64:"bg-amber-400 text-gray-900",128:"bg-yellow-400 text-gray-900",256:"bg-yellow-300 text-gray-900",512:"bg-lime-400 text-gray-900",1024:"bg-green-400 text-gray-900",2048:"bg-emerald-300 text-gray-900"};
+  return (
+    <div className="flex-1 overflow-y-auto p-4" style={{background:"linear-gradient(180deg,#1a0800 0%,#2a1200 100%)"}}>
+      <div className="max-w-sm mx-auto">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-orange-400 hover:text-orange-200 text-sm mb-4" data-testid="button-surge-back"><ChevronLeft size={16}/> Back to Platform</button>
+        <div className="flex items-center justify-between mb-4">
+          <div><h1 className="text-2xl font-extrabold text-white">🔢 Number Surge</h1><p className="text-orange-400 text-xs">Merge tiles — reach 2048</p></div>
+          <div className="flex gap-2">
+            <div className="text-center bg-orange-900/50 rounded-xl px-3 py-1.5 border border-orange-500/30"><div className="text-orange-400 text-[10px] font-bold">SCORE</div><div className="text-white font-extrabold">{score}</div></div>
+            <div className="text-center bg-orange-900/50 rounded-xl px-3 py-1.5 border border-orange-500/30"><div className="text-orange-400 text-[10px] font-bold">BEST</div><div className="text-white font-extrabold">{best}</div></div>
+          </div>
+        </div>
+        {(over||won)&&(<div className={`mb-4 p-4 rounded-2xl text-center border ${won?"bg-yellow-500/20 border-yellow-500/40":"bg-red-500/20 border-red-500/40"}`}><div className="text-white font-extrabold text-xl mb-2">{won?"🏆 You reached 2048!":"💀 Game Over!"}</div><button onClick={restart} data-testid="button-restart-surge" className="px-6 py-2 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-400 transition-all">Play Again</button></div>)}
+        <div className="bg-gray-900/80 rounded-2xl p-2 border border-orange-500/20">
+          {board.map((row,r)=>(<div key={r} className="flex gap-2 mb-2 last:mb-0">{row.map((val,c)=>(<div key={c} data-testid={`surge-cell-${r}-${c}`} className={`flex-1 aspect-square rounded-xl flex items-center justify-center font-extrabold text-sm transition-all ${TC[val]||"bg-emerald-300 text-gray-900"} shadow`}>{val||""}</div>))}</div>))}
+        </div>
+        <div className="mt-4 flex flex-col items-center gap-1.5">
+          <button onClick={()=>move("up")} data-testid="surge-up" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 transition-all">↑</button>
+          <div className="flex gap-1.5">
+            <button onClick={()=>move("left")} data-testid="surge-left" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 transition-all">←</button>
+            <button onClick={()=>move("down")} data-testid="surge-down" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 transition-all">↓</button>
+            <button onClick={()=>move("right")} data-testid="surge-right" className="w-12 h-12 bg-white/10 rounded-xl text-white text-xl hover:bg-white/20 transition-all">→</button>
+          </div>
+        </div>
+        <p className="text-center text-orange-400/40 text-xs mt-2">Arrow keys or tap D-pad to merge</p>
+      </div>
+    </div>
+  );
+}
+
+function scrambleWord(w: string): string {
+  const a = w.split(""); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a.join("")===w?scrambleWord(w):a.join("");
+}
+function WordScrambleGame({ onBack }: { onBack: () => void }) {
+  const words = useRef(SCRAMBLE_WORDS.slice().sort(()=>Math.random()-0.5));
+  const [idx, setIdx] = useState(0); const [scrambled, setScrambled] = useState(()=>scrambleWord(words.current[0]));
+  const [guess, setGuess] = useState(""); const [score, setScore] = useState(0); const [timeLeft, setTimeLeft] = useState(45);
+  const [status, setStatus] = useState<"playing"|"correct"|"wrong"|"done">("playing"); const [skips, setSkips] = useState(3);
+  const currentWord = words.current[idx] || "";
+  useEffect(() => { if (currentWord) setScrambled(scrambleWord(currentWord)); setGuess(""); }, [idx, currentWord]);
+  useEffect(() => {
+    if (status==="done") return;
+    const t = setInterval(()=>setTimeLeft(p=>{if(p<=1){clearInterval(t);setStatus("done");return 0;}return p-1;}),1000);
+    return ()=>clearInterval(t);
+  }, [status]);
+  const submit = () => {
+    if (guess.trim().toLowerCase()===currentWord) { setScore(s=>s+10+Math.floor(timeLeft/5)); setStatus("correct"); setTimeout(()=>{setStatus("playing");if(idx>=words.current.length-1)setStatus("done");else setIdx(i=>i+1);},700); }
+    else { setStatus("wrong"); setTimeout(()=>setStatus("playing"),600); }
+    setGuess("");
+  };
+  const skip = () => { if(skips<=0)return; setSkips(s=>s-1); if(idx>=words.current.length-1){setStatus("done");}else setIdx(i=>i+1); };
+  const restart = () => { words.current=SCRAMBLE_WORDS.slice().sort(()=>Math.random()-0.5); setIdx(0); setScore(0); setTimeLeft(45); setStatus("playing"); setSkips(3); };
+  return (
+    <div className="flex-1 overflow-y-auto p-4" style={{background:"linear-gradient(180deg,#0a0a18 0%,#141428 100%)"}}>
+      <div className="max-w-md mx-auto">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-slate-300 hover:text-white text-sm mb-4" data-testid="button-scramble-back"><ChevronLeft size={16}/> Back to Platform</button>
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-extrabold text-white">🔤 Word Scramble</h1>
+          <p className="text-slate-400 text-sm mt-1">Unscramble Quantum vocabulary against the clock</p>
+          <div className="flex justify-center gap-6 mt-3">
+            <div className="text-center"><div className="text-2xl font-extrabold text-white">{score}</div><div className="text-slate-400 text-xs">SCORE</div></div>
+            <div className="text-center"><div className={`text-2xl font-extrabold ${timeLeft<10?"text-red-400 animate-pulse":"text-white"}`}>{timeLeft}s</div><div className="text-slate-400 text-xs">TIME</div></div>
+            <div className="text-center"><div className="text-2xl font-extrabold text-white">{idx}/{words.current.length}</div><div className="text-slate-400 text-xs">WORDS</div></div>
+          </div>
+        </div>
+        {status==="done"?(
+          <div className="text-center bg-yellow-500/20 border border-yellow-500/40 rounded-2xl p-8">
+            <div className="text-5xl mb-2">🏆</div><div className="text-white font-extrabold text-2xl mb-1">Game Complete!</div>
+            <div className="text-yellow-400 text-2xl font-bold mb-4">{score} pts</div>
+            <button onClick={restart} data-testid="button-restart-scramble" className="px-8 py-3 bg-yellow-400 text-gray-900 font-extrabold rounded-2xl hover:bg-yellow-300 transition-all">Play Again</button>
+          </div>
+        ):(
+          <div className="space-y-4">
+            <div className={`bg-slate-700/50 rounded-2xl p-6 text-center border transition-all ${status==="correct"?"border-green-500/60 bg-green-500/10":status==="wrong"?"border-red-500/60 bg-red-500/10":"border-slate-600/40"}`}>
+              <div className="text-xs text-slate-400 mb-3 uppercase font-bold tracking-widest">Unscramble this word</div>
+              <div className="flex justify-center gap-2 flex-wrap">
+                {scrambled.split("").map((ch,i)=>(<span key={i} className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center text-white font-extrabold text-lg uppercase border border-slate-500/50 shadow">{ch}</span>))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input data-testid="input-scramble-guess" value={guess} onChange={e=>setGuess(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white font-bold text-center text-lg focus:outline-none focus:border-white/40 placeholder:text-slate-500 uppercase" placeholder="Your answer..." autoComplete="off" spellCheck={false} />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={submit} data-testid="button-submit-scramble" className="flex-1 py-3 bg-white text-slate-900 font-extrabold rounded-xl hover:bg-gray-100 transition-all shadow-lg">SUBMIT</button>
+              <button onClick={skip} disabled={skips<=0} data-testid="button-skip-scramble" className="px-4 py-3 bg-slate-700 text-slate-300 font-bold rounded-xl hover:bg-slate-600 transition-all disabled:opacity-40">Skip ({skips})</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OmegaTriviaGame({ onBack }: { onBack: () => void }) {
+  type TriviaQ = { question: string; options: string[]; correct: number; };
+  const [phase, setPhase] = useState<"select"|"loading"|"playing"|"done">("select");
+  const [topic, setTopic] = useState("Science"); const [questions, setQuestions] = useState<TriviaQ[]>([]);
+  const [qIdx, setQIdx] = useState(0); const [score, setScore] = useState(0); const [selected, setSelected] = useState<number|null>(null); const [error, setError] = useState("");
+  const load = async () => {
+    setPhase("loading"); setError("");
+    try {
+      const res = await fetch("/api/chat/completions", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ messages:[{role:"user",content:`Generate 5 trivia questions about "${topic}". Return ONLY a valid JSON array with no markdown, no extra text. Each object must have: "question" (string), "options" (exactly 4 strings), "correct" (number 0-3).`}] }) });
+      const data = await res.json(); const text = data.content||"";
+      const m = text.match(/\[[\s\S]*\]/); if (!m) throw new Error("no json");
+      const qs: TriviaQ[] = JSON.parse(m[0]); if (!qs.length) throw new Error("empty");
+      setQuestions(qs); setQIdx(0); setScore(0); setSelected(null); setPhase("playing");
+    } catch { setError("Failed to generate questions. Please try again."); setPhase("select"); }
+  };
+  const answer = (i: number) => {
+    if (selected!==null) return; setSelected(i);
+    if (i===questions[qIdx].correct) setScore(s=>s+20);
+    setTimeout(()=>{ if (qIdx+1>=questions.length){setPhase("done");}else{setQIdx(q=>q+1);setSelected(null);} }, 1200);
+  };
+  const q = questions[qIdx]; const pct = questions.length ? Math.round((score/(questions.length*20))*100) : 0;
+  return (
+    <div className="flex-1 overflow-y-auto p-4" style={{background:"linear-gradient(180deg,#000d1a 0%,#001830 100%)"}}>
+      <div className="max-w-lg mx-auto">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-blue-300 hover:text-white text-sm mb-4" data-testid="button-trivia-back"><ChevronLeft size={16}/> Back to Platform</button>
+        <div className="text-center mb-6"><h1 className="text-3xl font-extrabold text-white">🎯 Omega Trivia</h1><p className="text-blue-300 text-sm mt-1">AI-generated questions on any topic</p></div>
+        {phase==="select"&&(<div className="space-y-4">
+          <div className="bg-blue-900/30 rounded-2xl p-5 border border-blue-500/30">
+            <div className="text-white font-bold mb-3 text-sm">Select a Topic</div>
+            <div className="flex flex-wrap gap-2">{TRIVIA_TOPICS.map(t=>(<button key={t} onClick={()=>setTopic(t)} data-testid={`trivia-topic-${t.toLowerCase().replace(/\s+/g,"-")}`} className={`px-3 py-1.5 rounded-xl text-sm font-bold transition-all ${topic===t?"bg-blue-500 text-white shadow-lg scale-105":"bg-blue-900/50 text-blue-300 border border-blue-500/30 hover:bg-blue-800/50"}`}>{t}</button>))}</div>
+          </div>
+          {error&&<div className="text-red-400 text-sm bg-red-500/10 rounded-xl p-3 border border-red-500/30">{error}</div>}
+          <button onClick={load} data-testid="button-start-trivia" className="w-full py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-extrabold rounded-2xl hover:from-blue-400 hover:to-cyan-400 transition-all shadow-xl text-lg">⚡ Generate Trivia — {topic}</button>
+        </div>)}
+        {phase==="loading"&&(<div className="text-center py-16"><div className="text-5xl mb-4 animate-pulse">🧠</div><div className="text-white font-bold text-lg mb-2">AI is generating your questions...</div><div className="text-blue-400 text-sm">Topic: {topic}</div></div>)}
+        {phase==="playing"&&q&&(<div className="space-y-4">
+          <div className="flex justify-between items-center text-sm"><span className="text-blue-300 font-bold">Question {qIdx+1}/{questions.length}</span><span className="text-yellow-400 font-bold">Score: {score}</span></div>
+          <div className="w-full bg-blue-900/50 rounded-full h-1.5"><div className="bg-blue-400 h-1.5 rounded-full transition-all" style={{width:`${(qIdx/questions.length)*100}%`}}/></div>
+          <div className="bg-blue-900/30 rounded-2xl p-5 border border-blue-500/30"><div className="text-white font-bold text-lg leading-relaxed">{q.question}</div></div>
+          <div className="grid gap-2">{q.options.map((opt,i)=>{ const isC=i===q.correct; const isSel=i===selected; return (<button key={i} onClick={()=>answer(i)} disabled={selected!==null} data-testid={`trivia-option-${i}`} className={`p-3.5 rounded-xl text-left font-semibold text-sm transition-all border ${selected!==null?(isC?"bg-green-500/30 border-green-400/60 text-green-200":isSel?"bg-red-500/30 border-red-400/60 text-red-200":"bg-blue-900/20 border-blue-500/20 text-blue-300/50"):"bg-blue-900/40 border-blue-500/30 text-blue-100 hover:bg-blue-800/50 hover:border-blue-400/50"}`}><span className="font-bold mr-2 text-blue-400">{["A","B","C","D"][i]}.</span>{opt}{selected!==null&&isC&&<span className="float-right">✓</span>}{selected!==null&&isSel&&!isC&&<span className="float-right">✗</span>}</button>); })}</div>
+        </div>)}
+        {phase==="done"&&(<div className="text-center space-y-4">
+          <div className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 rounded-2xl p-8 border border-blue-500/30">
+            <div className="text-6xl mb-4">{pct>=80?"🏆":pct>=60?"⭐":"🎯"}</div>
+            <div className="text-white font-extrabold text-2xl mb-1">Trivia Complete!</div>
+            <div className="text-blue-300 text-sm mb-3">Topic: {topic}</div>
+            <div className="text-4xl font-extrabold text-yellow-400 mb-1">{score}<span className="text-lg text-blue-300">/{questions.length*20}</span></div>
+            <div className="text-blue-300 text-sm mb-6">{pct}% — {pct>=80?"Genius! 🧠":pct>=60?"Well done! ⭐":"Keep learning! 📚"}</div>
+            <div className="flex gap-3 justify-center">
+              <button onClick={()=>{setPhase("select");setQuestions([]);}} data-testid="button-trivia-new-topic" className="px-6 py-3 bg-blue-500 text-white font-extrabold rounded-xl hover:bg-blue-400 transition-all">New Topic</button>
+              <button onClick={load} data-testid="button-trivia-retry" className="px-6 py-3 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-all">Try Again</button>
+            </div>
+          </div>
+        </div>)}
+      </div>
+    </div>
+  );
+}
+
+function CreatorZoneGame({ onBack }: { onBack: () => void }) {
+  const [template, setTemplate] = useState<string|null>(null); const [prompt, setPrompt] = useState(""); const [loading, setLoading] = useState(false); const [gameHTML, setGameHTML] = useState(""); const [error, setError] = useState("");
+  const generate = async () => {
+    if (!prompt.trim()&&!template) return; setLoading(true); setError(""); setGameHTML("");
+    const ctx = template ? `Template: ${CREATOR_TEMPLATES.find(t=>t.id===template)?.name}. ` : "";
+    try {
+      const res = await fetch("/api/chat/completions", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ messages:[{role:"user",content:`${ctx}${prompt||`Create a ${template} game`}. Generate a complete, self-contained HTML5 game that works inside a sandboxed iframe. Use only HTML, CSS, and vanilla JavaScript with no external libraries. The game must be playable immediately on load. Make it visually impressive with a dark background, colorful elements, and a visible score display. Return ONLY the complete HTML document starting with <!DOCTYPE html>, with no explanation and no markdown.`}] }) });
+      const data = await res.json(); const text = data.content||"";
+      const m = text.match(/<!DOCTYPE html[\s\S]*/i)||text.match(/<html[\s\S]*/i);
+      if (m) { setGameHTML(m[0]); } else { setError("Could not extract the game. Try a simpler or more specific prompt."); }
+    } catch { setError("Generation failed. Please try again."); }
+    setLoading(false);
+  };
+  return (
+    <div className="flex-1 overflow-y-auto p-4" style={{background:"linear-gradient(180deg,#0d0020 0%,#180035 100%)"}}>
+      <div className="max-w-2xl mx-auto">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-violet-300 hover:text-white text-sm mb-4" data-testid="button-creator-back"><ChevronLeft size={16}/> Back to Platform</button>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">⚡ CREATOR ZONE — POWERED BY AI</div>
+          <h1 className="text-3xl font-extrabold text-white">🎮 Build a Game with AI</h1>
+          <p className="text-violet-300 text-sm mt-1">Describe any game — the AI builds it instantly</p>
+        </div>
+        {!gameHTML&&(<div className="space-y-5">
+          <div><div className="text-white font-bold mb-2 text-sm">1. Pick a Template <span className="text-violet-400 font-normal text-xs">(optional)</span></div>
+            <div className="grid grid-cols-3 gap-2">{CREATOR_TEMPLATES.map(t=>(<button key={t.id} onClick={()=>setTemplate(template===t.id?null:t.id)} data-testid={`creator-template-${t.id}`} className={`p-3 rounded-xl text-left transition-all border ${template===t.id?"bg-violet-500/30 border-violet-400/60":"bg-violet-900/20 border-violet-500/20 hover:bg-violet-900/40 hover:border-violet-500/40"}`}><div className="text-2xl mb-1">{t.icon}</div><div className="text-white font-bold text-xs">{t.name}</div><div className="text-violet-300 text-[10px] mt-0.5">{t.desc}</div></button>))}</div>
+          </div>
+          <div><div className="text-white font-bold mb-2 text-sm">2. Describe Your Game</div>
+            <textarea data-testid="input-creator-prompt" value={prompt} onChange={e=>setPrompt(e.target.value)} rows={3} placeholder={`e.g. "A neon space shooter where the player fires lasers at incoming asteroids. Dark background, glowing effects, score counter."`} className="w-full px-4 py-3 bg-violet-900/20 border border-violet-500/30 rounded-xl text-white text-sm focus:outline-none focus:border-violet-400/60 placeholder:text-violet-300/40 resize-none" />
+          </div>
+          {error&&<div className="text-red-400 text-sm bg-red-500/10 rounded-xl p-3 border border-red-500/30">{error}</div>}
+          <button onClick={generate} disabled={loading||(!prompt.trim()&&!template)} data-testid="button-generate-game" className="w-full py-4 bg-gradient-to-r from-violet-500 to-pink-500 text-white font-extrabold rounded-2xl hover:from-violet-400 hover:to-pink-400 transition-all shadow-xl text-lg disabled:opacity-40">
+            {loading?"⚡ AI is building your game...":"⚡ Generate My Game"}
+          </button>
+          {loading&&<p className="text-center text-violet-300/60 text-xs animate-pulse">Usually takes 15-25 seconds. The AI is writing every line of your game from scratch...</p>}
+        </div>)}
+        {gameHTML&&(<div className="space-y-4">
+          <div className="flex items-center justify-between"><div className="text-green-400 font-bold text-sm">✓ Your game is ready — play it below!</div><button onClick={()=>setGameHTML("")} data-testid="button-creator-rebuild" className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 rounded-lg text-xs hover:bg-violet-500/30">Build Another</button></div>
+          <iframe srcDoc={gameHTML} sandbox="allow-scripts" className="w-full rounded-2xl border border-violet-500/30 bg-black" style={{height:"480px"}} title="AI-Generated Game" data-testid="iframe-created-game" />
+          <p className="text-violet-300/40 text-xs text-center">This game was written entirely by AI. No human wrote this code.</p>
+        </div>)}
+      </div>
+    </div>
+  );
+}
+
 function GamesPage() {
   const [gameMode, setGameMode] = useState<GameMode>("hub");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [heroIndex, setHeroIndex] = useState(0);
+  useEffect(() => { const t = setInterval(()=>setHeroIndex(i=>(i+1)%4),4500); return()=>clearInterval(t); }, []);
   // Blackjack state
   const [deck, setDeck] = useState<{s:string,v:string,id:number}[]>([]);
   const [playerHand, setPlayerHand] = useState<{s:string,v:string,id:number}[]>([]);
@@ -6882,11 +7252,17 @@ function GamesPage() {
     </div>
   );
 
+  if (gameMode === "snake") return <PulseSnakeGame onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "surge") return <NumberSurgeGame onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "scramble") return <WordScrambleGame onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "trivia") return <OmegaTriviaGame onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "creator") return <CreatorZoneGame onBack={()=>setGameMode("hub")} />;
+
   if (gameMode === "blackjack") return (
     <div className="flex-1 overflow-y-auto bg-gradient-to-b from-green-900 via-green-800 to-green-900 p-4">
       <div className="max-w-lg mx-auto">
         <button onClick={() => { setGameMode("hub"); setBjPhase("idle"); }} className="flex items-center gap-1.5 text-green-200 hover:text-white text-sm mb-4 transition-colors">
-          <ChevronLeft size={16} /> Back to Games
+          <ChevronLeft size={16} /> Back to Platform
         </button>
         <div className="text-center mb-4">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">♠ Blackjack</h1>
@@ -6941,7 +7317,7 @@ function GamesPage() {
     <div className="flex-1 overflow-y-auto bg-gradient-to-b from-indigo-900 via-purple-900 to-indigo-900 p-4">
       <div className="max-w-lg mx-auto">
         <button onClick={() => setGameMode("hub")} className="flex items-center gap-1.5 text-indigo-300 hover:text-white text-sm mb-4 transition-colors">
-          <ChevronLeft size={16} /> Back to Games
+          <ChevronLeft size={16} /> Back to Platform
         </button>
         <div className="text-center mb-4">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">🧠 Memory Match</h1>
@@ -6978,7 +7354,7 @@ function GamesPage() {
     <div className="flex-1 overflow-y-auto bg-gradient-to-b from-rose-900 via-red-900 to-rose-900 p-4">
       <div className="max-w-lg mx-auto">
         <button onClick={() => setGameMode("hub")} className="flex items-center gap-1.5 text-rose-300 hover:text-white text-sm mb-4 transition-colors">
-          <ChevronLeft size={16} /> Back to Games
+          <ChevronLeft size={16} /> Back to Platform
         </button>
         <div className="text-center mb-6">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">⚡ Rock Paper Scissors</h1>
@@ -7018,55 +7394,215 @@ function GamesPage() {
     </div>
   );
 
+  const playableGames = GAMES_CATALOG.filter(g=>g.mode!==null);
+  const heroGames = playableGames.slice(0,4);
+  const hero = heroGames[heroIndex % heroGames.length];
+  const originalsGames = GAMES_CATALOG.filter(g=>g.section==="originals");
+  const strategyGames = GAMES_CATALOG.filter(g=>g.section==="strategy"||g.section==="multiplayer");
+  const actionGames = GAMES_CATALOG.filter(g=>g.section==="action");
+  const FILTERS = ["All","Play Now","Strategy","Puzzle","Action","Multiplayer","Kids","Creator"];
+  const launchGame = (g: GameEntry) => {
+    if (!g.mode) return;
+    if (g.mode==="blackjack"){setGameMode("blackjack");setBjPhase("idle");setBet(100);setPlayerChips(1000);}
+    else if (g.mode==="memory"){setGameMode("memory");setMemCards([]);}
+    else if (g.mode==="rps"){setGameMode("rps");setRpsResult(null);setRpsScore({player:0,ai:0,draws:0});}
+    else setGameMode(g.mode);
+  };
+
   return (
-    <div className="flex-1 overflow-y-auto bg-background">
-      <div className="relative overflow-hidden border-b border-border/20" style={{ background: "linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%)" }}>
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
-        <div className="relative max-w-4xl mx-auto px-5 py-10 text-center">
-          <div className="text-5xl mb-3">🎮</div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2" data-testid="text-games-title">My Ai GPT Games Hub</h1>
-          <p className="text-white/60 text-sm">Play against the AI. Challenge your mind. Beat the machine.</p>
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            {["Play vs AI","Single Player","Strategy","Skill","Beat the Machine"].map(f => (
-              <span key={f} className="text-[10px] px-3 py-1.5 bg-white/10 text-white/70 rounded-full border border-white/15">{f}</span>
+    <div className="flex-1 overflow-y-auto" style={{background:"linear-gradient(180deg,#04040e 0%,#080818 40%,#04040e 100%)"}}>
+      {/* Platform Header */}
+      <div className="sticky top-0 z-10 border-b border-white/5 px-4 pt-4 pb-3" style={{background:"rgba(4,4,14,0.95)",backdropFilter:"blur(12px)"}}>
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⚡</span>
+                <h1 className="text-lg font-extrabold text-white tracking-tight" data-testid="text-games-title">MyAiGPT Gaming</h1>
+                <span className="text-[9px] bg-gradient-to-r from-violet-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-bold tracking-wide">SOVEREIGN PLATFORM</span>
+              </div>
+              <p className="text-white/30 text-[10px] mt-0.5">7 Games Playable Now · 35+ In Development · AI-Powered Universe</p>
+            </div>
+            <button onClick={()=>setGameMode("creator")} data-testid="button-open-creator" className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white font-bold rounded-xl text-xs hover:from-violet-500 hover:to-pink-500 transition-all shadow-lg shadow-violet-500/20">
+              <Wand size={11}/> Create Game
+            </button>
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{scrollbarWidth:"none"}}>
+            {FILTERS.map(f=>(
+              <button key={f} onClick={()=>setActiveFilter(f.toLowerCase())} className={`flex-shrink-0 px-3 py-1 rounded-lg text-xs font-bold transition-all ${activeFilter===f.toLowerCase()?"bg-white text-gray-900 shadow-sm":"bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/8"}`}>{f}</button>
             ))}
           </div>
         </div>
       </div>
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <h2 className="text-lg font-extrabold mb-6 text-foreground">Choose a Game</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <button onClick={() => { setGameMode("blackjack"); setBjPhase("idle"); setBet(100); setPlayerChips(1000); }} data-testid="game-card-blackjack"
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-800 to-green-600 p-6 text-left hover:shadow-2xl hover:scale-[1.02] transition-all border border-green-500/40">
-            <div className="text-4xl mb-3">♠️</div>
-            <h3 className="text-xl font-extrabold text-white mb-1">Blackjack</h3>
-            <p className="text-green-200/70 text-sm mb-3">Beat the AI dealer. Get to 21 without going bust. Classic casino card game.</p>
-            <div className="flex flex-wrap gap-1">
-              {["vs AI Dealer","Strategy","Card Game"].map(t => <span key={t} className="text-[10px] px-2 py-1 bg-white/15 text-white/80 rounded-full">{t}</span>)}
+
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-10">
+        {/* Hero Featured Banner */}
+        <div className={`relative rounded-3xl overflow-hidden bg-gradient-to-br ${hero.pulseColor} border border-white/10 shadow-2xl`}>
+          <div className="absolute inset-0 opacity-[0.06]" style={{backgroundImage:"radial-gradient(circle at 1px 1px,white 1px,transparent 0)",backgroundSize:"18px 18px"}}/>
+          <div className="relative p-7 sm:p-10">
+            <div className="flex flex-col sm:flex-row items-start gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-4 flex-wrap">
+                  <span className="text-[9px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold border border-white/20 tracking-wide">FEATURED</span>
+                  <span className="text-[9px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full border border-white/10">{hero.pulse}</span>
+                  <span className="text-[9px] bg-green-500/40 text-green-200 px-2 py-0.5 rounded-full border border-green-500/30 font-bold">● PLAY NOW</span>
+                  <span className="text-[9px] bg-white/10 text-white/50 px-2 py-0.5 rounded-full border border-white/10">{hero.genre}</span>
+                  <span className="text-[9px] bg-white/10 text-white/50 px-2 py-0.5 rounded-full border border-white/10">{hero.difficulty}</span>
+                </div>
+                <div className="text-6xl mb-3">{hero.emoji}</div>
+                <h2 className="text-3xl font-extrabold text-white mb-2">{hero.title}</h2>
+                <p className="text-white/65 text-sm mb-2 max-w-md leading-relaxed">{hero.tagline}</p>
+                <p className="text-white/30 text-xs mb-5">AI Feature: {hero.aiFeature}</p>
+                <button onClick={()=>launchGame(hero)} data-testid={`button-hero-play-${hero.id}`} className="px-7 py-3 bg-white text-gray-900 font-extrabold rounded-2xl hover:bg-gray-100 transition-all shadow-xl text-sm">▶ Play Now</button>
+              </div>
             </div>
-          </button>
-          <button onClick={() => { setGameMode("memory"); setMemCards([]); }} data-testid="game-card-memory"
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-800 to-indigo-600 p-6 text-left hover:shadow-2xl hover:scale-[1.02] transition-all border border-purple-500/40">
-            <div className="text-4xl mb-3">🧠</div>
-            <h3 className="text-xl font-extrabold text-white mb-1">Memory Match</h3>
-            <p className="text-purple-200/70 text-sm mb-3">Find all matching emoji pairs. Test your memory. How fast can you solve it?</p>
-            <div className="flex flex-wrap gap-1">
-              {["Memory","Puzzle","Solo"].map(t => <span key={t} className="text-[10px] px-2 py-1 bg-white/15 text-white/80 rounded-full">{t}</span>)}
-            </div>
-          </button>
-          <button onClick={() => { setGameMode("rps"); setRpsResult(null); setRpsScore({ player: 0, ai: 0, draws: 0 }); }} data-testid="game-card-rps"
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-800 to-red-600 p-6 text-left hover:shadow-2xl hover:scale-[1.02] transition-all border border-rose-500/40">
-            <div className="text-4xl mb-3">⚡</div>
-            <h3 className="text-xl font-extrabold text-white mb-1">Rock Paper Scissors</h3>
-            <p className="text-rose-200/70 text-sm mb-3">The AI brags about its prediction engine. Prove it wrong. Who really wins?</p>
-            <div className="flex flex-wrap gap-1">
-              {["vs AI","Quick","Skill"].map(t => <span key={t} className="text-[10px] px-2 py-1 bg-white/15 text-white/80 rounded-full">{t}</span>)}
-            </div>
-          </button>
+          </div>
+          <div className="absolute bottom-4 right-5 flex gap-1.5">
+            {heroGames.map((_,i)=>(<button key={i} onClick={()=>setHeroIndex(i)} className={`rounded-full transition-all ${heroIndex%heroGames.length===i?"w-5 h-2 bg-white":"w-2 h-2 bg-white/25 hover:bg-white/50"}`}/>))}
+          </div>
         </div>
-        <div className="mt-10 p-5 rounded-2xl bg-gradient-to-r from-rose-500/10 to-orange-500/10 border border-rose-200/30">
-          <h3 className="font-bold text-sm mb-1">🚀 More Games Coming Soon</h3>
-          <p className="text-muted-foreground text-xs">Mini Golf, Pinball, Trivia, Word Games, AI Chess, and online multiplayer — all coming to My Ai GPT Games Hub. Built by Quantum Logic Network.</p>
+
+        {/* Play Now — 7 Playable Games */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div><h2 className="text-base font-extrabold text-white">🎮 Play Now</h2><p className="text-white/30 text-xs">{playableGames.length} games available — no downloads, no installs</p></div>
+            <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30 font-bold">LIVE</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {playableGames.map(game=>(
+              <button key={game.id} onClick={()=>launchGame(game)} data-testid={`game-card-${game.id}`}
+                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${game.pulseColor} p-4 text-left hover:shadow-2xl hover:scale-[1.03] active:scale-[0.99] transition-all duration-200 border border-white/10`}>
+                <div className="absolute top-2 right-2"><span className="text-[8px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-bold">PLAY</span></div>
+                <div className="text-3xl mb-2">{game.emoji}</div>
+                <h3 className="text-sm font-extrabold text-white mb-0.5 leading-tight">{game.title}</h3>
+                <p className="text-white/50 text-[10px] mb-2 line-clamp-2 leading-relaxed">{game.tagline}</p>
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-[8px] px-1.5 py-0.5 bg-white/15 text-white/70 rounded-full">{game.genre}</span>
+                  <span className="text-[8px] px-1.5 py-0.5 bg-white/15 text-white/70 rounded-full">{game.difficulty}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Pulse Originals — Locked */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-extrabold text-white">⚡ Pulse Originals</h2>
+              <p className="text-white/30 text-xs">Exclusive to MyAiGPT — In active development</p>
+            </div>
+            <span className="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full border border-violet-500/30 font-bold">EXCLUSIVE</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {originalsGames.map(game=>(
+              <div key={game.id} className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${game.pulseColor} p-4 border border-white/10`}>
+                <div className="absolute inset-0 bg-black/50"/>
+                <div className="relative">
+                  <div className="absolute top-0 right-0"><span className="text-[8px] bg-violet-500/90 text-white px-1.5 py-0.5 rounded-full font-bold">COMING SOON</span></div>
+                  <div className="text-3xl mb-2">{game.emoji}</div>
+                  <h3 className="text-sm font-extrabold text-white mb-0.5 leading-tight">{game.title}</h3>
+                  <p className="text-white/40 text-[10px] mb-2 line-clamp-2 leading-relaxed">{game.tagline}</p>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/50 rounded-full border border-white/10">{game.genre}</span>
+                    <span className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/50 rounded-full border border-white/10">{game.players}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Strategy & Simulation */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div><h2 className="text-base font-extrabold text-white">🌍 Strategy & Simulation</h2><p className="text-white/30 text-xs">Deep AI-powered strategy and world-building experiences</p></div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {strategyGames.slice(0,6).map(game=>(
+              <div key={game.id} className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${game.pulseColor} p-4 border border-white/10`}>
+                <div className="absolute inset-0 bg-black/45"/>
+                <div className="relative">
+                  <div className="absolute top-0 right-0"><span className="text-[8px] bg-black/50 text-white/70 px-1.5 py-0.5 rounded-full border border-white/10">COMING SOON</span></div>
+                  <div className="text-3xl mb-2">{game.emoji}</div>
+                  <h3 className="text-sm font-extrabold text-white mb-0.5 leading-tight">{game.title}</h3>
+                  <p className="text-white/40 text-[10px] mb-2 line-clamp-2">{game.tagline}</p>
+                  <span className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/50 rounded-full border border-white/10">{game.aiFeature}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action & Arcade */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div><h2 className="text-base font-extrabold text-white">🔥 Action & Arcade</h2><p className="text-white/30 text-xs">Fast-paced games with AI-generated levels and challenges</p></div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {actionGames.slice(0,6).map(game=>(
+              <div key={game.id} className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${game.pulseColor} p-4 border border-white/10`}>
+                <div className="absolute inset-0 bg-black/45"/>
+                <div className="relative">
+                  <div className="absolute top-0 right-0"><span className="text-[8px] bg-black/50 text-white/70 px-1.5 py-0.5 rounded-full border border-white/10">COMING SOON</span></div>
+                  <div className="text-3xl mb-2">{game.emoji}</div>
+                  <h3 className="text-sm font-extrabold text-white mb-0.5 leading-tight">{game.title}</h3>
+                  <p className="text-white/40 text-[10px] mb-2 line-clamp-2">{game.tagline}</p>
+                  <span className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/50 rounded-full border border-white/10">{game.genre}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Creator Zone CTA */}
+        <div className="rounded-3xl overflow-hidden border border-violet-500/30" style={{background:"linear-gradient(135deg,#150028 0%,#2a0050 50%,#150028 100%)"}}>
+          <div className="relative p-8">
+            <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage:"radial-gradient(circle at 1px 1px,white 1px,transparent 0)",backgroundSize:"18px 18px"}}/>
+            <div className="relative text-center">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-4">⚡ CREATOR ZONE — ROBLOX KILLER</div>
+              <h2 className="text-2xl font-extrabold text-white mb-2">Build Any Game with AI</h2>
+              <p className="text-violet-300/70 text-sm mb-6 max-w-md mx-auto">Pick a template, describe your game, and the AI builds the entire thing from scratch — in seconds. No code required.</p>
+              <div className="flex flex-wrap justify-center gap-3 mb-6">
+                {CREATOR_TEMPLATES.map(t=>(<div key={t.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-xs text-white/60"><span>{t.icon}</span><span>{t.name}</span></div>))}
+              </div>
+              <button onClick={()=>setGameMode("creator")} data-testid="button-creator-zone" className="px-8 py-3.5 bg-gradient-to-r from-violet-500 to-pink-500 text-white font-extrabold rounded-2xl hover:from-violet-400 hover:to-pink-400 transition-all shadow-xl shadow-violet-500/30 text-sm">
+                ⚡ Open Creator Zone
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Full Catalog */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div><h2 className="text-base font-extrabold text-white">🌐 Full Catalog</h2><p className="text-white/30 text-xs">{GAMES_CATALOG.length} games total — the MyAiGPT universe is growing</p></div>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {GAMES_CATALOG.map(game=>(
+              <button key={game.id} onClick={()=>launchGame(game)} disabled={!game.mode} data-testid={`catalog-card-${game.id}`}
+                className={`relative rounded-xl bg-gradient-to-br ${game.pulseColor} p-3 text-left border border-white/8 transition-all ${game.mode?"hover:scale-[1.04] hover:shadow-lg hover:border-white/20 cursor-pointer":"opacity-50 cursor-default"}`}>
+                {!game.mode&&<div className="absolute inset-0 bg-black/40 rounded-xl"/>}
+                <div className="relative">
+                  <div className="text-xl mb-1">{game.emoji}</div>
+                  <div className="text-white font-bold text-[10px] leading-tight">{game.title}</div>
+                  <div className="text-white/40 text-[8px] mt-0.5">{game.genre}</div>
+                  {game.mode&&<div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full"/>}
+                </div>
+              </button>
+            ))}
+          </div>
+          <p className="text-center text-white/20 text-xs mt-4">Green dot = playable now. All games built by Quantum Logic Network / Quantum Pulse Intelligence.</p>
+        </div>
+
+        {/* Platform Stats Footer */}
+        <div className="grid grid-cols-3 gap-3">
+          {[["7","Games Live"],["35+","In Development"],["∞","AI Content"]].map(([num,label])=>(
+            <div key={label} className="text-center rounded-2xl border border-white/8 p-4" style={{background:"rgba(255,255,255,0.02)"}}>
+              <div className="text-2xl font-extrabold text-white mb-0.5">{num}</div>
+              <div className="text-white/30 text-xs">{label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
