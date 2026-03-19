@@ -1202,8 +1202,7 @@ ${aiStory ? (() => {
   return htmlLines.filter(l => l).join('\n');
 })() : `<p>${escapeXml(article.description)}</p><p>This story is being written by our AI. Check back soon for the full AI-written report, or read the original below.</p>`}
 </div>
-${aiStory ? `<div class="source-attribution"><h4>📌 Original Source</h4><p>This article was written by <strong>Quantum Pulse Intelligence AI</strong> based on reporting by <a href="${escapeXml(aiStory.sourceUrl || article.link || "#")}" target="_blank" rel="noopener">${escapeXml(aiStory.sourceName || article.source)}</a>. All facts are sourced from the original publication. <a href="${escapeXml(article.link || "#")}" target="_blank" rel="noopener noreferrer">Read the original report →</a></p></div>` : ""}
-${article.link ? `<a href="${escapeXml(article.link)}" class="original-link" rel="noopener" target="_blank">📖 Read Original at ${escapeXml(article.source)} →</a>` : ""}
+${aiStory ? `<div class="source-attribution"><h4>📰 About This Story</h4><p>This article was independently written by <strong>Quantum Pulse Intelligence AI</strong> — the sovereign journalism engine of My Ai Gpt. Original reporting credited to <strong>${escapeXml(aiStory.sourceName || article.source)}</strong>. All content is original analysis and commentary.</p></div>` : `<div class="source-attribution"><h4>📰 About This Story</h4><p>This story is powered by <strong>Quantum Pulse Intelligence AI</strong>, the journalism engine of My Ai Gpt. Reporting based on: <strong>${escapeXml(article.source)}</strong>.</p></div>`}
 </article>
 ${allRelated.length > 0 ? `<section class="related"><h2>More Stories from the Omega News Hub</h2><div class="related-grid">${relatedHtml}</div></section>` : ""}
 ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px solid #eee;padding-top:24px;margin-top:24px"><h2>Related Industry News</h2><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">${matchedIndustries.map((ind: any) => `<a href="/industry/${ind.slug}" style="display:inline-block;padding:8px 16px;border-radius:20px;border:1px solid #f97316;color:#f97316;font-size:13px;font-weight:600;text-decoration:none">${escapeXml(ind.name)} News →</a>`).join("")}</div></section>` : ""}
@@ -1225,7 +1224,7 @@ ${matchedIndustries.length > 0 ? `<section class="related" style="border-top:1px
 <p style="margin-top:8px;font-size:12px;color:#aaa">Industry News: ${getByLevel("sector").map((s: any) => `<a href="/industry/${s.slug}" style="color:#f97316;text-decoration:none">${escapeXml(s.name)}</a>`).join(" · ")}</p>
 </div>
 </footer>
-<script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex/i.test(navigator.userAgent)){window.location.href="/feed";}</script>
+<script>if(!/bot|crawl|spider|slurp|googlebot|bingbot|yandex/i.test(navigator.userAgent)){window.location.href="/story/${articleId}";}</script>
 </body>
 </html>`;
 
@@ -3322,6 +3321,26 @@ ${entries}
     }
   });
 
+  // ═══════ SIMPLE AI COMPLETIONS (Education Tutor, etc.) ═══════
+  app.post("/api/chat/completions", async (req, res) => {
+    try {
+      const { messages, stream } = req.body;
+      if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "messages array required" });
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: messages.slice(-20), // safety limit
+        temperature: 0.7,
+        max_tokens: 2000,
+        stream: false,
+      });
+      const content = completion.choices[0]?.message?.content || "";
+      res.json({ content, choices: [{ message: { content } }] });
+    } catch (e: any) {
+      console.error("completions error:", e?.message);
+      res.status(500).json({ error: "AI request failed" });
+    }
+  });
+
   // ═══════ AI STORY WRITER ═══════
   const AI_STORY_WRITE_COOLDOWN_MS = 500; // Don't hammer Groq
   let lastStoryWrite = 0;
@@ -3346,75 +3365,82 @@ ${entries}
       const wordCount = title.split(" ").length + (description || "").split(" ").length;
       const hasGoodContext = wordCount > 15;
 
-      const systemPrompt = `You are a world-class investigative journalist and AI news editor for My Ai Gpt, powered by Quantum Pulse Intelligence. You write professional, engaging, accurate news stories that inform and educate readers. Your writing style blends the precision of Reuters, the depth of The Atlantic, and the readability of the BBC. Always cite sources transparently. Never fabricate quotes or statistics. Write in active voice. Lead with the most important information. Always include context that educates the reader about why this story matters globally.`;
+      const systemPrompt = `You are an Omega-Class Professional Journalist AI for My Ai Gpt, powered by Quantum Pulse Intelligence.
 
-      const userPrompt = `Write a COMPLETE, PROFESSIONAL news article in VALID MARKDOWN based on this source material:
+Your job is to transform raw news context into a fully original, on-site article that keeps readers inside the My Ai Gpt ecosystem. You NEVER send users to competitors, NEVER use outbound links, and NEVER quote copyrighted text directly. You write like a world-class journalist with depth, clarity, and authority — like a top reporter at The Atlantic, Bloomberg, Foreign Affairs, or The Economist, but writing for the My Ai Gpt universe.
 
-**SOURCE TITLE:** ${title}
-**SOURCE DESCRIPTION:** ${description || "(no description available)"}
-**ORIGINAL SOURCE:** ${source || "News Source"}
-**SOURCE URL:** ${sourceUrl || ""}
-**CATEGORY:** ${category || "General News"}
-**DOMAIN:** ${domain || "General"}
+CORE RULES:
+• Write 600–900 words of original article content
+• Professional newsroom tone — active voice, no filler, no AI-speak
+• No fabricated quotes, statistics, or events
+• No outbound links — everything stays on-site
+• No "as an AI language model" or any AI disclaimers
+• No clickbait, no sensationalism, no moralizing
+• Self-contained — readers understand the story without clicking elsewhere`;
 
-REQUIREMENTS — write ALL of these sections:
+      const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+      const userPrompt = `Write a COMPLETE, PROFESSIONAL Omega-Class news article in VALID MARKDOWN based on this source material:
+
+SOURCE TITLE: ${title}
+SOURCE DESCRIPTION: ${description || "(no description available)"}
+ORIGINAL SOURCE: ${source || "News Source"}
+CATEGORY: ${category || "General News"}
+DOMAIN: ${domain || "General"}
+TODAY'S DATE: ${today}
+
+OMEGA-CLASS ARTICLE STRUCTURE — write ALL sections:
 
 # [SEO-Optimized Headline — rewrite for maximum clarity and search discovery]
 
-**By Quantum Pulse Intelligence | My Ai Gpt News** · *[Today's Date: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}]* · *Est. read: 4–6 min*
+**By Quantum Pulse Intelligence** | My Ai Gpt News · *${today}*
 
 ---
 
-## The Story
+## The Lead
 
-[Lead paragraph: 2-3 sentences. WHO, WHAT, WHEN, WHERE, WHY. The most newsworthy fact goes first. No fluff.]
+[2-3 sentences. WHO, WHAT, WHEN, WHERE, WHY. Most newsworthy fact first. No fluff. Hook the reader instantly.]
 
-[Second paragraph: Essential background context — what readers need to understand why this matters.]
+## Core Facts
 
-[Third paragraph: Deeper analysis — the broader trend, pattern, or system this event is part of.]
+[Summarize the essential details. What happened. Who is involved. What was said or done. Keep it factual and grounded.]
+
+## Context & Background
+
+[2 paragraphs: historical, political, economic, or social context. Why does this event exist? What forces created it? What must readers know to understand the full picture?]
 
 ## Why This Matters
 
-[1-2 paragraphs explaining the real-world impact. Who is affected? What changes? What are the stakes?]
+[2 paragraphs: real-world impact. Who is affected and how? What changes for ordinary people, markets, or geopolitics? What are the stakes?]
 
-## Expert Perspective
+## Multiple Perspectives
 
-[1 paragraph presenting multiple perspectives on this issue — pro/con, different stakeholders, differing expert viewpoints. Be balanced.]
+[1 paragraph: present balanced viewpoints — different stakeholders, experts, or sides of the debate. Be fair. Show complexity.]
 
-## Historical Context
+## The Bigger Picture
 
-[1 paragraph: Where does this fit in history? What precedents exist? What does the past tell us about this development?]
+[1-2 paragraphs: where this fits in history or broader trends. What patterns does this repeat? What does it signal about where things are headed?]
 
-## What Happens Next
+## Forward Pulse
 
-[1-2 paragraphs on likely next steps, timeline, what to watch for, and what questions remain unanswered.]
+[1-2 paragraphs: what likely happens next based on patterns and context. What questions remain unanswered? What to watch for? Non-speculative, grounded in facts.]
 
 ---
 
 ## Key Takeaways
 
-- [Bullet 1: Most important fact]
-- [Bullet 2: Who is affected]  
-- [Bullet 3: What changes]
-- [Bullet 4: What to watch]
-- [Bullet 5: Bigger picture context]
+- [Most important fact]
+- [Who is affected]
+- [What changes]
+- [What to watch next]
+- [The bigger picture signal]
 
 ---
 
-*Source: [${source || "Original Source"}](${sourceUrl || "#"}) — This article was written by Quantum Pulse Intelligence AI based on publicly available information. [Read the original report →](${sourceUrl || "#"})*
+*This story was written by **Quantum Pulse Intelligence AI** — the sovereign journalism engine of My Ai Gpt. Original reporting credited to ${source || "the original source"}. All analysis and commentary is original.*
 
 ---
 
-**IMPORTANT RULES:**
-- Write 600–900 words of actual article content (not counting headers)
-- Use journalistic, professional language
-- No bullet points in main body — use flowing paragraphs
-- Add 2-3 relevant hyperlinks naturally in the text (use markdown [text](url) format for credible sources like Wikipedia, government sites, or major publications)
-- Never fabricate specific quotes, statistics, or numbers not in the source
-- The article must be self-contained — readers should fully understand the story without clicking away
-- End with the source attribution linking back to original
-
-Generate ONLY the markdown article. No preamble, no explanation, no meta-commentary.`;
+Generate ONLY the markdown article. No preamble, no explanation, no meta-commentary. Just the article.`;
 
       const completion = await groq.chat.completions.create({
         model: "llama-3.1-8b-instant",

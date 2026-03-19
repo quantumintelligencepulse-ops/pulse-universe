@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
-import logo from "@assets/MyAiGpt_1772000395528.webp";
+import logo from "@assets/myaigpt-logo.png";
 
 const MESSAGE_LIMIT = 9;
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
@@ -3259,7 +3259,14 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
   const [posting, setPosting] = useState(false);
   const [imgError, setImgError] = useState(false);
   const expandTimeRef = useRef<number>(0);
+  const [, setLocation] = useLocation();
   const isVideo = article.type === "video";
+
+  const openStory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    sessionStorage.setItem(`article_${article.id}`, JSON.stringify(article));
+    setLocation(`/story/${article.id}`);
+  };
   const color = article.sourceColor || "#f97316";
 
   useEffect(() => {
@@ -3368,10 +3375,17 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
               <img src={article.image} alt="" className="w-full max-h-96 object-cover rounded-lg" onError={() => setImgError(true)} />
             ) : null}
             <p className="text-sm text-foreground/80 leading-relaxed">{article.description}</p>
-            <a href={article.link} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors" data-testid={`feed-readmore-${article.id}`}>
-              {isVideo ? `Watch on ${article.source}` : "Read full article"} <ChevronRight size={12} />
-            </a>
+            {isVideo ? (
+              <a href={article.link} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-red-500 hover:text-red-600 transition-colors" data-testid={`feed-watch-${article.id}`}>
+                <Play size={11} fill="currentColor" /> Watch Video
+              </a>
+            ) : (
+              <button onClick={openStory}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-500 hover:text-orange-600 transition-colors" data-testid={`feed-readmore-${article.id}`}>
+                <BookOpen size={11} /> Read Full Story <ChevronRight size={11} />
+              </button>
+            )}
 
             <div className="border-t border-border/20 pt-3">
               <button onClick={() => setShowComments(!showComments)} data-testid={`feed-toggle-comments-${article.id}`}
@@ -3614,9 +3628,16 @@ function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle
   const [username, setUsername] = useState(() => localStorage.getItem("feed_username") || "");
   const [showComments, setShowComments] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [, setLocation] = useLocation();
   const isVideo = article.type === "video";
   const color = article.sourceColor || "#f97316";
   const hasImg = article.image && !imgError && !article.image.includes("gstatic.com/favicon");
+
+  const openStory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    sessionStorage.setItem(`article_${article.id}`, JSON.stringify(article));
+    setLocation(`/story/${article.id}`);
+  };
 
   useEffect(() => {
     if (isExpanded) fetch(`/api/feed/comments/${article.id}`).then(r => r.json()).then(setComments).catch(() => {});
@@ -3664,10 +3685,16 @@ function OmegaNewsCard({ article, onExpand, isExpanded }: { article: FeedArticle
           </div>
           <h2 className="text-xl font-bold mb-3 text-foreground leading-snug">{article.title}</h2>
           <p className="text-sm text-foreground/75 leading-relaxed mb-4">{article.description}</p>
-          <div className="flex items-center gap-3">
-            <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors" data-testid={`omega-readmore-${article.id}`}>
-              {isVideo ? "Watch Video" : "Read Full Article"} <ChevronRight size={14} />
-            </a>
+          <div className="flex items-center gap-3 flex-wrap">
+            {isVideo ? (
+              <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors" data-testid={`omega-watch-${article.id}`}>
+                <Play size={13} fill="white" /> Watch Video
+              </a>
+            ) : (
+              <button onClick={openStory} className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-md" data-testid={`omega-readmore-${article.id}`}>
+                <BookOpen size={14} /> Read Full Story <ChevronRight size={14} />
+              </button>
+            )}
             <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <MessageCircle size={15} /> {comments.length} Comment{comments.length !== 1 ? "s" : ""}
             </button>
@@ -6554,28 +6581,518 @@ function MusicPageWrapper() {
   </div></Layout>;
 }
 
-function EducationPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Education - Coming Soon | My Ai Gpt", description: "AI-powered education platform coming soon to My Ai Gpt by Quantum Logic Network. Learn anything with personalized AI tutoring, courses, and interactive lessons.", ogTitle: "My Ai Gpt Education - AI Learning Platform", ogDesc: "Personalized AI-powered education and learning platform. Coming soon.", ogType: "website", canonical: window.location.origin + "/education" }); }, []);
-  return <Layout><div className="flex-1 flex items-center justify-center p-6">
-    <div className="text-center max-w-md">
-      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
-        <GraduationCap size={36} className="text-white" />
+// ─── STORY READER (ON-SITE ARTICLE READER — NEVER SENDS USERS AWAY) ──────────
+function StoryReaderPage() {
+  const [, params] = useRoute("/story/:articleId");
+  const [, setLocation] = useLocation();
+  const articleId = params?.articleId || "";
+  const { toast } = useToast();
+
+  const [article, setArticle] = useState<FeedArticle | null>(() => {
+    try { const s = sessionStorage.getItem(`article_${articleId}`); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
+  const [story, setStory] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [comments, setComments] = useState<FeedComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [commentName, setCommentName] = useState(() => localStorage.getItem("feed_username") || "");
+  const [posting, setPosting] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    if (!articleId) return;
+    updateSEO({ title: article?.title ? `${article.title} | My Ai Gpt News` : "Story | My Ai Gpt", description: article?.description || "Read this AI-written story on My Ai Gpt", canonical: window.location.origin + `/story/${articleId}` });
+    loadStory();
+    fetch(`/api/feed/comments/${articleId}`).then(r => r.json()).then(setComments).catch(() => {});
+  }, [articleId]);
+
+  const loadStory = async () => {
+    setLoading(true); setError("");
+    try {
+      // First check if story is already cached
+      const cached = await fetch(`/api/news/story/${articleId}`).then(r => r.ok ? r.json() : null).catch(() => null);
+      if (cached?.story) { setStory(cached.story); setLoading(false); return; }
+      // Generate new story
+      if (!article) { setError("Article not found. Please go back and try again."); setLoading(false); return; }
+      const res = await fetch("/api/news/write", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articleId, title: article.title, description: article.description, source: article.source, sourceUrl: article.link, image: article.image, category: article.category, domain: article.domain }),
+      });
+      const data = await res.json();
+      if (data.story) setStory(data.story);
+      else setError("Story could not be generated right now. Please try again.");
+    } catch { setError("Connection error. Please check your connection and try again."); }
+    setLoading(false);
+  };
+
+  const postComment = async () => {
+    if (!newComment.trim() || !commentName.trim()) return;
+    setPosting(true);
+    try {
+      localStorage.setItem("feed_username", commentName);
+      const r = await fetch(`/api/feed/comments/${articleId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: commentName.trim(), content: newComment.trim() }) });
+      if (r.ok) { const c = await r.json(); setComments(prev => [c, ...prev]); setNewComment(""); }
+    } catch {}
+    setPosting(false);
+  };
+
+  const renderMarkdown = (body: string) => {
+    // Strip h1 (shown as page title already)
+    const stripped = body.replace(/^#[^#\n].+\n+/, "");
+    return (
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+        h2: ({ children }) => <h2 className="text-xl font-bold mt-8 mb-3 text-foreground border-l-4 border-orange-500 pl-3">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-lg font-semibold mt-6 mb-2 text-foreground">{children}</h3>,
+        p: ({ children }) => <p className="mb-5 leading-[1.85] text-foreground/85">{children}</p>,
+        ul: ({ children }) => <ul className="mb-5 ml-5 space-y-2 list-disc">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-5 ml-5 space-y-2 list-decimal">{children}</ol>,
+        li: ({ children }) => <li className="text-foreground/80 leading-relaxed">{children}</li>,
+        strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+        em: ({ children }) => <em className="italic text-foreground/70">{children}</em>,
+        blockquote: ({ children }) => <blockquote className="border-l-4 border-orange-400 pl-4 py-2 my-5 bg-orange-50/50 dark:bg-orange-900/10 rounded-r-lg italic text-foreground/70">{children}</blockquote>,
+        hr: () => <hr className="border-border/30 my-8" />,
+        a: ({ href, children }) => <span className="text-orange-500 font-medium underline underline-offset-2 cursor-default">{children}</span>,
+        code: ({ children }) => <code className="bg-muted/60 rounded px-1.5 py-0.5 text-sm font-mono text-foreground/80">{children}</code>,
+      }}>{stripped}</ReactMarkdown>
+    );
+  };
+
+  const heroImg = (!imgError && (article?.image || story?.heroImage)) ? (article?.image || story?.heroImage) : null;
+
+  return (
+    <Layout>
+      <div className="flex-1 overflow-y-auto bg-[#f9f8f6] dark:bg-gray-950">
+        <div className="max-w-[780px] mx-auto px-4 pb-20">
+          {/* Nav bar */}
+          <div className="sticky top-0 z-10 bg-[#f9f8f6]/95 dark:bg-gray-950/95 backdrop-blur border-b border-border/20 py-3 flex items-center gap-3 mb-6">
+            <button onClick={() => setLocation("/feed")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="button-story-back">
+              <ChevronLeft size={16} /> Back to News Hub
+            </button>
+            <div className="flex-1" />
+            <button onClick={() => setShowShare(true)} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-orange-500 transition-colors" data-testid="button-story-share">
+              <Share2 size={14} /> Share
+            </button>
+          </div>
+
+          {/* Loading state */}
+          {loading && (
+            <div className="space-y-5 animate-pulse">
+              <div className="h-8 bg-muted/40 rounded-xl w-3/4" />
+              <div className="h-4 bg-muted/30 rounded w-1/2" />
+              <div className="h-56 bg-muted/30 rounded-2xl" />
+              {[1,2,3,4].map(i => <div key={i} className="space-y-2"><div className="h-4 bg-muted/25 rounded w-full" /><div className="h-4 bg-muted/20 rounded w-5/6" /><div className="h-4 bg-muted/15 rounded w-4/5" /></div>)}
+              <div className="flex items-center gap-3 justify-center pt-4">
+                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center animate-spin">
+                  <Sparkles size={14} className="text-orange-500" />
+                </div>
+                <span className="text-sm text-muted-foreground font-medium">Quantum Pulse Intelligence is writing your story…</span>
+              </div>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!loading && error && (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                <X size={28} className="text-red-400" />
+              </div>
+              <p className="text-foreground font-semibold mb-2">{error}</p>
+              <button onClick={loadStory} className="mt-4 px-6 py-2.5 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors">Try Again</button>
+            </div>
+          )}
+
+          {/* Story content */}
+          {!loading && story && (
+            <>
+              {/* Byline + badges */}
+              <div className="flex items-center gap-2 flex-wrap mb-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600">{article?.source || story.sourceName}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600">🤖 AI Written</span>
+                {story.category && story.category !== "General" && <span className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-border/30 text-muted-foreground">{story.category}</span>}
+              </div>
+
+              {/* Title */}
+              <h1 className="text-2xl md:text-[2rem] font-extrabold leading-[1.2] tracking-tight text-foreground mb-4" data-testid="story-title">{story.seoTitle || article?.title}</h1>
+
+              {/* Meta */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-6 font-medium flex-wrap">
+                <span className="flex items-center gap-1"><Brain size={11} className="text-violet-500" /> <strong className="text-violet-600">Quantum Pulse Intelligence</strong></span>
+                <span className="flex items-center gap-1"><Calendar size={11} /> {article?.pubDate ? new Date(article.pubDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Today"}</span>
+                {story.readTimeMinutes && <span className="flex items-center gap-1"><Clock size={11} /> {story.readTimeMinutes} min read</span>}
+                {story.views > 0 && <span className="flex items-center gap-1"><Eye size={11} /> {story.views.toLocaleString()} views</span>}
+              </div>
+
+              {/* Hero image */}
+              {heroImg && (
+                <div className="mb-8 rounded-2xl overflow-hidden shadow-lg">
+                  <img src={heroImg} alt={story.seoTitle || article?.title} className="w-full max-h-[420px] object-cover" onError={() => setImgError(true)} data-testid="story-hero-image" />
+                </div>
+              )}
+
+              {/* Body */}
+              <div className="prose-custom text-[16.5px]" data-testid="story-body">
+                {renderMarkdown(story.body)}
+              </div>
+
+              {/* Source attribution — discreet, no external link */}
+              <div className="mt-8 mb-8 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/10 dark:to-amber-900/10 border border-orange-200/50 dark:border-orange-800/30 rounded-xl">
+                <p className="text-xs text-orange-700 dark:text-orange-400 font-medium leading-relaxed">
+                  <strong>📰 About This Story:</strong> This article was independently written by <strong>Quantum Pulse Intelligence AI</strong> — the newsroom engine of My Ai Gpt. Original reporting credited to <strong>{story.sourceName || article?.source}</strong>. All content is original analysis and commentary.
+                </p>
+              </div>
+
+              {/* Share + AI Chat CTA */}
+              <div className="flex gap-3 flex-wrap mb-10">
+                <button onClick={() => setShowShare(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-900 border border-border/30 rounded-xl text-sm font-semibold hover:shadow-md transition-all" data-testid="button-story-share-bottom">
+                  <Share2 size={15} className="text-orange-500" /> Share Story
+                </button>
+                <button onClick={() => { sessionStorage.setItem("myaigpt_prefill", `Tell me more about: ${story.seoTitle || article?.title}`); setLocation("/"); }} className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-md transition-all" data-testid="button-story-chat">
+                  <MessageSquare size={15} /> Ask AI About This
+                </button>
+              </div>
+
+              {/* Comments */}
+              <div className="border-t border-border/20 pt-8">
+                <h3 className="text-base font-bold mb-4 flex items-center gap-2"><MessageCircle size={16} className="text-orange-500" /> Community Discussion</h3>
+                <div className="flex gap-2 mb-5">
+                  <input value={commentName} onChange={e => setCommentName(e.target.value)} placeholder="Your name" className="w-28 px-3 py-2 text-sm border border-border/30 rounded-xl focus:outline-none focus:border-orange-300 bg-white dark:bg-gray-900" data-testid="story-comment-name" />
+                  <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => e.key === "Enter" && postComment()} placeholder="Share your thoughts on this story…" className="flex-1 px-3 py-2 text-sm border border-border/30 rounded-xl focus:outline-none focus:border-orange-300 bg-white dark:bg-gray-900" data-testid="story-comment-input" />
+                  <button onClick={postComment} disabled={posting || !newComment.trim() || !commentName.trim()} className="px-4 py-2 text-sm font-semibold bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-40 transition-colors" data-testid="story-comment-submit">{posting ? "…" : "Post"}</button>
+                </div>
+                {comments.length === 0 && <p className="text-sm text-muted-foreground/50 text-center py-6">No comments yet. Start the conversation!</p>}
+                {comments.map(c => (
+                  <div key={c.id} className="flex gap-3 items-start py-3 border-b border-border/10">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0"><User size={13} className="text-orange-500" /></div>
+                    <div><div className="flex items-center gap-2"><span className="text-sm font-semibold">{c.username}</span><span className="text-[10px] text-muted-foreground/40">{timeAgo(c.createdAt as unknown as string)}</span></div><p className="text-sm text-foreground/70 mt-0.5 leading-relaxed">{c.content}</p></div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
-      <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-education-title">Education</h1>
-      <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500/10 via-cyan-500/10 to-teal-500/10 rounded-full border border-teal-200/50 mb-3 relative overflow-hidden animate-pulse">
-        <Sparkles size={14} className="text-teal-500" />
-        <span className="text-sm font-bold bg-gradient-to-r from-teal-500 to-cyan-600 bg-clip-text text-transparent">Coming Soon</span>
-        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
+      {showShare && <ShareModal isOpen={showShare} onClose={() => setShowShare(false)} title="Share This Story" shareUrl={`${window.location.origin}/story/${articleId}`} shareText={`${story?.seoTitle || article?.title || "News story"} — via My Ai Gpt News`} shareType="app" />}
+    </Layout>
+  );
+}
+
+// ─── MY AI GPT UNIVERSITY — FULL EDUCATION PLATFORM ──────────────────────────
+type CourseTrack = "k12" | "college" | "career" | "ai";
+type LessonMode = "overview" | "lesson" | "quiz" | "practice";
+
+const UNIVERSITY_TRACKS = [
+  {
+    id: "k12" as CourseTrack, label: "K-12 Academy", icon: "🏫", color: "#06b6d4",
+    desc: "Elementary through High School — every subject covered",
+    grades: [
+      { label: "Elementary School (K-5)", emoji: "🌟", subjects: ["Math", "Reading & Writing", "Science", "Social Studies", "Art", "Music", "PE & Health", "Phonics"] },
+      { label: "Middle School (6-8)", emoji: "📐", subjects: ["Pre-Algebra", "Algebra I", "Earth Science", "Life Science", "World History", "English Language Arts", "Spanish", "Computer Basics"] },
+      { label: "High School (9-12)", emoji: "🎓", subjects: ["Algebra II", "Pre-Calculus", "Calculus", "Biology", "Chemistry", "Physics", "AP US History", "World Literature", "Economics", "Psychology", "AP Computer Science", "Statistics"] },
+    ],
+  },
+  {
+    id: "college" as CourseTrack, label: "College & Masters", icon: "🏛️", color: "#8b5cf6",
+    desc: "University-level education from bachelor's to master's",
+    grades: [
+      { label: "Sciences & Mathematics", emoji: "🔬", subjects: ["Calculus III", "Linear Algebra", "Differential Equations", "Organic Chemistry", "Physics II", "Genetics", "Neuroscience", "Astronomy"] },
+      { label: "Business & Economics", emoji: "📊", subjects: ["Microeconomics", "Macroeconomics", "Financial Accounting", "Business Law", "Marketing Strategy", "Operations Management", "Corporate Finance", "International Trade"] },
+      { label: "Humanities & Social Sciences", emoji: "📚", subjects: ["Philosophy", "Political Science", "Sociology", "Psychology", "World History", "Art History", "Comparative Literature", "Linguistics"] },
+      { label: "Graduate & Masters Level", emoji: "🎓", subjects: ["Research Methodology", "Advanced Statistics", "Thesis Writing", "Strategic Management", "Data Analysis", "Academic Publishing", "Critical Theory", "Leadership Studies"] },
+    ],
+  },
+  {
+    id: "career" as CourseTrack, label: "Career & Business", icon: "💼", color: "#f59e0b",
+    desc: "Professional skills, entrepreneurship, and business mastery",
+    grades: [
+      { label: "Entrepreneurship", emoji: "🚀", subjects: ["Start a Business", "Business Plan Writing", "Funding & Investment", "Product Market Fit", "Startup Legal Basics", "Pitch Deck Mastery", "Scaling a Business", "Exit Strategies"] },
+      { label: "Digital Marketing", emoji: "📱", subjects: ["SEO Mastery", "Social Media Marketing", "Email Marketing", "Google Ads", "Content Strategy", "Brand Building", "Analytics & Data", "Influencer Marketing"] },
+      { label: "Finance & Wealth", emoji: "💰", subjects: ["Personal Finance", "Investing Basics", "Stock Market", "Real Estate", "Cryptocurrency", "Tax Strategy", "Retirement Planning", "Passive Income"] },
+      { label: "Leadership & Skills", emoji: "🌟", subjects: ["Communication Skills", "Public Speaking", "Project Management", "Team Leadership", "Negotiation", "Time Management", "Emotional Intelligence", "Sales Mastery"] },
+    ],
+  },
+  {
+    id: "ai" as CourseTrack, label: "AI & Tech Courses", icon: "🤖", color: "#10b981",
+    desc: "Master AI, coding, and the future of technology",
+    grades: [
+      { label: "AI Fundamentals", emoji: "🧠", subjects: ["Prompt Engineering", "AI Literacy 101", "ChatGPT Mastery", "AI Ethics", "Large Language Models", "Computer Vision Basics", "AI in Business", "Future of AI"] },
+      { label: "Programming & Dev", emoji: "💻", subjects: ["Python Fundamentals", "JavaScript Mastery", "Web Development", "React & Next.js", "Node.js & APIs", "SQL & Databases", "Git & GitHub", "DevOps Basics"] },
+      { label: "Data & Machine Learning", emoji: "📊", subjects: ["Data Science Intro", "Machine Learning Basics", "Deep Learning", "Neural Networks", "NLP Fundamentals", "Computer Vision", "MLOps", "Kaggle Competitions"] },
+      { label: "Emerging Tech", emoji: "🔮", subjects: ["Blockchain & Web3", "Cybersecurity Basics", "Cloud Computing", "AR/VR Development", "Quantum Computing", "IoT & Edge AI", "Robotics", "No-Code Tools"] },
+    ],
+  },
+];
+
+function EducationPage() {
+  const [track, setTrack] = useState<CourseTrack>("k12");
+  const [selectedSubject, setSelectedSubject] = useState<{ subject: string; grade: string; track: string } | null>(null);
+  const [lessonMode, setLessonMode] = useState<LessonMode>("overview");
+  const [lessonContent, setLessonContent] = useState("");
+  const [lessonLoading, setLessonLoading] = useState(false);
+  const [userQuestion, setUserQuestion] = useState("");
+  const [qaHistory, setQaHistory] = useState<{ q: string; a: string }[]>([]);
+  const [qaLoading, setQaLoading] = useState(false);
+  const { settings } = useAppSettings();
+
+  const currentTrack = UNIVERSITY_TRACKS.find(t => t.id === track)!;
+
+  const generateLesson = async (subject: string, grade: string, trackLabel: string, mode: LessonMode = "overview") => {
+    setLessonLoading(true); setLessonContent(""); setLessonMode(mode);
+    try {
+      const prompts: Record<LessonMode, string> = {
+        overview: `You are My Ai GPT's world-class university professor teaching "${subject}" at the "${grade}" level in the ${trackLabel} track. Write a comprehensive, engaging LESSON OVERVIEW in markdown format:
+
+# ${subject}
+## What You'll Learn
+[3-5 key learning objectives as a list]
+
+## Introduction
+[2-3 engaging paragraphs introducing the subject — hook the student, make them excited]
+
+## Core Concepts
+[For each of 4-6 core concepts: ## concept name, then 1-2 paragraphs explaining it clearly with real-world examples]
+
+## Why This Matters
+[1-2 paragraphs on real-world applications and career relevance]
+
+## Key Terms to Know
+[Bullet list of 6-8 important terms with one-sentence definitions each]
+
+## Quick Summary
+[3-5 bullet points summarizing the lesson]
+
+Write for a student at the ${grade} level. Be clear, engaging, and educational. Use analogies and real examples.`,
+
+        lesson: `You are a brilliant My Ai GPT professor teaching a DEEP DIVE LESSON on "${subject}" (${grade} level). Write a detailed lesson in markdown:
+
+# Deep Dive: ${subject}
+[Full lesson with multiple sections, examples, step-by-step explanations, diagrams described in text, practice problems with solutions, common misconceptions cleared up. Aim for depth. Use ## for sections, ### for subsections.]
+
+End with:
+## Practice Problems
+[3-5 practice problems with full solutions]`,
+
+        quiz: `Create a QUIZ on "${subject}" (${grade} level) in markdown format:
+
+# ${subject} Quiz
+
+**Instructions:** Answer each question. Check your answers at the bottom!
+
+## Questions
+[10 varied questions — multiple choice (A/B/C/D), true/false, and short answer. Mix difficulty levels.]
+
+---
+
+## Answer Key
+[Full answer key with explanations for each answer]`,
+
+        practice: `Create PRACTICE EXERCISES for "${subject}" (${grade} level) in markdown:
+
+# Practice: ${subject}
+
+## Warm-Up (Easy)
+[5 easy exercises]
+
+## Main Practice (Medium)
+[5 medium exercises with hints]
+
+## Challenge Problems (Hard)
+[3 challenge problems]
+
+## Solutions
+[Full step-by-step solutions for all exercises]`,
+      };
+
+      const res = await fetch("/api/chat/completions", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: prompts[mode] }], stream: false }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLessonContent(data.content || data.choices?.[0]?.message?.content || "");
+      }
+    } catch { setLessonContent("# Error\nCould not load lesson. Please try again."); }
+    setLessonLoading(false);
+  };
+
+  const openSubject = (subject: string, grade: string, trackLabel: string) => {
+    setSelectedSubject({ subject, grade, track: trackLabel });
+    setQaHistory([]);
+    generateLesson(subject, grade, trackLabel, "overview");
+  };
+
+  const askQuestion = async () => {
+    if (!userQuestion.trim() || !selectedSubject) return;
+    const q = userQuestion.trim(); setUserQuestion(""); setQaLoading(true);
+    try {
+      const res = await fetch("/api/chat/completions", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [
+          { role: "system", content: `You are a brilliant, patient university professor at My Ai GPT University teaching ${selectedSubject.subject} at the ${selectedSubject.grade} level. Answer student questions clearly and thoroughly with examples. Always encourage learning.` },
+          ...qaHistory.flatMap(h => [{ role: "user", content: h.q }, { role: "assistant", content: h.a }]),
+          { role: "user", content: q },
+        ], stream: false }),
+      });
+      if (res.ok) { const data = await res.json(); setQaHistory(prev => [...prev, { q, a: data.content || data.choices?.[0]?.message?.content || "" }]); }
+    } catch {}
+    setQaLoading(false);
+  };
+
+  if (selectedSubject) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden bg-background">
+        {/* Lesson header */}
+        <div className="border-b border-border/20 bg-white dark:bg-gray-900 px-5 py-4 flex items-center gap-3">
+          <button onClick={() => setSelectedSubject(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="button-lesson-back">
+            <ChevronLeft size={16} /> Back to {currentTrack.label}
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-muted-foreground">{selectedSubject.grade}</div>
+            <div className="font-bold text-foreground truncate">{selectedSubject.subject}</div>
+          </div>
+          <div className="flex gap-1">
+            {(["overview", "lesson", "quiz", "practice"] as LessonMode[]).map(m => (
+              <button key={m} onClick={() => generateLesson(selectedSubject.subject, selectedSubject.grade, selectedSubject.track, m)}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold capitalize transition-all ${lessonMode === m ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground bg-muted/30"}`}
+                style={lessonMode === m ? { backgroundColor: currentTrack.color } : {}} data-testid={`lesson-mode-${m}`}>
+                {m === "overview" ? "📖 Overview" : m === "lesson" ? "🎓 Deep Dive" : m === "quiz" ? "✅ Quiz" : "✏️ Practice"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 flex overflow-hidden">
+          {/* Lesson content */}
+          <div className="flex-1 overflow-y-auto p-5 md:p-8 max-w-3xl mx-auto w-full">
+            {lessonLoading ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="h-8 bg-muted/40 rounded-xl w-2/3" />
+                {[1,2,3,4].map(i => <div key={i} className="space-y-2"><div className="h-4 bg-muted/30 rounded w-full" /><div className="h-4 bg-muted/25 rounded w-5/6" /></div>)}
+                <div className="flex items-center justify-center gap-2 pt-6"><Sparkles size={16} className="text-cyan-500 animate-spin" /><span className="text-sm text-muted-foreground">Professor AI is preparing your lesson…</span></div>
+              </div>
+            ) : (
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                h1: ({ children }) => <h1 className="text-2xl font-extrabold mb-4 text-foreground">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-xl font-bold mt-6 mb-3 text-foreground border-l-4 pl-3" style={{ borderColor: currentTrack.color }}>{children}</h2>,
+                h3: ({ children }) => <h3 className="text-base font-bold mt-4 mb-2 text-foreground">{children}</h3>,
+                p: ({ children }) => <p className="mb-4 leading-[1.8] text-foreground/85">{children}</p>,
+                ul: ({ children }) => <ul className="mb-4 ml-5 space-y-1.5 list-disc text-foreground/80">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-4 ml-5 space-y-1.5 list-decimal text-foreground/80">{children}</ol>,
+                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                blockquote: ({ children }) => <blockquote className="border-l-4 pl-4 py-2 my-4 italic text-foreground/70 rounded-r-lg" style={{ borderColor: currentTrack.color, backgroundColor: `${currentTrack.color}10` }}>{children}</blockquote>,
+                hr: () => <hr className="border-border/20 my-6" />,
+                code: ({ children }) => <code className="bg-muted/60 rounded px-1.5 py-0.5 text-sm font-mono">{children}</code>,
+              }}>{lessonContent}</ReactMarkdown>
+            )}
+          </div>
+
+          {/* AI Tutor sidebar */}
+          <div className="hidden lg:flex flex-col w-72 border-l border-border/20 bg-white dark:bg-gray-900">
+            <div className="px-4 py-3 border-b border-border/10 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: currentTrack.color }}>AI</div>
+              <div><div className="text-xs font-bold">AI Tutor</div><div className="text-[10px] text-muted-foreground">Ask anything about this lesson</div></div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {qaHistory.length === 0 && <p className="text-xs text-muted-foreground/50 text-center py-4">Ask your professor anything about {selectedSubject.subject}!</p>}
+              {qaHistory.map((h, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="bg-muted/30 rounded-xl p-2.5 text-xs text-foreground/80"><span className="font-semibold">You: </span>{h.q}</div>
+                  <div className="rounded-xl p-2.5 text-xs text-foreground/80 leading-relaxed" style={{ backgroundColor: `${currentTrack.color}12` }}>
+                    <span className="font-semibold" style={{ color: currentTrack.color }}>Professor: </span>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{h.a}</ReactMarkdown>
+                  </div>
+                </div>
+              ))}
+              {qaLoading && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Sparkles size={12} className="animate-spin" style={{ color: currentTrack.color }} /> Thinking…</div>}
+            </div>
+            <div className="p-3 border-t border-border/10">
+              <div className="flex gap-2">
+                <input value={userQuestion} onChange={e => setUserQuestion(e.target.value)} onKeyDown={e => e.key === "Enter" && askQuestion()} placeholder="Ask your professor…" className="flex-1 px-3 py-2 text-xs border border-border/30 rounded-xl focus:outline-none bg-muted/10" data-testid="tutor-question-input" />
+                <button onClick={askQuestion} disabled={qaLoading || !userQuestion.trim()} className="px-3 py-2 text-white rounded-xl text-xs font-semibold disabled:opacity-40" style={{ backgroundColor: currentTrack.color }} data-testid="tutor-question-submit"><Send size={12} /></button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <p className="text-muted-foreground text-sm mt-2">AI-powered personalized learning — Quantum Logic Network is building the future of education.</p>
-      <div className="flex flex-wrap justify-center gap-2 mt-4">
-        {["AI Tutoring", "Interactive Courses", "Live Q&A", "Study Plans", "Certifications", "K-12", "College Prep", "Coding Classes"].map(f => (
-          <span key={f} className="text-[10px] px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 text-teal-600 rounded-full font-medium border border-teal-200/50 dark:border-teal-800/30">{f}</span>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-background">
+      {/* Hero */}
+      <div className="relative overflow-hidden border-b border-border/20" style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)" }}>
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <div className="relative max-w-4xl mx-auto px-5 py-12 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-white text-xs font-semibold mb-5 backdrop-blur">
+            <GraduationCap size={13} /> My Ai GPT University · Powered by Quantum Pulse Intelligence
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight" data-testid="text-education-title">World-Class Education, Powered by AI</h1>
+          <p className="text-white/70 text-base max-w-xl mx-auto leading-relaxed">From K-12 to Masters. Career skills to cutting-edge AI. Every subject. Every level. Learn anything — free, on-site, right now.</p>
+          <div className="flex flex-wrap justify-center gap-2 mt-5">
+            {["100% Free", "K-12 Covered", "College Prep", "AI Courses", "Career Skills", "Interactive Quizzes", "AI Tutor", "Certifications Soon"].map(f => (
+              <span key={f} className="text-[10px] px-3 py-1.5 bg-white/10 text-white/80 rounded-full font-medium border border-white/15">{f}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Track tabs */}
+      <div className="border-b border-border/20 bg-white dark:bg-gray-900 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 flex gap-1 overflow-x-auto scrollbar-hide py-2">
+          {UNIVERSITY_TRACKS.map(t => (
+            <button key={t.id} onClick={() => setTrack(t.id)} data-testid={`edu-track-${t.id}`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${track === t.id ? "text-white shadow-md" : "text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40"}`}
+              style={track === t.id ? { backgroundColor: t.color } : {}}>
+              <span>{t.icon}</span> {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Course grid */}
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+        <div>
+          <h2 className="text-xl font-extrabold mb-1" style={{ color: currentTrack.color }}>{currentTrack.icon} {currentTrack.label}</h2>
+          <p className="text-sm text-muted-foreground mb-6">{currentTrack.desc}</p>
+        </div>
+        {currentTrack.grades.map(grade => (
+          <div key={grade.label} className="space-y-3">
+            <h3 className="text-base font-bold flex items-center gap-2">{grade.emoji} {grade.label}</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              {grade.subjects.map(subject => (
+                <button key={subject} onClick={() => openSubject(subject, grade.label, currentTrack.label)}
+                  data-testid={`edu-subject-${subject.replace(/\s+/g, "-").toLowerCase()}`}
+                  className="group p-3.5 rounded-xl border border-border/20 bg-white dark:bg-gray-900 text-left hover:shadow-md hover:border-transparent transition-all text-sm font-medium text-foreground/80 hover:text-foreground"
+                  style={{ "--hover-color": currentTrack.color } as React.CSSProperties}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = currentTrack.color; e.currentTarget.style.boxShadow = `0 4px 16px ${currentTrack.color}25`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = ""; e.currentTarget.style.boxShadow = ""; }}>
+                  <div className="text-base mb-1">{grade.emoji}</div>
+                  {subject}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
+
+        {/* CTA */}
+        <div className="mt-10 p-6 rounded-2xl text-center text-white" style={{ background: `linear-gradient(135deg, ${currentTrack.color}, ${currentTrack.color}cc)` }}>
+          <div className="text-2xl mb-2">🎓</div>
+          <h3 className="text-lg font-extrabold mb-1">Can't find your subject?</h3>
+          <p className="text-sm text-white/80 mb-4">Ask My Ai GPT to teach you anything — from quantum mechanics to ancient philosophy!</p>
+          <Link href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-foreground font-bold text-sm rounded-xl hover:shadow-lg transition-all">
+            <MessageSquare size={15} /> Chat with AI Tutor
+          </Link>
+        </div>
       </div>
-      <p className="text-muted-foreground/50 text-xs mt-4">In the meantime, ask My Ai GPT to teach you anything!</p>
     </div>
-  </div></Layout>;
+  );
+}
+
+function EducationPageWrapper() {
+  useEffect(() => { updateSEO({ title: "My Ai GPT University — Free AI Education K-12 to Masters | My Ai Gpt", description: "World-class AI-powered education from K-12 through Masters. Career skills, AI courses, interactive lessons, quizzes, and an AI tutor — all free. By Quantum Logic Network.", ogTitle: "My Ai GPT University — Free AI Education Platform", ogDesc: "Learn anything free — K-12, College, Career, AI Courses. Powered by Quantum Pulse Intelligence.", ogType: "website", canonical: window.location.origin + "/education" }); }, []);
+  return <Layout><EducationPage /></Layout>;
 }
 
 function ShoppingPageWrapper() {
@@ -6651,6 +7168,7 @@ function Router() {
       <Route path="/games" component={GamesPageWrapper} />
       <Route path="/music" component={MusicPageWrapper} />
       <Route path="/education" component={EducationPageWrapper} />
+      <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping" component={ShoppingPageWrapper} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
