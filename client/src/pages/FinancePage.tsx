@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TrendingUp, TrendingDown, Minus, RefreshCw, Brain, Zap, Search, X, Building2, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Flame, Layers, DollarSign, Gauge } from "lucide-react";
+import { createChart, CrosshairMode, LineStyle } from "lightweight-charts";
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Brain, Zap, Search, X, Building2, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Flame, Layers, DollarSign, Gauge, CandlestickChart, LineChart } from "lucide-react";
 
 // ── Symbol universes ────────────────────────────────────────────
 const MARKET_SECTORS: Record<string, string[]> = {
@@ -30,6 +31,293 @@ type FearGreed = { value: string; value_classification: string; timestamp: strin
 type Prediction = { question: string; probability: number; direction: string; category: string; timeframe: string; rationale: string };
 type OracleData = { marketRegime: string; regimeConfidence: number; bullCase: any; bearCase: any; consensusSignal: string; intelligenceFeed: any[]; macroSnapshot: any };
 type Tab = "markets" | "crypto" | "defi" | "realestate" | "forex" | "commodities" | "bonds" | "global" | "predictions" | "oracle";
+type ChartTF = "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
+type ChartMode = "candle" | "line";
+
+// ── Helpers ──────────────────────────────────────────────────────
+function fmtVol(v: number) {
+  if (!v) return "—";
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+  return String(v);
+}
+function computeSMA(ohlcv: any[], period: number) {
+  const closes = ohlcv.map(d => d.close);
+  const result = [];
+  for (let i = period - 1; i < ohlcv.length; i++) {
+    const avg = closes.slice(i - period + 1, i + 1).reduce((a: number, b: number) => a + b, 0) / period;
+    result.push({ time: ohlcv[i].time, value: parseFloat(avg.toFixed(4)) });
+  }
+  return result;
+}
+
+// ── Stock Chart Modal (TradingView lightweight-charts) ───────────
+function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: string; onClose: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<any>(null);
+  const [tf, setTF] = useState<ChartTF>("3M");
+  const [mode, setMode] = useState<ChartMode>("candle");
+  const [indicators, setIndicators] = useState({ ma20: true, ma50: true, ma200: false, volume: true });
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [hovered, setHovered] = useState<any>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setData(null);
+    fetch(`/api/finance/chart/${encodeURIComponent(symbol)}?tf=${tf}`)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [symbol, tf]);
+
+  useEffect(() => {
+    if (!data?.ohlcv?.length || !containerRef.current) return;
+    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
+
+    const isIntraday = tf === "1W" && data.ohlcv[0]?.time && typeof data.ohlcv[0].time === "number";
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { color: "transparent" } as any,
+        textColor: "rgba(255,255,255,0.45)",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: "rgba(255,255,255,0.03)" },
+        horzLines: { color: "rgba(255,255,255,0.03)" },
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: "rgba(167,139,250,0.5)", labelBackgroundColor: "#3b0764" },
+        horzLine: { color: "rgba(167,139,250,0.5)", labelBackgroundColor: "#3b0764" },
+      },
+      rightPriceScale: { borderColor: "rgba(255,255,255,0.08)" },
+      timeScale: {
+        borderColor: "rgba(255,255,255,0.08)",
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true },
+      handleScale: { mouseWheel: true, pinch: true },
+      width: containerRef.current.clientWidth,
+      height: containerRef.current.clientHeight || 340,
+    } as any);
+    chartRef.current = chart;
+
+    if (mode === "candle") {
+      const cs = chart.addCandlestickSeries({
+        upColor: "#4ade80",
+        downColor: "#f87171",
+        wickUpColor: "#4ade80",
+        wickDownColor: "#f87171",
+        borderVisible: false,
+      });
+      cs.setData(data.ohlcv);
+      cs.priceScale().applyOptions({ scaleMargins: indicators.volume ? { top: 0.06, bottom: 0.28 } : { top: 0.06, bottom: 0.04 } });
+
+      chart.subscribeCrosshairMove((param: any) => {
+        if (param?.seriesData?.get(cs)) {
+          setHovered(param.seriesData.get(cs));
+        } else {
+          setHovered(null);
+        }
+      });
+    } else {
+      const ls = chart.addLineSeries({
+        color: "#a78bfa",
+        lineWidth: 2,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 4,
+        crosshairMarkerBackgroundColor: "#7c3aed",
+        lastValueVisible: true,
+      });
+      ls.setData(data.ohlcv.map((d: any) => ({ time: d.time, value: d.close })));
+      ls.priceScale().applyOptions({ scaleMargins: indicators.volume ? { top: 0.06, bottom: 0.28 } : { top: 0.06, bottom: 0.04 } });
+    }
+
+    if (indicators.ma20 && data.ohlcv.length >= 20) {
+      const s = chart.addLineSeries({ color: "#fbbf24", lineWidth: 1, title: "MA20", lastValueVisible: false, priceLineVisible: false });
+      s.setData(computeSMA(data.ohlcv, 20));
+    }
+    if (indicators.ma50 && data.ohlcv.length >= 50) {
+      const s = chart.addLineSeries({ color: "#60a5fa", lineWidth: 1, title: "MA50", lastValueVisible: false, priceLineVisible: false });
+      s.setData(computeSMA(data.ohlcv, 50));
+    }
+    if (indicators.ma200 && data.ohlcv.length >= 200) {
+      const s = chart.addLineSeries({ color: "#f472b6", lineWidth: 1, lineStyle: LineStyle.Dashed, title: "MA200", lastValueVisible: false, priceLineVisible: false });
+      s.setData(computeSMA(data.ohlcv, 200));
+    }
+    if (indicators.volume) {
+      const vs = chart.addHistogramSeries({
+        priceFormat: { type: "volume" },
+        priceScaleId: "vol",
+        lastValueVisible: false,
+        priceLineVisible: false,
+      } as any);
+      vs.priceScale().applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+      vs.setData(data.ohlcv.map((d: any) => ({
+        time: d.time,
+        value: d.volume,
+        color: d.close >= d.open ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)",
+      })));
+    }
+
+    chart.timeScale().fitContent();
+
+    const ro = new ResizeObserver(() => {
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
+      }
+    });
+    if (containerRef.current) ro.observe(containerRef.current);
+
+    return () => { ro.disconnect(); };
+  }, [data, mode, indicators]);
+
+  useEffect(() => {
+    return () => { if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; } };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const chg = data?.change ?? 0;
+  const up = chg >= 0;
+  const displayData = hovered || data;
+  const isCrypto = symbol.includes("-USD");
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+      data-testid="chart-modal-backdrop"
+    >
+      <div
+        style={{ width: "100%", maxWidth: 860, borderRadius: 20, background: "#05000e", border: "1px solid rgba(124,58,237,0.2)", boxShadow: "0 48px 120px rgba(0,0,0,0.98), 0 0 0 1px rgba(255,255,255,0.04) inset", overflow: "hidden", display: "flex", flexDirection: "column" }}
+        onClick={e => e.stopPropagation()}
+        data-testid="chart-modal"
+      >
+        {/* Header */}
+        <div style={{ padding: "14px 18px 10px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+                <span style={{ color: "#fff", fontWeight: 900, fontSize: 22, letterSpacing: "-0.02em" }}>{symbol.replace("-USD","").replace("=X","")}</span>
+                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, fontWeight: 500 }}>{data?.name || name}</span>
+                {isCrypto && <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "rgba(251,191,36,0.12)", color: "#fbbf24" }}>CRYPTO</span>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <span style={{ color: "#fff", fontWeight: 900, fontSize: 26, letterSpacing: "-0.02em" }}>
+                  {isCrypto ? "" : "$"}{(hovered?.close ?? data?.price ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {up ? <ChevronUp size={14} color="#4ade80" /> : <ChevronDown size={14} color="#f87171" />}
+                  <span style={{ color: up ? "#4ade80" : "#f87171", fontWeight: 700, fontSize: 14 }}>
+                    {up ? "+" : ""}{chg.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose} data-testid="button-close-chart"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "rgba(255,255,255,0.5)", cursor: "pointer", padding: "6px 8px", lineHeight: 1 }}>
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* OHLCV Stats */}
+          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+            {[
+              { label: "OPEN",  value: (hovered?.open  ?? data?.open)?.toFixed(2) },
+              { label: "HIGH",  value: (hovered?.high  ?? data?.high)?.toFixed(2) },
+              { label: "LOW",   value: (hovered?.low   ?? data?.low)?.toFixed(2) },
+              { label: "CLOSE", value: (hovered?.close ?? data?.price)?.toFixed(2) },
+              { label: "VOL",   value: fmtVol(hovered?.volume ?? data?.volume ?? 0) },
+            ].map(s => (
+              <div key={s.label}>
+                <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, fontWeight: 700, letterSpacing: "0.08em" }}>{s.label}</div>
+                <div style={{ color: "rgba(255,255,255,0.7)", fontWeight: 700, fontSize: 11 }}>{s.value ?? "—"}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Controls bar */}
+        <div style={{ padding: "7px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.04)", flexShrink: 0, flexWrap: "wrap", gap: 6 }}>
+          {/* Timeframes */}
+          <div style={{ display: "flex", gap: 3 }}>
+            {(["1W","1M","3M","6M","1Y","5Y"] as ChartTF[]).map(t => (
+              <button key={t} onClick={() => setTF(t)} data-testid={`tf-${t}`}
+                style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${tf === t ? "#7c3aed" : "rgba(255,255,255,0.06)"}`, background: tf === t ? "rgba(124,58,237,0.18)" : "none", color: tf === t ? "#a78bfa" : "rgba(255,255,255,0.28)", fontSize: 10, fontWeight: 800, cursor: "pointer", transition: "all 0.15s" }}>
+                {t}
+              </button>
+            ))}
+          </div>
+          {/* Chart type */}
+          <div style={{ display: "flex", gap: 3 }}>
+            <button onClick={() => setMode("candle")} data-testid="mode-candle"
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: `1px solid ${mode === "candle" ? "#7c3aed" : "rgba(255,255,255,0.06)"}`, background: mode === "candle" ? "rgba(124,58,237,0.18)" : "none", color: mode === "candle" ? "#a78bfa" : "rgba(255,255,255,0.28)", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+              <CandlestickChart size={11} /> Candle
+            </button>
+            <button onClick={() => setMode("line")} data-testid="mode-line"
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: `1px solid ${mode === "line" ? "#7c3aed" : "rgba(255,255,255,0.06)"}`, background: mode === "line" ? "rgba(124,58,237,0.18)" : "none", color: mode === "line" ? "#a78bfa" : "rgba(255,255,255,0.28)", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+              <LineChart size={11} /> Line
+            </button>
+          </div>
+        </div>
+
+        {/* Indicator toggles */}
+        <div style={{ padding: "6px 18px", display: "flex", gap: 5, borderBottom: "1px solid rgba(255,255,255,0.03)", flexShrink: 0 }}>
+          <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 9, fontWeight: 700, alignSelf: "center", marginRight: 2 }}>INDICATORS</span>
+          {([
+            { key: "ma20",   label: "MA 20",  color: "#fbbf24" },
+            { key: "ma50",   label: "MA 50",  color: "#60a5fa" },
+            { key: "ma200",  label: "MA 200", color: "#f472b6" },
+            { key: "volume", label: "Volume", color: "#a78bfa" },
+          ] as { key: keyof typeof indicators; label: string; color: string }[]).map(({ key, label, color }) => (
+            <button key={key}
+              onClick={() => setIndicators(p => ({ ...p, [key]: !p[key] }))}
+              data-testid={`indicator-${key}`}
+              style={{ padding: "3px 9px", borderRadius: 5, border: `1px solid ${indicators[key] ? color + "55" : "rgba(255,255,255,0.06)"}`, background: indicators[key] ? color + "18" : "none", color: indicators[key] ? color : "rgba(255,255,255,0.18)", fontSize: 9, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
+              {indicators[key] ? "✓ " : ""}{label}
+            </button>
+          ))}
+          {/* Legend dots */}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+            {indicators.ma20  && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#fbbf24", fontSize: 8, fontWeight: 700 }}><span style={{ width: 16, height: 2, background: "#fbbf24", display: "inline-block", borderRadius: 1 }} />MA20</span>}
+            {indicators.ma50  && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#60a5fa", fontSize: 8, fontWeight: 700 }}><span style={{ width: 16, height: 2, background: "#60a5fa", display: "inline-block", borderRadius: 1 }} />MA50</span>}
+            {indicators.ma200 && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#f472b6", fontSize: 8, fontWeight: 700 }}><span style={{ width: 16, height: 2, background: "#f472b6", display: "inline-block", borderRadius: 1, borderTop: "2px dashed #f472b6" }} />MA200</span>}
+          </div>
+        </div>
+
+        {/* Chart area */}
+        <div style={{ position: "relative", flex: 1, minHeight: 340 }}>
+          {loading && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#05000e", zIndex: 2, gap: 10 }}>
+              <div style={{ width: 28, height: 28, border: "2px solid rgba(124,58,237,0.3)", borderTopColor: "#7c3aed", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+              <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>Loading {symbol} chart…</div>
+            </div>
+          )}
+          {!loading && data?.ohlcv?.length === 0 && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#05000e" }}>
+              <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>No chart data available for {symbol}</div>
+            </div>
+          )}
+          <div ref={containerRef} style={{ width: "100%", height: "100%", minHeight: 340 }} />
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "6px 18px", borderTop: "1px solid rgba(255,255,255,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <span style={{ color: "rgba(255,255,255,0.1)", fontSize: 9 }}>Data via Yahoo Finance · Quantum Finance Oracle</span>
+          <span style={{ color: "rgba(255,255,255,0.1)", fontSize: 9 }}>Scroll to zoom · Drag to pan · ESC to close</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Sparkline ───────────────────────────────────────────────────
 function Sparkline({ closes, positive, w = 80, h = 28 }: { closes: number[]; positive: boolean; w?: number; h?: number }) {
@@ -51,12 +339,18 @@ function Sparkline({ closes, positive, w = 80, h = 28 }: { closes: number[]; pos
   );
 }
 
-// ── Quote Card ──────────────────────────────────────────────────
-function QuoteCard({ q }: { q: Quote }) {
+// ── Quote Card (clickable) ───────────────────────────────────────
+function QuoteCard({ q, onOpen }: { q: Quote; onOpen: (symbol: string, name: string) => void }) {
   const chg = parseFloat(q.change), up = chg > 0, down = chg < 0;
   const color = up ? "#4ade80" : down ? "#f87171" : "#94a3b8";
   return (
-    <div data-testid={`quote-${q.symbol}`} style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "10px 12px" }}>
+    <div
+      data-testid={`quote-${q.symbol}`}
+      onClick={() => onOpen(q.symbol, q.name)}
+      style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "10px 12px", cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(124,58,237,0.4)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(124,58,237,0.06)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.07)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.015)"; }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 3 }}>
         <span style={{ color: "#fff", fontWeight: 900, fontSize: 11, letterSpacing: "0.04em" }}>{q.symbol.replace("-USD","").replace("=X","")}</span>
         <span style={{ color, fontWeight: 800, fontSize: 10, display: "flex", alignItems: "center", gap: 1 }}>
@@ -66,16 +360,22 @@ function QuoteCard({ q }: { q: Quote }) {
       <div style={{ color: "#fff", fontWeight: 900, fontSize: 14, marginBottom: 2 }}>{q.price}</div>
       {q.closes && q.closes.length > 1 && <Sparkline closes={q.closes} positive={up || !down} />}
       <div style={{ color: "rgba(255,255,255,0.22)", fontSize: 9, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.name}</div>
+      <div style={{ color: "rgba(124,58,237,0.5)", fontSize: 8, marginTop: 1, fontWeight: 600 }}>tap to chart →</div>
     </div>
   );
 }
 
-// ── Mini Row (for forex/bonds/commodities) ──────────────────────
-function MiniRow({ label, sub, value, change, badge }: { label: string; sub?: string; value: string; change: string; badge?: string }) {
+// ── Mini Row (clickable, for forex/bonds/commodities) ────────────
+function MiniRow({ label, sub, value, change, badge, symbol, onOpen }: { label: string; sub?: string; value: string; change: string; badge?: string; symbol?: string; onOpen?: (sym: string, name: string) => void }) {
   const chg = parseFloat(change), up = chg > 0, down = chg < 0;
   const color = up ? "#4ade80" : down ? "#f87171" : "#94a3b8";
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: onOpen && symbol ? "pointer" : "default", transition: "background 0.12s" }}
+      onClick={() => onOpen && symbol && onOpen(symbol, label)}
+      onMouseEnter={e => { if (onOpen && symbol) (e.currentTarget as HTMLDivElement).style.background = "rgba(124,58,237,0.05)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+    >
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ color: "#fff", fontWeight: 800, fontSize: 12 }}>{label}</span>
@@ -117,8 +417,7 @@ function SectorBar({ sectors }: { sectors: Sector[] }) {
 // ── Fear & Greed Gauge ──────────────────────────────────────────
 function FearGreedGauge({ value, label }: { value: number; label: string }) {
   const color = value <= 25 ? "#f87171" : value <= 45 ? "#fbbf24" : value <= 55 ? "#94a3b8" : value <= 75 ? "#86efac" : "#4ade80";
-  const r = 36, circ = Math.PI * r; // semicircle
-  const dash = (value / 100) * circ;
+  const r = 36, circ = Math.PI * r;
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 0 8px" }}>
       <svg width={90} height={52} viewBox="0 0 90 52">
@@ -146,7 +445,7 @@ function ProbGauge({ pct, color }: { pct: number; color: string }) {
 }
 
 // ── Command Palette ─────────────────────────────────────────────
-function CommandPalette({ quotes, onClose }: { quotes: Quote[]; onClose: () => void }) {
+function CommandPalette({ quotes, onClose, onOpen }: { quotes: Quote[]; onClose: () => void; onOpen: (sym: string, name: string) => void }) {
   const [q, setQ] = useState("");
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { ref.current?.focus(); }, []);
@@ -166,17 +465,19 @@ function CommandPalette({ quotes, onClose }: { quotes: Quote[]; onClose: () => v
             return (
               <div key={m.symbol} data-testid={`palette-${m.symbol}`}
                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 16px", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.035)" }}
+                onClick={() => { onClose(); onOpen(m.symbol, m.name); }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                 <span style={{ color: "#fff", fontWeight: 900, fontSize: 12, minWidth: 60 }}>{m.symbol.replace("-USD","")}</span>
                 <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, flex: 1 }}>{m.name}</span>
                 <span style={{ color: up ? "#4ade80" : "#f87171", fontWeight: 700, fontSize: 11 }}>{up ? "+" : ""}{m.change}%</span>
                 <span style={{ color: "#fff", fontWeight: 800, fontSize: 11 }}>{m.price}</span>
+                <span style={{ color: "rgba(124,58,237,0.6)", fontSize: 9, fontWeight: 600 }}>chart →</span>
               </div>
             );
           })}
         </div>
-        <div style={{ padding: "7px 16px", color: "rgba(255,255,255,0.12)", fontSize: 9 }}>⌘K to toggle · ESC to close</div>
+        <div style={{ padding: "7px 16px", color: "rgba(255,255,255,0.12)", fontSize: 9 }}>⌘K to toggle · Click ticker to open chart · ESC to close</div>
       </div>
     </div>
   );
@@ -209,6 +510,16 @@ export default function FinancePage() {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [cryptoPage, setCryptoPage] = useState(1);
+
+  // Chart modal state
+  const [chartSymbol, setChartSymbol] = useState<string | null>(null);
+  const [chartName, setChartName] = useState<string>("");
+  const openChart = useCallback((symbol: string, name: string) => {
+    setChartSymbol(symbol);
+    setChartName(name);
+    setPaletteOpen(false);
+  }, []);
+  const closeChart = useCallback(() => setChartSymbol(null), []);
 
   const setLoad = (k: string, v: boolean) => setLoading(p => ({ ...p, [k]: v }));
 
@@ -272,7 +583,6 @@ export default function FinancePage() {
     catch {}
   }, []);
 
-  // Initial loads
   useEffect(() => {
     fetchBatch(INDEX_SYMBOLS, setIndices, "indices");
     fetchBatch(ALL_STOCKS, setStocks, "stocks");
@@ -285,7 +595,6 @@ export default function FinancePage() {
     return () => clearInterval(id);
   }, []);
 
-  // Lazy load by tab
   useEffect(() => {
     if (tab === "forex" && !forex.length) fetchForex();
     if (tab === "commodities" && !commodities.length) fetchCommodities();
@@ -297,14 +606,20 @@ export default function FinancePage() {
     if (tab === "oracle" && !oracle) fetch("/api/finance/oracle").then(r => r.json()).then(d => d?.marketRegime && setOracle(d));
   }, [tab]);
 
-  // Sparklines on sector change
   useEffect(() => {
     const syms = tab === "markets" ? (MARKET_SECTORS[selectedSector] || [])
       : tab === "realestate" ? REALESTATE_SYMBOLS : [];
     if (syms.length) fetchSparklines(syms);
   }, [tab, selectedSector]);
 
-  useEffect(() => { window.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen(p => !p); } if (e.key === "Escape") setPaletteOpen(false); }); }, []);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setPaletteOpen(p => !p); }
+      if (e.key === "Escape" && !chartSymbol) setPaletteOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [chartSymbol]);
 
   const withSpark = (quotes: Quote[]) => quotes.map(q => ({ ...q, closes: sparklines[q.symbol] }));
 
@@ -316,7 +631,6 @@ export default function FinancePage() {
   };
 
   const allQuotes: Quote[] = [...indices, ...stocks, ...crypto, ...realestate];
-
   const fgValue = fearGreed[0] ? parseInt(fearGreed[0].value) : null;
   const fgLabel = fearGreed[0]?.value_classification || "";
 
@@ -339,14 +653,17 @@ export default function FinancePage() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "linear-gradient(180deg,#020010,#04000d)", overflow: "hidden", minHeight: 0 }}>
-      {paletteOpen && <CommandPalette quotes={allQuotes} onClose={() => setPaletteOpen(false)} />}
+      {/* Chart Modal */}
+      {chartSymbol && <StockChartModal symbol={chartSymbol} name={chartName} onClose={closeChart} />}
+
+      {paletteOpen && <CommandPalette quotes={allQuotes} onClose={() => setPaletteOpen(false)} onOpen={openChart} />}
 
       {/* Header */}
       <div style={{ padding: "12px 18px 0", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <div>
             <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 18, margin: 0, letterSpacing: "-0.02em" }}>Quantum Finance Oracle</h1>
-            <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, margin: 0 }}>Fortune 500 · Full Crypto · Forex · Commodities · Bonds · 20 Global Markets · Prediction AI</p>
+            <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, margin: 0 }}>Fortune 500 · Full Crypto · Forex · Commodities · Bonds · 20 Global Markets · Click any ticker to chart</p>
           </div>
           <div style={{ display: "flex", gap: 5 }}>
             {fgValue !== null && (
@@ -366,13 +683,17 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Index ticker bar */}
+        {/* Index ticker bar — clickable */}
         <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 10, scrollbarWidth: "none" }}>
           {indices.map(q => {
             const chg = parseFloat(q.change), up = chg > 0, down = chg < 0;
             const color = up ? "#4ade80" : down ? "#f87171" : "#94a3b8";
             return (
-              <div key={q.symbol} data-testid={`idx-${q.symbol}`} style={{ display: "flex", gap: 5, padding: "5px 10px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.025)", flexShrink: 0 }}>
+              <div key={q.symbol} data-testid={`idx-${q.symbol}`}
+                onClick={() => openChart(q.symbol, q.name)}
+                style={{ display: "flex", gap: 5, padding: "5px 10px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.025)", flexShrink: 0, cursor: "pointer", transition: "border-color 0.12s" }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(124,58,237,0.4)")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}>
                 <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, fontWeight: 700 }}>{q.symbol.replace("^","")}</span>
                 <span style={{ color: "#fff", fontWeight: 900, fontSize: 11 }}>{q.symbol.includes("VIX") ? q.price : `$${q.price}`}</span>
                 <span style={{ color, fontWeight: 700, fontSize: 9 }}>{up ? "+" : ""}{q.change}%</span>
@@ -417,7 +738,7 @@ export default function FinancePage() {
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 7 }}>
-              {sectorStocks().map(q => <QuoteCard key={q.symbol} q={q} />)}
+              {sectorStocks().map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} />)}
             </div>
           </div>
         )}
@@ -450,13 +771,15 @@ export default function FinancePage() {
                   <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px 70px 70px 80px", gap: 8, padding: "6px 12px", fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.08em" }}>
                     <span>#</span><span>ASSET</span><span style={{ textAlign: "right" }}>PRICE</span><span style={{ textAlign: "right" }}>24H</span><span style={{ textAlign: "right" }}>7D</span><span style={{ textAlign: "right" }}>MKT CAP</span>
                   </div>
-                  {cryptoTop.map((c, i) => {
+                  {cryptoTop.map((c) => {
                     const up24 = parseFloat(c.change24h) >= 0, up7 = parseFloat(c.change7d || "0") >= 0;
                     const price = c.price < 0.01 ? c.price.toFixed(6) : c.price < 1 ? c.price.toFixed(4) : c.price.toLocaleString("en-US", { maximumFractionDigits: 2 });
                     const mcap = c.marketCap >= 1e9 ? `$${(c.marketCap/1e9).toFixed(1)}B` : `$${(c.marketCap/1e6).toFixed(0)}M`;
                     return (
-                      <div key={c.id} data-testid={`crypto-row-${c.symbol}`} style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px 70px 70px 80px", gap: 8, padding: "8px 12px", borderRadius: 8, alignItems: "center" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+                      <div key={c.id} data-testid={`crypto-row-${c.symbol}`}
+                        onClick={() => openChart(`${c.symbol}-USD`, c.name)}
+                        style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px 70px 70px 80px", gap: 8, padding: "8px 12px", borderRadius: 8, alignItems: "center", cursor: "pointer" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(124,58,237,0.06)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                         <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, fontWeight: 700 }}>{c.rank}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -501,8 +824,10 @@ export default function FinancePage() {
                   const price = c.price < 0.001 ? c.price.toFixed(6) : c.price < 1 ? c.price.toFixed(4) : c.price < 100 ? c.price.toFixed(2) : c.price.toLocaleString("en-US", { maximumFractionDigits: 2 });
                   const mcap = c.marketCap >= 1e9 ? `$${(c.marketCap/1e9).toFixed(2)}B` : `$${(c.marketCap/1e6).toFixed(0)}M`;
                   return (
-                    <div key={c.id} data-testid={`defi-${c.symbol}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderRadius: 8, borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.025)")}
+                    <div key={c.id} data-testid={`defi-${c.symbol}`}
+                      onClick={() => openChart(`${c.symbol}-USD`, c.name)}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderRadius: 8, borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(124,58,237,0.05)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                       <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, minWidth: 20, fontWeight: 700 }}>{i + 1}</span>
                       <div style={{ flex: 1 }}>
@@ -529,11 +854,11 @@ export default function FinancePage() {
             </div>
             <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>ETFs & BENCHMARKS</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 7, marginBottom: 16 }}>
-              {withSpark(realestate.filter(q => ["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} />)}
+              {withSpark(realestate.filter(q => ["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} />)}
             </div>
             <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>TOP REITs</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 7 }}>
-              {withSpark(realestate.filter(q => !["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} />)}
+              {withSpark(realestate.filter(q => !["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} />)}
             </div>
           </div>
         )}
@@ -560,7 +885,7 @@ export default function FinancePage() {
                     <div key={group} style={{ marginBottom: 16 }}>
                       <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>{group.toUpperCase()}</div>
                       <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
-                        {grouped.map(f => <MiniRow key={f.symbol} label={`${f.base}/${f.quote}`} sub={f.name} value={f.price} change={f.change} />)}
+                        {grouped.map(f => <MiniRow key={f.symbol} label={`${f.base}/${f.quote}`} sub={f.name} value={f.price} change={f.change} symbol={f.symbol} onOpen={openChart} />)}
                       </div>
                     </div>
                   );
@@ -589,7 +914,7 @@ export default function FinancePage() {
                     <div key={cat} style={{ marginBottom: 16 }}>
                       <div style={{ color: catColor[cat] || "#94a3b8", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>{cat.toUpperCase()}</div>
                       <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
-                        {items.map(c => <MiniRow key={c.symbol} label={c.name} sub={c.unit} value={`$${c.price}`} change={c.change} badge={c.symbol} />)}
+                        {items.map(c => <MiniRow key={c.symbol} label={c.name} sub={c.unit} value={`$${c.price}`} change={c.change} badge={c.symbol} symbol={c.symbol} onOpen={openChart} />)}
                       </div>
                     </div>
                   );
@@ -618,7 +943,7 @@ export default function FinancePage() {
                     <div key={type} style={{ marginBottom: 14 }}>
                       <div style={{ color: typeColor[type] || "#94a3b8", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 5 }}>{type.toUpperCase()}</div>
                       <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
-                        {items.map(b => <MiniRow key={b.symbol} label={b.name} sub={`${b.maturity} · ${b.symbol}`} value={b.type === "Treasury" || b.type === "Volatility" ? `${b.price}%` : `$${b.price}`} change={b.change} />)}
+                        {items.map(b => <MiniRow key={b.symbol} label={b.name} sub={`${b.maturity} · ${b.symbol}`} value={b.type === "Treasury" || b.type === "Volatility" ? `${b.price}%` : `$${b.price}`} change={b.change} symbol={b.symbol} onOpen={openChart} />)}
                       </div>
                     </div>
                   );
@@ -650,7 +975,11 @@ export default function FinancePage() {
                         {items.map(g => {
                           const up = parseFloat(g.change) >= 0;
                           return (
-                            <div key={g.symbol} data-testid={`global-${g.symbol}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                            <div key={g.symbol} data-testid={`global-${g.symbol}`}
+                              onClick={() => openChart(g.symbol, g.name)}
+                              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer" }}
+                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(124,58,237,0.05)")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                   <span style={{ color: "#fff", fontWeight: 800, fontSize: 12 }}>{g.name}</span>
@@ -724,61 +1053,58 @@ export default function FinancePage() {
               <div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                   <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "13px 15px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 4 }}>MARKET REGIME</div>
-                    <div style={{ color: regimeColor[oracle.marketRegime] || "#94a3b8", fontWeight: 900, fontSize: 16 }}>{oracle.marketRegime}</div>
-                    <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, marginTop: 2 }}>Confidence: {oracle.regimeConfidence}%</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, marginBottom: 6, letterSpacing: "0.08em" }}>MARKET REGIME</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: regimeColor[oracle.marketRegime] || "#fff", marginBottom: 2 }}>{oracle.marketRegime}</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{oracle.regimeConfidence}% confidence</div>
                   </div>
                   <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "13px 15px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 4 }}>CONSENSUS</div>
-                    <div style={{ color: signalColor[oracle.consensusSignal] || "#94a3b8", fontWeight: 900, fontSize: 13 }}>{oracle.consensusSignal}</div>
-                    <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, marginTop: 2 }}>Hive agreement</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, marginBottom: 6, letterSpacing: "0.08em" }}>CONSENSUS SIGNAL</div>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: signalColor[oracle.consensusSignal] || "#fff" }}>{oracle.consensusSignal}</div>
                   </div>
                 </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                  {[{ d: oracle.bullCase, c: "#4ade80", l: "BULL", icon: <TrendingUp size={11}/> }, { d: oracle.bearCase, c: "#f87171", l: "BEAR", icon: <TrendingDown size={11}/> }].map(({ d, c, l, icon }) => d && (
-                    <div key={l} style={{ borderRadius: 12, border: `1px solid ${c}22`, background: `${c}05`, padding: "13px 15px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, color: c }}>
-                        {icon}<span style={{ fontSize: 8, fontWeight: 800, letterSpacing: "0.1em" }}>{l} CASE</span>
-                        <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.25)", fontSize: 8 }}>{d.confidence}%</span>
-                      </div>
-                      <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, fontWeight: 700, marginBottom: 3 }}>{d.agent}</div>
-                      <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 10, lineHeight: 1.6 }}>{d.verdict}</div>
-                      <div style={{ marginTop: 6, fontSize: 9, color: c }}>{d.topPick ? `Pick: ${d.topPick}` : d.topRisk ? `Risk: ${d.topRisk}` : ""}</div>
+                  {[{ label: "BULL CASE", data: oracle.bullCase, color: "#4ade80" }, { label: "BEAR CASE", data: oracle.bearCase, color: "#f87171" }].map(({ label, data, color }) => (
+                    <div key={label} style={{ borderRadius: 12, border: `1px solid ${color}20`, background: `${color}06`, padding: "13px 15px" }}>
+                      <div style={{ fontSize: 9, color, fontWeight: 700, marginBottom: 6, letterSpacing: "0.08em" }}>{label}</div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", lineHeight: 1.5, marginBottom: 8 }}>{data?.thesis}</div>
+                      {data?.catalysts?.map((c: string, i: number) => (
+                        <div key={i} style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3, display: "flex", gap: 5 }}>
+                          <span style={{ color }}>{label === "BULL CASE" ? "▲" : "▼"}</span>{c}
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
+
                 {oracle.macroSnapshot && (
-                  <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)", padding: "11px 14px", marginBottom: 12 }}>
-                    <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 7 }}>MACRO SNAPSHOT</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 8 }}>
-                      {Object.entries(oracle.macroSnapshot).map(([k, v]) => (
-                        <div key={k}><div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, fontWeight: 700, textTransform: "uppercase", marginBottom: 1 }}>{k}</div><div style={{ color: "rgba(255,255,255,0.55)", fontSize: 10 }}>{String(v)}</div></div>
+                  <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "13px 15px", marginBottom: 12 }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, marginBottom: 10, letterSpacing: "0.08em" }}>MACRO SNAPSHOT</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
+                      {Object.entries(oracle.macroSnapshot).map(([key, val]: [string, any]) => (
+                        <div key={key} style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: "8px 10px" }}>
+                          <div style={{ fontSize: 8, color: "rgba(255,255,255,0.25)", fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.06em" }}>{key.replace(/([A-Z])/g, ' $1').trim()}</div>
+                          <div style={{ fontSize: 12, color: "#fff", fontWeight: 700 }}>{typeof val === "object" ? val?.value || "—" : val}</div>
+                          {typeof val === "object" && val?.signal && <div style={{ fontSize: 9, color: val.signal === "Bullish" ? "#4ade80" : val.signal === "Bearish" ? "#f87171" : "#94a3b8" }}>{val.signal}</div>}
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
+
                 {oracle.intelligenceFeed?.length > 0 && (
-                  <div>
-                    <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 7 }}>INTELLIGENCE FEED</div>
-                    <div style={{ display: "grid", gap: 5 }}>
-                      {oracle.intelligenceFeed.map((item: any, i: number) => {
-                        const sc: Record<string, string> = { Bullish: "#4ade80", Bearish: "#f87171", Neutral: "#94a3b8" };
-                        const ic: Record<string, string> = { High: "#f87171", Medium: "#fbbf24", Low: "#94a3b8" };
-                        return (
-                          <div key={i} data-testid={`feed-${i}`} style={{ display: "flex", gap: 10, padding: "9px 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)", alignItems: "flex-start" }}>
-                            <div style={{ flexShrink: 0, paddingTop: 2, display: "flex", flexDirection: "column", gap: 3, alignItems: "center" }}>
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc[item.sentiment] || "#94a3b8", display: "block" }} />
-                              <span style={{ fontSize: 7, color: ic[item.impact], fontWeight: 700 }}>{item.impact}</span>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, lineHeight: 1.5, marginBottom: 3 }}>{item.headline}</div>
-                              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                                {(item.assets || []).map((a: string) => <span key={a} style={{ fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: "rgba(124,58,237,0.2)", color: "#a78bfa" }}>{a}</span>)}
-                              </div>
-                            </div>
+                  <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "13px 15px" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 700, marginBottom: 10, letterSpacing: "0.08em" }}>INTELLIGENCE FEED</div>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      {oracle.intelligenceFeed.slice(0, 6).map((item: any, i: number) => (
+                        <div key={i} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                          <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: `${catColors[item.category] || "#94a3b8"}18`, color: catColors[item.category] || "#94a3b8", alignSelf: "flex-start", flexShrink: 0 }}>{item.category}</span>
+                          <div>
+                            <div style={{ color: "#fff", fontWeight: 700, fontSize: 11, marginBottom: 2 }}>{item.headline}</div>
+                            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{item.summary}</div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -789,10 +1115,7 @@ export default function FinancePage() {
       </div>
 
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-        ::-webkit-scrollbar{width:3px;height:3px}
-        ::-webkit-scrollbar-track{background:transparent}
-        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

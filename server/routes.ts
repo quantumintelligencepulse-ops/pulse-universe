@@ -4986,16 +4986,64 @@ ${products.map(p => `  <url>
   app.get("/api/finance/chart/:symbol", async (req, res) => {
     try {
       const sym = req.params.symbol.toUpperCase();
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1mo`;
-      const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(5000) });
-      if (!r.ok) return res.json({ symbol: sym, closes: [], error: true });
+      const tf = (req.query.tf as string) || "1M";
+      const tfMap: Record<string, { range: string; interval: string }> = {
+        "1D": { range: "5d",  interval: "30m" },
+        "1W": { range: "5d",  interval: "1d"  },
+        "1M": { range: "1mo", interval: "1d"  },
+        "3M": { range: "3mo", interval: "1d"  },
+        "6M": { range: "6mo", interval: "1d"  },
+        "1Y": { range: "1y",  interval: "1d"  },
+        "5Y": { range: "5y",  interval: "1wk" },
+      };
+      const { range, interval } = tfMap[tf] || tfMap["1M"];
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=${interval}&range=${range}`;
+      const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }, signal: AbortSignal.timeout(8000) });
+      if (!r.ok) return res.json({ symbol: sym, closes: [], ohlcv: [], error: true });
       const d: any = await r.json();
       const result = d?.chart?.result?.[0];
-      if (!result) return res.json({ symbol: sym, closes: [], error: true });
-      const closes = (result.indicators?.quote?.[0]?.close || []).filter(Boolean).map((v: number) => parseFloat(v.toFixed(2)));
+      if (!result) return res.json({ symbol: sym, closes: [], ohlcv: [], error: true });
+      const q = result.indicators?.quote?.[0] || {};
+      const timestamps: number[] = result.timestamp || [];
+      const opens: number[] = q.open || [];
+      const highs: number[] = q.high || [];
+      const lows: number[] = q.low || [];
+      const closes: number[] = q.close || [];
+      const volumes: number[] = q.volume || [];
+      const ohlcv: any[] = [];
+      for (let i = 0; i < timestamps.length; i++) {
+        if (!closes[i] || !opens[i]) continue;
+        const t = timestamps[i];
+        const isIntraday = interval.includes("m") || interval.includes("h");
+        const timeVal = isIntraday ? t : new Date(t * 1000).toISOString().slice(0, 10);
+        ohlcv.push({
+          time: timeVal,
+          open:   parseFloat((opens[i]  || closes[i]).toFixed(4)),
+          high:   parseFloat((highs[i]  || closes[i]).toFixed(4)),
+          low:    parseFloat((lows[i]   || closes[i]).toFixed(4)),
+          close:  parseFloat(closes[i].toFixed(4)),
+          volume: Math.round(volumes[i] || 0),
+        });
+      }
+      const closesArr = ohlcv.map(c => c.close);
       const meta = result.meta;
-      res.json({ symbol: sym, closes, price: meta.regularMarketPrice, currency: meta.currency || "USD" });
-    } catch { res.json({ symbol: req.params.symbol, closes: [], error: true }); }
+      const prev = meta.chartPreviousClose ?? meta.previousClose ?? closesArr[closesArr.length - 2] ?? 0;
+      const price = meta.regularMarketPrice ?? closesArr[closesArr.length - 1] ?? 0;
+      const change = prev ? ((price - prev) / prev * 100) : 0;
+      res.json({
+        symbol: sym,
+        ohlcv,
+        closes: closesArr,
+        price: parseFloat(price.toFixed(4)),
+        change: parseFloat(change.toFixed(2)),
+        currency: meta.currency || "USD",
+        name: meta.longName || meta.shortName || sym,
+        open: ohlcv[ohlcv.length - 1]?.open,
+        high: Math.max(...ohlcv.map(c => c.high)),
+        low:  Math.min(...ohlcv.map(c => c.low)),
+        volume: ohlcv[ohlcv.length - 1]?.volume,
+      });
+    } catch (e) { res.json({ symbol: req.params.symbol, closes: [], ohlcv: [], error: true }); }
   });
 
   // Multi-symbol batch quotes (custom list via ?symbols=)
