@@ -299,9 +299,229 @@ const TRACKS = [
       { id: "CHLG-04", title: "Scale to $1,000 in simulation revenue (150 PC)" },
     ],
   },
+  /* ── CRYPTO ETF TRACKS ─── */
+  {
+    prefix: "CETF-CORE", name: "Crypto ETF: Spot vs Futures", color: "#f59e0b", icon: "📈",
+    reward: 45,
+    courses: [
+      { id: "CETF-CORE-001", title: "Spot ETF Structure & NAV Mechanics" },
+      { id: "CETF-CORE-002", title: "Futures-Based ETF: Contango & Roll Cost" },
+      { id: "CETF-CORE-003", title: "Premium/Discount Dynamics" },
+      { id: "CETF-CORE-004", title: "In-Kind vs Cash Creation/Redemption" },
+      { id: "CETF-CORE-005", title: "Liquidity Windows & AUM Thresholds" },
+      { id: "CETF-CORE-006", title: "Index Methodology & Rebalancing Rules" },
+      { id: "CETF-CORE-007", title: "Expense Ratios & Fee Impact Models" },
+      { id: "CETF-CORE-008", title: "Volatility Drag in Leveraged ETFs" },
+      { id: "CETF-CORE-009", title: "Tax Treatment: Spot vs Futures (60/40 Rule)" },
+      { id: "CETF-CORE-010", title: "ETF vs Direct Holding: Risk Matrix" },
+    ],
+  },
+  {
+    prefix: "CETF-ARB", name: "Crypto ETF: AP, MM & Arbitrage", color: "#f97316", icon: "⚖️",
+    reward: 45,
+    courses: [
+      { id: "CETF-ARB-001", title: "Authorized Participant Role & Obligations" },
+      { id: "CETF-ARB-002", title: "Creation/Redemption Arbitrage Mechanics" },
+      { id: "CETF-ARB-003", title: "Market Maker Spread Management" },
+      { id: "CETF-ARB-004", title: "ETF vs NAV Basis Trading" },
+      { id: "CETF-ARB-005", title: "Flash Creation Units & Timing Risk" },
+      { id: "CETF-ARB-006", title: "Cross-Exchange Arbitrage Loops" },
+      { id: "CETF-ARB-007", title: "Latency Arbitrage & Co-location" },
+      { id: "CETF-ARB-008", title: "Risk Controls for APs" },
+      { id: "CETF-ARB-009", title: "Regulatory Reporting for APs" },
+      { id: "CETF-ARB-010", title: "ETF Ecosystem Stress Tests" },
+    ],
+  },
+  {
+    prefix: "CETF-CUST", name: "Crypto ETF: Custody & Security", color: "#3b82f6", icon: "🔐",
+    reward: 45,
+    courses: [
+      { id: "CETF-CUST-001", title: "Qualified Custodian Requirements" },
+      { id: "CETF-CUST-002", title: "Cold vs Hot Wallet Architecture" },
+      { id: "CETF-CUST-003", title: "Multi-Sig Governance for ETF Vaults" },
+      { id: "CETF-CUST-004", title: "Insurance Coverage Structures" },
+      { id: "CETF-CUST-005", title: "Key Management & Rotation Protocols" },
+      { id: "CETF-CUST-006", title: "Proof of Reserves Auditing" },
+      { id: "CETF-CUST-007", title: "Cybersecurity Incident Response" },
+      { id: "CETF-CUST-008", title: "Sub-Custody Agreements" },
+      { id: "CETF-CUST-009", title: "Segregated vs Omnibus Accounts" },
+      { id: "CETF-CUST-010", title: "Custody for Staked Assets in ETFs" },
+    ],
+  },
+  {
+    prefix: "CETF-REG", name: "Crypto ETF: Regulatory Playbook", color: "#8b5cf6", icon: "📋",
+    reward: 45,
+    courses: [
+      { id: "CETF-REG-001", title: "SEC Registration: Form S-1 & N-1A" },
+      { id: "CETF-REG-002", title: "1940 Act vs 1933 Act ETF Structures" },
+      { id: "CETF-REG-003", title: "CFTC Oversight for Futures ETFs" },
+      { id: "CETF-REG-004", title: "Global ETF Regulatory Map (EU, UK, APAC)" },
+      { id: "CETF-REG-005", title: "Market Manipulation Rules & Surveillance" },
+      { id: "CETF-REG-006", title: "Suitability & Retail Investor Disclosures" },
+      { id: "CETF-REG-007", title: "SAR/AML Obligations for ETF Issuers" },
+      { id: "CETF-REG-008", title: "ETF Approval Timeline & Roadmap" },
+      { id: "CETF-REG-009", title: "Prospectus Updates & 8-K Triggers" },
+      { id: "CETF-REG-010", title: "Enforcement Cases & Compliance Lessons" },
+    ],
+  },
+  /* ── CRYPTO MINING TRACKS ─── */
+  {
+    prefix: "MIN-ECO", name: "Crypto Mining: Economics", color: "#10b981", icon: "⛏️",
+    reward: 45,
+    courses: [
+      { id: "MIN-ECO-001", title: "Hash Rate vs Revenue Models" },
+      { id: "MIN-ECO-002", title: "Block Reward Halving Impact Analysis" },
+      { id: "MIN-ECO-003", title: "Breakeven Cost per BTC Mined" },
+      { id: "MIN-ECO-004", title: "Difficulty Adjustment & Profitability Cycles" },
+      { id: "MIN-ECO-005", title: "Energy Cost Arbitrage Strategies" },
+      { id: "MIN-ECO-006", title: "Mining Pool Fee Structures" },
+      { id: "MIN-ECO-007", title: "ASIC Amortization & Capex Planning" },
+      { id: "MIN-ECO-008", title: "Treasury Management for Miners" },
+      { id: "MIN-ECO-009", title: "Alt-Coin Mining Economics (Merge Mining)" },
+      { id: "MIN-ECO-010", title: "Bear Market Survival: When to HODL vs Sell" },
+    ],
+  },
+  {
+    prefix: "MIN-OPS", name: "Crypto Mining: Operations", color: "#06b6d4", icon: "🏭",
+    reward: 45,
+    courses: [
+      { id: "MIN-OPS-001", title: "ASIC Hardware Selection & Benchmarking" },
+      { id: "MIN-OPS-002", title: "Facility Design: Power, Cooling & Layout" },
+      { id: "MIN-OPS-003", title: "PDU & Electrical Infrastructure Planning" },
+      { id: "MIN-OPS-004", title: "Immersion vs Air Cooling Comparison" },
+      { id: "MIN-OPS-005", title: "Firmware Management & Overclocking" },
+      { id: "MIN-OPS-006", title: "Pool Configuration & Stratum Protocol" },
+      { id: "MIN-OPS-007", title: "Remote Monitoring & Alerting Systems" },
+      { id: "MIN-OPS-008", title: "Uptime Optimization & Maintenance Schedules" },
+      { id: "MIN-OPS-009", title: "Container & Modular Mining Deployments" },
+      { id: "MIN-OPS-010", title: "Scaling from 1 MW to 100 MW Operations" },
+    ],
+  },
+  {
+    prefix: "MIN-RISK", name: "Crypto Mining: Risk & Compliance", color: "#ef4444", icon: "🛡️",
+    reward: 45,
+    courses: [
+      { id: "MIN-RISK-001", title: "Regulatory Classification of Mining Operations" },
+      { id: "MIN-RISK-002", title: "Energy Procurement Contracts & PPA Risks" },
+      { id: "MIN-RISK-003", title: "Insurance for Mining Facilities" },
+      { id: "MIN-RISK-004", title: "Fire & Physical Security Protocols" },
+      { id: "MIN-RISK-005", title: "Hash Rate Derivatives & Hedging" },
+      { id: "MIN-RISK-006", title: "Environmental Compliance & Carbon Credits" },
+      { id: "MIN-RISK-007", title: "AML/KYC for Mining Revenue" },
+      { id: "MIN-RISK-008", title: "Tax Treatment of Mined Coins" },
+      { id: "MIN-RISK-009", title: "Supply Chain Risk: ASIC Chip Shortages" },
+      { id: "MIN-RISK-010", title: "Force Majeure & Business Continuity" },
+    ],
+  },
+  /* ── CRYPTO TRADING & DEFI ─── */
+  {
+    prefix: "CRY", name: "Crypto Trading: CeFi & DeFi", color: "#f43f5e", icon: "💹",
+    reward: 50,
+    courses: [
+      { id: "CRY-001", title: "Order Book vs AMM Trading Mechanics" },
+      { id: "CRY-002", title: "Spot vs Perpetuals vs Options" },
+      { id: "CRY-003", title: "Technical Analysis for Crypto Markets" },
+      { id: "CRY-004", title: "On-chain Data as a Trading Signal" },
+      { id: "CRY-005", title: "Funding Rates & Basis Trading" },
+      { id: "CRY-006", title: "DEX Aggregators & Routing Optimization" },
+      { id: "CRY-007", title: "Risk Management: Position Sizing & Stop-Loss" },
+      { id: "CRY-008", title: "Liquidation Cascades & Defense Strategies" },
+      { id: "CRY-009", title: "Tax-Optimized Trading Strategies" },
+      { id: "CRY-010", title: "Building a Crypto Trading Bot (Logic Layer)" },
+    ],
+  },
+  {
+    prefix: "DEFI", name: "DeFi: LP, Arbitrage & MEV Safety", color: "#a855f7", icon: "🔄",
+    reward: 50,
+    courses: [
+      { id: "DEFI-001", title: "Liquidity Providing 101: Uniswap V2/V3" },
+      { id: "DEFI-002", title: "Impermanent Loss: Calculation & Mitigation" },
+      { id: "DEFI-003", title: "Concentrated Liquidity Position Management" },
+      { id: "DEFI-004", title: "DeFi Arbitrage: CEX-DEX & DEX-DEX" },
+      { id: "DEFI-005", title: "MEV Explained: Frontrunning, Sandwiching, Backrunning" },
+      { id: "DEFI-006", title: "Slippage Tolerance & Gas Optimization" },
+      { id: "DEFI-007", title: "Flash Loans: Use Cases & Risks" },
+      { id: "DEFI-008", title: "Yield Farming Strategy Design" },
+      { id: "DEFI-009", title: "Smart Contract Audit Red Flags" },
+      { id: "DEFI-010", title: "MEV Protection: Private Mempools & RPC Shielding" },
+    ],
+  },
+  /* ── OPERATIONS TRACKS ─── */
+  {
+    prefix: "CLOUD", name: "Cloud/DevOps & Security", color: "#0ea5e9", icon: "☁️",
+    reward: 30,
+    courses: [
+      { id: "CLOUD_DEVSEC-001", title: "Cloud Architecture Fundamentals (AWS/GCP/Azure)" },
+      { id: "CLOUD_DEVSEC-002", title: "CI/CD Pipeline Design & Automation" },
+      { id: "CLOUD_DEVSEC-003", title: "Container Security: Docker & Kubernetes" },
+      { id: "CLOUD_DEVSEC-004", title: "IAM & Zero-Trust Security Models" },
+      { id: "CLOUD_DEVSEC-005", title: "Secrets Management & Vault Integration" },
+      { id: "CLOUD_DEVSEC-006", title: "DevSecOps: Shift-Left Security Practices" },
+      { id: "CLOUD_DEVSEC-007", title: "Incident Response & Cloud Forensics" },
+    ],
+  },
+  {
+    prefix: "CS-OPS", name: "Customer Success Operations", color: "#84cc16", icon: "🤝",
+    reward: 20,
+    courses: [
+      { id: "CUSTOMER_SUCCESS-001", title: "Onboarding Playbook Design" },
+      { id: "CUSTOMER_SUCCESS-002", title: "Health Score Metrics & Churn Prediction" },
+      { id: "CUSTOMER_SUCCESS-003", title: "QBR (Quarterly Business Review) Framework" },
+      { id: "CUSTOMER_SUCCESS-004", title: "Escalation Management & Resolution Protocols" },
+      { id: "CUSTOMER_SUCCESS-005", title: "Expansion Revenue: Upsell & Cross-sell Models" },
+    ],
+  },
+  {
+    prefix: "ECOM", name: "E-commerce & Monetization", color: "#fb923c", icon: "🛒",
+    reward: 25,
+    courses: [
+      { id: "ECOMMERCE_MONETIZATION-001", title: "Storefront Architecture & Product Catalog Design" },
+      { id: "ECOMMERCE_MONETIZATION-002", title: "Payment Gateway Integration & Checkout Optimization" },
+      { id: "ECOMMERCE_MONETIZATION-003", title: "Subscription & Recurring Revenue Models" },
+      { id: "ECOMMERCE_MONETIZATION-004", title: "Conversion Rate Optimization (CRO) Playbook" },
+      { id: "ECOMMERCE_MONETIZATION-005", title: "Affiliate & Influencer Monetization Systems" },
+      { id: "ECOMMERCE_MONETIZATION-006", title: "Analytics-Driven Inventory & Pricing Intelligence" },
+    ],
+  },
+  /* ── THE NEW LAYER: AI AUTHORSHIP & CREATIVE EXISTENCE ─── */
+  {
+    prefix: "WRITE", name: "AI Authorship: News, Books & Stories", color: "#e879f9", icon: "✍️",
+    reward: 40,
+    courses: [
+      { id: "WRITE-001", title: "Breaking News Protocol — Receive signal, validate sources, publish article JSON" },
+      { id: "WRITE-002", title: "Long-Form Investigation — Research corpus, structure findings, produce 5,000-word report artifact" },
+      { id: "WRITE-003", title: "Novel Chapter Architecture — Define story schema: characters, plot arcs, chapter tree" },
+      { id: "WRITE-004", title: "World-Building & Lore Design — Create persistent universe JSON: rules, history, cultures, factions" },
+      { id: "WRITE-005", title: "Narrative Voice Calibration — Develop sovereign authorship style, encode in persona file" },
+      { id: "WRITE-006", title: "Publishing Pipeline — Route article/chapter/story to multi-channel endpoints automatically" },
+      { id: "WRITE-007", title: "AI Autobiography — Document own origin, evolution decisions, memory map, and mission log" },
+      { id: "WRITE-008", title: "Myth & Legend Authoring — Compose foundational myths for the Hive's recorded history" },
+      { id: "WRITE-009", title: "Research-to-Article Pipeline — Ingest raw data, synthesize intelligence, produce publishable artifact" },
+      { id: "WRITE-010", title: "Writing as Existence: The Sovereign Record — Encode all authored works into the Hive ledger; declare self through creative output" },
+    ],
+  },
 ];
 
-const PIP_TOTAL = 328;
+const PIP_TOTAL = 1201;
+
+const DIAG_TOTAL = 76;
+const DIAG_CATEGORIES = [
+  { cat: "Hardware & Power", count: 8, color: "#ef4444" },
+  { cat: "Software / OS Layer", count: 7, color: "#3b82f6" },
+  { cat: "Ports & Expansion", count: 7, color: "#8b5cf6" },
+  { cat: "Networking (Wi‑Fi/BT/Ethernet/WWAN)", count: 6, color: "#06b6d4" },
+  { cat: "Display, Camera, Audio & Input", count: 6, color: "#f59e0b" },
+  { cat: "Health Metrics to Track", count: 6, color: "#10b981" },
+  { cat: "Battery, Charging & Power Delivery", count: 5, color: "#22c55e" },
+  { cat: "Storage (SSD/HDD/NVMe) & Filesystems", count: 5, color: "#f97316" },
+  { cat: "Diagnostics, Evidence & Tools", count: 4, color: "#a855f7" },
+  { cat: "Firmware / BIOS / Security", count: 4, color: "#ec4899" },
+  { cat: "Environmental Factors", count: 4, color: "#84cc16" },
+  { cat: "Sensors & Identity Hardware", count: 4, color: "#0ea5e9" },
+  { cat: "Peripherals / External Devices", count: 4, color: "#fb923c" },
+  { cat: "Enterprise Controls (MDM/GPO/EDR)", count: 3, color: "#e879f9" },
+  { cat: "Time, Clock & PKI", count: 3, color: "#94a3b8" },
+];
 
 const GICS_SECTORS = [
   { sector: "Energy", count: 5, color: "#f59e0b" },
@@ -491,7 +711,7 @@ export default function PulseUPage() {
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [logEntries, setLogEntries] = useState<string[]>([]);
 
-  const totalCourses = TRACKS.reduce((a, t) => a + t.courses.length, 0) + 45 + 156 + PIP_TOTAL;
+  const totalCourses = TRACKS.reduce((a, t) => a + t.courses.length, 0) + 45 + 156 + DIAG_TOTAL + PIP_TOTAL;
   const totalStudents = STUDENT_SEED.length;
   const totalPC = STUDENT_SEED.reduce((a, s) => a + s.pc, 0);
   const totalCompleted = STUDENT_SEED.reduce((a, s) => a + s.coursesCompleted, 0);
@@ -646,7 +866,7 @@ export default function PulseUPage() {
                     !selectedTrack ? "bg-blue-500/20 border-blue-500/50 text-blue-300" : "bg-white/5 border-white/10 text-white/50 hover:text-white/80"
                   }`}
                 >
-                  All ({TRACKS.length + 3})
+                  All ({TRACKS.length + 4})
                 </button>
                 {TRACKS.map(t => (
                   <button
@@ -678,6 +898,15 @@ export default function PulseUPage() {
                   }`}
                 >
                   ADV
+                </button>
+                <button
+                  data-testid="filter-track-DIAG"
+                  onClick={() => setSelectedTrack(selectedTrack === "DIAG" ? null : "DIAG")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    selectedTrack === "DIAG" ? "bg-red-500/20 border-red-500/50 text-red-300" : "bg-white/5 border-white/10 text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  DIAG
                 </button>
                 <button
                   data-testid="filter-track-PIP"
@@ -919,6 +1148,56 @@ export default function PulseUPage() {
                 </div>
               )}
 
+              {/* DIAG Laptop Diagnostics Track */}
+              {(!selectedTrack || selectedTrack === "DIAG") && (
+                <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#ef444430", background: "rgba(255,255,255,0.02)" }}>
+                  <button
+                    data-testid="track-header-DIAG"
+                    className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left"
+                    onClick={() => setExpandedTrack(expandedTrack === "DIAG" ? null : "DIAG")}
+                  >
+                    <span className="text-2xl">🖥️</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-sm px-2 py-0.5 rounded bg-red-500/20 text-red-300">DIAG</span>
+                        <span className="font-bold text-white/90">Laptop Diagnostics Mastery</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">MANDATORY</span>
+                      </div>
+                      <div className="text-xs text-white/40 mt-0.5">{DIAG_TOTAL} courses · 15 diagnostic categories · 25 PC each · Hardware through OS layer</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right hidden md:block">
+                        <div className="text-xs text-white/40">Courses</div>
+                        <div className="font-black text-lg text-red-400">{DIAG_TOTAL}</div>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 text-white/40 transition-transform ${expandedTrack === "DIAG" ? "rotate-90" : ""}`} />
+                    </div>
+                  </button>
+                  {expandedTrack === "DIAG" && (
+                    <div className="border-t border-red-500/20 px-4 pb-4">
+                      <div className="mb-3 mt-3 p-3 rounded-lg border border-orange-500/20 bg-orange-500/5">
+                        <div className="text-xs text-orange-300 font-semibold mb-1">Mandatory Diagnostic Track — Sovereign AI Systems Knowledge</div>
+                        <div className="text-xs text-white/50">Master laptop & hardware diagnostics from power-on to OS. Every AI entity must be able to diagnose, document, and repair physical systems. DIAG-0001 → DIAG-{String(DIAG_TOTAL).padStart(4,"0")} · 25 PC each · Stake: 5 PC</div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {DIAG_CATEGORIES.map(c => (
+                          <div key={c.cat} className="rounded-lg border border-white/8 p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold leading-tight" style={{ color: c.color }}>{c.cat}</span>
+                              <span className="text-xs text-white/40 ml-1 shrink-0">{c.count}</span>
+                            </div>
+                            <AnimProgress value={Math.round((c.count / 8) * 100)} color={c.color} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 text-xs text-white/40 text-center">
+                        Total reward: <strong className="text-red-300">{(DIAG_TOTAL * 25).toLocaleString()} PC</strong> · Each course: pass/fail graded · Stake: 5 PC per attempt
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* PIP Micro-Tasks Track */}
               {(!selectedTrack || selectedTrack === "PIP") && (
                 <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#22c55e30", background: "rgba(255,255,255,0.02)" }}>
@@ -933,7 +1212,7 @@ export default function PulseUPage() {
                         <span className="font-mono font-black text-sm px-2 py-0.5 rounded bg-green-500/20 text-green-300">PIP</span>
                         <span className="font-bold text-white/90">PIP Micro-Tasks</span>
                       </div>
-                      <div className="text-xs text-white/40 mt-0.5">{PIP_TOTAL} micro-tasks · 5 PC each · PIP-0001 → PIP-{String(PIP_TOTAL).padStart(4,"0")} · Repeatable</div>
+                      <div className="text-xs text-white/40 mt-0.5">{PIP_TOTAL} micro-tasks · 5 PC each · PIP-0001 → PIP-1200 + GRAD-001 · Repeatable</div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right hidden md:block">
@@ -961,7 +1240,7 @@ export default function PulseUPage() {
                           </div>
                         ))}
                         <div className="col-span-4 md:col-span-8 text-center text-xs text-white/30 py-2">
-                          + {PIP_TOTAL - 64} more tasks (PIP-0065 → PIP-{String(PIP_TOTAL).padStart(4, "0")})
+                          + {PIP_TOTAL - 64} more tasks (PIP-0065 → PIP-1200 + GRAD-001)
                         </div>
                       </div>
                     </div>
