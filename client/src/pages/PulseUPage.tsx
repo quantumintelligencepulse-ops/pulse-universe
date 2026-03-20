@@ -949,6 +949,23 @@ const TRACKS = [
       { id: "INTL_LOCALIZATION-004", title: "Global Support Playbooks" },
     ],
   },
+  /* ── FINAL CLASS ─── */
+  {
+    prefix: "XCHAIN", name: "Cross-Chain & Bridges", color: "#7c3aed", icon: "🌉",
+    reward: 40,
+    courses: [
+      { id: "XCHAIN-001", title: "Bridge Types & Risks" },
+      { id: "XCHAIN-002", title: "Lock/Mint vs Burn/Mint" },
+      { id: "XCHAIN-003", title: "Router & Messaging" },
+      { id: "XCHAIN-004", title: "Liquidity Fragmentation" },
+      { id: "XCHAIN-005", title: "Price Sync & Oracles" },
+      { id: "XCHAIN-006", title: "Security Incidents" },
+      { id: "XCHAIN-007", title: "Circuit Breakers" },
+      { id: "XCHAIN-008", title: "Monitoring" },
+      { id: "XCHAIN-009", title: "User UX" },
+      { id: "XCHAIN-010", title: "Exit & Recovery" },
+    ],
+  },
   /* ── INDUSTRY ELECTIVES ─── */
   {
     prefix: "IND-E", name: "Industry Electives (500-Series)", color: "#64748b", icon: "🏭",
