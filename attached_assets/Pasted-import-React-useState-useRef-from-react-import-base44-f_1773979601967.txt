@@ -1,0 +1,413 @@
+import React, { useState, useRef } from "react";
+import { base44 } from "@/api/base44Client";
+import { INSTRUMENTS } from "@/hooks/useAudioEngine";
+import { Zap, Wand2, Music, Shuffle, MessageSquare, Send, Loader2, Sliders } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+const GENRES = ['trap','hip_hop','drill','lofi','rnb','electronic','pop','afrobeat','jazz','reggaeton','rock','synthwave','classical','ambient','drum_and_bass','house'];
+const ARTISTS = ['Kanye West','Metro Boomin','J Dilla','Flying Lotus','Daft Punk','Justice','Four Tet','Nujabes','Dr. Dre','9th Wonder','Madlib','Timbaland'];
+
+function buildEmptyTrack(steps) {
+  return Array(steps).fill(null).map(()=>({active:false,velocity:100,note:0,length:1}));
+}
+
+export default function AIPanel({ patterns, mixer, bpm, musicalKey, genre, mood, steps, activePattern, onPatternsChange, onMixerChange, onArrangementChange }) {
+  const [activeTab, setActiveTab] = useState('mix');
+  const [loading, setLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'assistant', content: `Hey! I'm your AI beat collaborator. Tell me what you want — "make the bass heavier", "add more hi-hats", "make it sound darker", "add a trap drop at bar 9", whatever you want!` }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [styleInput, setStyleInput] = useState('');
+  const [selectedArtist, setSelectedArtist] = useState('');
+  const [morphGenre1, setMorphGenre1] = useState('trap');
+  const [morphGenre2, setMorphGenre2] = useState('jazz');
+  const [morphBlend, setMorphBlend] = useState(50);
+  const chatEndRef = useRef(null);
+
+  const withLoading = async (fn) => {
+    setLoading(true);
+    try { await fn(); }
+    catch(e) { toast.error("AI error: " + e.message); console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const handleAIMixEngineer = () => withLoading(async () => {
+    const instrList = INSTRUMENTS.map(i=>`${i.id} (${i.name})`).join(', ');
+    const patternSummary = Object.entries(patterns[activePattern]||{}).map(([id,track])=>`${id}: ${track.filter(s=>s?.active).length} active steps`).join(', ');
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a world-class mixing engineer. Analyze this beat and set optimal mixer/FX settings.
+
+Genre: ${genre} | Mood: ${mood} | BPM: ${bpm} | Key: ${musicalKey}
+Pattern density: ${patternSummary}
+Instruments: ${instrList}
+
+Set professional mix settings for each instrument. Consider:
+- Proper gain staging (no clipping)
+- Panning for stereo width
+- EQ to carve space for each instrument (low/mid/hi in dB, -12 to +12)
+- Reverb/delay sends (0-1)
+- Compression settings per channel
+- Genre-appropriate FX
+
+Return JSON with mixer settings for each instrument id.`,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          mixer: {
+            type: "object",
+            description: "mixer settings keyed by instrument id",
+            additionalProperties: {
+              type: "object",
+              properties: {
+                volume: { type: "number" }, pan: { type: "number" },
+                eqLo: { type: "number" }, eqMid: { type: "number" }, eqHi: { type: "number" },
+                reverb: { type: "number" }, delay: { type: "number" },
+                distortion: { type: "number" }, chorus: { type: "number" }, phaser: { type: "number" },
+                compThreshold: { type: "number" }, compRatio: { type: "number" }
+              }
+            }
+          },
+          notes: { type: "string" }
+        }
+      }
+    });
+    if(res.mixer) {
+      const updated = { ...mixer };
+      Object.entries(res.mixer).forEach(([id, settings]) => {
+        if(updated[id]) updated[id] = { ...updated[id], ...settings };
+      });
+      onMixerChange(updated);
+      toast.success(`AI Mix applied! ${res.notes ? res.notes.slice(0,80) : ''}`);
+    }
+  });
+
+  const handleStyleTransfer = () => withLoading(async () => {
+    const target = styleInput || selectedArtist;
+    if(!target) { toast.error("Enter a style or artist first"); return; }
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a legendary music producer. Transform this beat to sound like "${target}".
+
+Current: Genre: ${genre}, BPM: ${bpm}, Key: ${musicalKey}, Steps: ${steps}
+
+Create a new ${steps}-step pattern for ALL instruments that captures the essence of "${target}".
+Think about their signature drum patterns, bass lines, melodic motifs, energy level.
+
+Available instruments: ${INSTRUMENTS.map(i=>`${i.id} (${i.name}, type:${i.type})`).join(', ')}`,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          pattern: { type: "object", additionalProperties: { type: "array", items: { type: "object", properties: { active:{type:"boolean"}, velocity:{type:"number"}, note:{type:"number"}, length:{type:"number"} } } } },
+          description: { type: "string" }
+        }
+      }
+    });
+    if(res.pattern) {
+      const normalized = {};
+      INSTRUMENTS.forEach(inst => {
+        const raw = res.pattern[inst.id];
+        normalized[inst.id] = Array.isArray(raw) && raw.length===steps
+          ? raw.map(s=>({ active:!!s.active, velocity:Math.min(127,Math.max(1,s.velocity??100)), note:Math.min(7,Math.max(0,s.note??0)), length:Math.min(4,Math.max(1,s.length??1)) }))
+          : buildEmptyTrack(steps);
+      });
+      onPatternsChange(prev => ({ ...prev, [activePattern]: normalized }));
+      toast.success(`Style transferred to "${target}"! ${res.description?.slice(0,60)||''}`);
+    }
+  });
+
+  const handleGenreMorph = () => withLoading(async () => {
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a genius music producer. Create a beat that blends ${morphGenre1} (${morphBlend}%) and ${morphGenre2} (${100-morphBlend}%).
+
+BPM: ${bpm} | Key: ${musicalKey} | Steps: ${steps}
+
+Blend the best elements of both genres. ${morphBlend}% weight toward ${morphGenre1}, ${100-morphBlend}% toward ${morphGenre2}.
+Think deeply about rhythm patterns, note selection, instrument layering, velocity curves.
+
+Available instruments: ${INSTRUMENTS.map(i=>`${i.id} (${i.name}, type:${i.type})`).join(', ')}`,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          pattern: { type: "object", additionalProperties: { type: "array", items: { type: "object", properties: { active:{type:"boolean"}, velocity:{type:"number"}, note:{type:"number"}, length:{type:"number"} } } } },
+          description: { type: "string" }
+        }
+      }
+    });
+    if(res.pattern) {
+      const normalized = {};
+      INSTRUMENTS.forEach(inst => {
+        const raw = res.pattern[inst.id];
+        normalized[inst.id] = Array.isArray(raw) && raw.length===steps
+          ? raw.map(s=>({ active:!!s.active, velocity:Math.min(127,Math.max(1,s.velocity??100)), note:Math.min(7,Math.max(0,s.note??0)), length:Math.min(4,Math.max(1,s.length??1)) }))
+          : buildEmptyTrack(steps);
+      });
+      onPatternsChange(prev => ({ ...prev, [activePattern]: normalized }));
+      toast.success(`Genre morph complete! ${res.description?.slice(0,60)||''}`);
+    }
+  });
+
+  const handleAISongArranger = () => withLoading(async () => {
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are a music arranger. Create a song arrangement using patterns A, B, C, D.
+
+Genre: ${genre} | Mood: ${mood} | BPM: ${bpm}
+
+Design a complete song structure (16-32 bars) using these patterns:
+- A = Main groove/verse
+- B = Build/pre-chorus  
+- C = Drop/chorus
+- D = Bridge/breakdown
+
+Create an arrangement that feels like a complete song with proper intro, buildup, climax, outro.
+Each bar can only use ONE pattern. Return array of {patternId, bar} objects.`,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          arrangement: { type: "array", items: { type: "object", properties: { patternId:{type:"string"}, bar:{type:"number"} } } },
+          structure: { type: "string" }
+        }
+      }
+    });
+    if(res.arrangement?.length) {
+      const arrangement = res.arrangement.map((b,i) => ({ id:`ai_${i}`, patternId: b.patternId, bar: b.bar }));
+      onArrangementChange(arrangement);
+      toast.success(`Song arranged! ${res.structure?.slice(0,80)||''}`);
+    }
+  });
+
+  const handleChat = async () => {
+    if(!chatInput.trim()) return;
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    const newMessages = [...chatMessages, { role: 'user', content: userMsg }];
+    setChatMessages(newMessages);
+    setLoading(true);
+    try {
+      const patternSummary = JSON.stringify(Object.fromEntries(
+        Object.entries(patterns[activePattern]||{}).map(([id,track])=>[id,track.filter(s=>s?.active).map(s=>({step:track.indexOf(s),note:s.note,vel:s.velocity}))])
+      ));
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are an AI music collaborator in a DAW. The producer said: "${userMsg}"
+
+Current beat: Genre: ${genre}, Mood: ${mood}, BPM: ${bpm}, Key: ${musicalKey}, Steps: ${steps}
+Active steps by instrument: ${patternSummary}
+
+Respond naturally as a producer collaborator. If they want changes to the beat, provide updated pattern data.
+If it's just a question/chat, just respond with helpful advice. Keep response conversational and brief.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            response: { type: "string" },
+            pattern: { type: "object", description: "Updated pattern (only if user requested beat changes)", additionalProperties: { type: "array", items: { type: "object", properties: { active:{type:"boolean"}, velocity:{type:"number"}, note:{type:"number"}, length:{type:"number"} } } } }
+          }
+        }
+      });
+      setChatMessages(prev => [...prev, { role: 'assistant', content: res.response || "Let me work on that..." }]);
+      if(res.pattern && Object.keys(res.pattern).length > 0) {
+        const normalized = {};
+        INSTRUMENTS.forEach(inst => {
+          const raw = res.pattern[inst.id];
+          if(Array.isArray(raw) && raw.length===steps) {
+            normalized[inst.id] = raw.map(s=>({ active:!!s.active, velocity:Math.min(127,Math.max(1,s.velocity??100)), note:Math.min(7,Math.max(0,s.note??0)), length:Math.min(4,Math.max(1,s.length??1)) }));
+          }
+        });
+        if(Object.keys(normalized).length > 0) {
+          const merged = { ...patterns[activePattern], ...normalized };
+          onPatternsChange(prev => ({ ...prev, [activePattern]: merged }));
+          toast.success("Beat updated by AI collaborator!");
+        }
+      }
+    } catch(e) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: "Hmm, ran into an issue. Try again!" }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+  };
+
+  const tabs = [
+    { id: 'mix',    label: 'Mix Engineer', icon: Sliders },
+    { id: 'style',  label: 'Style Transfer', icon: Wand2 },
+    { id: 'morph',  label: 'Genre Morph', icon: Shuffle },
+    { id: 'arranger',label: 'AI Arranger', icon: Music },
+    { id: 'chat',   label: 'AI Chat', icon: MessageSquare },
+  ];
+
+  return (
+    <div className="flex flex-col h-full bg-[#080810]">
+      {/* Tab bar */}
+      <div className="flex gap-1 px-4 py-2 border-b border-white/5 bg-[#0d0d12] overflow-x-auto">
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          return (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0",
+                activeTab===tab.id ? "bg-primary/20 text-primary border border-primary/30" : "text-white/40 hover:text-white/70 border border-transparent"
+              )}>
+              <Icon className="w-3 h-3" /> {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex-1 overflow-auto p-4">
+        {/* Mix Engineer */}
+        {activeTab==='mix' && (
+          <div className="max-w-lg space-y-4">
+            <div className="p-4 rounded-xl bg-white/3 border border-white/5 space-y-2">
+              <div className="text-sm font-bold text-white/80">AI Mix Engineer</div>
+              <div className="text-xs text-white/40 leading-relaxed">
+                AI analyzes your beat pattern and automatically sets optimal volume, pan, EQ, compression, reverb, delay, and FX for every channel — like having a pro mix engineer in your DAW.
+              </div>
+            </div>
+            <button onClick={handleAIMixEngineer} disabled={loading}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary/20 border border-primary/30 text-primary font-bold text-sm hover:bg-primary/30 transition-all disabled:opacity-50">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sliders className="w-4 h-4" />}
+              Auto-Mix This Beat
+            </button>
+          </div>
+        )}
+
+        {/* Style Transfer */}
+        {activeTab==='style' && (
+          <div className="max-w-lg space-y-4">
+            <div className="p-4 rounded-xl bg-white/3 border border-white/5 space-y-2">
+              <div className="text-sm font-bold text-white/80">AI Style Transfer</div>
+              <div className="text-xs text-white/40">Transform your beat to sound like any artist or genre.</div>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-white/30 uppercase tracking-wider">Select Artist</label>
+                <Select value={selectedArtist} onValueChange={setSelectedArtist}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white/70 text-sm">
+                    <SelectValue placeholder="Choose an artist..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ARTISTS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-[10px] text-white/20 text-center">OR</div>
+              <input
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/70 placeholder-white/20 outline-none focus:border-primary/40"
+                placeholder="Type any artist, genre, or style..."
+                value={styleInput} onChange={e=>setStyleInput(e.target.value)}
+              />
+              <button onClick={handleStyleTransfer} disabled={loading}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary/20 border border-primary/30 text-primary font-bold text-sm hover:bg-primary/30 transition-all disabled:opacity-50">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                Transfer Style
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Genre Morph */}
+        {activeTab==='morph' && (
+          <div className="max-w-lg space-y-4">
+            <div className="p-4 rounded-xl bg-white/3 border border-white/5 space-y-2">
+              <div className="text-sm font-bold text-white/80">Genre Morph</div>
+              <div className="text-xs text-white/40">Blend two genres into one unique beat. Impossible in any other DAW.</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-white/30 uppercase tracking-wider">Genre 1</label>
+                <Select value={morphGenre1} onValueChange={setMorphGenre1}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white/70 text-sm capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENRES.map(g=><SelectItem key={g} value={g} className="capitalize">{g.replace(/_/g,' ')}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-white/30 uppercase tracking-wider">Genre 2</label>
+                <Select value={morphGenre2} onValueChange={setMorphGenre2}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white/70 text-sm capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENRES.map(g=><SelectItem key={g} value={g} className="capitalize">{g.replace(/_/g,' ')}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[10px]">
+                <span style={{color:'#8b5cf6'}}>{morphGenre1.replace(/_/g,' ')} {morphBlend}%</span>
+                <span style={{color:'#06b6d4'}}>{100-morphBlend}% {morphGenre2.replace(/_/g,' ')}</span>
+              </div>
+              <input type="range" min={0} max={100} value={morphBlend} onChange={e=>setMorphBlend(+e.target.value)}
+                className="w-full accent-primary" />
+            </div>
+            <button onClick={handleGenreMorph} disabled={loading}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary/20 border border-primary/30 text-primary font-bold text-sm hover:bg-primary/30 transition-all disabled:opacity-50">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
+              Morph Genres
+            </button>
+          </div>
+        )}
+
+        {/* AI Arranger */}
+        {activeTab==='arranger' && (
+          <div className="max-w-lg space-y-4">
+            <div className="p-4 rounded-xl bg-white/3 border border-white/5 space-y-2">
+              <div className="text-sm font-bold text-white/80">AI Song Arranger</div>
+              <div className="text-xs text-white/40 leading-relaxed">
+                AI creates a complete song arrangement using your patterns A/B/C/D. It'll build an intro, verse, build, drop, bridge, outro structure automatically.
+              </div>
+            </div>
+            <button onClick={handleAISongArranger} disabled={loading}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-primary/20 border border-primary/30 text-primary font-bold text-sm hover:bg-primary/30 transition-all disabled:opacity-50">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Music className="w-4 h-4" />}
+              Arrange My Song
+            </button>
+          </div>
+        )}
+
+        {/* AI Chat */}
+        {activeTab==='chat' && (
+          <div className="flex flex-col h-full" style={{ minHeight: 400 }}>
+            <div className="flex-1 space-y-3 mb-4 overflow-y-auto max-h-80">
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={cn("flex", msg.role==='user' ? 'justify-end' : 'justify-start')}>
+                  <div className={cn("max-w-xs rounded-xl px-3 py-2 text-sm",
+                    msg.role==='user'
+                      ? "bg-primary/20 text-primary/90 border border-primary/20"
+                      : "bg-white/5 text-white/70 border border-white/8"
+                  )}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-white/5 rounded-xl px-3 py-2 border border-white/8">
+                    <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white/70 placeholder-white/20 outline-none focus:border-primary/40"
+                placeholder="Tell the AI what to do with your beat..."
+                value={chatInput} onChange={e=>setChatInput(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&handleChat()}
+              />
+              <button onClick={handleChat} disabled={loading||!chatInput.trim()}
+                className="px-3 py-2 rounded-xl bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 transition-all disabled:opacity-50">
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

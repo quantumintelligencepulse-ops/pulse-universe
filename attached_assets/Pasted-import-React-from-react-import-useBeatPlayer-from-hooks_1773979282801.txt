@@ -1,0 +1,97 @@
+import React from "react";
+import { useBeatPlayer } from "@/hooks/useBeatPlayer";
+import { Play, Square, Volume2, VolumeX } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+export default function BeatPlayer({ genre, bpm, musicalKey }) {
+  const { isPlaying, currentStep, volume, setVolume, play, stop } = useBeatPlayer({
+    genre, bpm, musicalKey
+  });
+
+  const stepGroups = [
+    [0,1,2,3], [4,5,6,7], [8,9,10,11], [12,13,14,15]
+  ];
+
+  return (
+    <div className="p-5 rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/5 to-card space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "w-2 h-2 rounded-full transition-all duration-150",
+            isPlaying ? "bg-primary shadow-lg shadow-primary/60 animate-pulse" : "bg-muted-foreground"
+          )} />
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {isPlaying ? "Playing" : "Ready"}
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground font-mono">{bpm} BPM · {musicalKey}</span>
+      </div>
+
+      {/* Step sequencer visualizer */}
+      <div className="flex gap-1.5 justify-center">
+        {stepGroups.map((group, gi) => (
+          <React.Fragment key={gi}>
+            <div className="flex gap-1">
+              {group.map((step) => (
+                <motion.div
+                  key={step}
+                  className={cn(
+                    "w-4 h-8 rounded-md transition-colors duration-75",
+                    currentStep === step
+                      ? "bg-primary shadow-lg shadow-primary/50"
+                      : isPlaying
+                        ? "bg-secondary/80"
+                        : "bg-secondary/50"
+                  )}
+                  animate={currentStep === step ? { scaleY: [1, 1.3, 1] } : { scaleY: 1 }}
+                  transition={{ duration: 0.1 }}
+                />
+              ))}
+            </div>
+            {gi < 3 && <div className="w-px bg-border self-stretch mx-0.5" />}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={isPlaying ? stop : play}
+          className={cn(
+            "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200",
+            "border-2 font-bold",
+            isPlaying
+              ? "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20"
+              : "border-primary bg-primary/10 text-primary hover:bg-primary/20 shadow-lg shadow-primary/20"
+          )}
+        >
+          {isPlaying
+            ? <Square className="w-4 h-4" />
+            : <Play className="w-4 h-4 ml-0.5" />
+          }
+        </button>
+
+        {/* Volume */}
+        <div className="flex items-center gap-2 flex-1">
+          {volume === 0
+            ? <VolumeX className="w-4 h-4 text-muted-foreground shrink-0" />
+            : <Volume2 className="w-4 h-4 text-muted-foreground shrink-0" />
+          }
+          <Slider
+            value={[volume]}
+            onValueChange={([v]) => setVolume(v)}
+            min={0} max={1} step={0.01}
+            className="flex-1"
+          />
+        </div>
+      </div>
+
+      <p className="text-[10px] text-center text-muted-foreground/60">
+        AI-generated beat pattern based on your settings
+      </p>
+    </div>
+  );
+}

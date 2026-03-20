@@ -1,0 +1,94 @@
+import React from "react";
+import { INSTRUMENTS } from "@/hooks/useAudioEngine";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X } from "lucide-react";
+
+function Knob({ label, value, min=0, max=1, step=0.01, onChange, unit='', color='#8b5cf6' }) {
+  return (
+    <div className="flex flex-col gap-1 min-w-[85px]">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold">{label}</span>
+        <span className="text-[9px] font-mono" style={{color}}>{typeof value==='number'?value.toFixed(value>=10?1:2):value}{unit}</span>
+      </div>
+      <Slider value={[value]} onValueChange={([v])=>onChange(v)} min={min} max={max} step={step} className="w-full" />
+    </div>
+  );
+}
+
+export default function EffectsRack({ channelId, effects, onUpdate, onClose }) {
+  const inst = INSTRUMENTS.find(i=>i.id===channelId);
+  if(!inst) return null;
+
+  return (
+    <div className="border-t border-white/5 bg-[#0e0e14] px-4 py-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{backgroundColor:inst.color}}/>
+          <span className="text-xs font-bold" style={{color:inst.color}}>{inst.name}</span>
+          <span className="text-[9px] text-white/30 uppercase tracking-widest ml-1">Channel Strip</span>
+        </div>
+        <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors">
+          <X className="w-4 h-4"/>
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-6 overflow-x-auto pb-2">
+        {/* GAIN */}
+        <div className="space-y-2.5 min-w-[90px]">
+          <div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Gain</div>
+          <Knob label="Volume" value={effects.volume??0.85} onChange={v=>onUpdate('volume',v)} color={inst.color}/>
+          <Knob label="Pan" value={effects.pan??0} min={-1} max={1} onChange={v=>onUpdate('pan',v)} color={inst.color}/>
+        </div>
+
+        {/* 3-BAND EQ */}
+        <div className="space-y-2.5 min-w-[90px]">
+          <div className="text-[9px] text-white/20 uppercase tracking-widest font-black">EQ 3-Band</div>
+          <Knob label="Low" value={effects.eqLo??0} min={-12} max={12} step={0.5} onChange={v=>onUpdate('eqLo',v)} color={inst.color} unit="dB"/>
+          <Knob label="Mid" value={effects.eqMid??0} min={-12} max={12} step={0.5} onChange={v=>onUpdate('eqMid',v)} color={inst.color} unit="dB"/>
+          <Knob label="Mid Freq" value={effects.eqMidFreq??1000} min={100} max={8000} step={10} onChange={v=>onUpdate('eqMidFreq',v)} color={inst.color} unit="Hz"/>
+          <Knob label="High" value={effects.eqHi??0} min={-12} max={12} step={0.5} onChange={v=>onUpdate('eqHi',v)} color={inst.color} unit="dB"/>
+        </div>
+
+        {/* COMPRESSOR */}
+        <div className="space-y-2.5 min-w-[90px]">
+          <div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Compressor</div>
+          <Knob label="Threshold" value={effects.compThreshold??-24} min={-60} max={0} step={1} onChange={v=>onUpdate('compThreshold',v)} color={inst.color} unit="dB"/>
+          <Knob label="Ratio" value={effects.compRatio??4} min={1} max={20} step={0.5} onChange={v=>onUpdate('compRatio',v)} color={inst.color} unit=":1"/>
+          <Knob label="Attack" value={effects.compAttack??0.003} min={0.001} max={0.5} step={0.001} onChange={v=>onUpdate('compAttack',v)} color={inst.color} unit="s"/>
+          <Knob label="Release" value={effects.compRelease??0.25} min={0.01} max={1} step={0.01} onChange={v=>onUpdate('compRelease',v)} color={inst.color} unit="s"/>
+        </div>
+
+        {/* FILTER */}
+        <div className="space-y-2.5 min-w-[90px]">
+          <div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Filter</div>
+          <div className="space-y-1">
+            <span className="text-[9px] text-white/40 uppercase">Type</span>
+            <Select value={effects.filterType??'lowpass'} onValueChange={v=>onUpdate('filterType',v)}>
+              <SelectTrigger className="h-6 w-24 bg-white/5 border-white/10 text-white/60 text-[10px]"><SelectValue/></SelectTrigger>
+              <SelectContent>{['lowpass','highpass','bandpass','notch','peaking'].map(t=><SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <Knob label="Cutoff" value={effects.filterCutoff??20000} min={80} max={20000} step={10} onChange={v=>onUpdate('filterCutoff',v)} color={inst.color} unit="Hz"/>
+          <Knob label="Resonance" value={effects.filterRes??1} min={0.1} max={20} step={0.1} onChange={v=>onUpdate('filterRes',v)} color={inst.color}/>
+        </div>
+
+        {/* REVERB & DELAY */}
+        <div className="space-y-2.5 min-w-[90px]">
+          <div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Reverb / Delay</div>
+          <Knob label="Reverb" value={effects.reverb??0} onChange={v=>onUpdate('reverb',v)} color={inst.color}/>
+          <Knob label="Delay Wet" value={effects.delay??0} onChange={v=>onUpdate('delay',v)} color={inst.color}/>
+          <Knob label="Delay FB" value={effects.delayFeedback??0.35} onChange={v=>onUpdate('delayFeedback',v)} color={inst.color}/>
+        </div>
+
+        {/* DIST / CHORUS / PHASER */}
+        <div className="space-y-2.5 min-w-[90px]">
+          <div className="text-[9px] text-white/20 uppercase tracking-widest font-black">FX</div>
+          <Knob label="Distortion" value={effects.distortion??0} onChange={v=>onUpdate('distortion',v)} color={inst.color}/>
+          <Knob label="Chorus" value={effects.chorus??0} onChange={v=>onUpdate('chorus',v)} color={inst.color}/>
+          <Knob label="Phaser" value={effects.phaser??0} onChange={v=>onUpdate('phaser',v)} color={inst.color}/>
+        </div>
+      </div>
+    </div>
+  );
+}

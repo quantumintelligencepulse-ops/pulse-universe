@@ -24,8 +24,14 @@ import {
   Heart, Bookmark, Share2, Repeat2, MapPin, Calendar, Link2, AtSign, TrendingUp, Users, Camera, Image, Video, CheckCircle2, MoreHorizontal, Flag, UserPlus, UserMinus, Edit3,
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
   LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
-  GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter, Activity, BookMarked, Telescope
+  GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter, Activity, BookMarked, Telescope,
+  Shuffle, Undo2, Redo2, Columns, Loader2, Save, Sliders
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
 import logo from "@assets/myaigpt-logo.png";
@@ -7763,8 +7769,622 @@ const AI_ALBUMS: AiAlbum[] = [
 
 interface TrackCard { id: string; pulseKey: string; genreKey: string; bpm: number; beats: number; scale: string; randomness: number; name: string; playing: boolean; createdAt: Date; }
 
+// ═══════════════════════════════════════════════════════════════
+//  QUANTUM STUDIO — PROFESSIONAL AI DAW ENGINE
+// ═══════════════════════════════════════════════════════════════
+const INSTRUMENTS = [
+  { id:'kick',name:'Kick',color:'#ef4444',type:'drum' },
+  { id:'snare',name:'Snare',color:'#f97316',type:'drum' },
+  { id:'hhc',name:'HH Closed',color:'#eab308',type:'drum' },
+  { id:'hho',name:'HH Open',color:'#84cc16',type:'drum' },
+  { id:'clap',name:'Clap',color:'#22c55e',type:'drum' },
+  { id:'tom_hi',name:'Tom Hi',color:'#14b8a6',type:'drum' },
+  { id:'tom_lo',name:'Tom Lo',color:'#06b6d4',type:'drum' },
+  { id:'cymbal',name:'Cymbal',color:'#3b82f6',type:'drum' },
+  { id:'bass808',name:'808 Bass',color:'#8b5cf6',type:'bass' },
+  { id:'basssynth',name:'Bass Synth',color:'#ec4899',type:'bass' },
+  { id:'lead',name:'Lead Synth',color:'#f43f5e',type:'melodic' },
+  { id:'pad',name:'Pad',color:'#a78bfa',type:'melodic' },
+  { id:'pluck',name:'Pluck',color:'#0ea5e9',type:'melodic' },
+  { id:'keys',name:'Keys',color:'#d946ef',type:'melodic' },
+  { id:'arp',name:'Arp',color:'#fb923c',type:'melodic' },
+  { id:'fx',name:'FX/Noise',color:'#a3e635',type:'fx' },
+];
+const QS_NOTE_NAMES=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+const QS_SCALES:Record<string,number[]>={'Major':[0,2,4,5,7,9,11],'Minor':[0,2,3,5,7,8,10],'Pentatonic':[0,2,4,7,9],'Blues':[0,3,5,6,7,10],'Dorian':[0,2,3,5,7,9,10],'Phrygian':[0,1,3,5,7,8,10]};
+function qsMidiToFreq(midi:number){return 440*Math.pow(2,(midi-69)/12);}
+function qsMidiNoteName(midi:number){return QS_NOTE_NAMES[midi%12]+Math.floor(midi/12-1);}
+function qsGetScaleNotes(keyStr:string){const p=keyStr.split(' '),r=QS_NOTE_NAMES.indexOf(p[0]),s=QS_SCALES[p.slice(1).join(' ')||'Minor']||QS_SCALES['Minor'];return s.map(i=>(r+i)%12);}
+function qsGetScaleNote(keyStr:string,noteIndex:number,octaveShift=0){const p=keyStr.split(' '),n=p[0],m=p.slice(1).join(' ')||'Minor',r=QS_NOTE_NAMES.indexOf(n),rf=qsMidiToFreq(48+r),s=QS_SCALES[m]||QS_SCALES['Minor'],oct=Math.floor(noteIndex/s.length)+octaveShift,pos=noteIndex%s.length;return rf*Math.pow(2,(s[pos]+oct*12)/12);}
+
+function qsMakeDistCurve(amount:number){const n=512,curve=new Float32Array(n),k=amount*150;for(let i=0;i<n;i++){const x=(i*2)/n-1;curve[i]=k>0?((Math.PI+k)*x)/(Math.PI+k*Math.abs(x)):x;}return curve;}
+function qsCreateReverb(ctx:OfflineAudioContext|AudioContext,dur=2.5,decay=2.2){const len=ctx.sampleRate*dur,buf=ctx.createBuffer(2,len,ctx.sampleRate);for(let c=0;c<2;c++){const d=buf.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return buf;}
+function qsPlayKick(ctx:AudioContext,dest:AudioNode,t:number,v:number){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(dest);o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(35,t+0.1);g.gain.setValueAtTime(v*2.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.55);o.start(t);o.stop(t+0.6);const cl=ctx.sampleRate*0.01,cb=ctx.createBuffer(1,cl,ctx.sampleRate),cd=cb.getChannelData(0);for(let i=0;i<cl;i++)cd[i]=(Math.random()*2-1)*(1-i/cl);const cs=ctx.createBufferSource();cs.buffer=cb;const cg=ctx.createGain();cg.gain.setValueAtTime(v*0.5,t);cs.connect(cg);cg.connect(dest);cs.start(t);}
+function qsPlaySnare(ctx:AudioContext,dest:AudioNode,t:number,v:number){const bl=ctx.sampleRate*0.22,buf=ctx.createBuffer(1,bl,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<bl;i++)d[i]=Math.random()*2-1;const ns=ctx.createBufferSource();ns.buffer=buf;const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=2800;f.Q.value=0.9;const g=ctx.createGain();g.gain.setValueAtTime(v*0.9,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);ns.connect(f);f.connect(g);g.connect(dest);ns.start(t);ns.stop(t+0.25);const o=ctx.createOscillator();o.type='triangle';o.frequency.value=190;const og=ctx.createGain();og.gain.setValueAtTime(v*0.55,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.09);o.connect(og);og.connect(dest);o.start(t);o.stop(t+0.1);}
+function qsPlayHHC(ctx:AudioContext,dest:AudioNode,t:number,v:number){const bl=ctx.sampleRate*0.06,buf=ctx.createBuffer(1,bl,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<bl;i++)d[i]=Math.random()*2-1;const s=ctx.createBufferSource();s.buffer=buf;const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=9500;const g=ctx.createGain();g.gain.setValueAtTime(v*0.32,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.05);s.connect(f);f.connect(g);g.connect(dest);s.start(t);s.stop(t+0.07);}
+function qsPlayHHO(ctx:AudioContext,dest:AudioNode,t:number,v:number){const bl=ctx.sampleRate*0.45,buf=ctx.createBuffer(1,bl,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<bl;i++)d[i]=Math.random()*2-1;const s=ctx.createBufferSource();s.buffer=buf;const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=7500;const g=ctx.createGain();g.gain.setValueAtTime(v*0.28,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);s.connect(f);f.connect(g);g.connect(dest);s.start(t);}
+function qsPlayClap(ctx:AudioContext,dest:AudioNode,t:number,v:number){for(let i=0;i<3;i++){const dl=i*0.013,bl=ctx.sampleRate*0.09,buf=ctx.createBuffer(1,bl,ctx.sampleRate),d=buf.getChannelData(0);for(let j=0;j<bl;j++)d[j]=(Math.random()*2-1)*(1-j/bl);const s=ctx.createBufferSource();s.buffer=buf;const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=1600;f.Q.value=1.3;const g=ctx.createGain();g.gain.setValueAtTime(v*0.75/(i+1),t+dl);g.gain.exponentialRampToValueAtTime(0.001,t+dl+0.12);s.connect(f);f.connect(g);g.connect(dest);s.start(t+dl);}}
+function qsPlayTom(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(dest);o.frequency.setValueAtTime(freq*1.6,t);o.frequency.exponentialRampToValueAtTime(freq,t+0.06);g.gain.setValueAtTime(v*1.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.38);o.start(t);o.stop(t+0.42);}
+function qsPlayCymbal(ctx:AudioContext,dest:AudioNode,t:number,v:number){[205,287,340,406,527,630].forEach(f=>{const o=ctx.createOscillator();o.type='square';o.frequency.value=f;const flt=ctx.createBiquadFilter();flt.type='highpass';flt.frequency.value=4500;const g=ctx.createGain();g.gain.setValueAtTime(v*0.04,t);g.gain.exponentialRampToValueAtTime(0.001,t+1.6);o.connect(flt);flt.connect(g);g.connect(dest);o.start(t);o.stop(t+1.7);});}
+function qsPlay808(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number,dur:number){const o=ctx.createOscillator();o.type='sine';const dist=ctx.createWaveShaper();dist.curve=qsMakeDistCurve(0.3);const g=ctx.createGain();o.connect(dist);dist.connect(g);g.connect(dest);o.frequency.setValueAtTime(freq*2.5,t);o.frequency.exponentialRampToValueAtTime(freq,t+0.05);g.gain.setValueAtTime(v*1.8,t);g.gain.setValueAtTime(v*1.6,t+dur*0.6);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.start(t);o.stop(t+dur+0.05);}
+function qsPlayBassS(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number,dur:number,p:any={}){const o=ctx.createOscillator();o.type=p.oscType||'sawtooth';const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(freq*10,t);f.frequency.exponentialRampToValueAtTime(freq*2,t+dur*0.3);f.Q.value=5;const g=ctx.createGain();o.connect(f);f.connect(g);g.connect(dest);o.frequency.value=freq;const atk=p.attack||0.01,rel=p.release||0.3;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*0.85,t+atk);g.gain.exponentialRampToValueAtTime(0.001,t+dur+rel);o.start(t);o.stop(t+dur+rel+0.05);}
+function qsPlayLead(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number,dur:number,p:any={}){['sawtooth','square'].forEach((type,i)=>{const o=ctx.createOscillator();o.type=type as OscillatorType;o.frequency.value=freq*(1+i*0.003);const filt=ctx.createBiquadFilter();filt.type='lowpass';filt.frequency.setValueAtTime(freq*8,t);filt.frequency.exponentialRampToValueAtTime(freq*1.5,t+dur);filt.Q.value=4;const g=ctx.createGain();o.connect(filt);filt.connect(g);g.connect(dest);const atk=p.attack||0.01,rel=p.release||0.2;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*0.22,t+atk);g.gain.exponentialRampToValueAtTime(0.001,t+dur+rel);o.start(t);o.stop(t+dur+rel+0.05);});}
+function qsPlayPad(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number,dur:number,p:any={}){const atk=p.attack||0.12,rel=p.release||0.4;[freq,freq*1.004,freq*2.006,freq*3.009].forEach((f,i)=>{const o=ctx.createOscillator();o.type=i<2?'sine':'triangle';o.frequency.value=f;const g=ctx.createGain();o.connect(g);g.connect(dest);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*(0.16-i*0.03),t+atk);g.gain.setValueAtTime(v*(0.13-i*0.02),t+dur*0.75);g.gain.exponentialRampToValueAtTime(0.001,t+dur+rel);o.start(t);o.stop(t+dur+rel+0.05);});}
+function qsPlayPluck(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number,p:any={}){const o=ctx.createOscillator();o.type=p.oscType||'sawtooth';o.frequency.value=freq;const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(freq*12,t);f.frequency.exponentialRampToValueAtTime(freq*0.8,t+0.3);f.Q.value=2;const g=ctx.createGain();o.connect(f);f.connect(g);g.connect(dest);g.gain.setValueAtTime(v*0.5,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.75);o.start(t);o.stop(t+0.8);}
+function qsPlayKeys(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number,dur:number,p:any={}){const atk=p.attack||0.005,rel=p.release||0.5;[1,2,3,4,5].forEach((h,i)=>{const o=ctx.createOscillator();o.type='sine';o.frequency.value=freq*h;const g=ctx.createGain();o.connect(g);g.connect(dest);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*0.4/Math.pow(h,0.7),t+atk);g.gain.exponentialRampToValueAtTime(0.001,t+dur+rel*(1-i*0.08));o.start(t);o.stop(t+dur+rel+0.05);});}
+function qsPlayArp(ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number){const o=ctx.createOscillator();o.type='square';o.frequency.value=freq*2;const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=freq*5;f.Q.value=2.5;const g=ctx.createGain();o.connect(f);f.connect(g);g.connect(dest);g.gain.setValueAtTime(v*0.22,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.2);}
+function qsPlayFX(ctx:AudioContext,dest:AudioNode,t:number,v:number,noteIdx:number){const bl=ctx.sampleRate*0.35,buf=ctx.createBuffer(1,bl,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<bl;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/bl,1+noteIdx*0.4);const s=ctx.createBufferSource();s.buffer=buf;const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=600+noteIdx*500;f.Q.value=3.5;const g=ctx.createGain();g.gain.setValueAtTime(v*0.45,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);s.connect(f);f.connect(g);g.connect(dest);s.start(t);s.stop(t+0.35);}
+function qsDispatch(id:string,ctx:AudioContext,dest:AudioNode,t:number,v:number,freq:number,dur:number,noteIdx:number,p:any={}){const vel=v<=1?v:v/127;switch(id){case'kick':qsPlayKick(ctx,dest,t,vel);break;case'snare':qsPlaySnare(ctx,dest,t,vel);break;case'hhc':qsPlayHHC(ctx,dest,t,vel);break;case'hho':qsPlayHHO(ctx,dest,t,vel);break;case'clap':qsPlayClap(ctx,dest,t,vel);break;case'tom_hi':qsPlayTom(ctx,dest,t,vel,170);break;case'tom_lo':qsPlayTom(ctx,dest,t,vel,100);break;case'cymbal':qsPlayCymbal(ctx,dest,t,vel);break;case'bass808':qsPlay808(ctx,dest,t,vel,freq,dur);break;case'basssynth':qsPlayBassS(ctx,dest,t,vel,freq,dur,p);break;case'lead':qsPlayLead(ctx,dest,t,vel,freq,dur,p);break;case'pad':qsPlayPad(ctx,dest,t,vel,freq*0.5,dur,p);break;case'pluck':qsPlayPluck(ctx,dest,t,vel,freq,p);break;case'keys':qsPlayKeys(ctx,dest,t,vel,freq,dur,p);break;case'arp':qsPlayArp(ctx,dest,t,vel,freq);break;case'fx':qsPlayFX(ctx,dest,t,vel,noteIdx);break;}}
+function qsBuildChannel(ctx:AudioContext,masterGain:GainNode,reverb:ConvolverNode){const inp=ctx.createGain(),mute=ctx.createGain(),vol=ctx.createGain(),pan=ctx.createStereoPanner();mute.gain.value=1;vol.gain.value=0.85;const eqLo=ctx.createBiquadFilter();eqLo.type='lowshelf';eqLo.frequency.value=200;eqLo.gain.value=0;const eqMid=ctx.createBiquadFilter();eqMid.type='peaking';eqMid.frequency.value=1000;eqMid.Q.value=1;eqMid.gain.value=0;const eqHi=ctx.createBiquadFilter();eqHi.type='highshelf';eqHi.frequency.value=6000;eqHi.gain.value=0;const filt=ctx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=20000;filt.Q.value=1;const dist=ctx.createWaveShaper();dist.curve=qsMakeDistCurve(0);const chorusDry=ctx.createGain();chorusDry.gain.value=1;const chorusWet=ctx.createGain();chorusWet.gain.value=0;const chorusDly1=ctx.createDelay(0.1);chorusDly1.delayTime.value=0.022;const chorusDly2=ctx.createDelay(0.1);chorusDly2.delayTime.value=0.028;const chorusLFO1=ctx.createOscillator();chorusLFO1.type='sine';chorusLFO1.frequency.value=0.8;const chorusLFO2=ctx.createOscillator();chorusLFO2.type='sine';chorusLFO2.frequency.value=1.1;const cLG1=ctx.createGain();cLG1.gain.value=0.003;const cLG2=ctx.createGain();cLG2.gain.value=0.003;chorusLFO1.connect(cLG1);cLG1.connect(chorusDly1.delayTime);chorusLFO1.start();chorusLFO2.connect(cLG2);cLG2.connect(chorusDly2.delayTime);chorusLFO2.start();const chorusMix=ctx.createGain();const phaserDry=ctx.createGain();phaserDry.gain.value=1;const phaserWet=ctx.createGain();phaserWet.gain.value=0;const phaserFilters=[350,700,1400,2800].map(freq=>{const f=ctx.createBiquadFilter();f.type='allpass';f.frequency.value=freq;f.Q.value=10;return f;});for(let i=0;i<phaserFilters.length-1;i++)phaserFilters[i].connect(phaserFilters[i+1]);const phaserLFO=ctx.createOscillator();phaserLFO.frequency.value=0.5;const phaserLFOG=ctx.createGain();phaserLFOG.gain.value=0;phaserLFO.connect(phaserLFOG);phaserFilters.forEach(f=>phaserLFOG.connect(f.frequency));phaserLFO.start();const comp=ctx.createDynamicsCompressor();comp.threshold.value=-24;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.25;comp.knee.value=6;const rvbS=ctx.createGain();rvbS.gain.value=0;const dlyN=ctx.createDelay(2);dlyN.delayTime.value=0.25;const dlyF=ctx.createGain();dlyF.gain.value=0.35;const dlyS=ctx.createGain();dlyS.gain.value=0;inp.connect(mute);mute.connect(vol);vol.connect(pan);pan.connect(eqLo);eqLo.connect(eqMid);eqMid.connect(eqHi);eqHi.connect(filt);filt.connect(dist);dist.connect(chorusDry);chorusDly1.connect(chorusMix);chorusDly2.connect(chorusMix);dist.connect(chorusDly1);dist.connect(chorusDly2);chorusDry.connect(comp);chorusMix.connect(chorusWet);chorusWet.connect(comp);comp.connect(phaserDry);comp.connect(phaserFilters[0]);phaserDry.connect(masterGain);phaserFilters[phaserFilters.length-1].connect(phaserWet);phaserWet.connect(masterGain);comp.connect(rvbS);rvbS.connect(reverb);comp.connect(dlyS);dlyS.connect(dlyN);dlyN.connect(dlyF);dlyF.connect(dlyN);dlyN.connect(masterGain);return{inp,mute,vol,pan,eqLo,eqMid,eqHi,filt,dist,chorusDry,chorusWet,phaserDry,phaserWet,phaserLFOG,comp,rvbS,dlyS,dlyN,dlyF};}
+
+function qsWavFromBuffer(audioBuffer:AudioBuffer){const numCh=audioBuffer.numberOfChannels,len=audioBuffer.length,sr=audioBuffer.sampleRate;const buf=new ArrayBuffer(44+len*numCh*2),v=new DataView(buf);const ws=(off:number,s:string)=>{for(let i=0;i<s.length;i++)v.setUint8(off+i,s.charCodeAt(i));};ws(0,'RIFF');v.setUint32(4,36+len*numCh*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,numCh,true);v.setUint32(24,sr,true);v.setUint32(28,sr*numCh*2,true);v.setUint16(32,numCh*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,len*numCh*2,true);let off=44;for(let i=0;i<len;i++)for(let ch=0;ch<numCh;ch++){const s=Math.max(-1,Math.min(1,audioBuffer.getChannelData(ch)[i]));v.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;}return buf;}
+async function qsExportWav(params:{patterns:any,mixer:any,bpm:number,steps:number,musicalKey:string,activePattern:string,swing:number}){const{patterns,mixer,bpm,steps,musicalKey,activePattern,swing=0}=params;const stepDur=60/bpm/4,totalDur=stepDur*steps*4+3;const offCtx=new OfflineAudioContext(2,Math.ceil(44100*totalDur),44100);const master=offCtx.createGain();master.gain.value=mixer.__master?.volume??0.75;const comp=offCtx.createDynamicsCompressor();comp.threshold.value=-12;comp.ratio.value=4;master.connect(comp);comp.connect(offCtx.destination);const reverb=offCtx.createConvolver();reverb.buffer=qsCreateReverb(offCtx);reverb.connect(master);const channels:Record<string,GainNode>={};INSTRUMENTS.forEach(inst=>{const vol=offCtx.createGain();vol.gain.value=mixer[inst.id]?.mute?0:(mixer[inst.id]?.volume??0.85);const pan=offCtx.createStereoPanner();pan.pan.value=mixer[inst.id]?.pan??0;vol.connect(pan);pan.connect(master);channels[inst.id]=vol;});const patData=patterns[activePattern]||{};for(let loop=0;loop<4;loop++)for(let step=0;step<steps;step++){const swingOff=step%2===1?swing*stepDur*0.5:0,t=(loop*steps+step)*stepDur+swingOff;INSTRUMENTS.forEach(inst=>{const track=patData[inst.id];if(!track)return;const s=track[step];if(!s?.active)return;if(mixer[inst.id]?.mute)return;const freq=qsGetScaleNote(musicalKey,s.note??0),dur=stepDur*(s.length??1)*0.95;qsDispatch(inst.id,offCtx as any,channels[inst.id],t,s.velocity??100,freq,dur,s.note??0,mixer[inst.id]?.synth||{});});}const rendered=await offCtx.startRendering();const wav=qsWavFromBuffer(rendered),blob=new Blob([wav],{type:'audio/wav'}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`quantum_studio_${Date.now()}.wav`;a.click();URL.revokeObjectURL(url);}
+async function qsExportStems(params:{patterns:any,mixer:any,bpm:number,steps:number,musicalKey:string,activePattern:string,swing:number}){const{patterns,mixer,bpm,steps,musicalKey,activePattern,swing=0}=params;const stepDur=60/bpm/4,totalDur=stepDur*steps*4+3;for(const inst of INSTRUMENTS){if(mixer[inst.id]?.mute)continue;const offCtx=new OfflineAudioContext(2,Math.ceil(44100*totalDur),44100);const master=offCtx.createGain();master.gain.value=1;master.connect(offCtx.destination);const reverb=offCtx.createConvolver();reverb.buffer=qsCreateReverb(offCtx);reverb.connect(master);const vol=offCtx.createGain();vol.gain.value=mixer[inst.id]?.volume??0.85;const pan=offCtx.createStereoPanner();pan.pan.value=mixer[inst.id]?.pan??0;vol.connect(pan);pan.connect(master);const patData=patterns[activePattern]||{};for(let loop=0;loop<4;loop++)for(let step=0;step<steps;step++){const swingOff=step%2===1?swing*stepDur*0.5:0,t=(loop*steps+step)*stepDur+swingOff;const track=patData[inst.id];if(!track)continue;const s=track[step];if(!s?.active)continue;const freq=qsGetScaleNote(musicalKey,s.note??0),dur=stepDur*(s.length??1)*0.95;qsDispatch(inst.id,offCtx as any,vol,t,s.velocity??100,freq,dur,s.note??0,mixer[inst.id]?.synth||{});}const rendered=await offCtx.startRendering();const wav=qsWavFromBuffer(rendered),blob=new Blob([wav],{type:'audio/wav'}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`stem_${inst.id}_${Date.now()}.wav`;a.click();URL.revokeObjectURL(url);await new Promise(r=>setTimeout(r,200));}}
+function qsExportMidi(notes:any[],bpm=140,instrumentName='Piano Roll'){if(!notes.length){alert('No notes to export.');return;}const ticksPerBeat=480,msPerBeat=Math.round(60000000/bpm);function varLen(n:number):number[]{if(n===0)return[0];const bytes:number[]=[];while(n>0){bytes.unshift(n&0x7F);n>>=7;}for(let i=0;i<bytes.length-1;i++)bytes[i]|=0x80;return bytes;}const events:any[]=[];notes.forEach(note=>{const st=Math.round(note.startStep*ticksPerBeat/4),et=st+Math.max(1,Math.round(note.lengthSteps*ticksPerBeat/4));events.push({tick:st,type:'on',pitch:note.pitch,velocity:note.velocity||100});events.push({tick:et,type:'off',pitch:note.pitch});});events.sort((a,b)=>a.tick-b.tick||(a.type==='off'?-1:1));const trackData:number[]=[];trackData.push(...varLen(0),0xFF,0x51,0x03,(msPerBeat>>16)&0xFF,(msPerBeat>>8)&0xFF,msPerBeat&0xFF);const nameBytes=[...instrumentName].map(c=>c.charCodeAt(0));trackData.push(...varLen(0),0xFF,0x03,...varLen(nameBytes.length),...nameBytes);let lastTick=0;events.forEach(ev=>{const delta=ev.tick-lastTick;lastTick=ev.tick;trackData.push(...varLen(delta));trackData.push(ev.type==='on'?0x90:0x80,ev.pitch,ev.type==='on'?ev.velocity:0);});trackData.push(0,0xFF,0x2F,0);const header=[0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,(ticksPerBeat>>8)&0xFF,ticksPerBeat&0xFF];const tLen=trackData.length;const trackHeader=[0x4D,0x54,0x72,0x6B,(tLen>>24)&0xFF,(tLen>>16)&0xFF,(tLen>>8)&0xFF,tLen&0xFF];const bytes=new Uint8Array([...header,...trackHeader,...trackData]);const blob=new Blob([bytes],{type:'audio/midi'}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${instrumentName.replace(/ /g,'_')}_${Date.now()}.mid`;a.click();URL.revokeObjectURL(url);}
+
+const QS_ALL_PATTERNS=['A','B','C','D','E','F','G','H'];
+const QS_STEPS_DEFAULT=16;
+const QS_TRANSPORT_KEYS=['C Major','C Minor','C# Major','C# Minor','D Major','D Minor','Eb Major','Eb Minor','E Major','E Minor','F Major','F Minor','F# Major','F# Minor','G Major','G Minor','Ab Major','Ab Minor','A Major','A Minor','Bb Major','Bb Minor','B Major','B Minor'];
+const QS_GENRES=['trap','hip_hop','drill','lofi','rnb','electronic','pop','afrobeat','jazz','reggaeton','rock','synthwave','ambient','drum_and_bass','house','classical','techno','dnb','dubstep','future_bass','phonk','hyperpop'];
+const QS_PATTERN_COLORS:Record<string,string>={A:'#8b5cf6',B:'#06b6d4',C:'#f97316',D:'#22c55e',E:'#f43f5e',F:'#eab308',G:'#14b8a6',H:'#ec4899'};
+function qsDefaultTrack(steps:number){return Array(steps).fill(null).map(()=>({active:false,velocity:100,note:0,length:1}));}
+function qsBuildEmptyPattern(steps:number){const p:any={};INSTRUMENTS.forEach(inst=>{p[inst.id]=qsDefaultTrack(steps);});return p;}
+function qsBuildDefaultMixer(){const m:any={__master:{volume:0.75}};INSTRUMENTS.forEach(inst=>{m[inst.id]={volume:0.85,pan:0,mute:false,solo:false,eqLo:0,eqMid:0,eqHi:0,eqMidFreq:1000,reverb:0,delay:0,delayFeedback:0.35,distortion:0,chorus:0,phaser:0,compThreshold:-24,compRatio:4,filterType:'lowpass',filterCutoff:20000,filterRes:1,synth:{}};});return m;}
+function qsBuildInitialPatterns(steps:number){const p:any={};QS_ALL_PATTERNS.forEach(pat=>{p[pat]=qsBuildEmptyPattern(steps);});return p;}
+function qsBuildInitialPianoRoll(){const n:any={};QS_ALL_PATTERNS.forEach(p=>{n[p]={};});return n;}
+
+function useQsAudioEngine(){
+  const ctxRef=useRef<AudioContext|null>(null),masterRef=useRef<GainNode|null>(null),reverbRef=useRef<ConvolverNode|null>(null);
+  const chansRef=useRef<Record<string,any>>({}),timerRef=useRef<any>(null),stepRef=useRef(0),nextRef=useRef(0);
+  const [isPlaying,setIsPlaying]=useState(false);
+  const [currentStep,setCurrentStep]=useState(-1);
+  const patternsRef=useRef<any>({}),mixerRef=useRef<any>({}),bpmRef=useRef(140),patternRef=useRef('A');
+  const stepsRef=useRef(16),keyRef=useRef('C Minor'),swingRef=useRef(0);
+  const pianoRollRef=useRef<any>({}),arrangementRef=useRef<any[]>([]),arrangeModeRef=useRef(false);
+  const globalStepRef=useRef(0);
+  const updateRefs=useCallback((patterns:any,mixer:any,bpm:number,activePattern:string,steps:number,musicalKey:string,masterVol:number,swing=0,pianoRoll:any={},arrangement:any[]=[],arrangeMode=false)=>{
+    patternsRef.current=patterns;mixerRef.current=mixer;bpmRef.current=bpm;patternRef.current=activePattern;
+    stepsRef.current=steps;keyRef.current=musicalKey;swingRef.current=swing;
+    pianoRollRef.current=pianoRoll;arrangementRef.current=arrangement;arrangeModeRef.current=arrangeMode;
+    if(masterRef.current&&ctxRef.current)masterRef.current.gain.setTargetAtTime(masterVol??0.75,ctxRef.current.currentTime,0.02);
+  },[]);
+  const applyMixer=useCallback(()=>{
+    const ctx=ctxRef.current;if(!ctx)return;
+    const mixer=mixerRef.current,t=ctx.currentTime;
+    Object.entries(mixer).forEach(([id,ch]:any)=>{
+      const c=chansRef.current[id];if(!c)return;
+      c.mute.gain.setTargetAtTime(ch.mute?0:1,t,0.01);
+      c.vol.gain.setTargetAtTime(ch.mute?0:(ch.volume??0.85),t,0.01);
+      c.pan.pan.setTargetAtTime(ch.pan??0,t,0.01);
+      c.filt.frequency.setTargetAtTime(ch.filterCutoff??20000,t,0.01);
+      c.filt.Q.value=ch.filterRes??1;c.filt.type=ch.filterType??'lowpass';
+      c.rvbS.gain.setTargetAtTime(ch.reverb??0,t,0.01);
+      c.dlyS.gain.setTargetAtTime(ch.delay??0,t,0.01);
+      c.dlyF.gain.value=ch.delayFeedback??0.35;
+      c.dist.curve=qsMakeDistCurve(ch.distortion??0);
+      c.eqLo.gain.setTargetAtTime(ch.eqLo??0,t,0.01);
+      c.eqMid.gain.setTargetAtTime(ch.eqMid??0,t,0.01);
+      c.eqHi.gain.setTargetAtTime(ch.eqHi??0,t,0.01);
+      if(ch.eqMidFreq)c.eqMid.frequency.setTargetAtTime(ch.eqMidFreq,t,0.01);
+      c.chorusWet.gain.setTargetAtTime(ch.chorus??0,t,0.01);
+      c.chorusDry.gain.setTargetAtTime(1-(ch.chorus??0)*0.5,t,0.01);
+      c.phaserWet.gain.setTargetAtTime(ch.phaser??0,t,0.01);
+      c.phaserLFOG.gain.setTargetAtTime((ch.phaser??0)*800,t,0.01);
+      if(ch.compThreshold!==undefined)c.comp.threshold.setTargetAtTime(ch.compThreshold??-24,t,0.01);
+      if(ch.compRatio!==undefined)c.comp.ratio.setTargetAtTime(ch.compRatio??4,t,0.01);
+    });
+  },[]);
+  const getPatternForStep=useCallback((globalStep:number)=>{
+    if(!arrangeModeRef.current||!arrangementRef.current.length)return patternRef.current;
+    const bar=Math.floor(globalStep/stepsRef.current);
+    const sorted=[...arrangementRef.current].sort((a:any,b:any)=>a.bar-b.bar);
+    let activeP=sorted[0]?.patternId||patternRef.current;
+    for(const block of sorted){if(block.bar<=bar)activeP=block.patternId;else break;}
+    return activeP;
+  },[]);
+  const scheduleStep=useCallback((step:number,time:number,globalStep:number)=>{
+    const ctx=ctxRef.current;if(!ctx)return;
+    const swing=swingRef.current,swingOffset=step%2===1?swing*(60/bpmRef.current/4)*0.5:0,t=time+swingOffset;
+    const currentPattern=arrangeModeRef.current?getPatternForStep(globalStep):patternRef.current;
+    const patData=patternsRef.current[currentPattern];if(!patData)return;
+    const stepDur=60/bpmRef.current/4;
+    INSTRUMENTS.forEach(inst=>{
+      const mixer=mixerRef.current[inst.id];if(mixer?.mute)return;
+      const ch=chansRef.current[inst.id];if(!ch)return;
+      const params=mixer?.synth||{};
+      const prNotes=pianoRollRef.current?.[currentPattern]?.[inst.id];
+      if(prNotes?.length){prNotes.forEach((note:any)=>{if(note.startStep===step){const freq=qsMidiToFreq(note.pitch),dur=stepDur*note.lengthSteps*0.95;qsDispatch(inst.id,ctx,ch.inp,t+(Math.random()-0.5)*0.002,note.velocity??100,freq,dur,0,params);}});return;}
+      const track=patData[inst.id];if(!track)return;
+      const s=track[step];if(!s?.active)return;
+      const freq=qsGetScaleNote(keyRef.current,s.note??0),dur=stepDur*(s.length??1)*0.95;
+      qsDispatch(inst.id,ctx,ch.inp,t+(Math.random()-0.5)*0.003,s.velocity??100,freq,dur,s.note??0,params);
+    });
+    applyMixer();
+  },[applyMixer,getPatternForStep]);
+  const scheduler=useCallback(()=>{
+    const ctx=ctxRef.current;if(!ctx)return;
+    const stepDur=60/bpmRef.current/4,totalSteps=stepsRef.current;
+    while(nextRef.current<ctx.currentTime+0.12){
+      const step=stepRef.current%totalSteps;
+      scheduleStep(step,nextRef.current,globalStepRef.current);
+      setCurrentStep(step);
+      stepRef.current=(step+1)%totalSteps;
+      globalStepRef.current++;
+      nextRef.current+=stepDur;
+    }
+  },[scheduleStep]);
+  const init=useCallback(()=>{
+    if(ctxRef.current)return;
+    const ctx=new (window.AudioContext||(window as any).webkitAudioContext)();
+    ctxRef.current=ctx;
+    const master=ctx.createGain();master.gain.value=0.75;masterRef.current=master;
+    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-12;comp.knee.value=6;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.25;
+    master.connect(comp);comp.connect(ctx.destination);
+    const reverb=ctx.createConvolver();reverb.buffer=qsCreateReverb(ctx);
+    reverb.connect(master);reverbRef.current=reverb;
+    INSTRUMENTS.forEach(inst=>{chansRef.current[inst.id]=qsBuildChannel(ctx,master,reverb);});
+  },[]);
+  const play=useCallback(()=>{
+    init();const ctx=ctxRef.current!;
+    if(ctx.state==='suspended')ctx.resume();
+    stepRef.current=0;globalStepRef.current=0;nextRef.current=ctx.currentTime+0.05;
+    timerRef.current=setInterval(scheduler,25);
+    setIsPlaying(true);
+  },[init,scheduler]);
+  const stop=useCallback(()=>{clearInterval(timerRef.current);setIsPlaying(false);setCurrentStep(-1);stepRef.current=0;globalStepRef.current=0;},[]);
+  useEffect(()=>()=>{clearInterval(timerRef.current);ctxRef.current?.close();},[]);
+  return{isPlaying,currentStep,play,stop,updateRefs};
+}
+
+async function qsGenerateAIPattern({genre,mood,bpm,musicalKey,steps=16}:{genre:string,mood:string,bpm:number,musicalKey:string,steps:number}){
+  const instrList=INSTRUMENTS.map(i=>`${i.id} (${i.name}, type:${i.type})`).join(', ');
+  const prompt=`You are a world-class music producer. Create a beat pattern for a DAW step sequencer.
+Genre:${genre}, Mood:${mood||'energetic'}, BPM:${bpm}, Key:${musicalKey}, Steps:${steps} (each=1/16 note)
+Instruments: ${instrList}
+Rules: active=true/false, velocity=60-127, note=0-7 (scale degree), length=1-4.
+Return ONLY valid JSON: {"pattern":{"kick":[{"active":bool,"velocity":num,"note":num,"length":num},...repeat for all ${steps} steps],...for each instrument},"description":"string"}`;
+  const res=await fetch('/api/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:prompt}]})});
+  const data=await res.json();
+  const text=(data.content||'{}').replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+  let parsed:any={};
+  try{parsed=JSON.parse(text);}catch{parsed={pattern:{},description:'AI generated pattern'};}
+  const normalized:any={};
+  INSTRUMENTS.forEach(inst=>{
+    const raw=parsed.pattern?.[inst.id];
+    if(Array.isArray(raw)&&raw.length===steps){normalized[inst.id]=raw.map((s:any)=>({active:!!s.active,velocity:Math.min(127,Math.max(1,s.velocity??100)),note:Math.min(7,Math.max(0,s.note??0)),length:Math.min(4,Math.max(1,s.length??1))}));}
+    else{normalized[inst.id]=qsDefaultTrack(steps);}
+  });
+  return{pattern:normalized,description:parsed.description||''};
+}
+
+const QS_TYPE_LABELS:Record<string,string>={drum:'DRUMS',bass:'BASS',melodic:'MELODIC',fx:'FX'};
+const QS_SEQ_NOTES=['C','D','E','F','G','A','B','C2'];
+const QS_VEL_CYCLE=[25,50,75,100,127];
+
+function QsStepSequencer({patterns,activePattern,currentStep,steps,onToggleStep,onSetNote,onSetVelocity,selectedChannel,onSelectChannel}:any){
+  const patData=patterns[activePattern]||{};
+  const groups=Object.entries(INSTRUMENTS.reduce((acc:any,inst)=>{if(!acc[inst.type])acc[inst.type]=[];acc[inst.type].push(inst);return acc;},{}));
+  return(
+    <div className="flex-1 overflow-y-auto bg-[#0a0a0f]">
+      <div className="overflow-x-auto min-w-0">
+        <div className="min-w-max p-3 space-y-1">
+          {(groups as [string,any[]][]).map(([type,insts])=>(
+            <div key={type}>
+              <div className="text-[9px] font-black tracking-widest text-white/20 uppercase px-2 py-1">{QS_TYPE_LABELS[type]}</div>
+              {insts.map((inst:any)=>{
+                const track=patData[inst.id]||[],isSelected=selectedChannel===inst.id;
+                return(
+                  <div key={inst.id} className={cn("flex items-center gap-1 rounded-lg px-1 py-0.5 transition-colors cursor-pointer",isSelected?"bg-white/5":"hover:bg-white/[0.03]")} onClick={()=>onSelectChannel(isSelected?null:inst.id)}>
+                    <div className="w-20 flex-shrink-0 flex items-center gap-1.5 px-1">
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{backgroundColor:inst.color}}/>
+                      <span className="text-[10px] font-semibold truncate" style={{color:inst.color}}>{inst.name}</span>
+                    </div>
+                    <div className="flex items-center">
+                      {Array(steps).fill(0).map((_:any,si:number)=>{
+                        const s=track[si]||{active:false,velocity:100,note:0};
+                        const isActive=s.active,isCurrent=currentStep===si,showBar=si>0&&si%4===0;
+                        const velHex=Math.round(((s.velocity??100)/127)*215+40).toString(16).padStart(2,'0');
+                        return(
+                          <div key={si} className="flex items-center">
+                            {showBar&&<div className="w-px h-5 bg-white/10 mx-0.5"/>}
+                            <button
+                              onClick={e=>{e.stopPropagation();onToggleStep(inst.id,si);}}
+                              onContextMenu={e=>{e.preventDefault();e.stopPropagation();if(isActive){if(inst.type==='drum'){const cur=s.velocity??100;const idx=QS_VEL_CYCLE.findIndex((v:number)=>v>=cur);onSetVelocity(inst.id,si,QS_VEL_CYCLE[(idx+1)%QS_VEL_CYCLE.length]);}else{onSetNote(inst.id,si,((s.note||0)+1)%8);}}}}
+                              className="w-7 h-7 rounded-sm transition-all duration-75 flex-shrink-0 relative overflow-hidden border border-transparent"
+                              style={{backgroundColor:isActive?isCurrent?inst.color:`${inst.color}${velHex}`:isCurrent?`${inst.color}20`:'rgba(255,255,255,0.04)',boxShadow:isActive&&isCurrent?`0 0 10px ${inst.color}80`:'none',borderColor:isCurrent?`${inst.color}60`:'transparent',transform:isActive&&isCurrent?'scale(1.08)':'scale(1)'}}
+                            >
+                              {isActive&&<div className="absolute inset-0 opacity-20 bg-gradient-to-b from-white to-transparent"/>}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="w-10 flex-shrink-0 text-[9px] text-white/25 text-center ml-1">
+                      {(()=>{const a=track.find((s:any)=>s?.active);return a?(inst.type==='drum'?`v${a.velocity??100}`:QS_SEQ_NOTES[a.note||0]):'';})()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QsMixerChannel({inst,ch,onUpdate,isSelected,onSelect}:any){
+  return(
+    <div onClick={()=>onSelect(isSelected?null:inst.id)} className={cn("flex flex-col items-center gap-1 px-1.5 py-2 rounded-lg cursor-pointer transition-all min-w-[58px]",isSelected?"bg-white/8 ring-1 ring-white/20":"hover:bg-white/4")}>
+      <div className="text-[8px] font-bold uppercase tracking-wider truncate w-full text-center" style={{color:inst.color}}>{inst.name}</div>
+      <div className="flex gap-1 mb-1">
+        <button onClick={e=>{e.stopPropagation();onUpdate(inst.id,'solo',!ch.solo);}} className={cn("w-5 h-4 rounded text-[8px] font-black",ch.solo?"bg-yellow-500/80 text-black":"bg-white/8 text-white/30 hover:bg-white/15")}>S</button>
+        <button onClick={e=>{e.stopPropagation();onUpdate(inst.id,'mute',!ch.mute);}} className={cn("w-5 h-4 rounded text-[8px] font-black",ch.mute?"bg-red-500/80 text-white":"bg-white/8 text-white/30 hover:bg-white/15")}>M</button>
+      </div>
+      <div className="flex items-end gap-0.5 h-20 mb-1">
+        <input type="range" min={0} max={1} step={0.01} value={ch.pan??0} onChange={e=>{e.stopPropagation();onUpdate(inst.id,'pan',parseFloat(e.target.value));}} className="w-3 h-20 cursor-pointer accent-gray-400" style={{writingMode:'vertical-lr',direction:'rtl'}} title="Pan"/>
+        <input type="range" min={0} max={1.5} step={0.01} value={ch.volume??0.85} onChange={e=>{e.stopPropagation();onUpdate(inst.id,'volume',parseFloat(e.target.value));}} className="w-4 h-20 cursor-pointer" style={{writingMode:'vertical-lr',direction:'rtl',accentColor:inst.color}} title="Volume"/>
+      </div>
+      <div className="text-[8px] text-white/30 tabular-nums">{Math.round((ch.volume??0.85)*100)}%</div>
+    </div>
+  );
+}
+
+function QsMixerPanel({mixer,onUpdate,selectedChannel,onSelectChannel}:any){
+  return(
+    <div className="border-t border-white/5 bg-[#0c0c14]">
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/5">
+        <Sliders className="w-3 h-3 text-white/30"/>
+        <span className="text-[9px] font-black tracking-widest text-white/30 uppercase">Mixer</span>
+        <div className="ml-2 flex items-center gap-1.5">
+          <span className="text-[9px] text-white/20">Master Vol</span>
+          <input type="range" min={0} max={1} step={0.01} value={mixer.__master?.volume??0.75} onChange={e=>onUpdate('__master','volume',parseFloat(e.target.value))} className="w-16 cursor-pointer accent-violet-500"/>
+          <span className="text-[9px] text-white/30 tabular-nums w-6">{Math.round((mixer.__master?.volume??0.75)*100)}%</span>
+        </div>
+      </div>
+      <div className="flex overflow-x-auto px-2 py-2 gap-1">
+        {INSTRUMENTS.map((inst:any)=>(
+          <QsMixerChannel key={inst.id} inst={inst} ch={mixer[inst.id]||{}} onUpdate={onUpdate} isSelected={selectedChannel===inst.id} onSelect={onSelectChannel}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QsEffectsRack({channelId,effects,onUpdate,onClose}:any){
+  const inst=INSTRUMENTS.find(i=>i.id===channelId);if(!inst)return null;
+  const Knob=({label,value,min=0,max=1,step=0.01,field,unit=''}:{label:string,value:number,min?:number,max?:number,step?:number,field:string,unit?:string})=>(
+    <div className="space-y-1 min-w-[75px]">
+      <div className="flex justify-between"><span className="text-[9px] text-white/40 uppercase tracking-wider">{label}</span><span className="text-[9px] font-mono tabular-nums" style={{color:inst.color}}>{typeof value==='number'?value.toFixed(unit==='dB'||unit===':1'?1:2):value}{unit}</span></div>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={e=>onUpdate(field,parseFloat(e.target.value))} className="w-full cursor-pointer" style={{accentColor:inst.color}}/>
+    </div>
+  );
+  return(
+    <div className="border-t border-white/5 bg-[#0e0e14] px-4 py-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor:inst.color}}/><span className="text-xs font-bold" style={{color:inst.color}}>{inst.name}</span><span className="text-[9px] text-white/30 uppercase tracking-widest ml-1">Channel FX</span></div>
+        <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors"><X className="w-4 h-4"/></button>
+      </div>
+      <div className="flex flex-wrap gap-5 overflow-x-auto pb-2">
+        <div className="space-y-2 min-w-[80px]"><div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Gain</div><Knob label="Volume" value={effects.volume??0.85} field="volume"/><Knob label="Pan" value={effects.pan??0} min={-1} max={1} field="pan"/></div>
+        <div className="space-y-2 min-w-[80px]"><div className="text-[9px] text-white/20 uppercase tracking-widest font-black">EQ 3-Band</div><Knob label="Low" value={effects.eqLo??0} min={-12} max={12} step={0.5} field="eqLo" unit="dB"/><Knob label="Mid" value={effects.eqMid??0} min={-12} max={12} step={0.5} field="eqMid" unit="dB"/><Knob label="High" value={effects.eqHi??0} min={-12} max={12} step={0.5} field="eqHi" unit="dB"/></div>
+        <div className="space-y-2 min-w-[80px]"><div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Compressor</div><Knob label="Threshold" value={effects.compThreshold??-24} min={-60} max={0} step={1} field="compThreshold" unit="dB"/><Knob label="Ratio" value={effects.compRatio??4} min={1} max={20} step={0.5} field="compRatio" unit=":1"/></div>
+        <div className="space-y-2 min-w-[80px]"><div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Filter</div>
+          <div className="space-y-1"><span className="text-[9px] text-white/40 uppercase">Type</span><select value={effects.filterType??'lowpass'} onChange={e=>onUpdate('filterType',e.target.value)} className="w-full bg-white/5 border border-white/10 rounded text-white/60 text-[10px] px-1 py-0.5">{['lowpass','highpass','bandpass','notch'].map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+          <Knob label="Cutoff" value={effects.filterCutoff??20000} min={80} max={20000} step={10} field="filterCutoff" unit="Hz"/></div>
+        <div className="space-y-2 min-w-[80px]"><div className="text-[9px] text-white/20 uppercase tracking-widest font-black">Time FX</div><Knob label="Reverb" value={effects.reverb??0} field="reverb"/><Knob label="Delay Wet" value={effects.delay??0} field="delay"/><Knob label="Delay FB" value={effects.delayFeedback??0.35} field="delayFeedback"/></div>
+        <div className="space-y-2 min-w-[80px]"><div className="text-[9px] text-white/20 uppercase tracking-widest font-black">FX</div><Knob label="Distortion" value={effects.distortion??0} field="distortion"/><Knob label="Chorus" value={effects.chorus??0} field="chorus"/><Knob label="Phaser" value={effects.phaser??0} field="phaser"/></div>
+      </div>
+    </div>
+  );
+}
+
+const QS_NOTE_HEIGHT=14,QS_STEP_WIDTH=32,QS_MIN_MIDI=36,QS_MAX_MIDI=96,QS_TOTAL_NOTES=QS_MAX_MIDI-QS_MIN_MIDI;
+const QS_BLACK_NOTES=[1,3,6,8,10];
+function qsIsBlack(midi:number){return QS_BLACK_NOTES.includes(midi%12);}
+
+function QsPianoRoll({notes,onNotesChange,steps,musicalKey,activePattern,activeInstrument,onInstrumentChange,bpm}:any){
+  const gridRef=useRef<HTMLDivElement>(null);
+  const [scaleLock,setScaleLock]=useState(false);
+  const [quantize,setQuantize]=useState(1);
+  const inst=INSTRUMENTS.find(i=>i.id===activeInstrument)||INSTRUMENTS[10];
+  const scaleNotes=qsGetScaleNotes(musicalKey);
+  const notesForInst=notes||[];
+  const snapToScale=useCallback((pitch:number)=>{
+    const noteInOctave=pitch%12;if(scaleNotes.includes(noteInOctave))return pitch;
+    let best=scaleNotes[0]??0,bestDist=13;
+    scaleNotes.forEach((sn:number)=>{const dist=Math.min(Math.abs(noteInOctave-sn),12-Math.abs(noteInOctave-sn));if(dist<bestDist){bestDist=dist;best=sn;}});
+    let final=Math.floor(pitch/12)*12+best;
+    if(final<QS_MIN_MIDI)final+=12;if(final>QS_MAX_MIDI)final-=12;return final;
+  },[scaleNotes]);
+  const addNote=useCallback((pitch:number,startStep:number)=>{
+    const fp=scaleLock?snapToScale(pitch):pitch;
+    const snap=Math.floor(startStep/quantize)*quantize;
+    const existing=notesForInst.find((n:any)=>n.pitch===fp&&n.startStep===snap);
+    if(existing){onNotesChange(notesForInst.filter((n:any)=>n!==existing));return;}
+    onNotesChange([...notesForInst,{id:`${Date.now()}_${Math.random()}`,pitch:fp,startStep:snap,lengthSteps:quantize,velocity:100}]);
+  },[notesForInst,onNotesChange,scaleLock,snapToScale,quantize]);
+  const removeNote=useCallback((id:string)=>onNotesChange(notesForInst.filter((n:any)=>n.id!==id)),[notesForInst,onNotesChange]);
+  const resizeNote=useCallback((id:string,newLen:number)=>onNotesChange(notesForInst.map((n:any)=>n.id===id?{...n,lengthSteps:Math.max(quantize,newLen)}:n)),[notesForInst,onNotesChange,quantize]);
+  const gridH=QS_TOTAL_NOTES*QS_NOTE_HEIGHT,gridW=steps*QS_STEP_WIDTH;
+  return(
+    <div className="flex flex-col h-full bg-[#080810]">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-[#0d0d12] flex-wrap">
+        <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Piano Roll</span>
+        <select value={activeInstrument} onChange={e=>onInstrumentChange(e.target.value)} className="h-7 bg-white/5 border border-white/10 rounded text-xs px-2" style={{color:inst.color}}>
+          {INSTRUMENTS.filter(i=>i.type!=='drum'&&i.type!=='fx').map(i=><option key={i.id} value={i.id}>{i.name}</option>)}
+        </select>
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] text-white/30 uppercase">Q:</span>
+          {[1,2,4].map(q=><button key={q} onClick={()=>setQuantize(q)} className={cn("h-6 px-1.5 rounded text-[9px] font-bold border",quantize===q?"bg-violet-500/20 border-violet-500/40 text-violet-400":"border-white/10 text-white/30 hover:text-white/60")}>{q===1?'1/16':q===2?'1/8':'1/4'}</button>)}
+        </div>
+        <div className="flex items-center gap-1 ml-auto">
+          <button onClick={()=>setScaleLock(v=>!v)} className={cn("h-6 px-2.5 rounded text-[9px] font-bold border",scaleLock?"bg-green-500/20 border-green-500/40 text-green-400":"border-white/10 text-white/30 hover:text-white/60")}>{scaleLock?'🔒 Scale Lock':'Scale Lock'}</button>
+          <button onClick={()=>qsExportMidi(notesForInst,bpm||140,inst.name)} disabled={!notesForInst.length} className="h-6 px-2.5 rounded text-[9px] font-bold border border-white/10 text-white/30 hover:text-cyan-400 hover:border-cyan-400/30 disabled:opacity-30">MIDI</button>
+          <button onClick={()=>onNotesChange([])} className="h-6 px-2.5 rounded text-[9px] font-bold text-white/20 hover:text-red-400">Clear</button>
+        </div>
+      </div>
+      <div className="flex flex-1 overflow-auto">
+        <div className="flex-shrink-0 w-12 relative" style={{height:gridH}}>
+          {Array.from({length:QS_TOTAL_NOTES},(_,i)=>{const midi=QS_MAX_MIDI-1-i,black=qsIsBlack(midi),inScale=scaleNotes.includes(midi%12),isC=midi%12===0;return(<div key={midi} className={cn("absolute flex items-center justify-end pr-1 border-b select-none",black?"bg-[#1a1a22] text-white/30 border-white/5 z-10 w-8":"bg-[#111118] text-white/20 border-white/5 w-12",inScale&&!black&&"bg-[#0f1020]")} style={{top:i*QS_NOTE_HEIGHT,height:QS_NOTE_HEIGHT}}>{isC&&<span className="text-[8px] font-mono">{qsMidiNoteName(midi)}</span>}</div>);})}
+        </div>
+        <div ref={gridRef} className="flex-1 overflow-auto relative" style={{height:gridH+24}}>
+          <div className="sticky top-0 flex z-20 bg-[#0a0a10] border-b border-white/5" style={{width:gridW}}>
+            {Array.from({length:steps},(_,i)=><div key={i} className={cn("border-r border-white/5 text-[8px] text-white/20 text-center flex-shrink-0",i%4===0&&"border-r-white/15 text-white/40")} style={{width:QS_STEP_WIDTH,height:20,lineHeight:'20px'}}>{i%4===0&&Math.floor(i/4)+1}</div>)}
+          </div>
+          <div className="relative" style={{width:gridW,height:gridH}}
+            onMouseDown={e=>{if(e.button===2)return;const rect=gridRef.current!.getBoundingClientRect();const y=e.clientY-rect.top-20+gridRef.current!.scrollTop;const x=e.clientX-rect.left+gridRef.current!.scrollLeft-48;const noteRow=Math.floor(y/QS_NOTE_HEIGHT),stepCol=Math.floor(x/QS_STEP_WIDTH);const midi=QS_MAX_MIDI-1-noteRow;if(midi>=QS_MIN_MIDI&&midi<=QS_MAX_MIDI&&stepCol>=0&&stepCol<steps)addNote(midi,stepCol);}}
+            onContextMenu={e=>e.preventDefault()}>
+            {Array.from({length:QS_TOTAL_NOTES},(_,i)=>{const midi=QS_MAX_MIDI-1-i,black=qsIsBlack(midi),inScale=scaleNotes.includes(midi%12);return<div key={i} className="absolute w-full border-b border-white/[0.03]" style={{top:i*QS_NOTE_HEIGHT,height:QS_NOTE_HEIGHT,backgroundColor:black?'#0c0c14':scaleLock&&inScale?'#0d1018':inScale?'#0d0d18':'#0a0a10'}}/>;}) }
+            {Array.from({length:steps},(_,i)=><div key={i} className="absolute top-0 bottom-0 border-r" style={{left:i*QS_STEP_WIDTH,borderColor:i%4===0?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)'}}/>)}
+            {notesForInst.map((note:any)=>{const rowIdx=QS_MAX_MIDI-1-note.pitch;const velAlpha=Math.round(((note.velocity||100)/127)*200+55).toString(16).padStart(2,'0');return(<div key={note.id} className="absolute rounded-sm flex items-center overflow-hidden cursor-pointer" style={{top:rowIdx*QS_NOTE_HEIGHT+1,left:note.startStep*QS_STEP_WIDTH+1,width:note.lengthSteps*QS_STEP_WIDTH-2,height:QS_NOTE_HEIGHT-2,backgroundColor:inst.color+velAlpha,boxShadow:`0 0 6px ${inst.color}40`}} onContextMenu={e=>{e.preventDefault();removeNote(note.id);}}>
+              <div className="flex-1 px-1 text-[8px] font-bold text-black/70 truncate">{qsMidiNoteName(note.pitch)}</div>
+              <div className="w-2 h-full flex-shrink-0 cursor-ew-resize bg-black/20 hover:bg-black/50" onMouseDown={e=>{e.stopPropagation();const startX=e.clientX,origLen=note.lengthSteps;const onMove=(ev:MouseEvent)=>resizeNote(note.id,Math.max(1,origLen+Math.round((ev.clientX-startX)/QS_STEP_WIDTH)));const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);}}/>
+            </div>);})}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QsSongArranger({arrangement,onUpdate,activePattern}:any){
+  const [selP,setSelP]=useState('A');
+  const placeBlock=useCallback((bar:number)=>{const ex=arrangement.find((b:any)=>b.bar===bar);if(ex){onUpdate(arrangement.filter((b:any)=>b!==ex));}else{onUpdate([...arrangement,{id:`${Date.now()}`,patternId:selP,bar}].sort((a:any,b:any)=>a.bar-b.bar));}},[arrangement,onUpdate,selP]);
+  const totalBars=64,barW=44;
+  return(
+    <div className="flex flex-col h-full bg-[#080810]">
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-white/5 bg-[#0d0d12]">
+        <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Song Arranger</span>
+        <div className="flex gap-1">{QS_ALL_PATTERNS.map(p=><button key={p} onClick={()=>setSelP(p)} className="w-8 h-7 rounded-md text-xs font-bold border transition-all" style={selP===p?{backgroundColor:QS_PATTERN_COLORS[p]+'33',borderColor:QS_PATTERN_COLORS[p]+'80',color:QS_PATTERN_COLORS[p]}:{backgroundColor:'transparent',borderColor:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.4)'}}>{p}</button>)}</div>
+        <span className="text-[10px] text-white/20">Click bar to place/remove</span>
+        <button onClick={()=>onUpdate([])} className="ml-auto text-[10px] text-white/30 hover:text-red-400 flex items-center gap-1"><Trash2 className="w-3 h-3"/>Clear</button>
+      </div>
+      <div className="flex-1 overflow-auto p-4">
+        <div className="flex mb-1" style={{paddingLeft:80}}>{Array.from({length:totalBars},(_,i)=><div key={i} className="flex-shrink-0 text-[9px] text-white/20 text-center border-r border-white/5" style={{width:barW}}>{i%4===0&&i+1}</div>)}</div>
+        {QS_ALL_PATTERNS.map(p=>{
+          const blocksForPattern=arrangement.filter((b:any)=>b.patternId===p);
+          return(<div key={p} className="flex items-center mb-1 h-9">
+            <div className="w-20 flex-shrink-0 text-xs font-bold flex items-center gap-1.5 pr-2"><div className="w-2 h-2 rounded-sm" style={{backgroundColor:QS_PATTERN_COLORS[p]}}/><span style={{color:QS_PATTERN_COLORS[p]}}>Pat {p}</span></div>
+            <div className="flex relative h-full" style={{width:totalBars*barW}}>
+              {Array.from({length:totalBars},(_,i)=><div key={i} className={cn("flex-shrink-0 h-full border-r border-white/5 cursor-pointer transition-colors",selP===p?"hover:bg-white/5":"")} style={{width:barW}} onClick={()=>selP===p&&placeBlock(i)}/>)}
+              {blocksForPattern.map((block:any)=><div key={block.id} className="absolute top-0.5 bottom-0.5 rounded flex items-center justify-center text-[10px] font-bold opacity-90 cursor-pointer" style={{left:block.bar*barW+1,width:barW-2,backgroundColor:QS_PATTERN_COLORS[block.patternId]+'60',borderLeft:`3px solid ${QS_PATTERN_COLORS[block.patternId]}`,color:QS_PATTERN_COLORS[block.patternId]}} onClick={()=>placeBlock(block.bar)}>{block.patternId}</div>)}
+            </div>
+          </div>);
+        })}
+      </div>
+    </div>
+  );
+}
+
+const QS_STORAGE_KEY='quantum_studio_projects_v1';
+function QsProjectManager({open,onClose,onSave,onLoad}:any){
+  const [name,setName]=useState('My Project');
+  const [projects,setProjects]=useState<Record<string,any>>({});
+  useEffect(()=>{if(open){try{setProjects(JSON.parse(localStorage.getItem(QS_STORAGE_KEY)||'{}'));}catch{setProjects({});}};},[open]);
+  const handleSave=()=>{const t=name.trim();if(!t){alert('Enter a project name');return;}const all=(() => {try{return JSON.parse(localStorage.getItem(QS_STORAGE_KEY)||'{}');}catch{return{};}})();all[t]={...onSave(),name:t,savedAt:Date.now()};localStorage.setItem(QS_STORAGE_KEY,JSON.stringify(all));setProjects({...all});};
+  const handleLoad=(key:string)=>{const all=(() => {try{return JSON.parse(localStorage.getItem(QS_STORAGE_KEY)||'{}');}catch{return{};}})();if(all[key]){onLoad(all[key]);onClose();}};
+  const handleDelete=(key:string)=>{const all=(() => {try{return JSON.parse(localStorage.getItem(QS_STORAGE_KEY)||'{}');}catch{return{};}})();delete all[key];localStorage.setItem(QS_STORAGE_KEY,JSON.stringify(all));setProjects({...all});};
+  const sorted=Object.entries(projects).sort((a:any,b:any)=>(b[1].savedAt||0)-(a[1].savedAt||0));
+  return(
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0e0e16] border-white/10 text-white max-w-md">
+        <DialogHeader><DialogTitle className="text-sm font-black tracking-wider flex items-center gap-2"><FolderOpen className="w-4 h-4 text-violet-400"/>Project Manager</DialogTitle></DialogHeader>
+        <div className="flex gap-2">
+          <Input value={name} onChange={e=>setName(e.target.value)} placeholder="Project name..." className="bg-white/5 border-white/10 text-white text-sm h-8 flex-1" onKeyDown={e=>e.key==='Enter'&&handleSave()}/>
+          <button onClick={handleSave} className="flex items-center gap-1.5 h-8 px-3 rounded-md bg-violet-500/20 border border-violet-500/40 text-violet-400 hover:bg-violet-500/30 text-xs font-bold"><Save className="w-3 h-3"/>Save</button>
+        </div>
+        <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
+          {sorted.length===0&&<div className="text-center text-white/20 text-xs py-8">No saved projects yet.</div>}
+          {sorted.map(([key,data]:any)=>(
+            <div key={key} className="flex items-center gap-2 p-2.5 rounded-lg bg-white/4 border border-white/5 group hover:bg-white/7 transition-colors">
+              <div className="flex-1 min-w-0"><div className="text-xs font-semibold text-white/80 truncate">{key}</div><div className="text-[9px] text-white/30 flex items-center gap-1 mt-0.5"><Clock className="w-2.5 h-2.5"/>{data.bpm} BPM · {data.musicalKey} · {new Date(data.savedAt).toLocaleDateString()}</div></div>
+              <button onClick={()=>handleLoad(key)} className="text-[9px] font-bold text-violet-400/70 hover:text-violet-400 border border-violet-400/20 hover:border-violet-400/50 px-2.5 py-1 rounded">Load</button>
+              <button onClick={()=>handleDelete(key)} className="text-white/20 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100"><Trash2 className="w-3 h-3"/></button>
+            </div>
+          ))}
+        </div>
+        <div className="text-[9px] text-white/20 text-center">Projects saved locally in browser</div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const QS_TABS=['sequencer','piano_roll','arranger','ai'] as const;
+const QS_TAB_LABELS:Record<string,string>={sequencer:'Step Seq',piano_roll:'Piano Roll',arranger:'Arranger',ai:'AI Studio'};
+
+function QuantumStudio(){
+  const {toast}=useToast();
+  const [bpm,setBpm]=useState(140);
+  const [activePattern,setActivePattern]=useState('A');
+  const [steps,setSteps]=useState(QS_STEPS_DEFAULT);
+  const [musicalKey,setMusicalKey]=useState('C Minor');
+  const [genre,setGenre]=useState('trap');
+  const [swing,setSwing]=useState(0);
+  const [patterns,setPatterns]=useState(()=>qsBuildInitialPatterns(QS_STEPS_DEFAULT));
+  const [mixer,setMixer]=useState(qsBuildDefaultMixer);
+  const [pianoRollNotes,setPianoRollNotes]=useState(qsBuildInitialPianoRoll);
+  const [arrangement,setArrangement]=useState<any[]>([]);
+  const [arrangeMode,setArrangeMode]=useState(false);
+  const [selectedChannel,setSelectedChannel]=useState<string|null>(null);
+  const [pianoRollInst,setPianoRollInst]=useState('lead');
+  const [isGenerating,setIsGenerating]=useState(false);
+  const [isExporting,setIsExporting]=useState(false);
+  const [isStemsExporting,setIsStemsExporting]=useState(false);
+  const [activeTab,setActiveTab]=useState('sequencer');
+  const [showMixer,setShowMixer]=useState(true);
+  const [showFX,setShowFX]=useState(false);
+  const [showProjects,setShowProjects]=useState(false);
+  const [aiStatus,setAiStatus]=useState('');
+  const undoStack=useRef<any[]>([]),redoStack=useRef<any[]>([]);
+  const {isPlaying,currentStep,play,stop,updateRefs}=useQsAudioEngine();
+
+  useEffect(()=>{updateRefs(patterns,mixer,bpm,activePattern,steps,musicalKey,mixer.__master?.volume??0.75,swing,pianoRollNotes,arrangement,arrangeMode);},[patterns,mixer,bpm,activePattern,steps,musicalKey,swing,pianoRollNotes,arrangement,arrangeMode,updateRefs]);
+
+  const pushUndo=useCallback(()=>{undoStack.current.push(JSON.parse(JSON.stringify(patterns)));if(undoStack.current.length>50)undoStack.current.shift();redoStack.current=[];},[patterns]);
+  const handleUndo=useCallback(()=>{if(!undoStack.current.length)return;redoStack.current.push(JSON.parse(JSON.stringify(patterns)));setPatterns(undoStack.current.pop());},[patterns]);
+  const handleRedo=useCallback(()=>{if(!redoStack.current.length)return;undoStack.current.push(JSON.parse(JSON.stringify(patterns)));setPatterns(redoStack.current.pop());},[patterns]);
+
+  useEffect(()=>{const handler=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();handleUndo();}if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();handleRedo();}};window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);},[handleUndo,handleRedo]);
+
+  const toggleStep=useCallback((instId:string,stepIdx:number)=>{pushUndo();setPatterns(prev=>{const pat={...prev};const track=[...(pat[activePattern][instId]||[])];track[stepIdx]={...track[stepIdx],active:!track[stepIdx].active};pat[activePattern]={...pat[activePattern],[instId]:track};return pat;});},[activePattern,pushUndo]);
+  const setNote=useCallback((instId:string,stepIdx:number,note:number)=>{setPatterns(prev=>{const pat={...prev};const track=[...(pat[activePattern][instId]||[])];track[stepIdx]={...track[stepIdx],note};pat[activePattern]={...pat[activePattern],[instId]:track};return pat;});},[activePattern]);
+  const setVelocity=useCallback((instId:string,stepIdx:number,velocity:number)=>{setPatterns(prev=>{const pat={...prev};const track=[...(pat[activePattern][instId]||[])];track[stepIdx]={...track[stepIdx],velocity};pat[activePattern]={...pat[activePattern],[instId]:track};return pat;});},[activePattern]);
+  const updateMixer=useCallback((chanId:string,key:string,value:any)=>setMixer(prev=>({...prev,[chanId]:{...(prev[chanId]||{}),[key]:value}})),[]);
+  const handleStepsChange=useCallback((newSteps:number)=>{setSteps(newSteps);setPatterns(prev=>{const updated:any={};QS_ALL_PATTERNS.forEach(p=>{const newPat:any={};INSTRUMENTS.forEach(inst=>{const old=prev[p]?.[inst.id]||[];newPat[inst.id]=newSteps>old.length?[...old,...qsDefaultTrack(newSteps-old.length)]:old.slice(0,newSteps);});updated[p]=newPat;});return updated;});},[]);
+  const handleAIGenerate=useCallback(async()=>{
+    setIsGenerating(true);setAiStatus('🎵 AI is composing your beat...');pushUndo();
+    try{const{pattern,description}=await qsGenerateAIPattern({genre,mood:'energetic',bpm,musicalKey,steps});setPatterns(prev=>({...prev,[activePattern]:pattern}));setAiStatus('');toast({title:'AI Beat Generated!',description:description?.slice(0,80)||'Pattern ready'});}
+    catch(e){setAiStatus('');toast({title:'AI generation failed',variant:'destructive'});}
+    finally{setIsGenerating(false);}
+  },[genre,bpm,musicalKey,steps,activePattern,pushUndo,toast]);
+  const handleExport=useCallback(async()=>{setIsExporting(true);try{await qsExportWav({patterns,mixer,bpm,steps,musicalKey,activePattern,swing});toast({title:'WAV exported!'});}catch(e:any){toast({title:'Export failed',description:e.message,variant:'destructive'});}finally{setIsExporting(false);}
+  },[patterns,mixer,bpm,steps,musicalKey,activePattern,swing,toast]);
+  const handleExportStems=useCallback(async()=>{setIsStemsExporting(true);toast({title:'Exporting stems...',description:'This may take a moment'});try{await qsExportStems({patterns,mixer,bpm,steps,musicalKey,activePattern,swing});toast({title:'All stems exported!'});}catch(e:any){toast({title:'Stems export failed',variant:'destructive'});}finally{setIsStemsExporting(false);}
+  },[patterns,mixer,bpm,steps,musicalKey,activePattern,swing,toast]);
+  const handlePianoRollChange=useCallback((notes:any[])=>setPianoRollNotes((prev:any)=>({...prev,[activePattern]:{...(prev[activePattern]||{}),[pianoRollInst]:notes}})),[activePattern,pianoRollInst]);
+  const handleSaveProject=useCallback(()=>({bpm,musicalKey,genre,swing,steps,activePattern,patterns,mixer,pianoRollNotes,arrangement}),[bpm,musicalKey,genre,swing,steps,activePattern,patterns,mixer,pianoRollNotes,arrangement]);
+  const handleLoadProject=useCallback((data:any)=>{if(data.bpm)setBpm(data.bpm);if(data.musicalKey)setMusicalKey(data.musicalKey);if(data.genre)setGenre(data.genre);if(data.swing!==undefined)setSwing(data.swing);if(data.steps)setSteps(data.steps);if(data.activePattern)setActivePattern(data.activePattern);if(data.patterns)setPatterns(data.patterns);if(data.mixer)setMixer(data.mixer);if(data.pianoRollNotes)setPianoRollNotes(data.pianoRollNotes);if(data.arrangement)setArrangement(data.arrangement);undoStack.current=[];redoStack.current=[];},[]);
+  const pianoRollNotesForCurrent=(pianoRollNotes as any)[activePattern]?.[pianoRollInst]||[];
+
+  return(
+    <div className="flex flex-col bg-[#080810] text-white" style={{height:'calc(100vh - 60px)'}}>
+      {/* Transport Bar */}
+      <div className="bg-[#0d0d12] border-b border-white/5 px-3 py-2 flex flex-wrap items-center gap-2 sticky top-0 z-50">
+        <div className="flex items-center gap-1.5 mr-1">
+          <div className="w-6 h-6 rounded-md bg-violet-500/20 flex items-center justify-center"><Music className="w-3.5 h-3.5 text-violet-400"/></div>
+          <span className="text-[10px] font-black tracking-widest text-white/50 uppercase hidden sm:block">Quantum Studio</span>
+          <span className="text-[8px] text-violet-400/40 uppercase hidden sm:block">Pro</span>
+        </div>
+        <button onClick={isPlaying?stop:play} data-testid="studio-play-stop" className={cn("w-8 h-8 rounded-lg flex items-center justify-center border transition-all",isPlaying?"bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25":"bg-violet-500/15 border-violet-500/40 text-violet-400 hover:bg-violet-500/25 shadow-lg shadow-violet-500/10")}>
+          {isPlaying?<Square className="w-3 h-3"/>:<Play className="w-3 h-3 ml-0.5"/>}
+        </button>
+        <button onClick={handleUndo} disabled={!undoStack.current.length} title="Undo (Ctrl+Z)" className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/8 text-white/30 hover:text-white/70 disabled:opacity-20"><Undo2 className="w-3 h-3"/></button>
+        <button onClick={handleRedo} disabled={!redoStack.current.length} title="Redo (Ctrl+Y)" className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/8 text-white/30 hover:text-white/70 disabled:opacity-20"><Redo2 className="w-3 h-3"/></button>
+        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1.5">
+          <span className="text-[9px] text-white/40 uppercase tracking-wider font-bold">BPM</span>
+          <input type="range" min={40} max={240} value={bpm} onChange={e=>setBpm(parseInt(e.target.value))} className="w-12 cursor-pointer accent-violet-500"/>
+          <input type="number" value={bpm} min={40} max={240} onChange={e=>{const v=parseInt(e.target.value);if(v>=40&&v<=240)setBpm(v);}} className="w-9 bg-transparent text-xs font-bold text-white tabular-nums text-center outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+        </div>
+        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1.5">
+          <span className="text-[9px] text-white/40 uppercase tracking-wider font-bold">SWING</span>
+          <input type="range" min={0} max={1} step={0.01} value={swing} onChange={e=>setSwing(parseFloat(e.target.value))} className="w-10 cursor-pointer accent-violet-500"/>
+          <span className="text-[10px] text-white/50 tabular-nums w-5">{Math.round(swing*100)}%</span>
+        </div>
+        <div className="flex gap-0.5">
+          {QS_ALL_PATTERNS.map(p=><button key={p} onClick={()=>setActivePattern(p)} data-testid={`pattern-${p}`} className="w-6 h-7 rounded-md text-[10px] font-bold border transition-all" style={activePattern===p?{backgroundColor:`${QS_PATTERN_COLORS[p]}33`,borderColor:`${QS_PATTERN_COLORS[p]}80`,color:QS_PATTERN_COLORS[p]}:{backgroundColor:'transparent',borderColor:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.4)'}}>{p}</button>)}
+        </div>
+        <div className="flex gap-0.5">
+          {[8,12,16,24,32].map(s=><button key={s} onClick={()=>handleStepsChange(s)} className={cn("px-1.5 h-7 rounded-md text-[10px] font-bold border",steps===s?"bg-violet-500/20 border-violet-500/50 text-violet-400":"bg-white/5 border-white/10 text-white/40 hover:border-white/20")}>{s}</button>)}
+        </div>
+        <select value={musicalKey} onChange={e=>setMusicalKey(e.target.value)} className="h-7 bg-white/5 border border-white/10 rounded-lg text-white/70 text-[11px] px-2 cursor-pointer">
+          {QS_TRANSPORT_KEYS.map(k=><option key={k} value={k}>{k}</option>)}
+        </select>
+        <select value={genre} onChange={e=>setGenre(e.target.value)} className="h-7 bg-white/5 border border-white/10 rounded-lg text-white/70 text-[11px] px-2 cursor-pointer capitalize">
+          {QS_GENRES.map(g=><option key={g} value={g}>{g.replace(/_/g,' ')}</option>)}
+        </select>
+        <button onClick={()=>setArrangeMode(v=>!v)} className={cn("flex items-center gap-1 h-7 px-2 rounded-lg text-[10px] font-bold border",arrangeMode?"bg-yellow-500/20 border-yellow-500/30 text-yellow-400":"bg-white/5 border-white/10 text-white/40 hover:border-white/20")}>
+          <Columns className="w-3 h-3"/>{arrangeMode?'ARR':'LOOP'}
+        </button>
+        <button onClick={()=>setShowProjects(true)} className="flex items-center gap-1 h-7 px-2 rounded-lg text-[10px] font-bold border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20"><FolderOpen className="w-3 h-3"/>Projects</button>
+        <button onClick={handleExport} disabled={isExporting} data-testid="studio-export-wav" className="flex items-center gap-1 h-7 px-2 rounded-lg text-[10px] font-bold border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 disabled:opacity-40">
+          <Download className={cn("w-3 h-3",isExporting&&"animate-bounce")}/>WAV
+        </button>
+        <button onClick={handleExportStems} disabled={isStemsExporting} className="flex items-center gap-1 h-7 px-2 rounded-lg text-[10px] font-bold border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 disabled:opacity-40">
+          <Layers className={cn("w-3 h-3",isStemsExporting&&"animate-pulse")}/>Stems
+        </button>
+        <button onClick={handleAIGenerate} disabled={isGenerating} data-testid="studio-ai-generate" className={cn("ml-auto flex items-center gap-1.5 h-7 px-3 rounded-lg text-[10px] font-bold border",isGenerating?"bg-violet-500/10 border-violet-500/30 text-violet-500/50 cursor-not-allowed":"bg-violet-500/20 border-violet-500/40 text-violet-400 hover:bg-violet-500/30 shadow-lg shadow-violet-500/10")}>
+          <Zap className={cn("w-3 h-3",isGenerating&&"animate-pulse")}/>{isGenerating?"Generating...":"AI Generate"}
+        </button>
+      </div>
+      {aiStatus&&<div className="px-4 py-2 bg-violet-500/10 border-b border-violet-500/20 text-violet-300 text-xs animate-pulse">{aiStatus}</div>}
+      {/* Tab Bar */}
+      <div className="flex items-center gap-1 px-4 py-1.5 bg-[#0a0a10] border-b border-white/5">
+        {QS_TABS.map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} className={cn("px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border",activeTab===tab?"bg-violet-500/20 border-violet-500/30 text-violet-400":"border-transparent text-white/30 hover:text-white/60")}>{QS_TAB_LABELS[tab]}</button>)}
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={()=>setShowMixer(v=>!v)} className={cn("flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold border",showMixer?"bg-white/8 border-white/15 text-white/60":"border-transparent text-white/30 hover:text-white/50")}><Sliders className="w-2.5 h-2.5"/>Mixer</button>
+          {selectedChannel&&activeTab==='sequencer'&&<button onClick={()=>setShowFX(v=>!v)} className={cn("flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold border",showFX?"bg-white/8 border-white/15 text-white/60":"border-transparent text-white/30 hover:text-white/50")}><Zap className="w-2.5 h-2.5"/>FX</button>}
+          <span className="text-[9px] text-white/10">{activeTab==='sequencer'?'Click=toggle · Right-click drum=velocity · Right-click melodic=note':activeTab==='piano_roll'?'Click=add · Right-click=remove · Drag right edge=resize':activeTab==='arranger'?'Select pattern → click bar to place':''}</span>
+        </div>
+      </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {activeTab==='sequencer'&&<QsStepSequencer patterns={patterns} activePattern={activePattern} currentStep={isPlaying?currentStep:-1} steps={steps} onToggleStep={toggleStep} onSetNote={setNote} onSetVelocity={setVelocity} selectedChannel={selectedChannel} onSelectChannel={setSelectedChannel}/>}
+        {activeTab==='piano_roll'&&<QsPianoRoll notes={pianoRollNotesForCurrent} onNotesChange={handlePianoRollChange} steps={steps} musicalKey={musicalKey} activePattern={activePattern} activeInstrument={pianoRollInst} onInstrumentChange={setPianoRollInst} bpm={bpm}/>}
+        {activeTab==='arranger'&&<QsSongArranger arrangement={arrangement} onUpdate={setArrangement} activePattern={activePattern}/>}
+        {activeTab==='ai'&&(
+          <div className="flex-1 overflow-auto p-6">
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="p-6 rounded-2xl bg-white/3 border border-white/5">
+                <div className="flex items-center gap-3 mb-3"><Zap className="w-5 h-5 text-violet-400"/><div><div className="text-sm font-bold text-white">AI Beat Generator</div><div className="text-xs text-white/40">AI composes a full 16-instrument pattern — drums, bass, melodics, FX — for your selected genre and key.</div></div></div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div><label className="text-[9px] text-white/30 uppercase tracking-wider block mb-1">Genre</label><select value={genre} onChange={e=>setGenre(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs px-2 py-1.5 capitalize">{QS_GENRES.map(g=><option key={g} value={g}>{g.replace(/_/g,' ')}</option>)}</select></div>
+                  <div><label className="text-[9px] text-white/30 uppercase tracking-wider block mb-1">Key</label><select value={musicalKey} onChange={e=>setMusicalKey(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs px-2 py-1.5">{QS_TRANSPORT_KEYS.map(k=><option key={k} value={k}>{k}</option>)}</select></div>
+                </div>
+                <button onClick={handleAIGenerate} disabled={isGenerating} className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold text-sm hover:from-violet-400 hover:to-pink-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isGenerating?<><Loader2 className="w-4 h-4 animate-spin"/>Composing with AI...</>:<><Zap className="w-4 h-4"/>Generate AI Beat Pattern</>}
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-white/3 border border-white/5">
+                  <div className="text-sm font-bold text-white mb-1 flex items-center gap-2"><Download className="w-4 h-4 text-cyan-400"/>Export Options</div>
+                  <div className="text-xs text-white/40 mb-3">Export your beat as high-quality audio or individual stems for mixing.</div>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={handleExport} disabled={isExporting} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-xs font-bold hover:bg-cyan-500/25 disabled:opacity-50">
+                      {isExporting?<Loader2 className="w-3 h-3 animate-spin"/>:<Download className="w-3 h-3"/>}Export Full Mix (WAV)
+                    </button>
+                    <button onClick={handleExportStems} disabled={isStemsExporting} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 disabled:opacity-50">
+                      {isStemsExporting?<Loader2 className="w-3 h-3 animate-spin"/>:<Layers className="w-3 h-3"/>}Export Stems (16 WAV files)
+                    </button>
+                    <button onClick={()=>qsExportMidi(pianoRollNotesForCurrent,bpm,INSTRUMENTS.find(i=>i.id===pianoRollInst)?.name||'Piano Roll')} disabled={!pianoRollNotesForCurrent.length} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold hover:bg-purple-500/25 disabled:opacity-30">
+                      Export Piano Roll (MIDI)
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-white/3 border border-white/5">
+                  <div className="text-sm font-bold text-white mb-1 flex items-center gap-2"><Music className="w-4 h-4 text-yellow-400"/>Studio Tips</div>
+                  <div className="space-y-2 text-xs text-white/50">
+                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Step Seq:</strong> Click to toggle steps. Right-click drums to cycle velocity, melodics to change pitch.</span></div>
+                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Piano Roll:</strong> Click grid to add notes, right-click to remove, drag right edge to resize.</span></div>
+                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Mixer:</strong> Every channel has volume, pan, EQ, compressor, reverb, delay, distortion, chorus & phaser.</span></div>
+                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Patterns A–H:</strong> Create 8 unique patterns and arrange them in the Song Arranger.</span></div>
+                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Ctrl+Z / Ctrl+Y:</strong> Full undo/redo history for all pattern edits.</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {showFX&&selectedChannel&&activeTab==='sequencer'&&<QsEffectsRack channelId={selectedChannel} effects={mixer[selectedChannel]||{}} onUpdate={(k:string,v:any)=>updateMixer(selectedChannel,k,v)} onClose={()=>setShowFX(false)}/>}
+        {showMixer&&<QsMixerPanel mixer={mixer} onUpdate={updateMixer} selectedChannel={selectedChannel} onSelectChannel={setSelectedChannel}/>}
+      </div>
+      <QsProjectManager open={showProjects} onClose={()=>setShowProjects(false)} onSave={handleSaveProject} onLoad={handleLoadProject}/>
+    </div>
+  );
+}
+
 function MusicPage() {
-  type MusicView = "home"|"artists"|"artist"|"albums"|"album"|"creator"|"label";
+  type MusicView = "home"|"artists"|"artist"|"albums"|"album"|"creator"|"label"|"studio";
   const [view, setView] = useState<MusicView>("home");
   const [selectedArtistId, setSelectedArtistId] = useState<string|null>(null);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string|null>(null);
@@ -8193,7 +8813,7 @@ function MusicPage() {
   const selectedArtist = AI_ARTISTS.find(a=>a.id===selectedArtistId)||null;
   const selectedAlbum = AI_ALBUMS.find(a=>a.id===selectedAlbumId)||null;
 
-  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"creator",label:"Creator"},{id:"label",label:"Label"}];
+  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"studio",label:"🎛 Studio"},{id:"creator",label:"Creator"},{id:"label",label:"Label"}];
 
   const StickyNav = () => (
     <div className="sticky top-0 z-10 border-b border-white/5 px-4 pt-4 pb-3" style={{background:"rgba(5,5,16,0.97)",backdropFilter:"blur(12px)"}}>
@@ -8368,6 +8988,13 @@ function MusicPage() {
       </div>
     );
   }
+
+  if (view==="studio") return (
+    <div className="flex flex-col" style={{background:"#080810",minHeight:"calc(100vh - 60px)"}}>
+      <StickyNav/>
+      <QuantumStudio/>
+    </div>
+  );
 
   if (view==="creator") return (
     <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
