@@ -2070,12 +2070,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-rose-500 to-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
+          {!appSettings.hiddenPages.includes("quantapedia") && (
           <Link href="/quantapedia" data-testid="link-quantapedia"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-violet-500/15" : "bg-violet-500/5"}`}><BookOpen size={14} className="text-violet-600" /></div>
             <span className="flex-1">Quantapedia</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
+          )}
           {!appSettings.hiddenPages.includes("music") && (
           <Link href="/music" data-testid="link-music"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/music" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2099,47 +2101,64 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Shopping</span>
           </Link>
           )}
+          {!appSettings.hiddenPages.includes("media") && (
           <Link href="/media" data-testid="link-media"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/media" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/media" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Film size={14} className="text-pink-500" /></div>
             <span className="flex-1">Media</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("careers") && (
           <Link href="/careers" data-testid="link-careers"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/careers" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/careers" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
             <span className="flex-1">Careers</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("finance") && (
           <Link href="/finance" data-testid="link-finance"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/finance" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/finance" ? "bg-yellow-500/15" : "bg-yellow-500/5"}`}><TrendingUp size={14} className="text-yellow-500" /></div>
             <span className="flex-1">Finance Oracle</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("agents") && (
           <Link href="/agents" data-testid="link-agents"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/agents" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/agents" ? "bg-indigo-500/15" : "bg-indigo-500/5"}`}><Bot size={14} className="text-indigo-400" /></div>
             <span className="flex-1">AI Agents</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("pulse") && (
           <Link href="/pulse" data-testid="link-pulse"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/pulse" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><Radio size={14} className="text-emerald-500" /></div>
             <span className="flex-1">Live Pulse</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("hive-command") && (
           <Link href="/hive-command" data-testid="link-hive-command"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-command" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/hive-command" ? "bg-violet-500/15" : "bg-violet-500/5"}`}><Brain size={14} className="text-violet-400" /></div>
             <span className="flex-1">Hive Command</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("graph") && (
           <Link href="/graph" data-testid="link-graph"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/graph" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/graph" ? "bg-cyan-500/15" : "bg-cyan-500/5"}`}><Network size={14} className="text-cyan-400" /></div>
             <span className="flex-1">Knowledge Graph</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("my-mind") && (
           <Link href="/my-mind" data-testid="link-my-mind"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/my-mind" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/my-mind" ? "bg-fuchsia-500/15" : "bg-fuchsia-500/5"}`}><Sparkles size={14} className="text-fuchsia-400" /></div>
             <span className="flex-1">My Mind</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("universe") && (
           <Link href="/universe" data-testid="link-universe"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/universe" ? "bg-gradient-to-r from-indigo-950 to-violet-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/universe" ? "bg-white/15" : "bg-indigo-600/8"}`}>
@@ -2148,18 +2167,24 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Pulse Universe</span>
             <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black" style={{ animation: "pulse 2s ease-in-out infinite" }}>LIVE</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("spawns") && (
           <Link href="/spawns" data-testid="link-spawns"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/spawns" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/spawns" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><Dna size={14} className="text-violet-500" /></div>
             <span className="flex-1">Spawn Engine</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">Ω</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("sources") && (
           <Link href="/sources" data-testid="link-sources"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/sources" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/sources" ? "bg-blue-600/15" : "bg-blue-600/5"}`}><Globe size={14} className="text-blue-500" /></div>
             <span className="flex-1">Omega Sources</span>
             <span className="text-[9px] bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">20</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("omega") && (
           <Link href="/omega" data-testid="link-omega"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/omega" ? "bg-white/20" : "bg-violet-600/10"}`}>
@@ -2168,6 +2193,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Omega Engine</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">V∞</span>
           </Link>
+          )}
+          {!appSettings.hiddenPages.includes("ingestion") && (
           <Link href="/ingestion" data-testid="link-ingestion"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/ingestion" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/ingestion" ? "bg-green-600/15" : "bg-green-600/5"}`}><Plug size={14} className="text-green-500" /></div>
@@ -2177,6 +2204,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               LIVE
             </span>
           </Link>
+          )}
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -6136,6 +6164,20 @@ function SettingsPage() {
     { id: "music", name: "Music", icon: Music, color: "text-sky-600", desc: "Music player & discovery" },
     { id: "education", name: "Education", icon: GraduationCap, color: "text-teal-600", desc: "AI-powered learning platform" },
     { id: "shopping", name: "Shopping", icon: ShoppingBag, color: "text-lime-600", desc: "AI smart shopping" },
+    { id: "quantapedia", name: "Quantapedia", icon: BookOpen, color: "text-violet-600", desc: "AI-powered knowledge universe" },
+    { id: "media", name: "Media", icon: Film, color: "text-pink-500", desc: "Films, music, books & more" },
+    { id: "careers", name: "Careers", icon: Briefcase, color: "text-orange-500", desc: "AI career & skills engine" },
+    { id: "finance", name: "Finance Oracle", icon: TrendingUp, color: "text-yellow-500", desc: "Quantum finance platform" },
+    { id: "agents", name: "AI Agents", icon: Bot, color: "text-indigo-400", desc: "Sovereign AI agent roster" },
+    { id: "pulse", name: "Live Pulse", icon: Radio, color: "text-emerald-500", desc: "Real-time Hive event stream" },
+    { id: "hive-command", name: "Hive Command", icon: Brain, color: "text-violet-400", desc: "Hive Mind Control Center" },
+    { id: "graph", name: "Knowledge Graph", icon: Network, color: "text-cyan-400", desc: "Live knowledge node visualizer" },
+    { id: "my-mind", name: "My Mind", icon: Sparkles, color: "text-fuchsia-400", desc: "Your personal intelligence profile" },
+    { id: "universe", name: "Pulse Universe", icon: Globe, color: "text-indigo-500", desc: "3D solar universe simulation" },
+    { id: "spawns", name: "Spawn Engine", icon: Dna, color: "text-violet-500", desc: "Hive entity spawn monitor" },
+    { id: "sources", name: "Omega Sources", icon: Globe, color: "text-blue-500", desc: "Live Omega data source network" },
+    { id: "omega", name: "Omega Engine", icon: Zap, color: "text-violet-600", desc: "Omega World Universe ENGINE V∞" },
+    { id: "ingestion", name: "Live Ingestion", icon: Plug, color: "text-green-500", desc: "Real-time data ingestion monitor" },
   ];
 
   const bgPresets = [
