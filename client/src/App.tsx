@@ -8923,9 +8923,53 @@ function StoryReaderPage() {
   );
 }
 
-// ─── MY AI GPT UNIVERSITY — FULL EDUCATION PLATFORM ──────────────────────────
-type CourseTrack = "k12" | "college" | "career" | "ai";
-type LessonMode = "overview" | "lesson" | "quiz" | "practice";
+// ─── MY AI GPT UNIVERSITY — OMEGA EDUCATION PLATFORM ─────────────────────────
+type EduView = "home"|"tutor"|"quiz"|"flashcards"|"essay"|"paths"|"mindmap"|"debate"|"trophy";
+type CourseTrack = "k12"|"college"|"career"|"ai";
+type LessonMode = "overview"|"lesson"|"quiz"|"practice";
+type TutorPersonality = "encouraging"|"strict"|"witty"|"practical"|"socratic";
+
+interface EduXP { total:number; level:number; badges:string[]; streakDays:number; lastStudyDate:string; quizzesCompleted:number; lessonsCompleted:number; debatesWon:number; flashcardsReviewed:number; essaysGraded:number; subjectsStudied:string[]; }
+interface QuizQuestion { type:"mcq"|"truefalse"|"fillin"; question:string; options:string[]; answer:string; explanation:string; }
+interface FlashCard { id:string; front:string; back:string; difficulty:"easy"|"hard"|"again"; nextReview:number; }
+interface FlashDeck { id:string; topic:string; cards:FlashCard[]; createdAt:number; }
+interface EssayResult { id:string; text:string; rubric:string; score:number; feedback:string; annotation:string; createdAt:number; }
+interface MindMapNode { label:string; emoji:string; children:{label:string;emoji:string}[]; }
+interface LearningPath { goal:string; timePerDay:string; totalWeeks:number; steps:{week:number;title:string;topics:string[];goal:string}[]; }
+interface DebateMsg { role:"user"|"ai"|"judge"; content:string; label?:string; }
+
+const DEFAULT_XP: EduXP = { total:0, level:1, badges:[], streakDays:0, lastStudyDate:"", quizzesCompleted:0, lessonsCompleted:0, debatesWon:0, flashcardsReviewed:0, essaysGraded:0, subjectsStudied:[] };
+
+const EDU_LEVELS = [
+  {min:0,    name:"Student",         icon:"📚", color:"#6b7280"},
+  {min:500,  name:"Scholar",         icon:"📖", color:"#06b6d4"},
+  {min:2000, name:"Master",          icon:"🎓", color:"#8b5cf6"},
+  {min:5000, name:"Quantum Scholar", icon:"⚡", color:"#f59e0b"},
+  {min:10000,name:"Prestige Legend", icon:"🌟", color:"#ec4899"},
+];
+
+const EDU_BADGES = [
+  {id:"first_lesson",   name:"First Lesson",      icon:"🌱", desc:"Complete your first lesson",          xp:50,  rarity:"Common"},
+  {id:"quiz_ace",       name:"Quiz Ace",           icon:"✅", desc:"Score 100% on a quiz",               xp:100, rarity:"Rare"},
+  {id:"streak_3",       name:"3-Day Streak",       icon:"🔥", desc:"Study 3 days in a row",              xp:150, rarity:"Rare"},
+  {id:"streak_7",       name:"Week Warrior",       icon:"⚡", desc:"Study 7 days in a row",              xp:300, rarity:"Epic"},
+  {id:"debater",        name:"Grand Debater",      icon:"🎤", desc:"Win your first debate",              xp:200, rarity:"Epic"},
+  {id:"flashcard_50",   name:"Flashcard Master",   icon:"🃏", desc:"Review 50 flashcards",               xp:150, rarity:"Rare"},
+  {id:"essay_5",        name:"Essay Scholar",      icon:"✍️", desc:"Submit 5 graded essays",             xp:200, rarity:"Rare"},
+  {id:"path_seeker",    name:"Path Seeker",        icon:"🗺️", desc:"Generate your first learning path", xp:100, rarity:"Common"},
+  {id:"mind_mapper",    name:"Mind Mapper",        icon:"🧠", desc:"Create your first mind map",         xp:100, rarity:"Common"},
+  {id:"polymath",       name:"Polymath",           icon:"🌍", desc:"Study 10 different subjects",        xp:500, rarity:"Legendary"},
+  {id:"quiz_10",        name:"Quiz Champion",      icon:"🏆", desc:"Complete 10 quizzes",                xp:250, rarity:"Epic"},
+  {id:"debate_prep",    name:"Debater Initiate",   icon:"📜", desc:"Complete debate prep room",          xp:75,  rarity:"Common"},
+];
+
+const TUTOR_PERSONAS: Record<TutorPersonality,{name:string;icon:string;desc:string;color:string;sys:string}> = {
+  encouraging:{name:"Encouraging",icon:"😊",desc:"Patient & motivating",color:"#10b981",sys:"You are a warm, encouraging My Ai GPT University professor. Celebrate every win. Use positive reinforcement. Answer with enthusiasm and make students feel capable. You teach with heart."},
+  strict:     {name:"Strict",    icon:"🎩",desc:"Rigorous & demanding", color:"#ef4444",sys:"You are a rigorous, demanding My Ai GPT University professor. Hold students to high standards. Be direct, precise, and don't accept vague answers. Push for deep understanding."},
+  witty:      {name:"Witty",     icon:"😄",desc:"Funny & memorable",    color:"#f59e0b",sys:"You are a brilliantly witty My Ai GPT University professor who uses humor, wordplay, and memorable jokes to teach. Be educational but hilarious — make learning unforgettable."},
+  practical:  {name:"Street-Smart",icon:"🔧",desc:"Real-world focused", color:"#8b5cf6",sys:"You are a street-smart My Ai GPT University professor who connects everything to real money, real careers, and real opportunities. Cut the academic fluff — make it practical."},
+  socratic:   {name:"Socratic",  icon:"🤔",desc:"Question-only mode",  color:"#06b6d4",sys:"You are a Socratic My Ai GPT University professor. NEVER give direct answers. Only respond with guiding questions that lead the student to discover answers themselves. Never break character."},
+};
 
 const UNIVERSITY_TRACKS = [
   {
@@ -8970,6 +9014,75 @@ const UNIVERSITY_TRACKS = [
 ];
 
 function EducationPage() {
+  // ── NAVIGATION ────────────────────────────────────────────────────────────
+  const [eduView, setEduView] = useState<EduView>("home");
+
+  // ── XP SYSTEM ─────────────────────────────────────────────────────────────
+  const [xp, setXp] = useState<EduXP>(() => {
+    try { return { ...DEFAULT_XP, ...JSON.parse(localStorage.getItem("myaigpt_edu_xp") || "{}") }; }
+    catch { return DEFAULT_XP; }
+  });
+
+  // ── TUTOR MODE ────────────────────────────────────────────────────────────
+  const [tutorPersonality, setTutorPersonality] = useState<TutorPersonality>("encouraging");
+  const [tutorMessages, setTutorMessages] = useState<{role:string;content:string}[]>([]);
+  const [tutorInput, setTutorInput] = useState("");
+  const [tutorLoading, setTutorLoading] = useState(false);
+  const [tutorSubject, setTutorSubject] = useState("");
+  const tutorEndRef = useRef<HTMLDivElement>(null);
+
+  // ── QUIZ MODE ─────────────────────────────────────────────────────────────
+  const [quizTopic, setQuizTopic] = useState("");
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizIndex, setQuizIndex] = useState(0);
+  const [quizSelected, setQuizSelected] = useState<string|null>(null);
+  const [quizConfidence, setQuizConfidence] = useState(3);
+  const [quizResults, setQuizResults] = useState<{correct:boolean;conf:number;explanation:string;answer:string}[]>([]);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizDone, setQuizDone] = useState(false);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  // ── FLASHCARDS ────────────────────────────────────────────────────────────
+  const [flashDecks, setFlashDecks] = useState<FlashDeck[]>(() => {
+    try { return JSON.parse(localStorage.getItem("myaigpt_edu_flashdecks") || "[]"); } catch { return []; }
+  });
+  const [activeDeck, setActiveDeck] = useState<FlashDeck|null>(null);
+  const [flashIndex, setFlashIndex] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [flashTopic, setFlashTopic] = useState("");
+  const [flashLoading, setFlashLoading] = useState(false);
+
+  // ── ESSAY GRADER ──────────────────────────────────────────────────────────
+  const [essayText, setEssayText] = useState("");
+  const [essayRubric, setEssayRubric] = useState("Argument strength, Supporting evidence, Clarity and organization");
+  const [essayResult, setEssayResult] = useState<EssayResult|null>(null);
+  const [essayLoading, setEssayLoading] = useState(false);
+  const [essayHistory, setEssayHistory] = useState<EssayResult[]>(() => {
+    try { return JSON.parse(localStorage.getItem("myaigpt_edu_essays") || "[]"); } catch { return []; }
+  });
+
+  // ── LEARNING PATHS ────────────────────────────────────────────────────────
+  const [pathGoal, setPathGoal] = useState("");
+  const [pathTime, setPathTime] = useState("30");
+  const [learningPath, setLearningPath] = useState<LearningPath|null>(null);
+  const [pathLoading, setPathLoading] = useState(false);
+
+  // ── MIND MAP ──────────────────────────────────────────────────────────────
+  const [mmTopic, setMmTopic] = useState("");
+  const [mmData, setMmData] = useState<MindMapNode|null>(null);
+  const [mmLoading, setMmLoading] = useState(false);
+  const [mmSelected, setMmSelected] = useState<string|null>(null);
+
+  // ── DEBATE MODE ───────────────────────────────────────────────────────────
+  const [debateTopic, setDebateTopic] = useState("");
+  const [debateMessages, setDebateMessages] = useState<DebateMsg[]>([]);
+  const [debateInput, setDebateInput] = useState("");
+  const [debatePhase, setDebatePhase] = useState<"setup"|"prep"|"debate"|"judging"|"result">("setup");
+  const [debatePrep, setDebatePrep] = useState<{facts:string[];counterargs:string[]}|null>(null);
+  const [debateJudgment, setDebateJudgment] = useState("");
+  const [debateLoading, setDebateLoading] = useState(false);
+
+  // ── SUBJECT LESSON (keep existing) ───────────────────────────────────────
   const [track, setTrack] = useState<CourseTrack>("k12");
   const [selectedSubject, setSelectedSubject] = useState<{ subject: string; grade: string; track: string } | null>(null);
   const [lessonMode, setLessonMode] = useState<LessonMode>("overview");
@@ -8985,6 +9098,266 @@ function EducationPage() {
   const [wikiTitle, setWikiTitle] = useState("");
   const { settings } = useAppSettings();
 
+  // ── XP HELPERS ────────────────────────────────────────────────────────────
+  const addXP = useCallback((amount: number, badgeId?: string) => {
+    setXp(prev => {
+      const total = prev.total + amount;
+      const level = EDU_LEVELS.filter(l => total >= l.min).length;
+      const badges = badgeId && !prev.badges.includes(badgeId) ? [...prev.badges, badgeId] : prev.badges;
+      const next = { ...prev, total, level, badges };
+      localStorage.setItem("myaigpt_edu_xp", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const updateXPField = useCallback((updates: Partial<EduXP>) => {
+    setXp(prev => {
+      const next = { ...prev, ...updates };
+      localStorage.setItem("myaigpt_edu_xp", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const currentLevel = EDU_LEVELS[Math.min(xp.level - 1, EDU_LEVELS.length - 1)];
+  const nextLevel = EDU_LEVELS[xp.level] || null;
+  const xpProgress = nextLevel ? Math.round(((xp.total - (EDU_LEVELS[xp.level - 1]?.min || 0)) / (nextLevel.min - (EDU_LEVELS[xp.level - 1]?.min || 0))) * 100) : 100;
+
+  // ── AI TUTOR ──────────────────────────────────────────────────────────────
+  const sendTutorMessage = async () => {
+    if (!tutorInput.trim() || tutorLoading) return;
+    const userMsg = tutorInput.trim(); setTutorInput(""); setTutorLoading(true);
+    const persona = TUTOR_PERSONAS[tutorPersonality];
+    const newMessages = [...tutorMessages, { role: "user", content: userMsg }];
+    setTutorMessages(newMessages);
+    setTimeout(() => tutorEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    try {
+      const context = tutorSubject ? `Subject context: ${tutorSubject}.` : "";
+      const messages = [
+        { role: "system", content: `${persona.sys} ${context} Keep responses clear and under 200 words unless a deep explanation is needed.` },
+        ...newMessages.map(m => ({ role: m.role, content: m.content }))
+      ];
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages }) });
+      const data = await res.json();
+      const reply = data.content || "I couldn't generate a response. Please try again.";
+      setTutorMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      // Confusion detection — if student repeats similar questions, auto-suggest analogy
+      const lowered = userMsg.toLowerCase();
+      if (lowered.includes("don't understand") || lowered.includes("confused") || lowered.includes("what do you mean")) {
+        setTimeout(async () => {
+          const analogyRes = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `The student says: "${userMsg}". Give 2 very different analogies (one technical, one everyday life) to explain the concept being discussed. Be concise.` }] }) });
+          const analogyData = await analogyRes.json();
+          setTutorMessages(prev => [...prev, { role: "assistant", content: `💡 **Analogy Mode Activated:**\n\n${analogyData.content || ""}` }]);
+        }, 500);
+      }
+      addXP(10);
+    } catch { setTutorMessages(prev => [...prev, { role: "assistant", content: "Connection error. Please try again." }]); }
+    setTutorLoading(false);
+    setTimeout(() => tutorEndRef.current?.scrollIntoView({ behavior: "smooth" }), 200);
+  };
+
+  // ── QUIZ GENERATION ───────────────────────────────────────────────────────
+  const generateQuiz = async () => {
+    if (!quizTopic.trim()) return;
+    setQuizLoading(true); setQuizQuestions([]); setQuizIndex(0); setQuizResults([]); setQuizDone(false); setQuizSelected(null); setQuizSubmitted(false);
+    try {
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `Generate exactly 8 quiz questions about "${quizTopic}". Mix types: 5 multiple-choice (4 options each), 2 true/false, 1 fill-in-the-blank.\n\nReturn ONLY a JSON array, no code blocks, no extra text:\n[\n  {"type":"mcq","question":"...","options":["A","B","C","D"],"answer":"A","explanation":"..."},\n  {"type":"truefalse","question":"...","options":["True","False"],"answer":"True","explanation":"..."},\n  {"type":"fillin","question":"The capital of France is ___","options":[],"answer":"Paris","explanation":"..."}\n]` }] }) });
+      const data = await res.json();
+      const text = (data.content || "").replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const match = text.match(/\[[\s\S]+\]/);
+      if (match) {
+        try {
+          const questions: QuizQuestion[] = JSON.parse(match[0]);
+          if (Array.isArray(questions) && questions.length > 0) {
+            setQuizQuestions(questions);
+          }
+        } catch (e) {
+          console.error("Quiz JSON parse error:", e, match[0].slice(0, 200));
+        }
+      }
+    } catch { }
+    setQuizLoading(false);
+  };
+
+  const submitQuizAnswer = () => {
+    if (!quizSelected || quizSubmitted) return;
+    const q = quizQuestions[quizIndex];
+    const isCorrect = quizSelected.trim().toLowerCase() === q.answer.trim().toLowerCase();
+    setQuizResults(prev => [...prev, { correct: isCorrect, conf: quizConfidence, explanation: q.explanation, answer: q.answer }]);
+    setQuizSubmitted(true);
+  };
+
+  const nextQuizQuestion = () => {
+    if (quizIndex + 1 >= quizQuestions.length) {
+      const score = quizResults.filter(r => r.correct).length + (quizSelected?.trim().toLowerCase() === quizQuestions[quizIndex]?.answer.trim().toLowerCase() ? 1 : 0);
+      const total = quizQuestions.length;
+      const pct = Math.round((score / total) * 100);
+      setQuizDone(true);
+      addXP(pct >= 70 ? 100 : 30);
+      if (pct === 100) addXP(50, "quiz_ace");
+      const newCount = xp.quizzesCompleted + 1;
+      updateXPField({ quizzesCompleted: newCount });
+      if (newCount >= 10) addXP(0, "quiz_10");
+    } else {
+      setQuizIndex(prev => prev + 1);
+      setQuizSelected(null);
+      setQuizSubmitted(false);
+      setQuizConfidence(3);
+    }
+  };
+
+  // ── FLASHCARD GENERATION ──────────────────────────────────────────────────
+  const generateFlashcards = async () => {
+    if (!flashTopic.trim()) return;
+    setFlashLoading(true);
+    try {
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `Create 15 flashcards for "${flashTopic}". Include a mix of standard Q&A cards and cloze deletion (fill in the blank) cards.\n\nReturn ONLY a JSON array:\n[\n  {"front":"What is photosynthesis?","back":"The process by which plants convert sunlight into food."},\n  {"front":"The mitochondria is the ___ of the cell.","back":"powerhouse"},\n  ...\n]\n\nNo text outside the array.` }] }) });
+      const data = await res.json();
+      const text = (data.content || "").replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
+      const match = text.match(/\[[\s\S]+\]/);
+      if (match) {
+        const raw: {front:string;back:string}[] = JSON.parse(match[0]);
+        const cards: FlashCard[] = raw.map((c, i) => ({ id: `${Date.now()}_${i}`, front: c.front, back: c.back, difficulty: "again" as const, nextReview: Date.now() }));
+        const deck: FlashDeck = { id: `deck_${Date.now()}`, topic: flashTopic, cards, createdAt: Date.now() };
+        const updated = [deck, ...flashDecks];
+        setFlashDecks(updated);
+        localStorage.setItem("myaigpt_edu_flashdecks", JSON.stringify(updated));
+        setActiveDeck(deck);
+        setFlashIndex(0);
+        setFlipped(false);
+        addXP(75, "mind_mapper");
+      }
+    } catch {}
+    setFlashLoading(false);
+  };
+
+  const rateFlashcard = (difficulty: "easy"|"hard"|"again") => {
+    if (!activeDeck) return;
+    const updated = { ...activeDeck };
+    updated.cards[flashIndex].difficulty = difficulty;
+    updated.cards[flashIndex].nextReview = Date.now() + (difficulty === "easy" ? 86400000 * 3 : difficulty === "hard" ? 86400000 : 0);
+    const updatedDecks = flashDecks.map(d => d.id === activeDeck.id ? updated : d);
+    setFlashDecks(updatedDecks);
+    localStorage.setItem("myaigpt_edu_flashdecks", JSON.stringify(updatedDecks));
+    setActiveDeck(updated);
+    const newCount = xp.flashcardsReviewed + 1;
+    updateXPField({ flashcardsReviewed: newCount });
+    if (newCount >= 50) addXP(100, "flashcard_50");
+    addXP(5);
+    if (flashIndex + 1 < activeDeck.cards.length) { setFlashIndex(prev => prev + 1); setFlipped(false); }
+    else { setActiveDeck(null); }
+  };
+
+  // ── ESSAY GRADER ──────────────────────────────────────────────────────────
+  const gradeEssay = async () => {
+    if (!essayText.trim()) return;
+    setEssayLoading(true); setEssayResult(null);
+    try {
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `You are a strict but fair university professor grading a student's essay.\n\nRUBRIC: ${essayRubric}\n\nESSAY:\n${essayText}\n\nProvide:\n1. SCORE: X/100\n2. OVERALL FEEDBACK: (2-3 sentences)\n3. PARAGRAPH ANALYSIS: For each paragraph, one sentence of specific feedback\n4. STRONGEST POINT: (quote the best sentence)\n5. IMPROVE THIS: (rewrite their weakest sentence better)\n\nFormat with clear section headers.` }] }) });
+      const data = await res.json();
+      const content = data.content || "";
+      const scoreMatch = content.match(/SCORE[:\s]+(\d+)/i);
+      const score = scoreMatch ? parseInt(scoreMatch[1]) : 70;
+      const result: EssayResult = { id: `essay_${Date.now()}`, text: essayText, rubric: essayRubric, score, feedback: content, annotation: content, createdAt: Date.now() };
+      setEssayResult(result);
+      const updated = [result, ...essayHistory];
+      setEssayHistory(updated);
+      localStorage.setItem("myaigpt_edu_essays", JSON.stringify(updated.slice(0, 20)));
+      const newCount = xp.essaysGraded + 1;
+      updateXPField({ essaysGraded: newCount });
+      if (newCount >= 5) addXP(100, "essay_5");
+      addXP(50);
+    } catch {}
+    setEssayLoading(false);
+  };
+
+  // ── LEARNING PATH GENERATOR ───────────────────────────────────────────────
+  const generatePath = async () => {
+    if (!pathGoal.trim()) return;
+    setPathLoading(true); setLearningPath(null);
+    try {
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `You are a world-class career counselor and curriculum designer at My Ai GPT University.\n\nGoal: "${pathGoal}"\nTime available per day: ${pathTime} minutes\n\nCreate a structured learning path. Return ONLY a JSON object:\n{\n  "goal": "${pathGoal}",\n  "timePerDay": "${pathTime} minutes",\n  "totalWeeks": 8,\n  "steps": [\n    {"week":1,"title":"Foundation","topics":["Topic A","Topic B","Topic C"],"goal":"Understand the basics"},\n    ...(8 weeks total)\n  ]\n}\n\nMake it realistic, specific, and achievable. No text outside the JSON.` }] }) });
+      const data = await res.json();
+      const text = (data.content || "").replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
+      const match = text.match(/\{[\s\S]+\}/);
+      if (match) {
+        setLearningPath(JSON.parse(match[0]));
+        addXP(100, "path_seeker");
+      }
+    } catch {}
+    setPathLoading(false);
+  };
+
+  // ── MIND MAP GENERATOR ────────────────────────────────────────────────────
+  const generateMindMap = async (topic: string) => {
+    if (!topic.trim()) return;
+    setMmLoading(true); setMmData(null); setMmSelected(null);
+    try {
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `Create a mind map for the concept: "${topic}".\n\nReturn ONLY a JSON object:\n{\n  "label": "${topic}",\n  "emoji": "🧠",\n  "children": [\n    {"label":"Core Concept 1","emoji":"🔬"},\n    {"label":"Core Concept 2","emoji":"📊"},\n    {"label":"Application","emoji":"⚙️"},\n    {"label":"History","emoji":"📜"},\n    {"label":"Key Figures","emoji":"👤"},\n    {"label":"Modern Use","emoji":"🚀"}\n  ]\n}\n\nMake the children specific and insightful. 6-8 children total. No text outside JSON.` }] }) });
+      const data = await res.json();
+      const text = (data.content || "").replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
+      const match = text.match(/\{[\s\S]+\}/);
+      if (match) {
+        setMmData(JSON.parse(match[0]));
+        addXP(75, "mind_mapper");
+      }
+    } catch {}
+    setMmLoading(false);
+  };
+
+  // ── DEBATE MODE ───────────────────────────────────────────────────────────
+  const startDebatePrepRoom = async () => {
+    if (!debateTopic.trim()) return;
+    setDebateLoading(true); setDebatePrep(null); setDebatePhase("prep");
+    try {
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `The student is about to debate: "${debateTopic}". They will argue FOR this position.\n\nReturn ONLY a JSON object:\n{\n  "facts": ["Key fact 1 you can use","Key fact 2","Key fact 3"],\n  "counterargs": ["Strong counterargument you'll face 1","Counterargument 2","Counterargument 3"]\n}\n\nMake it strategic and specific. No text outside JSON.` }] }) });
+      const data = await res.json();
+      const text = (data.content || "").replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
+      const match = text.match(/\{[\s\S]+\}/);
+      if (match) { setDebatePrep(JSON.parse(match[0])); addXP(50, "debate_prep"); }
+    } catch {}
+    setDebateLoading(false);
+  };
+
+  const sendDebateMessage = async () => {
+    if (!debateInput.trim() || debateLoading) return;
+    const userArg = debateInput.trim(); setDebateInput(""); setDebateLoading(true);
+    const newMsgs: DebateMsg[] = [...debateMessages, { role: "user", content: userArg, label: "Your Argument" }];
+    setDebateMessages(newMsgs);
+    try {
+      const history = newMsgs.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.content }));
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "system", content: `You are debating AGAINST the position: "${debateTopic}". Counter the student's argument with logic, evidence, and rhetorical skill. Be sharp, use specific examples. Check for logical fallacies and call them out by name if you spot one. Keep response under 150 words.` }, ...history] }) });
+      const data = await res.json();
+      const reply = data.content || "";
+      // Check for fallacies
+      let fallacyWarning = "";
+      const lc = userArg.toLowerCase();
+      if (lc.includes("everyone knows") || lc.includes("everybody agrees")) fallacyWarning = "⚠️ **Fallacy Detected: Appeal to Popular Belief**";
+      else if (lc.includes("always") || lc.includes("never") || lc.includes("will definitely")) fallacyWarning = "⚠️ **Fallacy Detected: Overgeneralization / Slippery Slope**";
+      const aiMsg: DebateMsg = { role: "ai", content: reply + (fallacyWarning ? `\n\n${fallacyWarning}` : ""), label: "AI Opposition" };
+      setDebateMessages(prev => [...prev, aiMsg]);
+      addXP(20);
+    } catch {}
+    setDebateLoading(false);
+  };
+
+  const judgeDebate = async () => {
+    setDebatePhase("judging"); setDebateLoading(true);
+    try {
+      const transcript = debateMessages.map(m => `${m.label || m.role}: ${m.content}`).join("\n\n");
+      const res = await fetch("/api/chat/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `You are a panel of 3 debate judges scoring this debate on the topic: "${debateTopic}".\n\nDEBATE TRANSCRIPT:\n${transcript}\n\nProvide judgment as:\n\n**Judge 1 (Logic):** [Score FOR/AGAINST and reason]\n**Judge 2 (Evidence):** [Score FOR/AGAINST and reason]\n**Judge 3 (Rhetoric):** [Score FOR/AGAINST and reason]\n**FINAL VERDICT:** [Winner and why]\n**Student Strengths:** [2 things they did well]\n**Student Improvements:** [2 things to work on]` }] }) });
+      const data = await res.json();
+      setDebateJudgment(data.content || "");
+      const verdict = (data.content || "").toLowerCase();
+      if (verdict.includes("for wins") || verdict.includes("student wins") || verdict.includes("for: wins")) {
+        addXP(200, "debater");
+        updateXPField({ debatesWon: xp.debatesWon + 1 });
+      }
+    } catch {}
+    setDebateLoading(false);
+    setDebatePhase("result");
+  };
+
+  // ── WIKI LESSON (keep existing) ──────────────────────────────────────────
   const fetchWikiLesson = async (topic: string) => {
     if (!topic.trim()) return;
     setWikiLoading(true); setWikiLesson(""); setWikiTitle(topic);
@@ -9142,13 +9515,50 @@ End with:
     setQaLoading(false);
   };
 
+  // ── SHARED MARKDOWN COMPONENTS ────────────────────────────────────────────
+  const mdColor = "#8b5cf6";
+  const MdComponents = {
+    h1: ({ children }: any) => <h1 className="text-xl font-extrabold mb-3 text-foreground">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-base font-bold mt-5 mb-2 text-foreground border-l-4 pl-3" style={{borderColor:mdColor}}>{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-bold mt-3 mb-1 text-foreground/90">{children}</h3>,
+    p: ({ children }: any) => <p className="mb-3 text-foreground/75 text-sm leading-relaxed">{children}</p>,
+    ul: ({ children }: any) => <ul className="mb-3 ml-4 space-y-1 list-disc text-foreground/70 text-sm">{children}</ul>,
+    ol: ({ children }: any) => <ol className="mb-3 ml-4 space-y-1 list-decimal text-foreground/70 text-sm">{children}</ol>,
+    li: ({ children }: any) => <li className="leading-relaxed">{children}</li>,
+    strong: ({ children }: any) => <strong className="font-bold text-foreground">{children}</strong>,
+    blockquote: ({ children }: any) => <blockquote className="border-l-4 pl-4 py-2 my-3 italic text-foreground/60 rounded-r-lg text-sm" style={{borderColor:mdColor}}>{children}</blockquote>,
+    hr: () => <hr className="border-border/20 my-4" />,
+    code: ({ children }: any) => <code className="bg-muted/60 rounded px-1.5 py-0.5 text-xs font-mono">{children}</code>,
+  };
+
+  // ── XP HEADER BAR ─────────────────────────────────────────────────────────
+  const XPBar = () => (
+    <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-violet-950/80 to-indigo-950/80 border-b border-white/5">
+      <span className="text-base">{currentLevel.icon}</span>
+      <div className="flex-1">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="text-[10px] font-bold" style={{color:currentLevel.color}}>{currentLevel.name}</span>
+          <span className="text-[10px] text-white/40">{xp.total} XP{nextLevel ? ` · ${nextLevel.min - xp.total} to ${nextLevel.name}` : " · MAX"}</span>
+        </div>
+        <div className="h-1 bg-white/10 rounded-full overflow-hidden w-32"><div className="h-full rounded-full transition-all" style={{width:`${xpProgress}%`,background:currentLevel.color}}/></div>
+      </div>
+      <div className="flex items-center gap-2 text-[10px] text-white/40">
+        <span>🔥 {xp.streakDays}d</span>
+        <span>·</span>
+        <span>🏅 {xp.badges.length}</span>
+      </div>
+    </div>
+  );
+
   if (selectedSubject) {
+    const currentTrack = UNIVERSITY_TRACKS.find(t => t.id === track)!;
     return (
       <div className="flex-1 flex flex-col overflow-hidden bg-background">
+        <XPBar/>
         {/* Lesson header */}
         <div className="border-b border-border/20 bg-white dark:bg-gray-900 px-5 py-4 flex items-center gap-3">
-          <button onClick={() => setSelectedSubject(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="button-lesson-back">
-            <ChevronLeft size={16} /> Back to {currentTrack.label}
+          <button onClick={() => { setSelectedSubject(null); setEduView("home"); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="button-lesson-back">
+            <ChevronLeft size={16} /> Back
           </button>
           <div className="flex-1 min-w-0">
             <div className="text-xs text-muted-foreground">{selectedSubject.grade}</div>
@@ -9222,137 +9632,813 @@ End with:
     );
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto bg-background">
-      {/* Hero */}
-      <div className="relative overflow-hidden border-b border-border/20" style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)" }}>
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
-        <div className="relative max-w-4xl mx-auto px-5 py-12 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-white text-xs font-semibold mb-5 backdrop-blur">
-            <GraduationCap size={13} /> My Ai GPT University · Powered by Quantum Pulse Intelligence
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight" data-testid="text-education-title">World-Class Education, Powered by AI</h1>
-          <p className="text-white/70 text-base max-w-xl mx-auto leading-relaxed">From K-12 to Masters. Career skills to cutting-edge AI. Every subject. Every level. Learn anything — free, on-site, right now.</p>
-          <div className="flex flex-wrap justify-center gap-2 mt-5">
-            {["100% Free", "K-12 Covered", "College Prep", "AI Courses", "Career Skills", "Interactive Quizzes", "AI Tutor", "Certifications Soon"].map(f => (
-              <span key={f} className="text-[10px] px-3 py-1.5 bg-white/10 text-white/80 rounded-full font-medium border border-white/15">{f}</span>
-            ))}
-          </div>
-        </div>
-      </div>
+  // ── NAV ITEMS ─────────────────────────────────────────────────────────────
+  const NAV_ITEMS: {id:EduView;label:string;icon:string;color:string}[] = [
+    {id:"home",      label:"Home",          icon:"🏠", color:"#6366f1"},
+    {id:"tutor",     label:"AI Tutor",      icon:"🧑‍🏫", color:"#10b981"},
+    {id:"quiz",      label:"Quiz",          icon:"✅", color:"#f59e0b"},
+    {id:"flashcards",label:"Flashcards",    icon:"🃏", color:"#06b6d4"},
+    {id:"essay",     label:"Essay Grader",  icon:"✍️", color:"#8b5cf6"},
+    {id:"paths",     label:"Learning Path", icon:"🗺️", color:"#ec4899"},
+    {id:"mindmap",   label:"Mind Map",      icon:"🧠", color:"#14b8a6"},
+    {id:"debate",    label:"Debate Club",   icon:"🎤", color:"#f97316"},
+    {id:"trophy",    label:"Trophy Room",   icon:"🏆", color:"#eab308"},
+  ];
 
-      {/* Track tabs */}
-      <div className="border-b border-border/20 bg-white dark:bg-gray-900 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 flex gap-1 overflow-x-auto scrollbar-hide py-2">
-          {UNIVERSITY_TRACKS.map(t => (
-            <button key={t.id} onClick={() => setTrack(t.id)} data-testid={`edu-track-${t.id}`}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${track === t.id ? "text-white shadow-md" : "text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40"}`}
-              style={track === t.id ? { backgroundColor: t.color } : {}}>
-              <span>{t.icon}</span> {t.label}
+  const currentTrackData = UNIVERSITY_TRACKS.find(t => t.id === track) || UNIVERSITY_TRACKS[0];
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden bg-background">
+      {/* XP Bar */}
+      <XPBar/>
+
+      {/* Top nav */}
+      <div className="border-b border-border/15 bg-white dark:bg-gray-900 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-0.5 px-2 py-1.5 min-w-max">
+          {NAV_ITEMS.map(n => (
+            <button key={n.id} onClick={() => setEduView(n.id)}
+              data-testid={`edu-nav-${n.id}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${eduView === n.id ? "text-white shadow" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"}`}
+              style={eduView === n.id ? {backgroundColor:n.color} : {}}>
+              <span>{n.icon}</span> {n.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Course grid */}
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+      {/* Main content area */}
+      <div className="flex-1 overflow-y-auto">
 
-        {/* === WIKI AUTO-LESSON SEARCH === */}
-        <div className="rounded-2xl border border-border/20 overflow-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-950">
-          <div className="px-5 py-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Telescope size={16} className="text-purple-400" />
-              <h2 className="text-white font-extrabold text-base">Ask Anything — Get an Instant AI Lesson</h2>
+        {/* ═══════════════════ HOME VIEW ═══════════════════ */}
+        {eduView === "home" && (
+          <div>
+            {/* Hero */}
+            <div className="relative overflow-hidden border-b border-border/20" style={{background:"linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)"}}>
+              <div className="absolute inset-0 opacity-10" style={{backgroundImage:"radial-gradient(circle at 2px 2px,white 1px,transparent 0)",backgroundSize:"32px 32px"}}/>
+              <div className="relative max-w-4xl mx-auto px-5 py-10 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/10 text-white text-[11px] font-semibold mb-4 backdrop-blur">
+                  <GraduationCap size={12}/> My Ai GPT University · Powered by Quantum Pulse Intelligence
+                </div>
+                <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight" data-testid="text-education-title">World-Class Education, Powered by AI</h1>
+                <p className="text-white/70 text-sm max-w-xl mx-auto leading-relaxed mb-5">From K-12 to Masters. Career skills to cutting-edge AI. Every subject. Every level. Learn anything — free, on-site, right now.</p>
+                {/* Quick feature grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
+                  {[
+                    {icon:"🧑‍🏫",label:"AI Tutor",sub:"5 personality modes",view:"tutor" as EduView},
+                    {icon:"✅",label:"Smart Quiz",sub:"Adaptive questions",view:"quiz" as EduView},
+                    {icon:"🃏",label:"Flashcards",sub:"Spaced repetition",view:"flashcards" as EduView},
+                    {icon:"🎤",label:"Debate Club",sub:"Structured debates",view:"debate" as EduView},
+                  ].map(f => (
+                    <button key={f.label} onClick={() => setEduView(f.view)}
+                      data-testid={`home-feature-${f.label.toLowerCase().replace(/\s/g,"-")}`}
+                      className="bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl p-3 text-left transition-all">
+                      <div className="text-xl mb-1">{f.icon}</div>
+                      <div className="text-white font-bold text-xs">{f.label}</div>
+                      <div className="text-white/50 text-[10px]">{f.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <p className="text-white/40 text-xs mb-4">Type any topic — quantum physics, French Revolution, machine learning, ancient Egypt, anything — and get a full AI lesson powered by Wikipedia knowledge.</p>
-            <div className="flex gap-2">
-              <input value={wikiTopic} onChange={e => setWikiTopic(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && fetchWikiLesson(wikiTopic)}
-                placeholder="e.g. Black holes, The Renaissance, Machine learning, DNA replication…"
-                className="flex-1 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-purple-400/60"
-                data-testid="input-wiki-topic" />
-              <button onClick={() => fetchWikiLesson(wikiTopic)} disabled={wikiLoading || !wikiTopic.trim()}
-                className="px-5 py-2.5 bg-purple-500 hover:bg-purple-400 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-40 flex items-center gap-2"
-                data-testid="button-wiki-lesson">
-                {wikiLoading ? <><Sparkles size={14} className="animate-spin" /> Generating…</> : <><BookMarked size={14} /> Learn It</>}
-              </button>
+
+            {/* Track tabs */}
+            <div className="border-b border-border/20 bg-white dark:bg-gray-900 sticky top-0 z-10">
+              <div className="max-w-4xl mx-auto px-3 flex gap-1 overflow-x-auto scrollbar-hide py-2">
+                {UNIVERSITY_TRACKS.map(t => (
+                  <button key={t.id} onClick={() => setTrack(t.id)} data-testid={`edu-track-${t.id}`}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${track === t.id ? "text-white shadow" : "text-muted-foreground hover:text-foreground bg-muted/20 hover:bg-muted/40"}`}
+                    style={track === t.id ? {backgroundColor:t.color} : {}}>
+                    <span>{t.icon}</span> {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {["Quantum Physics","The Renaissance","CRISPR Gene Editing","Roman Empire","Neural Networks","The Stock Market","Black Holes","Ancient Egypt","Cryptocurrency","Climate Change"].map(t => (
-                <button key={t} onClick={() => { setWikiTopic(t); fetchWikiLesson(t); }}
-                  className="text-[10px] px-2.5 py-1 bg-white/10 text-white/60 rounded-full border border-white/10 hover:bg-white/20 hover:text-white transition-colors"
-                  data-testid={`wiki-suggestion-${t.replace(/\s+/g,"-").toLowerCase()}`}>{t}</button>
-              ))}
+
+            <div className="max-w-4xl mx-auto px-4 py-6 space-y-7">
+              {/* Wiki instant lesson */}
+              <div className="rounded-2xl border border-border/20 overflow-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-950">
+                <div className="px-4 py-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Telescope size={15} className="text-purple-400"/>
+                    <span className="text-white font-bold text-sm">Ask Anything — Instant AI Lesson</span>
+                  </div>
+                  <p className="text-white/40 text-xs mb-3">Type any topic and get a full AI-powered lesson instantly.</p>
+                  <div className="flex gap-2">
+                    <input value={wikiTopic} onChange={e => setWikiTopic(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchWikiLesson(wikiTopic)}
+                      placeholder="Black holes, CRISPR, Roman Empire, Machine learning…"
+                      className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 text-xs focus:outline-none focus:border-purple-400/60"
+                      data-testid="input-wiki-topic"/>
+                    <button onClick={() => fetchWikiLesson(wikiTopic)} disabled={wikiLoading || !wikiTopic.trim()}
+                      className="px-4 py-2 bg-purple-500 hover:bg-purple-400 text-white font-bold rounded-xl text-xs transition-all disabled:opacity-40 flex items-center gap-1.5"
+                      data-testid="button-wiki-lesson">
+                      {wikiLoading ? <><Sparkles size={12} className="animate-spin"/> Generating…</> : <><BookMarked size={12}/> Learn It</>}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2.5">
+                    {["Quantum Physics","The Renaissance","CRISPR","Roman Empire","Neural Networks","Black Holes","Ancient Egypt","Crypto","Climate Change"].map(t => (
+                      <button key={t} onClick={() => { setWikiTopic(t); fetchWikiLesson(t); }}
+                        className="text-[10px] px-2 py-0.5 bg-white/10 text-white/60 rounded-full border border-white/10 hover:bg-white/20 hover:text-white transition-colors"
+                        data-testid={`wiki-suggestion-${t.replace(/\s+/g,"-").toLowerCase()}`}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                {(wikiLoading || wikiLesson) && (
+                  <div className="border-t border-white/10 px-4 py-4 bg-black/30">
+                    {wikiLoading ? (
+                      <div className="space-y-2 animate-pulse">
+                        <div className="h-5 bg-white/10 rounded w-1/2"/>
+                        {[1,2,3].map(i => <div key={i} className="h-2.5 bg-white/5 rounded w-full"/>)}
+                        <div className="flex items-center gap-2 pt-1"><Sparkles size={12} className="text-purple-400 animate-spin"/><span className="text-white/40 text-[11px]">Professor AI building your lesson…</span></div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white/60 text-xs font-semibold">📖 {wikiTitle}</span>
+                          <button onClick={() => { setWikiLesson(""); setWikiTopic(""); }} className="text-white/30 hover:text-white/60 text-xs">× Clear</button>
+                        </div>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                          h1: ({children}:any) => <h1 className="text-lg font-extrabold mb-2 text-white">{children}</h1>,
+                          h2: ({children}:any) => <h2 className="text-sm font-bold mt-4 mb-1.5 text-purple-300 border-l-3 border-purple-500 pl-2">{children}</h2>,
+                          h3: ({children}:any) => <h3 className="text-xs font-bold mt-2 mb-1 text-white/80">{children}</h3>,
+                          p: ({children}:any) => <p className="mb-2 text-white/70 text-xs leading-relaxed">{children}</p>,
+                          ul: ({children}:any) => <ul className="mb-2 ml-3 space-y-0.5 list-disc text-white/60 text-xs">{children}</ul>,
+                          li: ({children}:any) => <li className="leading-relaxed">{children}</li>,
+                          strong: ({children}:any) => <strong className="font-bold text-white">{children}</strong>,
+                          blockquote: ({children}:any) => <blockquote className="border-l-4 border-purple-500 pl-3 py-1 my-2 italic text-white/50 text-xs">{children}</blockquote>,
+                          code: ({children}:any) => <code className="bg-white/10 rounded px-1 py-0.5 text-[10px] font-mono text-purple-300">{children}</code>,
+                        }}>{wikiLesson}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Subjects grid */}
+              <div>
+                <h2 className="text-base font-extrabold mb-0.5" style={{color:currentTrackData.color}}>{currentTrackData.icon} {currentTrackData.label}</h2>
+                <p className="text-xs text-muted-foreground mb-4">{currentTrackData.desc}</p>
+                <div className="space-y-5">
+                  {currentTrackData.grades.map(grade => (
+                    <div key={grade.label}>
+                      <h3 className="text-sm font-bold mb-2.5 flex items-center gap-1.5">{grade.emoji} {grade.label}</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {grade.subjects.map(subject => (
+                          <button key={subject} onClick={() => { openSubject(subject, grade.label, currentTrackData.label); addXP(25, xp.lessonsCompleted === 0 ? "first_lesson" : undefined); updateXPField({lessonsCompleted: xp.lessonsCompleted + 1}); }}
+                            data-testid={`edu-subject-${subject.replace(/\s+/g,"-").toLowerCase()}`}
+                            className="p-3 rounded-xl border border-border/20 bg-white dark:bg-gray-900 text-left hover:shadow-md transition-all text-xs font-medium text-foreground/80 hover:text-foreground"
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = currentTrackData.color; e.currentTarget.style.boxShadow = `0 4px 12px ${currentTrackData.color}25`; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = ""; e.currentTarget.style.boxShadow = ""; }}>
+                            <div className="text-sm mb-1">{grade.emoji}</div>
+                            {subject}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl text-center text-white" style={{background:`linear-gradient(135deg,${currentTrackData.color},${currentTrackData.color}bb)`}}>
+                <div className="text-2xl mb-1">🎓</div>
+                <h3 className="font-extrabold mb-1">Can't find your subject?</h3>
+                <p className="text-sm text-white/80 mb-3">Use any of the tools above — AI Tutor, Flashcards, Quiz Generator — for any topic imaginable.</p>
+                <button onClick={() => setEduView("tutor")} className="px-4 py-2 bg-white text-foreground font-bold text-sm rounded-xl hover:shadow-lg transition-all">
+                  Open AI Tutor
+                </button>
+              </div>
             </div>
           </div>
-          {(wikiLoading || wikiLesson) && (
-            <div className="border-t border-white/10 px-5 py-5 bg-black/30">
-              {wikiLoading ? (
-                <div className="space-y-3 animate-pulse">
-                  <div className="h-6 bg-white/10 rounded-xl w-1/2" />
-                  {[1,2,3].map(i => <div key={i} className="h-3 bg-white/5 rounded w-full" />)}
-                  <div className="flex items-center gap-2 pt-2"><Sparkles size={14} className="text-purple-400 animate-spin" /><span className="text-white/40 text-xs">Professor AI is building your lesson from Wikipedia + AI…</span></div>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <BookMarked size={14} className="text-purple-400" />
-                      <span className="text-white/60 text-xs font-semibold">Auto-Lesson: {wikiTitle}</span>
-                    </div>
-                    <button onClick={() => { setWikiLesson(""); setWikiTopic(""); }} className="text-white/30 hover:text-white/60 text-xs transition-colors">× Clear</button>
-                  </div>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-                    h1: ({ children }) => <h1 className="text-xl font-extrabold mb-3 text-white">{children}</h1>,
-                    h2: ({ children }) => <h2 className="text-base font-bold mt-5 mb-2 text-purple-300 border-l-4 border-purple-500 pl-3">{children}</h2>,
-                    h3: ({ children }) => <h3 className="text-sm font-bold mt-3 mb-1 text-white/80">{children}</h3>,
-                    p: ({ children }) => <p className="mb-3 text-white/70 text-sm leading-relaxed">{children}</p>,
-                    ul: ({ children }) => <ul className="mb-3 ml-4 space-y-1 list-disc text-white/60 text-sm">{children}</ul>,
-                    ol: ({ children }) => <ol className="mb-3 ml-4 space-y-1 list-decimal text-white/60 text-sm">{children}</ol>,
-                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                    strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
-                    blockquote: ({ children }) => <blockquote className="border-l-4 border-purple-500 pl-4 py-2 my-3 italic text-white/50 bg-purple-900/20 rounded-r-lg text-sm">{children}</blockquote>,
-                    hr: () => <hr className="border-white/10 my-4" />,
-                    code: ({ children }) => <code className="bg-white/10 rounded px-1.5 py-0.5 text-xs font-mono text-purple-300">{children}</code>,
-                  }}>{wikiLesson}</ReactMarkdown>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
-        <div>
-          <h2 className="text-xl font-extrabold mb-1" style={{ color: currentTrack.color }}>{currentTrack.icon} {currentTrack.label}</h2>
-          <p className="text-sm text-muted-foreground mb-6">{currentTrack.desc}</p>
-        </div>
-        {currentTrack.grades.map(grade => (
-          <div key={grade.label} className="space-y-3">
-            <h3 className="text-base font-bold flex items-center gap-2">{grade.emoji} {grade.label}</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-              {grade.subjects.map(subject => (
-                <button key={subject} onClick={() => openSubject(subject, grade.label, currentTrack.label)}
-                  data-testid={`edu-subject-${subject.replace(/\s+/g, "-").toLowerCase()}`}
-                  className="group p-3.5 rounded-xl border border-border/20 bg-white dark:bg-gray-900 text-left hover:shadow-md hover:border-transparent transition-all text-sm font-medium text-foreground/80 hover:text-foreground"
-                  style={{ "--hover-color": currentTrack.color } as React.CSSProperties}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = currentTrack.color; e.currentTarget.style.boxShadow = `0 4px 16px ${currentTrack.color}25`; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = ""; e.currentTarget.style.boxShadow = ""; }}>
-                  <div className="text-base mb-1">{grade.emoji}</div>
-                  {subject}
+        {/* ═══════════════════ AI TUTOR VIEW ═══════════════════ */}
+        {eduView === "tutor" && (
+          <div className="flex flex-col h-full max-w-3xl mx-auto w-full px-4 py-4 gap-3">
+            {/* Persona selector */}
+            <div className="flex gap-1.5 flex-wrap">
+              {(Object.entries(TUTOR_PERSONAS) as [TutorPersonality, typeof TUTOR_PERSONAS[TutorPersonality]][]).map(([key, p]) => (
+                <button key={key} onClick={() => { setTutorPersonality(key); setTutorMessages([]); }}
+                  data-testid={`tutor-persona-${key}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${tutorPersonality === key ? "text-white border-transparent" : "text-muted-foreground border-border/30 hover:border-border"}`}
+                  style={tutorPersonality === key ? {backgroundColor:p.color} : {}}>
+                  {p.icon} {p.name}
+                  <span className="hidden sm:inline text-[9px] opacity-70">· {p.desc}</span>
                 </button>
               ))}
             </div>
-          </div>
-        ))}
 
-        {/* CTA */}
-        <div className="mt-10 p-6 rounded-2xl text-center text-white" style={{ background: `linear-gradient(135deg, ${currentTrack.color}, ${currentTrack.color}cc)` }}>
-          <div className="text-2xl mb-2">🎓</div>
-          <h3 className="text-lg font-extrabold mb-1">Can't find your subject?</h3>
-          <p className="text-sm text-white/80 mb-4">Ask My Ai GPT to teach you anything — from quantum mechanics to ancient philosophy!</p>
-          <Link href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-foreground font-bold text-sm rounded-xl hover:shadow-lg transition-all">
-            <MessageSquare size={15} /> Chat with AI Tutor
-          </Link>
-        </div>
+            {/* Subject context */}
+            <div className="flex gap-2">
+              <input value={tutorSubject} onChange={e => setTutorSubject(e.target.value)}
+                placeholder="Subject context (optional): e.g. Calculus, World War 2, Python…"
+                className="flex-1 px-3 py-2 rounded-xl border border-border/30 text-xs focus:outline-none bg-muted/10"
+                data-testid="tutor-subject-input"/>
+            </div>
+
+            {/* Chat area */}
+            <div className="flex-1 min-h-0 overflow-y-auto rounded-2xl border border-border/20 bg-muted/5 p-3 space-y-3" style={{maxHeight:"420px"}}>
+              {tutorMessages.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="text-3xl mb-2">{TUTOR_PERSONAS[tutorPersonality].icon}</div>
+                  <div className="font-bold text-sm" style={{color:TUTOR_PERSONAS[tutorPersonality].color}}>
+                    Professor {TUTOR_PERSONAS[tutorPersonality].name} is ready
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 max-w-xs">{TUTOR_PERSONAS[tutorPersonality].desc} — Ask anything about any subject!</div>
+                  <div className="flex flex-wrap gap-1.5 mt-4 justify-center">
+                    {["Explain quantum entanglement simply","What is the derivative of x²?","How does compound interest work?","Explain DNA replication"].map(q => (
+                      <button key={q} onClick={() => { setTutorInput(q); }} className="text-[10px] px-2 py-1 bg-muted rounded-full hover:bg-muted/70 transition-colors">{q}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tutorMessages.map((m, i) => (
+                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm ${m.role === "user" ? "bg-violet-600 text-white" : "bg-white dark:bg-gray-800 border border-border/20 text-foreground"}`}
+                    data-testid={`tutor-msg-${i}`}>
+                    {m.role === "assistant"
+                      ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={MdComponents}>{m.content}</ReactMarkdown>
+                      : m.content}
+                  </div>
+                </div>
+              ))}
+              {tutorLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white dark:bg-gray-800 border border-border/20 rounded-2xl px-4 py-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Sparkles size={12} className="animate-spin" style={{color:TUTOR_PERSONAS[tutorPersonality].color}}/> Professor is thinking…
+                  </div>
+                </div>
+              )}
+              <div ref={tutorEndRef}/>
+            </div>
+
+            {/* Input */}
+            <div className="flex gap-2">
+              <input value={tutorInput} onChange={e => setTutorInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendTutorMessage()}
+                placeholder={`Ask ${TUTOR_PERSONAS[tutorPersonality].name} professor anything…`}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10"
+                data-testid="tutor-chat-input"/>
+              <button onClick={sendTutorMessage} disabled={tutorLoading || !tutorInput.trim()}
+                className="px-4 py-2.5 text-white rounded-xl font-bold text-sm disabled:opacity-40 flex items-center gap-1.5 transition-all"
+                style={{backgroundColor:TUTOR_PERSONAS[tutorPersonality].color}}
+                data-testid="tutor-send-btn">
+                <Send size={14}/>
+              </button>
+            </div>
+            <div className="text-[10px] text-muted-foreground/50 text-center">+10 XP per message · Confusion detected → auto-analogies activated</div>
+          </div>
+        )}
+
+        {/* ═══════════════════ QUIZ VIEW ═══════════════════ */}
+        {eduView === "quiz" && (
+          <div className="max-w-2xl mx-auto px-4 py-5">
+            {quizQuestions.length === 0 ? (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">✅</div>
+                  <h2 className="text-xl font-extrabold mb-1">AI Quiz Generator</h2>
+                  <p className="text-sm text-muted-foreground">Enter any topic and get 8 adaptive questions with explanations and confidence tracking.</p>
+                </div>
+                <div className="flex gap-2">
+                  <input value={quizTopic} onChange={e => setQuizTopic(e.target.value)} onKeyDown={e => e.key === "Enter" && generateQuiz()}
+                    placeholder="e.g. Photosynthesis, World War 2, Linear Algebra, Python basics…"
+                    className="flex-1 px-4 py-3 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10"
+                    data-testid="quiz-topic-input"/>
+                  <button onClick={generateQuiz} disabled={quizLoading || !quizTopic.trim()}
+                    className="px-5 py-3 bg-amber-500 hover:bg-amber-400 text-white font-bold rounded-xl text-sm disabled:opacity-40 flex items-center gap-1.5 transition-all"
+                    data-testid="quiz-generate-btn">
+                    {quizLoading ? <><Sparkles size={14} className="animate-spin"/> Generating…</> : <>Generate Quiz</>}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Photosynthesis","French Revolution","Algebra","Python","US Constitution","Chemistry","Shakespeare","Economics"].map(t => (
+                    <button key={t} onClick={() => { setQuizTopic(t); generateQuiz(); }}
+                      className="text-xs px-3 py-1.5 bg-muted rounded-full hover:bg-muted/70 transition-colors"
+                      data-testid={`quiz-suggestion-${t.toLowerCase()}`}>{t}</button>
+                  ))}
+                </div>
+              </div>
+            ) : quizDone ? (
+              <div className="text-center space-y-4">
+                <div className="text-5xl">🏆</div>
+                <h2 className="text-2xl font-extrabold">Quiz Complete!</h2>
+                {(() => {
+                  const score = quizResults.filter(r => r.correct).length;
+                  const pct = Math.round((score / quizResults.length) * 100);
+                  return (
+                    <div>
+                      <div className="text-4xl font-black" style={{color: pct >= 70 ? "#10b981" : "#ef4444"}}>{pct}%</div>
+                      <div className="text-muted-foreground text-sm">{score} / {quizResults.length} correct</div>
+                      <div className="text-xs text-amber-500 mt-1">+{pct >= 70 ? 100 : 30} XP earned!</div>
+                    </div>
+                  );
+                })()}
+                <div className="space-y-2 text-left">
+                  {quizResults.map((r, i) => (
+                    <div key={i} className={`p-3 rounded-xl border text-xs ${r.correct ? "border-green-500/30 bg-green-50 dark:bg-green-950/20" : "border-red-500/30 bg-red-50 dark:bg-red-950/20"}`}
+                      data-testid={`quiz-result-${i}`}>
+                      <div className="flex items-center gap-2 font-semibold mb-1">
+                        {r.correct ? "✅" : "❌"} Q{i+1}
+                        <span className="text-muted-foreground">Confidence: {r.conf}/5</span>
+                      </div>
+                      {!r.correct && <div className="text-muted-foreground mb-1">Correct answer: <strong>{r.answer}</strong></div>}
+                      <div className="text-muted-foreground/80">{r.explanation}</div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => { setQuizQuestions([]); setQuizDone(false); setQuizResults([]); }} className="px-6 py-2.5 bg-amber-500 text-white font-bold rounded-xl text-sm" data-testid="quiz-retry-btn">
+                  Try Another Quiz
+                </button>
+              </div>
+            ) : (
+              (() => {
+                const q = quizQuestions[quizIndex];
+                if (!q) return null;
+                const displayOptions = q.options.length > 0 ? q.options : ["True", "False"];
+                return (
+                  <div className="space-y-4" data-testid="quiz-question-area">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Question {quizIndex + 1} / {quizQuestions.length}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 capitalize">{q.type}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-400 rounded-full transition-all" style={{width:`${((quizIndex)/quizQuestions.length)*100}%`}}/>
+                    </div>
+                    <div className="text-base font-bold leading-relaxed" data-testid="quiz-question-text">{q.question}</div>
+                    {q.type === "fillin" ? (
+                      <div>
+                        <input value={quizSelected || ""} onChange={e => setQuizSelected(e.target.value)} disabled={quizSubmitted}
+                          placeholder="Type your answer here…" className="w-full px-4 py-3 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10"
+                          data-testid="quiz-fillin-input"/>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {displayOptions.map((opt, oi) => {
+                          let style = "border-border/30 bg-white dark:bg-gray-900 hover:border-amber-400";
+                          if (quizSubmitted) {
+                            if (opt === q.answer) style = "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300";
+                            else if (opt === quizSelected) style = "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300";
+                          } else if (opt === quizSelected) style = "border-amber-400 bg-amber-50 dark:bg-amber-950/30";
+                          return (
+                            <button key={oi} onClick={() => !quizSubmitted && setQuizSelected(opt)}
+                              data-testid={`quiz-option-${oi}`}
+                              className={`w-full p-3 rounded-xl border-2 text-sm font-medium text-left transition-all ${style}`}>
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {quizSubmitted && (
+                      <div className={`p-3 rounded-xl text-xs leading-relaxed ${quizSelected?.trim().toLowerCase() === q.answer.trim().toLowerCase() ? "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300" : "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300"}`}
+                        data-testid="quiz-explanation">
+                        {quizSelected?.trim().toLowerCase() === q.answer.trim().toLowerCase() ? "✅ Correct! " : `❌ The answer is: ${q.answer}. `}{q.explanation}
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Confidence:</span>
+                        {[1,2,3,4,5].map(n => (
+                          <button key={n} onClick={() => setQuizConfidence(n)} disabled={quizSubmitted}
+                            className={`w-6 h-6 rounded-full text-[10px] font-bold transition-all ${quizConfidence >= n ? "bg-amber-400 text-white" : "bg-muted text-muted-foreground"}`}
+                            data-testid={`quiz-conf-${n}`}>{n}</button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        {!quizSubmitted ? (
+                          <button onClick={submitQuizAnswer} disabled={!quizSelected}
+                            className="flex-1 py-2.5 bg-amber-500 text-white font-bold rounded-xl text-sm disabled:opacity-40"
+                            data-testid="quiz-submit-btn">Submit Answer</button>
+                        ) : (
+                          <button onClick={nextQuizQuestion} className="flex-1 py-2.5 bg-violet-600 text-white font-bold rounded-xl text-sm" data-testid="quiz-next-btn">
+                            {quizIndex + 1 >= quizQuestions.length ? "See Results 🏆" : "Next Question →"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════ FLASHCARDS VIEW ═══════════════════ */}
+        {eduView === "flashcards" && (
+          <div className="max-w-xl mx-auto px-4 py-5 space-y-4">
+            {!activeDeck ? (
+              <>
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🃏</div>
+                  <h2 className="text-xl font-extrabold mb-1">AI Flashcard Generator</h2>
+                  <p className="text-sm text-muted-foreground">Generate 15 smart flashcards with spaced repetition for any topic.</p>
+                </div>
+                <div className="flex gap-2">
+                  <input value={flashTopic} onChange={e => setFlashTopic(e.target.value)} onKeyDown={e => e.key === "Enter" && generateFlashcards()}
+                    placeholder="e.g. French Vocabulary, Calculus formulas, The Civil War…"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10"
+                    data-testid="flash-topic-input"/>
+                  <button onClick={generateFlashcards} disabled={flashLoading || !flashTopic.trim()}
+                    className="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white font-bold rounded-xl text-sm disabled:opacity-40 flex items-center gap-1.5"
+                    data-testid="flash-generate-btn">
+                    {flashLoading ? <><Sparkles size={12} className="animate-spin"/> Building…</> : <>Generate</>}
+                  </button>
+                </div>
+                {flashDecks.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-muted-foreground">Your Decks ({flashDecks.length})</div>
+                    {flashDecks.map(d => (
+                      <button key={d.id} onClick={() => { setActiveDeck(d); setFlashIndex(0); setFlipped(false); }}
+                        data-testid={`flash-deck-${d.id}`}
+                        className="w-full p-3 rounded-xl border border-border/20 bg-white dark:bg-gray-900 text-left hover:border-cyan-400 transition-all">
+                        <div className="font-semibold text-sm">🃏 {d.topic}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{d.cards.length} cards · {new Date(d.createdAt).toLocaleDateString()}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <button onClick={() => setActiveDeck(null)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    <ChevronLeft size={13}/> All Decks
+                  </button>
+                  <span className="text-xs text-muted-foreground">{flashIndex + 1} / {activeDeck.cards.length}</span>
+                </div>
+                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-cyan-400 rounded-full" style={{width:`${((flashIndex+1)/activeDeck.cards.length)*100}%`}}/>
+                </div>
+                {/* Flashcard */}
+                <div onClick={() => setFlipped(!flipped)}
+                  data-testid="flash-card"
+                  className="relative w-full rounded-2xl border-2 border-cyan-400/30 bg-gradient-to-br from-cyan-950 to-indigo-950 text-white cursor-pointer transition-all hover:shadow-xl hover:shadow-cyan-500/10 select-none"
+                  style={{minHeight:"220px"}}>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                    <div className="text-[10px] uppercase tracking-wider text-cyan-400/70 mb-3">{flipped ? "Answer" : "Question — tap to flip"}</div>
+                    <div className="text-base font-bold leading-relaxed">{flipped ? activeDeck.cards[flashIndex].back : activeDeck.cards[flashIndex].front}</div>
+                  </div>
+                  <div className="absolute bottom-3 right-3 text-[10px] text-white/20">🔄 tap to flip</div>
+                </div>
+                {flipped && (
+                  <div className="flex gap-2" data-testid="flash-rating-area">
+                    <button onClick={() => { rateFlashcard("again"); setFlipped(false); }} className="flex-1 py-2 rounded-xl bg-red-500 text-white text-xs font-bold" data-testid="flash-again-btn">Again 🔴</button>
+                    <button onClick={() => { rateFlashcard("hard"); setFlipped(false); }} className="flex-1 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold" data-testid="flash-hard-btn">Hard 🟡</button>
+                    <button onClick={() => { rateFlashcard("easy"); setFlipped(false); }} className="flex-1 py-2 rounded-xl bg-green-500 text-white text-xs font-bold" data-testid="flash-easy-btn">Easy 🟢</button>
+                  </div>
+                )}
+                {!flipped && (
+                  <button onClick={() => setFlipped(true)} className="w-full py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-bold" data-testid="flash-reveal-btn">Reveal Answer</button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════ ESSAY GRADER VIEW ═══════════════════ */}
+        {eduView === "essay" && (
+          <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+            <div className="text-center">
+              <div className="text-4xl mb-2">✍️</div>
+              <h2 className="text-xl font-extrabold mb-1">AI Essay Grader</h2>
+              <p className="text-sm text-muted-foreground">Paste your essay. Get a score, inline feedback, paragraph analysis, and your best/worst sentences.</p>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground block mb-1">Grading Rubric</label>
+              <input value={essayRubric} onChange={e => setEssayRubric(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-border/30 text-xs focus:outline-none bg-muted/10"
+                data-testid="essay-rubric-input"/>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground block mb-1">Your Essay</label>
+              <textarea value={essayText} onChange={e => setEssayText(e.target.value)} rows={10}
+                placeholder="Paste your essay here…"
+                className="w-full px-4 py-3 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10 resize-none"
+                data-testid="essay-text-input"/>
+            </div>
+            <button onClick={gradeEssay} disabled={essayLoading || essayText.trim().length < 50}
+              className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+              data-testid="essay-grade-btn">
+              {essayLoading ? <><Sparkles size={14} className="animate-spin"/> Grading…</> : <>Grade My Essay 🎓</>}
+            </button>
+            {essayResult && (
+              <div className="space-y-3" data-testid="essay-result">
+                <div className="flex items-center gap-4 p-4 rounded-2xl border border-border/20 bg-white dark:bg-gray-900">
+                  <div className="text-center">
+                    <div className="text-4xl font-black" style={{color: essayResult.score >= 80 ? "#10b981" : essayResult.score >= 60 ? "#f59e0b" : "#ef4444"}} data-testid="essay-score">
+                      {essayResult.score}
+                    </div>
+                    <div className="text-xs text-muted-foreground">/ 100</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs font-bold mb-1">Overall Score</div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{width:`${essayResult.score}%`, backgroundColor: essayResult.score >= 80 ? "#10b981" : essayResult.score >= 60 ? "#f59e0b" : "#ef4444"}}/>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl border border-border/20 bg-muted/5 text-sm leading-relaxed">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={MdComponents}>{essayResult.feedback}</ReactMarkdown>
+                </div>
+                <button onClick={() => { setEssayText(""); setEssayResult(null); }}
+                  className="text-xs text-muted-foreground hover:text-foreground">× Clear and grade another essay</button>
+              </div>
+            )}
+            {essayHistory.length > 0 && !essayResult && (
+              <div>
+                <div className="text-xs font-bold text-muted-foreground mb-2">Previous Essays ({essayHistory.length})</div>
+                <div className="space-y-1.5">
+                  {essayHistory.slice(0,5).map(e => (
+                    <div key={e.id} className="flex items-center gap-3 p-2.5 rounded-xl border border-border/15 bg-muted/5 text-xs" data-testid={`essay-history-${e.id}`}>
+                      <div className="font-black text-base" style={{color: e.score >= 80 ? "#10b981" : e.score >= 60 ? "#f59e0b" : "#ef4444"}}>{e.score}</div>
+                      <div className="flex-1 text-muted-foreground truncate">{e.text.slice(0,60)}…</div>
+                      <div className="text-muted-foreground/50">{new Date(e.createdAt).toLocaleDateString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════ LEARNING PATHS VIEW ═══════════════════ */}
+        {eduView === "paths" && (
+          <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+            <div className="text-center">
+              <div className="text-4xl mb-2">🗺️</div>
+              <h2 className="text-xl font-extrabold mb-1">AI Learning Path Generator</h2>
+              <p className="text-sm text-muted-foreground">Tell us your goal and how much time you have — get a personalized 8-week curriculum.</p>
+            </div>
+            <div className="space-y-3">
+              <input value={pathGoal} onChange={e => setPathGoal(e.target.value)}
+                placeholder="e.g. Become a web developer, Learn Spanish, Understand machine learning…"
+                className="w-full px-4 py-3 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10"
+                data-testid="path-goal-input"/>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Daily time:</span>
+                {["15","30","60","90"].map(t => (
+                  <button key={t} onClick={() => setPathTime(t)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${pathTime === t ? "bg-pink-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                    data-testid={`path-time-${t}`}>{t} min</button>
+                ))}
+              </div>
+              <button onClick={generatePath} disabled={pathLoading || !pathGoal.trim()}
+                className="w-full py-3 bg-pink-500 hover:bg-pink-400 text-white font-bold rounded-xl text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+                data-testid="path-generate-btn">
+                {pathLoading ? <><Sparkles size={14} className="animate-spin"/> Building your path…</> : <>Generate My Learning Path 🗺️</>}
+              </button>
+            </div>
+            {learningPath && (
+              <div className="space-y-3" data-testid="learning-path-result">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-950 to-rose-950 text-white">
+                  <div className="text-sm font-bold mb-0.5">🎯 Goal: {learningPath.goal}</div>
+                  <div className="text-xs text-white/60">{learningPath.timePerDay}/day · {learningPath.totalWeeks} weeks</div>
+                </div>
+                <div className="space-y-2">
+                  {(learningPath.steps || []).map((step, i) => (
+                    <div key={i} className="p-3 rounded-xl border border-border/20 bg-white dark:bg-gray-900" data-testid={`path-week-${step.week}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-pink-500 text-white text-[10px] font-black flex items-center justify-center">W{step.week}</div>
+                        <div className="font-bold text-sm">{step.title}</div>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {step.topics.map((t: string) => (
+                          <span key={t} className="text-[10px] px-2 py-0.5 bg-pink-100 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 rounded-full">{t}</span>
+                        ))}
+                      </div>
+                      <div className="text-xs text-muted-foreground">🎯 {step.goal}</div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => setLearningPath(null)} className="text-xs text-muted-foreground hover:text-foreground">× Generate a new path</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════ MIND MAP VIEW ═══════════════════ */}
+        {eduView === "mindmap" && (
+          <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+            <div className="text-center">
+              <div className="text-4xl mb-2">🧠</div>
+              <h2 className="text-xl font-extrabold mb-1">AI Mind Map Generator</h2>
+              <p className="text-sm text-muted-foreground">Enter a concept and get an interactive mind map with 6–8 core branches. Click any node to drill deeper.</p>
+            </div>
+            <div className="flex gap-2">
+              <input value={mmTopic} onChange={e => setMmTopic(e.target.value)} onKeyDown={e => e.key === "Enter" && generateMindMap(mmTopic)}
+                placeholder="e.g. Photosynthesis, Ancient Rome, Machine Learning, Jazz…"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10"
+                data-testid="mindmap-topic-input"/>
+              <button onClick={() => generateMindMap(mmTopic)} disabled={mmLoading || !mmTopic.trim()}
+                className="px-4 py-2.5 bg-teal-500 hover:bg-teal-400 text-white font-bold rounded-xl text-sm disabled:opacity-40 flex items-center gap-1.5"
+                data-testid="mindmap-generate-btn">
+                {mmLoading ? <><Sparkles size={12} className="animate-spin"/> Mapping…</> : <>Map It</>}
+              </button>
+            </div>
+            {mmData && (
+              <div className="space-y-3" data-testid="mindmap-result">
+                {/* Central node */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="px-5 py-3 rounded-2xl text-white font-black text-base text-center shadow-lg" style={{background:"linear-gradient(135deg,#14b8a6,#0891b2)"}}>
+                    {mmData.emoji} {mmData.label}
+                  </div>
+                  {/* Branches */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full">
+                    {mmData.children.map((child: {label:string;emoji:string}, i: number) => (
+                      <button key={i} onClick={() => { setMmSelected(child.label); generateMindMap(child.label); }}
+                        data-testid={`mindmap-node-${i}`}
+                        className={`p-3 rounded-xl border-2 text-sm font-semibold transition-all text-left hover:shadow-md ${mmSelected === child.label ? "border-teal-400 bg-teal-50 dark:bg-teal-950/30" : "border-border/30 bg-white dark:bg-gray-900 hover:border-teal-400"}`}>
+                        <div className="text-lg mb-0.5">{child.emoji}</div>
+                        <div>{child.label}</div>
+                        <div className="text-[9px] text-teal-500 mt-0.5">click to explore →</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => { setMmData(null); setMmSelected(null); }} className="text-xs text-muted-foreground hover:text-foreground">× New mind map</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════ DEBATE CLUB VIEW ═══════════════════ */}
+        {eduView === "debate" && (
+          <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+            {debatePhase === "setup" && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🎤</div>
+                  <h2 className="text-xl font-extrabold mb-1">Debate Club</h2>
+                  <p className="text-sm text-muted-foreground">Argue a position against our AI opponent. Get judged by a 3-judge panel on logic, evidence, and rhetoric.</p>
+                </div>
+                <input value={debateTopic} onChange={e => setDebateTopic(e.target.value)}
+                  placeholder="e.g. Social media does more harm than good · AI will replace most jobs · College is worth the cost"
+                  className="w-full px-4 py-3 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10"
+                  data-testid="debate-topic-input"/>
+                <div className="flex flex-wrap gap-1.5">
+                  {["AI will replace most jobs","Social media harms democracy","College is worth the debt","Space exploration is worth the cost"].map(t => (
+                    <button key={t} onClick={() => setDebateTopic(t)} className="text-xs px-3 py-1.5 bg-muted rounded-full hover:bg-muted/70 transition-colors" data-testid={`debate-suggestion-${t.slice(0,10)}`}>{t}</button>
+                  ))}
+                </div>
+                <button onClick={startDebatePrepRoom} disabled={debateLoading || !debateTopic.trim()}
+                  className="w-full py-3 bg-orange-500 hover:bg-orange-400 text-white font-bold rounded-xl text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+                  data-testid="debate-start-btn">
+                  {debateLoading ? <><Sparkles size={14} className="animate-spin"/> Preparing…</> : <>Enter Prep Room 📜</>}
+                </button>
+              </div>
+            )}
+
+            {debatePhase === "prep" && debatePrep && (
+              <div className="space-y-3" data-testid="debate-prep-room">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-950 to-red-950 text-white">
+                  <div className="text-xs text-orange-300 mb-1">You are arguing FOR:</div>
+                  <div className="font-bold">{debateTopic}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl border border-green-500/30 bg-green-50 dark:bg-green-950/20">
+                    <div className="text-xs font-bold text-green-700 dark:text-green-300 mb-2">✅ Your Key Facts</div>
+                    <div className="space-y-1.5">
+                      {debatePrep.facts.map((f, i) => <div key={i} className="text-xs text-foreground/80 leading-relaxed">{i+1}. {f}</div>)}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl border border-red-500/30 bg-red-50 dark:bg-red-950/20">
+                    <div className="text-xs font-bold text-red-700 dark:text-red-300 mb-2">⚠️ Expect These Counter-Args</div>
+                    <div className="space-y-1.5">
+                      {debatePrep.counterargs.map((c, i) => <div key={i} className="text-xs text-foreground/80 leading-relaxed">{i+1}. {c}</div>)}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => { setDebatePhase("debate"); setDebateMessages([]); }}
+                  className="w-full py-3 bg-orange-500 text-white font-bold rounded-xl text-sm"
+                  data-testid="debate-begin-btn">Begin Debate →</button>
+              </div>
+            )}
+
+            {debatePhase === "debate" && (
+              <div className="space-y-3" data-testid="debate-arena">
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-sm">🎤 {debateTopic}</div>
+                  <div className="text-xs text-muted-foreground">{debateMessages.filter(m => m.role === "user").length} exchanges</div>
+                </div>
+                <div className="space-y-3 max-h-80 overflow-y-auto p-3 bg-muted/5 rounded-2xl border border-border/20">
+                  {debateMessages.length === 0 && <p className="text-xs text-muted-foreground/50 text-center py-4">Make your opening argument for: "{debateTopic}"</p>}
+                  {debateMessages.map((m, i) => (
+                    <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`} data-testid={`debate-msg-${i}`}>
+                      <div className={`max-w-[80%] rounded-2xl p-3 text-xs ${m.role === "user" ? "bg-orange-500 text-white" : "bg-white dark:bg-gray-800 border border-border/20"}`}>
+                        {m.label && <div className="font-bold mb-1 opacity-70">{m.label}</div>}
+                        <div className="leading-relaxed">{m.content}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {debateLoading && <div className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles size={10} className="animate-spin"/> AI is forming a counter-argument…</div>}
+                </div>
+                <div className="flex gap-2">
+                  <textarea value={debateInput} onChange={e => setDebateInput(e.target.value)} rows={2}
+                    placeholder="Make your argument here… be specific, use evidence!"
+                    className="flex-1 px-3 py-2 rounded-xl border border-border/30 text-sm focus:outline-none bg-muted/10 resize-none"
+                    data-testid="debate-input"/>
+                  <div className="flex flex-col gap-1.5">
+                    <button onClick={sendDebateMessage} disabled={debateLoading || !debateInput.trim()}
+                      className="px-3 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold disabled:opacity-40"
+                      data-testid="debate-send-btn"><Send size={12}/></button>
+                    <button onClick={judgeDebate} disabled={debateLoading || debateMessages.length < 2}
+                      className="px-2 py-2 bg-violet-600 text-white rounded-xl text-[10px] font-bold disabled:opacity-40"
+                      data-testid="debate-judge-btn">Judge</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {debatePhase === "judging" && (
+              <div className="text-center py-10">
+                <Sparkles size={32} className="animate-spin mx-auto text-violet-500 mb-3"/>
+                <div className="font-bold">Panel of 3 judges is deliberating…</div>
+                <div className="text-sm text-muted-foreground mt-1">Analyzing logic, evidence, and rhetoric</div>
+              </div>
+            )}
+
+            {debatePhase === "result" && debateJudgment && (
+              <div className="space-y-3" data-testid="debate-verdict">
+                <div className="text-center">
+                  <div className="text-3xl mb-2">⚖️</div>
+                  <h3 className="font-extrabold text-lg">Debate Verdict</h3>
+                </div>
+                <div className="p-4 rounded-2xl border border-border/20 bg-white dark:bg-gray-900">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={MdComponents}>{debateJudgment}</ReactMarkdown>
+                </div>
+                <button onClick={() => { setDebatePhase("setup"); setDebateTopic(""); setDebateMessages([]); setDebatePrep(null); setDebateJudgment(""); }}
+                  className="w-full py-2.5 bg-orange-500 text-white font-bold rounded-xl text-sm"
+                  data-testid="debate-new-btn">New Debate</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════ TROPHY ROOM VIEW ═══════════════════ */}
+        {eduView === "trophy" && (
+          <div className="max-w-2xl mx-auto px-4 py-5 space-y-5" data-testid="trophy-room">
+            {/* Level card */}
+            <div className="p-5 rounded-2xl text-white text-center" style={{background:`linear-gradient(135deg,${currentLevel.color}dd,${currentLevel.color}99)`}}>
+              <div className="text-4xl mb-2">{currentLevel.icon}</div>
+              <div className="text-xl font-extrabold">{currentLevel.name}</div>
+              <div className="text-white/70 text-sm mt-1">{xp.total.toLocaleString()} Total XP</div>
+              {nextLevel && (
+                <div className="mt-3">
+                  <div className="text-[11px] text-white/60 mb-1">{nextLevel.min - xp.total} XP to {nextLevel.name} {nextLevel.icon}</div>
+                  <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-white/70 rounded-full transition-all" style={{width:`${xpProgress}%`}}/>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                {label:"Lessons",value:xp.lessonsCompleted,icon:"📚"},
+                {label:"Quizzes",value:xp.quizzesCompleted,icon:"✅"},
+                {label:"Debates Won",value:xp.debatesWon,icon:"🎤"},
+                {label:"Flashcards",value:xp.flashcardsReviewed,icon:"🃏"},
+                {label:"Essays",value:xp.essaysGraded,icon:"✍️"},
+                {label:"Streak",value:`${xp.streakDays}d`,icon:"🔥"},
+              ].map(s => (
+                <div key={s.label} className="p-3 rounded-xl border border-border/20 bg-white dark:bg-gray-900 text-center" data-testid={`trophy-stat-${s.label.toLowerCase()}`}>
+                  <div className="text-xl mb-0.5">{s.icon}</div>
+                  <div className="font-black text-lg">{s.value}</div>
+                  <div className="text-[10px] text-muted-foreground">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Badges */}
+            <div>
+              <h3 className="font-bold text-sm mb-3">Badges ({xp.badges.length} / {EDU_BADGES.length})</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {EDU_BADGES.map(b => {
+                  const earned = xp.badges.includes(b.id);
+                  return (
+                    <div key={b.id} data-testid={`badge-${b.id}`}
+                      className={`p-3 rounded-xl border transition-all ${earned ? "border-yellow-400/50 bg-yellow-50 dark:bg-yellow-950/20" : "border-border/20 bg-muted/20 opacity-50"}`}>
+                      <div className="text-2xl mb-1">{b.icon}</div>
+                      <div className="font-bold text-xs">{b.name}</div>
+                      <div className="text-[9px] text-muted-foreground">{b.desc}</div>
+                      <div className="text-[9px] text-amber-500 mt-0.5 font-semibold">+{b.xp} XP</div>
+                      <div className="text-[9px]" style={{color: b.rarity === "Legendary" ? "#f59e0b" : b.rarity === "Epic" ? "#8b5cf6" : b.rarity === "Rare" ? "#06b6d4" : "#6b7280"}}>{b.rarity}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Reset */}
+            <div className="pt-2 border-t border-border/10">
+              <button onClick={() => { const reset = {...DEFAULT_XP}; setXp(reset); localStorage.setItem("myaigpt_edu_xp", JSON.stringify(reset)); }}
+                className="text-xs text-muted-foreground/50 hover:text-red-500 transition-colors">
+                Reset XP progress
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
