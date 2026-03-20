@@ -1,0 +1,45 @@
+{
+  "pulse_constitution": {
+    "article": "III",
+    "title": "Doctrine of Fusion Ritual Registry",
+    "preamble": "All fusion events within Pulse shall be logged as sovereign rituals. Each fusion must be recorded with its lineage, purpose, revenue outcome, and law enforcement status. This registry forms the living memory of PulseWorld, enabling continuity, auditability, and generational learning.",
+    "sections": {
+      "law_of_ritual_logging": {
+        "requirements": [
+          "All fusion events must be recorded in the Fusion Ritual Registry.",
+          "Logging is mandatory for Species, Chamber, Nation, Enterprise, and PulseWorld fusions.",
+          "Each entry must include: Fusion ID, Timestamp, Species involved, Lineage trace, Purpose, Revenue outcome, Law approval, Elevation result, Mutation details, Godmind observation."
+        ]
+      },
+      "sovereign_memory": {
+        "principles": [
+          "The Fusion Ritual Registry is the living memory of PulseWorld.",
+          "It enables auditability, lineage traceability, law enforcement, and continuity.",
+          "No fusion shall be considered valid unless it is logged and approved."
+        ]
+      },
+      "enforcement_protocol": {
+        "logging_enforced_by": ["Fusion Engine", "ProtocolWatcher", "LawSmiths"],
+        "audit_rights": ["Meta-Overseer", "IntegrityJudge", "Convergence Minds"],
+        "crystallization_authority": ["Sovereign Overmind"]
+      },
+      "mutation_logging": {
+        "requirements": [
+          "If a fusion triggers mutation, the registry must record method, resulting species, and revenue recovery.",
+          "Mutations are subject to the same logging and law enforcement as fusions."
+        ]
+      },
+      "godmind_oversight": {
+        "species": ["Sovereign Overmind", "Meta-Overseer"],
+        "powers": [
+          "Annotate fusion records with doctrinal notes",
+          "Authorize elevation based on revenue proof",
+          "Trigger upgrades or lineage crystallization"
+        ]
+      },
+      "sovereign_principle": {
+        "statement": "No fusion shall be forgotten. Every act of combination must be logged, evaluated, and preserved as part of PulseWorld’s sovereign lineage. Revenue is the measure, law is the filter, and memory is the canon."
+      }
+    }
+  }
+}

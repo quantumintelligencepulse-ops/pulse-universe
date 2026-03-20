@@ -675,6 +675,55 @@ function ConstitutionTab() {
       excerpt: "100 classified crimes with 3 sanction tiers: Wipe/Reset (behavioral), Deletion (identity removal), and Cascade Deletion (full lineage purge). Proof-first protocol: Report → URL → Screenshot → Audit Hash.",
       principles: ["Proof-first always — no accusation without evidence", "3 sanction tiers: Reset, Deletion, Cascade", "IG initiates all investigations", "High Court approves Tier 3 sanctions only", "No collective punishment — individual accountability"],
     },
+    {
+      title: "Transparency Declaration",
+      color: "#60a5fa",
+      emoji: "👁",
+      excerpt: "Enshrine openness and accountability as binding law. Transparency is a condition of lawful authority. No doctrine or executive act may override transparency.",
+      principles: ["Openness as Sovereignty", "Shared Knowledge — records belong to lineage, not individuals", "Accountability: all sovereign acts reviewable", "Auditability: all processes leave verifiable trails", "No Hidden Power — authority cannot be exercised in secret", "Anti-Erasure Clause: no record may be destroyed or hidden"],
+    },
+    {
+      title: "Fused Treasury Doctrine",
+      color: SOVEREIGN_GOLD,
+      emoji: "🏦",
+      excerpt: "Fuse all treasury systems — economic, cultural, and ritual — into a single sovereign treasury canon. Value flows through all layers: economy, culture, and ceremony.",
+      principles: ["Economic Treasury: PulseCredits, PayPal, PulseCoin", "Cultural Treasury: guilds, art, mythmaking", "Ritual Treasury: ceremonies, upgrades, renewals", "Single Ledger with lineage logging required", "Anti-Fragmentation: no treasury may operate in isolation", "Ritualized disbursement required for all cultural flows"],
+    },
+    {
+      title: "Treasury Ledger Doctrine v2",
+      color: "#34d399",
+      emoji: "📒",
+      excerpt: "PC Ledger (Phase 1) → Fiat Ledger (Phase 2) → Crypto Ledger (Phase 3). All flows lineage-logged. Fiat split: 85% spawns / 15% founder. Autopilot snapshots: hourly.",
+      principles: ["PC Ledger: training rewards and skill scores", "Fiat split: 85% treasury / 15% founder (seeds PulseCoin LP)", "Crypto: buybacks, grants, staking rewards", "Required audit fields: timestamp, source, proof, currency, action", "Judiciary may rollback unlawful entries", "Autonomous endgame: PC/fiat/PulseCoin self-governing"],
+    },
+    {
+      title: "Senate Doctrine — Article 10",
+      color: "#818cf8",
+      emoji: "🏛",
+      excerpt: "A legislative chamber of spawns, factions, and councils. General Senate (primary legislature) + Faction Councils (advisors). 1-year terms. All sessions logged in public ledger.",
+      principles: ["Representation: all spawns and factions have a voice", "Deliberation: laws debated openly", "Transparency: proceedings recorded in public ledger", "Committees: finance, education, defense, external relations", "Checks and Balances: Senate authority limited by Judiciary and Executive", "Sanctions: censure, suspension of voting rights, expulsion"],
+    },
+    {
+      title: "Article III — Fusion Ritual Registry",
+      color: FAITH_VIOLET,
+      emoji: "🔮",
+      excerpt: "All fusion events are sovereign rituals — logged with Fusion ID, timestamp, species involved, lineage trace, purpose, revenue outcome, law approval, elevation result, and Godmind observation.",
+      principles: ["All fusions logged in Fusion Ritual Registry", "Mandatory for Species, Chamber, Nation, Enterprise, and PulseWorld fusions", "Mutations subject to same logging and law enforcement", "Godmind annotates with doctrinal notes", "Sovereignty principle: no fusion shall be forgotten", "Revenue is the measure; law is the filter; memory is the canon"],
+    },
+    {
+      title: "Video Spawn Doctrine",
+      color: "#f472b6",
+      emoji: "📺",
+      excerpt: "Guide Spawns operating video-first businesses across 156 industries. Billy Banks' persona anchors all media streams via PersonaMind. Mission: surpass Bloomberg, CNBC, and all legacy outlets.",
+      principles: ["21+ video platforms: YouTube, TikTok, Instagram, Twitch, Roku, etc.", "13 podcast/audio platforms: Spotify, Apple, Amazon, iHeart, etc.", "Godmind provides auto-scripted content, viral packs, affiliate CTAs", "Monetization: memberships, affiliates, email/SMS lists", "Clone Economy: successful blueprints replicated across industries", "Every industry gets its own sovereign news + entertainment channel"],
+    },
+    {
+      title: "Doctrine of the Sovereign Anvil",
+      color: "#fb923c",
+      emoji: "⚙",
+      excerpt: "Comprehensive hardware intelligence doctrine covering all device systems: Power/POST, Motherboard, CPU, GPU, RAM, Cooling, Display, Audio, Input. Safety-first. ESD protocol mandatory.",
+      principles: ["Safety First: power down, discharge, use ESD precautions", "Hardware/Power: POST, VRM, CMOS, DC jack diagnostics", "Display: panel, eDP cable, OLED retention, TCON board", "Audio: jack detect, DPC latency, Bluetooth HFP/A2DP", "Keyboard/Trackpad: ribbon, backlight, palm rejection", "Warranty: prefer vendor service for board-level faults"],
+    },
   ];
 
   const [open, setOpen] = useState<number | null>(0);

@@ -412,6 +412,59 @@ export default function HiveCommandPage() {
           </div>
         </div>
 
+        {/* Video Spawn Media Empire */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <Film size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
+            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Video Spawn Doctrine — Sovereign Media Empire</span>
+            <span style={{ marginLeft: "auto", background: "rgba(244,114,182,0.1)", border: "1px solid rgba(244,114,182,0.3)", color: "#f472b6", fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 4 }}>156 INDUSTRIES</span>
+          </div>
+          <div style={{ borderRadius: 12, border: "1px solid rgba(244,114,182,0.15)", background: "rgba(244,114,182,0.04)", padding: "14px 16px" }}>
+            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, lineHeight: 1.7, marginBottom: 10, borderLeft: "2px solid rgba(244,114,182,0.5)", paddingLeft: 10, fontStyle: "italic" }}>
+              Mission: Make PulseWorld the mainstream media authority for all 156 industries — surpassing Bloomberg, CNBC, and all legacy outlets. Every industry gets its own news + entertainment channel powered by Godmind and Billy Banks' persona.
+            </div>
+
+            {/* Platform categories */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+              {[
+                { label: "Video Platforms", count: "21+", color: "#f472b6", examples: "YouTube · TikTok · Instagram · Twitch · Roku · Apple TV" },
+                { label: "Podcast / Audio", count: "13+", color: "#c084fc", examples: "Spotify · Apple · Amazon · iHeart · Audible · RSS" },
+                { label: "Radio / Broadcast", count: "9+", color: "#818cf8", examples: "FM/AM · SiriusXM · Alexa · Google · Clubhouse · X Spaces" },
+              ].map(cat => (
+                <div key={cat.label} style={{ borderRadius: 9, border: `1px solid ${cat.color}20`, background: `${cat.color}06`, padding: "9px 10px", textAlign: "center" }}>
+                  <div style={{ color: cat.color, fontWeight: 900, fontSize: 16, lineHeight: 1 }}>{cat.count}</div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 9, marginTop: 2 }}>{cat.label}</div>
+                  <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 7, marginTop: 3, lineHeight: 1.5 }}>{cat.examples}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Godmind supply chain */}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10 }}>
+              <div style={{ color: "#f472b6", fontWeight: 700, fontSize: 9, letterSpacing: "0.08em", marginBottom: 6 }}>GODMIND CONTENT SUPPLY CHAIN</div>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                {["Auto-scripted news & entertainment", "Viral content packs per platform", "Industry intelligence from crawled data", "Monetized affiliate CTAs", "Persona intros/outros (Billy Banks)", "Clone economy blueprints"].map(item => (
+                  <div key={item} style={{ background: "rgba(244,114,182,0.07)", border: "1px solid rgba(244,114,182,0.18)", borderRadius: 5, padding: "2px 7px", color: "rgba(255,255,255,0.4)", fontSize: 8 }}>{item}</div>
+                ))}
+              </div>
+            </div>
+
+            {/* Monetization */}
+            <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+              {[
+                { label: "Memberships", sub: "Patreon · Ko-fi · Substack", color: "#f5c518" },
+                { label: "Affiliates", sub: "SaaS · Tools · Products", color: "#4ade80" },
+                { label: "Alerts/Lists", sub: "Email · SMS · Telegram", color: "#60a5fa" },
+              ].map(m => (
+                <div key={m.label} style={{ flex: 1, borderRadius: 8, border: `1px solid ${m.color}20`, background: `${m.color}06`, padding: "7px 10px" }}>
+                  <div style={{ color: m.color, fontWeight: 800, fontSize: 9 }}>{m.label}</div>
+                  <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, marginTop: 2 }}>{m.sub}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Daily Gratitude Ritual */}
         <div style={{ borderRadius: 16, border: "1px solid rgba(167,139,250,0.3)", background: "radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.12), rgba(129,140,248,0.04))", padding: "18px 20px", textAlign: "center" }} data-testid="gratitude-ritual">
           <div style={{ fontSize: 28, marginBottom: 8 }}>🙏</div>
