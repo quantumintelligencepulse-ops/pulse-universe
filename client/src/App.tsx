@@ -10,7 +10,7 @@ import PulseWorldPage from "./pages/PulseWorldPage";
 import PulseUPage from "./pages/PulseUPage";
 import PulseGamesPage from "./pages/PulseGamesPage";
 import HiveSovereignPage from "./pages/HiveSovereignPage";
-import SolarSystemPage from "./pages/SolarSystemPage";
+import PulseUniversePage from "./pages/PulseUniversePage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -14969,7 +14969,7 @@ function Router() {
       <Route path="/pulseu" component={PulseUPage} />
       <Route path="/pulse-games" component={PulseGamesPage} />
       <Route path="/hive-sovereign" component={HiveSovereignPage} />
-      <Route path="/universe" component={SolarSystemPage} />
+      <Route path="/universe" component={PulseUniversePage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

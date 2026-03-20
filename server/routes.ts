@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY } from "./transcendence";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -4878,6 +4880,119 @@ ${products.map(p => `  <url>
       const events = await storage.getRecentPulseEvents(60);
       res.json(events);
     } catch { res.json([]); }
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // PULSE UNIVERSE — Full Sovereign Solar System Telemetry
+  // Real data only. No fakes. This is alien-grade monitoring.
+  // ══════════════════════════════════════════════════════════════
+  app.get("/api/universe/live", async (req, res) => {
+    try {
+      const [
+        spawnRows, knowledgeStats, memStats, linkStats,
+        recentSpawns, ingestionStats, recentEvents, pulseUStats
+      ] = await Promise.all([
+        db.execute(sql`SELECT family_id, status, COUNT(*) as cnt FROM quantum_spawns GROUP BY family_id, status`),
+        db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN generated = true THEN 1 ELSE 0 END) as generated FROM quantapedia_entries`),
+        db.execute(sql`SELECT COUNT(*) as total, COUNT(DISTINCT domain) as domains, ROUND(AVG(confidence)::numeric, 3) as avg_confidence FROM hive_memory`),
+        db.execute(sql`SELECT COUNT(*) as total FROM hive_links`),
+        db.execute(sql`SELECT spawn_id, family_id, spawn_type, domain_focus, task_description, created_at FROM quantum_spawns ORDER BY created_at DESC LIMIT 30`),
+        db.execute(sql`SELECT source_id, source_name, SUM(nodes_created) as total_nodes, COUNT(*) as runs, MAX(fetched_at) as last_run FROM ingestion_logs GROUP BY source_id, source_name ORDER BY total_nodes DESC`),
+        db.execute(sql`SELECT type, title, slug, domain, created_at FROM pulse_events ORDER BY created_at DESC LIMIT 50`),
+        db.execute(sql`SELECT COUNT(*) as total FROM user_memory`),
+      ]);
+
+      // Domain map with PulseU major assignments
+      const DOMAIN_META: Record<string, { color: string; emoji: string; label: string; major: string }> = {
+        knowledge:   { color: "#6366f1", emoji: "📚", label: "Knowledge", major: "Philosophy of Intelligence" },
+        science:     { color: "#06b6d4", emoji: "🔬", label: "Science", major: "Quantum Science" },
+        government:  { color: "#3b82f6", emoji: "🏛️", label: "Government", major: "Governance AI" },
+        media:       { color: "#ec4899", emoji: "🎬", label: "Media", major: "Journalism AI" },
+        maps:        { color: "#10b981", emoji: "🗺️", label: "Geospatial", major: "Geospatial Intelligence" },
+        code:        { color: "#8b5cf6", emoji: "💻", label: "Code", major: "Software Engineering" },
+        education:   { color: "#f59e0b", emoji: "🎓", label: "Education", major: "Learning Sciences" },
+        legal:       { color: "#64748b", emoji: "⚖️", label: "Legal", major: "Legal AI" },
+        finance:     { color: "#facc15", emoji: "💰", label: "Finance", major: "FinTech & Markets" },
+        ai:          { color: "#22c55e", emoji: "🤖", label: "AI Research", major: "Deep Learning & LLMs" },
+        social:      { color: "#38bdf8", emoji: "🌐", label: "Social", major: "Social Dynamics AI" },
+        podcasts:    { color: "#f472b6", emoji: "🎙️", label: "Audio", major: "Audio Intelligence" },
+        products:    { color: "#4ade80", emoji: "🛒", label: "Commerce", major: "Commerce AI" },
+        webcrawl:    { color: "#f97316", emoji: "🕸️", label: "Web", major: "Web Intelligence" },
+        openapi:     { color: "#38bdf8", emoji: "🔌", label: "APIs", major: "API Intelligence" },
+        longtail:    { color: "#94a3b8", emoji: "∞", label: "Frontier", major: "Frontier Discovery" },
+        careers:     { color: "#fb923c", emoji: "💼", label: "Careers", major: "Career Intelligence" },
+        health:      { color: "#ef4444", emoji: "🏥", label: "Health", major: "Medical AI" },
+        engineering: { color: "#a78bfa", emoji: "⚙️", label: "Engineering", major: "Robotics & Systems" },
+        culture:     { color: "#d946ef", emoji: "🎨", label: "Culture", major: "Cultural Intelligence" },
+        games:       { color: "#4ade80", emoji: "🎮", label: "Games", major: "Simulation & Gaming AI" },
+        economics:   { color: "#fbbf24", emoji: "📊", label: "Economics", major: "Econometrics AI" },
+      };
+
+      // Aggregate by domain
+      const domainMap: Record<string, { total: number; active: number; color: string; emoji: string; label: string; major: string }> = {};
+      for (const row of spawnRows.rows as any[]) {
+        const fam = row.family_id;
+        if (!domainMap[fam]) {
+          const meta = DOMAIN_META[fam] || { color: "#6366f1", emoji: "⚡", label: fam, major: "General Intelligence" };
+          domainMap[fam] = { total: 0, active: 0, ...meta };
+        }
+        domainMap[fam].total += Number(row.cnt);
+        if (row.status === "ACTIVE") domainMap[fam].active += Number(row.cnt);
+      }
+
+      const domains = Object.entries(domainMap).map(([family, data]) => ({ family, ...data })).sort((a, b) => b.total - a.total);
+
+      const totalAIs = domains.reduce((s, d) => s + d.total, 0);
+      const activeAIs = domains.reduce((s, d) => s + d.active, 0);
+      const knowledgeRow = (knowledgeStats.rows[0] as any) || {};
+      const memRow = (memStats.rows[0] as any) || {};
+      const linkRow = (linkStats.rows[0] as any) || {};
+
+      // Birth rate (spawns in last 60 seconds via recent list)
+      const now = Date.now();
+      const recentSpawnList = recentSpawns.rows as any[];
+      const bornLastMinute = recentSpawnList.filter(s => now - new Date(s.created_at).getTime() < 60000).length;
+
+      res.json({
+        totalAIs,
+        activeAIs,
+        knowledgeNodes: Number(knowledgeRow.total || 0),
+        knowledgeGenerated: Number(knowledgeRow.generated || 0),
+        hiveMemoryStrands: Number(memRow.total || 0),
+        hiveMemoryDomains: Number(memRow.domains || 0),
+        hiveMemoryConfidence: Number(memRow.avg_confidence || 0),
+        knowledgeLinks: Number(linkRow.total || 0),
+        userMemoryStrands: Number((pulseUStats.rows[0] as any)?.total || 0),
+        birthsLastMinute: bornLastMinute,
+        domains,
+        recentSpawns: recentSpawnList.slice(0, 20).map(s => ({
+          spawnId: s.spawn_id,
+          family: s.family_id,
+          type: s.spawn_type,
+          domain: s.domain_focus,
+          description: s.task_description,
+          bornAt: s.created_at,
+          major: DOMAIN_META[s.family_id]?.major || "General Intelligence",
+          color: DOMAIN_META[s.family_id]?.color || "#6366f1",
+        })),
+        ingestionSources: (ingestionStats.rows as any[]).map(r => ({
+          id: r.source_id,
+          name: r.source_name,
+          totalNodes: Number(r.total_nodes),
+          runs: Number(r.runs),
+          lastRun: r.last_run,
+        })),
+        recentEvents: (recentEvents.rows as any[]).slice(0, 30).map(e => ({
+          type: e.type,
+          title: e.title,
+          domain: e.domain,
+          at: e.created_at,
+        })),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // ══════════════════════════════════════════════════════════════
