@@ -111,7 +111,7 @@ export default function PublicationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: (PUB_TYPE_COLORS[pub.pubType] || "#6366f1") + "22", color: PUB_TYPE_COLORS[pub.pubType] || "#6366f1" }}>
-                            {pub.pubType.replace("_", " ").toUpperCase()}
+                            {(pub.pubType || "news").replace(/_/g, " ").toUpperCase()}
                           </span>
                           <span className="text-[9px]" style={{ color: pub.corpColor }}>{pub.corpEmoji} {pub.corpName?.split(" ").slice(0, 3).join(" ")}</span>
                         </div>
@@ -139,7 +139,7 @@ export default function PublicationsPage() {
               <div className="text-[9px] text-indigo-400 uppercase tracking-widest mb-3">By Publication Type</div>
               {(feed?.byType || []).map(t => (
                 <div key={t.type} className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] text-gray-400">{PUB_TYPE_ICONS[t.type]} {t.type.replace("_", " ")}</span>
+                  <span className="text-[10px] text-gray-400">{PUB_TYPE_ICONS[t.type]} {(t.type || "news").replace(/_/g, " ")}</span>
                   <span className="text-[10px] font-bold" style={{ color: PUB_TYPE_COLORS[t.type] || "#6366f1" }}>{t.count.toLocaleString()}</span>
                 </div>
               ))}
