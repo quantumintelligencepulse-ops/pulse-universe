@@ -7044,7 +7044,7 @@ function SocialPageWrapper() {
 }
 
 // ─── GAMES PAGE ──────────────────────────────────────────────────────────────
-type GameMode = "hub" | "blackjack" | "memory" | "rps" | "snake" | "surge" | "scramble" | "trivia" | "creator" | "emulator" | "pixelart" | "retrotools" | "rompatch" | "spritetools" | "opengames";
+type GameMode = "hub" | "blackjack" | "memory" | "rps" | "snake" | "surge" | "scramble" | "trivia" | "creator" | "emulator" | "pixelart" | "retrotools" | "rompatch" | "spritetools" | "opengames" | "gamelibrary" | "puzzle2048" | "pong" | "minesweeper" | "simon" | "tictactoe" | "connect4" | "flappy" | "hangman" | "wordle" | "spaceinvaders";
 
 /* ===== EMULATOR ZONE ===== */
 const EJS_CONSOLES=[
@@ -7900,6 +7900,17 @@ const CREATOR_TEMPLATES = [
 
 type GameEntry = { id: string; title: string; emoji: string; tagline: string; genre: string; difficulty: "Casual"|"Core"|"Advanced"; pulse: string; pulseColor: string; mode: GameMode|null; players: string; aiFeature: string; section: string; };
 const GAMES_CATALOG: GameEntry[] = [
+  { id:"gamelibrary", title:"Game Library", emoji:"🎮", tagline:"Browse 47+ games — instant play, no downloads, no accounts", genre:"Hub", difficulty:"Casual", pulse:"Pulse_Green", pulseColor:"from-green-700 to-emerald-900", mode:"gamelibrary", players:"Solo", aiFeature:"AI-powered game engine", section:"play" },
+  { id:"puzzle2048", title:"2048", emoji:"🔢", tagline:"Slide tiles, merge numbers, reach the legendary 2048", genre:"Puzzle", difficulty:"Casual", pulse:"Pulse_Orange", pulseColor:"from-amber-600 to-orange-900", mode:"puzzle2048", players:"Solo", aiFeature:"Adaptive tile spawning", section:"play" },
+  { id:"wordle-game", title:"Quantum Wordle", emoji:"🟩", tagline:"Guess the 5-letter word in 6 tries — Green/Yellow/Gray feedback", genre:"Word", difficulty:"Casual", pulse:"Pulse_Green", pulseColor:"from-green-700 to-teal-900", mode:"wordle", players:"Solo", aiFeature:"AI word curator", section:"play" },
+  { id:"pong-ai", title:"Pong vs AI", emoji:"🏓", tagline:"Classic Pong with an adaptive AI opponent that learns", genre:"Arcade", difficulty:"Casual", pulse:"Pulse_White", pulseColor:"from-slate-600 to-slate-900", mode:"pong", players:"vs AI", aiFeature:"Adaptive AI paddle", section:"play" },
+  { id:"spaceinvaders-game", title:"Space Invaders", emoji:"👾", tagline:"Defend Earth from descending alien invasion waves", genre:"Arcade", difficulty:"Core", pulse:"Pulse_Blue", pulseColor:"from-blue-700 to-indigo-900", mode:"spaceinvaders", players:"Solo", aiFeature:"Procedural alien waves", section:"play" },
+  { id:"flappy-game", title:"Flappy Pulse", emoji:"🐦", tagline:"Tap to flap through pipes — beat your high score", genre:"Arcade", difficulty:"Core", pulse:"Pulse_Yellow", pulseColor:"from-yellow-600 to-amber-900", mode:"flappy", players:"Solo", aiFeature:"Procedural pipe gen", section:"play" },
+  { id:"minesweeper-game", title:"Minesweeper", emoji:"💣", tagline:"Reveal cells, flag mines — 3 difficulty modes", genre:"Puzzle", difficulty:"Core", pulse:"Pulse_Cyan", pulseColor:"from-cyan-700 to-blue-900", mode:"minesweeper", players:"Solo", aiFeature:"Adaptive mine placement", section:"play" },
+  { id:"simon-game", title:"Simon Says", emoji:"🟢", tagline:"Watch the color sequence and repeat it — each round longer", genre:"Memory", difficulty:"Casual", pulse:"Pulse_Green", pulseColor:"from-green-600 to-emerald-800", mode:"simon", players:"Solo", aiFeature:"Dynamic sequence gen", section:"play" },
+  { id:"tictactoe-game", title:"Tic Tac Toe vs AI", emoji:"❌", tagline:"Beat an unbeatable minimax AI — can you even draw?", genre:"Strategy", difficulty:"Core", pulse:"Pulse_Violet", pulseColor:"from-violet-700 to-purple-900", mode:"tictactoe", players:"vs AI", aiFeature:"Minimax AI", section:"play" },
+  { id:"connect4-game", title:"Connect Four vs AI", emoji:"🔴", tagline:"Drop pieces, connect 4 before the adaptive AI does", genre:"Strategy", difficulty:"Core", pulse:"Pulse_Red", pulseColor:"from-red-600 to-rose-900", mode:"connect4", players:"vs AI", aiFeature:"Scoring AI opponent", section:"play" },
+  { id:"hangman-game", title:"Hangman", emoji:"🎯", tagline:"Guess the word before the man is hanged — 200+ words", genre:"Word", difficulty:"Casual", pulse:"Pulse_Pink", pulseColor:"from-pink-600 to-violet-800", mode:"hangman", players:"Solo", aiFeature:"AI word selection", section:"play" },
   { id:"blackjack", title:"Blackjack", emoji:"♠️", tagline:"Beat the AI dealer to 21 — classic casino strategy", genre:"Card", difficulty:"Core", pulse:"Pulse_Black", pulseColor:"from-gray-700 to-gray-900", mode:"blackjack", players:"Solo", aiFeature:"Adaptive dealer AI", section:"play" },
   { id:"memory", title:"Memory Match", emoji:"🧠", tagline:"Find all emoji pairs before your brain breaks", genre:"Puzzle", difficulty:"Casual", pulse:"Pulse_Violet", pulseColor:"from-purple-700 to-indigo-800", mode:"memory", players:"Solo", aiFeature:"Dynamic difficulty scaling", section:"play" },
   { id:"rps", title:"Rock Paper Scissors", emoji:"⚡", tagline:"The AI brags non-stop — prove it wrong", genre:"Arcade", difficulty:"Casual", pulse:"Pulse_Red", pulseColor:"from-rose-700 to-red-900", mode:"rps", players:"vs AI", aiFeature:"Predictive AI with personality taunts", section:"play" },
@@ -8254,6 +8265,986 @@ function CreatorZoneGame({ onBack }: { onBack: () => void }) {
   );
 }
 
+/* ======================================================================
+   SOVEREIGN GAME LIBRARY — 60+ game registry + 10 new native games
+   ====================================================================== */
+type LibraryGame={id:string,title:string,emoji:string,genres:string[],desc:string,type:'builtin'|'iframe'|'external',mode?:GameMode,url?:string,players:string,difficulty:'Easy'|'Medium'|'Hard',ai:boolean,featured?:boolean};
+const GAME_LIBRARY:LibraryGame[]=[
+  // ── BUILT-IN NATIVE (click → instant play) ──
+  {id:'gl-2048',title:'2048',emoji:'🔢',genres:['puzzle'],desc:'Slide tiles, merge numbers, reach 2048. Infinite replayability.',type:'builtin',mode:'puzzle2048',players:'1P',difficulty:'Medium',ai:false,featured:true},
+  {id:'gl-wordle',title:'Quantum Wordle',emoji:'🟩',genres:['word'],desc:'Guess the 5-letter word in 6 tries. Green/Yellow/Gray feedback.',type:'builtin',mode:'wordle',players:'1P',difficulty:'Medium',ai:false,featured:true},
+  {id:'gl-pong',title:'Pong vs AI',emoji:'🏓',genres:['arcade'],desc:'Classic Pong with an adaptive AI opponent. Serve, rally, score.',type:'builtin',mode:'pong',players:'1P vs AI',difficulty:'Medium',ai:true,featured:true},
+  {id:'gl-spaceinvaders',title:'Space Invaders',emoji:'👾',genres:['arcade','action'],desc:'Defend Earth from descending alien waves. Classic retro shooter.',type:'builtin',mode:'spaceinvaders',players:'1P',difficulty:'Medium',ai:true,featured:true},
+  {id:'gl-flappy',title:'Flappy Pulse',emoji:'🐦',genres:['arcade'],desc:'Tap to flap through pipes. Every run is different. Beat your high score.',type:'builtin',mode:'flappy',players:'1P',difficulty:'Hard',ai:false,featured:true},
+  {id:'gl-minesweeper',title:'Minesweeper',emoji:'💣',genres:['puzzle','strategy'],desc:'Reveal cells, avoid mines, flag the field. 3 difficulty modes.',type:'builtin',mode:'minesweeper',players:'1P',difficulty:'Medium',ai:false,featured:true},
+  {id:'gl-simon',title:'Simon Says',emoji:'🟢',genres:['memory','arcade'],desc:'Watch the color sequence, repeat it. Each round gets longer.',type:'builtin',mode:'simon',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-tictactoe',title:'Tic Tac Toe vs AI',emoji:'❌',genres:['strategy'],desc:'Beat an unbeatable minimax AI. Can you find the draw?',type:'builtin',mode:'tictactoe',players:'1P vs AI',difficulty:'Hard',ai:true},
+  {id:'gl-connect4',title:'Connect Four vs AI',emoji:'🔴',genres:['strategy'],desc:'Drop pieces, connect 4 before the AI does. Adaptive intelligence.',type:'builtin',mode:'connect4',players:'1P vs AI',difficulty:'Medium',ai:true},
+  {id:'gl-hangman',title:'Hangman',emoji:'🎯',genres:['word'],desc:'Guess the word before the man is hanged. 200+ word vocabulary.',type:'builtin',mode:'hangman',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-blackjack',title:'Blackjack vs AI',emoji:'♠️',genres:['casino'],desc:'Beat the AI dealer to 21. Hit, Stand, Double Down. Full chip economy.',type:'builtin',mode:'blackjack',players:'1P vs AI',difficulty:'Medium',ai:true},
+  {id:'gl-memory',title:'Memory Match',emoji:'🧠',genres:['memory','puzzle'],desc:'Flip cards and find matching pairs. Race for minimum moves.',type:'builtin',mode:'memory',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-rps',title:'Rock Paper Scissors',emoji:'✊',genres:['casual'],desc:'Classic RPS with AI trash talk. Best of 5 rounds.',type:'builtin',mode:'rps',players:'1P vs AI',difficulty:'Easy',ai:true},
+  {id:'gl-snake',title:'Pulse Snake',emoji:'🐍',genres:['arcade'],desc:'Eat food, grow your snake. Compete against AI pathfinding.',type:'builtin',mode:'snake',players:'1P',difficulty:'Medium',ai:true},
+  {id:'gl-surge',title:'Number Surge',emoji:'⚡',genres:['puzzle','casual'],desc:'Math speed challenge — answer before the timer runs out.',type:'builtin',mode:'surge',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-scramble',title:'Word Scramble',emoji:'📝',genres:['word'],desc:'Unscramble the jumbled word before time runs out.',type:'builtin',mode:'scramble',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-trivia',title:'Omega Trivia',emoji:'🧪',genres:['trivia'],desc:'AI-generated trivia questions across every topic imaginable.',type:'builtin',mode:'trivia',players:'1P',difficulty:'Medium',ai:true},
+  {id:'gl-creator',title:'AI Game Creator',emoji:'⚡',genres:['ai','creative'],desc:'Describe any game → Groq AI builds it in 10 seconds. Infinite games.',type:'builtin',mode:'creator',players:'1P',difficulty:'Easy',ai:true,featured:true},
+  // ── EMULATOR ZONE CONSOLES ──
+  {id:'gl-emu',title:'Emulator Zone',emoji:'🕹️',genres:['retro','emulator'],desc:'NES, SNES, GBA, N64, PS1, Sega, DOS, Arcade — upload any ROM, play instantly.',type:'builtin',mode:'emulator',players:'1P/2P',difficulty:'Medium',ai:false,featured:true},
+  // ── OPEN-SOURCE EXTERNAL GAMES ──
+  {id:'gl-floppybird',title:'Floppy Bird',emoji:'🐤',genres:['arcade'],desc:'Open-source Flappy Bird. Tap to flap, avoid the pipes.',type:'iframe',url:'https://nebez.github.io/floppybird/',players:'1P',difficulty:'Hard',ai:false},
+  {id:'gl-2048ext',title:'2048 (Original)',emoji:'🔢',genres:['puzzle'],desc:'The original 2048 by Gabriele Cirulli. MIT licensed.',type:'iframe',url:'https://play2048.co',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-tetris',title:'Jstris Tetris',emoji:'🟦',genres:['puzzle','arcade'],desc:'Competitive browser Tetris. Sprint, Ultra, and multiplayer modes.',type:'iframe',url:'https://jstris.jezevec10.com',players:'1P+',difficulty:'Medium',ai:false},
+  {id:'gl-chess',title:'Chess.com',emoji:'♟️',genres:['strategy'],desc:'World-class chess. Play vs AI or online opponents.',type:'external',url:'https://www.chess.com/play/computer',players:'1P vs AI',difficulty:'Hard',ai:true},
+  {id:'gl-checkers',title:'Checkers vs AI',emoji:'🔴',genres:['strategy'],desc:'Classic checkers with adjustable AI difficulty.',type:'external',url:'https://www.gamesforthebrain.com/game/checkers/',players:'1P vs AI',difficulty:'Easy',ai:true},
+  {id:'gl-sudoku',title:'Sudoku',emoji:'🔢',genres:['puzzle'],desc:'Daily Sudoku puzzles — easy to expert difficulty.',type:'external',url:'https://sudoku.com',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-wordle-nyt',title:'NYT Wordle',emoji:'🟩',genres:['word'],desc:'The New York Times Wordle. One puzzle per day.',type:'external',url:'https://www.nytimes.com/games/wordle',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-solitaire',title:'Solitaire',emoji:'🃏',genres:['card','casual'],desc:'Classic Klondike Solitaire. Unlimited undos.',type:'iframe',url:'https://solitaired.com',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-doom',title:'DOOM (WebGL)',emoji:'💀',genres:['fps','action'],desc:'DOOM running in browser via WebAssembly. Kill demons.',type:'iframe',url:'https://silentspacemarine.com/',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-diablo',title:'Diablo I Web',emoji:'🔥',genres:['rpg','action'],desc:'Diablo 1 in browser via DevilutionX. Hack and slash.',type:'iframe',url:'https://d07riv.github.io/diabloweb/',players:'1P',difficulty:'Hard',ai:false},
+  {id:'gl-freecell',title:'FreeCell',emoji:'♠️',genres:['card','puzzle'],desc:'Classic FreeCell solitaire. Every deal is winnable.',type:'external',url:'https://www.free-freecell-solitaire.com/',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-mah',title:'Mahjong',emoji:'🀄',genres:['puzzle'],desc:'Classic Mahjong tile matching puzzle.',type:'external',url:'https://www.mahjong.nl/',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-8ball',title:'8-Ball Pool',emoji:'🎱',genres:['sports','casual'],desc:'Browser pool/billiards with physics engine.',type:'external',url:'https://www.miniclip.com/games/8-ball-pool-multiplayer/en/',players:'1P+',difficulty:'Medium',ai:false},
+  {id:'gl-pac',title:'Pac-Man Doodle',emoji:'👻',genres:['arcade'],desc:'Google\'s Pac-Man doodle. Classic arcade action.',type:'external',url:'https://www.google.com/logos/2010/pacman10-i.html',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-superhex',title:'SuperHexagon',emoji:'🔷',genres:['arcade'],desc:'Intense geometry rhythm game. Survive as long as possible.',type:'external',url:'https://superhexagon.com/superh/',players:'1P',difficulty:'Hard',ai:false},
+  {id:'gl-slither',title:'Slither.io',emoji:'🐍',genres:['io','multiplayer'],desc:'Massively multiplayer snake. Eat, grow, dominate.',type:'iframe',url:'https://slither.io',players:'Multi',difficulty:'Medium',ai:false},
+  {id:'gl-agar',title:'Agar.io',emoji:'🔵',genres:['io','multiplayer'],desc:'Eat smaller cells, avoid larger ones. Classic .io game.',type:'iframe',url:'https://agar.io',players:'Multi',difficulty:'Easy',ai:false},
+  {id:'gl-skribbl',title:'Skribbl.io',emoji:'🎨',genres:['multiplayer','casual'],desc:'Draw and guess with online players. Pictionary-style.',type:'external',url:'https://skribbl.io',players:'Multi',difficulty:'Easy',ai:false},
+  {id:'gl-krunker',title:'Krunker.io',emoji:'🔫',genres:['fps','io','multiplayer'],desc:'Browser FPS. No install needed. Multiple maps and modes.',type:'external',url:'https://krunker.io',players:'Multi',difficulty:'Medium',ai:false},
+  {id:'gl-minecraft',title:'Eaglercraft',emoji:'⛏️',genres:['sandbox'],desc:'Minecraft in browser. Build, explore, survive.',type:'external',url:'https://eaglercraft.com/mc/1.8-eaglercraft/new/',players:'1P',difficulty:'Medium',ai:false},
+  {id:'gl-terraria',title:'ClassiCube',emoji:'🧱',genres:['sandbox'],desc:'Browser sandbox builder inspired by classic Minecraft.',type:'iframe',url:'https://www.classicube.net/server/play',players:'1P+',difficulty:'Easy',ai:false},
+  {id:'gl-candy',title:'Candy Crush Style',emoji:'🍬',genres:['puzzle','casual'],desc:'Match-3 candy puzzle game. No install.',type:'external',url:'https://candycrushsaga.com',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-geoguessr',title:'GeoGuessr',emoji:'🌍',genres:['trivia','educational'],desc:'Guess where in the world you are from Street View.',type:'external',url:'https://www.geoguessr.com',players:'1P',difficulty:'Hard',ai:false},
+  {id:'gl-typeracer',title:'TypeRacer',emoji:'⌨️',genres:['casual','educational'],desc:'Race others by typing famous quotes. Improve your WPM.',type:'external',url:'https://play.typeracer.com',players:'Multi',difficulty:'Medium',ai:false},
+  {id:'gl-coderun',title:'CodeRun Challenge',emoji:'💻',genres:['educational','ai'],desc:'AI-generated coding puzzles. Solve to advance.',type:'builtin',mode:'creator',players:'1P',difficulty:'Hard',ai:true},
+  {id:'gl-neuropulse',title:'NeuroPulse AI Battle',emoji:'🤖',genres:['ai','strategy'],desc:'Battle AI-generated enemies in a turn-based arena. Powered by Groq.',type:'builtin',mode:'creator',players:'1P vs AI',difficulty:'Hard',ai:true},
+  // ── RETRO & HOMEBREW ──
+  {id:'gl-pixart',title:'Pixel Art Studio',emoji:'🎨',genres:['creative','retro'],desc:'Create pixel art with NES/GB/Pico-8 palettes. Export to PNG.',type:'builtin',mode:'pixelart',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-rompatch',title:'ROM Patcher',emoji:'🔧',genres:['retro','tool'],desc:'Apply IPS/BPS patches to ROMs. Play fan translations.',type:'builtin',mode:'rompatch',players:'1P',difficulty:'Easy',ai:false},
+  {id:'gl-opengames',title:'Open Games Zone',emoji:'🌐',genres:['retro','open-source'],desc:'Curated legal open-source games. DOOM, Diablo, chess, and more.',type:'builtin',mode:'opengames',players:'1P',difficulty:'Medium',ai:false},
+];
+
+const GAME_GENRES=['all','arcade','puzzle','strategy','word','memory','casino','trivia','fps','rpg','sandbox','multiplayer','retro','ai','creative','card','sports','educational','io'];
+
+function GameLibrary({onBack,setGameMode}:{onBack:()=>void,setGameMode:(m:GameMode)=>void}){
+  const [genre,setGenre]=useState('all');
+  const [search,setSearch]=useState('');
+  const [favs,setFavs]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem('game_favs')||'[]');}catch{return [];}});
+  const [played,setPlayed]=useState<Record<string,number>>(()=>{try{return JSON.parse(localStorage.getItem('game_played')||'{}');}catch{return {};}});
+  const [sortBy,setSortBy]=useState<'featured'|'name'|'played'|'favs'>('featured');
+
+  const toggleFav=(id:string)=>{
+    const next=favs.includes(id)?favs.filter(f=>f!==id):[...favs,id];
+    setFavs(next);localStorage.setItem('game_favs',JSON.stringify(next));
+  };
+
+  const launch=(g:LibraryGame)=>{
+    if(g.type==='builtin'&&g.mode){
+      const cnt={...played,[g.id]:(played[g.id]||0)+1};
+      setPlayed(cnt);localStorage.setItem('game_played',JSON.stringify(cnt));
+      setGameMode(g.mode);
+    } else {
+      window.open(g.url,'_blank');
+    }
+  };
+
+  const filtered=GAME_LIBRARY.filter(g=>{
+    const matchGenre=genre==='all'||g.genres.includes(genre);
+    const matchSearch=!search||g.title.toLowerCase().includes(search.toLowerCase())||g.desc.toLowerCase().includes(search.toLowerCase());
+    return matchGenre&&matchSearch;
+  }).sort((a,b)=>{
+    if(sortBy==='name')return a.title.localeCompare(b.title);
+    if(sortBy==='played')return (played[b.id]||0)-(played[a.id]||0);
+    if(sortBy==='favs'){const fa=favs.includes(a.id)?1:0;const fb=favs.includes(b.id)?1:0;return fb-fa;}
+    const fa=a.featured?1:0;const fb=b.featured?1:0;return fb-fa;
+  });
+
+  const native=filtered.filter(g=>g.type==='builtin');
+  const external=filtered.filter(g=>g.type!=='builtin');
+
+  const diffColor=(d:string)=>d==='Easy'?'text-green-400 bg-green-500/10 border-green-500/20':d==='Medium'?'text-yellow-400 bg-yellow-500/10 border-yellow-500/20':'text-red-400 bg-red-500/10 border-red-500/20';
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#0a0a20 100%)'}}>
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-white/8 flex-shrink-0" style={{background:'rgba(8,8,20,0.98)'}}>
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>Back</button>
+          <div className="w-px h-4 bg-white/10"/>
+          <span className="text-sm font-black text-white">🎮 Sovereign Game Library</span>
+          <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30 font-bold">{GAME_LIBRARY.filter(g=>g.type==='builtin').length} INSTANT PLAY</span>
+          <span className="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full border border-violet-500/30 font-bold">{GAME_LIBRARY.length} TOTAL</span>
+        </div>
+        {/* Search + Sort */}
+        <div className="flex gap-2 mb-2">
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search games..." data-testid="input-game-search"
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl text-white text-xs px-3 py-2 placeholder-white/20 focus:outline-none focus:border-violet-500/40"/>
+          <select value={sortBy} onChange={e=>setSortBy(e.target.value as any)} className="bg-white/5 border border-white/10 rounded-xl text-white/60 text-xs px-2 py-2 focus:outline-none">
+            <option value="featured">⭐ Featured</option>
+            <option value="played">🎮 Most Played</option>
+            <option value="favs">❤️ Favorites</option>
+            <option value="name">🔤 A-Z</option>
+          </select>
+        </div>
+        {/* Genre tabs */}
+        <div className="flex gap-1 overflow-x-auto" style={{scrollbarWidth:'none'}}>
+          {GAME_GENRES.map(g=><button key={g} onClick={()=>setGenre(g)} className={cn("flex-shrink-0 px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all capitalize",genre===g?"bg-white text-gray-900":"bg-white/5 text-white/35 hover:text-white/60 border border-white/8")}>{g}</button>)}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto p-4">
+        {/* Featured banner for native games */}
+        {genre==='all'&&!search&&(
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[9px] text-green-400 font-black uppercase tracking-widest">⚡ Instant Play — No Ads, No Accounts, No Downloads ({native.length})</span>
+              <div className="flex-1 h-px bg-green-500/15"/>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {native.filter(g=>g.featured).map(g=>(
+                <button key={g.id} onClick={()=>launch(g)} data-testid={`game-lib-${g.id}`}
+                  className="group relative p-3.5 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{background:'linear-gradient(135deg,rgba(139,92,246,0.15),rgba(59,130,246,0.1))',border:'1px solid rgba(139,92,246,0.25)'}}>
+                  <div className="absolute top-2 right-2">
+                    <button onClick={e=>{e.stopPropagation();toggleFav(g.id);}} className={cn("text-xs transition-all",favs.includes(g.id)?"text-red-400":"text-white/20 hover:text-white/50")}>❤</button>
+                  </div>
+                  <div className="text-3xl mb-2">{g.emoji}</div>
+                  <div className="text-white font-black text-xs mb-0.5">{g.title}</div>
+                  <div className="text-white/40 text-[9px] line-clamp-2 mb-2">{g.desc}</div>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className={cn("text-[7px] px-1.5 py-0.5 rounded-full border font-bold",diffColor(g.difficulty))}>{g.difficulty}</span>
+                    {g.ai&&<span className="text-[7px] px-1.5 py-0.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 font-bold">AI</span>}
+                    <span className="text-green-400 text-[9px] font-black ml-auto group-hover:text-green-300">▶ PLAY</span>
+                  </div>
+                  {played[g.id]&&<div className="text-white/20 text-[8px] mt-1">{played[g.id]} plays</div>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All native games */}
+        <div className="mb-5">
+          {(genre!=='all'||search)&&<div className="flex items-center gap-2 mb-3"><span className="text-[9px] text-green-400 font-black uppercase tracking-widest">⚡ Instant Play ({native.length})</span><div className="flex-1 h-px bg-green-500/15"/></div>}
+          {genre==='all'&&!search&&<div className="flex items-center gap-2 mb-3"><span className="text-[9px] text-white/30 font-black uppercase tracking-widest">All Instant-Play Games</span><div className="flex-1 h-px bg-white/5"/></div>}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {native.filter(g=>!g.featured||genre!=='all'||search).map(g=>(
+              <button key={g.id} onClick={()=>launch(g)} data-testid={`game-lib-${g.id}`}
+                className="group p-3 rounded-xl bg-white/[0.025] border border-white/8 hover:border-white/20 hover:bg-white/[0.04] transition-all text-left">
+                <div className="flex items-start justify-between mb-1">
+                  <span className="text-2xl">{g.emoji}</span>
+                  <button onClick={e=>{e.stopPropagation();toggleFav(g.id);}} className={cn("text-xs transition-all",favs.includes(g.id)?"text-red-400":"text-white/15 hover:text-white/40")}>❤</button>
+                </div>
+                <div className="text-white font-bold text-xs mb-0.5 truncate">{g.title}</div>
+                <div className="text-white/35 text-[9px] line-clamp-2 mb-1.5">{g.desc}</div>
+                <div className="flex items-center gap-1">
+                  <span className={cn("text-[7px] px-1 py-0.5 rounded border font-bold",diffColor(g.difficulty))}>{g.difficulty}</span>
+                  {g.ai&&<span className="text-[7px] px-1 py-0.5 rounded border border-cyan-500/30 text-cyan-400">AI</span>}
+                  <span className="text-green-400 text-[9px] font-black ml-auto">▶</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* External games */}
+        {external.length>0&&(
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[9px] text-white/25 font-black uppercase tracking-widest">🌐 External Games — opens in new tab ({external.length})</span>
+              <div className="flex-1 h-px bg-white/5"/>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {external.map(g=>(
+                <button key={g.id} onClick={()=>launch(g)} data-testid={`game-lib-${g.id}`}
+                  className="group p-3 rounded-xl bg-white/[0.015] border border-white/5 hover:border-white/15 hover:bg-white/[0.03] transition-all text-left">
+                  <div className="text-2xl mb-1">{g.emoji}</div>
+                  <div className="text-white/70 font-bold text-xs mb-0.5 truncate">{g.title}</div>
+                  <div className="text-white/25 text-[9px] line-clamp-2 mb-1.5">{g.desc}</div>
+                  <div className="flex items-center gap-1">
+                    <span className={cn("text-[7px] px-1 py-0.5 rounded border font-bold",diffColor(g.difficulty))}>{g.difficulty}</span>
+                    <span className="text-white/20 text-[9px] ml-auto group-hover:text-white/50">→</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: 2048 ===== */
+function Game2048({onBack}:{onBack:()=>void}){
+  const init=():number[][]=>Array(4).fill(null).map(()=>Array(4).fill(0));
+  const addRnd=(b:number[][])=>{const e:number[][]=[];b.forEach((r,i)=>r.forEach((c,j)=>{if(!c)e.push([i,j]);}));if(!e.length)return b;const[i,j]=e[Math.floor(Math.random()*e.length)];const nb=b.map(r=>[...r]);nb[i][j]=Math.random()<0.9?2:4;return nb;};
+  const [board,setBoard]=useState(()=>addRnd(addRnd(init())));
+  const [score,setScore]=useState(0);
+  const [best,setBest]=useState(()=>parseInt(localStorage.getItem('2048_best')||'0'));
+  const [won,setWon]=useState(false);
+  const [over,setOver]=useState(false);
+
+  const slideRow=(row:number[]):{row:number[],pts:number}=>{
+    const r=row.filter(v=>v);let pts=0;
+    for(let i=0;i<r.length-1;i++){if(r[i]===r[i+1]){r[i]*=2;pts+=r[i];r.splice(i+1,1);}}
+    while(r.length<4)r.push(0);return{row:r,pts};
+  };
+
+  const move=useCallback((dir:'left'|'right'|'up'|'down')=>{
+    if(over||won)return;
+    let b=board.map(r=>[...r]);let totalPts=0;let changed=false;
+    if(dir==='left'||dir==='right'){
+      b=b.map(row=>{const rev=dir==='right'?[...row].reverse():row;const{row:r,pts}=slideRow(rev);totalPts+=pts;const res=dir==='right'?r.reverse():r;if(JSON.stringify(res)!==JSON.stringify(row))changed=true;return res;});
+    } else {
+      const T=(m:number[][])=>m[0].map((_,i)=>m.map(r=>r[i]));
+      let t=T(b);
+      t=t.map(col=>{const rev=dir==='down'?[...col].reverse():col;const{row:r,pts}=slideRow(rev);totalPts+=pts;const res=dir==='down'?r.reverse():r;if(JSON.stringify(res)!==JSON.stringify(col))changed=true;return res;});
+      b=T(t);
+    }
+    if(!changed)return;
+    const nb=addRnd(b);
+    const newScore=score+totalPts;
+    if(newScore>best){setBest(newScore);localStorage.setItem('2048_best',String(newScore));}
+    setScore(newScore);setBoard(nb);
+    if(nb.some(r=>r.some(c=>c===2048)))setWon(true);
+    const hasMove=nb.some((r,i)=>r.some((v,j)=>!v||(i<3&&nb[i+1][j]===v)||(j<3&&nb[i][j+1]===v)));
+    if(!hasMove)setOver(true);
+  },[board,score,best,over,won]);
+
+  useEffect(()=>{
+    const k=(e:KeyboardEvent)=>{if(e.key==='ArrowLeft')move('left');else if(e.key==='ArrowRight')move('right');else if(e.key==='ArrowUp')move('up');else if(e.key==='ArrowDown')move('down');};
+    window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);
+  },[move]);
+
+  const tileColor=(v:number)=>{const m:Record<number,string>={0:'bg-white/5',2:'bg-amber-100 text-gray-800',4:'bg-amber-200 text-gray-800',8:'bg-orange-400 text-white',16:'bg-orange-500 text-white',32:'bg-red-500 text-white',64:'bg-red-600 text-white',128:'bg-yellow-400 text-white',256:'bg-yellow-500 text-white',512:'bg-yellow-600 text-white',1024:'bg-violet-500 text-white',2048:'bg-violet-700 text-white'};return m[v]||'bg-violet-900 text-white';};
+
+  const reset=()=>{setBoard(addRnd(addRnd(init())));setScore(0);setWon(false);setOver(false);};
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#1a1000,#2a1500)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(20,10,0,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🔢 2048</span>
+        <div className="flex gap-3 ml-auto">
+          <div className="text-center"><div className="text-[9px] text-white/30">SCORE</div><div className="text-white font-black text-sm">{score}</div></div>
+          <div className="text-center"><div className="text-[9px] text-white/30">BEST</div><div className="text-yellow-400 font-black text-sm">{best}</div></div>
+          <button onClick={reset} className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px] font-bold hover:bg-amber-500/30">New</button>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
+        {(won||over)&&<div className={cn("px-6 py-3 rounded-2xl text-center font-black",won?"bg-yellow-400/20 border border-yellow-400/40 text-yellow-300":"bg-red-500/20 border border-red-500/30 text-red-300")}>{won?'🎉 You reached 2048!':'💀 Game Over'}<button onClick={reset} className="block mx-auto mt-2 px-4 py-1.5 rounded-lg bg-white/10 text-white text-xs font-bold hover:bg-white/20">Play Again</button></div>}
+        <div className="grid grid-cols-4 gap-2 p-3 rounded-2xl" style={{background:'rgba(255,255,255,0.05)'}}>
+          {board.map((row,i)=>row.map((val,j)=>(
+            <div key={`${i}-${j}`} className={cn("w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center font-black transition-all",tileColor(val))}>
+              <span style={{fontSize:val>999?'14px':val>99?'18px':'22px'}}>{val||''}</span>
+            </div>
+          )))}
+        </div>
+        <div className="text-white/20 text-xs text-center">Use arrow keys or swipe to move tiles</div>
+        <div className="grid grid-cols-3 gap-2">
+          {[['↑','up'],['←','left'],['↓','down'],['→','right']].map(([lbl,dir])=>(
+            dir==='up'?<div key="empty1"/>:
+            <button key={dir} onClick={()=>move(dir as any)} className="w-12 h-10 rounded-xl bg-white/5 border border-white/10 text-white/60 text-lg hover:bg-white/10 active:bg-white/20 transition-all">{lbl}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: WORDLE ===== */
+const WORDLE_WORDS=['crane','slate','audio','house','piano','brain','flame','cloud','brave','chest','dream','eagle','frost','grind','heart','ivory','jewel','knave','lemon','magic','nerve','ocean','prize','queen','rival','shade','tiger','ultra','vivid','witch','xenon','yield','zebra','blaze','coast','draft','elite','fancy','ghost','hinge','image','joust','karma','laser','march','night','ozone','pixel','quilt','rover','swift','table','umbra','vapor','world','exist','fault','flair','gleam','hydra','input','joker','knock','lunar','mercy','noble','optic','pedal','quest','repay','skill','thorn','unity','voice','weave','extra','flint','grail','haste','index','jaded','karma','lyric','midst','nymph','oxide','prank','quirk','realm','scold','taunt','usher','vigil','whirl','exhale','flame','glass'];
+type WordleGuess={word:string,colors:('green'|'yellow'|'gray')[]};
+function WordleGame({onBack}:{onBack:()=>void}){
+  const pick=()=>WORDLE_WORDS[Math.floor(Math.random()*WORDLE_WORDS.length)].toUpperCase();
+  const [target,setTarget]=useState(pick);
+  const [guesses,setGuesses]=useState<WordleGuess[]>([]);
+  const [current,setCurrent]=useState('');
+  const [done,setDone]=useState(false);
+  const [won,setWon]=useState(false);
+  const {toast}=useToast();
+
+  const submit=()=>{
+    if(current.length!==5){toast({title:'Word must be 5 letters'});return;}
+    const g=current.toUpperCase();
+    const colors:('green'|'yellow'|'gray')[]=Array(5).fill('gray');
+    const rem=[...target];
+    g.split('').forEach((c,i)=>{if(c===target[i]){colors[i]='green';rem[i]=' ';}});
+    g.split('').forEach((c,i)=>{if(colors[i]!=='green'){const ri=rem.indexOf(c);if(ri!==-1){colors[i]='yellow';rem[ri]=' ';}}});
+    const ng=[...guesses,{word:g,colors}];
+    setGuesses(ng);setCurrent('');
+    if(g===target){setDone(true);setWon(true);}
+    else if(ng.length===6){setDone(true);}
+  };
+
+  const KEYS='QWERTYUIOP|ASDFGHJKL|ZXCVBNM'.split('|').map(r=>r.split(''));
+  const keyColor=(k:string)=>{
+    const inGreen=guesses.some(g=>g.word.split('').some((c,i)=>c===k&&g.colors[i]==='green'));
+    const inYellow=guesses.some(g=>g.word.split('').some((c,i)=>c===k&&g.colors[i]==='yellow'));
+    const inGray=guesses.some(g=>g.word.split('').some((c,i)=>c===k&&g.colors[i]==='gray'));
+    return inGreen?'bg-green-500 text-white':inYellow?'bg-yellow-500 text-white':inGray?'bg-gray-600 text-white/50':'bg-white/10 text-white';
+  };
+
+  const reset=()=>{setTarget(pick());setGuesses([]);setCurrent('');setDone(false);setWon(false);};
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#050510,#0a0a1a)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(5,5,16,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🟩 Quantum Wordle</span>
+        <span className="text-white/30 text-xs ml-auto">{guesses.length}/6 guesses</span>
+        <button onClick={reset} className="px-3 py-1 rounded-lg bg-green-500/20 border border-green-500/30 text-green-300 text-[10px] font-bold">New Word</button>
+      </div>
+      <div className="flex-1 overflow-auto p-4 flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
+        {done&&<div className={cn("px-4 py-2 rounded-xl text-center font-black text-sm",won?"bg-green-500/20 border border-green-500/30 text-green-300":"bg-red-500/20 border border-red-500/30 text-red-300")}>{won?`🎉 Brilliant! ${guesses.length}/6`:`💀 Answer: ${target}`}<button onClick={reset} className="block mx-auto mt-1 px-3 py-1 rounded bg-white/10 text-xs">Play Again</button></div>}
+        {/* Grid */}
+        <div className="space-y-1.5">
+          {Array(6).fill(null).map((_,ri)=>{
+            const g=guesses[ri];
+            const isCurrent=ri===guesses.length&&!done;
+            return(
+              <div key={ri} className="flex gap-1.5">
+                {Array(5).fill(null).map((_,ci)=>{
+                  const letter=g?g.word[ci]:isCurrent?current[ci]:'';
+                  const color=g?g.colors[ci]==='green'?'bg-green-500 border-green-500':g.colors[ci]==='yellow'?'bg-yellow-500 border-yellow-500':'bg-gray-600 border-gray-600':isCurrent&&letter?'border-white/50 bg-white/5':'border-white/15 bg-white/[0.02]';
+                  return(<div key={ci} className={cn("w-12 h-12 rounded-lg border-2 flex items-center justify-center font-black text-white text-lg transition-all",color)}>{letter}</div>);
+                })}
+              </div>
+            );
+          })}
+        </div>
+        {/* Keyboard */}
+        {!done&&<div className="space-y-1 w-full">
+          {KEYS.map((row,ri)=>(
+            <div key={ri} className="flex justify-center gap-1">
+              {row.map(k=><button key={k} onClick={()=>setCurrent(p=>p.length<5?p+k:p)} className={cn("h-10 rounded-lg font-bold text-xs transition-all",k.length===1?'w-8':k==='←'?'w-12 px-2':'w-12 px-2',keyColor(k))}>{k}</button>)}
+              {ri===2&&<><button onClick={()=>setCurrent(p=>p.slice(0,-1))} className="h-10 w-12 rounded-lg bg-white/10 text-white text-xs font-bold hover:bg-white/20">⌫</button><button onClick={submit} className="h-10 w-14 rounded-lg bg-green-500/20 border border-green-500/30 text-green-300 text-[10px] font-bold hover:bg-green-500/30">Enter</button></>}
+            </div>
+          ))}
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: PONG VS AI ===== */
+function PongGame({onBack}:{onBack:()=>void}){
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  const stateRef=useRef({ball:{x:400,y:200,vx:3,vy:2},p1:{y:160},p2:{y:160},s1:0,s2:0,running:true});
+  const [score,setScore]=useState({p1:0,p2:0});
+  const [gameOver,setGameOver]=useState(false);
+  const keysRef=useRef<Set<string>>(new Set());
+  const animRef=useRef<number>(0);
+
+  const PH=40,PW=8,BW=400*2,BH=200*2;
+
+  useEffect(()=>{
+    const c=canvasRef.current;if(!c)return;
+    c.width=BW;c.height=BH;
+    const ctx=c.getContext('2d')!;
+    const s=stateRef.current;
+
+    const draw=()=>{
+      ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,BW,BH);
+      ctx.setLineDash([10,10]);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(BW/2,0);ctx.lineTo(BW/2,BH);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,255,0.8)';
+      ctx.fillRect(20,s.p1.y,PW,PH*2);
+      ctx.fillRect(BW-28,s.p2.y,PW,PH*2);
+      ctx.beginPath();ctx.arc(s.ball.x,s.ball.y,10,0,Math.PI*2);ctx.fillStyle='#a78bfa';ctx.fill();
+      ctx.fillStyle='white';ctx.font='bold 48px monospace';ctx.textAlign='center';
+      ctx.fillText(String(s.s1),BW/4,60);ctx.fillText(String(s.s2),3*BW/4,60);
+    };
+
+    const loop=()=>{
+      if(!s.running)return;
+      // Player paddle
+      if(keysRef.current.has('ArrowUp')&&s.p1.y>0)s.p1.y-=7;
+      if(keysRef.current.has('ArrowDown')&&s.p1.y<BH-PH*2)s.p1.y+=7;
+      if(keysRef.current.has('w')&&s.p1.y>0)s.p1.y-=7;
+      if(keysRef.current.has('s')&&s.p1.y<BH-PH*2)s.p1.y+=7;
+      // AI
+      const aiCenter=s.p2.y+PH;
+      if(aiCenter<s.ball.y-5)s.p2.y=Math.min(BH-PH*2,s.p2.y+5);
+      else if(aiCenter>s.ball.y+5)s.p2.y=Math.max(0,s.p2.y-5);
+      // Ball
+      s.ball.x+=s.ball.vx;s.ball.y+=s.ball.vy;
+      if(s.ball.y<10||s.ball.y>BH-10)s.ball.vy*=-1;
+      // Paddle collisions
+      if(s.ball.x<36&&s.ball.y>s.p1.y&&s.ball.y<s.p1.y+PH*2){s.ball.vx=Math.abs(s.ball.vx)*1.05;s.ball.vy+=(s.ball.y-s.p1.y-PH)/PH*2;}
+      if(s.ball.x>BW-36&&s.ball.y>s.p2.y&&s.ball.y<s.p2.y+PH*2){s.ball.vx=-Math.abs(s.ball.vx)*1.05;s.ball.vy+=(s.ball.y-s.p2.y-PH)/PH*2;}
+      // Scoring
+      if(s.ball.x<0){s.s2++;setScore({p1:s.s1,p2:s.s2});Object.assign(s.ball,{x:BW/2,y:BH/2,vx:3,vy:2});}
+      if(s.ball.x>BW){s.s1++;setScore({p1:s.s1,p2:s.s2});Object.assign(s.ball,{x:BW/2,y:BH/2,vx:-3,vy:2});}
+      if(s.s1>=7||s.s2>=7){s.running=false;setGameOver(true);}
+      draw();
+      animRef.current=requestAnimationFrame(loop);
+    };
+    animRef.current=requestAnimationFrame(loop);
+    return()=>cancelAnimationFrame(animRef.current);
+  },[]);
+
+  useEffect(()=>{
+    const d=(e:KeyboardEvent)=>keysRef.current.add(e.key);
+    const u=(e:KeyboardEvent)=>keysRef.current.delete(e.key);
+    window.addEventListener('keydown',d);window.addEventListener('keyup',u);
+    return()=>{window.removeEventListener('keydown',d);window.removeEventListener('keyup',u);};
+  },[]);
+
+  const reset=()=>{const s=stateRef.current;Object.assign(s,{ball:{x:400,y:200,vx:3,vy:2},p1:{y:160},p2:{y:160},s1:0,s2:0,running:true});setScore({p1:0,p2:0});setGameOver(false);};
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410,#0a0a20)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{background:'rgba(4,4,16,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🏓 Pong vs AI</span>
+        <span className="text-white/40 text-xs ml-auto">Arrow Keys / W-S to move • First to 7 wins</span>
+        {gameOver&&<button onClick={reset} className="px-3 py-1 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold">Rematch</button>}
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4">
+        {gameOver&&<div className="absolute z-10 px-6 py-4 rounded-2xl text-center font-black text-lg bg-black/80 border border-violet-500/30 text-white">{score.p1>=7?'🎉 YOU WIN!':'🤖 AI WINS'}<button onClick={reset} className="block mx-auto mt-2 px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm font-bold">Play Again</button></div>}
+        <canvas ref={canvasRef} className="rounded-2xl max-w-full" style={{maxHeight:'400px',border:'1px solid rgba(255,255,255,0.1)'}}/>
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: MINESWEEPER ===== */
+type Cell={mine:boolean,revealed:boolean,flagged:boolean,adj:number};
+function MinesweeperGame({onBack}:{onBack:()=>void}){
+  const MODES={easy:{r:9,c:9,m:10},medium:{r:16,c:16,m:40},hard:{r:16,c:30,m:99}};
+  const [mode,setMode]=useState<keyof typeof MODES>('easy');
+  const [grid,setGrid]=useState<Cell[][]>([]);
+  const [status,setStatus]=useState<'idle'|'playing'|'won'|'lost'>('idle');
+  const [flagCount,setFlagCount]=useState(0);
+  const [time,setTime]=useState(0);
+  const timerRef=useRef<ReturnType<typeof setInterval>|null>(null);
+
+  const buildGrid=(r:number,c:number,mines:number,safeR:number,safeC:number):Cell[][]=>{
+    const g:Cell[][]=Array(r).fill(null).map(()=>Array(c).fill(null).map(()=>({mine:false,revealed:false,flagged:false,adj:0})));
+    let placed=0;
+    while(placed<mines){const ri=Math.floor(Math.random()*r),ci=Math.floor(Math.random()*c);if(!g[ri][ci].mine&&!(ri===safeR&&ci===safeC)){g[ri][ci].mine=true;placed++;}}
+    for(let i=0;i<r;i++)for(let j=0;j<c;j++){let a=0;for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++){const ni=i+di,nj=j+dj;if(ni>=0&&ni<r&&nj>=0&&nj<c&&g[ni][nj].mine)a++;}g[i][j].adj=a;}
+    return g;
+  };
+
+  const reveal=(g:Cell[][],r:number,c:number):Cell[][]=>{
+    const ng=g.map(row=>row.map(cell=>({...cell})));
+    const queue=[[r,c]];const rows=ng.length,cols=ng[0].length;
+    while(queue.length){const[ri,ci]=queue.shift()!;if(ng[ri][ci].revealed||ng[ri][ci].flagged)continue;ng[ri][ci].revealed=true;if(!ng[ri][ci].adj&&!ng[ri][ci].mine)for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++){const ni=ri+di,nj=ci+dj;if(ni>=0&&ni<rows&&nj>=0&&nj<cols&&!ng[ni][nj].revealed)queue.push([ni,nj]);}}
+    return ng;
+  };
+
+  const handleClick=(ri:number,ci:number)=>{
+    if(status==='won'||status==='lost')return;
+    let g=grid;
+    if(status==='idle'){const{r,c,m}=MODES[mode];g=buildGrid(r,c,m,ri,ci);setStatus('playing');timerRef.current=setInterval(()=>setTime(t=>t+1),1000);}
+    if(g[ri][ci].flagged||g[ri][ci].revealed)return;
+    if(g[ri][ci].mine){
+      const ng=g.map(row=>row.map(cell=>({...cell,revealed:cell.mine?true:cell.revealed})));
+      setGrid(ng);setStatus('lost');if(timerRef.current)clearInterval(timerRef.current);return;
+    }
+    const ng=reveal(g,ri,ci);
+    setGrid(ng);
+    const{r,c,m}=MODES[mode];
+    const safe=r*c-m;const rev=ng.reduce((s,row)=>s+row.filter(cell=>cell.revealed).length,0);
+    if(rev>=safe){setStatus('won');if(timerRef.current)clearInterval(timerRef.current);}
+  };
+
+  const handleFlag=(e:React.MouseEvent,ri:number,ci:number)=>{
+    e.preventDefault();if(status==='won'||status==='lost'||status==='idle')return;
+    const ng=grid.map(row=>row.map(cell=>({...cell})));
+    if(ng[ri][ci].revealed)return;
+    ng[ri][ci].flagged=!ng[ri][ci].flagged;
+    setFlagCount(f=>f+(ng[ri][ci].flagged?1:-1));setGrid(ng);
+  };
+
+  const reset=()=>{setGrid([]);setStatus('idle');setFlagCount(0);setTime(0);if(timerRef.current)clearInterval(timerRef.current);};
+
+  const cellColor=(cell:Cell,ri:number,ci:number)=>{if(!cell.revealed)return 'bg-white/10 hover:bg-white/15 border-white/20';if(cell.mine)return 'bg-red-600 border-red-500';return 'bg-white/[0.04] border-white/8';};
+  const adjColor=['','text-blue-400','text-green-400','text-red-400','text-violet-400','text-orange-400','text-cyan-400','text-pink-400','text-white'];
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#020408,#050a10)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 flex-wrap" style={{background:'rgba(2,4,8,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">💣 Minesweeper</span>
+        <div className="flex gap-2 ml-auto items-center">
+          <span className="text-white/40 text-xs">⏱ {time}s</span>
+          <span className="text-red-400 text-xs">🚩 {MODES[mode].m-flagCount}</span>
+          {['easy','medium','hard'].map(m=><button key={m} onClick={()=>{setMode(m as any);reset();}} className={cn("px-2 py-1 rounded text-[10px] font-bold capitalize border transition-all",mode===m?"border-cyan-500 bg-cyan-500/20 text-cyan-300":"border-white/10 text-white/30 hover:text-white/60")}>{m}</button>)}
+          <button onClick={reset} className="px-2 py-1 rounded bg-white/5 border border-white/10 text-white/40 text-[10px] hover:text-white/70">🔄</button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto p-3 flex flex-col items-center gap-3">
+        {(status==='won'||status==='lost')&&<div className={cn("px-4 py-2 rounded-xl text-center font-black text-sm",status==='won'?"bg-green-500/20 border border-green-500/30 text-green-300":"bg-red-500/20 border border-red-500/30 text-red-300")}>{status==='won'?`🎉 Cleared! ${time}s`:'💥 BOOM!'}<button onClick={reset} className="block mx-auto mt-1 px-3 py-1 rounded bg-white/10 text-xs">Play Again</button></div>}
+        {status==='idle'&&<div className="text-white/40 text-sm">Click any cell to start</div>}
+        {(status!=='idle'||grid.length>0)&&(
+          <div className="overflow-auto">
+            <div style={{display:'grid',gridTemplateColumns:`repeat(${MODES[mode].c},1fr)`,gap:'2px'}}>
+              {(grid.length?grid:Array(MODES[mode].r).fill(null).map(()=>Array(MODES[mode].c).fill({mine:false,revealed:false,flagged:false,adj:0}))).map((row,ri)=>
+                row.map((cell:Cell,ci:number)=>(
+                  <button key={`${ri}-${ci}`} onClick={()=>handleClick(ri,ci)} onContextMenu={e=>handleFlag(e,ri,ci)}
+                    className={cn("w-6 h-6 rounded text-[9px] font-black border transition-all flex items-center justify-center",cellColor(cell,ri,ci))}>
+                    {cell.flagged&&!cell.revealed?'🚩':cell.revealed&&cell.mine?'💣':cell.revealed&&cell.adj>0?<span className={adjColor[cell.adj]}>{cell.adj}</span>:''}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+        <div className="text-white/20 text-[10px]">Left click: reveal • Right click / long press: flag</div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: SIMON SAYS ===== */
+function SimonGame({onBack}:{onBack:()=>void}){
+  const COLORS=['red','blue','green','yellow'];
+  const COLOR_STYLE={red:'bg-red-500 border-red-400',blue:'bg-blue-500 border-blue-400',green:'bg-green-500 border-green-400',yellow:'bg-yellow-500 border-yellow-400'};
+  const COLOR_DIM={red:'bg-red-900/50 border-red-800',blue:'bg-blue-900/50 border-blue-800',green:'bg-green-900/50 border-green-800',yellow:'bg-yellow-900/50 border-yellow-800'};
+  const [seq,setSeq]=useState<string[]>([]);
+  const [userSeq,setUserSeq]=useState<string[]>([]);
+  const [active,setActive]=useState<string|null>(null);
+  const [phase,setPhase]=useState<'idle'|'showing'|'input'|'lost'>('idle');
+  const [best,setBest]=useState(0);
+
+  const flash=(color:string,ms=400)=>new Promise<void>(res=>{setActive(color);setTimeout(()=>{setActive(null);setTimeout(res,100);},ms);});
+
+  const showSeq=async(sequence:string[])=>{
+    setPhase('showing');
+    for(const c of sequence){await flash(c,500);await new Promise(r=>setTimeout(r,200));}
+    setPhase('input');setUserSeq([]);
+  };
+
+  const start=()=>{const s=['red','blue','green','yellow'][Math.floor(Math.random()*4)];const ns=[s];setSeq(ns);showSeq(ns);};
+
+  const press=async(color:string)=>{
+    if(phase!=='input')return;
+    await flash(color,150);
+    const nu=[...userSeq,color];
+    const idx=nu.length-1;
+    if(nu[idx]!==seq[idx]){setPhase('lost');return;}
+    if(nu.length===seq.length){
+      if(seq.length>best)setBest(seq.length);
+      setTimeout(()=>{const ns=[...seq,COLORS[Math.floor(Math.random()*4)]];setSeq(ns);showSeq(ns);},600);
+    } else {
+      setUserSeq(nu);
+    }
+  };
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#0a000a,#15001a)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(10,0,10,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🟢 Simon Says</span>
+        <div className="ml-auto flex gap-3">
+          <span className="text-white/40 text-xs">Round: <span className="text-white font-bold">{seq.length}</span></span>
+          <span className="text-yellow-400 text-xs">Best: <span className="font-bold">{best}</span></span>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6">
+        {phase==='idle'&&<div className="text-center"><div className="text-6xl mb-4">🟢</div><div className="text-white font-black text-xl mb-2">Simon Says</div><div className="text-white/40 text-sm mb-6">Watch the sequence, repeat it</div><button onClick={start} className="px-8 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-lg shadow-xl hover:from-green-400 hover:to-emerald-500">▶ Start</button></div>}
+        {phase==='lost'&&<div className="text-center"><div className="text-6xl mb-3">💀</div><div className="text-red-300 font-black text-xl">Wrong!</div><div className="text-white/40 text-sm mb-4">Round {seq.length} • Best: {best}</div><button onClick={()=>{setSeq([]);setPhase('idle');}} className="px-6 py-3 rounded-2xl bg-red-500/20 border border-red-500/30 text-red-300 font-black text-lg hover:bg-red-500/30">Try Again</button></div>}
+        {(phase==='showing'||phase==='input')&&(
+          <div>
+            <div className="text-center text-white/40 text-xs mb-4">{phase==='showing'?'Watch...':'Your turn!'}</div>
+            <div className="grid grid-cols-2 gap-3">
+              {COLORS.map(c=>(
+                <button key={c} onClick={()=>press(c)} disabled={phase==='showing'}
+                  className={cn("w-32 h-32 sm:w-40 sm:h-40 rounded-3xl border-4 transition-all font-black text-2xl",active===c?COLOR_STYLE[c as keyof typeof COLOR_STYLE]:COLOR_DIM[c as keyof typeof COLOR_DIM],phase==='input'&&'hover:scale-95 active:scale-90')}>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: TIC TAC TOE VS AI (MINIMAX) ===== */
+function TicTacToeGame({onBack}:{onBack:()=>void}){
+  const [board,setBoard]=useState<(string|null)[]>(Array(9).fill(null));
+  const [turn,setTurn]=useState<'X'|'O'>('X');
+  const [wins,setWins]=useState({X:0,O:0,draw:0});
+  const [status,setStatus]=useState<'playing'|'won'|'draw'>('playing');
+  const [winner,setWinner]=useState<string|null>(null);
+  const [winLine,setWinLine]=useState<number[]|null>(null);
+  const [aiOn,setAiOn]=useState(true);
+
+  const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const checkWin=(b:(string|null)[]):{winner:string,line:number[]}|null=>{for(const l of LINES){const[a,c,d]=l;if(b[a]&&b[a]===b[c]&&b[a]===b[d])return{winner:b[a]!,line:l};}return null;};
+
+  const minimax=(b:(string|null)[],isMax:boolean,depth:number):number=>{
+    const w=checkWin(b);if(w)return w.winner==='O'?10-depth:depth-10;
+    if(b.every(c=>c))return 0;
+    const moves=b.map((v,i)=>v?-1:i).filter(i=>i>=0);
+    if(isMax){let best=-Infinity;for(const m of moves){b[m]='O';best=Math.max(best,minimax(b,false,depth+1));b[m]=null;}return best;}
+    else{let best=Infinity;for(const m of moves){b[m]='X';best=Math.min(best,minimax(b,true,depth+1));b[m]=null;}return best;}
+  };
+
+  const aiMove=(b:(string|null)[])=>{
+    const moves=b.map((v,i)=>v?-1:i).filter(i=>i>=0);
+    let bestScore=-Infinity,bestMove=moves[0];
+    for(const m of moves){b[m]='O';const s=minimax(b,false,0);b[m]=null;if(s>bestScore){bestScore=s;bestMove=m;}}
+    return bestMove;
+  };
+
+  const click=(i:number)=>{
+    if(board[i]||status!=='playing')return;
+    const nb=[...board];nb[i]=turn;
+    const w=checkWin(nb);
+    if(w){setBoard(nb);setWinner(w.winner);setWinLine(w.line);setStatus('won');setWins(prev=>({...prev,[w.winner]:prev[w.winner as 'X'|'O'|'draw']+1}));return;}
+    if(nb.every(c=>c)){setBoard(nb);setStatus('draw');setWins(prev=>({...prev,draw:prev.draw+1}));return;}
+    if(aiOn&&turn==='X'){
+      const ai=aiMove([...nb]);nb[ai]='O';
+      const w2=checkWin(nb);
+      if(w2){setBoard(nb);setWinner(w2.winner);setWinLine(w2.line);setStatus('won');setWins(prev=>({...prev,[w2.winner]:prev[w2.winner as 'X'|'O'|'draw']+1}));return;}
+      if(nb.every(c=>c)){setBoard(nb);setStatus('draw');setWins(prev=>({...prev,draw:prev.draw+1}));return;}
+      setBoard(nb);
+    } else {setBoard(nb);setTurn(t=>t==='X'?'O':'X');}
+  };
+
+  const reset=()=>{setBoard(Array(9).fill(null));setTurn('X');setStatus('playing');setWinner(null);setWinLine(null);};
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#050510,#0a0a20)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(5,5,16,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">❌ Tic Tac Toe</span>
+        <div className="flex gap-2 ml-auto items-center text-xs">
+          <span className="text-white/40">X:<span className="text-white font-bold"> {wins.X}</span></span>
+          <span className="text-white/20">·</span>
+          <span className="text-white/40">Draw:<span className="text-white/60 font-bold"> {wins.draw}</span></span>
+          <span className="text-white/20">·</span>
+          <span className="text-white/40">O:<span className="text-red-400 font-bold"> {wins.O}</span></span>
+          <button onClick={()=>setAiOn(a=>!a)} className={cn("px-2 py-0.5 rounded border text-[10px] font-bold",aiOn?"border-red-400/40 bg-red-400/10 text-red-300":"border-white/10 text-white/30")}>AI {aiOn?'ON':'OFF'}</button>
+          <button onClick={reset} className="px-2 py-1 rounded bg-white/5 border border-white/10 text-white/40 hover:text-white/70">🔄</button>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-5">
+        {status!=='playing'&&<div className={cn("px-5 py-2.5 rounded-xl text-center font-black",status==='won'?(winner==='X'?'bg-blue-500/20 border border-blue-500/30 text-blue-300':'bg-red-500/20 border border-red-500/30 text-red-300'):'bg-white/5 border border-white/10 text-white/60')}>{status==='won'?`${winner==='X'?'🎉 You Win!':'🤖 AI Wins!'}`:' 🤝 Draw!'}<button onClick={reset} className="block mx-auto mt-1 px-3 py-1 rounded bg-white/10 text-xs">Play Again</button></div>}
+        {status==='playing'&&<div className="text-white/40 text-sm">{turn==='X'?'Your turn (X)':'AI thinking...'}</div>}
+        <div className="grid grid-cols-3 gap-2">
+          {board.map((cell,i)=>(
+            <button key={i} onClick={()=>click(i)}
+              className={cn("w-24 h-24 rounded-2xl text-4xl font-black border-2 transition-all",winLine?.includes(i)?'border-yellow-400 bg-yellow-400/10':cell?'border-white/10 bg-white/5':'border-white/10 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/25')}>
+              {cell==='X'?<span className="text-blue-400">X</span>:cell==='O'?<span className="text-red-400">O</span>:''}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: CONNECT FOUR VS AI ===== */
+function ConnectFourGame({onBack}:{onBack:()=>void}){
+  const ROWS=6,COLS=7;
+  const empty=():string[][]=>Array(ROWS).fill(null).map(()=>Array(COLS).fill(''));
+  const [board,setBoard]=useState(empty());
+  const [turn,setTurn]=useState<'R'|'Y'>('R');
+  const [status,setStatus]=useState<'playing'|'won'|'draw'>('playing');
+  const [winner,setWinner]=useState('');
+  const [winCells,setWinCells]=useState<string[]>([]);
+  const [wins,setWins]=useState({R:0,Y:0,draw:0});
+
+  const check=(b:string[][]):{w:string,cells:string[]}|null=>{
+    const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(!b[r][c])continue;for(const[dr,dc]of dirs){const cells=[];for(let i=0;i<4;i++){const nr=r+i*dr,nc=c+i*dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||b[nr][nc]!==b[r][c])break;cells.push(`${nr}-${nc}`);}if(cells.length===4)return{w:b[r][c],cells};}}
+    return null;
+  };
+
+  const drop=(col:number,b:string[][]=[''],player:string='R'):number=>{
+    const g=b[0]===''?board:b;for(let r=ROWS-1;r>=0;r--){if(!g[r][col])return r;}return -1;
+  };
+
+  const score=(b:string[][],p:string):number=>{let s=0;const opp=p==='R'?'Y':'R';const dirs=[[0,1],[1,0],[1,1],[1,-1]];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)for(const[dr,dc]of dirs){let pc=0,oc=0;for(let i=0;i<4;i++){const nr=r+i*dr,nc=c+i*dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS)break;if(b[nr][nc]===p)pc++;else if(b[nr][nc]===opp)oc++;}if(oc===0)s+=pc**2;else if(pc===0)s-=oc**2;}return s;};
+
+  const aiCol=(b:string[][]):number=>{let best=-Infinity,bestC=3;for(let c=0;c<COLS;c++){const r=drop(c,b,'Y');if(r<0)continue;const nb=b.map(row=>[...row]);nb[r][c]='Y';const s=score(nb,'Y');if(s>best){best=s;bestC=c;}}return bestC;};
+
+  const play=(col:number)=>{
+    if(status!=='playing')return;
+    const r=drop(col);if(r<0)return;
+    const nb=board.map(row=>[...row]);nb[r][col]=turn;
+    const w=check(nb);
+    if(w){setBoard(nb);setWinner(w.w);setWinCells(w.cells);setStatus('won');setWins(p=>({...p,[w.w]:p[w.w as 'R'|'Y']+1}));return;}
+    if(nb.every(row=>row.every(c=>c))){setBoard(nb);setStatus('draw');setWins(p=>({...p,draw:p.draw+1}));return;}
+    // AI move
+    const ac=aiCol(nb);const ar=drop(ac,nb,'Y');if(ar>=0){nb[ar][ac]='Y';const w2=check(nb);if(w2){setBoard(nb);setWinner(w2.w);setWinCells(w2.cells);setStatus('won');setWins(p=>({...p,[w2.w]:p[w2.w as 'R'|'Y']+1}));return;}}
+    setBoard(nb);
+  };
+
+  const reset=()=>{setBoard(empty());setTurn('R');setStatus('playing');setWinner('');setWinCells([]);};
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#000a1a,#001020)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(0,5,16,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🔴 Connect Four</span>
+        <div className="flex gap-3 ml-auto text-xs">
+          <span className="text-red-400">You(🔴): <span className="font-bold">{wins.R}</span></span>
+          <span className="text-yellow-400">AI(🟡): <span className="font-bold">{wins.Y}</span></span>
+          {status!=='playing'&&<button onClick={reset} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/40 hover:text-white/70">🔄</button>}
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 p-4">
+        {status!=='playing'&&<div className={cn("px-5 py-2 rounded-xl text-center font-black text-sm",winner==='R'?'bg-red-500/20 border border-red-500/30 text-red-300':winner==='Y'?'bg-yellow-500/20 border border-yellow-500/30 text-yellow-300':'bg-white/5 border border-white/10 text-white/60')}>{winner==='R'?'🎉 You Win!':winner==='Y'?'🤖 AI Wins!':'🤝 Draw!'}<button onClick={reset} className="block mx-auto mt-1 px-3 py-1 rounded bg-white/10 text-xs">Play Again</button></div>}
+        {status==='playing'&&<div className="text-white/40 text-sm">Your turn — click column to drop 🔴</div>}
+        <div className="p-3 rounded-2xl" style={{background:'rgba(0,50,150,0.4)',border:'2px solid rgba(0,100,255,0.3)'}}>
+          <div className="flex gap-1 mb-1">
+            {Array(COLS).fill(null).map((_,c)=><button key={c} onClick={()=>play(c)} className="w-10 h-6 rounded text-white/20 hover:text-white/60 text-sm hover:bg-white/10 transition-all">▼</button>)}
+          </div>
+          {board.map((row,r)=>(
+            <div key={r} className="flex gap-1 mb-1">
+              {row.map((cell,c)=>(
+                <div key={c} className={cn("w-10 h-10 rounded-full border-2 transition-all",winCells.includes(`${r}-${c}`)&&cell?'scale-110 border-yellow-400':cell?'border-transparent':'border-white/10 bg-white/5',cell==='R'?'bg-red-500':cell==='Y'?'bg-yellow-400':'')}/>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: FLAPPY PULSE ===== */
+function FlappyGame({onBack}:{onBack:()=>void}){
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  const stateRef=useRef({bird:{y:200,vy:0},pipes:[] as {x:number,gap:number}[],score:0,alive:true,started:false});
+  const [score,setScore]=useState(0);
+  const [best,setBest]=useState(()=>parseInt(localStorage.getItem('flappy_best')||'0'));
+  const [dead,setDead]=useState(false);
+  const animRef=useRef<number>(0);
+  const W=400,H=500,GAP=130,PIPE_W=48,BIRD_R=14;
+
+  useEffect(()=>{
+    const c=canvasRef.current;if(!c)return;c.width=W;c.height=H;
+    const ctx=c.getContext('2d')!;const s=stateRef.current;
+    const flap=()=>{if(!s.alive)return;if(!s.started){s.started=true;s.pipes=[{x:W,gap:150+Math.random()*200}];}s.bird.vy=-8;};
+    const onKey=(e:KeyboardEvent)=>{if(e.code==='Space')flap();};
+    c.addEventListener('click',flap);window.addEventListener('keydown',onKey);
+    const loop=()=>{
+      if(!s.started){ctx.fillStyle='#0a1a2e';ctx.fillRect(0,0,W,H);ctx.fillStyle='white';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('Tap / Space to start',W/2,H/2);animRef.current=requestAnimationFrame(loop);return;}
+      if(!s.alive){animRef.current=requestAnimationFrame(loop);return;}
+      ctx.fillStyle='#0a1a2e';ctx.fillRect(0,0,W,H);
+      // Pipes
+      s.pipes.forEach(p=>{p.x-=3;ctx.fillStyle='#16a34a';ctx.fillRect(p.x,0,PIPE_W,p.gap-GAP/2);ctx.fillRect(p.x,p.gap+GAP/2,PIPE_W,H);});
+      if(!s.pipes.length||s.pipes[s.pipes.length-1].x<W-200)s.pipes.push({x:W,gap:120+Math.random()*220});
+      s.pipes=s.pipes.filter(p=>p.x>-PIPE_W);
+      // Score
+      s.pipes.forEach(p=>{if(Math.abs(p.x+PIPE_W/2-(W/3))< 4){s.score++;setScore(s.score);if(s.score>best){setBest(s.score);localStorage.setItem('flappy_best',String(s.score));}}});
+      // Bird physics
+      s.bird.vy+=0.5;s.bird.y+=s.bird.vy;
+      // Collision
+      const bx=W/3;
+      const hit=s.pipes.some(p=>bx+BIRD_R>p.x&&bx-BIRD_R<p.x+PIPE_W&&(s.bird.y-BIRD_R<p.gap-GAP/2||s.bird.y+BIRD_R>p.gap+GAP/2));
+      if(hit||s.bird.y+BIRD_R>H||s.bird.y-BIRD_R<0){s.alive=false;setDead(true);}
+      // Draw bird
+      ctx.beginPath();ctx.arc(bx,s.bird.y,BIRD_R,0,Math.PI*2);ctx.fillStyle='#fbbf24';ctx.fill();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.stroke();
+      // Score text
+      ctx.fillStyle='white';ctx.font='bold 28px monospace';ctx.textAlign='center';ctx.fillText(String(s.score),W/2,40);
+      animRef.current=requestAnimationFrame(loop);
+    };
+    animRef.current=requestAnimationFrame(loop);
+    return()=>{cancelAnimationFrame(animRef.current);c.removeEventListener('click',flap);window.removeEventListener('keydown',onKey);};
+  },[]);
+
+  const reset=()=>{const s=stateRef.current;Object.assign(s,{bird:{y:200,vy:0},pipes:[],score:0,alive:true,started:false});setScore(0);setDead(false);};
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#0a1a2e,#0a2040)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(10,20,40,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🐦 Flappy Pulse</span>
+        <div className="flex gap-3 ml-auto text-xs">
+          <span className="text-white/40">Score: <span className="text-white font-black">{score}</span></span>
+          <span className="text-yellow-400">Best: <span className="font-black">{best}</span></span>
+          {dead&&<button onClick={reset} className="px-2 py-0.5 rounded bg-green-500/20 border border-green-500/30 text-green-300 font-bold text-[10px]">Retry</button>}
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4">
+        {dead&&<div className="absolute z-10 text-center"><div className="text-4xl mb-2">💥</div><div className="text-white font-black text-xl mb-1">Score: {score}</div><div className="text-yellow-400 text-sm mb-3">Best: {best}</div><button onClick={reset} className="px-6 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-lg">Play Again</button></div>}
+        <canvas ref={canvasRef} className="rounded-2xl" style={{maxHeight:'500px',maxWidth:'100%',border:'1px solid rgba(255,255,255,0.1)'}}/>
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: HANGMAN ===== */
+const HANGMAN_WORDS=['javascript','quantum','artificial','intelligence','universe','platypus','symphony','cryptography','telescope','algorithm','blockchain','hypnosis','cyberpunk','mystical','carnival','adventure','submarine','kaleidoscope','catastrophe','magnificent','phenomenon','extraordinary','revolutionary','sophisticated','constellation'];
+const HANG_PARTS=[
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.moveTo(20,180);c.lineTo(160,180);c.stroke();},
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.moveTo(60,180);c.lineTo(60,20);c.stroke();},
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.moveTo(60,20);c.lineTo(120,20);c.stroke();},
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.moveTo(120,20);c.lineTo(120,45);c.stroke();},
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.arc(120,58,13,0,Math.PI*2);c.stroke();},
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.moveTo(120,71);c.lineTo(120,120);c.stroke();},
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.moveTo(120,80);c.lineTo(95,105);c.stroke();c.beginPath();c.moveTo(120,80);c.lineTo(145,105);c.stroke();},
+  (c:CanvasRenderingContext2D)=>{c.beginPath();c.moveTo(120,120);c.lineTo(95,150);c.stroke();c.beginPath();c.moveTo(120,120);c.lineTo(145,150);c.stroke();},
+];
+
+function HangmanGame({onBack}:{onBack:()=>void}){
+  const pick=()=>HANGMAN_WORDS[Math.floor(Math.random()*HANGMAN_WORDS.length)].toUpperCase();
+  const [word,setWord]=useState(pick);
+  const [guessed,setGuessed]=useState<Set<string>>(new Set());
+  const [won,setWon]=useState(false);
+  const [lost,setLost]=useState(false);
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+
+  const wrong=[...guessed].filter(l=>!word.includes(l));
+  const errors=wrong.length;
+  const revealed=word.split('').map(l=>guessed.has(l)?l:'_');
+  const isWon=revealed.every(l=>l!=='_');
+
+  useEffect(()=>{
+    const c=canvasRef.current;if(!c)return;
+    const ctx=c.getContext('2d')!;ctx.clearRect(0,0,180,200);
+    ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=3;ctx.lineCap='round';
+    HANG_PARTS.slice(0,errors).forEach(f=>f(ctx));
+  },[errors]);
+
+  useEffect(()=>{if(isWon&&!won&&!lost){setWon(true);}if(errors>=HANG_PARTS.length&&!lost){setLost(true);};},[isWon,errors]);
+
+  const guess=(l:string)=>{if(won||lost||guessed.has(l))return;setGuessed(new Set([...guessed,l]));};
+  const reset=()=>{setWord(pick());setGuessed(new Set());setWon(false);setLost(false);};
+
+  const ALPHA='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#0a0510,#15081a)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(10,5,16,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🎯 Hangman</span>
+        <span className="text-white/40 text-xs ml-auto">{errors}/{HANG_PARTS.length} wrong</span>
+        <button onClick={reset} className="px-2 py-1 rounded bg-white/5 border border-white/10 text-white/40 text-[10px] hover:text-white/70 ml-2">New Word</button>
+      </div>
+      <div className="flex-1 overflow-auto p-4 flex flex-col items-center gap-4 max-w-sm mx-auto w-full">
+        {(won||lost)&&<div className={cn("px-4 py-2 rounded-xl text-center font-black text-sm w-full",won?"bg-green-500/20 border border-green-500/30 text-green-300":"bg-red-500/20 border border-red-500/30 text-red-300")}>{won?'🎉 Correct!':` 💀 It was: ${word}`}<button onClick={reset} className="block mx-auto mt-1 px-3 py-1 rounded bg-white/10 text-xs">Play Again</button></div>}
+        <canvas ref={canvasRef} width={180} height={200} className="rounded-xl" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)'}}/>
+        {/* Word display */}
+        <div className="flex gap-2 flex-wrap justify-center">
+          {revealed.map((l,i)=><div key={i} className={cn("w-8 h-10 border-b-2 flex items-end justify-center pb-1 font-black text-lg",l==='_'?'border-white/20 text-transparent':'border-violet-400 text-white')}>{l}</div>)}
+        </div>
+        {/* Wrong letters */}
+        {wrong.length>0&&<div className="text-red-400/60 text-xs">Wrong: {wrong.join(' ')}</div>}
+        {/* Keyboard */}
+        <div className="flex flex-wrap gap-1.5 justify-center">
+          {ALPHA.map(l=><button key={l} onClick={()=>guess(l)} disabled={guessed.has(l)||won||lost}
+            className={cn("w-8 h-8 rounded-lg text-xs font-bold border transition-all",guessed.has(l)?word.includes(l)?'bg-green-500/20 border-green-500/30 text-green-400':'bg-white/5 border-white/5 text-white/20':'bg-white/8 border-white/15 text-white/70 hover:bg-white/15 hover:border-white/30 active:scale-90')}>{l}</button>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== GAME: SPACE INVADERS ===== */
+function SpaceInvadersGame({onBack}:{onBack:()=>void}){
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  const stateRef=useRef({
+    ship:{x:200,y:440},bullets:[] as {x:number,y:number}[],aliens:[] as {x:number,y:number,alive:boolean}[],
+    dir:1,alienY:50,lastShot:0,score:0,lives:3,level:1,gameOver:false,won:false,alienMoveTimer:0
+  });
+  const keysRef=useRef<Set<string>>(new Set());
+  const animRef=useRef<number>(0);
+  const [score,setScore]=useState(0);
+  const [lives,setLives]=useState(3);
+  const [over,setOver]=useState(false);
+  const [won,setWon]=useState(false);
+  const W=400,H=500;
+
+  const initAliens=(level:number)=>{
+    const a=[];
+    for(let r=0;r<4;r++)for(let c=0;c<9;c++)a.push({x:30+c*40,y:30+r*35,alive:true});
+    return a;
+  };
+
+  useEffect(()=>{
+    const c=canvasRef.current;if(!c)return;c.width=W;c.height=H;
+    const ctx=c.getContext('2d')!;const s=stateRef.current;
+    s.aliens=initAliens(1);
+    const onKey=(e:KeyboardEvent)=>{keysRef.current.add(e.code);if(e.code==='Space'){e.preventDefault();}};
+    const onKeyUp=(e:KeyboardEvent)=>keysRef.current.delete(e.code);
+    window.addEventListener('keydown',onKey);window.addEventListener('keyup',onKeyUp);
+    let frame=0;
+    const loop=()=>{
+      if(s.gameOver||s.won){animRef.current=requestAnimationFrame(loop);return;}
+      frame++;
+      ctx.fillStyle='#020408';ctx.fillRect(0,0,W,H);
+      // Ship movement
+      if(keysRef.current.has('ArrowLeft')&&s.ship.x>20)s.ship.x-=5;
+      if(keysRef.current.has('ArrowRight')&&s.ship.x<W-20)s.ship.x+=5;
+      if(keysRef.current.has('Space')&&frame-s.lastShot>15){s.bullets.push({x:s.ship.x,y:s.ship.y});s.lastShot=frame;}
+      // Move aliens
+      s.alienMoveTimer++;
+      const speed=Math.max(8,20-s.level*2);
+      if(s.alienMoveTimer>=speed){
+        s.alienMoveTimer=0;const living=s.aliens.filter(a=>a.alive);
+        const maxX=Math.max(...living.map(a=>a.x));const minX=Math.min(...living.map(a=>a.x));
+        if((s.dir>0&&maxX>W-40)||(s.dir<0&&minX<40)){s.dir*=-1;s.aliens.forEach(a=>{a.y+=12;});}
+        s.aliens.forEach(a=>{if(a.alive)a.x+=s.dir*4;});
+      }
+      // Bullets
+      s.bullets=s.bullets.filter(b=>{b.y-=8;return b.y>0;});
+      // Collision
+      s.bullets=s.bullets.filter(b=>{
+        let hit=false;
+        s.aliens.forEach(a=>{if(a.alive&&Math.abs(b.x-a.x)<16&&Math.abs(b.y-a.y)<14){a.alive=false;s.score+=10;setScore(s.score);hit=true;}});
+        return!hit;
+      });
+      // Alien reaches bottom
+      s.aliens.forEach(a=>{if(a.alive&&a.y>H-80){s.lives--;setLives(s.lives);s.aliens=initAliens(s.level);s.alienY=50;if(s.lives<=0){s.gameOver=true;setOver(true);}}});
+      // Win check
+      if(s.aliens.every(a=>!a.alive)){s.won=true;setWon(true);}
+      // Draw ship
+      ctx.fillStyle='#60a5fa';ctx.fillRect(s.ship.x-15,s.ship.y,30,10);ctx.fillRect(s.ship.x-5,s.ship.y-10,10,10);
+      // Draw bullets
+      ctx.fillStyle='#fbbf24';
+      s.bullets.forEach(b=>{ctx.fillRect(b.x-2,b.y-8,4,8);});
+      // Draw aliens
+      s.aliens.forEach(a=>{
+        if(!a.alive)return;
+        ctx.fillStyle='#4ade80';ctx.fillRect(a.x-12,a.y-8,24,16);ctx.fillRect(a.x-16,a.y-4,4,8);ctx.fillRect(a.x+12,a.y-4,4,8);
+      });
+      // HUD
+      ctx.fillStyle='white';ctx.font='bold 14px monospace';ctx.textAlign='left';ctx.fillText(`Score: ${s.score}`,10,20);
+      ctx.textAlign='right';ctx.fillText(`${'❤'.repeat(s.lives)}`,W-10,20);
+      animRef.current=requestAnimationFrame(loop);
+    };
+    animRef.current=requestAnimationFrame(loop);
+    return()=>{cancelAnimationFrame(animRef.current);window.removeEventListener('keydown',onKey);window.removeEventListener('keyup',onKeyUp);};
+  },[]);
+
+  const reset=()=>{const s=stateRef.current;Object.assign(s,{ship:{x:200,y:440},bullets:[],aliens:initAliens(1),dir:1,score:0,lives:3,gameOver:false,won:false,alienMoveTimer:0,lastShot:0});setScore(0);setLives(3);setOver(false);setWon(false);};
+
+  return(
+    <div className="flex-1 flex flex-col items-center" style={{background:'linear-gradient(180deg,#020408,#050a10)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 w-full" style={{background:'rgba(2,4,8,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">👾 Space Invaders</span>
+        <span className="text-white/40 text-xs ml-auto">Arrow Keys to move • Space to shoot</span>
+        {(over||won)&&<button onClick={reset} className="ml-2 px-2 py-1 rounded bg-green-500/20 border border-green-500/30 text-green-300 text-[10px] font-bold">Retry</button>}
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4">
+        {(over||won)&&<div className="absolute z-10 text-center bg-black/80 border border-white/20 rounded-2xl px-6 py-4"><div className="text-4xl mb-2">{won?'🎉':'💥'}</div><div className="text-white font-black text-xl mb-1">{won?'You Win!':'Game Over'}</div><div className="text-yellow-400 text-sm mb-3">Score: {score}</div><button onClick={reset} className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 text-white font-black">Play Again</button></div>}
+        <canvas ref={canvasRef} className="rounded-2xl" style={{maxHeight:'500px',maxWidth:'100%',border:'1px solid rgba(255,255,255,0.1)'}}/>
+      </div>
+    </div>
+  );
+}
+
 function GamesPage() {
   const [gameMode, setGameMode] = useState<GameMode>("hub");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -8363,6 +9354,17 @@ function GamesPage() {
   if (gameMode === "rompatch") return <RomPatcherTool onBack={()=>setGameMode("retrotools")} />;
   if (gameMode === "spritetools") return <SpriteSlicer onBack={()=>setGameMode("retrotools")} />;
   if (gameMode === "opengames") return <OpenGamesZone onBack={()=>setGameMode("retrotools")} />;
+  if (gameMode === "gamelibrary") return <GameLibrary onBack={()=>setGameMode("hub")} setGameMode={setGameMode} />;
+  if (gameMode === "puzzle2048") return <Game2048 onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "wordle") return <WordleGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "pong") return <PongGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "minesweeper") return <MinesweeperGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "simon") return <SimonGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "tictactoe") return <TicTacToeGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "connect4") return <ConnectFourGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "flappy") return <FlappyGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "hangman") return <HangmanGame onBack={()=>setGameMode("gamelibrary")} />;
+  if (gameMode === "spaceinvaders") return <SpaceInvadersGame onBack={()=>setGameMode("gamelibrary")} />;
 
   if (gameMode === "blackjack") return (
     <div className="flex-1 overflow-y-auto bg-gradient-to-b from-green-900 via-green-800 to-green-900 p-4">
@@ -8574,6 +9576,27 @@ function GamesPage() {
             <div><h2 className="text-base font-extrabold text-white">⚡ Sovereign Game OS</h2><p className="text-white/30 text-xs">Pre-installed tools — click once, runs instantly. No downloads. No installs. No friction.</p></div>
             <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30 font-bold">{SOVEREIGN_SEED.filter(t=>t.installed).length} READY</span>
           </div>
+          {/* Game Library — featured full-width */}
+          <button onClick={()=>setGameMode("gamelibrary")} data-testid="hub-card-gamelibrary"
+            className="group relative overflow-hidden rounded-3xl border border-green-500/30 p-5 text-left w-full mb-3 hover:border-green-400/50 hover:shadow-2xl hover:shadow-green-500/20 transition-all"
+            style={{background:'linear-gradient(135deg,#001a05,#002a10,#001a20)'}}>
+            <div className="absolute top-0 right-0 w-48 h-48 bg-green-500/5 rounded-full -translate-y-16 translate-x-16"/>
+            <div className="flex items-center gap-4">
+              <div className="text-5xl">🎮</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <div className="text-white font-black text-base">Sovereign Game Library</div>
+                  <span className="text-[9px] bg-green-500 text-white px-2 py-0.5 rounded-full font-black">{GAME_LIBRARY.filter(g=>g.type==='builtin').length} INSTANT PLAY</span>
+                  <span className="text-[9px] bg-white/10 text-white/60 px-2 py-0.5 rounded-full font-bold">{GAME_LIBRARY.length} TOTAL</span>
+                </div>
+                <div className="text-white/40 text-xs mb-2">2048 · Wordle · Pong · Space Invaders · Minesweeper · Simon · Tic Tac Toe · Connect Four · Flappy · Hangman · Blackjack · Snake + 40 more</div>
+                <div className="flex flex-wrap gap-1">
+                  {['Puzzle','Arcade','Word','Strategy','Casino','Trivia','AI','Open-Source'].map(t=><span key={t} className="text-[8px] px-1.5 py-0.5 bg-green-500/15 text-green-400 rounded-full">{t}</span>)}
+                </div>
+              </div>
+              <div className="text-green-400 font-black text-sm group-hover:text-green-300">▶ Browse All</div>
+            </div>
+          </button>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button onClick={()=>setGameMode("emulator")} data-testid="hub-card-emulator" className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left hover:border-violet-500/40 hover:shadow-2xl hover:shadow-violet-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a003a,#2d005a)'}}>
               <div className="text-3xl mb-2">🕹️</div>
