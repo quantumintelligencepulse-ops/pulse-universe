@@ -2036,7 +2036,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/shopping" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/shopping" ? "bg-lime-500/15" : "bg-lime-500/5"}`}><ShoppingBag size={14} className="text-lime-600" /></div>
             <span className="flex-1">Shopping</span>
-            <span className="text-[9px] bg-gradient-to-r from-lime-500 to-green-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("create") && (
