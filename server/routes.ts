@@ -5921,14 +5921,17 @@ ${(pubs.rows as any[]).map(p => {
   // ══════════════════════════════════════════════════════════════
   app.get("/api/hive/graph", async (req, res) => {
     try {
-      const [entries, links] = await Promise.all([
-        storage.getAllQuantapediaEntries(200).catch(() => []),
-        storage.getHiveLinks(500).catch(() => []),
+      const limit = Math.min(500, parseInt(req.query.limit as string || "300", 10));
+      const [entries, links, totalRow] = await Promise.all([
+        storage.getAllQuantapediaEntries(limit).catch(() => []),
+        storage.getHiveLinks(1000).catch(() => []),
+        pool.query("SELECT COUNT(*) as total FROM quantapedia_entries WHERE generated = true").catch(() => ({ rows: [{ total: 0 }] })),
       ]);
+      const realTotal = parseInt((totalRow as any).rows[0]?.total ?? 0, 10);
       const nodes = entries.map((e: any) => ({ id: e.slug, label: e.title || e.slug, type: "knowledge", domain: e.domain || "general", views: e.viewCount || 0, generated: e.generated }));
       const edges = links.map((l: any) => ({ from: l.fromSlug, to: l.toSlug, strength: l.strength || 0.5 }));
-      res.json({ nodes, edges, nodeCount: nodes.length, edgeCount: edges.length });
-    } catch { res.json({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0 }); }
+      res.json({ nodes, edges, nodeCount: realTotal, edgeCount: edges.length, displayCount: nodes.length });
+    } catch { res.json({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 }); }
   });
 
   app.get("/api/spawns/stats", async (req, res) => {
@@ -5951,6 +5954,27 @@ ${(pubs.rows as any[]).map(p => {
   app.get("/api/spawns/active", async (req, res) => {
     try { res.json(await storage.getActiveSpawnsByFamily()); }
     catch { res.json([]); }
+  });
+
+  app.get("/api/spawns/list", async (req, res) => {
+    try {
+      const page = Math.max(0, parseInt(req.query.page as string || "0", 10));
+      const limit = Math.min(200, parseInt(req.query.limit as string || "100", 10));
+      const search = (req.query.search as string || "").toLowerCase();
+      const spawnType = (req.query.type as string || "").toUpperCase();
+      const domain = (req.query.domain as string || "").toLowerCase();
+      const offset = page * limit;
+      let query = `SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, created_at FROM quantum_spawns WHERE 1=1`;
+      const params: any[] = [];
+      if (search) { params.push(`%${search}%`); query += ` AND (task_description ILIKE $${params.length} OR spawn_type ILIKE $${params.length})`; }
+      if (spawnType) { params.push(spawnType); query += ` AND spawn_type = $${params.length}`; }
+      if (domain) { params.push(`%${domain}%`); query += ` AND domain_focus::text ILIKE $${params.length}`; }
+      const countQ = await pool.query(query.replace("SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, created_at", "SELECT COUNT(*) as total"), params);
+      params.push(limit, offset);
+      query += ` ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
+      const result = await pool.query(query, params);
+      res.json({ spawns: result.rows, total: parseInt(countQ.rows[0].total, 10), page, limit });
+    } catch (e: any) { res.json({ spawns: [], total: 0, page: 0, limit: 100 }); }
   });
 
   // ── Solar System / Pulse World Routes ───────────────────────

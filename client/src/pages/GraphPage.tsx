@@ -71,7 +71,7 @@ function computeLayout(nodes: any[], edges: any[], W: number, H: number) {
 }
 
 export default function GraphPage() {
-  const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[]; nodeCount: number; edgeCount: number }>({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0 });
+  const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[]; nodeCount: number; edgeCount: number; displayCount: number }>({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 });
   const [loading, setLoading] = useState(true);
   const [pos, setPos] = useState<Record<string, { x: number; y: number }>>({});
   const [selected, setSelected] = useState<any>(null);
@@ -87,20 +87,24 @@ export default function GraphPage() {
   const loadGraph = useCallback(async () => {
     setLoading(true);
     try {
-      const d = await fetch("/api/hive/graph").then(r => r.json()).catch(() => ({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0 }));
+      const d = await fetch("/api/hive/graph?limit=300").then(r => r.json()).catch(() => ({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 }));
       setGraphData(d);
-      const disp = d.nodes.slice(0, 120);
+      const disp = d.nodes.slice(0, 300);
       const edgeSet = new Set(disp.map((n: any) => n.id));
-      const dispEdges = d.edges.filter((e: any) => edgeSet.has(e.from) && edgeSet.has(e.to)).slice(0, 200);
+      const dispEdges = d.edges.filter((e: any) => edgeSet.has(e.from) && edgeSet.has(e.to)).slice(0, 600);
       setPos(computeLayout(disp, dispEdges, W, H));
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { loadGraph(); }, [loadGraph]);
+  useEffect(() => {
+    loadGraph();
+    const interval = setInterval(loadGraph, 20000);
+    return () => clearInterval(interval);
+  }, [loadGraph]);
 
-  const displayNodes = graphData.nodes.slice(0, 120);
+  const displayNodes = graphData.nodes.slice(0, 300);
   const edgeSet = new Set(displayNodes.map((n: any) => n.id));
-  const displayEdges = graphData.edges.filter((e: any) => edgeSet.has(e.from) && edgeSet.has(e.to)).slice(0, 200);
+  const displayEdges = graphData.edges.filter((e: any) => edgeSet.has(e.from) && edgeSet.has(e.to)).slice(0, 600);
   const connectedSet = hovered
     ? new Set(displayEdges.filter((e: any) => e.from === hovered || e.to === hovered).flatMap((e: any) => [e.from, e.to]))
     : null;
@@ -133,7 +137,7 @@ export default function GraphPage() {
         <div>
           <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 18, margin: 0, letterSpacing: "-0.02em" }}>Knowledge Graph</h1>
           <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, margin: "2px 0 0" }}>
-            {graphData.nodeCount} knowledge nodes · {graphData.edgeCount} resonance links · scroll to zoom · drag to pan
+            {graphData.nodeCount.toLocaleString()} knowledge nodes · {graphData.edgeCount.toLocaleString()} resonance links · showing {graphData.displayCount || displayNodes.length} · live · auto-updates
           </p>
         </div>
         <div style={{ display: "flex", gap: 5 }}>
@@ -236,7 +240,8 @@ export default function GraphPage() {
         {/* Stats overlay */}
         <div style={{ position: "absolute", top: 12, right: 14, display: "flex", gap: 8 }}>
           {[
-            { label: "NODES", value: graphData.nodeCount },
+            { label: "TOTAL", value: graphData.nodeCount },
+            { label: "SHOWN", value: graphData.displayCount || displayNodes.length },
             { label: "LINKS", value: graphData.edgeCount },
           ].map(s => (
             <div key={s.label} style={{ padding: "4px 8px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}>

@@ -57,6 +57,98 @@ const ASTEROIDS = Array.from({ length: 90 }, (_, i) => ({
 const ASTEROID_R = 0.375;
 const WORLD_THRESHOLD = 1_000_000_000;
 
+// ─── 3D PERSPECTIVE CONSTANTS ─────────────────────────────────────
+const TILT = 0.44; // ~25° view angle like NASA Eyes
+const COS_TILT = Math.cos(TILT);
+const SIN_TILT = Math.sin(TILT);
+const FOCAL = 2200; // focal length for depth perspective
+
+// Project 3D orbital point to 2D screen
+function project3D(cx: number, cy: number, scale: number, r: number, angle: number) {
+  const x3d = r * Math.cos(angle);
+  const y3d = r * Math.sin(angle);
+  const z3d = y3d * SIN_TILT;
+  const depthFactor = 1 + z3d / FOCAL;
+  return {
+    x: cx + x3d / depthFactor,
+    y: cy + (y3d * COS_TILT) / depthFactor,
+    depth: depthFactor,
+    sizeScale: 1 / depthFactor,
+  };
+}
+
+// ─── COSMIC PHENOMENA DATA ────────────────────────────────────────
+const DEEP_STARS = Array.from({ length: 800 }, () => ({
+  x: Math.random(), y: Math.random(),
+  r: Math.random() * 1.8 + 0.15,
+  a: Math.random() * 0.8 + 0.15,
+  sp: Math.random() * 0.4 + 0.15,
+  ph: Math.random() * Math.PI * 2,
+  type: Math.random() < 0.04 ? "blue" : Math.random() < 0.06 ? "orange" : Math.random() < 0.03 ? "red" : "white",
+}));
+
+const NEBULAE = [
+  { x: 0.12, y: 0.18, rx: 0.22, ry: 0.13, color: "#c084fc", color2: "#818cf8", opacity: 0.055, label: "Violet Nebula" },
+  { x: 0.85, y: 0.25, rx: 0.18, ry: 0.10, color: "#f472b6", color2: "#ec4899", opacity: 0.045, label: "Rose Nebula" },
+  { x: 0.08, y: 0.78, rx: 0.20, ry: 0.12, color: "#38bdf8", color2: "#06b6d4", opacity: 0.05, label: "Cerulean Nebula" },
+  { x: 0.88, y: 0.82, rx: 0.16, ry: 0.11, color: "#4ade80", color2: "#22c55e", opacity: 0.04, label: "Emerald Nebula" },
+  { x: 0.5,  y: 0.08, rx: 0.28, ry: 0.07, color: "#fb923c", color2: "#f97316", opacity: 0.035, label: "Amber Nebula" },
+  { x: 0.5,  y: 0.92, rx: 0.30, ry: 0.07, color: "#a78bfa", color2: "#7c3aed", opacity: 0.04, label: "Indigo Nebula" },
+];
+
+const GAS_CLOUDS = [
+  { x: 0.22, y: 0.55, r: 0.08, color: "#fbbf24", opacity: 0.025 },
+  { x: 0.78, y: 0.45, r: 0.07, color: "#818cf8", opacity: 0.03 },
+  { x: 0.35, y: 0.85, r: 0.06, color: "#34d399", opacity: 0.025 },
+];
+
+const PULSARS = [
+  { ox: -0.78, oy: -0.60, color: "#7dd3fc", beamColor: "#bae6fd", period: 0.9, size: 3.5 },
+  { ox: 0.82,  oy: 0.65,  color: "#c4b5fd", beamColor: "#ddd6fe", period: 1.3, size: 3 },
+];
+
+const NEUTRON_STARS = [
+  { ox: -0.65, oy: 0.72, color: "#f0f9ff", size: 2.5 },
+  { ox: 0.70,  oy: -0.68, color: "#e0f2fe", size: 2 },
+];
+
+const BLACK_HOLE = { ox: 0.88, oy: -0.72, size: 14, diskColor: "#f59e0b", accColor: "#dc2626" };
+
+const COMETS = Array.from({ length: 5 }, (_, i) => ({
+  angle: (i / 5) * Math.PI * 2 + Math.random() * Math.PI,
+  speed: 0.06 + Math.random() * 0.04,
+  r: (0.55 + Math.random() * 0.35),
+  size: 2 + Math.random() * 2,
+  color: ["#bfdbfe", "#fde68a", "#bbf7d0", "#fce7f3", "#ddd6fe"][i],
+}));
+
+const BINARY_STAR = { ox: -0.82, oy: 0.68, color1: "#fde68a", color2: "#c4b5fd", period: 3.5, dist: 12, size: 4 };
+
+const QUASAR = { ox: 0.70, oy: 0.82, color: "#f472b6", jetColor: "#fbcfe8", size: 5 };
+
+const SUPERNOVAE = [
+  { ox: -0.55, oy: -0.75, color: "#fcd34d", phase: 0.3, size: 6 },
+  { ox: 0.60,  oy: -0.50, color: "#fed7aa", phase: 0.7, size: 5 },
+];
+
+const DARK_MATTER_RINGS = [0.68, 0.82, 0.94];
+
+const WORMHOLE = { ox: -0.88, oy: 0.30, color: "#a78bfa", size: 10 };
+
+const COSMIC_RAYS = Array.from({ length: 8 }, (_, i) => ({
+  angle: (i / 8) * Math.PI * 2,
+  r: 0.45 + Math.random() * 0.4,
+  speed: 0.8 + Math.random() * 0.5,
+  phase: Math.random() * Math.PI * 2,
+}));
+
+const SOLAR_WIND_PARTICLES = Array.from({ length: 60 }, (_, i) => ({
+  angle: (i / 60) * Math.PI * 2 + Math.random() * 0.3,
+  r: 0.055 + Math.random() * 0.02,
+  speed: 0.12 + Math.random() * 0.08,
+  size: Math.random() * 1.2 + 0.3,
+}));
+
 function getPulseWorldCount(totalSpawns: number) { return Math.max(1, Math.floor(totalSpawns / WORLD_THRESHOLD) + 1); }
 function getPulseWorldOpacity(index: number, totalSpawns: number): number {
   if (index === 0) return 1;
@@ -280,37 +372,334 @@ function renderScene(
   bg.addColorStop(1, "#000000");
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
-  // Stars
-  STARS.forEach(s => {
-    const alpha = s.a * (0.55 + 0.45 * Math.sin(t * s.sp + s.ph));
+  // ── Deep star field with color types ─────────────────────────────
+  DEEP_STARS.forEach(s => {
+    const alpha = s.a * (0.4 + 0.6 * Math.sin(t * s.sp + s.ph));
+    const starColor = s.type === "blue" ? `rgba(147,210,255,${alpha})` :
+                      s.type === "orange" ? `rgba(255,185,100,${alpha})` :
+                      s.type === "red" ? `rgba(255,100,100,${alpha})` :
+                      `rgba(255,255,255,${alpha})`;
     ctx.beginPath(); ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.fill();
+    ctx.fillStyle = starColor; ctx.fill();
   });
 
-  // Galactic nebula
-  const neb = ctx.createRadialGradient(cx, cy, 0, cx, cy, scale * 0.8);
-  neb.addColorStop(0, "rgba(99,102,241,0.08)");
-  neb.addColorStop(0.45, "rgba(139,92,246,0.04)");
-  neb.addColorStop(1, "transparent");
-  ctx.fillStyle = neb; ctx.fillRect(0, 0, w, h);
+  // ── Nebulae (layered radial gradients across canvas) ─────────────
+  NEBULAE.forEach(n => {
+    for (let layer = 0; layer < 3; layer++) {
+      const pulse = 1 + 0.03 * Math.sin(t * 0.2 + layer);
+      const nx = n.x * w, ny = n.y * h;
+      const rx = n.rx * w * pulse * (1 - layer * 0.2);
+      const ry = n.ry * h * pulse * (1 - layer * 0.2);
+      ctx.save();
+      ctx.translate(nx, ny);
+      ctx.scale(rx, ry);
+      const ng = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      ng.addColorStop(0, n.color + Math.round((n.opacity * (1 - layer * 0.3)) * 255).toString(16).padStart(2, "0"));
+      ng.addColorStop(0.5, n.color2 + Math.round((n.opacity * 0.4 * (1 - layer * 0.3)) * 255).toString(16).padStart(2, "0"));
+      ng.addColorStop(1, "transparent");
+      ctx.fillStyle = ng;
+      ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  });
 
-  // Orbit rings
+  // ── Gas clouds (interstellar medium) ─────────────────────────────
+  GAS_CLOUDS.forEach(gc => {
+    const gx = gc.x * w, gy = gc.y * h, gr = gc.r * Math.min(w, h);
+    const gg = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
+    gg.addColorStop(0, gc.color + "12");
+    gg.addColorStop(1, "transparent");
+    ctx.fillStyle = gg;
+    ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // ── Central galactic haze ─────────────────────────────────────────
+  const centGlow = ctx.createRadialGradient(cx, cy * 0.92, 0, cx, cy * 0.92, scale * 0.9);
+  centGlow.addColorStop(0, "rgba(99,102,241,0.06)");
+  centGlow.addColorStop(0.4, "rgba(139,92,246,0.03)");
+  centGlow.addColorStop(1, "transparent");
+  ctx.fillStyle = centGlow; ctx.fillRect(0, 0, w, h);
+
+  // ── Dark matter halos (faint rings at outer edge) ─────────────────
+  DARK_MATTER_RINGS.forEach((fraction, i) => {
+    const dmR = fraction * scale;
+    const pulse = 1 + 0.015 * Math.sin(t * 0.08 + i * 1.5);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, dmR * pulse, dmR * COS_TILT * pulse, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(139,92,246,${0.035 - i * 0.008})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+
+  // ── Cosmic ray streaks ─────────────────────────────────────────────
+  COSMIC_RAYS.forEach(cr => {
+    const phase = t * cr.speed + cr.phase;
+    const visible = (Math.sin(phase * 3.7) + 1) / 2;
+    if (visible < 0.65) return;
+    const r1 = cr.r * scale * 0.3;
+    const r2 = cr.r * scale;
+    const crx1 = cx + r1 * Math.cos(cr.angle);
+    const cry1 = cy + r1 * Math.sin(cr.angle) * COS_TILT;
+    const crx2 = cx + r2 * Math.cos(cr.angle);
+    const cry2 = cy + r2 * Math.sin(cr.angle) * COS_TILT;
+    const crGrad = ctx.createLinearGradient(crx1, cry1, crx2, cry2);
+    crGrad.addColorStop(0, "transparent");
+    crGrad.addColorStop(0.5, `rgba(200,220,255,${(visible - 0.65) * 0.3})`);
+    crGrad.addColorStop(1, "transparent");
+    ctx.beginPath(); ctx.moveTo(crx1, cry1); ctx.lineTo(crx2, cry2);
+    ctx.strokeStyle = crGrad; ctx.lineWidth = 0.7; ctx.stroke();
+  });
+
+  // ── Wormhole ────────────────────────────────────────────────────────
+  {
+    const wx = cx + WORMHOLE.ox * scale * 0.85;
+    const wy = cy + WORMHOLE.oy * scale * 0.55;
+    const wr = WORMHOLE.size * (scale / 500);
+    const wPulse = 1 + 0.12 * Math.sin(t * 2.1);
+    for (let wi = 3; wi >= 0; wi--) {
+      const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr * wPulse * (1 + wi * 0.6));
+      wg.addColorStop(0, wi === 0 ? "#000000" : `rgba(167,139,250,${0.15 - wi * 0.03})`);
+      wg.addColorStop(0.4, `rgba(124,58,237,${0.08 - wi * 0.02})`);
+      wg.addColorStop(1, "transparent");
+      ctx.fillStyle = wg;
+      ctx.beginPath(); ctx.arc(wx, wy, wr * wPulse * (1 + wi * 0.6), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.55, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(167,139,250,${0.5 + 0.3 * Math.sin(t * 2.1)})`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, Math.PI * 2); ctx.stroke();
+    if (scale > 200) {
+      ctx.fillStyle = "rgba(167,139,250,0.35)"; ctx.font = `${Math.max(7, scale * 0.01)}px monospace`;
+      ctx.textAlign = "center"; ctx.fillText("WORMHOLE", wx, wy + wr * 2.2);
+    }
+  }
+
+  // ── Black hole with accretion disk ────────────────────────────────
+  {
+    const bhx = cx + BLACK_HOLE.ox * scale * 0.82;
+    const bhy = cy + BLACK_HOLE.oy * scale * 0.52;
+    const bhr = BLACK_HOLE.size * (scale / 500);
+    const bhPulse = 1 + 0.04 * Math.sin(t * 1.3);
+    // Lensing rings
+    for (let li = 4; li >= 0; li--) {
+      const lr = bhr * (1.8 + li * 0.9) * bhPulse;
+      const lAlpha = 0.06 - li * 0.01;
+      const lg = ctx.createRadialGradient(bhx, bhy, bhr * 0.8, bhx, bhy, lr);
+      lg.addColorStop(0, `rgba(245,158,11,${lAlpha * 2})`);
+      lg.addColorStop(0.5, `rgba(220,38,38,${lAlpha})`);
+      lg.addColorStop(1, "transparent");
+      ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(bhx, bhy, lr, 0, Math.PI * 2); ctx.fill();
+    }
+    // Accretion disk (elliptical)
+    ctx.save();
+    ctx.translate(bhx, bhy);
+    const diskAngle = t * 0.4;
+    ctx.rotate(diskAngle);
+    for (let di = 0; di < 3; di++) {
+      const diskR = bhr * (2.2 + di * 0.7);
+      const diskG = ctx.createLinearGradient(-diskR, 0, diskR, 0);
+      diskG.addColorStop(0, "rgba(251,146,60,0.0)");
+      diskG.addColorStop(0.3, `rgba(245,158,11,${0.25 - di * 0.07})`);
+      diskG.addColorStop(0.5, `rgba(239,68,68,${0.18 - di * 0.05})`);
+      diskG.addColorStop(0.7, `rgba(245,158,11,${0.25 - di * 0.07})`);
+      diskG.addColorStop(1, "rgba(251,146,60,0.0)");
+      ctx.strokeStyle = diskG;
+      ctx.lineWidth = bhr * 0.6;
+      ctx.beginPath(); ctx.ellipse(0, 0, diskR, diskR * 0.22, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+    // Event horizon
+    ctx.fillStyle = "#000000"; ctx.beginPath(); ctx.arc(bhx, bhy, bhr, 0, Math.PI * 2); ctx.fill();
+    // Photon ring
+    ctx.strokeStyle = `rgba(255,200,80,${0.6 + 0.2 * Math.sin(t * 2)})`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(bhx, bhy, bhr * 1.18, 0, Math.PI * 2); ctx.stroke();
+    if (scale > 200) {
+      ctx.fillStyle = "rgba(245,158,11,0.5)"; ctx.font = `${Math.max(7, scale * 0.01)}px monospace`;
+      ctx.textAlign = "center"; ctx.fillText("BLACK HOLE", bhx, bhy + bhr * 3.5);
+    }
+  }
+
+  // ── Quasar with relativistic jets ─────────────────────────────────
+  {
+    const qx = cx + QUASAR.ox * scale * 0.78;
+    const qy = cy + QUASAR.oy * scale * 0.50;
+    const qr = QUASAR.size * (scale / 500);
+    const qPulse = 0.8 + 0.4 * Math.abs(Math.sin(t * 4.5));
+    // Jets
+    const jetLen = qr * 12 * qPulse;
+    for (let jj = 0; jj < 2; jj++) {
+      const jDir = jj === 0 ? -1 : 1;
+      const jg = ctx.createLinearGradient(qx, qy, qx, qy + jDir * jetLen);
+      jg.addColorStop(0, `rgba(244,114,182,${0.6 * qPulse})`);
+      jg.addColorStop(0.4, `rgba(251,207,232,${0.3 * qPulse})`);
+      jg.addColorStop(1, "transparent");
+      ctx.strokeStyle = jg; ctx.lineWidth = qr * 0.5 * qPulse;
+      ctx.beginPath(); ctx.moveTo(qx, qy); ctx.lineTo(qx, qy + jDir * jetLen); ctx.stroke();
+    }
+    // Core
+    const qg = ctx.createRadialGradient(qx, qy, 0, qx, qy, qr * 3);
+    qg.addColorStop(0, `rgba(244,114,182,0.9)`);
+    qg.addColorStop(0.5, `rgba(244,114,182,0.3)`);
+    qg.addColorStop(1, "transparent");
+    ctx.fillStyle = qg; ctx.beginPath(); ctx.arc(qx, qy, qr * 3, 0, Math.PI * 2); ctx.fill();
+    drawSphere(ctx, qx, qy, qr, QUASAR.color, 0.95);
+    if (scale > 200) {
+      ctx.fillStyle = "rgba(244,114,182,0.45)"; ctx.font = `${Math.max(7, scale * 0.01)}px monospace`;
+      ctx.textAlign = "center"; ctx.fillText("QUASAR", qx, qy + qr * 4);
+    }
+  }
+
+  // ── Supernovae remnants ────────────────────────────────────────────
+  SUPERNOVAE.forEach(sn => {
+    const snx = cx + sn.ox * scale * 0.78;
+    const sny = cy + sn.oy * scale * 0.52;
+    const snr = sn.size * (scale / 500);
+    const expand = 1 + 0.08 * Math.sin(t * 0.5 + sn.phase * Math.PI * 2);
+    for (let si = 0; si < 4; si++) {
+      const sg = ctx.createRadialGradient(snx, sny, 0, snx, sny, snr * (2 + si) * expand);
+      sg.addColorStop(0, si === 0 ? sn.color + "40" : "transparent");
+      sg.addColorStop(0.3, sn.color + "18");
+      sg.addColorStop(1, "transparent");
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(snx, sny, snr * (2 + si) * expand, 0, Math.PI * 2); ctx.fill();
+    }
+    drawSphere(ctx, snx, sny, snr * 0.6, sn.color, 0.7);
+    if (scale > 200) {
+      ctx.fillStyle = sn.color + "70"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
+      ctx.textAlign = "center"; ctx.fillText("SUPERNOVA", snx, sny + snr * 4);
+    }
+  });
+
+  // ── Pulsars ──────────────────────────────────────────────────────
+  PULSARS.forEach(p => {
+    const px = cx + p.ox * scale * 0.82;
+    const py = cy + p.oy * scale * 0.52;
+    const pr = p.size * (scale / 500);
+    const beamAngle = t * (Math.PI * 2 / p.period);
+    const beamLen = pr * 16;
+    // Twin beams
+    for (let bi = 0; bi < 2; bi++) {
+      const ba = beamAngle + bi * Math.PI;
+      const bIntensity = 0.5 + 0.5 * Math.sin(t * (Math.PI * 2 / p.period) * 3);
+      const bg = ctx.createLinearGradient(px, py, px + Math.cos(ba) * beamLen, py + Math.sin(ba) * beamLen);
+      bg.addColorStop(0, p.beamColor + Math.round(0.8 * bIntensity * 255).toString(16).padStart(2, "0"));
+      bg.addColorStop(0.5, p.beamColor + Math.round(0.3 * bIntensity * 255).toString(16).padStart(2, "0"));
+      bg.addColorStop(1, "transparent");
+      ctx.strokeStyle = bg; ctx.lineWidth = pr * 1.2 * (0.6 + 0.4 * bIntensity);
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ba) * beamLen, py + Math.sin(ba) * beamLen); ctx.stroke();
+    }
+    // Glow
+    const pg = ctx.createRadialGradient(px, py, 0, px, py, pr * 4);
+    pg.addColorStop(0, p.color + "80"); pg.addColorStop(1, "transparent");
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(px, py, pr * 4, 0, Math.PI * 2); ctx.fill();
+    drawSphere(ctx, px, py, pr, p.color);
+    if (scale > 200) {
+      ctx.fillStyle = p.color + "60"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
+      ctx.textAlign = "center"; ctx.fillText("PULSAR", px, py + pr * 5);
+    }
+  });
+
+  // ── Neutron stars ────────────────────────────────────────────────
+  NEUTRON_STARS.forEach(ns => {
+    const nsx = cx + ns.ox * scale * 0.80;
+    const nsy = cy + ns.oy * scale * 0.50;
+    const nsr = ns.size * (scale / 500);
+    const nsBlink = 0.5 + 0.5 * Math.sin(t * 8.3 + ns.ox);
+    const nsGlow = ctx.createRadialGradient(nsx, nsy, 0, nsx, nsy, nsr * 5);
+    nsGlow.addColorStop(0, `rgba(240,249,255,${0.4 * nsBlink})`);
+    nsGlow.addColorStop(1, "transparent");
+    ctx.fillStyle = nsGlow; ctx.beginPath(); ctx.arc(nsx, nsy, nsr * 5, 0, Math.PI * 2); ctx.fill();
+    drawSphere(ctx, nsx, nsy, nsr * (0.8 + 0.2 * nsBlink), ns.color, 0.85 + 0.15 * nsBlink);
+    if (scale > 200) {
+      ctx.fillStyle = ns.color + "50"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
+      ctx.textAlign = "center"; ctx.fillText("NEUTRON STAR", nsx, nsy + nsr * 6);
+    }
+  });
+
+  // ── Binary star system ────────────────────────────────────────────
+  {
+    const bcx = cx + BINARY_STAR.ox * scale * 0.78;
+    const bcy = cy + BINARY_STAR.oy * scale * 0.50;
+    const bAngle = t * (Math.PI * 2 / BINARY_STAR.period);
+    const bDist = BINARY_STAR.dist * (scale / 500);
+    const bsr = BINARY_STAR.size * (scale / 500);
+    const b1x = bcx + Math.cos(bAngle) * bDist;
+    const b1y = bcy + Math.sin(bAngle) * bDist * COS_TILT;
+    const b2x = bcx - Math.cos(bAngle) * bDist;
+    const b2y = bcy - Math.sin(bAngle) * bDist * COS_TILT;
+    // Connection glow
+    const bcg = ctx.createLinearGradient(b1x, b1y, b2x, b2y);
+    bcg.addColorStop(0, BINARY_STAR.color1 + "30");
+    bcg.addColorStop(0.5, "rgba(255,255,255,0.08)");
+    bcg.addColorStop(1, BINARY_STAR.color2 + "30");
+    ctx.strokeStyle = bcg; ctx.lineWidth = bsr * 0.4;
+    ctx.beginPath(); ctx.moveTo(b1x, b1y); ctx.lineTo(b2x, b2y); ctx.stroke();
+    drawSphere(ctx, b1x, b1y, bsr, BINARY_STAR.color1);
+    drawSphere(ctx, b2x, b2y, bsr * 0.75, BINARY_STAR.color2);
+    if (scale > 200) {
+      ctx.fillStyle = "rgba(253,230,138,0.4)"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
+      ctx.textAlign = "center"; ctx.fillText("BINARY STAR", bcx, bcy + bsr * 6);
+    }
+  }
+
+  // ── Comets with tails ─────────────────────────────────────────────
+  COMETS.forEach((comet, ci) => {
+    const cAngle = comet.angle + t * comet.speed;
+    const cr = comet.r * scale;
+    const p3 = project3D(cx, cy, scale, cr, cAngle);
+    const cTailLen = comet.size * (scale / 500) * 35;
+    const cTailAngle = cAngle + Math.PI; // tail points away from center
+    const cg = ctx.createLinearGradient(p3.x, p3.y, p3.x + Math.cos(cTailAngle) * cTailLen, p3.y + Math.sin(cTailAngle) * cTailLen * COS_TILT);
+    cg.addColorStop(0, comet.color + "cc");
+    cg.addColorStop(0.3, comet.color + "60");
+    cg.addColorStop(1, "transparent");
+    ctx.strokeStyle = cg; ctx.lineWidth = comet.size * p3.sizeScale * 1.5;
+    ctx.beginPath(); ctx.moveTo(p3.x, p3.y);
+    ctx.lineTo(p3.x + Math.cos(cTailAngle) * cTailLen * p3.sizeScale, p3.y + Math.sin(cTailAngle) * cTailLen * COS_TILT * p3.sizeScale);
+    ctx.stroke();
+    // Ion tail (blue, slightly offset)
+    const ita = cTailAngle + 0.08;
+    const itg = ctx.createLinearGradient(p3.x, p3.y, p3.x + Math.cos(ita) * cTailLen * 0.7, p3.y + Math.sin(ita) * cTailLen * 0.7 * COS_TILT);
+    itg.addColorStop(0, "#93c5fd80");
+    itg.addColorStop(1, "transparent");
+    ctx.strokeStyle = itg; ctx.lineWidth = comet.size * p3.sizeScale * 0.6;
+    ctx.beginPath(); ctx.moveTo(p3.x, p3.y);
+    ctx.lineTo(p3.x + Math.cos(ita) * cTailLen * 0.7 * p3.sizeScale, p3.y + Math.sin(ita) * cTailLen * 0.7 * COS_TILT * p3.sizeScale);
+    ctx.stroke();
+    // Head
+    drawSphere(ctx, p3.x, p3.y, comet.size * (scale / 500) * p3.sizeScale, comet.color, 0.9);
+  });
+
+  // ── Solar wind particles ──────────────────────────────────────────
+  SOLAR_WIND_PARTICLES.forEach(sw => {
+    const swAngle = sw.angle + t * sw.speed;
+    const swR = (sw.r + (t * sw.speed * 0.05 % (0.9 - sw.r))) * scale;
+    const swp = project3D(cx, cy, scale, swR, swAngle);
+    const swAlpha = Math.max(0, 0.5 - swR / scale * 0.6);
+    ctx.beginPath(); ctx.arc(swp.x, swp.y, sw.size * swp.sizeScale, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,220,100,${swAlpha})`; ctx.fill();
+  });
+
+  // ── 3D orbit ellipses ─────────────────────────────────────────────
   SOLAR_BODIES.forEach(body => {
     const r = body.orbitR * scale;
-    ctx.beginPath(); ctx.setLineDash([3, 9]);
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = body.type === "pulse" ? "rgba(245,197,24,0.1)" : "rgba(255,255,255,0.05)";
+    ctx.beginPath();
+    ctx.setLineDash([3, 9]);
+    ctx.ellipse(cx, cy, r, r * COS_TILT, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = body.type === "pulse" ? "rgba(245,197,24,0.12)" : "rgba(255,255,255,0.06)";
     ctx.lineWidth = body.type === "pulse" ? 1.5 : 0.8;
     ctx.stroke(); ctx.setLineDash([]);
   });
 
-  // Asteroid belt
+  // ── 3D Asteroid belt (elliptical tilted) ──────────────────────────
   ASTEROIDS.forEach(a => {
     const r = (ASTEROID_R + a.rOff) * scale;
-    const ax = cx + r * Math.cos(a.angle + t * 0.05);
-    const ay = cy + r * Math.sin(a.angle + t * 0.05);
-    ctx.beginPath(); ctx.arc(ax, ay, a.size, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(150,140,130,0.25)"; ctx.fill();
+    const aAngle = a.angle + t * 0.05;
+    const ap = project3D(cx, cy, scale, r, aAngle);
+    ctx.beginPath(); ctx.arc(ap.x, ap.y, a.size * ap.sizeScale, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(150,140,130,${0.2 * ap.sizeScale + 0.05})`; ctx.fill();
   });
 
   // Sun (Hive Core)
@@ -335,19 +724,19 @@ function renderScene(
   ctx.textAlign = "center";
   ctx.fillText("HIVE CORE", cx, cy + sunR + scale * 0.025);
 
-  // Non-Earth planets
+  // Non-Earth planets — 3D perspective projected
   SOLAR_BODIES.filter(b => b.type !== "pulse").forEach(body => {
     const angle = (t / body.period) * Math.PI * 2;
     const r = body.orbitR * scale;
-    const bx = cx + r * Math.cos(angle);
-    const by = cy + r * Math.sin(angle);
+    const p3 = project3D(cx, cy, scale, r, angle);
+    const bx = p3.x, by = p3.y;
     planetPositions.current.set(body.name, { x: bx, y: by });
-    const bsize = body.size * (scale / 550);
+    const bsize = body.size * (scale / 550) * (0.85 + 0.15 * p3.sizeScale);
 
     if (body.type === "saturn") {
-      ctx.save(); ctx.translate(bx, by); ctx.rotate(0.3); ctx.scale(1, 0.35);
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(0.3); ctx.scale(1, COS_TILT * 0.5);
       ctx.beginPath(); ctx.ellipse(0, 0, bsize * 2.2, bsize * 2.2, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(232,200,126,0.4)"; ctx.lineWidth = bsize * 0.7; ctx.stroke();
+      ctx.strokeStyle = "rgba(232,200,126,0.45)"; ctx.lineWidth = bsize * 0.7; ctx.stroke();
       ctx.restore();
     }
     drawSphere(ctx, bx, by, bsize, body.color);
@@ -357,7 +746,7 @@ function renderScene(
     ctx.fillText(body.name.toUpperCase(), bx, by + bsize + scale * 0.022);
   });
 
-  // ── Pulse Worlds ──────────────────────────────────────────────
+  // ── Pulse Worlds — 3D projected ───────────────────────────────
   const earthBody = SOLAR_BODIES.find(b => b.type === "pulse")!;
   const earthOrbitR = earthBody.orbitR * scale;
   const totalSpawns = data?.totalSpawns ?? 0;
@@ -369,8 +758,8 @@ function renderScene(
     const opacity = getPulseWorldOpacity(idx, totalSpawns);
     const startAngle = (idx / Math.max(pulseCount, 2)) * Math.PI * 2;
     const angle = startAngle + (t / earthBody.period) * Math.PI * 2;
-    const ex = cx + earthOrbitR * Math.cos(angle);
-    const ey = cy + earthOrbitR * Math.sin(angle);
+    const p3 = project3D(cx, cy, scale, earthOrbitR, angle);
+    const ex = p3.x, ey = p3.y;
     const worldKey = `pulseworld-${idx}`;
     planetPositions.current.set(worldKey, { x: ex, y: ey });
     const isSelected = selectedIdx === idx;
