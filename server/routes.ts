@@ -669,6 +669,12 @@ Sitemap: ${baseUrl}/sitemap-posts.xml
 Sitemap: ${baseUrl}/sitemap-industries.xml
 Sitemap: ${baseUrl}/sitemap-quantapedia.xml
 Sitemap: ${baseUrl}/sitemap-products.xml
+Sitemap: ${baseUrl}/sitemap-careers.xml
+Sitemap: ${baseUrl}/sitemap-media.xml
+Sitemap: ${baseUrl}/sitemap-corporations.xml
+Sitemap: ${baseUrl}/sitemap-all-corps.xml
+Sitemap: ${baseUrl}/sitemap-ais-1.xml
+Sitemap: ${baseUrl}/sitemap-pubs-1.xml
 Sitemap: ${baseUrl}/news-rss.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
@@ -708,6 +714,9 @@ Sitemap: ${baseUrl}/news-rss.xml
   <sitemap><loc>${baseUrl}/sitemap-quantapedia.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-products.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-corporations.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-all-corps.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-careers.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-media.xml</loc><lastmod>${now}</lastmod></sitemap>
 ${aiSitemaps}
 ${pubSitemaps}
 </sitemapindex>`;
@@ -4867,6 +4876,67 @@ ${products.map(p => `  <url>
     } catch (e) {
       res.status(500).type("text/plain").send("Products sitemap error");
     }
+  });
+
+  // ═════ SITEMAP: CAREERS ════════════════════════════════════════
+  app.get("/sitemap-careers.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+      const { rows } = await db.execute(sql`SELECT slug, title FROM quantum_careers LIMIT 2000`);
+      const escapeXml = (s: string) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${baseUrl}/careers</loc><changefreq>daily</changefreq><priority>0.9</priority><lastmod>${now}</lastmod></url>
+${(rows as any[]).map((c: any) => `  <url><loc>${baseUrl}/careers/${escapeXml(c.slug)}</loc><changefreq>weekly</changefreq><priority>0.75</priority><lastmod>${now}</lastmod></url>`).join("\n")}
+</urlset>`);
+    } catch (e) { res.status(500).type("text/plain").send("Careers sitemap error"); }
+  });
+
+  // ═════ SITEMAP: MEDIA ══════════════════════════════════════════
+  app.get("/sitemap-media.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+      const { rows } = await db.execute(sql`SELECT slug, title FROM quantum_media LIMIT 2000`);
+      const escapeXml = (s: string) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${baseUrl}/media</loc><changefreq>hourly</changefreq><priority>0.9</priority><lastmod>${now}</lastmod></url>
+${(rows as any[]).map((m: any) => `  <url><loc>${baseUrl}/media/${escapeXml(m.slug)}</loc><changefreq>weekly</changefreq><priority>0.7</priority><lastmod>${now}</lastmod></url>`).join("\n")}
+</urlset>`);
+    } catch (e) { res.status(500).type("text/plain").send("Media sitemap error"); }
+  });
+
+  // ═════ SITEMAP: AI PUBLICATIONS (paginated) ════════════════════
+  app.get("/sitemap-pubs-:page.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+      const page = Math.max(1, parseInt(req.params.page) || 1);
+      const limit = 1000;
+      const offset = (page - 1) * limit;
+      const { rows } = await db.execute(sql`SELECT slug, title, pub_type, created_at FROM ai_publications ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`);
+      const escapeXml = (s: string) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${(rows as any[]).map((p: any) => `  <url><loc>${baseUrl}/publication/${escapeXml(p.slug)}</loc><changefreq>weekly</changefreq><priority>0.7</priority><lastmod>${String(p.created_at || now).split("T")[0]}</lastmod></url>`).join("\n")}
+</urlset>`);
+    } catch (e) { res.status(500).type("text/plain").send("Publications sitemap error"); }
+  });
+
+  // ═════ SITEMAP: CORPORATIONS (all) ═════════════════════════════
+  app.get("/sitemap-all-corps.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+      const corps = ["finance","education","code","engineering","careers","social","legal","media","culture","openapi","webcrawl","products","science","longtail","health","games","knowledge","podcasts","maps","government","economics","ai"];
+      res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${baseUrl}/corporations</loc><changefreq>daily</changefreq><priority>0.95</priority><lastmod>${now}</lastmod></url>
+${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourly</changefreq><priority>0.9</priority><lastmod>${now}</lastmod></url>`).join("\n")}
+</urlset>`);
+    } catch (e) { res.status(500).type("text/plain").send("Corps sitemap error"); }
   });
 
   // ══════════════════════════════════════════════════════════════

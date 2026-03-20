@@ -10,6 +10,7 @@ import { startQuantumCareerEngine } from "./quantum-career-engine";
 import { startSpawnEngine } from "./quantum-spawn-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
+import { startDomainKernelEngine } from "./domain-kernel-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -114,6 +115,7 @@ app.use((req, res, next) => {
       startSpawnEngine().catch((e) => log(`SpawnEngine start error: ${e}`));
       startIngestionEngine().catch((e) => log(`IngestionEngine start error: ${e}`));
       startPublicationEngine().catch((e) => log(`PublicationEngine start error: ${e}`));
+      startDomainKernelEngine().catch((e) => log(`DomainKernelEngine start error: ${e}`));
     },
   );
 })();
