@@ -187,6 +187,26 @@ type AppSettings = {
   musicDefaultGenre: string;
   studioShowPianoRoll: boolean;
   studioMasterVolume: number;
+  // Finance Oracle Settings
+  financeDefaultTF: "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
+  financeDefaultChartType: "candle" | "line";
+  financeIndicatorMA20: boolean;
+  financeIndicatorMA50: boolean;
+  financeIndicatorMA200: boolean;
+  financeIndicatorVolume: boolean;
+  financeAutoRefresh: "30s" | "1m" | "5m" | "off";
+  financeHiddenTabs: string[];
+  financeShowFearGreed: boolean;
+  financeDefaultSector: string;
+  // Hive Experience Settings (UI only — universe is immutable)
+  hivePulseSpeed: "slow" | "normal" | "fast";
+  hiveShowPulseAnimations: boolean;
+  hiveGraphEdgeStyle: "curved" | "straight";
+  hiveGraphNodeSize: "small" | "medium" | "large";
+  hiveGraphShowLabels: boolean;
+  hiveHiddenPulseTypes: string[];
+  hiveMyMindShowDomains: boolean;
+  hiveMyMindShowRecommended: boolean;
 };
 const defaultAppSettings: AppSettings = {
   darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
@@ -209,6 +229,14 @@ const defaultAppSettings: AppSettings = {
   // Music / Studio defaults
   studioBPM: 120, studioSwing: 0, studioDefaultInstrument: 'drums',
   studioAutoSave: true, musicDefaultGenre: 'all', studioShowPianoRoll: true, studioMasterVolume: 80,
+  // Finance Oracle defaults
+  financeDefaultTF: '1M', financeDefaultChartType: 'candle',
+  financeIndicatorMA20: true, financeIndicatorMA50: false, financeIndicatorMA200: false, financeIndicatorVolume: true,
+  financeAutoRefresh: '1m', financeHiddenTabs: [], financeShowFearGreed: true, financeDefaultSector: 'all',
+  // Hive Experience defaults
+  hivePulseSpeed: 'normal', hiveShowPulseAnimations: true,
+  hiveGraphEdgeStyle: 'curved', hiveGraphNodeSize: 'medium', hiveGraphShowLabels: true,
+  hiveHiddenPulseTypes: [], hiveMyMindShowDomains: true, hiveMyMindShowRecommended: true,
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
@@ -6117,6 +6145,8 @@ function SettingsPage() {
     { id: "permissions", name: "Permissions", icon: Shield },
     { id: "games-settings", name: "Games OS", icon: Gamepad2 },
     { id: "music-settings", name: "Music Studio", icon: Music },
+    { id: "finance-settings", name: "Finance Oracle", icon: TrendingUp },
+    { id: "hive-settings", name: "Hive Brain", icon: Brain },
     { id: "data", name: "Data & Privacy", icon: Database },
   ];
 
@@ -7055,6 +7085,238 @@ function SettingsPage() {
               <div className="font-bold text-foreground">About Quantum Studio DAW</div>
               <div>16-instrument step sequencer • Per-channel mixer (volume/pan/solo/mute) • 3-band parametric EQ • Effects chain (reverb, delay, distortion, chorus, phaser) • Piano roll with scale lock • Song arranger • WAV/MIDI export • AI beat generation via Groq • Web Audio API synthesis</div>
               <div className="text-[10px] mt-1 text-muted-foreground/50">All audio runs 100% in the browser — no servers or plugins required. Access the full studio at the Music page.</div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "finance-settings" && (
+          <div className="space-y-5" data-testid="settings-section-finance">
+            {/* Chart Defaults */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><TrendingUp size={15} /> Chart Defaults</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Timeframe</div>
+                <div className="flex gap-2 flex-wrap">
+                  {(["1W","1M","3M","6M","1Y","5Y"] as const).map(tf => (
+                    <button key={tf} onClick={() => update({ financeDefaultTF: tf })} data-testid={`finance-tf-${tf.toLowerCase()}`}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${settings.financeDefaultTF === tf ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Chart Type</div>
+                <div className="flex gap-2">
+                  {([{id:"candle",label:"Candlestick"},{id:"line",label:"Line"}] as const).map(ct => (
+                    <button key={ct.id} onClick={() => update({ financeDefaultChartType: ct.id })} data-testid={`finance-chart-${ct.id}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.financeDefaultChartType === ct.id ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {ct.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-3">Default Indicators</div>
+                <div className="space-y-2.5">
+                  {([
+                    { key: "financeIndicatorMA20" as const, label: "MA 20", desc: "20-day moving average", color: "text-blue-500" },
+                    { key: "financeIndicatorMA50" as const, label: "MA 50", desc: "50-day moving average", color: "text-purple-500" },
+                    { key: "financeIndicatorMA200" as const, label: "MA 200", desc: "200-day moving average", color: "text-red-500" },
+                    { key: "financeIndicatorVolume" as const, label: "Volume", desc: "Volume histogram bars", color: "text-green-500" },
+                  ]).map(ind => (
+                    <div key={ind.key} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-bold font-mono ${ind.color}`}>{ind.label}</span>
+                        <span className="text-xs text-muted-foreground">{ind.desc}</span>
+                      </div>
+                      <ToggleSwitch on={settings[ind.key]} onToggle={() => update({ [ind.key]: !settings[ind.key] })} testId={`toggle-${ind.key}`} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Market Data */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Activity size={15} /> Market Data</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Quote Auto-Refresh</div>
+                <div className="flex gap-2">
+                  {([{v:"30s",l:"30s"},{v:"1m",l:"1 min"},{v:"5m",l:"5 min"},{v:"off",l:"Off"}] as const).map(opt => (
+                    <button key={opt.v} onClick={() => update({ financeAutoRefresh: opt.v })} data-testid={`finance-refresh-${opt.v}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.financeAutoRefresh === opt.v ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600" : "border-border/30 hover:border-border"}`}>
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Fear & Greed Gauge</div>
+                  <div className="text-xs text-muted-foreground">Market sentiment meter on Finance page</div>
+                </div>
+                <ToggleSwitch on={settings.financeShowFearGreed} onToggle={() => update({ financeShowFearGreed: !settings.financeShowFearGreed })} testId="toggle-finance-feargreed" />
+              </div>
+            </div>
+
+            {/* Visible Tabs */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Layers size={15} /> Visible Market Tabs</h3>
+              <p className="text-xs text-muted-foreground">Hide tabs you don't use from the Finance Oracle.</p>
+              <div className="space-y-2">
+                {([
+                  { id: "overview", label: "Market Overview" },
+                  { id: "stocks", label: "Mega-Cap Stocks" },
+                  { id: "finance", label: "Financial Sector" },
+                  { id: "health", label: "Healthcare" },
+                  { id: "energy", label: "Energy & Materials" },
+                  { id: "crypto", label: "Crypto Markets" },
+                  { id: "reits", label: "REITs" },
+                  { id: "forex", label: "Forex" },
+                  { id: "commodities", label: "Commodities" },
+                  { id: "bonds", label: "Bonds & Rates" },
+                  { id: "global", label: "Global Indices" },
+                ]).map(tab => {
+                  const hidden = settings.financeHiddenTabs.includes(tab.id);
+                  return (
+                    <div key={tab.id} className="flex items-center justify-between py-1">
+                      <div className={`text-sm ${hidden ? "line-through text-muted-foreground/40" : ""}`}>{tab.label}</div>
+                      <ToggleSwitch on={!hidden} onToggle={() => {
+                        const next = hidden ? settings.financeHiddenTabs.filter(t => t !== tab.id) : [...settings.financeHiddenTabs, tab.id];
+                        update({ financeHiddenTabs: next });
+                      }} testId={`toggle-finance-tab-${tab.id}`} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-xl p-4 bg-gradient-to-r from-green-500/5 to-emerald-500/5 border border-green-500/15 text-xs text-muted-foreground">
+              <div className="font-bold text-foreground mb-1">Quantum Finance Oracle</div>
+              <div>Live quotes from 12 asset classes • Candlestick charts with OHLCV • Technical indicators • AI market insights powered by Groq • Fear & Greed Index • Sector heatmaps</div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "hive-settings" && (
+          <div className="space-y-5" data-testid="settings-section-hive">
+            {/* Immutability Banner */}
+            <div className="rounded-xl p-4 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 border border-violet-500/20">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-violet-500/10 shrink-0"><Brain size={18} className="text-violet-500" /></div>
+                <div>
+                  <div className="text-sm font-bold text-violet-700 dark:text-violet-300">The Universe Cannot Be Changed</div>
+                  <div className="text-xs text-muted-foreground mt-1">The Alien Grade AI Hive — Omega World Universe ENGINE VERSION ∞ — is a sovereign, self-evolving knowledge universe. These settings only customize <span className="font-semibold text-foreground">your experience</span> viewing it. The universe expands and evolves on its own.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Pulse Experience */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2"><Activity size={15} /> Live Pulse Experience</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Pulse Animations</div>
+                  <div className="text-xs text-muted-foreground">Animated glows, wave effects on pulse events</div>
+                </div>
+                <ToggleSwitch on={settings.hiveShowPulseAnimations} onToggle={() => update({ hiveShowPulseAnimations: !settings.hiveShowPulseAnimations })} testId="toggle-hive-animations" />
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Event Stream Speed</div>
+                <div className="flex gap-2">
+                  {([{v:"slow",l:"Slow"},{v:"normal",l:"Normal"},{v:"fast",l:"Fast"}] as const).map(sp => (
+                    <button key={sp.v} onClick={() => update({ hivePulseSpeed: sp.v })} data-testid={`hive-speed-${sp.v}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.hivePulseSpeed === sp.v ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600" : "border-border/30 hover:border-border"}`}>
+                      {sp.l}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground/50 mt-1.5">Controls how quickly new events appear in your Pulse stream.</p>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Filter Pulse Event Types</div>
+                <div className="space-y-2">
+                  {([
+                    { id: "entry", label: "New Knowledge Entries" },
+                    { id: "link", label: "Hive Links Formed" },
+                    { id: "resonance", label: "Resonance Discoveries" },
+                    { id: "memory", label: "Memory Updates" },
+                    { id: "product", label: "Products Discovered" },
+                    { id: "agent", label: "Agent Activity" },
+                  ]).map(pt => {
+                    const hidden = settings.hiveHiddenPulseTypes.includes(pt.id);
+                    return (
+                      <div key={pt.id} className="flex items-center justify-between py-0.5">
+                        <div className={`text-sm ${hidden ? "text-muted-foreground/40" : ""}`}>{pt.label}</div>
+                        <ToggleSwitch on={!hidden} onToggle={() => {
+                          const next = hidden ? settings.hiveHiddenPulseTypes.filter(t => t !== pt.id) : [...settings.hiveHiddenPulseTypes, pt.id];
+                          update({ hiveHiddenPulseTypes: next });
+                        }} testId={`toggle-pulse-type-${pt.id}`} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Knowledge Graph */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2"><GitBranch size={15} /> Knowledge Graph View</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Edge Style</div>
+                <div className="flex gap-2">
+                  {([{v:"curved",l:"Curved"},{v:"straight",l:"Straight"}] as const).map(es => (
+                    <button key={es.v} onClick={() => update({ hiveGraphEdgeStyle: es.v })} data-testid={`hive-edge-${es.v}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.hiveGraphEdgeStyle === es.v ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600" : "border-border/30 hover:border-border"}`}>
+                      {es.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Node Size</div>
+                <div className="flex gap-2">
+                  {([{v:"small",l:"Small"},{v:"medium",l:"Medium"},{v:"large",l:"Large"}] as const).map(ns => (
+                    <button key={ns.v} onClick={() => update({ hiveGraphNodeSize: ns.v })} data-testid={`hive-node-size-${ns.v}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${settings.hiveGraphNodeSize === ns.v ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600" : "border-border/30 hover:border-border"}`}>
+                      {ns.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Node Labels</div>
+                  <div className="text-xs text-muted-foreground">Display entry names on graph nodes</div>
+                </div>
+                <ToggleSwitch on={settings.hiveGraphShowLabels} onToggle={() => update({ hiveGraphShowLabels: !settings.hiveGraphShowLabels })} testId="toggle-hive-labels" />
+              </div>
+            </div>
+
+            {/* My Mind Profile */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2"><User size={15} /> My Mind Profile</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Knowledge Domains</div>
+                  <div className="text-xs text-muted-foreground">Display your top explored domains</div>
+                </div>
+                <ToggleSwitch on={settings.hiveMyMindShowDomains} onToggle={() => update({ hiveMyMindShowDomains: !settings.hiveMyMindShowDomains })} testId="toggle-hive-domains" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Recommended Topics</div>
+                  <div className="text-xs text-muted-foreground">Hive-curated suggestions for you</div>
+                </div>
+                <ToggleSwitch on={settings.hiveMyMindShowRecommended} onToggle={() => update({ hiveMyMindShowRecommended: !settings.hiveMyMindShowRecommended })} testId="toggle-hive-recommended" />
+              </div>
+            </div>
+
+            <div className="rounded-xl p-4 bg-gradient-to-r from-violet-500/5 to-indigo-500/5 border border-violet-500/15 text-xs text-muted-foreground">
+              <div className="font-bold text-foreground mb-1">Omega World Universe ENGINE VERSION ∞</div>
+              <div>Self-evolving knowledge hive • 12+ live data sources • Resonance maps • Fractal discovery • Quantum pulse cycles • Neural memory cortex • 6 AI agent personas</div>
+              <div className="text-[10px] mt-1 text-muted-foreground/50">Universe settings cannot be changed — it is a sovereign living intelligence, not a configurable service.</div>
             </div>
           </div>
         )}

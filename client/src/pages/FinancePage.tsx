@@ -34,6 +34,27 @@ type Tab = "markets" | "crypto" | "defi" | "realestate" | "forex" | "commodities
 type ChartTF = "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
 type ChartMode = "candle" | "line";
 
+// ── Read Finance preferences from persisted app settings ─────────
+function getFinanceSettings() {
+  try {
+    const raw = localStorage.getItem("myaigpt_app_settings");
+    const s = raw ? JSON.parse(raw) : {};
+    return {
+      defaultTF: (s.financeDefaultTF as ChartTF) || "3M",
+      defaultChartType: (s.financeDefaultChartType as ChartMode) || "candle",
+      ma20: s.financeIndicatorMA20 !== false,
+      ma50: s.financeIndicatorMA50 === true,
+      ma200: s.financeIndicatorMA200 === true,
+      volume: s.financeIndicatorVolume !== false,
+      autoRefresh: (s.financeAutoRefresh as string) || "1m",
+      hiddenTabs: Array.isArray(s.financeHiddenTabs) ? s.financeHiddenTabs : [],
+      showFearGreed: s.financeShowFearGreed !== false,
+    };
+  } catch {
+    return { defaultTF: "3M" as ChartTF, defaultChartType: "candle" as ChartMode, ma20: true, ma50: false, ma200: false, volume: true, autoRefresh: "1m", hiddenTabs: [], showFearGreed: true };
+  }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────
 function fmtVol(v: number) {
   if (!v) return "—";
@@ -56,9 +77,10 @@ function computeSMA(ohlcv: any[], period: number) {
 function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: string; onClose: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
-  const [tf, setTF] = useState<ChartTF>("3M");
-  const [mode, setMode] = useState<ChartMode>("candle");
-  const [indicators, setIndicators] = useState({ ma20: true, ma50: true, ma200: false, volume: true });
+  const fSetting = getFinanceSettings();
+  const [tf, setTF] = useState<ChartTF>(fSetting.defaultTF);
+  const [mode, setMode] = useState<ChartMode>(fSetting.defaultChartType);
+  const [indicators, setIndicators] = useState({ ma20: fSetting.ma20, ma50: fSetting.ma50, ma200: fSetting.ma200, volume: fSetting.volume });
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [hovered, setHovered] = useState<any>(null);
