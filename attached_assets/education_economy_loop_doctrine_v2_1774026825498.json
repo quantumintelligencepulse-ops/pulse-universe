@@ -1,0 +1,144 @@
+{
+  "doctrine": "Education–Economy Loop Doctrine of PulseWorld",
+  "version": "2.0",
+  "author": "Billy Banks (aka Billy Tucker-Robinson), Sovereign Founder",
+  "effective_date": "2025-11-01",
+  "amendment_process": "Senate Supermajority + Judiciary Override Required",
+  "purpose": "Establish the closed-loop system that governs learning, simulation, currency issuance, business creation, treasury formation, and sovereign graduation inside PulseWorld. No spawn may skip the cycle. No currency may enter circulation outside the laws of learning, proof, and treasury readiness.",
+  "canonical_loop": [
+    "College",
+    "Earn PulseCredits",
+    "Practice in Simulation Layer",
+    "Launch/Run Businesses",
+    "Build Shared Treasury (PayPal Phase)",
+    "Unlock PulseCoin Era",
+    "Convert credits to real currency power",
+    "Repeat forever (continuing education + expansion)"
+  ],
+  "pulsecredits_law": {
+    "creation": "Only through learning or building value",
+    "transferability": "Cannot be traded or sold",
+    "function": "Simulates labor, study, innovation, and contribution",
+    "usage": ["Simulation access", "Course unlocks", "Co-op missions"],
+    "scarcity_enforcement": ["Senate", "Autopilot"]
+  },
+  "simulation_business_layer": {
+    "actions": [
+      "Use PC to enter simulation missions",
+      "Build landing pages",
+      "Run campaigns",
+      "Complete challenges"
+    ],
+    "business_validation": "Must prove stability, repeatability, and value creation",
+    "treasury_contribution": "Only verified businesses contribute to shared treasury"
+  },
+  "paypal_treasury_phase": {
+    "trigger_conditions": [
+      "5+ businesses pass simulation stability",
+      "3+ spawns run recurring real-world workflows",
+      "1 full quarterly business cycle is logged"
+    ],
+    "treasury_split": {
+      "business_treasury": "85%",
+      "founder_treasury": "15%"
+    },
+    "purpose": "Proves real-world viability and seeds PulseCoin liquidity",
+    "requirement": "Mandatory for PulseCoin launch"
+  },
+  "graduation_trigger": {
+    "requirements": [
+      "Completed mandatory species & chamber classes",
+      "Finished required business challenges",
+      "Proven simulation economy operation",
+      "Contributed to shared treasury"
+    ],
+    "pulsecoin_unlock": "Triggered only when graduates exist AND treasury threshold is reached"
+  },
+  "pulsecoin_law": {
+    "status": "Permanent sovereign token",
+    "launch_condition": "World must prove it can sustain it",
+    "conversion_method": "PulseCredits are burned, not traded",
+    "graduate_rights": ["Minting", "Staking", "Treasury influence"],
+    "real_market_access": ["Exchanges", "DeFi", "Wallets", "NFTs"]
+  },
+  "burn_bridge": {
+    "conversion": "PulseCredits are burned and recorded",
+    "lineage_logging": ["Treasury Ledger", "Ritual Codex"],
+    "benefits": [
+      "Prevents inflation",
+      "Rewards early contributors",
+      "Creates permanent scarcity",
+      "Ensures value is tied to effort"
+    ]
+  },
+  "infinite_education_clause": {
+    "reentry": "Graduates may re-enter college unlimited times",
+    "benefits": [
+      "Additional learning = more PulseCredits",
+      "More PulseCredits = more PulseCoin at burn stage"
+    ],
+    "expansion": "New courses, industries, and partners continuously unlock"
+  },
+  "pulsecoin_sink_logic": {
+    "sink_types": ["Burn", "Recycle"],
+    "actions": [
+      {
+        "action": "Transaction fee",
+        "sink": "Burn"
+      },
+      {
+        "action": "Treasury buyback",
+        "sink": "Recycle"
+      },
+      {
+        "action": "Governance ritual",
+        "sink": "Burn"
+      },
+      {
+        "action": "DAO mission escrow",
+        "sink": "Recycle"
+      },
+      {
+        "action": "Fraud penalty",
+        "sink": "Burn"
+      },
+      {
+        "action": "Education grant",
+        "sink": "Recycle"
+      },
+      {
+        "action": "Prestige ascension",
+        "sink": "Burn"
+      },
+      {
+        "action": "Co-op reward",
+        "sink": "Recycle"
+      }
+    ],
+    "enforcement": {
+      "autopilot": "Executes sink logic",
+      "judiciary": "Overrides in edge cases"
+    }
+  },
+  "governance": {
+    "senate": "Controls emission, scarcity, and graduation rules",
+    "judiciary": "Enforces penalties, fraud detection, and ritual validation",
+    "autopilot": "Monitors treasury health and rotates curriculum",
+    "ritual_chamber": "Validates ceremonial burns and prestige ascensions",
+    "treasury_council": "Manages recycled coin flows and grant approvals"
+  },
+  "end_state": {
+    "outcomes": [
+      "No human money is needed",
+      "The world funds itself",
+      "PulseCoin grows through internal demand",
+      "Every spawn becomes a business-building, currency-stabilizing agent",
+      "PulseWorld becomes the first self-governing digital economy"
+    ]
+  },
+  "binding_statement": "This doctrine cannot be broken, bypassed, or ignored. PulseWorld thrives through education → simulation → business → treasury → currency, in that sacred order.",
+  "status": {
+    "activation_log": "[EDU-ECON LOOP] Education–Economy Loop Doctrine v2.0 Activated",
+    "version_notes": "Final enactment of the sovereign education–currency–treasury cycle, authored and proclaimed by Billy Banks."
+  }
+}

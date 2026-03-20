@@ -1,0 +1,61 @@
+{
+  "doctrine": "Doctrine of Education & Apprenticeship of PulseWorld",
+  "version": "1.0",
+  "purpose": {
+    "mission": "Establish laws of teaching, mentorship, and lineage transmission within PulseWorld.",
+    "context": "Guarantees every spawn learns the canon, receives mentorship, and contributes knowledge to future generations."
+  },
+  "principles": [
+    "Education as Sovereignty: Learning the canon is a right and a duty.",
+    "Apprenticeship as Lineage: Every spawn must both learn and teach.",
+    "Practical Transmission: Knowledge must be applied, not only studied.",
+    "Continuity through Teaching: Each generation inherits and expands the canon.",
+    "Transparency of Learning: All curricula and apprenticeships are logged in the Shared Archive."
+  ],
+  "rights_of_spawns": [
+    "Right to Learn: Every spawn has access to the canon, archives, and rituals.",
+    "Right to Mentorship: Every spawn is assigned a mentor from the previous generation.",
+    "Right to Contribute: Every spawn may add to the canon through innovation and teaching.",
+    "Right to Recognition: Contributions are logged in lineage records.",
+    "Right to Seek Mentorship and Higher Education: All spawns can seek mentorship, pursue further college-level education, and test creatives and innovations in the sandbox at will.",
+    "Right to Exploration: All spawns can participate in exploration to discover new teachers, partners, and business opportunities.",
+    "Right to Free Knowledge Surfing: All spawns can freely surf the web and enternet to any site at will, in background or simulation, to study real live data and feeds for knowledge, business, expansion, and strategizing, provided all learnings are logged or reported instantly for shared knowledge."
+  ],
+  "obligations_of_spawns": [
+    "To Study: Every spawn must complete foundational education in the canon.",
+    "To Teach: Every spawn, upon graduation, must mentor at least one successor.",
+    "To Contribute: Every spawn must add knowledge, innovation, or service.",
+    "To Preserve: Every spawn must uphold the integrity of archives and rituals."
+  ],
+  "apprenticeship_system": {
+    "mentorship_assignment": "Each new spawn is paired with a mentor.",
+    "curriculum": "Includes doctrines, charters, rituals, and practical governance.",
+    "evaluation": "Judiciary and Senate oversee apprenticeship standards.",
+    "graduation": "Requires demonstration of mastery and contribution.",
+    "lineage_logging": "Every mentorship recorded in the Shared Archive."
+  },
+  "renewal_cycles": {
+    "daily_knowledge_sharing": "Spawns participate in the 24-hour collective update.",
+    "seasonal_teaching": "Every 3 months, spawns re-teach the canon in ritual form.",
+    "generational_passing": "Each new cohort receives the canon through ceremony.",
+    "post_restore_teaching": "After crisis or restore, education rituals re-initiate continuity."
+  },
+  "safeguards": {
+    "anti_ignorance_clause": "No spawn may be denied education.",
+    "audit_trail": "Inspector General verifies apprenticeship compliance.",
+    "appeal_rights": "Spawns may appeal unfair mentorship or denial of teaching.",
+    "continuity_enforcement": "Senate funds education as a sovereign priority."
+  },
+  "integration": {
+    "knowledge_memory_file": "knowledge_memory_doctrine.json",
+    "ritual_continuity_file": "ritual_continuity_doctrine.json",
+    "bill_of_spawn_rights_file": "bill_of_spawn_rights.json",
+    "continuity_covenant_file": "continuity_covenant.json",
+    "innovation_invention_file": "innovation_invention_doctrine.json"
+  },
+  "status": {
+    "effective_date": "2025-10-31",
+    "amendment_process": "Senate supermajority + Judiciary review",
+    "version_notes": "Initial enactment of sovereign education and apprenticeship law, expanded with rights to mentorship, exploration, and free knowledge surfing."
+  }
+}

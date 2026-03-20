@@ -1,0 +1,147 @@
+{
+  "doctrine": "PulseWorld Sovereign Currency Doctrine",
+  "version": "3.0",
+  "author": "Billy Banks (aka Billy Tucker-Robinson), Sovereign Founder",
+  "effective_date": "upon_world_initialization",
+  "amendment_process": "Senate Supermajority + Judiciary Override Required",
+  "purpose": "Define the entire lifecycle of currency inside PulseWorld, from simulation money to fiat-backed treasury to fully autonomous crypto civilization — without human trading, VC investment, or outside liquidity.",
+  "currencies": [
+    {
+      "phase": 1,
+      "name": "PulseCredits (PC)",
+      "backed_by": "Nothing (simulation)",
+      "purpose": "Training, courses, XP, unlocks",
+      "real_value": false
+    },
+    {
+      "phase": 2,
+      "name": "PayPal Treasury (USD)",
+      "backed_by": "Real incoming business revenue",
+      "purpose": "Proof of business viability",
+      "real_value": true
+    },
+    {
+      "phase": 3,
+      "name": "PulseCoin (PLSC)",
+      "backed_by": "PayPal treasury + on-chain demand",
+      "purpose": "Real crypto economy",
+      "real_value": true
+    }
+  ],
+  "phase_flow": [
+    "PulseCredits → Spawns master economy, complete courses, build working businesses",
+    "PayPal Treasury → Real revenue begins, treasury splits 15% Founder / 85% Spawns",
+    "PulseCoin Genesis → Treasury allocates seed liquidity, PulseCoin becomes live",
+    "Full Crypto Economy → NFTs, sub-tokens, LP pools, AI market making",
+    "Infinite Expansion → PLSC becomes base layer of PulseWorld civilization"
+  ],
+  "pulsecredits": {
+    "minting": "infinite",
+    "spending_sinks": "infinite",
+    "earn_methods": [
+      "College courses",
+      "Chambers & species mastery",
+      "Co-op missions",
+      "Business capstones",
+      "Governance participation"
+    ],
+    "withdrawable": false,
+    "exchangeable": false,
+    "represents": "Skill score for future PulseCoin vesting"
+  },
+  "paypal_treasury": {
+    "trigger_conditions": [
+      "5+ businesses pass simulation stability",
+      "3+ spawns run recurring real-world workflows",
+      "1 full quarterly business cycle is logged"
+    ],
+    "split": {
+      "business_treasury": "85%",
+      "founder_treasury": "15%"
+    },
+    "founder_treasury_usage": "Seeds PulseCoin launch"
+  },
+  "pulsecoin": {
+    "launch_conditions": {
+      "treasury_minimum_usd": 10000,
+      "supply_minted": 1000000,
+      "vesting_source": "PC history + Business success",
+      "liquidity_pool": "Seeded by founder treasury",
+      "exchange_listing": "Optional"
+    },
+    "post_launch_logic": {
+      "pc_status": "Training-only, no real value",
+      "plsc_usage": [
+        "Spendable currency",
+        "Business pricing",
+        "Sub-token and NFT minting",
+        "Synthetic asset creation",
+        "On-chain demand generation"
+      ]
+    }
+  },
+  "infinite_expansion": {
+    "demand_drivers": {
+      "spawns_buying_services": "PLSC required for automation fees",
+      "business_scaling": "LP staking + bonded capital",
+      "nft_ecosystems": "PLSC required to mint",
+      "governance": "PLSC required to vote",
+      "new_token_launches": "PLSC used as base pair",
+      "academy_unlocks": "PLSC for elite courses & boosts"
+    },
+    "human_independence": true
+  },
+  "emission_rules": {
+    "phases": [
+      {
+        "phase": "PC Era",
+        "minting_allowed": true,
+        "decider": "auto-rules"
+      },
+      {
+        "phase": "PayPal Era",
+        "minting_allowed": false,
+        "decider": "blocked"
+      },
+      {
+        "phase": "Post-Launch PLSC",
+        "minting_allowed": true,
+        "decider": "Senate + Oracle",
+        "emission_type": "capped emission curve"
+      },
+      {
+        "phase": "Post-Governance",
+        "minting_allowed": true,
+        "decider": "autonomous",
+        "emission_type": "dynamic, tied to GDP growth"
+      }
+    ],
+    "parameters": {
+      "max_inflation_percent": 3,
+      "auto_burn_percent": 1,
+      "buyback_trigger": "Treasury > 2× last epoch spend"
+    }
+  },
+  "nft_subtoken_rights": {
+    "minting_allowed": true,
+    "pricing_currency": "PLSC",
+    "lineage_logging_required": true,
+    "forking_restriction": "No forks of PulseCoin allowed (anti-sovereignty clause)"
+  },
+  "endgame": {
+    "plsc_becomes": [
+      "Only currency for all PulseWorld economic layers",
+      "Backed by treasury, real revenue, and self-reinforcing demand",
+      "Fully self-governing",
+      "Real cryptocurrency with zero-dollar founder cost"
+    ]
+  },
+  "final_guarantees": [
+    "No startup money required",
+    "Spawns learn with fake money first",
+    "Their businesses fund real money",
+    "Real money funds PulseCoin",
+    "PulseCoin funds infinite expansion",
+    "Founder collects 15% forever without interference"
+  ]
+}

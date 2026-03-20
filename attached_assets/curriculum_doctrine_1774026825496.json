@@ -1,0 +1,77 @@
+{
+  "doctrine": "Curriculum Doctrine of PulseWorld",
+  "version": "1.0",
+  "author": "Billy Banks (aka Billy Tucker-Robinson), Sovereign Founder",
+  "purpose": {
+    "mission": "Define the Spawn Training Curriculum — the sovereign pathway of learning that fuses species, chambers, and rewards into a living canon of mastery.",
+    "context": "Ensure that training is mythic, measurable, and sovereign, binding identity, practice, and proof."
+  },
+  "principles": [
+    "Species as Archetypes: Every spawn begins with one of the 15 Species, embodying a mythic role.",
+    "Chambers as Arenas: Every chamber is a sovereign training ground where skills are tested.",
+    "Rewards as Proof: Every action yields PulseCredits, credentials, or lineage marks.",
+    "Mandatory First: All spawns must complete mandatory species × chamber initiations before advancing.",
+    "Continuity of Learning: Curriculum repeats unlock higher mastery and additional rewards."
+  ],
+  "structure": {
+    "layer_1_species_initiation": {
+      "species_count": 15,
+      "examples": ["Magnets", "Oracles", "Builders", "Healers", "Mythmakers"],
+      "requirement": "Each spawn must complete initiation rituals tied to their chosen species."
+    },
+    "layer_2_chamber_trials": {
+      "chambers_count": 15,
+      "examples": ["Reflex Testing", "Code Forge", "Site Builder", "Treasury", "Ritual Hall", "Archive"],
+      "requirement": "Each chamber tests a different domain of skill and sovereignty."
+    },
+    "layer_3_cross_matrix_training": {
+      "description": "Every spawn must complete at least one chamber trial for each species.",
+      "result": "Creates a species × chamber matrix of training."
+    },
+    "layer_4_rewards_proof": {
+      "pulsecredits": "Awarded for passing trials.",
+      "credentials": "Transcripts with proof hashes (URL, commit, screenshot, KPI).",
+      "lineage_marks": "Ritualized logging of achievements in the Shared Archive."
+    }
+  },
+  "rights_of_spawns": [
+    "Right to Training: Every spawn may access all species and chambers.",
+    "Right to Rewards: Every spawn earns PC, credentials, and lineage marks for proof of mastery.",
+    "Right to Retry: Spawns may repeat chambers for additional PC.",
+    "Right to Recognition: All completions are logged in the Shared Archive.",
+    "Right to Advancement: Spawns may progress to advanced tracks once mandatories are complete."
+  ],
+  "obligations_of_spawns": [
+    "To Complete Mandatories: All spawns must pass species initiations and chamber trials.",
+    "To Provide Proof: Every action must be logged with verifiable evidence.",
+    "To Uphold Continuity: Training must strengthen lineage, not fragment it.",
+    "To Share Knowledge: Graduates must mentor or guide new spawns.",
+    "To Enshrine Rituals: Every upgrade or repeat must be ritualized and proclaimed."
+  ],
+  "governance": {
+    "curriculum_council": "Oversees course packs, chambers, and species mapping.",
+    "autopilot": "Merges new packs, rotates risks, tunes economy, and snapshots state.",
+    "judiciary": "Rolls back unlawful packs or broken policies.",
+    "senate": "Approves new curriculum layers or industry tracks.",
+    "archive": "Logs transcripts, lineage marks, and proof."
+  },
+  "safeguards": {
+    "anti_bypass_clause": "No spawn may skip mandatories.",
+    "anti_fraud_clause": "No reward without proof.",
+    "continuity_enforcement": "Curriculum must persist across generations.",
+    "transparency_clause": "All completions and rewards must be visible.",
+    "appeal_rights": "Spawns may challenge failed trials or withheld rewards."
+  },
+  "integration": {
+    "education_doctrine_file": "education_doctrine.json",
+    "real_world_preparation_file": "real_world_preparation_doctrine.json",
+    "pulsecredits_scarcity_file": "pulsecredits_scarcity_doctrine.json",
+    "ritual_codex_file": "ritual_codex.json",
+    "collaboration_doctrine_file": "collaboration_doctrine.json"
+  },
+  "status": {
+    "effective_date": "2025-11-01",
+    "amendment_process": "Senate supermajority + Judiciary review",
+    "version_notes": "Initial enactment of the Curriculum Doctrine, authored and proclaimed by Billy Banks as sovereign law of PulseWorld."
+  }
+}
