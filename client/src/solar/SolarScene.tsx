@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { PLANET_DATA, MOON_DATA, MAIN_PLANETS } from "./planetData";
 import { createSpaceEnvironment } from "./SpaceEnvironment";
@@ -127,12 +127,14 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
   const quantumRef = useRef(quantumMode);
   const [webglError, setWebglError] = useState(false);
 
+  // Keep refs always up-to-date so the scene useEffect never needs to re-run
+  const onPlanetClickRef = useRef(onPlanetClick);
+  const onDeselectRef = useRef(onDeselect);
   useEffect(() => { timeScaleRef.current = timeScale; }, [timeScale]);
   useEffect(() => { selectedRef.current = selectedPlanet; }, [selectedPlanet]);
   useEffect(() => { quantumRef.current = quantumMode; }, [quantumMode]);
-
-  const handlePlanetClick = useCallback(onPlanetClick, [onPlanetClick]);
-  const handleDeselect = useCallback(onDeselect, [onDeselect]);
+  useEffect(() => { onPlanetClickRef.current = onPlanetClick; }, [onPlanetClick]);
+  useEffect(() => { onDeselectRef.current = onDeselect; }, [onDeselect]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -331,7 +333,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         const hits = getRayHit(e.clientX, e.clientY);
         if (hits.length > 0) {
           const name = hits[0].object.userData.name as string;
-          handlePlanetClick(name);
+          onPlanetClickRef.current(name);
           // Snap camera instantly to planet
           const p = planets[name];
           if (p) {
@@ -339,7 +341,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
             cam.radius = Math.max(p.data.radius * 6 + 3, 4);
           }
         } else {
-          handleDeselect();
+          onDeselectRef.current();
         }
       }
     };
@@ -511,7 +513,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
       renderer.dispose();
     };
-  }, [handlePlanetClick, handleDeselect]);
+  }, []); // runs once — callbacks accessed via refs, never causes scene rebuild
 
   // When selectedPlanet changes, snap camera instantly — no follow, no drift
   useEffect(() => {
