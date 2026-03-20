@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import PulsePage from "./pages/PulsePage";
 import SpawnsPage from "./pages/SpawnsPage";
+import SourcesPage from "./pages/SourcesPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -2095,6 +2096,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/spawns" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><Dna size={14} className="text-violet-500" /></div>
             <span className="flex-1">Spawn Engine</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">Ω</span>
+          </Link>
+          <Link href="/sources" data-testid="link-sources"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/sources" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/sources" ? "bg-blue-600/15" : "bg-blue-600/5"}`}><Globe size={14} className="text-blue-500" /></div>
+            <span className="flex-1">Omega Sources</span>
+            <span className="text-[9px] bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">20</span>
           </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
@@ -14484,6 +14491,7 @@ function Router() {
       <Route path="/my-mind" component={MyMindPage} />
       <Route path="/graph" component={GraphPage} />
       <Route path="/spawns" component={SpawnsPage} />
+      <Route path="/sources" component={SourcesPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
