@@ -1971,6 +1971,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </div>
         </div>
 
+        <div className="overflow-y-auto scrollbar-hide" style={{maxHeight: "calc(100dvh - 160px)"}}>
         <div className="px-2.5 py-2 space-y-1">
           <Link href="/" data-testid="link-general-chat"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2105,6 +2106,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-border/30 rounded-lg focus:outline-none focus:border-primary/20 placeholder:text-muted-foreground/30" />
             {searchQuery && <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground"><X size={12} /></button>}
           </div>
+        </div>
+
         </div>
 
         <div className="flex-1 overflow-y-auto px-2.5 py-2 scrollbar-hide">
