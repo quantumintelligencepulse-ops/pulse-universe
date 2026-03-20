@@ -10866,6 +10866,14 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
   const [inputVal,setInputVal]=useState('');
   const {toast}=useToast();
   const [,setLocation]=useLocation();
+  const [engineStatus,setEngineStatus]=useState<{running:boolean;totalGenerated:number;total:number;generated:number;queued:number}|null>(null);
+
+  useEffect(()=>{
+    const fetchStatus=()=>fetch('/api/quantapedia/engine-status').then(r=>r.json()).then(setEngineStatus).catch(()=>{});
+    fetchStatus();
+    const id=setInterval(fetchStatus,10000);
+    return ()=>clearInterval(id);
+  },[]);
 
   const toSlug=(q:string)=>q.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
 
@@ -10903,14 +10911,31 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
   const lookup=async(q:string)=>{
     if(!q.trim())return;
     const key=q.trim().toLowerCase();
+    const slug=toSlug(q);
     if(cache[key]){
       const cached=cache[key];
       setEntry(cached);setQuery(q);setView('entry');saveHistory(q);
-      setLocation('/quantapedia/'+toSlug(q),{replace:true});
+      setLocation('/quantapedia/'+slug,{replace:true});
       applyEntrySEO(cached,q);
       return;
     }
     setLoading(true);setQuery(q);setView('entry');
+    try{
+      const serverRes=await fetch('/api/quantapedia/entry/'+slug);
+      const serverData=await serverRes.json();
+      if(serverData.entry){
+        const pre:QuantaEntry=serverData.entry as QuantaEntry;
+        const newCache={...cache,[key]:pre};
+        setCache(newCache);
+        localStorage.setItem('qp_cache',JSON.stringify(newCache));
+        setEntry(pre);
+        saveHistory(q);
+        setLocation('/quantapedia/'+slug,{replace:true});
+        applyEntrySEO(pre,q);
+        setLoading(false);
+        return;
+      }
+    } catch{}
     try{
       const res=await fetch('/api/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:`You are QuantapediaAI — the world's most comprehensive AI knowledge engine. Generate a complete structured knowledge entry for: "${q}"
 
@@ -10958,8 +10983,10 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
       localStorage.setItem('qp_cache',JSON.stringify(newCache));
       setEntry(parsed);
       saveHistory(q);
-      setLocation('/quantapedia/'+toSlug(q),{replace:true});
+      setLocation('/quantapedia/'+slug,{replace:true});
       applyEntrySEO(parsed,q);
+      const discoveredTopics=[...(parsed.relatedTerms||[]),...(parsed.seeAlso||[])].slice(0,12).map((t:string)=>({slug:toSlug(t),title:t}));
+      if(discoveredTopics.length)fetch('/api/quantapedia/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topics:discoveredTopics})}).catch(()=>{});
     } catch{toast({title:'Error generating entry. Please try again.',variant:'destructive'});}
     finally{setLoading(false);}
   };
@@ -11001,15 +11028,41 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
       </div>
 
       <div className="px-4 pb-8 max-w-4xl mx-auto space-y-8">
-        {/* Stats banner */}
-        <div className="grid grid-cols-4 gap-3">
-          {[{v:'∞',label:'Entries'},{v:'18',label:'Layers'},{v:'AI',label:'Powered'},{v:'0ms*',label:'Cached'}].map(s=>(
-            <div key={s.label} className="text-center p-3 rounded-2xl bg-white/[0.03] border border-white/8">
-              <div className="text-violet-400 font-black text-xl">{s.v}</div>
-              <div className="text-white/30 text-[10px]">{s.label}</div>
+        {/* Live Engine Status */}
+        {engineStatus&&(
+          <div className="rounded-2xl border border-violet-500/20 bg-violet-950/20 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${engineStatus.running?'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]':'bg-red-400'}`} style={engineStatus.running?{animation:'pulse 1.5s infinite'}:{}}/>
+                <span className="text-white/70 font-black text-xs tracking-wider uppercase">Autonomous Knowledge Engine</span>
+                {engineStatus.running&&<span className="text-green-400/70 text-[9px]">● LIVE</span>}
+              </div>
+              <span className="text-white/20 text-[9px]">Generating 1 entry every 4s</span>
             </div>
-          ))}
-        </div>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <div className="text-violet-400 font-black text-lg">{engineStatus.total.toLocaleString()}</div>
+                <div className="text-white/25 text-[9px]">Total Topics</div>
+              </div>
+              <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <div className="text-green-400 font-black text-lg">{engineStatus.generated.toLocaleString()}</div>
+                <div className="text-white/25 text-[9px]">Generated</div>
+              </div>
+              <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <div className="text-yellow-400 font-black text-lg">{engineStatus.queued.toLocaleString()}</div>
+                <div className="text-white/25 text-[9px]">In Queue</div>
+              </div>
+              <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <div className="text-cyan-400 font-black text-lg">{engineStatus.generated>0?Math.round((engineStatus.generated/engineStatus.total)*100):0}%</div>
+                <div className="text-white/25 text-[9px]">Coverage</div>
+              </div>
+            </div>
+            <div className="mt-2.5 rounded-full bg-white/5 h-1.5 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-violet-500 to-cyan-500 transition-all duration-1000 rounded-full" style={{width:`${engineStatus.total>0?Math.round((engineStatus.generated/engineStatus.total)*100):0}%`}}/>
+            </div>
+            <div className="mt-1.5 text-white/15 text-[9px] text-center">Auto-discovers new topics from every generated entry · Grows fractal-style like your Python hive script</div>
+          </div>
+        )}
 
         {/* Browse by category */}
         <div>

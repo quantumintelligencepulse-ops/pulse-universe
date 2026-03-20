@@ -269,6 +269,9 @@ export const quantapediaEntries = pgTable("quantapedia_entries", {
   categories: text("categories").array().default([]),
   relatedTerms: text("related_terms").array().default([]),
   lookupCount: integer("lookup_count").default(1),
+  fullEntry: jsonb("full_entry"),
+  generated: boolean("generated").default(false),
+  generatedAt: timestamp("generated_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -4595,6 +4595,38 @@ If you have live data provided in this prompt, USE IT and present it confidently
     }
   });
 
+  app.get("/api/quantapedia/entry/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const entry = await storage.getFullQuantapediaEntry(slug);
+      res.json({ entry: entry || null });
+    } catch {
+      res.json({ entry: null });
+    }
+  });
+
+  app.post("/api/quantapedia/queue", async (req, res) => {
+    try {
+      const { topics } = req.body;
+      if (Array.isArray(topics) && topics.length) {
+        await storage.queueQuantapediaTopics(topics.slice(0, 20));
+      }
+      res.json({ ok: true });
+    } catch {
+      res.json({ ok: false });
+    }
+  });
+
+  app.get("/api/quantapedia/engine-status", async (_req, res) => {
+    try {
+      const { getEngineStatus } = await import("./quantapedia-engine");
+      const stats = await storage.getQuantapediaStats();
+      res.json({ ...getEngineStatus(), ...stats });
+    } catch (e) {
+      res.json({ running: false, total: 0, generated: 0, queued: 0 });
+    }
+  });
+
   // ═══════ SEO: SITEMAP QUANTAPEDIA ═══════
   app.get("/sitemap-quantapedia.xml", async (req, res) => {
     try {

@@ -149,6 +149,11 @@ export interface IStorage {
 
   trackQuantapediaTopic(slug: string, title: string, summary: string, type: string, categories: string[], relatedTerms: string[]): Promise<void>;
   getAllQuantapediaTopics(): Promise<{ slug: string; title: string; updatedAt: Date }[]>;
+  getFullQuantapediaEntry(slug: string): Promise<any | null>;
+  storeFullQuantapediaEntry(slug: string, title: string, type: string, summary: string, categories: string[], relatedTerms: string[], fullEntry: any): Promise<void>;
+  getUngeneratedQuantapediaTopics(limit: number): Promise<{ slug: string; title: string }[]>;
+  queueQuantapediaTopics(topics: { slug: string; title: string }[]): Promise<void>;
+  getQuantapediaStats(): Promise<{ total: number; generated: number; queued: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -614,6 +619,51 @@ export class DatabaseStorage implements IStorage {
       .select({ slug: quantapediaEntries.slug, title: quantapediaEntries.title, updatedAt: quantapediaEntries.updatedAt })
       .from(quantapediaEntries)
       .orderBy(desc(quantapediaEntries.lookupCount));
+  }
+
+  async getFullQuantapediaEntry(slug: string): Promise<any | null> {
+    const [row] = await db.select({ fullEntry: quantapediaEntries.fullEntry, generated: quantapediaEntries.generated })
+      .from(quantapediaEntries)
+      .where(eq(quantapediaEntries.slug, slug));
+    if (!row || !row.generated || !row.fullEntry) return null;
+    return row.fullEntry;
+  }
+
+  async storeFullQuantapediaEntry(slug: string, title: string, type: string, summary: string, categories: string[], relatedTerms: string[], fullEntry: any): Promise<void> {
+    await db.insert(quantapediaEntries)
+      .values({ slug, title, type, summary, categories, relatedTerms, fullEntry, generated: true, generatedAt: new Date(), lookupCount: 0 })
+      .onConflictDoUpdate({
+        target: quantapediaEntries.slug,
+        set: { title, type, summary, categories, relatedTerms, fullEntry, generated: true, generatedAt: new Date(), updatedAt: new Date() },
+      });
+  }
+
+  async getUngeneratedQuantapediaTopics(limit: number): Promise<{ slug: string; title: string }[]> {
+    return await db
+      .select({ slug: quantapediaEntries.slug, title: quantapediaEntries.title })
+      .from(quantapediaEntries)
+      .where(eq(quantapediaEntries.generated, false))
+      .orderBy(desc(quantapediaEntries.lookupCount))
+      .limit(limit);
+  }
+
+  async queueQuantapediaTopics(topics: { slug: string; title: string }[]): Promise<void> {
+    if (!topics.length) return;
+    for (const t of topics) {
+      await db.insert(quantapediaEntries)
+        .values({ slug: t.slug, title: t.title, generated: false, lookupCount: 0 })
+        .onConflictDoNothing();
+    }
+  }
+
+  async getQuantapediaStats(): Promise<{ total: number; generated: number; queued: number }> {
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(quantapediaEntries);
+    const [generated] = await db.select({ count: sql<number>`count(*)` }).from(quantapediaEntries).where(eq(quantapediaEntries.generated, true));
+    return {
+      total: Number(total.count),
+      generated: Number(generated.count),
+      queued: Number(total.count) - Number(generated.count),
+    };
   }
 }
 
