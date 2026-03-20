@@ -17,6 +17,7 @@ import {
   payoutRequests,
   savedArticles,
   followedTopics,
+  quantapediaEntries,
   type User,
   type InsertUser,
   type Chat,
@@ -145,6 +146,9 @@ export interface IStorage {
   followTopic(data: InsertFollowedTopic): Promise<FollowedTopic>;
   unfollowTopic(userId: number, topic: string): Promise<void>;
   isTopicFollowed(userId: number, topic: string): Promise<boolean>;
+
+  trackQuantapediaTopic(slug: string, title: string, summary: string, type: string, categories: string[], relatedTerms: string[]): Promise<void>;
+  getAllQuantapediaTopics(): Promise<{ slug: string; title: string; updatedAt: Date }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -589,6 +593,27 @@ export class DatabaseStorage implements IStorage {
   async isTopicFollowed(userId: number, topic: string): Promise<boolean> {
     const [row] = await db.select({ id: followedTopics.id }).from(followedTopics).where(and(eq(followedTopics.userId, userId), eq(followedTopics.topic, topic)));
     return !!row;
+  }
+
+  async trackQuantapediaTopic(slug: string, title: string, summary: string, type: string, categories: string[], relatedTerms: string[]): Promise<void> {
+    await db.insert(quantapediaEntries)
+      .values({ slug, title, summary, type, categories, relatedTerms, lookupCount: 1 })
+      .onConflictDoUpdate({
+        target: quantapediaEntries.slug,
+        set: {
+          title,
+          summary,
+          lookupCount: sql`${quantapediaEntries.lookupCount} + 1`,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  async getAllQuantapediaTopics(): Promise<{ slug: string; title: string; updatedAt: Date }[]> {
+    return await db
+      .select({ slug: quantapediaEntries.slug, title: quantapediaEntries.title, updatedAt: quantapediaEntries.updatedAt })
+      .from(quantapediaEntries)
+      .orderBy(desc(quantapediaEntries.lookupCount));
   }
 }
 

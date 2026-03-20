@@ -259,3 +259,20 @@ export const aiStories = pgTable("ai_stories", {
 export const insertAiStorySchema = createInsertSchema(aiStories).omit({ id: true, createdAt: true, updatedAt: true, views: true });
 export type AiStory = typeof aiStories.$inferSelect;
 export type InsertAiStory = z.infer<typeof insertAiStorySchema>;
+
+export const quantapediaEntries = pgTable("quantapedia_entries", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  type: text("type").default("concept"),
+  summary: text("summary").default(""),
+  categories: text("categories").array().default([]),
+  relatedTerms: text("related_terms").array().default([]),
+  lookupCount: integer("lookup_count").default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertQuantapediaEntrySchema = createInsertSchema(quantapediaEntries).omit({ id: true, createdAt: true, updatedAt: true });
+export type QuantapediaEntry = typeof quantapediaEntries.$inferSelect;
+export type InsertQuantapediaEntry = z.infer<typeof insertQuantapediaEntrySchema>;

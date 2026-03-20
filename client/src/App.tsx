@@ -2010,8 +2010,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
           <Link href="/quantapedia" data-testid="link-quantapedia"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/quantapedia" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/quantapedia" ? "bg-violet-500/15" : "bg-violet-500/5"}`}><BookOpen size={14} className="text-violet-600" /></div>
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-violet-500/15" : "bg-violet-500/5"}`}><BookOpen size={14} className="text-violet-600" /></div>
             <span className="flex-1">Quantapedia</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
@@ -10853,7 +10853,7 @@ const QP_CATEGORIES=[
 ];
 const QP_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-function QuantapediaPage(){
+function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
   const [view,setView]=useState<'home'|'entry'|'browse'|'letter'>('home');
   const [query,setQuery]=useState('');
   const [entry,setEntry]=useState<QuantaEntry|null>(null);
@@ -10865,6 +10865,37 @@ function QuantapediaPage(){
   const [cache,setCache]=useState<Record<string,QuantaEntry>>(()=>{try{return JSON.parse(localStorage.getItem('qp_cache')||'{}');}catch{return {};}});
   const [inputVal,setInputVal]=useState('');
   const {toast}=useToast();
+  const [,setLocation]=useLocation();
+
+  const toSlug=(q:string)=>q.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+
+  const applyEntrySEO=(parsed:QuantaEntry,q:string)=>{
+    const slug=toSlug(q);
+    document.title=`${parsed.title} — Quantapedia | My Ai GPT`;
+    let metaDesc=document.querySelector('meta[name="description"]') as HTMLMetaElement|null;
+    if(!metaDesc){metaDesc=document.createElement('meta');(metaDesc as HTMLMetaElement).name='description';document.head.appendChild(metaDesc);}
+    metaDesc.content=`${parsed.summary} — Look up ${parsed.title} on Quantapedia, the AI-native knowledge encyclopedia by My Ai GPT.`;
+    document.querySelector('#qp-jsonld')?.remove();
+    const script=document.createElement('script');
+    script.type='application/ld+json';script.id='qp-jsonld';
+    const isWord=parsed.type==='word'||parsed.type==='phrase';
+    script.textContent=JSON.stringify({
+      '@context':'https://schema.org',
+      '@type':isWord?'DefinedTerm':'Article',
+      'name':parsed.title,
+      'description':parsed.summary,
+      'url':window.location.origin+'/quantapedia/'+slug,
+      'keywords':(parsed.categories||[]).join(', '),
+      ...(isWord?{'inDefinedTermSet':window.location.origin+'/quantapedia'}:{'headline':parsed.title,'articleBody':parsed.sections?.map(s=>s.content).join(' ')||''})
+    });
+    document.head.appendChild(script);
+    fetch('/api/quantapedia/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,title:parsed.title,summary:(parsed.summary||'').slice(0,500),type:parsed.type||'concept',categories:parsed.categories||[],relatedTerms:parsed.relatedTerms||[]})}).catch(()=>{});
+  };
+
+  useEffect(()=>{
+    if(initialTopic){const human=initialTopic.replace(/-+/g,' ').trim();setInputVal(human);lookup(human);}
+    return()=>{document.querySelector('#qp-jsonld')?.remove();if(document.title.includes('Quantapedia'))document.title='My Ai GPT';};
+  },[]);
 
   const saveHistory=(t:string)=>{const h=[t,...history.filter(x=>x!==t)].slice(0,20);setHistory(h);localStorage.setItem('qp_history',JSON.stringify(h));};
   const toggleBookmark=(t:string)=>{const b=bookmarks.includes(t)?bookmarks.filter(x=>x!==t):[t,...bookmarks];setBookmarks(b);localStorage.setItem('qp_bookmarks',JSON.stringify(b));};
@@ -10872,7 +10903,13 @@ function QuantapediaPage(){
   const lookup=async(q:string)=>{
     if(!q.trim())return;
     const key=q.trim().toLowerCase();
-    if(cache[key]){setEntry(cache[key]);setQuery(q);setView('entry');saveHistory(q);return;}
+    if(cache[key]){
+      const cached=cache[key];
+      setEntry(cached);setQuery(q);setView('entry');saveHistory(q);
+      setLocation('/quantapedia/'+toSlug(q),{replace:true});
+      applyEntrySEO(cached,q);
+      return;
+    }
     setLoading(true);setQuery(q);setView('entry');
     try{
       const res=await fetch('/api/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:`You are QuantapediaAI — the world's most comprehensive AI knowledge engine. Generate a complete structured knowledge entry for: "${q}"
@@ -10921,6 +10958,8 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
       localStorage.setItem('qp_cache',JSON.stringify(newCache));
       setEntry(parsed);
       saveHistory(q);
+      setLocation('/quantapedia/'+toSlug(q),{replace:true});
+      applyEntrySEO(parsed,q);
     } catch{toast({title:'Error generating entry. Please try again.',variant:'destructive'});}
     finally{setLoading(false);}
   };
@@ -11195,7 +11234,7 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
                 <div className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
                   <h3 className="text-white font-black text-xs mb-3 uppercase tracking-widest text-blue-400">↔ Related Terms</h3>
                   <div className="flex flex-wrap gap-2">
-                    {entry.relatedTerms.map(r=><button key={r} onClick={()=>lookup(r)} className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs hover:bg-blue-500/20 transition-all">{r}</button>)}
+                    {entry.relatedTerms.map(r=><Link key={r} href={'/quantapedia/'+toSlug(r)} className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs hover:bg-blue-500/20 transition-all">{r}</Link>)}
                   </div>
                 </div>
               )}
@@ -11209,11 +11248,11 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
                 <h3 className="text-white font-black text-xs mb-3 uppercase tracking-widest">🕸 Concept Graph — See Also</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {entry.seeAlso?.map(t=>(
-                    <button key={t} onClick={()=>lookup(t)} data-testid={`qp-seealso-${t.replace(/\s+/g,'-').toLowerCase()}`}
-                      className="group p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:border-violet-500/30 hover:bg-violet-500/5 text-left transition-all">
+                    <Link key={t} href={'/quantapedia/'+toSlug(t)} data-testid={`qp-seealso-${t.replace(/\s+/g,'-').toLowerCase()}`}
+                      className="group p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:border-violet-500/30 hover:bg-violet-500/5 text-left transition-all block">
                       <div className="text-white/60 font-bold text-xs group-hover:text-violet-300">{t}</div>
                       <div className="text-white/15 text-[9px] mt-0.5">Explore →</div>
-                    </button>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -11222,7 +11261,7 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
                 <div className="text-white/20 text-xs mb-2">Node: <span className="text-violet-400 font-bold">{entry.title}</span></div>
                 <div className="flex flex-wrap justify-center gap-2">
                   {[...entry.synonyms?.slice(0,3),...entry.relatedTerms?.slice(0,5)].filter(Boolean).map(t=>(
-                    <button key={t} onClick={()=>lookup(t)} className="text-[10px] px-2 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300/60 hover:text-violet-300 transition-all">{t}</button>
+                    <Link key={t} href={'/quantapedia/'+toSlug(t)} className="text-[10px] px-2 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300/60 hover:text-violet-300 transition-all">{t}</Link>
                   ))}
                 </div>
                 <div className="text-white/10 text-[9px] mt-2">Each term is a node in the Quantum knowledge graph. Click to traverse.</div>
@@ -11254,6 +11293,10 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
 
 function QuantapediaPageWrapper(){
   return <Layout><QuantapediaPage /></Layout>;
+}
+function QuantapediaTopicPageWrapper(){
+  const [,params]=useRoute('/quantapedia/:topic');
+  return <Layout><QuantapediaPage initialTopic={params?.topic||''} /></Layout>;
 }
 
 function MusicPage() {
@@ -14021,6 +14064,7 @@ function Router() {
       <Route path="/create" component={AIStudioPageWrapper} />
       <Route path="/games" component={GamesPageWrapper} />
       <Route path="/quantapedia" component={QuantapediaPageWrapper} />
+      <Route path="/quantapedia/:topic" component={QuantapediaTopicPageWrapper} />
       <Route path="/music" component={MusicPageWrapper} />
       <Route path="/education" component={EducationPageWrapper} />
       <Route path="/story/:articleId" component={StoryReaderPage} />

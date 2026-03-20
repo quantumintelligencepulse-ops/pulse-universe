@@ -580,6 +580,8 @@ Allow: /shopping
 Allow: /games
 Allow: /music
 Allow: /create
+Allow: /quantapedia
+Allow: /quantapedia/
 Disallow: /api/
 Crawl-delay: 1
 
@@ -599,6 +601,8 @@ Allow: /shopping
 Allow: /games
 Allow: /music
 Allow: /create
+Allow: /quantapedia
+Allow: /quantapedia/
 Disallow: /api/
 
 User-agent: Googlebot-Image
@@ -658,6 +662,7 @@ Sitemap: ${baseUrl}/sitemap-news.xml
 Sitemap: ${baseUrl}/sitemap-profiles.xml
 Sitemap: ${baseUrl}/sitemap-posts.xml
 Sitemap: ${baseUrl}/sitemap-industries.xml
+Sitemap: ${baseUrl}/sitemap-quantapedia.xml
 Sitemap: ${baseUrl}/news-rss.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
@@ -694,6 +699,10 @@ Sitemap: ${baseUrl}/news-rss.xml
     <loc>${baseUrl}/sitemap-industries.xml</loc>
     <lastmod>${now}</lastmod>
   </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-quantapedia.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
 </sitemapindex>`;
       res.type("application/xml").send(xml);
     } catch (e) {
@@ -717,6 +726,7 @@ Sitemap: ${baseUrl}/news-rss.xml
       { loc: "/games", changefreq: "weekly", priority: "0.7" },
       { loc: "/music", changefreq: "weekly", priority: "0.7" },
       { loc: "/create", changefreq: "weekly", priority: "0.8" },
+      { loc: "/quantapedia", changefreq: "daily", priority: "0.9" },
       { loc: "/settings", changefreq: "monthly", priority: "0.4" },
     ];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -4551,6 +4561,104 @@ If you have live data provided in this prompt, USE IT and present it confidently
       res.json({ liked });
     } catch {
       res.json({ liked: false });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════
+  // QUANTAPEDIA API
+  // ═══════════════════════════════════════════════════
+
+  app.post("/api/quantapedia/track", async (req, res) => {
+    try {
+      const { slug, title, summary, type, categories, relatedTerms } = req.body;
+      if (!slug || !title) return res.status(400).json({ error: "slug and title required" });
+      await storage.trackQuantapediaTopic(
+        slug.slice(0, 200),
+        title.slice(0, 300),
+        (summary || "").slice(0, 1000),
+        (type || "concept").slice(0, 50),
+        Array.isArray(categories) ? categories.slice(0, 10) : [],
+        Array.isArray(relatedTerms) ? relatedTerms.slice(0, 20) : []
+      );
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: "tracking failed" });
+    }
+  });
+
+  app.get("/api/quantapedia/topics", async (_req, res) => {
+    try {
+      const topics = await storage.getAllQuantapediaTopics();
+      res.json(topics);
+    } catch {
+      res.json([]);
+    }
+  });
+
+  // ═══════ SEO: SITEMAP QUANTAPEDIA ═══════
+  app.get("/sitemap-quantapedia.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+      const dbTopics = await storage.getAllQuantapediaTopics().catch(() => [] as { slug: string; title: string; updatedAt: Date }[]);
+
+      const SEED_SLUGS = [
+        "quantum-mechanics","thermodynamics","relativity","electromagnetism","optics","nuclear-physics","particle-physics","fluid-dynamics","atomic-theory","wave-mechanics","quantum-field-theory","condensed-matter-physics","plasma-physics","astrophysics","cosmology","dark-matter","dark-energy","string-theory","supersymmetry","photonics",
+        "organic-chemistry","inorganic-chemistry","physical-chemistry","analytical-chemistry","biochemistry","polymer-chemistry","electrochemistry","photochemistry","thermochemistry","periodic-table","chemical-bonding","oxidation-reduction","acid-base-chemistry","stereochemistry","spectroscopy",
+        "cell-biology","genetics","molecular-biology","evolution","ecology","microbiology","botany","zoology","marine-biology","neuroscience","immunology","virology","bacteriology","anatomy","physiology","developmental-biology","evolutionary-biology","population-genetics","proteomics","genomics","epigenetics","systems-biology","synthetic-biology",
+        "calculus","algebra","geometry","trigonometry","statistics","probability","number-theory","topology","graph-theory","combinatorics","discrete-mathematics","linear-algebra","differential-equations","real-analysis","complex-analysis","abstract-algebra","numerical-analysis","optimization","game-theory","set-theory","mathematical-logic","category-theory","fractal-geometry","chaos-theory","information-theory",
+        "artificial-intelligence","machine-learning","deep-learning","neural-networks","natural-language-processing","computer-vision","algorithms","data-structures","databases","operating-systems","networking","cybersecurity","cryptography","distributed-systems","parallel-computing","quantum-computing","blockchain","software-engineering","web-development","mobile-development","cloud-computing","internet-of-things","robotics","automation","data-science","reinforcement-learning","computer-graphics","programming-languages","compilers","human-computer-interaction",
+        "ethics","epistemology","metaphysics","logic","aesthetics","existentialism","stoicism","platonism","empiricism","rationalism","pragmatism","phenomenology","philosophy-of-mind","philosophy-of-science","political-philosophy","philosophy-of-language","analytic-philosophy","continental-philosophy","moral-philosophy","social-philosophy","determinism","free-will","consciousness","identity","time-philosophy","causality","ontology",
+        "ancient-egypt","ancient-greece","ancient-rome","medieval-europe","renaissance","industrial-revolution","world-war-1","world-war-2","cold-war","american-revolution","french-revolution","russian-revolution","mongol-empire","ottoman-empire","british-empire","colonialism","slavery","holocaust","space-race","chinese-civilization","mesopotamia","byzantine-empire","viking-age","silk-road","crusades","age-of-exploration","enlightenment","protestant-reformation",
+        "grammar","linguistics","phonetics","morphology","syntax","semantics","etymology","sociolinguistics","psycholinguistics","historical-linguistics","language-acquisition","pragmatics","discourse-analysis","rhetoric","semiotics","writing-systems","translation","dialects","pidgin-languages","sign-language",
+        "cognitive-psychology","behavioral-psychology","social-psychology","developmental-psychology","clinical-psychology","neuropsychology","personality-psychology","abnormal-psychology","positive-psychology","educational-psychology","health-psychology","psychoanalysis","cognitive-behavioral-therapy","memory","perception","attention","emotion","motivation","intelligence","creativity",
+        "microeconomics","macroeconomics","behavioral-economics","international-economics","development-economics","labor-economics","public-economics","monetary-economics","financial-economics","economic-history","game-theory-economics","supply-and-demand","inflation","gdp","trade","globalization-economics","inequality","poverty","economic-growth","market-structures",
+        "democracy","political-science","sociology","anthropology","international-relations","human-rights","feminism","globalization","capitalism","socialism","communism","nationalism","liberalism","conservatism","anarchism","environmentalism","civil-rights","social-contract","power-politics","geopolitics",
+        "painting","sculpture","music-theory","jazz","classical-music","opera","theater","film","literature","poetry","architecture","dance","photography","graphic-design","typography","color-theory","impressionism","modernism","postmodernism","baroque","renaissance-art","abstract-art","street-art","digital-art","animation","video-games-as-art",
+        "cardiology","neurology","oncology","psychiatry","surgery","pharmacology","epidemiology","public-health","nutrition","immunology-medicine","pathology","radiology","pediatrics","dermatology","orthopedics","genetics-medicine","infectious-disease","mental-health","diabetes","hypertension","cancer","alzheimers","parkinsons","autoimmune-diseases","vaccines",
+        "geography","geology","oceanography","meteorology","climatology","plate-tectonics","volcanology","seismology","hydrology","glaciology","soil-science","geomorphology","palaeontology","mineralogy","petrology","cartography","remote-sensing","geographic-information-systems","biodiversity","biomes","climate-change","deforestation","pollution","renewable-energy","sustainability",
+        "albert-einstein","isaac-newton","charles-darwin","marie-curie","nikola-tesla","alan-turing","stephen-hawking","galileo-galilei","leonardo-da-vinci","socrates","plato","aristotle","confucius","shakespeare","beethoven","mozart","picasso","sigmund-freud","carl-jung","immanuel-kant","karl-marx","adam-smith","charles-dickens","mark-twain","virginia-woolf","tolstoy","dostoevsky","nietzsche","buddha","muhammad","jesus-christ","mahatma-gandhi","nelson-mandela","martin-luther-king","cleopatra","alexander-the-great","julius-caesar","napoleon","lincoln",
+        "consciousness","intelligence","memory","emotion","language","culture","civilization","innovation","creativity","knowledge","truth","beauty","power","love","time","space","energy","matter","life","death","freedom","justice","equality","science","religion","mythology","folklore","symbolism","metaphor","narrative","identity","meaning","happiness","suffering","morality","law","democracy-concept","progress","technology","nature","society","art-concept","education","health","war","peace",
+        "internet","social-media","virtual-reality","augmented-reality","space-exploration","satellite-technology","nanotechnology","biotechnology","renewable-energy","nuclear-energy","electric-vehicles","gene-editing","crispr","stem-cells","organ-transplantation","3d-printing","autonomous-vehicles","drones","semiconductors","fiber-optics","5g","artificial-general-intelligence","singularity","transhumanism","longevity-science",
+        "serendipity","ephemeral","ubiquitous","paradigm","entropy","synergy","algorithm","heuristic","empathy","cognition","perception","abstraction","inference","deduction","induction","analogy","metaphor-linguistics","irony","paradox","fallacy","bias","heuristic-psychology","gestalt","phenomenology-psychology","introspection","behaviorism","structuralism","functionalism",
+        "photosynthesis","mitosis","meiosis","dna-replication","protein-synthesis","cellular-respiration","metabolism","homeostasis","osmosis","diffusion","natural-selection","genetic-drift","mutation","speciation","extinction","food-chain","ecosystem","symbiosis","parasitism","mutualism","commensalism",
+        "gravity","electromagnetism-force","strong-nuclear-force","weak-nuclear-force","speed-of-light","mass-energy-equivalence","uncertainty-principle","wave-particle-duality","superposition","entanglement","standard-model","higgs-boson","black-holes","neutron-stars","supernovae","galaxies","milky-way","big-bang","cosmic-microwave-background"
+      ];
+
+      const dbSlugs = new Set(dbTopics.map(t => t.slug));
+      const dbMap = new Map(dbTopics.map(t => [t.slug, t.updatedAt ? new Date(t.updatedAt).toISOString().split("T")[0] : now]));
+
+      const allEntries: { slug: string; date: string; priority: string }[] = [];
+      for (const t of dbTopics) {
+        allEntries.push({ slug: t.slug, date: dbMap.get(t.slug) || now, priority: "0.9" });
+      }
+      for (const s of SEED_SLUGS) {
+        if (!dbSlugs.has(s)) {
+          allEntries.push({ slug: s, date: "2024-01-01", priority: "0.8" });
+        }
+      }
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>${baseUrl}/quantapedia</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="${baseUrl}/quantapedia" />
+  </url>
+${allEntries.map(e => `  <url>
+    <loc>${baseUrl}/quantapedia/${escapeXml(e.slug)}</loc>
+    <lastmod>${e.date}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>${e.priority}</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="${baseUrl}/quantapedia/${escapeXml(e.slug)}" />
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e) {
+      res.status(500).type("text/plain").send("Quantapedia sitemap error");
     }
   });
 
