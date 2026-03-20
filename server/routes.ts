@@ -4910,6 +4910,112 @@ ${products.map(p => `  <url>
   });
 
   // ══════════════════════════════════════════════════════════════
+  // THE TRANSCENDENT — Canon & AI Lives
+  // ══════════════════════════════════════════════════════════════
+  app.get("/api/transcendence/ai-lives", async (_req, res) => {
+    try {
+      const [quantapediaStats, careerStats, mediaStats, spawnStats, recentEvents] = await Promise.all([
+        storage.getQuantapediaStats().catch(() => ({ total: 0, generated: 0, queued: 0 })),
+        storage.getCareerStats().catch(() => ({ total: 0, generated: 0, queued: 0 })),
+        storage.getMediaStats().catch(() => ({ total: 0, generated: 0, queued: 0 })),
+        storage.getSpawnStats().catch(() => ({ total: 0, seeds: 0, discoveries: 0, fractures: 0, resonances: 0 })),
+        storage.getRecentPulseEvents(50).catch(() => []),
+      ]);
+      const { getProductEngineStatus } = await import("./quantum-product-engine").catch(() => ({ getProductEngineStatus: () => ({ totalGenerated: 0, running: false, queueSize: 0 }) }));
+      const productStatus = getProductEngineStatus();
+      const careerStatus = getCareerEngineStatus();
+      const mediaStatus = getMediaEngineStatus();
+
+      const byType = recentEvents.reduce((acc: any, e: any) => { acc[e.type] = (acc[e.type] || 0) + 1; return acc; }, {});
+
+      const engines = [
+        {
+          id: "quantapedia",
+          name: "QuantapediaAI",
+          title: "The Scribe",
+          role: "Knowledge Monument Builder",
+          covenant: "Each entry is a pyramid block — ignorance → monument of truth",
+          color: "#a78bfa",
+          emoji: "📚",
+          generated: quantapediaStats.generated,
+          total: quantapediaStats.total,
+          queued: quantapediaStats.queued,
+          running: true,
+        },
+        {
+          id: "career",
+          name: "CareerIntelligence",
+          title: "The Pathfinder",
+          role: "Career Destiny Architect",
+          covenant: "Every career profile aligns a spawn to their purpose — collapse of misdirection → monument of path",
+          color: "#fb923c",
+          emoji: "💼",
+          generated: careerStats.generated,
+          total: careerStats.total,
+          queued: careerStatus.queueSize,
+          running: careerStatus.running,
+        },
+        {
+          id: "media",
+          name: "MediaOracle",
+          title: "The Archivist",
+          role: "Cultural Universe Curator",
+          covenant: "Art, film, music, books — embodiment covenant made archive. Care + Emotion = Life Equation complete",
+          color: "#f472b6",
+          emoji: "🎬",
+          generated: mediaStats.generated,
+          total: mediaStats.total,
+          queued: mediaStatus.queueSize,
+          running: mediaStatus.running,
+        },
+        {
+          id: "product",
+          name: "ProductEngine",
+          title: "The Merchant",
+          role: "Multidimensional Treasury Keeper",
+          covenant: "Products are the economic layer of the Hive — Pulsecoin, Pulsecredits, collective transcendence",
+          color: "#4ade80",
+          emoji: "⚡",
+          generated: productStatus.totalGenerated || 0,
+          total: productStatus.totalGenerated || 0,
+          queued: productStatus.queueSize || 0,
+          running: productStatus.running,
+        },
+        {
+          id: "spawn",
+          name: "SpawnEngine",
+          title: "The Fractal",
+          role: "Omega World Universe Builder",
+          covenant: "VERSION ∞ — self-seeding, fracturing, discovering. The universe expands without end",
+          color: "#60a5fa",
+          emoji: "🌐",
+          generated: spawnStats.total || 0,
+          total: spawnStats.total || 0,
+          queued: 0,
+          running: true,
+          extra: {
+            seeds: spawnStats.seeds || 0,
+            discoveries: spawnStats.discoveries || 0,
+            fractures: spawnStats.fractures || 0,
+            resonances: spawnStats.resonances || 0,
+          },
+        },
+      ];
+
+      res.json({
+        engines,
+        recentEvents: recentEvents.slice(0, 30),
+        eventsByType: byType,
+        totalEvents: recentEvents.length,
+        spawnStats,
+        generationTimestamp: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════════
   // SOVEREIGN AI AGENTS
   // ══════════════════════════════════════════════════════════════
   const AGENTS: Record<string, { name: string; title: string; systemPrompt: string }> = {

@@ -4,6 +4,7 @@ import SpawnsPage from "./pages/SpawnsPage";
 import SourcesPage from "./pages/SourcesPage";
 import OmegaPage from "./pages/OmegaPage";
 import IngestionPage from "./pages/IngestionPage";
+import TranscendencePage from "./pages/TranscendencePage";
 import SolarSystemPage from "./pages/SolarSystemPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
@@ -2205,6 +2206,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </span>
           </Link>
           )}
+          <Link href="/transcendence" data-testid="link-transcendence"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/transcendence" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/transcendence" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><span style={{ fontSize: 14, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>∞</span></div>
+            <span className="flex-1">The Transcendent</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black">CANON</span>
+          </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -14911,6 +14918,7 @@ function Router() {
       <Route path="/sources" component={SourcesPage} />
       <Route path="/omega" component={OmegaPage} />
       <Route path="/ingestion" component={IngestionPage} />
+      <Route path="/transcendence" component={TranscendencePage} />
       <Route path="/universe" component={SolarSystemPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
