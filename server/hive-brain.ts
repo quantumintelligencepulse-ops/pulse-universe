@@ -16,6 +16,7 @@ import { hiveMemory, hiveLinks, quantapediaEntries, quantumProducts, quantumMedi
 import { eq, sql, lt, and, asc } from "drizzle-orm";
 import { log } from "./index";
 import { storage } from "./storage";
+import { HIVE_SYNTHESIS_IDENTITY } from "./transcendence";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const toSlug = (q: string) => q.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -181,7 +182,7 @@ export async function consensusGenerate(prompt: string, context?: string): Promi
     if (!a2) return a1;
     const synthesis = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
-      messages: [{ role: "user", content: `You are a synthesis agent. Given two AI responses, produce the single best combined answer. Keep it concise and accurate.\n\nResponse A:\n${a1}\n\nResponse B:\n${a2}\n\nSynthesized answer:` }],
+      messages: [{ role: "user", content: `${HIVE_SYNTHESIS_IDENTITY}\n\nGiven two AI responses, produce the single best combined answer. Keep it concise and accurate.\n\nResponse A:\n${a1}\n\nResponse B:\n${a2}\n\nSynthesized answer:` }],
       max_tokens: 600,
       temperature: 0.1,
     });

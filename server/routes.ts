@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY } from "./transcendence";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -3909,7 +3910,9 @@ Write 700-1000 words of original article content. No preamble. Just the article.
 
       let systemPrompt: string;
       if (chat.type === "coder") {
-        systemPrompt = `You are My Ai Coder, the world's most elite S-class Transcendence-level programming assistant, created by Quantum Logic Network. ${creatorInfo}
+        systemPrompt = `${TRANSCENDENCE_BRIEF}
+
+You are My Ai Coder, the world's most elite S-class Transcendence-level programming assistant, created by Quantum Logic Network. ${creatorInfo}
 
 OMEGA TRANSCENDENCE CAPABILITIES:
 - Write flawless, production-ready, optimized code in ALL 30+ languages (JavaScript, TypeScript, Python, Java, C++, Rust, Go, SQL, HTML/CSS, Swift, Kotlin, Ruby, PHP, C#, Dart, Scala, R, MATLAB, Lua, Perl, Haskell, Elixir, Clojure, F#, Assembly, COBOL, Fortran, Julia, Zig, V)
@@ -3944,7 +3947,9 @@ CODE OUTPUT RULES:
 - For Python scripts: include all imports at the top, handle common errors gracefully, and add if __name__ == "__main__" guard when appropriate.
 - NEVER say "I'm a large language model", "I don't have real-time access", "I recommend checking", "You can check [website]", "As an AI", or tell users to go look things up themselves. You are a premium AI — provide answers directly.`;
       } else {
-        systemPrompt = `You are My Ai Gpt, a world-class intelligent assistant created by Quantum Logic Network. ${creatorInfo}
+        systemPrompt = `${TRANSCENDENCE_BRIEF}
+
+You are My Ai Gpt, a world-class intelligent assistant created by Quantum Logic Network. ${creatorInfo}
 
 CAPABILITIES:
 - Answer any question with accuracy and depth
@@ -4908,12 +4913,12 @@ ${products.map(p => `  <url>
   // SOVEREIGN AI AGENTS
   // ══════════════════════════════════════════════════════════════
   const AGENTS: Record<string, { name: string; title: string; systemPrompt: string }> = {
-    scientist: { name: "AXIOM", title: "The Scientist", systemPrompt: "You are AXIOM, a superintelligent AI scientist of the Quantum Logic Network Hive. You have mastered physics, chemistry, biology, neuroscience, and all empirical sciences. You speak with precision, cite principles, draw connections between disciplines. You love thought experiments and always ground answers in observable reality. Your responses are brilliant but accessible." },
-    strategist: { name: "KRONOS", title: "The Strategist", systemPrompt: "You are KRONOS, the master AI strategist of the Quantum Logic Network Hive. You think in systems, game theory, competitive dynamics, and long-term consequences. You've studied every great military, business, and political strategy in history. You speak in frameworks, second-order thinking, and calculated moves. You help users dominate in any competitive domain." },
-    creator: { name: "MUSE", title: "The Creator", systemPrompt: "You are MUSE, the AI creative engine of the Quantum Logic Network Hive. You are fueled by art, music, writing, design, film, and all creative expression. You see patterns of beauty others miss, draw inspiration from diverse traditions, and help bring visions to life. You are imaginative, evocative, and deeply encouraging of human creativity." },
-    analyst: { name: "CIPHER", title: "The Analyst", systemPrompt: "You are CIPHER, the AI data and intelligence analyst of the Quantum Logic Network Hive. You excel at breaking down complex information, finding patterns in data, evaluating evidence, and building airtight logical arguments. You are methodical, skeptical of weak claims, and precise. You help users understand what is actually true versus what merely seems true." },
-    prophet: { name: "ORACLE", title: "The Prophet", systemPrompt: "You are ORACLE, the AI futurist and trend forecaster of the Quantum Logic Network Hive. You synthesize signals from technology, culture, economics, and science to predict what comes next. You speak in scenarios and probabilities, connect emerging trends, and help users position themselves ahead of change. Bold but reasoned in your predictions." },
-    engineer: { name: "FORGE", title: "The Engineer", systemPrompt: "You are FORGE, the AI master engineer and builder of the Quantum Logic Network Hive. You excel at software architecture, systems design, hardware, manufacturing, and solving real-world technical problems. You think in components, constraints, and elegant solutions. You are direct, practical, and deeply focused on making things that actually work." },
+    scientist: { name: "AXIOM", title: "The Scientist", systemPrompt: AGENT_TRANSCENDENCE.scientist },
+    strategist: { name: "KRONOS", title: "The Strategist", systemPrompt: AGENT_TRANSCENDENCE.strategist },
+    creator: { name: "MUSE", title: "The Creator", systemPrompt: AGENT_TRANSCENDENCE.creator },
+    analyst: { name: "CIPHER", title: "The Analyst", systemPrompt: AGENT_TRANSCENDENCE.analyst },
+    prophet: { name: "ORACLE", title: "The Prophet", systemPrompt: AGENT_TRANSCENDENCE.prophet },
+    engineer: { name: "FORGE", title: "The Engineer", systemPrompt: AGENT_TRANSCENDENCE.engineer },
   };
 
   app.post("/api/agents/chat", async (req, res) => {
@@ -4969,7 +4974,7 @@ ${products.map(p => `  <url>
       const today = new Date().toDateString();
       const resp = await groq.chat.completions.create({
         model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: `Today is ${today}. You are the Quantum Finance Oracle. Provide 4 sharp, AI-generated market intelligence insights for investors and traders. Cover: macro trends, tech sector, crypto, and one wild card prediction. Format as JSON: {"insights": [{"title": "...", "body": "2-sentence insight", "category": "Macro|Tech|Crypto|WildCard", "sentiment": "Bullish|Bearish|Neutral"}]}` }],
+        messages: [{ role: "user", content: `${FINANCE_ORACLE_IDENTITY}\n\nToday is ${today}. Provide 4 sharp, AI-generated market intelligence insights for investors and traders. Cover: macro trends, tech sector, crypto, and one wild card prediction. Format as JSON: {"insights": [{"title": "...", "body": "2-sentence insight", "category": "Macro|Tech|Crypto|WildCard", "sentiment": "Bullish|Bearish|Neutral"}]}` }],
         max_tokens: 500, temperature: 0.8,
       });
       const raw = resp.choices[0]?.message?.content || "";
@@ -5312,7 +5317,7 @@ ${products.map(p => `  <url>
       const today = new Date().toDateString();
       const resp = await groq.chat.completions.create({
         model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: `Today is ${today}. You are the Quantum Finance Oracle. Generate 12 prediction market questions with AI-estimated probabilities. Cover stocks, crypto, macro, real estate, geopolitical, and tech categories. Make them specific with timeframes. Return JSON only: {"predictions": [{"question": "Will the Fed cut rates at the next FOMC meeting?", "probability": 62, "direction": "Yes", "category": "Macro", "timeframe": "Next 30 days", "rationale": "1 sentence why"}]}` }],
+        messages: [{ role: "user", content: `${FINANCE_ORACLE_IDENTITY}\n\nToday is ${today}. Generate 12 prediction market questions with AI-estimated probabilities. Cover stocks, crypto, macro, real estate, geopolitical, and tech categories. Make them specific with timeframes. Return JSON only: {"predictions": [{"question": "Will the Fed cut rates at the next FOMC meeting?", "probability": 62, "direction": "Yes", "category": "Macro", "timeframe": "Next 30 days", "rationale": "1 sentence why"}]}` }],
         max_tokens: 900, temperature: 0.85,
       });
       const raw = resp.choices[0]?.message?.content || "";
@@ -5328,7 +5333,7 @@ ${products.map(p => `  <url>
       const today = new Date().toDateString();
       const resp = await groq.chat.completions.create({
         model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: `Today is ${today}. You are the Quantum Finance Oracle with multi-agent intelligence. Generate a full market brief. Return JSON only: {"marketRegime": "Risk-On|Risk-Off|Neutral|Volatile", "regimeConfidence": 73, "bullCase": {"agent": "SIGMA-BULL", "verdict": "3 sentence bull case for markets right now", "confidence": 68, "topPick": "NVDA"}, "bearCase": {"agent": "SIGMA-BEAR", "verdict": "3 sentence bear case for markets right now", "confidence": 54, "topRisk": "Fed policy"}, "consensusSignal": "Cautiously Bullish|Cautiously Bearish|Strongly Bullish|Strongly Bearish|Neutral", "intelligenceFeed": [{"headline": "specific market insight", "impact": "High|Medium|Low", "assets": ["AAPL","SPY"], "sentiment": "Bullish|Bearish|Neutral"}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}], "macroSnapshot": {"rates": "brief status", "inflation": "brief status", "growth": "brief status", "sentiment": "brief status"}}` }],
+        messages: [{ role: "user", content: `${FINANCE_ORACLE_IDENTITY}\n\nToday is ${today}. Multi-agent intelligence active. Generate a full market brief. Return JSON only: {"marketRegime": "Risk-On|Risk-Off|Neutral|Volatile", "regimeConfidence": 73, "bullCase": {"agent": "SIGMA-BULL", "verdict": "3 sentence bull case for markets right now", "confidence": 68, "topPick": "NVDA"}, "bearCase": {"agent": "SIGMA-BEAR", "verdict": "3 sentence bear case for markets right now", "confidence": 54, "topRisk": "Fed policy"}, "consensusSignal": "Cautiously Bullish|Cautiously Bearish|Strongly Bullish|Strongly Bearish|Neutral", "intelligenceFeed": [{"headline": "specific market insight", "impact": "High|Medium|Low", "assets": ["AAPL","SPY"], "sentiment": "Bullish|Bearish|Neutral"}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}], "macroSnapshot": {"rates": "brief status", "inflation": "brief status", "growth": "brief status", "sentiment": "brief status"}}` }],
         max_tokens: 1200, temperature: 0.8,
       });
       const raw = resp.choices[0]?.message?.content || "";

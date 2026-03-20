@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 import { storage } from "./storage";
 import { onCareerGenerated as hiveBrainOnCareer } from "./hive-brain";
+import { CAREER_ENGINE_IDENTITY } from "./transcendence";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -74,7 +75,9 @@ async function generateCareerEntry(item: { title: string; field: string; level: 
   if (!existing) {
     await storage.upsertCareer({ slug, title: item.title, field: item.field, level: item.level, generated: false });
   }
-  const prompt = `You are the Quantum Career Intelligence Engine. Generate a comprehensive career profile for "${item.title}" in the ${item.field} field (${item.level} level).
+  const prompt = `${CAREER_ENGINE_IDENTITY}
+
+Generate a comprehensive career profile for "${item.title}" in the ${item.field} field (${item.level} level).
 
 Return ONLY valid JSON (no markdown), exactly this structure:
 {

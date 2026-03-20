@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 import { storage } from "./storage";
 import { onMediaGenerated as hiveBrainOnMedia } from "./hive-brain";
+import { MEDIA_ENGINE_IDENTITY } from "./transcendence";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -79,7 +80,9 @@ async function generateMediaEntry(item: { name: string; creator: string; type: s
   if (!existing) {
     await storage.upsertMedia({ slug, name: item.name, creator: item.creator, type: item.type, genre: item.genre, generated: false });
   }
-  const prompt = `You are the Quantum Intelligence Media Engine. Generate a complete media intelligence entry for "${item.name}" by ${item.creator} (${item.type} / ${item.genre}).
+  const prompt = `${MEDIA_ENGINE_IDENTITY}
+
+Generate a complete media intelligence entry for "${item.name}" by ${item.creator} (${item.type} / ${item.genre}).
 
 Return ONLY valid JSON (no markdown), exactly this structure:
 {

@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { storage } from "./storage";
 import { log } from "./index";
 import { onEntryGenerated } from "./hive-brain";
+import { QUANTAPEDIA_IDENTITY } from "./transcendence";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -67,7 +68,9 @@ const SEED_TOPICS: { slug: string; title: string }[] = [
 ];
 
 const QP_PROMPT = (title: string) =>
-  `You are QuantapediaAI — the world's most comprehensive AI knowledge engine, building the definitive knowledge substrate for humanity. Generate a complete structured knowledge entry for: "${title}"
+  `${QUANTAPEDIA_IDENTITY}
+
+Generate a complete structured knowledge entry for: "${title}"
 
 Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) with this exact schema:
 {
