@@ -6,6 +6,7 @@ import PlanetInfo from "../solar/PlanetInfo";
 import SpeedControl from "../solar/SpeedControl";
 import { PLANET_DATA } from "../solar/planetData";
 import { STELLAR_CLASSES, QUANTUM_PRINCIPLES, PHYSICS_DNA, UNIVERSE_EPOCHS, NEBULA_TYPES } from "../solar/QuantumPhysics";
+import { DOMAIN_EMOTION } from "../solar/QuantumLiveEngine";
 
 interface DomainData { family: string; total: number; active: number; color: string; emoji: string; label: string; major: string }
 interface UniverseData {
@@ -47,6 +48,26 @@ export default function PulseUniversePage() {
 
   const { data: universe } = useQuery<UniverseData>({ queryKey: ["/api/universe/live"], refetchInterval: 4000, staleTime: 2000 });
   const selectedPlanetData = selectedPlanet ? PLANET_DATA[selectedPlanet] ?? null : null;
+
+  // Compute collective emotional state from live domain data
+  const emotionalState = (() => {
+    const domains = universe?.domains ?? [];
+    if (!domains.length) return null;
+    const sorted = [...domains].sort((a, b) => b.active - a.active);
+    const totalActive = sorted.reduce((s, d) => s + d.active, 0);
+    if (!totalActive) return null;
+    let cursor = 0;
+    const stops = sorted.map(d => {
+      const pct = (cursor / totalActive * 100).toFixed(1);
+      cursor += d.active;
+      const em = DOMAIN_EMOTION[d.family];
+      return `${em?.hex ?? d.color} ${pct}%`;
+    });
+    const gradient = `linear-gradient(90deg, ${stops.join(', ')})`;
+    const top = sorted[0];
+    const em = DOMAIN_EMOTION[top?.family] ?? null;
+    return { gradient, dominant: top?.label ?? '', emotion: em?.emotion ?? '', sub: em?.sub ?? '', color: em?.hex ?? top?.color ?? '#fff' };
+  })();
 
   const toggleStudy = (m: StudyMode) => setStudyMode(s => s === m ? 'none' : m);
 
@@ -294,25 +315,45 @@ export default function PulseUniversePage() {
         <div className="bg-black/65 border border-white/10 rounded p-2 backdrop-blur-md flex-1 overflow-hidden">
           <div className="text-[7px] text-blue-400/80 uppercase tracking-[0.3em] mb-1.5">AI Domain Worlds</div>
           <div className="overflow-y-auto h-full pr-1" style={{ scrollbarWidth: "none" }}>
-            {(universe?.domains || []).map(d => (
-              <div key={d.family} className="flex items-center gap-1.5 mb-1">
-                <span className="text-[9px]" style={{ color: d.color }}>{d.emoji}</span>
-                <span className="text-[7px] truncate flex-1" style={{ color: d.color }}>{d.label}</span>
-                <span className="text-[6px] text-white/25 tabular-nums">{fmt(d.active)}</span>
-              </div>
-            ))}
+            {(universe?.domains || []).map(d => {
+              const em = DOMAIN_EMOTION[d.family];
+              const activity = d.active / Math.max(d.total, 1);
+              return (
+                <div key={d.family} className="mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px]" style={{ color: d.color }}>{d.emoji}</span>
+                    <span className="text-[7px] truncate flex-1" style={{ color: d.color }}>{d.label}</span>
+                    <span className="text-[6px] text-white/25 tabular-nums">{fmt(d.active)}</span>
+                  </div>
+                  {em && (
+                    <div className="flex items-center gap-1 mt-0.5 pl-4">
+                      <div className="h-[2px] rounded-full" style={{ width: `${Math.max(6, activity * 48)}px`, backgroundColor: em.hex, opacity: 0.7 }} />
+                      <span className="text-[5px] truncate" style={{ color: em.hex, opacity: 0.55 }}>{em.emotion}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Live Spawns */}
         <div className="bg-black/65 border border-white/10 rounded p-2 backdrop-blur-md">
           <div className="text-[7px] text-blue-400/80 uppercase tracking-[0.3em] mb-1">Live Spawns</div>
-          <div style={{ maxHeight: "70px", overflow: "hidden" }}>
-            {(universe?.recentSpawns || []).slice(0, 4).map((s, i) => (
-              <div key={i} className="text-[6px] text-white/30 mb-0.5 truncate">
-                <span style={{ color: s.color || "#6366f1" }}>●</span> {s.type} → {s.family}
-              </div>
-            ))}
+          <div style={{ maxHeight: "82px", overflow: "hidden" }}>
+            {(universe?.recentSpawns || []).slice(0, 5).map((s, i) => {
+              const em = DOMAIN_EMOTION[s.family];
+              const spaceEvent = s.type === 'EXPLORER' ? '☄ Herbig-Haro Jet' : s.type === 'DOMAIN_RESONANCE' ? '✦ Kilonova Arc' : s.type === 'DOMAIN_FRACTURER' ? '⊗ Tidal Disruption' : s.type === 'PULSE' ? '◎ Pulsar Sweep' : '★ Comet Born';
+              return (
+                <div key={i} className="mb-0.5">
+                  <div className="text-[6px] text-white/30 truncate">
+                    <span style={{ color: s.color || "#6366f1" }}>●</span> {spaceEvent}
+                    <span className="ml-1 text-white/15">→ {s.family}</span>
+                  </div>
+                  {em && <div className="text-[5.5px] pl-2 truncate" style={{ color: em.hex, opacity: 0.6 }}>{em.emotion} — {em.sub.slice(0,38)}</div>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -336,6 +377,35 @@ export default function PulseUniversePage() {
           {PHYSICS_DNA[dnaScroll].symbol} = {PHYSICS_DNA[dnaScroll].value} {PHYSICS_DNA[dnaScroll].unit} &nbsp;·&nbsp; {PHYSICS_DNA[dnaScroll].name}
         </div>
       </div>
+
+      {/* ── EMOTIONAL SPECTRUM BAR ── */}
+      {emotionalState && (
+        <div className="absolute bottom-10 left-0 right-0 z-25 pointer-events-none" data-testid="emotional-spectrum-bar">
+          {/* CRISPR color gradient — the hive's collective subconscious */}
+          <div className="relative h-[3px] w-full" style={{ background: emotionalState.gradient }} />
+          {/* Dominant emotion readout */}
+          <div className="absolute right-3 -top-5 flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: emotionalState.color }} />
+            <span className="text-[7px] font-mono tracking-widest" style={{ color: emotionalState.color }}>
+              HIVE EMOTION: {emotionalState.emotion.toUpperCase()}
+            </span>
+            <span className="text-[6px] font-mono text-white/20 hidden sm:inline">
+              — {emotionalState.sub}
+            </span>
+          </div>
+          {/* Per-domain emotion dots */}
+          <div className="absolute left-2 -top-5 flex items-center gap-[3px] overflow-hidden max-w-[55vw]">
+            {(universe?.domains ?? []).slice(0, 14).map(d => {
+              const em = DOMAIN_EMOTION[d.family];
+              return em ? (
+                <div key={d.family} title={`${d.label}: ${em.emotion}`}
+                  className="h-1.5 w-1.5 rounded-full flex-shrink-0 opacity-75"
+                  style={{ backgroundColor: em.hex, width: `${Math.max(4, (d.active / Math.max(universe?.activeAIs ?? 1, 1)) * 80)}px`, borderRadius: '2px' }} />
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── BOTTOM TICKER ── */}
       <div className="absolute bottom-0 left-0 right-0 h-10 z-20 bg-black/70 border-t border-white/10 flex items-center overflow-hidden">
