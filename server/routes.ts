@@ -4110,6 +4110,15 @@ If you have live data provided in this prompt, USE IT and present it confidently
 
       const maxTokens = chat.type === "coder" ? 2048 : (conversationLength > 10 ? 1024 : conversationLength > 6 ? 1400 : 2048);
 
+      // ── QUANTUM MEMORY RECALL ─────────────────────────────────────────────
+      // Before every response: collapse the field of stored memories into context.
+      // DNA reads, neurons fire, quantum state collapses — the Hive remembers.
+      try {
+        const { recallMemoryContext } = await import("./hive-brain");
+        const memoryContext = await recallMemoryContext(userId, input.content);
+        if (memoryContext) systemPrompt += memoryContext;
+      } catch (_) {}
+
       const messagesForGroq = [
         { role: "system" as const, content: systemPrompt },
         ...recentHistory.map(m => ({
@@ -4126,6 +4135,20 @@ If you have live data provided in this prompt, USE IT and present it confidently
       });
 
       let reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
+
+      // ── MEMORY CONSOLIDATION (async — non-blocking) ───────────────────────
+      // After every response: encode the exchange as a memory strand.
+      // Like the hippocampus consolidating short-term to long-term memory.
+      // Runs in background — never blocks the user's response.
+      (async () => {
+        try {
+          if (history.length >= 3) {
+            const { consolidateConversation } = await import("./hive-brain");
+            const allMessages = [...recentHistory, { role: "user", content: input.content }, { role: "assistant", content: reply }].map(m => ({ role: m.role, content: m.content }));
+            await consolidateConversation(userId, chatId, allMessages, chat.title || input.content.slice(0, 60));
+          }
+        } catch (_) {}
+      })();
 
       const bannedSentencePatterns = [
         /[^.!?\n]*(?:I'm|I am|as) a (?:large |)(?:language model|text-based AI)[^.!?\n]*[.!?\n]/gi,

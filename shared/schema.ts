@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, jsonb, real, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -430,3 +430,36 @@ export const ingestionLogs = pgTable("ingestion_logs", {
   fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
 });
 export type IngestionLog = typeof ingestionLogs.$inferSelect;
+
+// ─── USER MEMORY STRANDS — Cross-Session AI Memory ──────────────────────────
+// Like DNA: each strand encodes what a user knows, explored, or cares about.
+// Like neurons: strength grows with access, decays without use.
+// Like quantum fields: strands entangle with Hive domain knowledge.
+export const userMemory = pgTable("user_memory", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  strand: text("strand").notNull(),         // topic slug: "quantum-mechanics", "python-coding"
+  summary: text("summary").notNull(),        // compressed narrative of what was discussed
+  facts: jsonb("facts").default([]),         // extracted bullet facts from conversations
+  strength: real("strength").default(0.5),  // synaptic strength — increases on access, decays over time
+  accessCount: integer("access_count").default(0),
+  lastAccessedAt: timestamp("last_accessed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({ userStrandUnique: unique().on(t.userId, t.strand) }));
+export type UserMemoryStrand = typeof userMemory.$inferSelect;
+
+// ─── CONVERSATION IMPRINTS — Session-Level DNA ───────────────────────────────
+// Every completed conversation leaves a compressed memory imprint.
+// The Hive reads these to give the AI continuity across time.
+export const conversationImprints = pgTable("conversation_imprints", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  chatId: integer("chat_id").notNull(),
+  topicSlug: text("topic_slug").notNull(),
+  topicLabel: text("topic_label").notNull(),
+  summary: text("summary").notNull(),        // Groq-synthesized 2-3 sentence imprint
+  keyInsights: jsonb("key_insights").default([]), // bullet list of what was learned/decided
+  emotionalTone: text("emotional_tone").default("neutral"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ConversationImprint = typeof conversationImprints.$inferSelect;

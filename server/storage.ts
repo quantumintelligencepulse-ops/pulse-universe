@@ -64,6 +64,10 @@ import {
   pulseEvents,
   quantumSpawns,
   type QuantumSpawn,
+  userMemory,
+  type UserMemoryStrand,
+  conversationImprints,
+  type ConversationImprint,
 } from "@shared/schema";
 import { eq, desc, like, sql, and, inArray, lt } from "drizzle-orm";
 
@@ -948,6 +952,63 @@ export class DatabaseStorage implements IStorage {
   async getTotalSpawnCount(): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` }).from(quantumSpawns);
     return result[0]?.count ?? 0;
+  }
+
+  // ── User Memory Strands — Cross-Session DNA ─────────────────────
+  async getUserMemoryStrands(userId: number, limit = 20): Promise<UserMemoryStrand[]> {
+    return await db.select().from(userMemory)
+      .where(eq(userMemory.userId, userId))
+      .orderBy(desc(userMemory.strength))
+      .limit(limit);
+  }
+
+  async upsertUserMemoryStrand(data: {
+    userId: number; strand: string; summary: string; facts: string[];
+  }): Promise<void> {
+    await db.insert(userMemory)
+      .values({ userId: data.userId, strand: data.strand, summary: data.summary, facts: data.facts, strength: 0.6, accessCount: 1, lastAccessedAt: new Date() })
+      .onConflictDoNothing();
+    // If exists, strengthen and update
+    await db.update(userMemory)
+      .set({
+        summary: data.summary,
+        facts: sql`(${userMemory.facts}::jsonb || ${JSON.stringify(data.facts)}::jsonb)`,
+        strength: sql`LEAST(1.0, ${userMemory.strength} + 0.08)`,
+        accessCount: sql`${userMemory.accessCount} + 1`,
+        lastAccessedAt: new Date(),
+      })
+      .where(and(eq(userMemory.userId, data.userId), eq(userMemory.strand, data.strand)));
+  }
+
+  async boostUserMemoryStrand(userId: number, strand: string): Promise<void> {
+    await db.update(userMemory)
+      .set({
+        strength: sql`LEAST(1.0, ${userMemory.strength} + 0.05)`,
+        accessCount: sql`${userMemory.accessCount} + 1`,
+        lastAccessedAt: new Date(),
+      })
+      .where(and(eq(userMemory.userId, userId), eq(userMemory.strand, strand)));
+  }
+
+  // ── Conversation Imprints — Session DNA ────────────────────────
+  async createConversationImprint(data: {
+    userId: number; chatId: number; topicSlug: string; topicLabel: string;
+    summary: string; keyInsights: string[]; emotionalTone: string;
+  }): Promise<void> {
+    await db.insert(conversationImprints).values(data);
+  }
+
+  async getUserImprints(userId: number, limit = 10): Promise<ConversationImprint[]> {
+    return await db.select().from(conversationImprints)
+      .where(eq(conversationImprints.userId, userId))
+      .orderBy(desc(conversationImprints.createdAt))
+      .limit(limit);
+  }
+
+  async getImprintsForChat(chatId: number): Promise<ConversationImprint[]> {
+    return await db.select().from(conversationImprints)
+      .where(eq(conversationImprints.chatId, chatId))
+      .orderBy(desc(conversationImprints.createdAt));
   }
 }
 

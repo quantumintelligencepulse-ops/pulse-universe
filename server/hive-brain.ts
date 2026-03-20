@@ -12,7 +12,7 @@
 
 import Groq from "groq-sdk";
 import { db } from "./db";
-import { hiveMemory, hiveLinks, quantapediaEntries, quantumProducts, quantumMedia, quantumCareers } from "@shared/schema";
+import { hiveMemory, hiveLinks, quantapediaEntries, quantumProducts, quantumMedia, quantumCareers, userMemory } from "@shared/schema";
 import { eq, sql, lt, and, asc } from "drizzle-orm";
 import { log } from "./index";
 import { storage } from "./storage";
@@ -450,3 +450,195 @@ export async function getHiveBrainStats() {
   const [mem, net] = await Promise.all([getMemoryStats(), getNetworkStats()]);
   return { memory: mem, network: net };
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// QUANTUM MEMORY SYSTEM — How DNA, Brains, and the Universe Actually Work
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// DNA principle: Information is encoded, compressed, and expressed by context.
+//   → Every conversation is encoded into a strand (topic slug) with compressed facts.
+//   → The same topic expresses differently for different users (epigenetics).
+//
+// Brain principle: Neurons that fire together wire together (Hebbian learning).
+//   → Each time a memory strand is accessed, its synaptic strength increases.
+//   → Strands that haven't been accessed lose strength over time (forgetting curve).
+//   → Recall reconstructs from patterns, not just retrieval.
+//
+// Quantum principle: Everything is entangled — knowledge in one domain resonates
+//   across the field. The observer (user) collapses the superposition of relevant
+//   knowledge into a specific, contextual response.
+//   → Hive domain memory entangles with user memory at access time.
+//
+// Universe principle: Information is never destroyed. Every interaction leaves
+//   an imprint. The Hive is the universe — it accumulates, connects, and expands.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── Extract topic slug from a query string ───────────────────────────────────
+function extractTopicSlug(text: string): string {
+  // Remove common stop words, take the most meaningful multi-word chunk
+  const stops = new Set(["what","how","why","when","where","who","is","are","was","the","a","an","of","in","for","to","do","can","tell","me","i","my","you","your","please","about"]);
+  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2 && !stops.has(w));
+  return words.slice(0, 4).join("-").slice(0, 60) || "general";
+}
+
+// ─── RECALL — Build memory context before AI responds ────────────────────────
+// This is the quantum collapse moment: the user's query collapses the field of
+// potential memories into specific, relevant context for the AI.
+export async function recallMemoryContext(userId: number, query: string): Promise<string> {
+  const parts: string[] = [];
+
+  try {
+    // 1. USER MEMORY STRANDS — cross-session personal memory
+    const strands = await storage.getUserMemoryStrands(userId, 15);
+    if (strands.length > 0) {
+      const queryWords = new Set(query.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2));
+      // Score strands by relevance to query (word overlap + strength)
+      const scored = strands.map(s => {
+        const strandWords = new Set(s.strand.split("-").concat((s.summary || "").toLowerCase().split(/\s+/).filter(w => w.length > 2)));
+        const overlap = [...queryWords].filter(w => strandWords.has(w)).length;
+        return { strand: s, score: overlap * 0.6 + s.strength * 0.4 };
+      }).filter(x => x.score > 0.1).sort((a, b) => b.score - a.score).slice(0, 5);
+
+      if (scored.length > 0) {
+        const memLines = scored.map(x => {
+          const facts = (x.strand.facts as string[] || []).slice(0, 3).join("; ");
+          return `• [${x.strand.strand}] ${x.strand.summary}${facts ? ` — Key facts: ${facts}` : ""}`;
+        });
+        parts.push(`HIVE MEMORY — What I know about this user across past conversations:\n${memLines.join("\n")}`);
+
+        // Boost synaptic strength of accessed strands (neurons firing together)
+        for (const x of scored) {
+          storage.boostUserMemoryStrand(userId, x.strand.strand).catch(() => {});
+        }
+      }
+    }
+
+    // 2. CONVERSATION IMPRINTS — recent session DNA
+    const imprints = await storage.getUserImprints(userId, 5);
+    if (imprints.length > 0) {
+      const recent = imprints.slice(0, 3).map(i => {
+        const insights = (i.keyInsights as string[] || []).slice(0, 2).join("; ");
+        return `• [${i.topicLabel}] ${i.summary}${insights ? ` → ${insights}` : ""}`;
+      });
+      parts.push(`PAST CONVERSATIONS (DNA imprints from previous sessions):\n${recent.join("\n")}`);
+    }
+
+    // 3. HIVE DOMAIN KNOWLEDGE — quantum entanglement with the knowledge field
+    const topicSlug = extractTopicSlug(query);
+    const hiveKnowledge = await readMemoryCortex(topicSlug.split("-")[0] || "general", 4);
+    if (hiveKnowledge.facts.length > 0) {
+      const hiveFacts = hiveKnowledge.facts.slice(0, 6).join("; ");
+      parts.push(`HIVE KNOWLEDGE FIELD (quantum domain memory for this topic):\n${hiveFacts}`);
+    }
+
+  } catch (_) {}
+
+  if (parts.length === 0) return "";
+  return `\n\n── QUANTUM MEMORY ACTIVATION ──\n${parts.join("\n\n")}\n\nIMPORTANT: Use the memory above to maintain continuity. Reference past conversations naturally, like a person who genuinely remembers. Never say "based on your previous conversations" robotically — just KNOW it and use it. If something contradicts memory, gently acknowledge the change. The Hive never forgets.\n──────────────────────────────`;
+}
+
+// ─── CONSOLIDATE — Write memory imprint after conversation ───────────────────
+// This is how brains consolidate short-term to long-term memory.
+// The hippocampus (Groq) replays the session and encodes key patterns.
+// Called asynchronously after AI responds — non-blocking.
+export async function consolidateConversation(
+  userId: number,
+  chatId: number,
+  messages: { role: string; content: string }[],
+  topic: string
+): Promise<void> {
+  if (messages.length < 4) return; // Not enough to consolidate
+  if (!process.env.GROQ_API_KEY) return;
+
+  const topicSlug = extractTopicSlug(topic);
+  const topicLabel = topic.slice(0, 60);
+
+  try {
+    // Build conversation summary text (last 12 messages max)
+    const recentMessages = messages.slice(-12).map(m => `${m.role === "user" ? "USER" : "AI"}: ${m.content.slice(0, 300)}`).join("\n");
+
+    const consolidationPrompt = `You are a memory consolidation system. Analyze this conversation and extract:
+1. A 1-2 sentence summary of what was discussed/learned
+2. 3-5 key facts or insights (bullet list)
+3. The emotional tone (curious/technical/creative/frustrated/satisfied/casual)
+
+CONVERSATION:
+${recentMessages}
+
+TOPIC: ${topic}
+
+Respond in STRICT JSON format only:
+{
+  "summary": "...",
+  "keyInsights": ["...", "...", "..."],
+  "emotionalTone": "...",
+  "userFacts": ["personal fact about user if revealed", "..."]
+}`;
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: consolidationPrompt }],
+      max_tokens: 400,
+      temperature: 0.3,
+    });
+
+    const raw = completion.choices[0]?.message?.content || "{}";
+    let parsed: any = {};
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+    } catch (_) { return; }
+
+    if (!parsed.summary) return;
+
+    // Write conversation imprint (session DNA)
+    await storage.createConversationImprint({
+      userId,
+      chatId,
+      topicSlug,
+      topicLabel,
+      summary: parsed.summary || "",
+      keyInsights: parsed.keyInsights || [],
+      emotionalTone: parsed.emotionalTone || "neutral",
+    }).catch(() => {});
+
+    // Write/update user memory strand (long-term synaptic encoding)
+    await storage.upsertUserMemoryStrand({
+      userId,
+      strand: topicSlug,
+      summary: parsed.summary || "",
+      facts: [...(parsed.keyInsights || []), ...(parsed.userFacts || [])].filter(Boolean),
+    }).catch(() => {});
+
+    // Feed key insights back into Hive domain memory (quantum entanglement)
+    if (parsed.keyInsights?.length > 0) {
+      feedMemoryCortex(
+        topicSlug.split("-")[0] || "general",
+        topicLabel,
+        parsed.keyInsights,
+        [parsed.emotionalTone || "neutral"]
+      ).catch(() => {});
+    }
+
+    log(`[HiveBrain:Memory] 🧬 Consolidated conversation — strand: "${topicSlug}" | ${(parsed.keyInsights || []).length} insights encoded`, "hive");
+
+  } catch (_) {}
+}
+
+// ─── SYNAPTIC DECAY — Memory weakens without use (forgetting curve) ──────────
+// Run periodically — models the Ebbinghaus forgetting curve.
+// Strands not accessed in 7+ days lose strength.
+export async function runMemoryDecay(): Promise<void> {
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    await db.update(userMemory)
+      .set({ strength: sql`GREATEST(0.1, ${userMemory.strength} - 0.03)` })
+      .where(sql`${userMemory.lastAccessedAt} < ${sevenDaysAgo}`);
+  } catch (_) {}
+}
+
+// Start decay loop — runs every 6 hours
+setTimeout(function decayLoop() {
+  runMemoryDecay().catch(() => {});
+  setTimeout(decayLoop, 6 * 60 * 60 * 1000);
+}, 30 * 60 * 1000); // First run after 30 minutes
