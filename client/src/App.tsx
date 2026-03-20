@@ -154,6 +154,25 @@ type AppSettings = {
   feedShowImages: boolean;
   feedCompactNews: boolean;
   feedTopCategories: string[];
+  // Games OS Settings
+  gamesLandingMode: string;
+  gamesDefaultConsole: string;
+  gamesDefaultShader: 'none' | 'crt' | 'gameboy' | 'vhs' | 'neon';
+  pixelArtDefaultPalette: string;
+  pixelArtDefaultGridSize: number;
+  pixelArtExportScale: number;
+  hubAutoUpdate: boolean;
+  hubUpdateIntervalHours: number;
+  gamesSoundEnabled: boolean;
+  gamesShowStats: boolean;
+  // Music / Quantum Studio Settings
+  studioBPM: number;
+  studioSwing: number;
+  studioDefaultInstrument: string;
+  studioAutoSave: boolean;
+  musicDefaultGenre: string;
+  studioShowPianoRoll: boolean;
+  studioMasterVolume: number;
 };
 const defaultAppSettings: AppSettings = {
   darkMode: false, bgColor: "#ffffff", accentColor: "#f97316", fontSize: "medium",
@@ -169,6 +188,13 @@ const defaultAppSettings: AppSettings = {
   autoSaveCode: true, exportFormat: "markdown", notificationSound: "default",
   showWordCount: true, enableCodeLens: true, chatFontSize: "medium",
   feedNewsPerPage: 18, feedShowImages: true, feedCompactNews: false, feedTopCategories: [],
+  // Games OS defaults
+  gamesLandingMode: 'hub', gamesDefaultConsole: 'nes', gamesDefaultShader: 'none',
+  pixelArtDefaultPalette: 'nes', pixelArtDefaultGridSize: 16, pixelArtExportScale: 8,
+  hubAutoUpdate: true, hubUpdateIntervalHours: 1, gamesSoundEnabled: true, gamesShowStats: true,
+  // Music / Studio defaults
+  studioBPM: 120, studioSwing: 0, studioDefaultInstrument: 'drums',
+  studioAutoSave: true, musicDefaultGenre: 'all', studioShowPianoRoll: true, studioMasterVolume: 80,
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
@@ -5989,6 +6015,8 @@ function SettingsPage() {
     { id: "earnings", name: "Earnings", icon: DollarSign },
     { id: "accessibility", name: "Accessibility", icon: Eye },
     { id: "permissions", name: "Permissions", icon: Shield },
+    { id: "games-settings", name: "Games OS", icon: Gamepad2 },
+    { id: "music-settings", name: "Music Studio", icon: Music },
     { id: "data", name: "Data & Privacy", icon: Database },
   ];
 
@@ -6678,6 +6706,255 @@ function SettingsPage() {
               <Shield size={16} className="mx-auto mb-2 text-blue-400" />
               <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Your privacy matters</p>
               <p className="text-[10px] text-blue-400 mt-1">My Ai Gpt only uses permissions you allow. All data stays on your device. No tracking, no selling data.</p>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "games-settings" && (
+          <div className="space-y-4" data-testid="settings-section-games">
+            {/* Hero banner */}
+            <div className="rounded-2xl p-5 border border-violet-500/20" style={{background:'linear-gradient(135deg,#0f0025,#1a003a)'}}>
+              <div className="flex items-center gap-3 mb-1">
+                <span className="text-2xl">⚡</span>
+                <div>
+                  <div className="text-white font-black">Sovereign Game OS Settings</div>
+                  <div className="text-violet-300/60 text-xs">Configure the emulator, pixel art studio, hub, and open games zone</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Emulator Zone */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><span>🕹️</span> Emulator Zone Defaults</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Console</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{id:'nes',label:'NES',emoji:'🎮'},{id:'snes',label:'SNES',emoji:'🕹️'},{id:'gba',label:'GBA',emoji:'💠'},{id:'n64',label:'N64',emoji:'🔵'},{id:'psx',label:'PS1',emoji:'⬜'},{id:'sega',label:'Sega',emoji:'🔴'},{id:'gb',label:'Game Boy',emoji:'⬛'},{id:'gbc',label:'GBC',emoji:'🟢'},{id:'dos',label:'DOS',emoji:'💻'}].map(c=>(
+                    <button key={c.id} onClick={()=>update({gamesDefaultConsole:c.id})} data-testid={`games-console-${c.id}`}
+                      className={`py-2 px-2 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 ${settings.gamesDefaultConsole===c.id?'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400':'border-border/30 hover:border-border'}`}>
+                      <span>{c.emoji}</span>{c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Visual Shader</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{id:'none',label:'Pixel Perfect',desc:'No filter — sharp pixels'},{id:'crt',label:'CRT Scanlines',desc:'Classic TV scanlines'},{id:'gameboy',label:'Game Boy',desc:'Warm green LCD tint'},{id:'vhs',label:'VHS',desc:'Washed retro video'},{id:'neon',label:'Neon Glow',desc:'Vibrant arcade neons'}].map(s=>(
+                    <button key={s.id} onClick={()=>update({gamesDefaultShader:s.id as any})} data-testid={`games-shader-${s.id}`}
+                      className={`py-2.5 px-3 rounded-lg text-xs font-medium border transition-all text-left ${settings.gamesDefaultShader===s.id?'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400':'border-border/30 hover:border-border'}`}>
+                      <div className="font-bold">{s.label}</div>
+                      <div className="text-muted-foreground text-[10px]">{s.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Pixel Art Studio */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><span>🎨</span> Pixel Art Studio Defaults</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Palette</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{id:'nes',label:'NES (54 colors)',emoji:'🔴'},{id:'gameboy',label:'Game Boy (4 colors)',emoji:'⬛'},{id:'gbc',label:'GBC (16 colors)',emoji:'🟢'},{id:'cga',label:'CGA (16 colors)',emoji:'💾'},{id:'pico8',label:'Pico-8 (16 colors)',emoji:'🖥️'},{id:'pastel',label:'Pastel (16 colors)',emoji:'🌸'}].map(p=>(
+                    <button key={p.id} onClick={()=>update({pixelArtDefaultPalette:p.id})} data-testid={`pixel-palette-${p.id}`}
+                      className={`py-2 px-2 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 ${settings.pixelArtDefaultPalette===p.id?'border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400':'border-border/30 hover:border-border'}`}>
+                      <span>{p.emoji}</span>{p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Canvas Size</div>
+                <div className="flex gap-2">
+                  {[8,16,32,64].map(n=>(
+                    <button key={n} onClick={()=>update({pixelArtDefaultGridSize:n})} data-testid={`pixel-grid-${n}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${settings.pixelArtDefaultGridSize===n?'border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400':'border-border/30 hover:border-border'}`}>
+                      {n}×{n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">PNG Export Scale</div>
+                <div className="text-xs text-muted-foreground mb-2">Higher scale = larger/crisper exported PNG</div>
+                <div className="flex gap-2">
+                  {[1,2,4,8,16].map(s=>(
+                    <button key={s} onClick={()=>update({pixelArtExportScale:s})} data-testid={`pixel-scale-${s}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${settings.pixelArtExportScale===s?'border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400':'border-border/30 hover:border-border'}`}>
+                      {s}×
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Hub OS Settings */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><span>⚡</span> Sovereign Hub OS</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Games Page Landing Mode</div>
+                <div className="text-xs text-muted-foreground mb-2">Which screen opens first when you visit /games</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{id:'hub',label:'Hub Overview',emoji:'🏠',desc:'Main OS dashboard'},{id:'emulator',label:'Emulator Zone',emoji:'🕹️',desc:'Go straight to emulators'},{id:'pixelart',label:'Pixel Art Studio',emoji:'🎨',desc:'Open the art studio'},{id:'opengames',label:'Open Games Zone',emoji:'🌐',desc:'Open game library'}].map(m=>(
+                    <button key={m.id} onClick={()=>update({gamesLandingMode:m.id})} data-testid={`games-landing-${m.id}`}
+                      className={`py-2.5 px-3 rounded-lg text-xs border transition-all text-left ${settings.gamesLandingMode===m.id?'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400':'border-border/30 hover:border-border'}`}>
+                      <div className="font-bold flex items-center gap-1.5"><span>{m.emoji}</span>{m.label}</div>
+                      <div className="text-muted-foreground text-[10px]">{m.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">GitHub Auto-Update Cache</div>
+                <div className="text-xs text-muted-foreground mb-2">How often the Hub refreshes its GitHub tool registry automatically</div>
+                <div className="flex gap-2">
+                  {[{v:1,label:'1 hour'},{v:6,label:'6 hours'},{v:24,label:'Daily'},{v:168,label:'Weekly'}].map(o=>(
+                    <button key={o.v} onClick={()=>update({hubUpdateIntervalHours:o.v})} data-testid={`hub-interval-${o.v}`}
+                      className={`flex-1 py-2 rounded-lg text-[10px] font-bold border transition-all ${settings.hubUpdateIntervalHours===o.v?'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400':'border-border/30 hover:border-border'}`}>
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Auto-Update Hub on Load</div>
+                  <div className="text-xs text-muted-foreground">Background-fetch GitHub when Hub opens</div>
+                </div>
+                <ToggleSwitch on={settings.hubAutoUpdate} onToggle={()=>update({hubAutoUpdate:!settings.hubAutoUpdate})} testId="toggle-hub-auto-update"/>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Game Stats Footer</div>
+                  <div className="text-xs text-muted-foreground">Display console count, tool count stats in Games hub</div>
+                </div>
+                <ToggleSwitch on={settings.gamesShowStats} onToggle={()=>update({gamesShowStats:!settings.gamesShowStats})} testId="toggle-games-stats"/>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Game Sound Effects</div>
+                  <div className="text-xs text-muted-foreground">Enable audio in mini-games (Blackjack, Snake, etc.)</div>
+                </div>
+                <ToggleSwitch on={settings.gamesSoundEnabled} onToggle={()=>update({gamesSoundEnabled:!settings.gamesSoundEnabled})} testId="toggle-games-sound"/>
+              </div>
+            </div>
+
+            {/* Info panel */}
+            <div className="rounded-xl p-4 bg-gradient-to-r from-violet-500/5 to-pink-500/5 border border-violet-500/15 text-xs text-muted-foreground space-y-1">
+              <div className="font-bold text-foreground">About Sovereign Game OS</div>
+              <div>12 emulated consoles via EmulatorJS CDN • Pixel Art Studio (6 palettes) • ROM Patcher (IPS/BPS) • Sprite Sheet Slicer • Open Games Zone (12 games) • Sovereign Hub OS (44 indexed tools, 20+ pre-installed)</div>
+              <div className="text-[10px] mt-1 text-muted-foreground/50">All tools run 100% in the browser — no servers, no uploads, no accounts required.</div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "music-settings" && (
+          <div className="space-y-4" data-testid="settings-section-music">
+            {/* Hero banner */}
+            <div className="rounded-2xl p-5 border border-sky-500/20" style={{background:'linear-gradient(135deg,#001a2e,#002a3a)'}}>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎛</span>
+                <div>
+                  <div className="text-white font-black">Quantum Studio DAW Settings</div>
+                  <div className="text-sky-300/60 text-xs">Configure the 16-instrument step sequencer, effects, and music discovery</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Studio Defaults */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-5">
+              <h3 className="text-sm font-bold flex items-center gap-2"><span>🎛</span> Studio Defaults</h3>
+              <div>
+                <div className="text-sm font-medium mb-1">Default BPM</div>
+                <div className="text-xs text-muted-foreground mb-2">Starting tempo when you open a new project</div>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={60} max={200} step={1} value={settings.studioBPM} onChange={e=>update({studioBPM:parseInt(e.target.value)})}
+                    data-testid="studio-bpm-slider" className="flex-1 accent-sky-500"/>
+                  <div className="text-sm font-mono font-bold text-sky-600 dark:text-sky-400 w-16 text-right">{settings.studioBPM} BPM</div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  {[80,100,120,140,160].map(b=>(
+                    <button key={b} onClick={()=>update({studioBPM:b})} data-testid={`studio-bpm-${b}`}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${settings.studioBPM===b?'border-sky-500 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400':'border-border/30 hover:border-border'}`}>
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-1">Default Swing</div>
+                <div className="text-xs text-muted-foreground mb-2">Shuffle/swing amount for patterns (0 = straight, 100 = full swing)</div>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={0} max={100} step={5} value={settings.studioSwing} onChange={e=>update({studioSwing:parseInt(e.target.value)})}
+                    data-testid="studio-swing-slider" className="flex-1 accent-sky-500"/>
+                  <div className="text-sm font-mono font-bold text-sky-600 dark:text-sky-400 w-10 text-right">{settings.studioSwing}%</div>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-1">Master Volume</div>
+                <div className="text-xs text-muted-foreground mb-2">Default playback volume for the sequencer</div>
+                <div className="flex items-center gap-3">
+                  <input type="range" min={0} max={100} step={5} value={settings.studioMasterVolume} onChange={e=>update({studioMasterVolume:parseInt(e.target.value)})}
+                    data-testid="studio-volume-slider" className="flex-1 accent-sky-500"/>
+                  <div className="text-sm font-mono font-bold text-sky-600 dark:text-sky-400 w-10 text-right">{settings.studioMasterVolume}%</div>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Starting Instrument</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{id:'drums',label:'Drums',emoji:'🥁'},{id:'bass',label:'Bass',emoji:'🎸'},{id:'lead',label:'Lead Synth',emoji:'🎹'},{id:'pad',label:'Pad',emoji:'🌊'},{id:'arp',label:'Arpeggio',emoji:'⚡'},{id:'fx',label:'FX',emoji:'✨'}].map(i=>(
+                    <button key={i.id} onClick={()=>update({studioDefaultInstrument:i.id})} data-testid={`studio-instrument-${i.id}`}
+                      className={`py-2 px-2 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 ${settings.studioDefaultInstrument===i.id?'border-sky-500 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400':'border-border/30 hover:border-border'}`}>
+                      <span>{i.emoji}</span>{i.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Behavior */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2"><span>⚙️</span> Studio Behavior</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Auto-Save Projects</div>
+                  <div className="text-xs text-muted-foreground">Save studio state to localStorage automatically</div>
+                </div>
+                <ToggleSwitch on={settings.studioAutoSave} onToggle={()=>update({studioAutoSave:!settings.studioAutoSave})} testId="toggle-studio-autosave"/>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Show Piano Roll by Default</div>
+                  <div className="text-xs text-muted-foreground">Open piano roll panel when entering the studio</div>
+                </div>
+                <ToggleSwitch on={settings.studioShowPianoRoll} onToggle={()=>update({studioShowPianoRoll:!settings.studioShowPianoRoll})} testId="toggle-studio-piano-roll"/>
+              </div>
+            </div>
+
+            {/* Music Discovery */}
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2"><span>🎵</span> Music Discovery</h3>
+              <div>
+                <div className="text-sm font-medium mb-2">Default Genre Filter</div>
+                <div className="text-xs text-muted-foreground mb-2">Starting genre shown on the Music page</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {['all','hip-hop','electronic','jazz','rock','classical','r&b','pop','lo-fi','ambient','trap','drill'].map(g=>(
+                    <button key={g} onClick={()=>update({musicDefaultGenre:g})} data-testid={`music-genre-${g}`}
+                      className={`py-2 rounded-lg text-[10px] font-bold border transition-all capitalize ${settings.musicDefaultGenre===g?'border-sky-500 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400':'border-border/30 hover:border-border'}`}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="rounded-xl p-4 bg-gradient-to-r from-sky-500/5 to-cyan-500/5 border border-sky-500/15 text-xs text-muted-foreground space-y-1">
+              <div className="font-bold text-foreground">About Quantum Studio DAW</div>
+              <div>16-instrument step sequencer • Per-channel mixer (volume/pan/solo/mute) • 3-band parametric EQ • Effects chain (reverb, delay, distortion, chorus, phaser) • Piano roll with scale lock • Song arranger • WAV/MIDI export • AI beat generation via Groq • Web Audio API synthesis</div>
+              <div className="text-[10px] mt-1 text-muted-foreground/50">All audio runs 100% in the browser — no servers or plugins required. Access the full studio at the Music page.</div>
             </div>
           </div>
         )}
