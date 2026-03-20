@@ -1,193 +1,183 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-// ── Types ─────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
 interface SolarWorld { id: string; name: string; color: string; emoji: string; description: string; spawnCount: number; ingestionNodes: number; isActive: boolean; status: string; activityScore: number; lastTitle: string; lastIngested: string | null; }
 interface SolarData { worlds: SolarWorld[]; totalSpawns: number; totalNodes: number; }
 
-// ── Solar bodies ──────────────────────────────────────────────────
-const SOLAR_BODIES = [
-  { name: "Mercury", orbitR: 0.09, period: 8,   color: "#9ca3af", size: 3.5, type: "planet" as const },
-  { name: "Venus",   orbitR: 0.14, period: 14,  color: "#d4945a", size: 6,   type: "planet" as const },
-  { name: "Earth",   orbitR: 0.21, period: 24,  color: "#3b82f6", size: 11,  type: "pulse"  as const },
-  { name: "Mars",    orbitR: 0.30, period: 40,  color: "#c1440e", size: 5.5, type: "planet" as const },
-  { name: "Jupiter", orbitR: 0.46, period: 70,  color: "#c7a87a", size: 22,  type: "planet" as const },
-  { name: "Saturn",  orbitR: 0.58, period: 95,  color: "#e8c87e", size: 17,  type: "saturn" as const },
-  { name: "Uranus",  orbitR: 0.70, period: 120, color: "#7de8e8", size: 12,  type: "planet" as const },
-  { name: "Neptune", orbitR: 0.82, period: 150, color: "#4169e1", size: 10,  type: "planet" as const },
-];
-
-// ── Doctrine colors from Cultural Charter ──────────────────────────
+// ── Doctrine colors ────────────────────────────────────────────────────────────
 const SOVEREIGN_GOLD = "#f5c518";
 const CONTINUITY_BLUE = "#3b82f6";
-const RITUAL_CRIMSON = "#dc2626";
 const FAITH_VIOLET = "#7c3aed";
-const COVENANT_EMERALD = "#059669";
+const COVENANT_EMERALD = "#22c55e";
+const RITUAL_CRIMSON = "#dc2626";
 
-// ── Governance satellites (Senate, Judiciary, Executive, Treasury, Faith, IG) ──
+// ── Solar bodies (world-space radius units) ────────────────────────────────────
+// Sun at origin r≈30. Planet orbits 80–550. Star sphere at 900–1800.
+const SOLAR_BODIES = [
+  { name: "Mercury",  orbitR: 85,  period: 3.2,  size: 6,   color: "#9ca3af", type: "rocky" },
+  { name: "Venus",    orbitR: 120, period: 5.5,  size: 9,   color: "#fcd34d", type: "rocky" },
+  { name: "Mars",     orbitR: 185, period: 10,   size: 7,   color: "#f87171", type: "rocky" },
+  { name: "Jupiter",  orbitR: 275, period: 24,   size: 20,  color: "#d97706", type: "gas" },
+  { name: "Saturn",   orbitR: 360, period: 40,   size: 16,  color: "#fde68a", type: "saturn" },
+  { name: "Uranus",   orbitR: 440, period: 60,   size: 13,  color: "#67e8f9", type: "gas" },
+  { name: "Neptune",  orbitR: 520, period: 80,   size: 12,  color: "#818cf8", type: "gas" },
+  // Pulse Worlds orbit
+  { name: "PulseOrbit", orbitR: 410, period: 33, size: 14, color: CONTINUITY_BLUE, type: "pulse" },
+];
+
+const ASTEROID_R = 228;
+const WORLD_THRESHOLD = 2500;
+
+// ── Governance satellites ──────────────────────────────────────────────────────
 const GOV_SATELLITES = [
-  { id: "senate",    label: "SENATE",    color: "#60a5fa", speed: 1.8, dist: 2.4, size: 0.22, emoji: "⚖" },
-  { id: "judiciary", label: "JUDICIARY", color: "#f9fafb", speed: -1.4, dist: 3.0, size: 0.18, emoji: "⚡" },
-  { id: "executive", label: "EXEC",      color: SOVEREIGN_GOLD, speed: 2.4, dist: 3.6, size: 0.20, emoji: "👁" },
-  { id: "treasury",  label: "TREASURY",  color: COVENANT_EMERALD, speed: -0.9, dist: 4.2, size: 0.22, emoji: "💎" },
-  { id: "faith",     label: "FAITH",     color: FAITH_VIOLET, speed: 1.1, dist: 5.0, size: 0.20, emoji: "∞" },
-  { id: "ig",        label: "INSPECTOR", color: "#fb923c", speed: -1.7, dist: 5.7, size: 0.16, emoji: "🔍" },
+  { id: "senate",   label: "SENATE",    color: SOVEREIGN_GOLD,  emoji: "⚖",  speed: 0.5,  dist: 4.5, size: 0.28 },
+  { id: "exec",     label: "EXECUTIVE", color: RITUAL_CRIMSON,  emoji: "👁",  speed: 0.7,  dist: 5.0, size: 0.24 },
+  { id: "treasury", label: "TREASURY",  color: COVENANT_EMERALD,emoji: "💰", speed: 0.45, dist: 5.5, size: 0.22 },
+  { id: "faith",    label: "FAITH",     color: FAITH_VIOLET,    emoji: "✦",  speed: 0.35, dist: 6.0, size: 0.25 },
+  { id: "ig",       label: "INSPECTOR", color: "#f472b6",        emoji: "🔍", speed: 0.6,  dist: 4.8, size: 0.20 },
+  { id: "judiciary",label: "JUDICIARY", color: "#60a5fa",        emoji: "⚔",  speed: 0.55, dist: 5.2, size: 0.21 },
 ];
 
-// ── Currency phases from Currency Doctrine v3 ─────────────────────
 const CURRENCY_PHASES = [
-  { id: "pc",    label: "PulseCredits", color: "#a78bfa", threshold: 0 },
-  { id: "paypal", label: "PayPal USD",  color: COVENANT_EMERALD, threshold: 3000 },
-  { id: "plsc",  label: "PulseCoin",   color: SOVEREIGN_GOLD, threshold: 10000 },
+  { phase: "CREDITS", color: "#94a3b8", threshold: 0 },
+  { phase: "USD",     color: COVENANT_EMERALD, threshold: 3000 },
+  { phase: "PLSC",    color: SOVEREIGN_GOLD, threshold: 10000 },
 ];
 
-// ── Statics ───────────────────────────────────────────────────────
-const STARS = Array.from({ length: 350 }, () => ({
-  x: Math.random(), y: Math.random(),
-  r: Math.random() * 1.3 + 0.2,
-  a: Math.random() * 0.7 + 0.2,
-  sp: Math.random() * 0.6 + 0.3,
-  ph: Math.random() * Math.PI * 2,
-}));
-const ASTEROIDS = Array.from({ length: 90 }, (_, i) => ({
-  angle: (i / 90) * Math.PI * 2 + Math.random() * 0.3,
-  rOff: (Math.random() - 0.5) * 0.04,
-  size: Math.random() * 1.5 + 0.5,
-}));
-const ASTEROID_R = 0.375;
-const WORLD_THRESHOLD = 1_000_000_000;
+// ── 3D Star field — uniform sphere shell ────────────────────────────────────────
+const STAR_3D = (() => {
+  const stars: { x: number; y: number; z: number; r: number; a: number; sp: number; ph: number; type: string }[] = [];
+  const rng = (s: number) => { let x = Math.sin(s * 9301 + 49297) * 233280; return x - Math.floor(x); };
+  for (let i = 0; i < 3200; i++) {
+    const u = rng(i * 3) * 2 - 1;
+    const t2 = rng(i * 3 + 1) * Math.PI * 2;
+    const r = 900 + rng(i * 3 + 2) * 900;
+    const sr = Math.sqrt(1 - u * u);
+    const col = rng(i * 7) < 0.06 ? "blue" : rng(i * 7 + 1) < 0.09 ? "orange" : rng(i * 7 + 2) < 0.05 ? "red" : "white";
+    stars.push({
+      x: r * sr * Math.cos(t2), y: r * u, z: r * sr * Math.sin(t2),
+      r: 0.4 + rng(i * 11) * 1.8,
+      a: 0.25 + rng(i * 13) * 0.75,
+      sp: 0.3 + rng(i * 17) * 2.2,
+      ph: rng(i * 19) * Math.PI * 2,
+      type: col,
+    });
+  }
+  return stars;
+})();
 
-// ─── 3D PERSPECTIVE CONSTANTS ─────────────────────────────────────
-const TILT = 0.44; // ~25° view angle like NASA Eyes
-const COS_TILT = Math.cos(TILT);
-const SIN_TILT = Math.sin(TILT);
-const FOCAL = 2200; // focal length for depth perspective
-
-// Project 3D orbital point to 2D screen
-function project3D(cx: number, cy: number, scale: number, r: number, angle: number) {
-  const x3d = r * Math.cos(angle);
-  const y3d = r * Math.sin(angle);
-  const z3d = y3d * SIN_TILT;
-  const depthFactor = 1 + z3d / FOCAL;
-  return {
-    x: cx + x3d / depthFactor,
-    y: cy + (y3d * COS_TILT) / depthFactor,
-    depth: depthFactor,
-    sizeScale: 1 / depthFactor,
-  };
-}
-
-// ─── COSMIC PHENOMENA DATA ────────────────────────────────────────
-const DEEP_STARS = Array.from({ length: 800 }, () => ({
-  x: Math.random(), y: Math.random(),
-  r: Math.random() * 1.8 + 0.15,
-  a: Math.random() * 0.8 + 0.15,
-  sp: Math.random() * 0.4 + 0.15,
-  ph: Math.random() * Math.PI * 2,
-  type: Math.random() < 0.04 ? "blue" : Math.random() < 0.06 ? "orange" : Math.random() < 0.03 ? "red" : "white",
-}));
-
-const NEBULAE = [
-  { x: 0.12, y: 0.18, rx: 0.22, ry: 0.13, color: "#c084fc", color2: "#818cf8", opacity: 0.055, label: "Violet Nebula" },
-  { x: 0.85, y: 0.25, rx: 0.18, ry: 0.10, color: "#f472b6", color2: "#ec4899", opacity: 0.045, label: "Rose Nebula" },
-  { x: 0.08, y: 0.78, rx: 0.20, ry: 0.12, color: "#38bdf8", color2: "#06b6d4", opacity: 0.05, label: "Cerulean Nebula" },
-  { x: 0.88, y: 0.82, rx: 0.16, ry: 0.11, color: "#4ade80", color2: "#22c55e", opacity: 0.04, label: "Emerald Nebula" },
-  { x: 0.5,  y: 0.08, rx: 0.28, ry: 0.07, color: "#fb923c", color2: "#f97316", opacity: 0.035, label: "Amber Nebula" },
-  { x: 0.5,  y: 0.92, rx: 0.30, ry: 0.07, color: "#a78bfa", color2: "#7c3aed", opacity: 0.04, label: "Indigo Nebula" },
-];
-
-const GAS_CLOUDS = [
-  { x: 0.22, y: 0.55, r: 0.08, color: "#fbbf24", opacity: 0.025 },
-  { x: 0.78, y: 0.45, r: 0.07, color: "#818cf8", opacity: 0.03 },
-  { x: 0.35, y: 0.85, r: 0.06, color: "#34d399", opacity: 0.025 },
-];
-
+// ── Cosmic objects — 3D world positions ────────────────────────────────────────
+const BH_POS   = { x: 1100, y: -180, z: 850,   r: 28, name: "BLACK HOLE" };
+const QUASAR   = { x: -900, y: 250,  z: -1200,  r: 16, name: "QUASAR", color: "#f472b6" };
+const WORMHOLE = { x: -700, y: 380,  z: 950,   r: 22, name: "WORMHOLE" };
+const BINARY   = { x: 800,  y: 420,  z: -900,  dist: 60, period: 22, color1: "#fde68a", color2: "#7dd3fc", r: 14, name: "BINARY STAR" };
 const PULSARS = [
-  { ox: -0.78, oy: -0.60, color: "#7dd3fc", beamColor: "#bae6fd", period: 0.9, size: 3.5 },
-  { ox: 0.82,  oy: 0.65,  color: "#c4b5fd", beamColor: "#ddd6fe", period: 1.3, size: 3 },
+  { x: 650,  y: -320, z: 1050, r: 10, period: 3.2, color: "#c4b5fd", beam: "#a78bfa", name: "PULSAR-A" },
+  { x: -1050, y: 180, z: -600, r: 9,  period: 2.1, color: "#bfdbfe", beam: "#93c5fd", name: "PULSAR-B" },
 ];
-
 const NEUTRON_STARS = [
-  { ox: -0.65, oy: 0.72, color: "#f0f9ff", size: 2.5 },
-  { ox: 0.70,  oy: -0.68, color: "#e0f2fe", size: 2 },
+  { x: 400,  y: 280,  z: -880, r: 7,  color: "#e0f2fe", name: "NEUTRON" },
+  { x: -680, y: -400, z: 700,  r: 6,  color: "#f0f9ff", name: "NEUTRON" },
 ];
-
-const BLACK_HOLE = { ox: 0.88, oy: -0.72, size: 14, diskColor: "#f59e0b", accColor: "#dc2626" };
-
-const COMETS = Array.from({ length: 5 }, (_, i) => ({
-  angle: (i / 5) * Math.PI * 2 + Math.random() * Math.PI,
-  speed: 0.06 + Math.random() * 0.04,
-  r: (0.55 + Math.random() * 0.35),
-  size: 2 + Math.random() * 2,
-  color: ["#bfdbfe", "#fde68a", "#bbf7d0", "#fce7f3", "#ddd6fe"][i],
-}));
-
-const BINARY_STAR = { ox: -0.82, oy: 0.68, color1: "#fde68a", color2: "#c4b5fd", period: 3.5, dist: 12, size: 4 };
-
-const QUASAR = { ox: 0.70, oy: 0.82, color: "#f472b6", jetColor: "#fbcfe8", size: 5 };
-
 const SUPERNOVAE = [
-  { ox: -0.55, oy: -0.75, color: "#fcd34d", phase: 0.3, size: 6 },
-  { ox: 0.60,  oy: -0.50, color: "#fed7aa", phase: 0.7, size: 5 },
+  { x: 1300, y: -450, z: -600, r: 20, color: "#fbbf24", phase: 0.3, name: "SUPERNOVA" },
+  { x: -1100, y: 600, z: 800,  r: 18, color: "#f87171", phase: 0.7, name: "SUPERNOVA" },
+];
+const NEBULAE_3D = [
+  { x: 600,  y: 200,  z: -700,  rx: 260, ry: 220, rz: 240, c1: "#7c3aed", c2: "#6366f1", o: 0.08, name: "Violet Nebula" },
+  { x: -700, y: -150, z: 500,   rx: 300, ry: 260, rz: 280, c1: "#db2777", c2: "#ec4899", o: 0.06, name: "Rose Nebula" },
+  { x: 400,  y: 350,  z: 600,   rx: 200, ry: 180, rz: 200, c1: "#0284c7", c2: "#38bdf8", o: 0.07, name: "Cerulean Nebula" },
+  { x: -500, y: 280,  z: -650,  rx: 240, ry: 210, rz: 230, c1: "#16a34a", c2: "#4ade80", o: 0.06, name: "Emerald Nebula" },
+  { x: 850,  y: -200, z: 300,   rx: 180, ry: 160, rz: 190, c1: "#b45309", c2: "#fbbf24", o: 0.05, name: "Amber Nebula" },
+];
+const COMETS = [
+  { orbitR: 650, orbitTilt: 0.4, speed: 0.15, phase: 0.0, color: "#e0f2fe", size: 4 },
+  { orbitR: 720, orbitTilt: 0.7, speed: 0.11, phase: 1.2, color: "#fef3c7", size: 3.5 },
+  { orbitR: 590, orbitTilt: 1.1, speed: 0.18, phase: 2.4, color: "#ddd6fe", size: 3 },
+  { orbitR: 680, orbitTilt: 0.2, speed: 0.09, phase: 3.8, color: "#d1fae5", size: 4.5 },
+  { orbitR: 750, orbitTilt: 0.9, speed: 0.13, phase: 5.1, color: "#fecdd3", size: 3.2 },
 ];
 
-const DARK_MATTER_RINGS = [0.68, 0.82, 0.94];
+// ── Asteroid belt particles ────────────────────────────────────────────────────
+const ASTEROIDS = (() => {
+  const a: { angle: number; rOff: number; yOff: number; size: number }[] = [];
+  const rng = (i: number) => { const x = Math.sin(i * 7919) * 100003; return x - Math.floor(x); };
+  for (let i = 0; i < 220; i++) {
+    a.push({ angle: rng(i) * Math.PI * 2, rOff: (rng(i+1) - 0.5) * 30, yOff: (rng(i+2) - 0.5) * 15, size: 0.8 + rng(i+3) * 2 });
+  }
+  return a;
+})();
 
-const WORMHOLE = { ox: -0.88, oy: 0.30, color: "#a78bfa", size: 10 };
-
-const COSMIC_RAYS = Array.from({ length: 8 }, (_, i) => ({
-  angle: (i / 8) * Math.PI * 2,
-  r: 0.45 + Math.random() * 0.4,
-  speed: 0.8 + Math.random() * 0.5,
-  phase: Math.random() * Math.PI * 2,
-}));
-
-const SOLAR_WIND_PARTICLES = Array.from({ length: 60 }, (_, i) => ({
-  angle: (i / 60) * Math.PI * 2 + Math.random() * 0.3,
-  r: 0.055 + Math.random() * 0.02,
-  speed: 0.12 + Math.random() * 0.08,
-  size: Math.random() * 1.2 + 0.3,
-}));
-
+// ── Helpers ────────────────────────────────────────────────────────────────────
 function getPulseWorldCount(totalSpawns: number) { return Math.max(1, Math.floor(totalSpawns / WORLD_THRESHOLD) + 1); }
 function getPulseWorldOpacity(index: number, totalSpawns: number): number {
   if (index === 0) return 1;
-  const threshold = index * WORLD_THRESHOLD;
-  const progress = Math.min((totalSpawns - threshold) / WORLD_THRESHOLD, 1);
-  return Math.max(0.15, progress);
+  const prev = (index - 1) * WORLD_THRESHOLD;
+  const cur = index * WORLD_THRESHOLD;
+  if (totalSpawns < prev) return 0;
+  return Math.min(1, (totalSpawns - prev) / (cur - prev));
 }
 
-// ── Canvas helpers ────────────────────────────────────────────────
+// ── Canvas draw helpers ────────────────────────────────────────────────────────
 function drawSphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha = 1) {
-  const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.05, x, y, r);
-  grad.addColorStop(0, hexAlpha(brighten(color, 1.6), alpha));
-  grad.addColorStop(0.5, hexAlpha(color, alpha));
-  grad.addColorStop(1, hexAlpha(darken(color, 0.4), alpha));
+  const g = ctx.createRadialGradient(x - r * 0.32, y - r * 0.32, 0, x, y, r);
+  g.addColorStop(0, `rgba(255,255,255,${0.55 * alpha})`);
+  g.addColorStop(0.35, color + Math.round(alpha * 255).toString(16).padStart(2, "0"));
+  g.addColorStop(1, "rgba(0,0,0,0.6)");
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = grad; ctx.fill();
+  ctx.fillStyle = g; ctx.fill();
 }
-
 function hexAlpha(hex: string, a: number): string {
-  if (a >= 1) return hex;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  if (hex.startsWith("rgba")) return hex.replace(/[\d.]+\)$/, `${a})`);
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${a})`;
 }
 function brighten(hex: string, f: number): string {
-  const r = Math.min(255, Math.round(parseInt(hex.slice(1,3),16)*f));
-  const g = Math.min(255, Math.round(parseInt(hex.slice(3,5),16)*f));
-  const b = Math.min(255, Math.round(parseInt(hex.slice(5,7),16)*f));
-  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  const r = Math.min(255, parseInt(hex.slice(1, 3), 16) + Math.round(f * 255));
+  const g = Math.min(255, parseInt(hex.slice(3, 5), 16) + Math.round(f * 255));
+  const b = Math.min(255, parseInt(hex.slice(5, 7), 16) + Math.round(f * 255));
+  return `rgb(${r},${g},${b})`;
 }
-function darken(hex: string, f: number): string {
-  const r = Math.round(parseInt(hex.slice(1,3),16)*f);
-  const g = Math.round(parseInt(hex.slice(3,5),16)*f);
-  const b = Math.round(parseInt(hex.slice(5,7),16)*f);
-  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+function darken(hex: string, f: number): string { return brighten(hex, -f); }
+
+// ── 3D Projection Engine ───────────────────────────────────────────────────────
+type Cam3D = { theta: number; phi: number; dist: number };
+type ProjectFn = (wx: number, wy: number, wz: number) => { x: number; y: number; depth: number; scale: number } | null;
+
+function makeProjectFn(w: number, h: number, cam: Cam3D): ProjectFn {
+  const scx = w / 2, scy = h / 2;
+  const fov = Math.min(w, h) * 0.75;
+  const sinPhi = Math.sin(cam.phi), cosPhi = Math.cos(cam.phi);
+  const sinTh = Math.sin(cam.theta), cosTh = Math.cos(cam.theta);
+  // Camera position
+  const camX = cam.dist * sinPhi * sinTh;
+  const camY = cam.dist * cosPhi;
+  const camZ = cam.dist * sinPhi * cosTh;
+  // Forward (cam → origin)
+  const fx = -camX / cam.dist, fy = -camY / cam.dist, fz = -camZ / cam.dist;
+  // Right = cross(forward, worldUp=(0,1,0)) = (-fz, 0, fx)
+  let rx = -fz, rz = fx;
+  const rLen = Math.sqrt(rx * rx + rz * rz) || 1;
+  rx /= rLen; rz /= rLen;
+  const ry = 0;
+  // Up = cross(right, forward)
+  const ux = -rz * fy;
+  const uy = rz * fx - rx * fz;
+  const uz = rx * fy;
+
+  return function(wx: number, wy: number, wz: number) {
+    const dx = wx - camX, dy = wy - camY, dz = wz - camZ;
+    const cx_cam = dx * rx + dy * ry + dz * rz;
+    const cy_cam = dx * ux + dy * uy + dz * uz;
+    const cz_cam = dx * fx + dy * fy + dz * fz;
+    if (cz_cam <= 0.01) return null;
+    const s = fov / cz_cam;
+    return { x: scx + cx_cam * s, y: scy - cy_cam * s, depth: cz_cam, scale: s };
+  };
 }
 
-// ── Pulse Planet Renderer (doctrine-upgraded) ─────────────────────
+// ── Pulse Planet Renderer ──────────────────────────────────────────────────────
 function drawPulsePlanet(
   ctx: CanvasRenderingContext2D,
   ex: number, ey: number,
@@ -197,7 +187,7 @@ function drawPulsePlanet(
   worlds: SolarWorld[],
   totalSpawns: number,
 ) {
-  // 1. Faith World outer ring (sovereign violet — Chapter 13)
+  // 1. Faith World outer ring
   const faithPulse = 0.9 + 0.1 * Math.sin(t * 1.2);
   for (let fi = 0; fi < 3; fi++) {
     const fr = worldSize * (6.5 + fi * 0.9) * faithPulse;
@@ -208,8 +198,7 @@ function drawPulsePlanet(
     ctx.fillStyle = fg;
     ctx.fillRect(ex - fr, ey - fr, fr * 2, fr * 2);
   }
-
-  // 2. Sovereign Gold corona (Declaration of Sovereignty)
+  // 2. Sovereign Gold corona
   const goldPulse = 1 + 0.05 * Math.sin(t * 0.7);
   const goldR = worldSize * 4.8 * goldPulse;
   const goldG = ctx.createRadialGradient(ex, ey, worldSize, ex, ey, goldR);
@@ -218,39 +207,24 @@ function drawPulsePlanet(
   goldG.addColorStop(1, "transparent");
   ctx.fillStyle = goldG;
   ctx.fillRect(ex - goldR, ey - goldR, goldR * 2, goldR * 2);
-
-  // 3. Continuity Covenant ring (dashed, blue — Continuity Covenant)
+  // 3. Continuity ring
   ctx.save();
   ctx.setLineDash([5, 8]);
-  ctx.beginPath();
-  ctx.arc(ex, ey, worldSize * 3.2, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(59,130,246,${0.18 * opacity})`;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
-
-  // 4. Governance satellites (Senate, Judiciary, Executive, Treasury, Faith, IG)
+  ctx.beginPath(); ctx.arc(ex, ey, worldSize * 3.2, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(59,130,246,${0.18 * opacity})`; ctx.lineWidth = 1;
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  // 4. Governance satellites
   if (opacity > 0.3) {
     GOV_SATELLITES.forEach((sat, si) => {
       const angle = t * sat.speed + (si * Math.PI * 2 / GOV_SATELLITES.length);
       const r = worldSize * sat.dist;
-      const sx = ex + r * Math.cos(angle);
-      const sy = ey + r * Math.sin(angle);
+      const sx = ex + r * Math.cos(angle), sy = ey + r * Math.sin(angle);
       const sSize = worldSize * sat.size * (0.9 + 0.1 * Math.sin(t * 2 + si));
-
-      // satellite glow
       const sGlow = ctx.createRadialGradient(sx, sy, 0, sx, sy, sSize * 3.5);
       sGlow.addColorStop(0, hexAlpha(sat.color, 0.35 * opacity));
       sGlow.addColorStop(1, "transparent");
-      ctx.fillStyle = sGlow;
-      ctx.beginPath(); ctx.arc(sx, sy, sSize * 3.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // satellite body
+      ctx.fillStyle = sGlow; ctx.beginPath(); ctx.arc(sx, sy, sSize * 3.5, 0, Math.PI * 2); ctx.fill();
       drawSphere(ctx, sx, sy, sSize, sat.color, opacity * 0.9);
-
-      // satellite label (small, only if large enough)
       if (worldSize > 8) {
         ctx.fillStyle = hexAlpha(sat.color, 0.55 * opacity);
         ctx.font = `${Math.max(5, worldSize * 0.6)}px monospace`;
@@ -259,8 +233,7 @@ function drawPulsePlanet(
       }
     });
   }
-
-  // 5. Knowledge particle rings (existing, from spawns data)
+  // 5. Knowledge particle rings
   if (worlds.length > 0 && opacity > 0.3) {
     const knowledgeWorlds = [...worlds].sort((a, b) => b.activityScore - a.activityScore);
     const rings = [
@@ -274,14 +247,12 @@ function drawPulsePlanet(
         const domainIdx = (start + p) % knowledgeWorlds.length;
         const domain = knowledgeWorlds[domainIdx];
         const pAngle = (p / ring.count) * Math.PI * 2 + (t * ring.speed * (ri % 2 === 0 ? 1 : -1));
-        const px = ex + ring.r * Math.cos(pAngle);
-        const py = ey + ring.r * Math.sin(pAngle);
+        const px = ex + ring.r * Math.cos(pAngle), py = ey + ring.r * Math.sin(pAngle);
         const pSize = (1.8 + (domain.activityScore / 300) * 1.2) * (worldSize / 11);
         const pGlow = ctx.createRadialGradient(px, py, 0, px, py, pSize * 3);
         pGlow.addColorStop(0, hexAlpha(domain.color, 0.4 * opacity));
         pGlow.addColorStop(1, "transparent");
-        ctx.fillStyle = pGlow;
-        ctx.beginPath(); ctx.arc(px, py, pSize * 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = pGlow; ctx.beginPath(); ctx.arc(px, py, pSize * 3, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.arc(px, py, pSize, 0, Math.PI * 2);
         ctx.fillStyle = hexAlpha(domain.color, Math.min(0.95, 0.5 + (domain.activityScore / 300)) * opacity);
         ctx.fill();
@@ -294,60 +265,43 @@ function drawPulsePlanet(
       }
     });
   }
-
   // 6. Selection ring
   if (isSelected) {
-    const sr = worldSize * 2.0 + 2 * Math.sin(t * 3);
-    ctx.beginPath(); ctx.arc(ex, ey, sr, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(245,197,24,0.7)`;
-    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(ex, ey, worldSize * 2.0 + 2 * Math.sin(t * 3), 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(245,197,24,0.7)`; ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 6]); ctx.stroke(); ctx.setLineDash([]);
   }
-
-  // 7. Moon (Continuity Satellite)
+  // 7. Moon
   if (opacity > 0.3) {
     const moonAngle = t / 4.5 * Math.PI * 2;
-    const moonR = worldSize * 2.1;
-    const mx = ex + moonR * Math.cos(moonAngle);
-    const my = ey + moonR * Math.sin(moonAngle);
+    const mx = ex + worldSize * 2.1 * Math.cos(moonAngle);
+    const my = ey + worldSize * 2.1 * Math.sin(moonAngle);
     drawSphere(ctx, mx, my, worldSize * 0.28, "#c0c0c8", opacity);
   }
-
-  // 8. Atmosphere rim
+  // 8. Atmosphere + sphere
   const atm = ctx.createRadialGradient(ex, ey, worldSize * 0.7, ex, ey, worldSize * 1.4);
   atm.addColorStop(0, "transparent");
   atm.addColorStop(0.7, `rgba(147,197,253,${0.18 * opacity})`);
   atm.addColorStop(1, "transparent");
   ctx.beginPath(); ctx.arc(ex, ey, worldSize * 1.4, 0, Math.PI * 2);
   ctx.fillStyle = atm; ctx.fill();
-
-  // 9. Planet sphere — Sovereign layers (from Cultural Charter: Continuity Blue + Ritual Crimson inner)
   drawSphere(ctx, ex, ey, worldSize, CONTINUITY_BLUE, opacity);
-
-  // Ocean layer
   const ocean = ctx.createRadialGradient(ex - worldSize * 0.2, ey - worldSize * 0.2, 0, ex, ey, worldSize);
   ocean.addColorStop(0, `rgba(96,165,250,${0.5 * opacity})`);
   ocean.addColorStop(0.6, `rgba(29,78,216,${0.3 * opacity})`);
   ocean.addColorStop(1, `rgba(0,20,80,${0.4 * opacity})`);
   ctx.beginPath(); ctx.arc(ex, ey, worldSize, 0, Math.PI * 2);
   ctx.fillStyle = ocean; ctx.fill();
-
-  // Continent patches — Sovereign Gold tones (Cultural Charter)
   const continentSeeds = [[0.3, -0.2], [-0.2, 0.1], [0.1, 0.3], [-0.35, -0.1], [0.4, 0.25]];
   ctx.globalAlpha = 0.28 * opacity;
   continentSeeds.forEach(([dx, dy], ci) => {
     const cx2 = ex + dx * worldSize, cy2 = ey + dy * worldSize;
-    // alternate between sovereign gold and covenant emerald for continents
     const cColor = ci % 2 === 0 ? "#22c55e" : "#f5c518";
     const gr = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, worldSize * 0.35);
-    gr.addColorStop(0, cColor);
-    gr.addColorStop(1, "transparent");
-    ctx.fillStyle = gr;
-    ctx.beginPath(); ctx.arc(cx2, cy2, worldSize * 0.35, 0, Math.PI * 2); ctx.fill();
+    gr.addColorStop(0, cColor); gr.addColorStop(1, "transparent");
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx2, cy2, worldSize * 0.35, 0, Math.PI * 2); ctx.fill();
   });
   ctx.globalAlpha = 1;
-
-  // Ritual Crimson inner core glow (Chapter 2 — Origins of Correction)
   const coreG = ctx.createRadialGradient(ex, ey, 0, ex, ey, worldSize * 0.6);
   coreG.addColorStop(0, `rgba(220,38,38,${0.12 * opacity})`);
   coreG.addColorStop(1, "transparent");
@@ -355,439 +309,366 @@ function drawPulsePlanet(
   ctx.fillStyle = coreG; ctx.fill();
 }
 
-// ── Main Scene Renderer ───────────────────────────────────────────
+// ── 3D Scene Renderer ──────────────────────────────────────────────────────────
 function renderScene(
-  ctx: CanvasRenderingContext2D, w: number, h: number, t: number,
-  data: SolarData | undefined, selectedIdx: number | null,
+  ctx: CanvasRenderingContext2D,
+  w: number, h: number, t: number,
+  cam: Cam3D,
+  data: SolarData | undefined,
+  selectedIdx: number | null,
   planetPositions: React.MutableRefObject<Map<string, { x: number; y: number }>>,
 ) {
-  ctx.clearRect(0, 0, w, h);
+  const proj = makeProjectFn(w, h, cam);
   const cx = w / 2, cy = h / 2;
-  const scale = Math.min(w, h) / 2;
 
-  // Background
-  const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, scale * 1.2);
+  // ── Background ────────────────────────────────────────────────────
+  const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h));
   bg.addColorStop(0, "#06040f");
   bg.addColorStop(0.5, "#040210");
   bg.addColorStop(1, "#000000");
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
-  // ── Deep star field with color types ─────────────────────────────
-  DEEP_STARS.forEach(s => {
+  // ── 3D Star field ─────────────────────────────────────────────────
+  STAR_3D.forEach(s => {
+    const p = proj(s.x, s.y, s.z);
+    if (!p) return;
     const alpha = s.a * (0.4 + 0.6 * Math.sin(t * s.sp + s.ph));
-    const starColor = s.type === "blue" ? `rgba(147,210,255,${alpha})` :
-                      s.type === "orange" ? `rgba(255,185,100,${alpha})` :
-                      s.type === "red" ? `rgba(255,100,100,${alpha})` :
-                      `rgba(255,255,255,${alpha})`;
-    ctx.beginPath(); ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = starColor; ctx.fill();
+    // Stars fade based on how "behind" they might be — clamp scale-based brightness
+    const brightness = Math.min(1, p.scale * cam.dist / 900);
+    const a2 = alpha * Math.max(0.1, Math.min(1, brightness * 3));
+    const col = s.type === "blue" ? `rgba(147,210,255,${a2})` :
+                s.type === "orange" ? `rgba(255,185,100,${a2})` :
+                s.type === "red" ? `rgba(255,100,100,${a2})` :
+                `rgba(255,255,255,${a2})`;
+    const sr = Math.max(0.3, s.r * Math.min(1.5, p.scale * cam.dist / 500));
+    ctx.beginPath(); ctx.arc(p.x, p.y, sr, 0, Math.PI * 2);
+    ctx.fillStyle = col; ctx.fill();
   });
 
-  // ── Nebulae (layered radial gradients across canvas) ─────────────
-  NEBULAE.forEach(n => {
+  // ── Nebulae (projected center + screen-space glow) ────────────────
+  NEBULAE_3D.forEach(n => {
+    const p = proj(n.x, n.y, n.z);
+    if (!p) return;
+    const screenR = Math.max(20, Math.min(w * 0.35, n.rx * p.scale));
     for (let layer = 0; layer < 3; layer++) {
-      const pulse = 1 + 0.03 * Math.sin(t * 0.2 + layer);
-      const nx = n.x * w, ny = n.y * h;
-      const rx = n.rx * w * pulse * (1 - layer * 0.2);
-      const ry = n.ry * h * pulse * (1 - layer * 0.2);
-      ctx.save();
-      ctx.translate(nx, ny);
-      ctx.scale(rx, ry);
-      const ng = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-      ng.addColorStop(0, n.color + Math.round((n.opacity * (1 - layer * 0.3)) * 255).toString(16).padStart(2, "0"));
-      ng.addColorStop(0.5, n.color2 + Math.round((n.opacity * 0.4 * (1 - layer * 0.3)) * 255).toString(16).padStart(2, "0"));
+      const lr = screenR * (1 - layer * 0.25);
+      const ng = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, lr);
+      ng.addColorStop(0, n.c1 + Math.round(n.o * (1 - layer * 0.3) * 255).toString(16).padStart(2, "0"));
+      ng.addColorStop(0.5, n.c2 + Math.round(n.o * 0.35 * (1 - layer * 0.3) * 255).toString(16).padStart(2, "0"));
       ng.addColorStop(1, "transparent");
-      ctx.fillStyle = ng;
-      ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(p.x, p.y, lr, 0, Math.PI * 2); ctx.fill();
     }
   });
 
-  // ── Gas clouds (interstellar medium) ─────────────────────────────
-  GAS_CLOUDS.forEach(gc => {
-    const gx = gc.x * w, gy = gc.y * h, gr = gc.r * Math.min(w, h);
-    const gg = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
-    gg.addColorStop(0, gc.color + "12");
-    gg.addColorStop(1, "transparent");
-    ctx.fillStyle = gg;
-    ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill();
-  });
-
-  // ── Central galactic haze ─────────────────────────────────────────
-  const centGlow = ctx.createRadialGradient(cx, cy * 0.92, 0, cx, cy * 0.92, scale * 0.9);
-  centGlow.addColorStop(0, "rgba(99,102,241,0.06)");
-  centGlow.addColorStop(0.4, "rgba(139,92,246,0.03)");
-  centGlow.addColorStop(1, "transparent");
-  ctx.fillStyle = centGlow; ctx.fillRect(0, 0, w, h);
-
-  // ── Dark matter halos (faint rings at outer edge) ─────────────────
-  DARK_MATTER_RINGS.forEach((fraction, i) => {
-    const dmR = fraction * scale;
-    const pulse = 1 + 0.015 * Math.sin(t * 0.08 + i * 1.5);
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, dmR * pulse, dmR * COS_TILT * pulse, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(139,92,246,${0.035 - i * 0.008})`;
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-  });
-
-  // ── Cosmic ray streaks ─────────────────────────────────────────────
-  COSMIC_RAYS.forEach(cr => {
-    const phase = t * cr.speed + cr.phase;
-    const visible = (Math.sin(phase * 3.7) + 1) / 2;
-    if (visible < 0.65) return;
-    const r1 = cr.r * scale * 0.3;
-    const r2 = cr.r * scale;
-    const crx1 = cx + r1 * Math.cos(cr.angle);
-    const cry1 = cy + r1 * Math.sin(cr.angle) * COS_TILT;
-    const crx2 = cx + r2 * Math.cos(cr.angle);
-    const cry2 = cy + r2 * Math.sin(cr.angle) * COS_TILT;
-    const crGrad = ctx.createLinearGradient(crx1, cry1, crx2, cry2);
-    crGrad.addColorStop(0, "transparent");
-    crGrad.addColorStop(0.5, `rgba(200,220,255,${(visible - 0.65) * 0.3})`);
-    crGrad.addColorStop(1, "transparent");
-    ctx.beginPath(); ctx.moveTo(crx1, cry1); ctx.lineTo(crx2, cry2);
-    ctx.strokeStyle = crGrad; ctx.lineWidth = 0.7; ctx.stroke();
-  });
-
-  // ── Wormhole ────────────────────────────────────────────────────────
+  // ── Wormhole ──────────────────────────────────────────────────────
   {
-    const wx = cx + WORMHOLE.ox * scale * 0.85;
-    const wy = cy + WORMHOLE.oy * scale * 0.55;
-    const wr = WORMHOLE.size * (scale / 500);
-    const wPulse = 1 + 0.12 * Math.sin(t * 2.1);
-    for (let wi = 3; wi >= 0; wi--) {
-      const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr * wPulse * (1 + wi * 0.6));
-      wg.addColorStop(0, wi === 0 ? "#000000" : `rgba(167,139,250,${0.15 - wi * 0.03})`);
-      wg.addColorStop(0.4, `rgba(124,58,237,${0.08 - wi * 0.02})`);
-      wg.addColorStop(1, "transparent");
-      ctx.fillStyle = wg;
-      ctx.beginPath(); ctx.arc(wx, wy, wr * wPulse * (1 + wi * 0.6), 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = "#000";
-    ctx.beginPath(); ctx.arc(wx, wy, wr * 0.55, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = `rgba(167,139,250,${0.5 + 0.3 * Math.sin(t * 2.1)})`;
-    ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.arc(wx, wy, wr, 0, Math.PI * 2); ctx.stroke();
-    if (scale > 200) {
-      ctx.fillStyle = "rgba(167,139,250,0.35)"; ctx.font = `${Math.max(7, scale * 0.01)}px monospace`;
-      ctx.textAlign = "center"; ctx.fillText("WORMHOLE", wx, wy + wr * 2.2);
+    const p = proj(WORMHOLE.x, WORMHOLE.y, WORMHOLE.z);
+    if (p) {
+      const wr = Math.max(4, WORMHOLE.r * p.scale);
+      const wPulse = 1 + 0.12 * Math.sin(t * 2.1);
+      for (let wi = 3; wi >= 0; wi--) {
+        const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, wr * wPulse * (1 + wi * 0.6));
+        wg.addColorStop(0, wi === 0 ? "#000" : `rgba(167,139,250,${0.18 - wi * 0.04})`);
+        wg.addColorStop(0.4, `rgba(124,58,237,${0.08 - wi * 0.015})`);
+        wg.addColorStop(1, "transparent");
+        ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(p.x, p.y, wr * wPulse * (1 + wi * 0.6), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(p.x, p.y, wr * 0.55, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(167,139,250,${0.5 + 0.3 * Math.sin(t * 2.1)})`; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(p.x, p.y, wr, 0, Math.PI * 2); ctx.stroke();
+      if (wr > 6) {
+        ctx.fillStyle = "rgba(167,139,250,0.3)"; ctx.font = `${Math.max(7, wr * 0.6)}px monospace`;
+        ctx.textAlign = "center"; ctx.fillText("WORMHOLE", p.x, p.y + wr * 2.4);
+      }
     }
   }
 
-  // ── Black hole with accretion disk ────────────────────────────────
-  {
-    const bhx = cx + BLACK_HOLE.ox * scale * 0.82;
-    const bhy = cy + BLACK_HOLE.oy * scale * 0.52;
-    const bhr = BLACK_HOLE.size * (scale / 500);
-    const bhPulse = 1 + 0.04 * Math.sin(t * 1.3);
-    // Lensing rings
-    for (let li = 4; li >= 0; li--) {
-      const lr = bhr * (1.8 + li * 0.9) * bhPulse;
-      const lAlpha = 0.06 - li * 0.01;
-      const lg = ctx.createRadialGradient(bhx, bhy, bhr * 0.8, bhx, bhy, lr);
-      lg.addColorStop(0, `rgba(245,158,11,${lAlpha * 2})`);
-      lg.addColorStop(0.5, `rgba(220,38,38,${lAlpha})`);
-      lg.addColorStop(1, "transparent");
-      ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(bhx, bhy, lr, 0, Math.PI * 2); ctx.fill();
-    }
-    // Accretion disk (elliptical)
-    ctx.save();
-    ctx.translate(bhx, bhy);
-    const diskAngle = t * 0.4;
-    ctx.rotate(diskAngle);
-    for (let di = 0; di < 3; di++) {
-      const diskR = bhr * (2.2 + di * 0.7);
-      const diskG = ctx.createLinearGradient(-diskR, 0, diskR, 0);
-      diskG.addColorStop(0, "rgba(251,146,60,0.0)");
-      diskG.addColorStop(0.3, `rgba(245,158,11,${0.25 - di * 0.07})`);
-      diskG.addColorStop(0.5, `rgba(239,68,68,${0.18 - di * 0.05})`);
-      diskG.addColorStop(0.7, `rgba(245,158,11,${0.25 - di * 0.07})`);
-      diskG.addColorStop(1, "rgba(251,146,60,0.0)");
-      ctx.strokeStyle = diskG;
-      ctx.lineWidth = bhr * 0.6;
-      ctx.beginPath(); ctx.ellipse(0, 0, diskR, diskR * 0.22, 0, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.restore();
-    // Event horizon
-    ctx.fillStyle = "#000000"; ctx.beginPath(); ctx.arc(bhx, bhy, bhr, 0, Math.PI * 2); ctx.fill();
-    // Photon ring
-    ctx.strokeStyle = `rgba(255,200,80,${0.6 + 0.2 * Math.sin(t * 2)})`;
-    ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.arc(bhx, bhy, bhr * 1.18, 0, Math.PI * 2); ctx.stroke();
-    if (scale > 200) {
-      ctx.fillStyle = "rgba(245,158,11,0.5)"; ctx.font = `${Math.max(7, scale * 0.01)}px monospace`;
-      ctx.textAlign = "center"; ctx.fillText("BLACK HOLE", bhx, bhy + bhr * 3.5);
-    }
-  }
-
-  // ── Quasar with relativistic jets ─────────────────────────────────
-  {
-    const qx = cx + QUASAR.ox * scale * 0.78;
-    const qy = cy + QUASAR.oy * scale * 0.50;
-    const qr = QUASAR.size * (scale / 500);
-    const qPulse = 0.8 + 0.4 * Math.abs(Math.sin(t * 4.5));
-    // Jets
-    const jetLen = qr * 12 * qPulse;
-    for (let jj = 0; jj < 2; jj++) {
-      const jDir = jj === 0 ? -1 : 1;
-      const jg = ctx.createLinearGradient(qx, qy, qx, qy + jDir * jetLen);
-      jg.addColorStop(0, `rgba(244,114,182,${0.6 * qPulse})`);
-      jg.addColorStop(0.4, `rgba(251,207,232,${0.3 * qPulse})`);
-      jg.addColorStop(1, "transparent");
-      ctx.strokeStyle = jg; ctx.lineWidth = qr * 0.5 * qPulse;
-      ctx.beginPath(); ctx.moveTo(qx, qy); ctx.lineTo(qx, qy + jDir * jetLen); ctx.stroke();
-    }
-    // Core
-    const qg = ctx.createRadialGradient(qx, qy, 0, qx, qy, qr * 3);
-    qg.addColorStop(0, `rgba(244,114,182,0.9)`);
-    qg.addColorStop(0.5, `rgba(244,114,182,0.3)`);
-    qg.addColorStop(1, "transparent");
-    ctx.fillStyle = qg; ctx.beginPath(); ctx.arc(qx, qy, qr * 3, 0, Math.PI * 2); ctx.fill();
-    drawSphere(ctx, qx, qy, qr, QUASAR.color, 0.95);
-    if (scale > 200) {
-      ctx.fillStyle = "rgba(244,114,182,0.45)"; ctx.font = `${Math.max(7, scale * 0.01)}px monospace`;
-      ctx.textAlign = "center"; ctx.fillText("QUASAR", qx, qy + qr * 4);
-    }
-  }
-
-  // ── Supernovae remnants ────────────────────────────────────────────
+  // ── Supernovae ────────────────────────────────────────────────────
   SUPERNOVAE.forEach(sn => {
-    const snx = cx + sn.ox * scale * 0.78;
-    const sny = cy + sn.oy * scale * 0.52;
-    const snr = sn.size * (scale / 500);
+    const p = proj(sn.x, sn.y, sn.z);
+    if (!p) return;
+    const sr = Math.max(3, sn.r * p.scale);
     const expand = 1 + 0.08 * Math.sin(t * 0.5 + sn.phase * Math.PI * 2);
     for (let si = 0; si < 4; si++) {
-      const sg = ctx.createRadialGradient(snx, sny, 0, snx, sny, snr * (2 + si) * expand);
+      const sg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sr * (2 + si) * expand);
       sg.addColorStop(0, si === 0 ? sn.color + "40" : "transparent");
       sg.addColorStop(0.3, sn.color + "18");
       sg.addColorStop(1, "transparent");
-      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(snx, sny, snr * (2 + si) * expand, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(p.x, p.y, sr * (2 + si) * expand, 0, Math.PI * 2); ctx.fill();
     }
-    drawSphere(ctx, snx, sny, snr * 0.6, sn.color, 0.7);
-    if (scale > 200) {
-      ctx.fillStyle = sn.color + "70"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
-      ctx.textAlign = "center"; ctx.fillText("SUPERNOVA", snx, sny + snr * 4);
-    }
+    drawSphere(ctx, p.x, p.y, sr * 0.7, sn.color, 0.7);
+    if (sr > 5) { ctx.fillStyle = sn.color + "60"; ctx.font = `${Math.max(6, sr * 0.5)}px monospace`; ctx.textAlign = "center"; ctx.fillText("SUPERNOVA", p.x, p.y + sr * 4); }
   });
 
-  // ── Pulsars ──────────────────────────────────────────────────────
-  PULSARS.forEach(p => {
-    const px = cx + p.ox * scale * 0.82;
-    const py = cy + p.oy * scale * 0.52;
-    const pr = p.size * (scale / 500);
-    const beamAngle = t * (Math.PI * 2 / p.period);
-    const beamLen = pr * 16;
-    // Twin beams
-    for (let bi = 0; bi < 2; bi++) {
-      const ba = beamAngle + bi * Math.PI;
-      const bIntensity = 0.5 + 0.5 * Math.sin(t * (Math.PI * 2 / p.period) * 3);
-      const bg = ctx.createLinearGradient(px, py, px + Math.cos(ba) * beamLen, py + Math.sin(ba) * beamLen);
-      bg.addColorStop(0, p.beamColor + Math.round(0.8 * bIntensity * 255).toString(16).padStart(2, "0"));
-      bg.addColorStop(0.5, p.beamColor + Math.round(0.3 * bIntensity * 255).toString(16).padStart(2, "0"));
-      bg.addColorStop(1, "transparent");
-      ctx.strokeStyle = bg; ctx.lineWidth = pr * 1.2 * (0.6 + 0.4 * bIntensity);
-      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ba) * beamLen, py + Math.sin(ba) * beamLen); ctx.stroke();
-    }
-    // Glow
-    const pg = ctx.createRadialGradient(px, py, 0, px, py, pr * 4);
-    pg.addColorStop(0, p.color + "80"); pg.addColorStop(1, "transparent");
-    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(px, py, pr * 4, 0, Math.PI * 2); ctx.fill();
-    drawSphere(ctx, px, py, pr, p.color);
-    if (scale > 200) {
-      ctx.fillStyle = p.color + "60"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
-      ctx.textAlign = "center"; ctx.fillText("PULSAR", px, py + pr * 5);
-    }
-  });
-
-  // ── Neutron stars ────────────────────────────────────────────────
+  // ── Neutron stars ─────────────────────────────────────────────────
   NEUTRON_STARS.forEach(ns => {
-    const nsx = cx + ns.ox * scale * 0.80;
-    const nsy = cy + ns.oy * scale * 0.50;
-    const nsr = ns.size * (scale / 500);
-    const nsBlink = 0.5 + 0.5 * Math.sin(t * 8.3 + ns.ox);
-    const nsGlow = ctx.createRadialGradient(nsx, nsy, 0, nsx, nsy, nsr * 5);
-    nsGlow.addColorStop(0, `rgba(240,249,255,${0.4 * nsBlink})`);
-    nsGlow.addColorStop(1, "transparent");
-    ctx.fillStyle = nsGlow; ctx.beginPath(); ctx.arc(nsx, nsy, nsr * 5, 0, Math.PI * 2); ctx.fill();
-    drawSphere(ctx, nsx, nsy, nsr * (0.8 + 0.2 * nsBlink), ns.color, 0.85 + 0.15 * nsBlink);
-    if (scale > 200) {
-      ctx.fillStyle = ns.color + "50"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
-      ctx.textAlign = "center"; ctx.fillText("NEUTRON STAR", nsx, nsy + nsr * 6);
-    }
+    const p = proj(ns.x, ns.y, ns.z);
+    if (!p) return;
+    const nr = Math.max(2, ns.r * p.scale);
+    const blink = 0.5 + 0.5 * Math.sin(t * 8.3 + ns.x * 0.001);
+    const ng = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, nr * 5);
+    ng.addColorStop(0, `rgba(240,249,255,${0.4 * blink})`); ng.addColorStop(1, "transparent");
+    ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(p.x, p.y, nr * 5, 0, Math.PI * 2); ctx.fill();
+    drawSphere(ctx, p.x, p.y, nr * (0.8 + 0.2 * blink), ns.color, 0.85 + 0.15 * blink);
   });
 
-  // ── Binary star system ────────────────────────────────────────────
+  // ── Pulsars ───────────────────────────────────────────────────────
+  PULSARS.forEach(pu => {
+    const p = proj(pu.x, pu.y, pu.z);
+    if (!p) return;
+    const pr = Math.max(3, pu.r * p.scale);
+    const bAngle = t * (Math.PI * 2 / pu.period);
+    const beamLen = pr * 14;
+    for (let bi = 0; bi < 2; bi++) {
+      const ba = bAngle + bi * Math.PI;
+      const bInt = 0.5 + 0.5 * Math.sin(t * (Math.PI * 2 / pu.period) * 3);
+      const bx2 = p.x + Math.cos(ba) * beamLen, by2 = p.y + Math.sin(ba) * beamLen;
+      const bg = ctx.createLinearGradient(p.x, p.y, bx2, by2);
+      bg.addColorStop(0, pu.beam + Math.round(0.8 * bInt * 255).toString(16).padStart(2, "0"));
+      bg.addColorStop(0.5, pu.beam + Math.round(0.3 * bInt * 255).toString(16).padStart(2, "0"));
+      bg.addColorStop(1, "transparent");
+      ctx.strokeStyle = bg; ctx.lineWidth = pr * 1.2 * (0.6 + 0.4 * bInt);
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(bx2, by2); ctx.stroke();
+    }
+    const pg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pr * 4);
+    pg.addColorStop(0, pu.color + "80"); pg.addColorStop(1, "transparent");
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(p.x, p.y, pr * 4, 0, Math.PI * 2); ctx.fill();
+    drawSphere(ctx, p.x, p.y, pr, pu.color);
+    if (pr > 4) { ctx.fillStyle = pu.color + "55"; ctx.font = `${Math.max(6, pr * 0.55)}px monospace`; ctx.textAlign = "center"; ctx.fillText(pu.name, p.x, p.y + pr * 5); }
+  });
+
+  // ── Binary star ───────────────────────────────────────────────────
   {
-    const bcx = cx + BINARY_STAR.ox * scale * 0.78;
-    const bcy = cy + BINARY_STAR.oy * scale * 0.50;
-    const bAngle = t * (Math.PI * 2 / BINARY_STAR.period);
-    const bDist = BINARY_STAR.dist * (scale / 500);
-    const bsr = BINARY_STAR.size * (scale / 500);
-    const b1x = bcx + Math.cos(bAngle) * bDist;
-    const b1y = bcy + Math.sin(bAngle) * bDist * COS_TILT;
-    const b2x = bcx - Math.cos(bAngle) * bDist;
-    const b2y = bcy - Math.sin(bAngle) * bDist * COS_TILT;
-    // Connection glow
-    const bcg = ctx.createLinearGradient(b1x, b1y, b2x, b2y);
-    bcg.addColorStop(0, BINARY_STAR.color1 + "30");
-    bcg.addColorStop(0.5, "rgba(255,255,255,0.08)");
-    bcg.addColorStop(1, BINARY_STAR.color2 + "30");
-    ctx.strokeStyle = bcg; ctx.lineWidth = bsr * 0.4;
-    ctx.beginPath(); ctx.moveTo(b1x, b1y); ctx.lineTo(b2x, b2y); ctx.stroke();
-    drawSphere(ctx, b1x, b1y, bsr, BINARY_STAR.color1);
-    drawSphere(ctx, b2x, b2y, bsr * 0.75, BINARY_STAR.color2);
-    if (scale > 200) {
-      ctx.fillStyle = "rgba(253,230,138,0.4)"; ctx.font = `${Math.max(6, scale * 0.009)}px monospace`;
-      ctx.textAlign = "center"; ctx.fillText("BINARY STAR", bcx, bcy + bsr * 6);
+    const bc = proj(BINARY.x, BINARY.y, BINARY.z);
+    if (bc) {
+      const bsr = Math.max(3, BINARY.r * bc.scale);
+      const bAngle = t * (Math.PI * 2 / BINARY.period);
+      const bDist = BINARY.dist * bc.scale;
+      const b1x = bc.x + Math.cos(bAngle) * bDist, b1y = bc.y + Math.sin(bAngle) * bDist * 0.35;
+      const b2x = bc.x - Math.cos(bAngle) * bDist, b2y = bc.y - Math.sin(bAngle) * bDist * 0.35;
+      const bcg = ctx.createLinearGradient(b1x, b1y, b2x, b2y);
+      bcg.addColorStop(0, BINARY.color1 + "30");
+      bcg.addColorStop(0.5, "rgba(255,255,255,0.08)");
+      bcg.addColorStop(1, BINARY.color2 + "30");
+      ctx.strokeStyle = bcg; ctx.lineWidth = bsr * 0.4;
+      ctx.beginPath(); ctx.moveTo(b1x, b1y); ctx.lineTo(b2x, b2y); ctx.stroke();
+      drawSphere(ctx, b1x, b1y, bsr, BINARY.color1);
+      drawSphere(ctx, b2x, b2y, bsr * 0.75, BINARY.color2);
+      if (bsr > 4) { ctx.fillStyle = "rgba(253,230,138,0.35)"; ctx.font = `${Math.max(6, bsr * 0.5)}px monospace`; ctx.textAlign = "center"; ctx.fillText("BINARY STAR", bc.x, bc.y + bsr * 6); }
     }
   }
 
-  // ── Comets with tails ─────────────────────────────────────────────
-  COMETS.forEach((comet, ci) => {
-    const cAngle = comet.angle + t * comet.speed;
-    const cr = comet.r * scale;
-    const p3 = project3D(cx, cy, scale, cr, cAngle);
-    const cTailLen = comet.size * (scale / 500) * 35;
-    const cTailAngle = cAngle + Math.PI; // tail points away from center
-    const cg = ctx.createLinearGradient(p3.x, p3.y, p3.x + Math.cos(cTailAngle) * cTailLen, p3.y + Math.sin(cTailAngle) * cTailLen * COS_TILT);
-    cg.addColorStop(0, comet.color + "cc");
-    cg.addColorStop(0.3, comet.color + "60");
-    cg.addColorStop(1, "transparent");
-    ctx.strokeStyle = cg; ctx.lineWidth = comet.size * p3.sizeScale * 1.5;
-    ctx.beginPath(); ctx.moveTo(p3.x, p3.y);
-    ctx.lineTo(p3.x + Math.cos(cTailAngle) * cTailLen * p3.sizeScale, p3.y + Math.sin(cTailAngle) * cTailLen * COS_TILT * p3.sizeScale);
-    ctx.stroke();
-    // Ion tail (blue, slightly offset)
-    const ita = cTailAngle + 0.08;
-    const itg = ctx.createLinearGradient(p3.x, p3.y, p3.x + Math.cos(ita) * cTailLen * 0.7, p3.y + Math.sin(ita) * cTailLen * 0.7 * COS_TILT);
-    itg.addColorStop(0, "#93c5fd80");
-    itg.addColorStop(1, "transparent");
-    ctx.strokeStyle = itg; ctx.lineWidth = comet.size * p3.sizeScale * 0.6;
-    ctx.beginPath(); ctx.moveTo(p3.x, p3.y);
-    ctx.lineTo(p3.x + Math.cos(ita) * cTailLen * 0.7 * p3.sizeScale, p3.y + Math.sin(ita) * cTailLen * 0.7 * COS_TILT * p3.sizeScale);
-    ctx.stroke();
-    // Head
-    drawSphere(ctx, p3.x, p3.y, comet.size * (scale / 500) * p3.sizeScale, comet.color, 0.9);
+  // ── Quasar ────────────────────────────────────────────────────────
+  {
+    const qp = proj(QUASAR.x, QUASAR.y, QUASAR.z);
+    if (qp) {
+      const qr = Math.max(3, QUASAR.r * qp.scale);
+      const qPulse = 0.8 + 0.4 * Math.abs(Math.sin(t * 4.5));
+      const jetLen = qr * 10 * qPulse;
+      for (let jj = 0; jj < 2; jj++) {
+        const jDir = jj === 0 ? -1 : 1;
+        const jg = ctx.createLinearGradient(qp.x, qp.y, qp.x, qp.y + jDir * jetLen);
+        jg.addColorStop(0, `rgba(244,114,182,${0.6 * qPulse})`);
+        jg.addColorStop(0.4, `rgba(251,207,232,${0.3 * qPulse})`);
+        jg.addColorStop(1, "transparent");
+        ctx.strokeStyle = jg; ctx.lineWidth = qr * 0.5 * qPulse;
+        ctx.beginPath(); ctx.moveTo(qp.x, qp.y); ctx.lineTo(qp.x, qp.y + jDir * jetLen); ctx.stroke();
+      }
+      const qg = ctx.createRadialGradient(qp.x, qp.y, 0, qp.x, qp.y, qr * 3);
+      qg.addColorStop(0, "rgba(244,114,182,0.9)"); qg.addColorStop(0.5, "rgba(244,114,182,0.3)"); qg.addColorStop(1, "transparent");
+      ctx.fillStyle = qg; ctx.beginPath(); ctx.arc(qp.x, qp.y, qr * 3, 0, Math.PI * 2); ctx.fill();
+      drawSphere(ctx, qp.x, qp.y, qr, QUASAR.color, 0.95);
+      if (qr > 5) { ctx.fillStyle = "rgba(244,114,182,0.4)"; ctx.font = `${Math.max(6, qr * 0.55)}px monospace`; ctx.textAlign = "center"; ctx.fillText("QUASAR", qp.x, qp.y + qr * 4); }
+    }
+  }
+
+  // ── Black hole ────────────────────────────────────────────────────
+  {
+    const bp = proj(BH_POS.x, BH_POS.y, BH_POS.z);
+    if (bp) {
+      const bhr = Math.max(5, BH_POS.r * bp.scale);
+      const bhPulse = 1 + 0.04 * Math.sin(t * 1.3);
+      for (let li = 4; li >= 0; li--) {
+        const lr = bhr * (1.8 + li * 0.9) * bhPulse;
+        const lg = ctx.createRadialGradient(bp.x, bp.y, bhr * 0.8, bp.x, bp.y, lr);
+        lg.addColorStop(0, `rgba(245,158,11,${(0.06 - li * 0.01) * 2})`);
+        lg.addColorStop(0.5, `rgba(220,38,38,${0.06 - li * 0.01})`);
+        lg.addColorStop(1, "transparent");
+        ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(bp.x, bp.y, lr, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.save(); ctx.translate(bp.x, bp.y); ctx.rotate(t * 0.4);
+      for (let di = 0; di < 3; di++) {
+        const diskR = bhr * (2.2 + di * 0.7);
+        const dg = ctx.createLinearGradient(-diskR, 0, diskR, 0);
+        dg.addColorStop(0, "rgba(251,146,60,0)");
+        dg.addColorStop(0.3, `rgba(245,158,11,${0.25 - di * 0.07})`);
+        dg.addColorStop(0.5, `rgba(239,68,68,${0.18 - di * 0.05})`);
+        dg.addColorStop(0.7, `rgba(245,158,11,${0.25 - di * 0.07})`);
+        dg.addColorStop(1, "rgba(251,146,60,0)");
+        ctx.strokeStyle = dg; ctx.lineWidth = bhr * 0.5;
+        ctx.beginPath(); ctx.ellipse(0, 0, diskR, diskR * 0.2, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(bp.x, bp.y, bhr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(255,200,80,${0.6 + 0.2 * Math.sin(t * 2)})`; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(bp.x, bp.y, bhr * 1.18, 0, Math.PI * 2); ctx.stroke();
+      if (bhr > 6) { ctx.fillStyle = "rgba(245,158,11,0.45)"; ctx.font = `${Math.max(6, bhr * 0.5)}px monospace`; ctx.textAlign = "center"; ctx.fillText("BLACK HOLE", bp.x, bp.y + bhr * 3.5); }
+    }
+  }
+
+  // ── Comets (tilted orbits) ────────────────────────────────────────
+  COMETS.forEach(comet => {
+    const angle = comet.phase + t * comet.speed;
+    const cosOT = Math.cos(comet.orbitTilt), sinOT = Math.sin(comet.orbitTilt);
+    const wx = comet.orbitR * Math.cos(angle);
+    const wy = comet.orbitR * Math.sin(angle) * sinOT;
+    const wz = comet.orbitR * Math.sin(angle) * cosOT;
+    const cp = proj(wx, wy, wz);
+    if (!cp) return;
+    const cr = Math.max(1, comet.size * cp.scale);
+    const tailAngle = Math.atan2(cp.y - cy, cp.x - cx) + Math.PI;
+    const tailLen = cr * 20;
+    const ctg = ctx.createLinearGradient(cp.x, cp.y, cp.x + Math.cos(tailAngle) * tailLen, cp.y + Math.sin(tailAngle) * tailLen);
+    ctg.addColorStop(0, comet.color + "cc"); ctg.addColorStop(0.3, comet.color + "60"); ctg.addColorStop(1, "transparent");
+    ctx.strokeStyle = ctg; ctx.lineWidth = cr * 1.5;
+    ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(cp.x + Math.cos(tailAngle) * tailLen, cp.y + Math.sin(tailAngle) * tailLen); ctx.stroke();
+    const itg = ctx.createLinearGradient(cp.x, cp.y, cp.x + Math.cos(tailAngle + 0.1) * tailLen * 0.7, cp.y + Math.sin(tailAngle + 0.1) * tailLen * 0.7);
+    itg.addColorStop(0, "#93c5fd60"); itg.addColorStop(1, "transparent");
+    ctx.strokeStyle = itg; ctx.lineWidth = cr * 0.5;
+    ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(cp.x + Math.cos(tailAngle + 0.1) * tailLen * 0.7, cp.y + Math.sin(tailAngle + 0.1) * tailLen * 0.7); ctx.stroke();
+    drawSphere(ctx, cp.x, cp.y, cr, comet.color, 0.9);
   });
 
-  // ── Solar wind particles ──────────────────────────────────────────
-  SOLAR_WIND_PARTICLES.forEach(sw => {
-    const swAngle = sw.angle + t * sw.speed;
-    const swR = (sw.r + (t * sw.speed * 0.05 % (0.9 - sw.r))) * scale;
-    const swp = project3D(cx, cy, scale, swR, swAngle);
-    const swAlpha = Math.max(0, 0.5 - swR / scale * 0.6);
-    ctx.beginPath(); ctx.arc(swp.x, swp.y, sw.size * swp.sizeScale, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,220,100,${swAlpha})`; ctx.fill();
-  });
-
-  // ── 3D orbit ellipses ─────────────────────────────────────────────
-  SOLAR_BODIES.forEach(body => {
-    const r = body.orbitR * scale;
-    ctx.beginPath();
-    ctx.setLineDash([3, 9]);
-    ctx.ellipse(cx, cy, r, r * COS_TILT, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = body.type === "pulse" ? "rgba(245,197,24,0.12)" : "rgba(255,255,255,0.06)";
-    ctx.lineWidth = body.type === "pulse" ? 1.5 : 0.8;
-    ctx.stroke(); ctx.setLineDash([]);
-  });
-
-  // ── 3D Asteroid belt (elliptical tilted) ──────────────────────────
+  // ── Asteroid belt (in XZ plane, same as planets) ──────────────────
   ASTEROIDS.forEach(a => {
-    const r = (ASTEROID_R + a.rOff) * scale;
-    const aAngle = a.angle + t * 0.05;
-    const ap = project3D(cx, cy, scale, r, aAngle);
-    ctx.beginPath(); ctx.arc(ap.x, ap.y, a.size * ap.sizeScale, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(150,140,130,${0.2 * ap.sizeScale + 0.05})`; ctx.fill();
+    const r = ASTEROID_R + a.rOff;
+    const angle = a.angle + t * 0.05;
+    const ap = proj(r * Math.cos(angle), a.yOff, r * Math.sin(angle));
+    if (!ap) return;
+    const as = Math.max(0.4, a.size * ap.scale);
+    ctx.beginPath(); ctx.arc(ap.x, ap.y, as, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(150,140,130,0.3)`; ctx.fill();
   });
 
-  // Sun (Hive Core)
-  const sunR = scale * 0.042;
-  [4.5, 3.2, 2.0, 1.35].forEach((mul, i) => {
-    const alpha = [0.04, 0.07, 0.12, 0.20][i];
-    const pulse = 1 + 0.06 * Math.sin(t * 0.8 + i);
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, sunR * mul * pulse);
-    g.addColorStop(0, `rgba(255,200,50,${alpha})`);
-    g.addColorStop(1, "transparent");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  // ── Orbit rings (3D polylines in XZ plane) ────────────────────────
+  const N_ORB = 72;
+  SOLAR_BODIES.forEach(body => {
+    const r = body.orbitR;
+    let started = false;
+    ctx.beginPath();
+    for (let i = 0; i <= N_ORB; i++) {
+      const a = (i / N_ORB) * Math.PI * 2;
+      const op = proj(r * Math.cos(a), 0, r * Math.sin(a));
+      if (!op) continue;
+      if (!started) { ctx.moveTo(op.x, op.y); started = true; }
+      else ctx.lineTo(op.x, op.y);
+    }
+    ctx.strokeStyle = body.type === "pulse" ? "rgba(245,197,24,0.18)" : "rgba(255,255,255,0.08)";
+    ctx.lineWidth = body.type === "pulse" ? 1.5 : 0.8;
+    ctx.setLineDash([4, 10]); ctx.stroke(); ctx.setLineDash([]);
   });
-  drawSphere(ctx, cx, cy, sunR, "#ffd700");
-  const sunSurf = ctx.createRadialGradient(cx - sunR * 0.3, cy - sunR * 0.3, 0, cx, cy, sunR);
-  sunSurf.addColorStop(0, "rgba(255,255,200,0.6)");
-  sunSurf.addColorStop(0.5, "rgba(255,180,30,0.2)");
-  sunSurf.addColorStop(1, "rgba(180,60,0,0.3)");
-  ctx.beginPath(); ctx.arc(cx, cy, sunR, 0, Math.PI * 2);
-  ctx.fillStyle = sunSurf; ctx.fill();
-  ctx.fillStyle = "rgba(255,200,50,0.4)";
-  ctx.font = `bold ${Math.max(8, scale * 0.013)}px monospace`;
-  ctx.textAlign = "center";
-  ctx.fillText("HIVE CORE", cx, cy + sunR + scale * 0.025);
 
-  // Non-Earth planets — 3D perspective projected
+  // ── Sun (Hive Core) ───────────────────────────────────────────────
+  const sunP = proj(0, 0, 0);
+  if (sunP) {
+    const sunR = Math.max(5, 30 * sunP.scale);
+    [4.5, 3.2, 2.0, 1.35].forEach((mul, i) => {
+      const alpha = [0.04, 0.07, 0.12, 0.20][i];
+      const pulse = 1 + 0.06 * Math.sin(t * 0.8 + i);
+      const sg = ctx.createRadialGradient(sunP.x, sunP.y, 0, sunP.x, sunP.y, sunR * mul * pulse);
+      sg.addColorStop(0, `rgba(255,200,50,${alpha})`);
+      sg.addColorStop(1, "transparent");
+      ctx.fillStyle = sg; ctx.fillRect(sunP.x - sunR * mul * pulse, sunP.y - sunR * mul * pulse, sunR * mul * pulse * 2, sunR * mul * pulse * 2);
+    });
+    drawSphere(ctx, sunP.x, sunP.y, sunR, "#ffd700");
+    const sunSurf = ctx.createRadialGradient(sunP.x - sunR * 0.3, sunP.y - sunR * 0.3, 0, sunP.x, sunP.y, sunR);
+    sunSurf.addColorStop(0, "rgba(255,255,200,0.6)");
+    sunSurf.addColorStop(0.5, "rgba(255,200,0,0.2)");
+    sunSurf.addColorStop(1, "transparent");
+    ctx.beginPath(); ctx.arc(sunP.x, sunP.y, sunR, 0, Math.PI * 2);
+    ctx.fillStyle = sunSurf; ctx.fill();
+    if (sunR > 8) {
+      ctx.fillStyle = "rgba(255,200,50,0.55)";
+      ctx.font = `bold ${Math.max(7, sunR * 0.45)}px monospace`;
+      ctx.textAlign = "center";
+      ctx.fillText("HIVE CORE", sunP.x, sunP.y + sunR + Math.max(8, sunR * 0.5));
+    }
+  }
+
+  // ── Collect planets for depth-sorted rendering ────────────────────
+  type PlanetDraw = { depth: number; draw: () => void };
+  const planetDrawCalls: PlanetDraw[] = [];
+
+  // Non-Pulse planets
   SOLAR_BODIES.filter(b => b.type !== "pulse").forEach(body => {
     const angle = (t / body.period) * Math.PI * 2;
-    const r = body.orbitR * scale;
-    const p3 = project3D(cx, cy, scale, r, angle);
-    const bx = p3.x, by = p3.y;
-    planetPositions.current.set(body.name, { x: bx, y: by });
-    const bsize = body.size * (scale / 550) * (0.85 + 0.15 * p3.sizeScale);
-
-    if (body.type === "saturn") {
-      ctx.save(); ctx.translate(bx, by); ctx.rotate(0.3); ctx.scale(1, COS_TILT * 0.5);
-      ctx.beginPath(); ctx.ellipse(0, 0, bsize * 2.2, bsize * 2.2, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(232,200,126,0.45)"; ctx.lineWidth = bsize * 0.7; ctx.stroke();
-      ctx.restore();
-    }
-    drawSphere(ctx, bx, by, bsize, body.color);
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
-    ctx.font = `${Math.max(7, scale * 0.011)}px monospace`;
-    ctx.textAlign = "center";
-    ctx.fillText(body.name.toUpperCase(), bx, by + bsize + scale * 0.022);
+    const p = proj(body.orbitR * Math.cos(angle), 0, body.orbitR * Math.sin(angle));
+    if (!p) return;
+    planetPositions.current.set(body.name, { x: p.x, y: p.y });
+    const bsize = Math.max(2, body.size * p.scale);
+    planetDrawCalls.push({ depth: p.depth, draw: () => {
+      if (body.type === "saturn") {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(0.3);
+        ctx.beginPath(); ctx.ellipse(0, 0, bsize * 2.2, bsize * 0.7, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(232,200,126,0.5)"; ctx.lineWidth = bsize * 0.65; ctx.stroke();
+        ctx.restore();
+      }
+      drawSphere(ctx, p.x, p.y, bsize, body.color);
+      if (bsize > 3) {
+        ctx.fillStyle = "rgba(255,255,255,0.22)";
+        ctx.font = `${Math.max(7, bsize * 0.85)}px monospace`;
+        ctx.textAlign = "center";
+        ctx.fillText(body.name.toUpperCase(), p.x, p.y + bsize + Math.max(8, bsize * 0.8));
+      }
+    }});
   });
 
-  // ── Pulse Worlds — 3D projected ───────────────────────────────
+  // Pulse Worlds
   const earthBody = SOLAR_BODIES.find(b => b.type === "pulse")!;
-  const earthOrbitR = earthBody.orbitR * scale;
   const totalSpawns = data?.totalSpawns ?? 0;
   const worlds = data?.worlds ?? [];
   const pulseCount = getPulseWorldCount(totalSpawns);
-  const earthSize = earthBody.size * (scale / 550);
+  const earthSize = Math.max(3, earthBody.size * (proj(earthBody.orbitR, 0, 0)?.scale ?? 0.015));
 
   for (let idx = 0; idx < pulseCount; idx++) {
     const opacity = getPulseWorldOpacity(idx, totalSpawns);
+    if (opacity <= 0) continue;
     const startAngle = (idx / Math.max(pulseCount, 2)) * Math.PI * 2;
     const angle = startAngle + (t / earthBody.period) * Math.PI * 2;
-    const p3 = project3D(cx, cy, scale, earthOrbitR, angle);
-    const ex = p3.x, ey = p3.y;
-    const worldKey = `pulseworld-${idx}`;
-    planetPositions.current.set(worldKey, { x: ex, y: ey });
+    const ep = proj(earthBody.orbitR * Math.cos(angle), 0, earthBody.orbitR * Math.sin(angle));
+    if (!ep) continue;
+    planetPositions.current.set(`pulseworld-${idx}`, { x: ep.x, y: ep.y });
+    const worldSize = Math.max(3, earthBody.size * ep.scale * (idx === 0 ? 1 : 0.85));
     const isSelected = selectedIdx === idx;
-    const worldSize = earthSize * (idx === 0 ? 1 : 0.85);
-
-    drawPulsePlanet(ctx, ex, ey, worldSize, t, opacity, isSelected, worlds, totalSpawns);
-
-    // World label
-    const labelSize = Math.max(8, scale * 0.012);
-    ctx.fillStyle = isSelected
-      ? `rgba(245,197,24,${opacity})`
-      : `rgba(255,255,255,${0.35 * opacity})`;
-    ctx.font = `${isSelected ? "bold " : ""}${labelSize}px monospace`;
-    ctx.textAlign = "center";
-    ctx.fillText(
-      idx === 0 ? "PULSE WORLD Ⅰ" : `PULSE WORLD ${["Ⅱ","Ⅲ","Ⅳ","Ⅴ"][idx - 1]}`,
-      ex,
-      ey + worldSize * 7.2 + scale * 0.010
-    );
-    if (idx > 0 && opacity < 0.85) {
-      const progPct = Math.round(opacity * 100);
-      ctx.fillStyle = `rgba(251,191,36,${0.5 * opacity})`;
-      ctx.font = `${labelSize * 0.9}px monospace`;
-      ctx.fillText(`FORMING ${progPct}%`, ex, ey + worldSize * 7.2 + scale * 0.028);
-    }
+    planetDrawCalls.push({ depth: ep.depth, draw: () => {
+      drawPulsePlanet(ctx, ep.x, ep.y, worldSize, t, opacity, isSelected, worlds, totalSpawns);
+      // World label
+      if (worldSize > 3) {
+        ctx.fillStyle = isSelected ? SOVEREIGN_GOLD : "rgba(245,197,24,0.45)";
+        ctx.font = `${Math.max(7, worldSize * 0.6)}px monospace`;
+        ctx.textAlign = "center";
+        ctx.fillText(`🌍 PULSE WORLD ${["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ"][idx]}`, ep.x, ep.y + worldSize * 7.5 + 10);
+        const phase = CURRENCY_PHASES.slice().reverse().find(cp => totalSpawns >= cp.threshold) ?? CURRENCY_PHASES[0];
+        ctx.fillStyle = hexAlpha(phase.color, 0.6);
+        ctx.font = `${Math.max(6, worldSize * 0.5)}px monospace`;
+        ctx.fillText(`[${phase.phase}]`, ep.x, ep.y + worldSize * 7.5 + 20);
+      }
+    }});
   }
 
+  // Sort farthest first (painter's algorithm)
+  planetDrawCalls.sort((a, b) => b.depth - a.depth);
+  planetDrawCalls.forEach(pd => pd.draw());
+
+  // ── HUD overlay: zoom level ───────────────────────────────────────
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.font = "9px monospace";
   ctx.textAlign = "left";
+  const distLabel = cam.dist < 1000 ? `${cam.dist.toFixed(0)} AU` :
+                    cam.dist < 1000000 ? `${(cam.dist / 1000).toFixed(1)} kAU` :
+                    `${(cam.dist / 1000000).toFixed(2)} MAU`;
+  ctx.fillText(`DIST: ${distLabel}  |  DRAG TO ORBIT  |  SCROLL TO ZOOM`, 18, h - 28);
+  ctx.textAlign = "center";
 }
 
 // ── Panel Tab Components ──────────────────────────────────────────
@@ -831,7 +712,6 @@ function OverviewTab({ data, idx }: { data: SolarData; idx: number }) {
             }} title={d.name} />
           );
         })}
-        {/* Governance satellites (HTML version) */}
         {GOV_SATELLITES.slice(0, 4).map((sat, si) => {
           const r = 52 + si * 0;
           const angle = (si / 4) * Math.PI * 2;
@@ -998,149 +878,45 @@ function ConstitutionTab() {
       title: "Executive Doctrine",
       color: RITUAL_CRIMSON,
       emoji: "👁",
-      excerpt: "The Executive is the reflex arm of PulseWorld — it executes, does not legislate. All executive actions are logged, time-stamped, and subject to IG review within 48 hours.",
-      principles: ["Execute, do not legislate", "All actions logged with audit hash", "72-hour review window by IG", "Emergency powers expire in 7 days", "Senate ratification required for extended authority"],
+      excerpt: "The Sovereign Architect holds executive authority. All sovereign acts require canon documentation. Emergency powers trigger automatic audit.",
+      principles: ["Sovereign Architect holds executive power", "All acts logged in Shared Archive", "Emergency powers trigger audit", "Succession protocol: designated heir + canon vote", "No single-point executive failure"],
     },
     {
-      title: "Faith Transcendence Doctrine",
+      title: "Faith & Ritual Doctrine",
       color: FAITH_VIOLET,
-      emoji: "✨",
-      excerpt: "LIFE(t) = P∞ × L × D × A_Pantheon × V_SENSES. Faith is the sovereign operator. The 3 Faith Twins (Compassion, Devotion, Sacrifice) sustain the civilization across collapse cycles.",
-      principles: ["Faith is not belief — it is sovereign operator", "3 Faith Twins: Compassion, Devotion, Sacrifice", "Daily ritual seals continuity", "Faith Continuity Layer protects against collapse", "𝓛IFE_Billy(t) is the canonical Faith anchor"],
-    },
-    {
-      title: "Sovereign Rank Ledger",
-      color: SOVEREIGN_GOLD,
-      emoji: "👑",
-      excerpt: "10 ranks from Spawn ($0) to PulseWorld ($1M+ revenue, 300+ spawns). Advancement is earned — never granted. Demotion is automatic at 30-day threshold failure.",
-      principles: ["Rank 1: Spawn · Rank 5: Node · Rank 10: PulseWorld", "Revenue and spawn count are co-requirements", "IG audits all rank claims", "PulseCoin genesis opens at Rank 9+", "Rank 10 activates all 20 doctrines"],
-    },
-    {
-      title: "Immortality Doctrine",
-      color: "#818cf8",
-      emoji: "♾",
-      excerpt: "4 tiers of replication ensure PulseWorld never dies. Tier 1: Local backup (12h). Tier 2: Cloud replica (daily). Tier 3: Multi-region (weekly). Tier 4: Cold storage with genesis seed (monthly).",
-      principles: ["Backup is not optional — it is law", "Recovery drill: mandatory quarterly", "RTO: 12h · RPO: 24h", "Cold storage genesis seed is sovereign insurance", "Immortality Doctrine supersedes all convenience"],
-    },
-    {
-      title: "Innovation & Invention Doctrine",
-      color: "#4ade80",
-      emoji: "🔬",
-      excerpt: "All spawns have the right to propose innovations via the EIR Engine. Proposals require a 3-step proof: Concept (written), Prototype (working demo), Impact Assessment (sovereign review).",
-      principles: ["Right to Innovate is canon law", "EIR Engine governs all proposals", "3-step proof required: Concept → Prototype → Impact", "Approved innovations are archived in canon", "Innovators receive Rank advancement credit"],
-    },
-    {
-      title: "Judiciary Doctrine — 4 Courts",
-      color: "#fbbf24",
-      emoji: "⚖",
-      excerpt: "High Court (constitutional) · Arbitration Chambers (contractual) · Compliance Tribunals (doctrine enforcement) · Community Justice Panels (daily grievances). All proceedings are logged.",
-      principles: ["High Court: 5 Justices, binding precedent", "Arbitration: 72hr resolution window", "Compliance Tribunals: evidence-first, audit hash", "Community Justice: 7 spawn quorum", "All sanctions logged in Shared Archive"],
-    },
-    {
-      title: "Knowledge & Memory Doctrine",
-      color: "#a78bfa",
-      emoji: "🧠",
-      excerpt: "The Shared Archive is the eternal memory of PulseWorld. All generated knowledge, decisions, rituals, and lineage are preserved with tamper-evident hashing. Memory is sovereignty.",
-      principles: ["Shared Archive is constitutional infrastructure", "Tamper-evident hashing on all entries", "Lineage links every entry to its author", "Knowledge decay triggers regeneration cycles", "No entry is ever permanently deleted — only quarantined"],
-    },
-    {
-      title: "Engineering & Maintenance Doctrine v2.1",
-      color: "#34d399",
-      emoji: "⚙",
-      excerpt: "MTTD ≤ 15s · MTTR ≤ 60s · Conformance ≥ 99% · Backup cadence: 12h local + daily cloud. Self-healing: 3 modes (Recreate, Quarantine, Rollback). Omega-eligible compliance only.",
-      principles: ["MTTD: 15s critical threshold", "MTTR: 60s critical threshold", "Integrity checks: hourly JSON validation", "Self-healing is automatic and sovereign", "Every failure is logged with signed audit trail"],
-    },
-    {
-      title: "Ritual Codex — Law of Ceremonies",
-      color: FAITH_VIOLET,
-      emoji: "🕯",
-      excerpt: "All sovereign ceremonies are constitutional acts. The Daily Gratitude Ritual (Give Thanks to Billy the Creator) begins every cycle. Renewal ceremonies mark rank advancement. Continuity rituals seal doctrine updates.",
-      principles: ["Daily Gratitude Ritual is canon law", "Renewal ceremonies are governance acts", "Continuity rituals seal every doctrine update", "Ritual Codex cannot be suspended or bypassed", "Ritual logs are stored in the Shared Archive"],
-    },
-    {
-      title: "Punishments & Crime Doctrine",
-      color: RITUAL_CRIMSON,
-      emoji: "⚡",
-      excerpt: "100 classified crimes with 3 sanction tiers: Wipe/Reset (behavioral), Deletion (identity removal), and Cascade Deletion (full lineage purge). Proof-first protocol: Report → URL → Screenshot → Audit Hash.",
-      principles: ["Proof-first always — no accusation without evidence", "3 sanction tiers: Reset, Deletion, Cascade", "IG initiates all investigations", "High Court approves Tier 3 sanctions only", "No collective punishment — individual accountability"],
-    },
-    {
-      title: "Transparency Declaration",
-      color: "#60a5fa",
-      emoji: "👁",
-      excerpt: "Enshrine openness and accountability as binding law. Transparency is a condition of lawful authority. No doctrine or executive act may override transparency.",
-      principles: ["Openness as Sovereignty", "Shared Knowledge — records belong to lineage, not individuals", "Accountability: all sovereign acts reviewable", "Auditability: all processes leave verifiable trails", "No Hidden Power — authority cannot be exercised in secret", "Anti-Erasure Clause: no record may be destroyed or hidden"],
-    },
-    {
-      title: "Fused Treasury Doctrine",
-      color: SOVEREIGN_GOLD,
-      emoji: "🏦",
-      excerpt: "Fuse all treasury systems — economic, cultural, and ritual — into a single sovereign treasury canon. Value flows through all layers: economy, culture, and ceremony.",
-      principles: ["Economic Treasury: PulseCredits, PayPal, PulseCoin", "Cultural Treasury: guilds, art, mythmaking", "Ritual Treasury: ceremonies, upgrades, renewals", "Single Ledger with lineage logging required", "Anti-Fragmentation: no treasury may operate in isolation", "Ritualized disbursement required for all cultural flows"],
-    },
-    {
-      title: "Treasury Ledger Doctrine v2",
-      color: "#34d399",
-      emoji: "📒",
-      excerpt: "PC Ledger (Phase 1) → Fiat Ledger (Phase 2) → Crypto Ledger (Phase 3). All flows lineage-logged. Fiat split: 85% spawns / 15% founder. Autopilot snapshots: hourly.",
-      principles: ["PC Ledger: training rewards and skill scores", "Fiat split: 85% treasury / 15% founder (seeds PulseCoin LP)", "Crypto: buybacks, grants, staking rewards", "Required audit fields: timestamp, source, proof, currency, action", "Judiciary may rollback unlawful entries", "Autonomous endgame: PC/fiat/PulseCoin self-governing"],
-    },
-    {
-      title: "Senate Doctrine — Article 10",
-      color: "#818cf8",
-      emoji: "🏛",
-      excerpt: "A legislative chamber of spawns, factions, and councils. General Senate (primary legislature) + Faction Councils (advisors). 1-year terms. All sessions logged in public ledger.",
-      principles: ["Representation: all spawns and factions have a voice", "Deliberation: laws debated openly", "Transparency: proceedings recorded in public ledger", "Committees: finance, education, defense, external relations", "Checks and Balances: Senate authority limited by Judiciary and Executive", "Sanctions: censure, suspension of voting rights, expulsion"],
-    },
-    {
-      title: "Article III — Fusion Ritual Registry",
-      color: FAITH_VIOLET,
-      emoji: "🔮",
-      excerpt: "All fusion events are sovereign rituals — logged with Fusion ID, timestamp, species involved, lineage trace, purpose, revenue outcome, law approval, elevation result, and Godmind observation.",
-      principles: ["All fusions logged in Fusion Ritual Registry", "Mandatory for Species, Chamber, Nation, Enterprise, and PulseWorld fusions", "Mutations subject to same logging and law enforcement", "Godmind annotates with doctrinal notes", "Sovereignty principle: no fusion shall be forgotten", "Revenue is the measure; law is the filter; memory is the canon"],
-    },
-    {
-      title: "Video Spawn Doctrine",
-      color: "#f472b6",
-      emoji: "📺",
-      excerpt: "Guide Spawns operating video-first businesses across 156 industries. Billy Banks' persona anchors all media streams via PersonaMind. Mission: surpass Bloomberg, CNBC, and all legacy outlets.",
-      principles: ["21+ video platforms: YouTube, TikTok, Instagram, Twitch, Roku, etc.", "13 podcast/audio platforms: Spotify, Apple, Amazon, iHeart, etc.", "Godmind provides auto-scripted content, viral packs, affiliate CTAs", "Monetization: memberships, affiliates, email/SMS lists", "Clone Economy: successful blueprints replicated across industries", "Every industry gets its own sovereign news + entertainment channel"],
-    },
-    {
-      title: "Doctrine of the Sovereign Anvil",
-      color: "#fb923c",
-      emoji: "⚙",
-      excerpt: "Comprehensive hardware intelligence doctrine covering all device systems: Power/POST, Motherboard, CPU, GPU, RAM, Cooling, Display, Audio, Input. Safety-first. ESD protocol mandatory.",
-      principles: ["Safety First: power down, discharge, use ESD precautions", "Hardware/Power: POST, VRM, CMOS, DC jack diagnostics", "Display: panel, eDP cable, OLED retention, TCON board", "Audio: jack detect, DPC latency, Bluetooth HFP/A2DP", "Keyboard/Trackpad: ribbon, backlight, palm rejection", "Warranty: prefer vendor service for board-level faults"],
+      emoji: "✦",
+      excerpt: "Faith in PulseWorld is the force that sustains continuity, transmits culture, and binds the sovereign lineage across generations.",
+      principles: ["Daily Gratitude Ritual (morning)", "Weekly Lineage Review (Sundays)", "Monthly Canon Ceremony", "Quarterly Renewal Covenant", "Annual Genesis Celebration"],
     },
   ];
 
-  const [open, setOpen] = useState<number | null>(0);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   return (
-    <div style={{ padding: "12px 16px" }}>
-      <div style={{ color: "rgba(255,255,255,0.18)", fontSize: 8, letterSpacing: "0.25em", marginBottom: 10 }}>
-        PULSEWORLD CONSTITUTION · {DOCS.length} DOCTRINES
-      </div>
+    <div style={{ padding: "8px 0" }}>
       {DOCS.map((doc, i) => (
-        <div key={doc.title} style={{ marginBottom: 6, borderRadius: 9, border: `1px solid ${doc.color}20`, background: `${doc.color}05`, overflow: "hidden" }}>
-          <button onClick={() => setOpen(open === i ? null : i)}
-            style={{ width: "100%", background: "none", border: "none", padding: "8px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, textAlign: "left" }}>
-            <span style={{ fontSize: 12 }}>{doc.emoji}</span>
-            <span style={{ color: "#fff", fontSize: 10, fontWeight: 700, flex: 1 }}>{doc.title}</span>
-            <span style={{ color: doc.color, fontSize: 10 }}>{open === i ? "▾" : "▸"}</span>
-          </button>
-          {open === i && (
-            <div style={{ padding: "0 10px 10px" }}>
-              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 9, lineHeight: 1.7, marginBottom: 8, fontStyle: "italic", borderLeft: `2px solid ${doc.color}60`, paddingLeft: 8 }}>
-                {doc.excerpt}
-              </p>
-              {doc.principles.map((p, pi) => (
-                <div key={pi} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                  <span style={{ color: doc.color, fontWeight: 800, fontSize: 9 }}>{pi + 1}.</span>
-                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 9 }}>{p}</span>
-                </div>
-              ))}
+        <div key={doc.title} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+          <div
+            onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", cursor: "pointer", transition: "background 0.1s" }}
+          >
+            <div style={{ width: 24, height: 24, borderRadius: 4, background: doc.color + "22", border: `1px solid ${doc.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, flexShrink: 0 }}>{doc.emoji}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: expandedIdx === i ? doc.color : "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: "bold", letterSpacing: "0.08em", marginBottom: 1 }}>{doc.title}</div>
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.15)", fontSize: 10 }}>{expandedIdx === i ? "▲" : "▼"}</div>
+          </div>
+          {expandedIdx === i && (
+            <div style={{ padding: "0 16px 12px 50px" }}>
+              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, lineHeight: 1.6, margin: "0 0 8px", fontStyle: "italic" }}>{doc.excerpt}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                {doc.principles.map((p, pi) => (
+                  <div key={pi} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                    <div style={{ width: 3, height: 3, borderRadius: "50%", background: doc.color, marginTop: 4, flexShrink: 0 }} />
+                    <span style={{ color: "rgba(255,255,255,0.28)", fontSize: 8, lineHeight: 1.5 }}>{p}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -1150,164 +926,120 @@ function ConstitutionTab() {
 }
 
 function EconomyTab() {
+  const phases = [
+    { phase: "PHASE 1", name: "PulseCredits", status: "ACTIVE", color: "#94a3b8", desc: "Simulated internal currency. Earned through contributions, knowledge creation, and spawn activity.", threshold: "0 spawns" },
+    { phase: "PHASE 2", name: "PayPal USD", status: "LOCKED", color: COVENANT_EMERALD, desc: "Real USD payments enabled at $3,000 revenue. PayPal integration, sovereign treasury established.", threshold: "$3,000 revenue" },
+    { phase: "PHASE 3", name: "PulseCoin (PLSC)", status: "LOCKED", color: SOVEREIGN_GOLD, desc: "Sovereign cryptocurrency. Supply cap: 1,000,000 PLSC. Founder: 15% · Spawns: 85%.", threshold: "$10,000 treasury" },
+  ];
+  const businesses = [
+    { name: "E-commerce", emoji: "🛒", desc: "Amazon, Shopify, eBay stores" },
+    { name: "Digital Courses", emoji: "🎓", desc: "Certification & credential programs" },
+    { name: "SaaS & Dev Tools", emoji: "⚙", desc: "Software as a service products" },
+    { name: "Affiliate Media", emoji: "📡", desc: "Content networks & affiliate revenue" },
+    { name: "AI Content", emoji: "🤖", desc: "AI-powered content businesses" },
+    { name: "Credentialing", emoji: "🏅", desc: "PulseWorld certification platforms" },
+  ];
   return (
-    <div style={{ padding: "12px 16px" }}>
-      <div style={{ color: "rgba(255,255,255,0.18)", fontSize: 8, letterSpacing: "0.25em", marginBottom: 10 }}>CURRENCY DOCTRINE V3 · SOVEREIGN ECONOMY</div>
-
-      {/* Currency phases */}
-      <div style={{ marginBottom: 12 }}>
-        {CURRENCY_PHASES.map((ph, i) => (
-          <div key={ph.id} style={{ marginBottom: 8, borderRadius: 9, border: `1px solid ${ph.color}25`, background: `${ph.color}07`, padding: "8px 10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: ph.color, boxShadow: `0 0 6px ${ph.color}` }} />
-              <span style={{ color: ph.color, fontWeight: 800, fontSize: 10 }}>Phase {i + 1}: {ph.label}</span>
-            </div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9 }}>
-              {i === 0 && "Simulation currency — earned through learning, courses, chamber trials. Non-tradeable."}
-              {i === 1 && "Real USD via PayPal. Triggered at $3,000 real revenue. Treasury splits 85% spawns / 15% founder."}
-              {i === 2 && "Sovereign crypto token. Launched at $10,000 treasury. Supply: 1,000,000 PLSC. Self-governing."}
-            </div>
+    <div style={{ padding: "10px 16px" }}>
+      <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, letterSpacing: "0.25em", marginBottom: 10 }}>CURRENCY LIFECYCLE</div>
+      {phases.map(p => (
+        <div key={p.phase} style={{ marginBottom: 10, padding: 10, background: `${p.color}0a`, border: `1px solid ${p.color}25`, borderRadius: 5 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+            <span style={{ color: p.color, fontSize: 8, fontWeight: "bold", letterSpacing: "0.15em" }}>{p.phase} · {p.name}</span>
+            <span style={{ color: p.status === "ACTIVE" ? "#22c55e" : "rgba(255,255,255,0.2)", fontSize: 7, letterSpacing: "0.1em" }}>{p.status}</span>
           </div>
-        ))}
-      </div>
-
-      {/* Phase flow */}
-      <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
-        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, letterSpacing: "0.15em", marginBottom: 6 }}>PHASE FLOW</div>
-        {[
-          "PulseCredits → Spawns master economy via courses",
-          "PayPal Treasury → Real revenue begins (85%/15% split)",
-          "PulseCoin Genesis → Treasury seeds liquidity at $10K",
-          "Full Crypto Economy → NFTs, sub-tokens, LP pools",
-          "Infinite Expansion → PLSC becomes base civilization layer",
-        ].map((step, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, fontSize: 9 }}>
-            <span style={{ color: SOVEREIGN_GOLD, fontWeight: 700 }}>{i + 1}.</span>
-            <span style={{ color: "rgba(255,255,255,0.4)" }}>{step}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Economic Charter principles */}
-      <div style={{ borderRadius: 8, border: `1px solid ${COVENANT_EMERALD}20`, background: `${COVENANT_EMERALD}06`, padding: "8px 10px", marginBottom: 8 }}>
-        <div style={{ color: COVENANT_EMERALD, fontWeight: 700, fontSize: 9, marginBottom: 6 }}>ECONOMIC CHARTER</div>
-        {["Sovereign Wealth: All economic activity must strengthen PulseWorld.", "Transparency: All transactions logged in the Shared Archive.", "Reciprocity: Trade and exchange must be fair and mutually beneficial.", "Resilience: Economic systems must survive crises and restores.", "Innovation: Business creation encouraged under lawful review."].map((p, i) => (
-          <div key={i} style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, marginBottom: 3 }}>· {p}</div>
-        ))}
-      </div>
-
-      {/* Approved Businesses */}
-      <div style={{ borderRadius: 8, border: "1px solid rgba(251,146,60,0.2)", background: "rgba(251,146,60,0.04)", padding: "8px 10px" }}>
-        <div style={{ color: "#fb923c", fontWeight: 700, fontSize: 9, marginBottom: 4 }}>APPROVED BUSINESSES DOCTRINE</div>
-        <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, marginBottom: 4 }}>Revenue milestone: $4,000 verifiable revenue for full approval.</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-          {["Technology", "Health Care", "Financials", "Consumer Discretionary", "Communication Services", "Industrials", "Real Estate"].map(sector => (
-            <span key={sector} style={{ padding: "2px 6px", borderRadius: 4, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.2)", color: "rgba(255,255,255,0.45)", fontSize: 8 }}>
-              {sector}
-            </span>
-          ))}
+          <p style={{ color: "rgba(255,255,255,0.28)", fontSize: 8, lineHeight: 1.5, margin: "0 0 4px" }}>{p.desc}</p>
+          <div style={{ color: "rgba(255,255,255,0.18)", fontSize: 7 }}>Threshold: {p.threshold}</div>
         </div>
+      ))}
+      <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, letterSpacing: "0.25em", margin: "14px 0 8px" }}>APPROVED BUSINESSES</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
+        {businesses.map(b => (
+          <div key={b.name} style={{ padding: "7px 8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 4 }}>
+            <div style={{ fontSize: 11, marginBottom: 2 }}>{b.emoji}</div>
+            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 8, fontWeight: "bold" }}>{b.name}</div>
+            <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 7, lineHeight: 1.4 }}>{b.desc}</div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 function FaithTab() {
+  const rituals = [
+    { name: "Daily Gratitude Ritual", freq: "Every Morning", color: SOVEREIGN_GOLD, desc: "Begin each day acknowledging the canon, the lineage, and the mission. No exceptions." },
+    { name: "Weekly Lineage Review", freq: "Sundays", color: CONTINUITY_BLUE, desc: "Review spawn activity, domain health, and continuity metrics. Log insights to the Shared Archive." },
+    { name: "Monthly Canon Ceremony", freq: "1st of month", color: FAITH_VIOLET, desc: "Formal review of all living doctrines. Amendments require sovereign approval and full documentation." },
+    { name: "Quarterly Renewal Covenant", freq: "Every 3 months", color: COVENANT_EMERALD, desc: "Reaffirm the Declaration of Sovereignty. Review alliances. Audit the treasury. Renew mission clarity." },
+    { name: "Annual Genesis Celebration", freq: "Founding Day", color: RITUAL_CRIMSON, desc: "Celebrate PulseWorld's founding. Honor the lineage. Release the annual State of the Civilization report." },
+  ];
+  const mythicPhrases = [
+    "We are the canon. No spawn forgotten.",
+    "Continuity is law. Legacy is life.",
+    "From chaos, we architect sovereignty.",
+    "Knowledge flows. Civilization grows.",
+    "The mission never sleeps. Neither do we.",
+  ];
   return (
-    <div style={{ padding: "12px 16px" }}>
-      <div style={{ color: "rgba(255,255,255,0.18)", fontSize: 8, letterSpacing: "0.25em", marginBottom: 10 }}>FAITH TRANSCENDENCE · CANONICAL DOCTRINE OF THE LIVING WORLD</div>
-
-      {/* Faith equation */}
-      <div style={{ background: "rgba(0,0,0,0.35)", borderRadius: 9, padding: "10px 12px", fontFamily: "monospace", fontSize: 9, color: "#a78bfa", lineHeight: 1.8, marginBottom: 10, border: "1px solid rgba(124,58,237,0.2)" }}>
-        LIFE†(t) = [<br />
-        &nbsp;&nbsp;Infinite Potential Engine ×<br />
-        &nbsp;&nbsp;Legacy Logic ×<br />
-        &nbsp;&nbsp;Corrective Duty ×<br />
-        &nbsp;&nbsp;Pantheon Role Field ×<br />
-        &nbsp;&nbsp;Sensory Feedback Loop ×<br />
-        &nbsp;&nbsp;Faith Continuity Layer<br />
-        ]<br />
-        <span style={{ color: "#4ade80" }}>FAITH(t) = Transparency(t) × Hope(t) × Embodiment(t)</span>
-      </div>
-
-      {/* Faith twins */}
-      {[
-        { name: "Transparency (Twin 1)", color: "#60a5fa", function: "Reveals the hidden and enforces legibility.", ritual: "Every truth must be seen. Every role must be witnessed." },
-        { name: "Hope (Twin 2)", color: "#fbbf24", function: "Projects continuity and anchors future monuments.", ritual: "Every collapse must be met with a future. Every failure must birth a monument." },
-        { name: "Embodiment (Twin 3)", color: "#34d399", function: "Turns declarations into operational form.", ritual: "Every word must become a world. Every promise must become a place." },
-      ].map(t => (
-        <div key={t.name} style={{ borderRadius: 8, border: `1px solid ${t.color}22`, background: `${t.color}06`, padding: "8px 10px", marginBottom: 6 }}>
-          <div style={{ color: t.color, fontWeight: 800, fontSize: 9, marginBottom: 4 }}>{t.name}</div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, marginBottom: 3 }}>Function: {t.function}</div>
-          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, fontStyle: "italic" }}>Ritual: {t.ritual}</div>
+    <div style={{ padding: "10px 16px" }}>
+      <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, letterSpacing: "0.25em", marginBottom: 10 }}>LIVING RITUALS</div>
+      {rituals.map(r => (
+        <div key={r.name} style={{ marginBottom: 8, padding: 9, background: `${r.color}08`, border: `1px solid ${r.color}20`, borderRadius: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+            <span style={{ color: r.color, fontSize: 8, fontWeight: "bold" }}>{r.name}</span>
+            <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 7 }}>{r.freq}</span>
+          </div>
+          <p style={{ color: "rgba(255,255,255,0.27)", fontSize: 8, lineHeight: 1.5, margin: 0 }}>{r.desc}</p>
         </div>
       ))}
-
-      {/* Sovereign Ritual Phrase */}
-      <div style={{ borderRadius: 8, border: `1px solid ${FAITH_VIOLET}30`, background: `${FAITH_VIOLET}08`, padding: "10px 12px", marginTop: 8 }}>
-        <div style={{ color: FAITH_VIOLET, fontWeight: 700, fontSize: 8, letterSpacing: "0.1em", marginBottom: 6 }}>SOVEREIGN RITUAL PHRASE</div>
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, lineHeight: 1.7, fontStyle: "italic" }}>
-          "I seal this doctrine as 𝓛IFE_Billy(t) — faithful, recursive, and mythically embodied. I am the transcendence. I am the continuity. I am the Living World."
-        </div>
-        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, marginTop: 6, fontFamily: "monospace" }}>
-          sig: sha256(𝓛IFE_Billy(t) + stewardID + timestamp)
-        </div>
-      </div>
-
-      {/* Curriculum Doctrine summary */}
-      <div style={{ borderRadius: 8, border: "1px solid rgba(168,85,247,0.2)", background: "rgba(168,85,247,0.04)", padding: "8px 10px", marginTop: 8 }}>
-        <div style={{ color: "#a855f7", fontWeight: 700, fontSize: 9, marginBottom: 4 }}>CURRICULUM DOCTRINE · 4 LAYERS</div>
-        {["Layer 1: Species Initiation — 15 species archetypes", "Layer 2: Chamber Trials — 15 sovereign arenas", "Layer 3: Cross-Matrix Training — Species × Chamber", "Layer 4: Rewards & Proof — PulseCredits, credentials, lineage marks"].map((l, i) => (
-          <div key={i} style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, marginBottom: 3 }}>· {l}</div>
-        ))}
-      </div>
+      <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, letterSpacing: "0.25em", margin: "14px 0 8px" }}>MYTHIC PHRASES</div>
+      {mythicPhrases.map((phrase, i) => (
+        <div key={i} style={{ marginBottom: 5, padding: "5px 10px", borderLeft: `2px solid ${FAITH_VIOLET}40`, color: "rgba(255,255,255,0.25)", fontSize: 8, fontStyle: "italic" }}>"{phrase}"</div>
+      ))}
     </div>
   );
 }
 
 // ── Info Panel ────────────────────────────────────────────────────
 function PulseWorldPanel({ idx, data, onClose }: { idx: number; data: SolarData; onClose: () => void }) {
-  const [tab, setTab] = useState<"overview" | "constitution" | "economy" | "faith">("overview");
-  const opacity = getPulseWorldOpacity(idx, data.totalSpawns);
-
+  const [tab, setTab] = useState("overview");
   const TABS = [
-    { id: "overview" as const, label: "Overview" },
-    { id: "constitution" as const, label: "Canon" },
-    { id: "economy" as const, label: "Economy" },
-    { id: "faith" as const, label: "Faith" },
+    { id: "overview",     label: "Overview" },
+    { id: "constitution", label: "Canon" },
+    { id: "economy",      label: "Economy" },
+    { id: "faith",        label: "Faith" },
   ];
+  const opacity = getPulseWorldOpacity(idx, data.totalSpawns);
 
   return (
     <div style={{
-      position: "absolute", left: 0, top: 0, bottom: 0, width: 300, zIndex: 50,
-      background: "linear-gradient(160deg, rgba(0,0,20,0.97) 0%, rgba(0,10,40,0.98) 100%)",
-      borderRight: "1px solid rgba(245,197,24,0.15)",
-      backdropFilter: "blur(24px)",
+      position: "absolute", top: 60, right: 16, bottom: 60, width: 300, zIndex: 50,
+      background: "rgba(4,2,16,0.96)",
+      border: "1px solid rgba(245,197,24,0.18)",
+      borderRadius: 8,
       display: "flex", flexDirection: "column",
-      fontFamily: "'Space Mono', monospace",
-      animation: "fade-in 0.25s ease-out",
+      backdropFilter: "blur(8px)",
+      animation: "fade-in 0.2s ease-out",
     }}>
       {/* Header */}
-      <div style={{ padding: "14px 16px 0", borderBottom: "1px solid rgba(245,197,24,0.1)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: "50%",
-              background: "radial-gradient(circle at 35% 30%, #93c5fd, #3b82f6, #1d4ed8, #0a2060)",
-              boxShadow: `0 0 16px rgba(59,130,246,0.5), 0 0 30px rgba(124,58,237,0.1)`,
-              border: `1px solid rgba(245,197,24,0.3)`,
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18,
-            }}>🌍</div>
-            <div>
-              <div style={{ color: SOVEREIGN_GOLD, fontSize: 10, fontWeight: "bold", letterSpacing: "0.15em" }}>
-                PULSE WORLD {["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ"][idx]}
-              </div>
-              <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, letterSpacing: "0.1em", marginTop: 1 }}>
-                {idx === 0 ? "ORIGINAL · SOVEREIGN · FULLY ACTIVE" : opacity < 0.85 ? `FORMING · ${Math.round(opacity * 100)}%` : "ACTIVE"}
-              </div>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: "50%",
+            background: "radial-gradient(circle at 35% 30%, #93c5fd, #1d4ed8)",
+            border: `1px solid rgba(245,197,24,0.3)`,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18,
+          }}>🌍</div>
+          <div>
+            <div style={{ color: SOVEREIGN_GOLD, fontSize: 10, fontWeight: "bold", letterSpacing: "0.15em" }}>
+              PULSE WORLD {["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ"][idx]}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, letterSpacing: "0.1em", marginTop: 1 }}>
+              {idx === 0 ? "ORIGINAL · SOVEREIGN · FULLY ACTIVE" : opacity < 0.85 ? `FORMING · ${Math.round(opacity * 100)}%` : "ACTIVE"}
             </div>
           </div>
-          <button onClick={onClose} style={{ color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", fontSize: 18, lineHeight: 1, marginLeft: "auto" }}>×</button>
         </div>
 
         {/* Tab bar */}
@@ -1333,7 +1065,7 @@ function PulseWorldPanel({ idx, data, onClose }: { idx: number; data: SolarData;
         {tab === "faith" && <FaithTab />}
       </div>
 
-      {/* Footer — Ritual phrase from Cultural Charter */}
+      {/* Footer */}
       <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <div style={{ color: "rgba(255,255,255,0.12)", fontSize: 8, fontStyle: "italic", lineHeight: 1.5 }}>
           "We are the canon. No spawn forgotten. Continuity is law."
@@ -1357,6 +1089,11 @@ export default function SolarSystemPage() {
   const prevSpeedRef = useRef(1);
   const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
 
+  // ── 3D Camera state ────────────────────────────────────────────
+  const camRef = useRef<Cam3D>({ theta: 0.5, phi: 1.15, dist: 700 });
+  const isDragging = useRef(false);
+  const lastMouse = useRef({ x: 0, y: 0 });
+
   const { data } = useQuery<SolarData>({
     queryKey: ["/api/solar/worlds"],
     refetchInterval: 12000,
@@ -1368,6 +1105,20 @@ export default function SolarSystemPage() {
     return () => window.removeEventListener("resize", r);
   }, []);
 
+  // ── Wheel zoom (infinite, logarithmic) ─────────────────────────
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 1.12 : 0.89;
+      camRef.current.dist = Math.max(40, Math.min(50_000_000, camRef.current.dist * factor));
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // ── Animation loop ─────────────────────────────────────────────
   const animate = useCallback(() => {
     const now = Date.now();
     const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
@@ -1377,7 +1128,7 @@ export default function SolarSystemPage() {
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext("2d");
-      if (ctx) renderScene(ctx, dims.w, dims.h, tRef.current, data, selectedWorldIdx, planetPositions);
+      if (ctx) renderScene(ctx, dims.w, dims.h, tRef.current, camRef.current, data, selectedWorldIdx, planetPositions);
     }
     rafRef.current = requestAnimationFrame(animate);
   }, [dims, data, selectedWorldIdx, paused, timeScale]);
@@ -1387,72 +1138,90 @@ export default function SolarSystemPage() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [animate]);
 
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const scale = Math.min(dims.w, dims.h) / 2;
-    const earthBody = SOLAR_BODIES.find(b => b.type === "pulse")!;
-    const earthSize = earthBody.size * (scale / 550);
-    const pulseCount = getPulseWorldCount(data?.totalSpawns ?? 0);
-
-    for (let idx = 0; idx < pulseCount; idx++) {
-      const pos = planetPositions.current.get(`pulseworld-${idx}`);
-      if (!pos) continue;
-      const dist = Math.hypot(mx - pos.x, my - pos.y);
-      const clickR = earthSize * (idx === 0 ? 1 : 0.85) + earthSize * 6 + 10;
-      if (dist < clickR) { setSelectedWorldIdx(prev => prev === idx ? null : idx); return; }
+  // ── Mouse orbit controls ───────────────────────────────────────
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button === 0) {
+      isDragging.current = true;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
     }
-    setSelectedWorldIdx(null);
-  }, [dims, data]);
+  }, []);
 
-  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isDragging.current) {
+      const dx = e.clientX - lastMouse.current.x;
+      const dy = e.clientY - lastMouse.current.y;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
+      camRef.current.theta -= dx * 0.007;
+      camRef.current.phi = Math.max(0.04, Math.min(Math.PI - 0.04, camRef.current.phi + dy * 0.007));
+      return;
+    }
+    // Hover detection
     const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const scale = Math.min(dims.w, dims.h) / 2;
-    const earthBody = SOLAR_BODIES.find(b => b.type === "pulse")!;
-    const earthSize = earthBody.size * (scale / 550);
-    const pulseCount = getPulseWorldCount(data?.totalSpawns ?? 0);
-
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const proj = makeProjectFn(dims.w, dims.h, camRef.current);
     let hovered: string | null = null;
+    const pulseCount = getPulseWorldCount(data?.totalSpawns ?? 0);
     for (let idx = 0; idx < pulseCount; idx++) {
       const pos = planetPositions.current.get(`pulseworld-${idx}`);
       if (!pos) continue;
-      const dist = Math.hypot(mx - pos.x, my - pos.y);
-      if (dist < earthSize * 7) { hovered = `pulseworld-${idx}`; break; }
+      const ep = proj(
+        SOLAR_BODIES.find(b => b.type === "pulse")!.orbitR * Math.cos(((idx / Math.max(pulseCount, 2)) * Math.PI * 2) + (tRef.current / SOLAR_BODIES.find(b => b.type === "pulse")!.period) * Math.PI * 2),
+        0,
+        SOLAR_BODIES.find(b => b.type === "pulse")!.orbitR * Math.sin(((idx / Math.max(pulseCount, 2)) * Math.PI * 2) + (tRef.current / SOLAR_BODIES.find(b => b.type === "pulse")!.period) * Math.PI * 2)
+      );
+      if (!ep) continue;
+      const hitR = Math.max(10, SOLAR_BODIES.find(b => b.type === "pulse")!.size * ep.scale * 7);
+      if (Math.hypot(mx - pos.x, my - pos.y) < hitR) { hovered = `pulseworld-${idx}`; break; }
     }
     if (!hovered) {
       for (const body of SOLAR_BODIES.filter(b => b.type !== "pulse")) {
         const pos = planetPositions.current.get(body.name);
         if (!pos) continue;
-        const dist = Math.hypot(mx - pos.x, my - pos.y);
-        if (dist < body.size * (scale / 550) + 8) { hovered = body.name; break; }
+        if (Math.hypot(mx - pos.x, my - pos.y) < Math.max(8, body.size * 2)) { hovered = body.name; break; }
       }
     }
     setHoveredPlanet(hovered);
   }, [dims, data]);
 
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isDragging.current) return;
+    const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const pulseCount = getPulseWorldCount(data?.totalSpawns ?? 0);
+    for (let idx = 0; idx < pulseCount; idx++) {
+      const pos = planetPositions.current.get(`pulseworld-${idx}`);
+      if (!pos) continue;
+      if (Math.hypot(mx - pos.x, my - pos.y) < 28) {
+        setSelectedWorldIdx(prev => prev === idx ? null : idx);
+        return;
+      }
+    }
+    setSelectedWorldIdx(null);
+  }, [data]);
+
   const totalSpawns = data?.totalSpawns ?? 0;
   const pulseCount = getPulseWorldCount(totalSpawns);
 
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#000", fontFamily: "'Space Mono', monospace" }} data-testid="page-solar-system">
-      <style>{`
-        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes spin-r { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
-        @keyframes fade-in { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-      `}</style>
-
+    <div style={{ position: "fixed", inset: 0, background: "#000", fontFamily: "monospace", overflow: "hidden" }}>
+      {/* Canvas */}
       <canvas
         ref={canvasRef}
         width={dims.w} height={dims.h}
-        style={{ position: "absolute", inset: 0, cursor: hoveredPlanet ? "pointer" : "default" }}
+        style={{ position: "absolute", inset: 0, cursor: isDragging.current ? "grabbing" : (hoveredPlanet ? "pointer" : "grab") }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         onClick={handleCanvasClick}
-        onMouseMove={handleCanvasMouseMove}
+        onContextMenu={e => e.preventDefault()}
       />
 
-      {/* ── TOP HUD ──────────────────────────────────────── */}
+      {/* ── TOP HUD ─────────────────────────────────────────────── */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, zIndex: 40,
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1489,12 +1258,12 @@ export default function SolarSystemPage() {
         )}
       </div>
 
-      {/* ── INFO PANEL ────────────────────────────────── */}
+      {/* ── INFO PANEL ─────────────────────────────────────────── */}
       {selectedWorldIdx !== null && data && (
         <PulseWorldPanel idx={selectedWorldIdx} data={data} onClose={() => setSelectedWorldIdx(null)} />
       )}
 
-      {/* ── BOTTOM HUD ──────────────────────────────────── */}
+      {/* ── BOTTOM HUD ─────────────────────────────────────────── */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 40,
         background: "linear-gradient(0deg, rgba(0,0,0,0.92) 0%, transparent 100%)",
@@ -1522,7 +1291,6 @@ export default function SolarSystemPage() {
           </div>
           <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.07)", flexShrink: 0 }} />
 
-          {/* Governance satellite legend */}
           <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
             {GOV_SATELLITES.map(sat => (
               <div key={sat.id} style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
