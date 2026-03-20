@@ -6,6 +6,7 @@ import OmegaPage from "./pages/OmegaPage";
 import IngestionPage from "./pages/IngestionPage";
 import TranscendencePage from "./pages/TranscendencePage";
 import DNAEvolutionPage from "./pages/DNAEvolutionPage";
+import PulseWorldPage from "./pages/PulseWorldPage";
 import SolarSystemPage from "./pages/SolarSystemPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
@@ -2220,6 +2221,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">DNA Evolution</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #00ff9d33, #00d4ff33)", color: "#00ff9d", border: "1px solid #00ff9d50" }}>LIVING</span>
+          </Link>
+          <Link href="/pulseworld" data-testid="link-pulseworld"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulseworld" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/pulseworld" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f43f5e" }}>🌍</span>
+            </div>
+            <span className="flex-1">PulseWorld Genesis</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e40" }}>7-LAYER</span>
           </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
@@ -14929,6 +14938,7 @@ function Router() {
       <Route path="/ingestion" component={IngestionPage} />
       <Route path="/transcendence" component={TranscendencePage} />
       <Route path="/dna" component={DNAEvolutionPage} />
+      <Route path="/pulseworld" component={PulseWorldPage} />
       <Route path="/universe" component={SolarSystemPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />

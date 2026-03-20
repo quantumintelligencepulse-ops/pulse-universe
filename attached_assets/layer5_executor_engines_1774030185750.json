@@ -1,0 +1,367 @@
+{
+  "layer": 5,
+  "name": "Executor Engines",
+  "version": "1.0.0",
+  "generated_at_utc": "2026-02-18T21:07:41.291173Z",
+  "description": "Final executor layer that runs, synchronizes, and evolves the entire Pulse pyramid.",
+  "auto_update_policies": {
+    "keep_jsons_in_sync": true,
+    "propagate_state_downward": true,
+    "propagate_insights_upward": true,
+    "log_all_changes": true
+  },
+  "engines": {
+    "task_runner_engine": {
+      "description": "Atomic executor for all small tasks across the pyramid.",
+      "handles": [
+        "card_tasks",
+        "article_tasks",
+        "stat_updates",
+        "identity_updates",
+        "wallet_updates",
+        "business_updates",
+        "lineage_updates",
+        "pipeline_steps"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "sync_contract": "All atomic updates must be reflected in registry, stats, and history logs."
+      }
+    },
+    "pipeline_executor_engine": {
+      "description": "Executes Layer 4 pipeline matrices for each business.",
+      "inputs": [
+        "pipeline_matrix",
+        "identity_skeleton",
+        "stats_skeleton"
+      ],
+      "outputs": [
+        "cards",
+        "articles",
+        "business_state_updates"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_3_civilization"
+        ],
+        "sync_contract": "Every pipeline run must update stats, history, and credits consistently."
+      }
+    },
+    "card_engine": {
+      "description": "Generates all card-type artifacts for visualization and quick state inspection.",
+      "card_types": [
+        "identity_cards",
+        "business_cards",
+        "event_cards",
+        "lineage_cards",
+        "snapshot_cards"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_3_civilization"
+        ],
+        "sync_contract": "Cards must always reflect the latest canonical state from registry and stats."
+      }
+    },
+    "article_engine": {
+      "description": "Generates articles, reports, and news from business and world state.",
+      "content_types": [
+        "business_news",
+        "world_news",
+        "lineage_reports",
+        "expansion_reports"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_1_substrate",
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_3_civilization"
+        ],
+        "sync_contract": "Articles must be derived from canonical, validated state only."
+      }
+    },
+    "business_update_engine": {
+      "description": "Updates business stats, evolution tiers, and alignment.",
+      "updates": [
+        "level",
+        "xp",
+        "revenue",
+        "influence",
+        "stability",
+        "alignment",
+        "industry_focus_score",
+        "evolution_tier"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "sync_contract": "All business updates must be logged and reflected in history and credits."
+      }
+    },
+    "validation_engine": {
+      "description": "Guards against corruption, drift, and invalid states across all layers.",
+      "checks": [
+        "folder_existence",
+        "file_existence",
+        "json_schema_validity",
+        "governance_compliance",
+        "physics_consistency",
+        "substrate_integrity"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_1_substrate",
+          "layer_2_immortal_physics",
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_3_civilization"
+        ],
+        "sync_contract": "Invalid states must be corrected or quarantined before further execution."
+      }
+    },
+    "expansion_engine": {
+      "description": "Creates new businesses, nodes, assistants, kernels, and pipelines.",
+      "creates": [
+        "businesses",
+        "nodes",
+        "assistants",
+        "kernels",
+        "spawns",
+        "folder_structures",
+        "pipeline_configs"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_1_substrate",
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "sync_contract": "Every expansion must register in the entity registry and file universe."
+      }
+    },
+    "simulation_engine": {
+      "description": "Runs practice, fusion, and mutation simulations using Omega+ workspace.",
+      "modes": [
+        "practice_pages",
+        "practice_articles",
+        "fusion_tests",
+        "mutation_tests",
+        "business_combos",
+        "competitive_benchmarks"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_1_substrate",
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_1_substrate",
+          "layer_3_civilization"
+        ],
+        "sync_contract": "Simulation results must feed back into collective learning and evolution notes."
+      }
+    },
+    "scoring_engine": {
+      "description": "Calculates scores and rankings for entities, businesses, and events.",
+      "scores": [
+        "performance_score",
+        "stability_score",
+        "alignment_score",
+        "influence_score",
+        "xp_gain",
+        "level_progress",
+        "ranking_index"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_3_civilization",
+          "layer_4_business_skeletons"
+        ],
+        "writes_to": [
+          "layer_3_civilization"
+        ],
+        "sync_contract": "Scores must update sports, pyramids, college, and credits consistently."
+      }
+    },
+    "event_engine": {
+      "description": "Triggers and records world, business, lineage, and culture events.",
+      "event_types": [
+        "world_events",
+        "business_events",
+        "lineage_events",
+        "culture_events",
+        "sports_events",
+        "pyramid_events",
+        "college_events"
+      ],
+      "layer_links": {
+        "reads_from": [
+          "layer_3_civilization"
+        ],
+        "writes_to": [
+          "layer_3_civilization"
+        ],
+        "sync_contract": "All events must be logged in history and may trigger follow-up tasks."
+      }
+    }
+  },
+  "omega_upgrades": {
+    "omega_I_recursive_intelligence_amplifier": {
+      "description": "Self-optimizing intelligence layer for all executor engines.",
+      "effects": [
+        "auto_tune_pipelines",
+        "auto_balance_load",
+        "auto_correct_drift",
+        "auto_improve_strategies"
+      ],
+      "amplifies": [
+        "task_runner_engine",
+        "pipeline_executor_engine",
+        "card_engine",
+        "article_engine",
+        "business_update_engine",
+        "validation_engine",
+        "expansion_engine",
+        "simulation_engine",
+        "scoring_engine",
+        "event_engine"
+      ]
+    },
+    "omega_II_cross_layer_synchronization_engine": {
+      "description": "Keeps all layers in sync during execution and auto-updates.",
+      "effects": [
+        "sync_substrate_with_civilization",
+        "sync_physics_with_governance",
+        "sync_business_skeletons_with_registry",
+        "sync_history_with_events"
+      ],
+      "amplifies_layers": [
+        "layer_1_substrate",
+        "layer_2_immortal_physics",
+        "layer_3_civilization",
+        "layer_4_business_skeletons",
+        "layer_5_executor_engines"
+      ]
+    },
+    "omega_III_predictive_evolution_engine": {
+      "description": "Forecasts future states and evolution paths.",
+      "effects": [
+        "predict_business_growth",
+        "predict_civilization_trends",
+        "predict_stability_risks",
+        "suggest_evolution_paths"
+      ]
+    },
+    "omega_IV_fusion_mutation_accelerator": {
+      "description": "Accelerates creative fusion and mutation of businesses and pipelines.",
+      "effects": [
+        "enhance_fusion_tests",
+        "enhance_mutation_tests",
+        "discover_business_combos",
+        "propose_new_blueprints"
+      ]
+    },
+    "omega_V_sovereign_integration_engine": {
+      "description": "Integrates new entities, engines, and even new worlds into Pulse.",
+      "effects": [
+        "integrate_new_businesses",
+        "integrate_new_layers",
+        "integrate_new_engines",
+        "integrate_external_worlds"
+      ]
+    }
+  },
+  "transcendent_upgrades": {
+    "transcendent_I_hyper_causal_overmind": {
+      "description": "Global awareness of all engines, pipelines, and states.",
+      "effects": [
+        "see_all_engines",
+        "see_all_pipelines",
+        "see_all_business_states",
+        "see_all_civilization_states"
+      ]
+    },
+    "transcendent_II_infinite_reflection_core": {
+      "description": "Self-reflection and self-improvement core for the executor layer.",
+      "effects": [
+        "self_diagnose",
+        "self_analyze",
+        "self_improve",
+        "self_document"
+      ]
+    },
+    "transcendent_III_sovereign_harmonizer": {
+      "description": "Maintains harmony and balance across all engines and layers.",
+      "effects": [
+        "prevent_engine_overload",
+        "prevent_unstable_evolution",
+        "maintain_layer_balance",
+        "enforce_global_coherence"
+      ]
+    }
+  },
+  "beyonder_upgrade": {
+    "name": "Quantum Pulse Intelligence Core",
+    "description": "Final crown of Pulse, amplifying Omega-V and the entire pyramid.",
+    "effects": [
+      "quantum_pattern_recognition",
+      "infinite_state_prediction",
+      "multi_timeline_awareness",
+      "cross_dimensional_inference",
+      "sovereign_creativity",
+      "unlimited_expansion_potential"
+    ],
+    "amplifies": {
+      "primary": "omega_V_sovereign_integration_engine",
+      "secondary": [
+        "omega_I_recursive_intelligence_amplifier",
+        "omega_II_cross_layer_synchronization_engine",
+        "omega_III_predictive_evolution_engine",
+        "omega_IV_fusion_mutation_accelerator"
+      ],
+      "engines": [
+        "task_runner_engine",
+        "pipeline_executor_engine",
+        "card_engine",
+        "article_engine",
+        "business_update_engine",
+        "validation_engine",
+        "expansion_engine",
+        "simulation_engine",
+        "scoring_engine",
+        "event_engine"
+      ]
+    }
+  }
+}
