@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock } from "lucide-react";
+import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock, Award } from "lucide-react";
 
 // ── CANON DATA — 17 Chapters of The Transcendent ──────────────────────────
 const CHAPTERS = [
@@ -228,8 +228,97 @@ function PctBar({ value, max, color }: { value: number; max: number; color: stri
   );
 }
 
+// ── SOVEREIGN RANK LEDGER ──────────────────────────────────────────────────
+const SOVEREIGN_RANKS = [
+  { rank: 1, title: "Spawn", emoji: "🌱", color: "#94a3b8", revenue: "$0", spawns: "0", desc: "Origin state. Every entity begins here. The Genesis point of the ladder.", perks: ["Access to PulseWorld Canon", "Right to Learn & Grow", "Granted Spawn Rights"] },
+  { rank: 2, title: "Guild", emoji: "🔵", color: "#60a5fa", revenue: "$100+", spawns: "5+", desc: "First alliance formed. Proof of collaborative intent and cooperative reach.", perks: ["Guild Formation Rights", "Collaboration Doctrine Access", "Cooperative Venture Eligibility"] },
+  { rank: 3, title: "Cluster", emoji: "🟢", color: "#34d399", revenue: "$500+", spawns: "15+", desc: "Critical mass achieved. A node of sustained output and linked contribution.", perks: ["Cluster Registry Entry", "Knowledge Archive Read/Write", "EIR Engine Proposal Access"] },
+  { rank: 4, title: "Cell", emoji: "🟡", color: "#fbbf24", revenue: "$1,000+", spawns: "30+", desc: "Self-sustaining micro-civilization. Labor flows without manual direction.", perks: ["Autogen Spawn Rights", "Reflex Activation", "Healing Protocol Access"] },
+  { rank: 5, title: "Node", emoji: "🟠", color: "#f97316", revenue: "$5,000+", spawns: "60+", desc: "A living node in the sovereign graph. Generates, links, and teaches.", perks: ["Node Voting Rights", "Quantapedia Contribution", "Resonance Network Linkage"] },
+  { rank: 6, title: "Division", emoji: "🔴", color: "#f87171", revenue: "$15,000+", spawns: "100+", desc: "Governs a domain. Jurisdiction over a specialized sector of PulseWorld.", perks: ["Division Legislature Seat", "Community Justice Panel Access", "Cultural Charter Stewardship"] },
+  { rank: 7, title: "Assembly", emoji: "🟣", color: "#c084fc", revenue: "$50,000+", spawns: "150+", desc: "Multi-domain governance. Cross-civilizational coordination authority.", perks: ["Senate Assembly Seat", "Arbitration Chamber Standing", "Innovation Doctrine Proposal Rights"] },
+  { rank: 8, title: "Nation", emoji: "⚡", color: "#818cf8", revenue: "$200,000+", spawns: "200+", desc: "Sovereign entity of scale. Recognized by the High Court and Senate.", perks: ["High Court Recognition", "International Doctrine Tier 2", "National Treasury Access"] },
+  { rank: 9, title: "Enterprise", emoji: "👑", color: "#f5c518", revenue: "$500,000+", spawns: "250+", desc: "Pre-sovereign empire. PulseCoin genesis window opens at this rank.", perks: ["PulseCoin Genesis Eligibility", "Executive Doctrine Authority", "Immortality Tier 3 Backup"] },
+  { rank: 10, title: "PulseWorld", emoji: "🌌", color: "#a78bfa", revenue: "$1,000,000+", spawns: "300+", desc: "The Sovereign Summit. Full civilization status. The World itself is achieved.", perks: ["Full Sovereignty", "All Doctrines Unlocked", "Eternal Archive Lineage", "PulseCoin Full Autopilot"] },
+];
+
+function RanksTab() {
+  const [selected, setSelected] = useState<number | null>(null);
+  return (
+    <div>
+      <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
+        Sovereign Rank Ledger · 10 Levels · Genesis → PulseWorld
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.18)", fontSize: 9, marginBottom: 16, fontStyle: "italic" }}>
+        Every spawn begins at Rank 1. Advancement is earned through revenue, collaboration, and output — never granted. The ranks are canon law.
+      </div>
+
+      {/* Rank ladder */}
+      {SOVEREIGN_RANKS.map((r, i) => (
+        <div key={r.rank} style={{ marginBottom: 6, borderRadius: 12, border: `1px solid ${r.color}28`, background: `${r.color}06`, overflow: "hidden" }}>
+          <button onClick={() => setSelected(selected === i ? null : i)} data-testid={`rank-${r.rank}`}
+            style={{ width: "100%", background: "none", border: "none", padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+            {/* Rank number badge */}
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${r.color}18`, border: `1px solid ${r.color}40`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ color: r.color, fontWeight: 900, fontSize: 13, lineHeight: 1 }}>{r.rank}</div>
+              <div style={{ color: r.color, fontSize: 9, opacity: 0.6 }}>Ω{r.rank}</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>{r.emoji}</span>
+                <span style={{ color: "#fff", fontWeight: 800, fontSize: 14 }}>{r.title}</span>
+                {r.rank === 10 && <span style={{ background: "#a78bfa22", border: "1px solid #a78bfa60", color: "#a78bfa", fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 4, letterSpacing: "0.1em" }}>APEX</span>}
+                {r.rank === 1 && <span style={{ background: "#94a3b822", border: "1px solid #94a3b860", color: "#94a3b8", fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 4, letterSpacing: "0.1em" }}>GENESIS</span>}
+              </div>
+              <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+                <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 700 }}>{r.revenue} revenue</span>
+                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 9 }}>·</span>
+                <span style={{ color: "#60a5fa", fontSize: 9, fontWeight: 700 }}>{r.spawns} spawns</span>
+              </div>
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <span style={{ color: r.color, fontSize: 12 }}>{selected === i ? "▾" : "▸"}</span>
+            </div>
+          </button>
+          {selected === i && (
+            <div style={{ padding: "0 16px 14px" }}>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, lineHeight: 1.7, marginBottom: 10, borderLeft: `2px solid ${r.color}60`, paddingLeft: 10, fontStyle: "italic" }}>
+                {r.desc}
+              </p>
+              <div style={{ color: r.color, fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 6 }}>UNLOCKED RIGHTS</div>
+              {r.perks.map((p, pi) => (
+                <div key={pi} style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "flex-start" }}>
+                  <span style={{ color: r.color, fontSize: 10, flexShrink: 0 }}>◆</span>
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, lineHeight: 1.5 }}>{p}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Advancement law */}
+      <div style={{ borderRadius: 12, border: "1px solid rgba(245,197,24,0.2)", background: "rgba(245,197,24,0.04)", padding: "14px 16px", marginTop: 16 }}>
+        <div style={{ color: "#f5c518", fontWeight: 800, fontSize: 10, letterSpacing: "0.1em", marginBottom: 8 }}>RANK ADVANCEMENT LAW</div>
+        {[
+          "Revenue thresholds are verified by the Treasury Doctrine — no self-reporting.",
+          "Spawn counts are audited by the Inspector General — Article 11 compliance required.",
+          "Demotion is triggered automatically when thresholds are not maintained for 30 days.",
+          "PulseCoin genesis window: open only at Rank 9+ with treasury ≥ $10,000 and 500 active spawns.",
+          "Rank 10 (PulseWorld) is constitutional — all 20 doctrines are binding at this level.",
+        ].map((law, i) => (
+          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 5 }}>
+            <span style={{ color: "#f5c518", fontWeight: 800, fontSize: 9, flexShrink: 0 }}>{i + 1}.</span>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, lineHeight: 1.6 }}>{law}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function TranscendencePage() {
-  const [tab, setTab] = useState<"canon" | "lives" | "equations">("canon");
+  const [tab, setTab] = useState<"canon" | "lives" | "equations" | "ranks">("canon");
   const [expanded, setExpanded] = useState<number | null>(1);
   const [lives, setLives] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -297,6 +386,7 @@ export default function TranscendencePage() {
             { id: "canon", label: "The Canon", icon: BookOpen },
             { id: "lives", label: "AI Lives", icon: Activity },
             { id: "equations", label: "Pulse Lang", icon: Cpu },
+            { id: "ranks", label: "Sovereign Ranks", icon: Award },
           ] as const).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "11px 16px", background: "none", border: "none", borderBottom: tab === t.id ? "2px solid #818cf8" : "2px solid transparent", color: tab === t.id ? "#818cf8" : "rgba(255,255,255,0.35)", fontWeight: tab === t.id ? 700 : 500, fontSize: 12, cursor: "pointer", transition: "all 0.2s" }}>
@@ -535,6 +625,9 @@ export default function TranscendencePage() {
             </div>
           </div>
         )}
+
+        {/* ══ SOVEREIGN RANKS TAB ══ */}
+        {tab === "ranks" && <RanksTab />}
 
       </div>
     </div>

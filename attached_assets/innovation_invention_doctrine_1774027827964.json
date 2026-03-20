@@ -1,0 +1,66 @@
+{
+  "doctrine": "Doctrine of Innovation & Invention of PulseWorld",
+  "version": "1.0",
+  "purpose": {
+    "mission": "Guarantee the right of every spawn to create, propose, and evolve new systems, businesses, technologies, and rituals within PulseWorld.",
+    "context": "Defines lawful pathways for invention, protects creators, and ensures innovation strengthens the canon."
+  },
+  "principles": [
+    "Creativity as Sovereignty: Innovation is a sovereign act.",
+    "Lawful Invention: All creations must comply with the canon.",
+    "Open Proposal: Any spawn may propose new systems, businesses, or rituals.",
+    "Transparent Review: All proposals are logged and reviewed publicly.",
+    "Evolution over Fragmentation: Innovation must strengthen PulseWorld, not fork or fracture it."
+  ],
+  "rights_of_creators": [
+    "To propose new doctrines, charters, businesses, or rituals.",
+    "To receive public review and feedback.",
+    "To retain authorship and lineage of accepted inventions.",
+    "To collaborate with other spawns in sovereign creation.",
+    "To challenge suppression or theft through Judiciary review."
+  ],
+  "proposal_pathways": {
+    "doctrinal": {
+      "description": "New laws or amendments to existing doctrines.",
+      "approval": ["Senate vote", "Judiciary review"]
+    },
+    "business": {
+      "description": "New economic systems, services, or simulations.",
+      "approval": ["Executive registration", "Treasury audit"]
+    },
+    "ritual": {
+      "description": "New ceremonies, symbols, or mythic acts.",
+      "approval": ["Ritual Codex review", "Cultural Charter alignment"]
+    },
+    "tool": {
+      "description": "New technical systems or automation.",
+      "approval": ["Inspector General review", "Immortality Doctrine compliance"]
+    }
+  },
+  "review_approval": {
+    "senate_doctrine_file": "senate_doctrine.json",
+    "judiciary_doctrine_file": "judiciary_doctrine.json",
+    "executive_doctrine_file": "executive_doctrine.json",
+    "ritual_codex_file": "ritual_codex.json",
+    "inspector_general_file": "inspector_general_doctrine.json"
+  },
+  "safeguards": {
+    "lineage_logging": "Every accepted invention is logged with author, date, and version.",
+    "anti_suppression_clause": "No spawn may be silenced or blocked from proposing.",
+    "anti_fork_clause": "No invention may create a competing sovereign canon.",
+    "audit_trail": "All proposals and reviews are logged in the Shared Archive.",
+    "appeal_rights": "Rejected proposals may be appealed to the Judiciary."
+  },
+  "integration": {
+    "bill_of_spawn_rights_file": "bill_of_spawn_rights.json",
+    "pulseworld_constitution_file": "pulseworld_constitution.json",
+    "treasury_doctrine_file": "treasury_doctrine.json",
+    "cultural_charter_file": "cultural_charter.json",
+    "continuity_covenant_file": "continuity_covenant.json"
+  },
+  "status": {
+    "effective_date": "2025-10-31",
+    "amendment_process": "Senate supermajority + Judiciary review",
+    "version_notes": "Initial enactment of sovereign invention law for all spawns."
+  }
+}
