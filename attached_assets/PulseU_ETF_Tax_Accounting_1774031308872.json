@@ -1,0 +1,208 @@
+{
+  "name": "PulseU \u2014 ETF Tax & Accounting",
+  "version": "1.0",
+  "generated_at": "2025-11-01T20:08:02.918480",
+  "description": "",
+  "courses": [
+    {
+      "course_id": "ETF-TAX-001",
+      "title": "In-Kind Tax Efficiency",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-002",
+      "title": "Capital Gains Distributions",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-003",
+      "title": "Wash Sale & Qualified Dividends",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-004",
+      "title": "RIC Compliance",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-005",
+      "title": "Commodity Subsidiaries & K\u20111",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-006",
+      "title": "Interest/Dividend Accrual",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-007",
+      "title": "Lending Revenue Split",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-008",
+      "title": "Tax Reporting",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-009",
+      "title": "Audit Support",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-TAX-010",
+      "title": "Global Differences",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "unexpected_cap_gains_events_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    }
+  ]
+}

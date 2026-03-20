@@ -1,0 +1,98 @@
+{
+  "name": "PulseU Pack \u2014 Legal & Compliance",
+  "version": "1.0",
+  "generated_at": "2025-11-01T16:47:08.666094",
+  "count": 5,
+  "courses": [
+    {
+      "course_id": "LEGAL_COMPLIANCE-001",
+      "title": "Contracts & Redlines",
+      "track": "legal_compliance",
+      "reward_pc": 20,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "LEGAL_COMPLIANCE-002",
+      "title": "IP & Licensing",
+      "track": "legal_compliance",
+      "reward_pc": 20,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "LEGAL_COMPLIANCE-003",
+      "title": "Privacy/GDPR/CCPA Basics",
+      "track": "legal_compliance",
+      "reward_pc": 20,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "LEGAL_COMPLIANCE-004",
+      "title": "Content Rights & Fair Use",
+      "track": "legal_compliance",
+      "reward_pc": 20,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "LEGAL_COMPLIANCE-005",
+      "title": "Incident/RCA Playbook",
+      "track": "legal_compliance",
+      "reward_pc": 20,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    }
+  ]
+}

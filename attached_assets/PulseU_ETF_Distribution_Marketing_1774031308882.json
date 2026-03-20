@@ -1,0 +1,208 @@
+{
+  "name": "PulseU \u2014 ETF Distribution & Marketing",
+  "version": "1.0",
+  "generated_at": "2025-11-01T20:08:02.917511",
+  "description": "",
+  "courses": [
+    {
+      "course_id": "ETF-DIST-001",
+      "title": "Platforms & Model Portfolios",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-002",
+      "title": "RIA/Advisor Outreach",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-003",
+      "title": "Performance Marketing Rules",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-004",
+      "title": "Flows & AUM Reporting",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-005",
+      "title": "PR & Launch Strategy",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-006",
+      "title": "Key Accounts",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-007",
+      "title": "Conference Playbook",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-008",
+      "title": "Sales Collateral",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-009",
+      "title": "Digital Analytics",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-DIST-010",
+      "title": "Compliance Review",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "advisor_meetings_per_week_min": 10
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    }
+  ]
+}

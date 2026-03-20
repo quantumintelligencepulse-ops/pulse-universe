@@ -1,0 +1,134 @@
+{
+  "name": "PulseU Pack \u2014 Product & UX",
+  "version": "1.0",
+  "generated_at": "2025-11-01T16:47:08.653457",
+  "count": 7,
+  "courses": [
+    {
+      "course_id": "PRODUCT_UX-001",
+      "title": "Product Discovery",
+      "track": "product_ux",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "PRODUCT_UX-002",
+      "title": "JTBD Interviews",
+      "track": "product_ux",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "PRODUCT_UX-003",
+      "title": "Rapid Prototyping",
+      "track": "product_ux",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "PRODUCT_UX-004",
+      "title": "UX Writing",
+      "track": "product_ux",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "PRODUCT_UX-005",
+      "title": "Design Systems 101",
+      "track": "product_ux",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "PRODUCT_UX-006",
+      "title": "Accessibility Practicum",
+      "track": "product_ux",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "PRODUCT_UX-007",
+      "title": "User Research Sprints",
+      "track": "product_ux",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    }
+  ]
+}

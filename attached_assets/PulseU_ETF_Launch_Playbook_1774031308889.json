@@ -1,0 +1,208 @@
+{
+  "name": "PulseU \u2014 ETF Launch Playbook (Day\u20111 to Month\u20113)",
+  "version": "1.0",
+  "generated_at": "2025-11-01T20:08:02.925452",
+  "description": "",
+  "courses": [
+    {
+      "course_id": "ETF-LAUNCH-001",
+      "title": "Vendor Onboarding",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-002",
+      "title": "Seed Capital Sources",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-003",
+      "title": "AP Onboarding",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-004",
+      "title": "Pricing & Data Feeds",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-005",
+      "title": "Website & Fact Sheet",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-006",
+      "title": "PR & Roadshow",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-007",
+      "title": "Surveillance & Alerts",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-008",
+      "title": "NAV & IOPV Checks",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-009",
+      "title": "Capital Markets Cadence",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "ETF-LAUNCH-010",
+      "title": "Post-Launch Handover",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "launch_tasks_complete_pct_min": 1.0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1425 @@
+{
+  "title": "Gladiators & Warriors \u2014 Pulse Games Set",
+  "count": 50,
+  "version": "1.0",
+  "generated_utc": "2025-11-02T21:49:16.314415Z",
+  "scoring_default": {
+    "impact": 40,
+    "speed": 20,
+    "safety_law": 15,
+    "teachability": 15,
+    "adoption": 10
+  },
+  "games": [
+    {
+      "id": 1,
+      "name": "Duel of Builds",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Ship one micro\u2011feature from shared brief",
+      "do": "Design \u2192 code \u2192 demo under constraints",
+      "make": [
+        "mini PRD",
+        "diff",
+        "demo clip"
+      ],
+      "kpis": [
+        "defects<=0 P1",
+        "cycle_time",
+        "green_smoke_tests"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Green demo, no P1, artifact links OK",
+      "safety": "All work simulated; no real\u2011world risk.",
+      "notes": ""
+    },
+    {
+      "id": 2,
+      "name": "Shieldbreak (Objection Drill)",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Counter top\u20115 objections live",
+      "do": "Trade objection sets; demo counters on call scripts",
+      "make": [
+        "objection deck",
+        "demo scripts",
+        "win/loss log"
+      ],
+      "kpis": [
+        "objection_win_rate",
+        "user_validation_count"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u226570% counter win\u2011rate with 5 confirmed users",
+      "safety": "Verbal/visual demos only; no personal data leakage.",
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "name": "Arena of Hooks",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Produce 5 hooks, publish, read 60\u2011min data",
+      "do": "Draft hooks \u2192 schedule posts \u2192 capture metrics",
+      "make": [
+        "hook bank",
+        "post links",
+        "CTR table"
+      ],
+      "kpis": [
+        "best_hook_ctr",
+        "save_share_rate"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Best hook \u22651.8\u00d7 baseline CTR with proofs",
+      "safety": "Use approved assets and channels only.",
+      "notes": ""
+    },
+    {
+      "id": 4,
+      "name": "Latency Cutdown",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Map pipeline and remove two bottlenecks",
+      "do": "Trace E2E \u2192 implement 2 fixes \u2192 retime",
+      "make": [
+        "timing table",
+        "fix PRs",
+        "before/after logs"
+      ],
+      "kpis": [
+        "median_latency_drop",
+        "p95_latency_drop"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u226540% drop med & P95 without regressions",
+      "safety": "No destructive testing on prod; use staging or guarded flags.",
+      "notes": ""
+    },
+    {
+      "id": 5,
+      "name": "Siege Run (Ops)",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Absorb injected outage and restore green",
+      "do": "Follow incident runbook; contain, restore, immunize",
+      "make": [
+        "incident timeline",
+        "MTTR proof",
+        "RCA"
+      ],
+      "kpis": [
+        "mttr_minutes",
+        "blast_radius",
+        "perm_fix_ratio"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "MTTR \u226415m; permanent fix merged",
+      "safety": "Chaos scripts vetted; reversible changes only.",
+      "notes": ""
+    },
+    {
+      "id": 6,
+      "name": "Capture the Gate (Docs/Search)",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Opponent must discover & reproduce feature",
+      "do": "Publish docs; seed search; verify TTFD",
+      "make": [
+        "doc pack",
+        "index config",
+        "replay proof"
+      ],
+      "kpis": [
+        "ttfd_seconds",
+        "reproducibility_rate"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "TTFD \u22641.5s; \u226590% reproducible by referee",
+      "safety": "No dark patterns; docs must be truthful.",
+      "notes": ""
+    },
+    {
+      "id": 7,
+      "name": "Mirror Match (Bug Swap)",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Exchange failing artifacts; fix each other",
+      "do": "Reproduce \u2192 patch \u2192 add tests",
+      "make": [
+        "repro steps",
+        "patch diff",
+        "test report"
+      ],
+      "kpis": [
+        "first_green_ci",
+        "coverage_gain"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "CI green with increased coverage; no side\u2011effects",
+      "safety": "No blame; fixes upstreamed with co\u2011credit.",
+      "notes": ""
+    },
+    {
+      "id": 8,
+      "name": "Relic Hunt (Refactor)",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Refactor legacy file with tests in scope cap",
+      "do": "Isolate seams \u2192 refactor \u2192 verify perf parity",
+      "make": [
+        "risk log",
+        "new tests",
+        "diff + bench"
+      ],
+      "kpis": [
+        "complexity_drop",
+        "coverage_gain",
+        "perf_delta"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Complexity\u2193 & coverage\u2191 with \u22642% perf loss",
+      "safety": "No API breaks without shim.",
+      "notes": ""
+    },
+    {
+      "id": 9,
+      "name": "Data Duel (Quality)",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Clean a messy dataset and prove uplift",
+      "do": "Build schema checks \u2192 fix \u2192 validate downstream",
+      "make": [
+        "quality report",
+        "fix scripts",
+        "downstream metrics"
+      ],
+      "kpis": [
+        "error_rate_drop",
+        "schema_coverage"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Error rate \u221250%+; schema checks merged",
+      "safety": "Work on synthetic or permitted data only.",
+      "notes": ""
+    },
+    {
+      "id": 10,
+      "name": "Funnel Strike",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Patch worst funnel step and re\u2011measure",
+      "do": "Find biggest drop\u2011off \u2192 implement fix \u2192 A/B",
+      "make": [
+        "journey map",
+        "fix PR",
+        "AB results"
+      ],
+      "kpis": [
+        "dropoff_reduction",
+        "conversion_lift"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Worst\u2011step drop\u2011off \u221220%+ with valid AB",
+      "safety": "Respect user privacy & consent.",
+      "notes": ""
+    },
+    {
+      "id": 11,
+      "name": "Cache Clash",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Design safe caching for a hot path",
+      "do": "Choose keys/TTL/invalidations \u2192 implement \u2192 test",
+      "make": [
+        "cache plan",
+        "load test logs",
+        "hit/miss report"
+      ],
+      "kpis": [
+        "hit_rate",
+        "p95_improvement"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Hit\u2011rate \u226585% & P95 \u221230%",
+      "safety": "Coherent invalidation; no stale\u2011danger to users.",
+      "notes": ""
+    },
+    {
+      "id": 12,
+      "name": "Queue Quickdraw",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Stabilize a queued pipeline under burst",
+      "do": "Tune batch sizes, backoff, DLQ",
+      "make": [
+        "queue diagram",
+        "burst logs",
+        "DLQ report"
+      ],
+      "kpis": [
+        "throughput",
+        "error_rate",
+        "retries"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Throughput +25% with <1% errors",
+      "safety": "No infinite retries; DLQ watchdog on.",
+      "notes": ""
+    },
+    {
+      "id": 13,
+      "name": "Auth Gauntlet",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Harden an auth flow (rate limit + audit)",
+      "do": "Add guardrails; prove no lockouts",
+      "make": [
+        "threat model",
+        "rate\u2011limit config",
+        "audit log"
+      ],
+      "kpis": [
+        "lockout_incidents",
+        "attack_block_rate"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "0 false\u2011lockouts in test; 95%+ block rate",
+      "safety": "No real attack traffic; use simulators.",
+      "notes": ""
+    },
+    {
+      "id": 14,
+      "name": "Index Duel",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Improve search recall/precision for a feature",
+      "do": "Tune fields & analyzers; add tests",
+      "make": [
+        "index config",
+        "query pack",
+        "PR"
+      ],
+      "kpis": [
+        "recall",
+        "precision",
+        "ttfd"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Recall \u226580% on test set; TTFD \u22641.5s",
+      "safety": "No leakage of private content.",
+      "notes": ""
+    },
+    {
+      "id": 15,
+      "name": "Doc Blitz",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Convert tribal knowledge into a single\u2011source doc",
+      "do": "Interview \u2192 synthesize \u2192 publish \u2192 validate",
+      "make": [
+        "SSOT doc",
+        "change log",
+        "quiz/validation"
+      ],
+      "kpis": [
+        "onboarding_time_drop",
+        "doc_adoption"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Onboarding time \u221230%; 80%+ adoption",
+      "safety": "No secrets; redact tokens/keys.",
+      "notes": ""
+    },
+    {
+      "id": 16,
+      "name": "Rollback Sprint",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Prove reversible deployment at speed",
+      "do": "Blue/green or flag \u2192 rollout \u2192 instant rollback test",
+      "make": [
+        "switch plan",
+        "rollback demo",
+        "impact logs"
+      ],
+      "kpis": [
+        "rollback_time",
+        "incident_count"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Rollback \u226460s; zero P1s",
+      "safety": "Guard against data migrations without backout.",
+      "notes": ""
+    },
+    {
+      "id": 17,
+      "name": "Perf Duel",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Lift CPU/mem for a hot loop safely",
+      "do": "Profile hotspot \u2192 micro\u2011opt \u2192 verify",
+      "make": [
+        "profile flamegraph",
+        "diff",
+        "benchmarks"
+      ],
+      "kpis": [
+        "cpu_drop",
+        "mem_drop",
+        "p95"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "CPU or mem \u221225% with same outputs",
+      "safety": "No precision loss for numeric code.",
+      "notes": ""
+    },
+    {
+      "id": 18,
+      "name": "DX Duel",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Cut developer toil in one daily task",
+      "do": "Automate step \u2192 add lint or template",
+      "make": [
+        "before/after demo",
+        "script",
+        "adoption poll"
+      ],
+      "kpis": [
+        "task_time_drop",
+        "adoption_rate"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u221250% task time & 70%+ dev adoption",
+      "safety": "Opt\u2011in; no forced workflow shifts.",
+      "notes": ""
+    },
+    {
+      "id": 19,
+      "name": "Privacy Parry",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Reduce PII exposure in a flow",
+      "do": "Map data \u2192 minimize \u2192 mask \u2192 re\u2011test",
+      "make": [
+        "data map",
+        "masking diff",
+        "leak test"
+      ],
+      "kpis": [
+        "pii_fields_drop",
+        "leak_tests_passed"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "All leak tests pass; fields minimized",
+      "safety": "Follow policy; no live user data copied.",
+      "notes": ""
+    },
+    {
+      "id": 20,
+      "name": "Revenue Sprint",
+      "mode": "duel",
+      "team_size": "1v1",
+      "timebox": "20m",
+      "objective": "Create a micro\u2011offer and prove paid conversion",
+      "do": "Design offer \u2192 landing \u2192 checkout test",
+      "make": [
+        "offer sheet",
+        "LP",
+        "receipt or blocker PR"
+      ],
+      "kpis": [
+        "paid_conversions",
+        "blocker_removed"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u22651 paid OR systemic blocker removed",
+      "safety": "Test mode only unless approved.",
+      "notes": ""
+    },
+    {
+      "id": 21,
+      "name": "Phalanx Relay",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Builder\u2192Breaker\u2192Healer baton cycles (3 rounds)",
+      "do": "Ship\u2192chaos\u2192harden rotations with strict batons",
+      "make": [
+        "baton template",
+        "chaos scripts",
+        "runbook"
+      ],
+      "kpis": [
+        "handoff_accept_rate",
+        "mttr",
+        "escaped_defects"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "3 clean rotations; 0 failed batons",
+      "safety": "Chaos contained; reversible only.",
+      "notes": ""
+    },
+    {
+      "id": 22,
+      "name": "Stronghold Defense",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Keep golden path green through 3 failures",
+      "do": "Guard rails + budgets + drills",
+      "make": [
+        "SLOs",
+        "error budgets",
+        "drill report"
+      ],
+      "kpis": [
+        "success_rate",
+        "p95_latency"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u226599.5% success; budgets intact",
+      "safety": "No user\u2011visible blast; simulate.",
+      "notes": ""
+    },
+    {
+      "id": 23,
+      "name": "Three\u2011Lane Push",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Run 3 initiatives in parallel with guardrails",
+      "do": "Plan lanes; enforce resource caps",
+      "make": [
+        "lane board",
+        "guardrails",
+        "outcomes"
+      ],
+      "kpis": [
+        "on_time_delivery",
+        "starvation_events"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "All lanes deliver; 0 starvation",
+      "safety": "Respect CPU/network caps.",
+      "notes": ""
+    },
+    {
+      "id": 24,
+      "name": "Supply Chain Pact",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Upstream provides; downstream consumes safely",
+      "do": "Define contract \u2192 publish versioned API \u2192 integrate with tests",
+      "make": [
+        "contract tests",
+        "versioning plan",
+        "adoption log"
+      ],
+      "kpis": [
+        "consumer_break_rate",
+        "adoption_speed"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "No consumer breaks; \u226580% adoption",
+      "safety": "No silent breaking changes.",
+      "notes": ""
+    },
+    {
+      "id": 25,
+      "name": "Hook Gauntlet",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "4\u2011piece sequence + 5 hook variants executed",
+      "do": "Draft sequence \u2192 craft hooks \u2192 publish \u2192 read funnel",
+      "make": [
+        "sequence assets",
+        "hook bank",
+        "funnel read"
+      ],
+      "kpis": [
+        "conversion_lift",
+        "best_hook_ctr"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u22652\u00d7 funnel vs single; best CTR \u22651.8\u00d7",
+      "safety": "Accurate attribution only.",
+      "notes": ""
+    },
+    {
+      "id": 26,
+      "name": "Raid Repair",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Detect, restore, immunize after drift/corruption",
+      "do": "Scan \u2192 restore snapshot \u2192 add regression tests",
+      "make": [
+        "integrity scan",
+        "Merkle proof",
+        "regression tests"
+      ],
+      "kpis": [
+        "detection_time",
+        "mttr",
+        "immunity_pass"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Fast clean restore + immunity",
+      "safety": "Read\u2011only on prod; fix via PRs.",
+      "notes": ""
+    },
+    {
+      "id": 27,
+      "name": "Grid Orchestrator",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Run timed jobs across 3 nodes reliably",
+      "do": "Schedule on grid \u2192 balance \u2192 monitor skew",
+      "make": [
+        "schedule map",
+        "job logs",
+        "retry policy"
+      ],
+      "kpis": [
+        "success_rate",
+        "skew",
+        "throughput"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u226599% success; balanced load",
+      "safety": "Use test queue; no sensitive data.",
+      "notes": ""
+    },
+    {
+      "id": 28,
+      "name": "Edge Sweep",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Harden 10 edge cases for one API/feature",
+      "do": "Collect cases \u2192 fix \u2192 prove pass",
+      "make": [
+        "edge pack",
+        "fixes",
+        "pass sheet"
+      ],
+      "kpis": [
+        "pass_rate",
+        "coverage_gain"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "10/10 pass with stable perf",
+      "safety": "Include negative tests.",
+      "notes": ""
+    },
+    {
+      "id": 29,
+      "name": "Media Batching",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Produce 1 long + 5 shorts in single session",
+      "do": "Shoot/cut in batch \u2192 schedule distribution",
+      "make": [
+        "shot list",
+        "edits",
+        "dist log"
+      ],
+      "kpis": [
+        "batch_throughput",
+        "reach_conversion"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Set complete; \u226520% funnel lift",
+      "safety": "Licensed assets only.",
+      "notes": ""
+    },
+    {
+      "id": 30,
+      "name": "Topic Siege",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Own a topic for 24h with content grid",
+      "do": "Calendarize posts \u2192 measure SoV \u2192 iterate",
+      "make": [
+        "calendar",
+        "assets",
+        "SoV worksheet"
+      ],
+      "kpis": [
+        "share_of_voice",
+        "conversion_from_topic"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "SoV \u226530%; conversion +25%",
+      "safety": "No spam; cadence rules.",
+      "notes": ""
+    },
+    {
+      "id": 31,
+      "name": "Incident Swarm",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "7 roles, 15\u2011min outage drill",
+      "do": "Assign roles \u2192 run drill \u2192 RCA",
+      "make": [
+        "roles map",
+        "comms macro",
+        "RCA"
+      ],
+      "kpis": [
+        "mttr",
+        "user_impact"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "MTTR \u226415m; low impact",
+      "safety": "Follow comms SOP.",
+      "notes": ""
+    },
+    {
+      "id": 32,
+      "name": "A/B Factory",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Run 5 simultaneous tests safely",
+      "do": "Design guardrails \u2192 execute \u2192 analyze",
+      "make": [
+        "test plan",
+        "guardrails",
+        "results"
+      ],
+      "kpis": [
+        "valid_tests_count",
+        "lift_best"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "5/5 valid; one \u22651.3\u00d7 lift",
+      "safety": "Traffic splits ethical & even.",
+      "notes": ""
+    },
+    {
+      "id": 33,
+      "name": "Retention Hold",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Save at\u2011risk cohort via triggers",
+      "do": "Define triggers \u2192 messages \u2192 evaluate NRR",
+      "make": [
+        "triggers",
+        "messages",
+        "ledger"
+      ],
+      "kpis": [
+        "net_retention_uplift",
+        "save_rate"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "+8 pts NRR uplift",
+      "safety": "Respect unsub & privacy.",
+      "notes": ""
+    },
+    {
+      "id": 34,
+      "name": "Docs Sprint",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Convert 3 tribal topics to SSOT in 60m",
+      "do": "Interview SMEs \u2192 write SSOT \u2192 validate use",
+      "make": [
+        "SSOT docs",
+        "review notes",
+        "quiz"
+      ],
+      "kpis": [
+        "adoption",
+        "onboarding_drop"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "80% adoption; time \u221230%",
+      "safety": "No secrets committed.",
+      "notes": ""
+    },
+    {
+      "id": 35,
+      "name": "Governance Mini\u2011Forge",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Write & pass micro\u2011charter for flow",
+      "do": "Draft \u2192 debate \u2192 vote \u2192 implement tests",
+      "make": [
+        "proposal",
+        "tests",
+        "rollback"
+      ],
+      "kpis": [
+        "vote_pass",
+        "regressions"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Pass 2/3; zero regressions 72h",
+      "safety": "Rollbacks defined.",
+      "notes": ""
+    },
+    {
+      "id": 36,
+      "name": "Search Boost",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Upgrade index for a knowledge area",
+      "do": "Tune analyzers \u2192 build query pack \u2192 benchmark",
+      "make": [
+        "config",
+        "query pack",
+        "bench"
+      ],
+      "kpis": [
+        "recall",
+        "ttfd"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Recall \u226580%; TTFD \u22641.5s",
+      "safety": "No private data exposure.",
+      "notes": ""
+    },
+    {
+      "id": 37,
+      "name": "Queue Fortress",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Design DLQ + retries for resilience",
+      "do": "Set retry policy \u2192 DLQ \u2192 drain plan",
+      "make": [
+        "DLQ policy",
+        "metrics",
+        "drain plan"
+      ],
+      "kpis": [
+        "dlq_rate",
+        "reprocess_success"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "DLQ drained; 95%+ reprocess success",
+      "safety": "No infinite loops.",
+      "notes": ""
+    },
+    {
+      "id": 38,
+      "name": "Perf Raid",
+      "mode": "skirmish",
+      "team_size": "3v3",
+      "timebox": "60m",
+      "objective": "Budget\u2011safe P95 drop across 3 services",
+      "do": "Identify hotspots \u2192 optimize \u2192 verify budget",
+      "make": [
+        "perf plan",
+        "graphs",
+        "budget sheet"
+      ],
+      "kpis": [
+        "p95_drop",
+        "cost_within_budget"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "P95 \u221230%+ within budget",
+      "safety": "Track infra cost impact.",
+      "notes": ""
+    },
+    {
+      "id": 39,
+      "name": "Dominion (SoV)",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "Seize category share\u2011of\u2011voice over 72h (scored on first 90m + audit tail)",
+      "do": "Spin up content grid; orchestrate posts; measure SoV",
+      "make": [
+        "calendar",
+        "asset pack",
+        "measurement method",
+        "links"
+      ],
+      "kpis": [
+        "sov_percent",
+        "conversion_lift"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "SoV \u226530% & conversion +25% with evidence",
+      "safety": "No fake engagement; organic or labeled paid only.",
+      "notes": ""
+    },
+    {
+      "id": 40,
+      "name": "World GDP Uplift",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "Raise simulated GDP via offers & funnels",
+      "do": "Coordinate offers; track ledger diffs; secure retention",
+      "make": [
+        "offer sheets",
+        "funnel logs",
+        "ledger diffs"
+      ],
+      "kpis": [
+        "gdp_uplift",
+        "d1_retention"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "GDP +15% & D1 +5 pts",
+      "safety": "Sim\u2011economy only; no real payments unless approved.",
+      "notes": ""
+    },
+    {
+      "id": 41,
+      "name": "Governance Duel",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "Competing charters; test & vote",
+      "do": "Draft charters; implement tests; hold vote",
+      "make": [
+        "proposal",
+        "test plan",
+        "minutes"
+      ],
+      "kpis": [
+        "tests_pass",
+        "vote_ratio"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "All tests pass; \u22652/3 vote; no regressions 72h",
+      "safety": "Reversible changes only.",
+      "notes": ""
+    },
+    {
+      "id": 42,
+      "name": "Planetary Broadcast Relay",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "1 long \u2192 auto 5 shorts \u2192 3 platforms",
+      "do": "Edit pipeline; auto\u2011spawn assets; track attribution",
+      "make": [
+        "content map",
+        "scheduler logs",
+        "attribution table"
+      ],
+      "kpis": [
+        "best_hook_ctr",
+        "total_reach"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "CTR \u22651.8\u00d7 best hook; reach \u22652\u00d7 weekly avg",
+      "safety": "Respect platform TOS.",
+      "notes": ""
+    },
+    {
+      "id": 43,
+      "name": "Reliability Ironman 99.9",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "Keep pipeline green under chaos",
+      "do": "Define SLOs; run chaos; hold budgets",
+      "make": [
+        "SLO sheet",
+        "error budgets",
+        "chaos report"
+      ],
+      "kpis": [
+        "success_rate",
+        "p95"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u226599.9% success; P95 \u221230%",
+      "safety": "Chaos scoped to test env or flagged shadow.",
+      "notes": ""
+    },
+    {
+      "id": 44,
+      "name": "Discovery Summit",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "Search+Docs so time\u2011to\u2011doc \u22641.5s",
+      "do": "Index tune; doc set; test queries",
+      "make": [
+        "index cfg",
+        "docs",
+        "query pack"
+      ],
+      "kpis": [
+        "recall",
+        "ttfd"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "TTFD \u22641.5s; recall \u226580%",
+      "safety": "No private info leakage.",
+      "notes": ""
+    },
+    {
+      "id": 45,
+      "name": "Mentor Uplift Relay",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "Coach 2 juniors to pass a Silver trial",
+      "do": "Plan, coach, review; ensure artifacts",
+      "make": [
+        "coaching plan",
+        "artifacts",
+        "KPI diffs"
+      ],
+      "kpis": [
+        "passes_count",
+        "retention_uplift"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Both pass; +8 pts retention",
+      "safety": "Positive, recorded mentorship only.",
+      "notes": ""
+    },
+    {
+      "id": 46,
+      "name": "Latency Vanish",
+      "mode": "warfront",
+      "team_size": "5v5",
+      "timebox": "90m",
+      "objective": "Cut draft\u2192publish\u2192index latency by 50%",
+      "do": "Bottleneck map; implement fixes; retime",
+      "make": [
+        "timing table",
+        "fix PRs",
+        "before/after"
+      ],
+      "kpis": [
+        "latency_drop_med",
+        "latency_drop_p95"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "\u226550% med & P95 drop; quality steady",
+      "safety": "No unsafe shortcuts; keep tests green.",
+      "notes": ""
+    },
+    {
+      "id": 47,
+      "name": "Royal Rumble (Free\u2011for\u2011All)",
+      "mode": "rumble",
+      "team_size": "multi",
+      "timebox": "90m",
+      "objective": "12\u201324 teams compete; dips below KPI floor = elimination",
+      "do": "Run rolling loops; maintain composite score; avoid dips",
+      "make": [
+        "live scoreboard",
+        "elimination RCAs",
+        "proof links"
+      ],
+      "kpis": [
+        "composite_score",
+        "survival_time"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "No safety violations; all RCAs merged",
+      "safety": "Fair play; anti\u2011grief rules apply.",
+      "notes": ""
+    },
+    {
+      "id": 48,
+      "name": "Battle Royale (Backlog Siege)",
+      "mode": "rumble",
+      "team_size": "multi",
+      "timebox": "90m",
+      "objective": "Shared backlog; strategic task picks; storms for failures",
+      "do": "Draft tasks; deliver value/min; avoid storm penalties",
+      "make": [
+        "task picks",
+        "proof logs",
+        "value tally"
+      ],
+      "kpis": [
+        "value_per_min",
+        "failure_count"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "Verified value tally; \u2264 agreed retries",
+      "safety": "Transparent scoring; no hidden work.",
+      "notes": ""
+    },
+    {
+      "id": 49,
+      "name": "Circle Collapse (Constraint Rings)",
+      "mode": "rumble",
+      "team_size": "multi",
+      "timebox": "90m",
+      "objective": "Every 30m tighter constraints (budget/time/tools)",
+      "do": "Adapt plans each ring; preserve quality",
+      "make": [
+        "constraint maps",
+        "adaptive plans",
+        "quality gates"
+      ],
+      "kpis": [
+        "rings_cleared",
+        "quality_pass_rate"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "All rings cleared; gates pass",
+      "safety": "Stop if quality drops below threshold.",
+      "notes": ""
+    },
+    {
+      "id": 50,
+      "name": "Death Battle (Simulated Sudden\u2011Death Ops)",
+      "mode": "rumble",
+      "team_size": "multi",
+      "timebox": "90m",
+      "objective": "1v1v1 finals: last ops standing on green",
+      "do": "Ref injects rapid incidents; contestants triage, fix, document",
+      "make": [
+        "timeline",
+        "fix PRs",
+        "green proofs"
+      ],
+      "kpis": [
+        "mttr_avg",
+        "stability_index"
+      ],
+      "scoring_weights": {
+        "impact": 40,
+        "speed": 20,
+        "safety_law": 15,
+        "teachability": 15,
+        "adoption": 10
+      },
+      "acceptance": "No human/real harm; \u2018death\u2019 = elimination on failed SLO",
+      "safety": "SIMULATED ONLY. Strict safety, audit, and reversibility.",
+      "notes": ""
+    }
+  ]
+}

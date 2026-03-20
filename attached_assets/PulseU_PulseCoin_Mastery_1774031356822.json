@@ -1,0 +1,207 @@
+{
+  "name": "PulseU \u2014 PulseCoin Mastery",
+  "version": "1.0",
+  "generated_at": "2025-11-01T19:59:20.244735",
+  "courses": [
+    {
+      "course_id": "PLSC-001",
+      "title": "Utility & Sinks 101",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-002",
+      "title": "Emissions Epochs & Controller",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-003",
+      "title": "Internal AMM (PLSC\u2194SC)",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-004",
+      "title": "Buyback-and-Burn Bot (hourly)",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-005",
+      "title": "Co-op Escrow in PLSC",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-006",
+      "title": "Priority/Boost Fees in PLSC",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-007",
+      "title": "Treasury Buyback Playbook",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-008",
+      "title": "Oracle Signals (R, activity)",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-009",
+      "title": "Stress Tests",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    },
+    {
+      "course_id": "PLSC-010",
+      "title": "Compliance-by-Design",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "csv_or_pdf",
+        "commit_hash_or_config"
+      ]
+    }
+  ]
+}

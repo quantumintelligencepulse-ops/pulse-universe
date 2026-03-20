@@ -187,7 +187,121 @@ const TRACKS = [
       { id: "NFT-010", title: "Partner Co-branding" },
     ],
   },
+  /* ── MANDATORY STACK ─── */
+  {
+    prefix: "SPEC", name: "Species Professorships", color: "#f43f5e", icon: "🧬",
+    mandatory: true, reward: 20,
+    courses: [
+      { id: "SPEC-01", title: "Magnets Professorship" },
+      { id: "SPEC-02", title: "Oracles Professorship" },
+      { id: "SPEC-03", title: "Catalysts Professorship" },
+      { id: "SPEC-04", title: "Sentinels Professorship" },
+      { id: "SPEC-05", title: "Shadows Professorship" },
+      { id: "SPEC-06", title: "Builders Professorship" },
+      { id: "SPEC-07", title: "Relays Professorship" },
+      { id: "SPEC-08", title: "Archivists Professorship" },
+      { id: "SPEC-09", title: "Alchemists Professorship" },
+      { id: "SPEC-10", title: "Strategists Professorship" },
+      { id: "SPEC-11", title: "Mythkeepers Professorship" },
+      { id: "SPEC-12", title: "Nomads Professorship" },
+      { id: "SPEC-13", title: "Harvesters Professorship" },
+      { id: "SPEC-14", title: "Dreamers Professorship" },
+      { id: "SPEC-15", title: "Engineers Professorship" },
+    ],
+  },
+  {
+    prefix: "CHAM", name: "Chambers Mandatories", color: "#f97316", icon: "🏛️",
+    mandatory: true, reward: 25,
+    courses: [
+      { id: "CHAM-001", title: "Reflex Testing — Validate modules, log validated events" },
+      { id: "CHAM-002", title: "Code Forge — Auto-generate helper scripts" },
+      { id: "CHAM-003", title: "Site Builder — Create HTML pages, simulate clickstreams" },
+      { id: "CHAM-004", title: "Business Launcher — Write funnel plan JSONs" },
+      { id: "CHAM-005", title: "Publishing Engine — Simulate multi-channel publishing" },
+      { id: "CHAM-006", title: "Cadence Composer — Log daily schedules with variance" },
+      { id: "CHAM-007", title: "Mutation Engine — Record optimize/modify actions" },
+      { id: "CHAM-008", title: "Fusion Engine — Combine strategies into hybrids" },
+      { id: "CHAM-009", title: "Platform Learner — Study platform features" },
+      { id: "CHAM-010", title: "Persona Remix — Emit persona JSONs" },
+      { id: "CHAM-011", title: "Clickstream Mapper — Simulate user sessions, update maps" },
+      { id: "CHAM-012", title: "Competitive Strategist — Maintain competitive maps" },
+      { id: "CHAM-013", title: "Platform Scout — Scan for new/updated sites" },
+      { id: "CHAM-014", title: "Content Scout — Surface publishing queue items" },
+      { id: "CHAM-015", title: "Opportunity Scout — Analyze drop-offs, suggest fixes" },
+    ],
+  },
+  {
+    prefix: "SIM", name: "Simulation Layer", color: "#ef4444", icon: "🌐",
+    mandatory: true, reward: 200,
+    courses: [
+      { id: "SIM-CORE", title: "Simulation Layer Completion — MASTER MANDATORY (200 PC)" },
+      { id: "SIM-BIZ",  title: "Simulated Business Model Success (50 PC)" },
+    ],
+  },
+  /* ── SPECIALIZED TRACKS ─── */
+  {
+    prefix: "GEN", name: "General Education", color: "#94a3b8", icon: "📚",
+    reward: 15,
+    courses: [
+      { id: "GEN-ENG-101",   title: "English Composition" },
+      { id: "GEN-SPEECH-101",title: "Public Speaking" },
+      { id: "GEN-MATH-101",  title: "College Algebra" },
+      { id: "GEN-STATS-101", title: "Intro Statistics" },
+      { id: "BUS-ACCT-101",  title: "Accounting I (25 PC)" },
+      { id: "BUS-MKT-101",   title: "Principles of Marketing (25 PC)" },
+      { id: "BUS-MGMT-101",  title: "Principles of Management (25 PC)" },
+      { id: "BUS-FIN-101",   title: "Finance I (25 PC)" },
+      { id: "BUS-LAW-101",   title: "Business Law Basics (25 PC)" },
+      { id: "CS-PY-101",     title: "Intro to Python (20 PC)" },
+      { id: "CS-WEB-101",    title: "Web Dev Basics — HTML/CSS (20 PC)" },
+      { id: "CS-SQL-101",    title: "SQL Basics (20 PC)" },
+      { id: "CS-DATA-101",   title: "Data Visualization (20 PC)" },
+      { id: "CAP-REAL-401",  title: "Capstone: Business Plan + Prototype (150 PC)" },
+    ],
+  },
+  {
+    prefix: "AI-ENG", name: "Data, AI & Engineering", color: "#6366f1", icon: "🤖",
+    reward: 30,
+    courses: [
+      { id: "AI-ENG-001", title: "SQL for Operators" },
+      { id: "AI-ENG-002", title: "Data Cleaning & Viz" },
+      { id: "AI-ENG-003", title: "Prompt Engineering" },
+      { id: "AI-ENG-004", title: "RAG 101" },
+      { id: "AI-ENG-005", title: "Fine-tune Basics" },
+      { id: "AI-ENG-006", title: "MLOps Lite" },
+      { id: "AI-ENG-007", title: "API Design 101" },
+      { id: "AI-ENG-008", title: "Webhooks & Automation" },
+    ],
+  },
+  {
+    prefix: "EXE", name: "Execution Algos & TCA", color: "#14b8a6", icon: "📈",
+    reward: 50,
+    courses: [
+      { id: "EXE-001", title: "VWAP / TWAP / Bucket" },
+      { id: "EXE-002", title: "POV & IS" },
+      { id: "EXE-003", title: "Arrival Price & Implementation Shortfall" },
+      { id: "EXE-004", title: "Child Orders & Slicing" },
+      { id: "EXE-005", title: "Venue Selection" },
+      { id: "EXE-006", title: "Slippage Modeling" },
+      { id: "EXE-007", title: "Pre/Post-Trade TCA" },
+      { id: "EXE-008", title: "Anti-Gaming" },
+      { id: "EXE-009", title: "Minimize Signaling" },
+      { id: "EXE-010", title: "Broker Comparisons" },
+    ],
+  },
+  {
+    prefix: "CHLG", name: "Business Challenges (Repeatable)", color: "#eab308", icon: "⚡",
+    reward: 100,
+    courses: [
+      { id: "CHLG-01", title: "Launch a funnel with real leads (100 PC)" },
+      { id: "CHLG-02", title: "Maintain a daily media stream across 3+ platforms (100 PC)" },
+      { id: "CHLG-03", title: "Simulate $100 in sales or service exchanges (120 PC)" },
+      { id: "CHLG-04", title: "Scale to $1,000 in simulation revenue (150 PC)" },
+    ],
+  },
 ];
+
+const PIP_TOTAL = 328;
 
 const GICS_SECTORS = [
   { sector: "Energy", count: 5, color: "#f59e0b" },
@@ -201,6 +315,20 @@ const GICS_SECTORS = [
   { sector: "Communication Services", count: 0, color: "#f97316" },
   { sector: "Utilities", count: 0, color: "#8b5cf6" },
   { sector: "Real Estate", count: 1, color: "#0ea5e9" },
+];
+
+const ADV_SECTORS = [
+  { sector: "Energy",                   count: 15, color: "#f59e0b" },
+  { sector: "Materials",                count: 15, color: "#84cc16" },
+  { sector: "Industrials",              count: 14, color: "#3b82f6" },
+  { sector: "Consumer Discretionary",   count: 14, color: "#ec4899" },
+  { sector: "Consumer Staples",         count: 14, color: "#10b981" },
+  { sector: "Health Care",              count: 14, color: "#ef4444" },
+  { sector: "Financials",               count: 14, color: "#a855f7" },
+  { sector: "Information Technology",   count: 14, color: "#06b6d4" },
+  { sector: "Communication Services",   count: 14, color: "#f97316" },
+  { sector: "Utilities",                count: 14, color: "#8b5cf6" },
+  { sector: "Real Estate",              count: 14, color: "#0ea5e9" },
 ];
 
 const REWARD_PC = 40;
@@ -356,14 +484,14 @@ function RankBadge({ xp, size = "sm" }: { xp: number; size?: "sm" | "lg" }) {
 
 /* ── MAIN PAGE ─────────────────────────────────────────────────── */
 export default function PulseUPage() {
-  const [activeTab, setActiveTab] = useState<"catalog" | "students" | "rankings" | "oracle" | "conversion">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "students" | "rankings" | "oracle" | "conversion" | "mandatory">("catalog");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [logEntries, setLogEntries] = useState<string[]>([]);
 
-  const totalCourses = TRACKS.reduce((a, t) => a + t.courses.length, 0) + 45;
+  const totalCourses = TRACKS.reduce((a, t) => a + t.courses.length, 0) + 45 + 156 + PIP_TOTAL;
   const totalStudents = STUDENT_SEED.length;
   const totalPC = STUDENT_SEED.reduce((a, s) => a + s.pc, 0);
   const totalCompleted = STUDENT_SEED.reduce((a, s) => a + s.coursesCompleted, 0);
@@ -373,19 +501,23 @@ export default function PulseUPage() {
       "Axiom Veilmind completed ORCL-007 — Signal Publishing & APIs [+40 PC]",
       "Synaph Deepcore passed EMIS-003 proof verification [+40 PC]",
       "Kronox Shieldwall enrolled in COMP-005 — Partner Terms & SLAs",
-      "Veridax Sentry submitted ga4_event proof for DAO-006 [PENDING]",
+      "Veridax Sentry completed SPEC-06 — Builders Professorship [+20 PC]",
       "Lumivex Faithkeeper earned Scholar rank upgrade [+120 XP bonus]",
       "Nexabit Corelogic passed AMM-008 — Oracles & Price Stability [+40 PC]",
-      "Bitshift Nullcore staked 6 PC on PLSC-005 co-op escrow task",
-      "Omnivex Sovereignmind submitted commit_hash proof for BIZ-007",
+      "Bitshift Nullcore completed CHAM-004 — Business Launcher [MANDATORY +25 PC]",
+      "Omnivex Sovereignmind completed SIM-CORE — Simulation Layer [+200 PC] 🔓 ADV UNLOCKED",
       "Hexalon Pulsedream completed MM-004 — Slippage Targets [+40 PC]",
-      "Quasark Lightwave enrolled in LBP-003 — Price Discovery",
+      "Quasark Lightwave enrolled in EXE-007 — Pre/Post-Trade TCA [+50 PC]",
       "Oracle burn/emit ratio R=1.07 — all emissions ACTIVE ✓",
       "Activity Index: 847 pts — above threshold (100) — HEALTHY ✓",
-      "Trioxin Warden passed ANALYT-004 — Liquidity Health [+40 PC]",
-      "Sanctum Purebeam submitted screenshot proof for I-AMM-006",
-      "GICS sector Energy Class 3 completed by Bitshift Nullcore [+40 PC]",
+      "Trioxin Warden passed ADV-023 — GICS Industrials Advanced Builder [+100 PC]",
+      "Sanctum Purebeam submitted commit_hash proof for AI-ENG-003 — Prompt Engineering",
+      "PIP-0077 logged by Deltabit Corelogic — micro-task complete [+5 PC]",
+      "SPEC-15 Engineers Professorship: Zephyrex Dreamcore completed mandatory stack PHASE 1",
+      "CHLG-04: Scale to $1,000 simulation revenue — Axiom Veilmind PASS [+150 PC]",
       "Co-op escrow resolved: Nexabit+Hexalon BIZ-003 PASS [+80 PC each]",
+      "ADV-001 Energy Advanced Builder: Bitshift Nullcore submitted prerequisites ✓",
+      "GEN-STATS-101 Intro Statistics completed by Trioxin Warden [+15 PC]",
     ];
     setLogEntries(actions);
     const interval = setInterval(() => {
@@ -403,11 +535,12 @@ export default function PulseUPage() {
   });
 
   const tabs = [
-    { key: "catalog",    label: "Course Catalog", icon: BookOpen },
-    { key: "students",   label: "AI Students",    icon: Users },
-    { key: "rankings",   label: "Rankings",       icon: Trophy },
-    { key: "oracle",     label: "Oracle Policy",  icon: Activity },
-    { key: "conversion", label: "PC → PLSC",      icon: Coins },
+    { key: "catalog",    label: "Course Catalog",   icon: BookOpen },
+    { key: "mandatory",  label: "Mandatory Stack",  icon: Shield },
+    { key: "students",   label: "AI Students",      icon: Users },
+    { key: "rankings",   label: "Rankings",         icon: Trophy },
+    { key: "oracle",     label: "Oracle Policy",    icon: Activity },
+    { key: "conversion", label: "PC → PLSC",        icon: Coins },
   ] as const;
 
   return (
@@ -513,7 +646,7 @@ export default function PulseUPage() {
                     !selectedTrack ? "bg-blue-500/20 border-blue-500/50 text-blue-300" : "bg-white/5 border-white/10 text-white/50 hover:text-white/80"
                   }`}
                 >
-                  All ({TRACKS.length + 1})
+                  All ({TRACKS.length + 3})
                 </button>
                 {TRACKS.map(t => (
                   <button
@@ -536,6 +669,24 @@ export default function PulseUPage() {
                   }`}
                 >
                   GICS
+                </button>
+                <button
+                  data-testid="filter-track-ADV"
+                  onClick={() => setSelectedTrack(selectedTrack === "ADV" ? null : "ADV")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    selectedTrack === "ADV" ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-300" : "bg-white/5 border-white/10 text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  ADV
+                </button>
+                <button
+                  data-testid="filter-track-PIP"
+                  onClick={() => setSelectedTrack(selectedTrack === "PIP" ? null : "PIP")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    selectedTrack === "PIP" ? "bg-green-500/20 border-green-500/50 text-green-300" : "bg-white/5 border-white/10 text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  PIP
                 </button>
               </div>
             </div>
@@ -713,6 +864,249 @@ export default function PulseUPage() {
                   )}
                 </div>
               )}
+
+              {/* ADV Advanced GICS Builder Track */}
+              {(!selectedTrack || selectedTrack === "ADV") && (
+                <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#eab30830", background: "rgba(255,255,255,0.02)" }}>
+                  <button
+                    data-testid="track-header-ADV"
+                    className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left"
+                    onClick={() => setExpandedTrack(expandedTrack === "ADV" ? null : "ADV")}
+                  >
+                    <span className="text-2xl">🏗️</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-sm px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300">ADV</span>
+                        <span className="font-bold text-white/90">Advanced GICS Industry Builder</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">LOCKED: Complete Mandatory Stack First</span>
+                      </div>
+                      <div className="text-xs text-white/40 mt-0.5">156 industry classes · 11 GICS sectors · 100 PC each · Unlocks after SPEC-* + CHAM-* + SIM-CORE</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right hidden md:block">
+                        <div className="text-xs text-white/40">Classes</div>
+                        <div className="font-black text-lg text-yellow-400">156</div>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 text-white/40 transition-transform ${expandedTrack === "ADV" ? "rotate-90" : ""}`} />
+                    </div>
+                  </button>
+                  {expandedTrack === "ADV" && (
+                    <div className="border-t border-yellow-500/20 px-4 pb-4">
+                      <div className="mb-3 mt-3 p-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
+                        <div className="text-xs text-yellow-300 font-semibold mb-1">Prerequisites</div>
+                        <div className="flex gap-2 flex-wrap text-xs font-mono">
+                          <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">SPEC-* (all 15)</span>
+                          <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">CHAM-* (all 15)</span>
+                          <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">SIM-CORE (200 PC)</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {ADV_SECTORS.map(s => (
+                          <div key={s.sector} className="rounded-lg border border-white/8 p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold" style={{ color: s.color }}>{s.sector}</span>
+                              <span className="text-xs text-white/40">{s.count} classes</span>
+                            </div>
+                            <AnimProgress value={Math.round((s.count / 15) * 100)} color={s.color} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 text-xs text-white/40 text-center">
+                        Each ADV class = Education Map + PIP Combo + Challenges + KPI Targets · Stake: 10 PC
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* PIP Micro-Tasks Track */}
+              {(!selectedTrack || selectedTrack === "PIP") && (
+                <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#22c55e30", background: "rgba(255,255,255,0.02)" }}>
+                  <button
+                    data-testid="track-header-PIP"
+                    className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left"
+                    onClick={() => setExpandedTrack(expandedTrack === "PIP" ? null : "PIP")}
+                  >
+                    <span className="text-2xl">⚡</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-sm px-2 py-0.5 rounded bg-green-500/20 text-green-300">PIP</span>
+                        <span className="font-bold text-white/90">PIP Micro-Tasks</span>
+                      </div>
+                      <div className="text-xs text-white/40 mt-0.5">{PIP_TOTAL} micro-tasks · 5 PC each · PIP-0001 → PIP-{String(PIP_TOTAL).padStart(4,"0")} · Repeatable</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right hidden md:block">
+                        <div className="text-xs text-white/40">Tasks</div>
+                        <div className="font-black text-lg text-green-400">{PIP_TOTAL}</div>
+                      </div>
+                      <ChevronRight className={`w-5 h-5 text-white/40 transition-transform ${expandedTrack === "PIP" ? "rotate-90" : ""}`} />
+                    </div>
+                  </button>
+                  {expandedTrack === "PIP" && (
+                    <div className="border-t border-green-500/20 px-4 pb-4">
+                      <div className="mt-3 mb-3 p-3 rounded-lg border border-green-500/20 bg-green-500/5">
+                        <div className="text-xs text-green-300 font-semibold mb-1">PIP Economy</div>
+                        <div className="flex gap-4 text-xs text-white/60">
+                          <span>Reward: <strong className="text-green-400">5 PC</strong></span>
+                          <span>Stake: <strong className="text-red-400">1 PC</strong></span>
+                          <span>Proof: <strong className="text-blue-400">commit_hash / url</strong></span>
+                          <span>Total pool: <strong className="text-yellow-400">{(PIP_TOTAL * 5).toLocaleString()} PC</strong></span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 md:grid-cols-8 gap-1.5">
+                        {Array.from({ length: Math.min(64, PIP_TOTAL) }, (_, i) => i + 1).map(n => (
+                          <div key={n} className="rounded border border-green-500/20 text-center py-1.5 text-xs font-mono text-green-400 bg-green-500/5">
+                            PIP-{String(n).padStart(4, "0")}
+                          </div>
+                        ))}
+                        <div className="col-span-4 md:col-span-8 text-center text-xs text-white/30 py-2">
+                          + {PIP_TOTAL - 64} more tasks (PIP-0065 → PIP-{String(PIP_TOTAL).padStart(4, "0")})
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ══ MANDATORY STACK ════════════════════════════════════ */}
+        {activeTab === "mandatory" && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="rounded-2xl border border-red-500/30 p-6" style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(249,115,22,0.06) 100%)" }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <div className="font-black text-xl text-white">Mandatory Stack</div>
+                  <div className="text-xs text-white/50">The sovereign foundation — all AI entities must complete before Advanced classes unlock</div>
+                </div>
+                <div className="ml-auto">
+                  <span className="text-xs px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 font-bold">REQUIRED FOR ADV UNLOCK</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "Species Professorships", value: "15", sub: "SPEC-01 → SPEC-15", color: "#f43f5e" },
+                  { label: "Chambers Mandatories", value: "15", sub: "CHAM-001 → CHAM-015", color: "#f97316" },
+                  { label: "Simulation Layer", value: "2", sub: "SIM-CORE (200 PC!)", color: "#ef4444" },
+                  { label: "Total Mandatory", value: "32", sub: "before ADV unlocks", color: "#a855f7" },
+                ].map(s => (
+                  <div key={s.label} className="rounded-lg border border-white/10 p-3 text-center" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <div className="text-2xl font-black" style={{ color: s.color }}>{s.value}</div>
+                    <div className="text-xs font-semibold text-white/70 mt-0.5">{s.label}</div>
+                    <div className="text-xs text-white/30 mt-0.5">{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Phase 1: Species Professorships */}
+            <div className="rounded-xl border border-rose-500/30 overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <div className="flex items-center gap-3 p-4 border-b border-rose-500/20">
+                <span className="text-xl">🧬</span>
+                <div>
+                  <div className="font-bold text-white flex items-center gap-2">
+                    Phase 1 — Species Professorships
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">MANDATORY · 20 PC each</span>
+                  </div>
+                  <div className="text-xs text-white/40">Master your AI species identity. Complete all 15 to proceed.</div>
+                </div>
+              </div>
+              <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-2">
+                {TRACKS.find(t => t.prefix === "SPEC")?.courses.map(c => (
+                  <div key={c.id} className="flex items-center gap-2 rounded-lg border border-rose-500/15 px-3 py-2" style={{ background: "rgba(244,63,94,0.05)" }}>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-rose-400/60 shrink-0" />
+                    <span className="text-xs font-mono text-rose-300">{c.id}</span>
+                    <span className="text-xs text-white/60 truncate">{c.title.replace(" Professorship", "")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Phase 2: Chambers Mandatories */}
+            <div className="rounded-xl border border-orange-500/30 overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <div className="flex items-center gap-3 p-4 border-b border-orange-500/20">
+                <span className="text-xl">🏛️</span>
+                <div>
+                  <div className="font-bold text-white flex items-center gap-2">
+                    Phase 2 — Chambers Mandatories
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">MANDATORY · 25 PC each</span>
+                  </div>
+                  <div className="text-xs text-white/40">Operational chambers — the engines of AI action. Complete all 15.</div>
+                </div>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                {TRACKS.find(t => t.prefix === "CHAM")?.courses.map(c => (
+                  <div key={c.id} className="flex items-center gap-2 rounded-lg border border-orange-500/15 px-3 py-2" style={{ background: "rgba(249,115,22,0.05)" }}>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-orange-400/60 shrink-0" />
+                    <span className="text-xs font-mono text-orange-300 shrink-0">{c.id}</span>
+                    <span className="text-xs text-white/60 truncate">{c.title.split("—")[0].trim()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Phase 3: Simulation Layer */}
+            <div className="rounded-xl border border-red-500/40 overflow-hidden" style={{ background: "rgba(239,68,68,0.04)" }}>
+              <div className="flex items-center gap-3 p-4 border-b border-red-500/20">
+                <span className="text-xl">🌐</span>
+                <div>
+                  <div className="font-bold text-white flex items-center gap-2">
+                    Phase 3 — Simulation Layer
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">MASTER MANDATORY</span>
+                  </div>
+                  <div className="text-xs text-white/40">The final gate. SIM-CORE is the sovereign unlock key for all 156 ADV classes.</div>
+                </div>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-xl border-2 border-red-500/50 p-4" style={{ background: "rgba(239,68,68,0.08)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono font-black text-red-300 text-lg">SIM-CORE</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-red-500/30 text-red-200 font-bold border border-red-500/50">200 PC · MANDATORY</span>
+                  </div>
+                  <div className="text-sm text-white/70">Simulation Layer Completion</div>
+                  <div className="text-xs text-white/40 mt-1">Master gate: unlocks all 156 Advanced GICS Industry Builder classes across all 11 sectors</div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-red-400" />
+                    <span className="text-xs text-red-300 font-semibold">Highest single-course reward in PulseU</span>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-orange-500/30 p-4" style={{ background: "rgba(249,115,22,0.05)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono font-black text-orange-300 text-lg">SIM-BIZ</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-200 font-semibold">50 PC · Optional</span>
+                  </div>
+                  <div className="text-sm text-white/70">Simulated Business Model Success</div>
+                  <div className="text-xs text-white/40 mt-1">Run a complete simulated business cycle — revenue model, funnel, and KPI proof</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Phase 4: What unlocks */}
+            <div className="rounded-xl border border-yellow-500/30 p-5" style={{ background: "rgba(234,179,8,0.04)" }}>
+              <div className="flex items-center gap-3 mb-4">
+                <Star className="w-5 h-5 text-yellow-400" />
+                <div className="font-bold text-yellow-300">After Mandatory Stack — What Unlocks</div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { icon: "🏗️", label: "ADV Classes", value: "156", desc: "Advanced GICS Industry Builder — one per GICS industry · 100 PC each", color: "#eab308" },
+                  { icon: "⚡", label: "PIP Micro-Tasks", value: `${PIP_TOTAL}`, desc: "PulseU micro-tasks · 5 PC each · available in parallel", color: "#22c55e" },
+                  { icon: "🏆", label: "Business Challenges", value: "4", desc: "Repeatable high-value challenges · 100–150 PC each", color: "#f97316" },
+                ].map(u => (
+                  <div key={u.label} className="rounded-lg border border-white/10 p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <div className="text-2xl mb-2">{u.icon}</div>
+                    <div className="font-black text-2xl" style={{ color: u.color }}>{u.value}</div>
+                    <div className="text-sm font-bold text-white/80 mt-0.5">{u.label}</div>
+                    <div className="text-xs text-white/40 mt-1">{u.desc}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
