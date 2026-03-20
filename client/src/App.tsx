@@ -6767,7 +6767,318 @@ function SocialPageWrapper() {
 }
 
 // ─── GAMES PAGE ──────────────────────────────────────────────────────────────
-type GameMode = "hub" | "blackjack" | "memory" | "rps" | "snake" | "surge" | "scramble" | "trivia" | "creator";
+type GameMode = "hub" | "blackjack" | "memory" | "rps" | "snake" | "surge" | "scramble" | "trivia" | "creator" | "emulator" | "pixelart" | "retrotools";
+
+/* ===== EMULATOR ZONE ===== */
+const EJS_CONSOLES=[
+  {id:'nes',label:'NES',emoji:'🎮',core:'nes',ext:'.nes',color:'from-red-700 to-red-900',desc:'8-bit classics'},
+  {id:'snes',label:'SNES',emoji:'🕹️',core:'snes9x',ext:'.smc,.sfc',color:'from-purple-700 to-purple-900',desc:'16-bit golden era'},
+  {id:'gb',label:'Game Boy',emoji:'⬛',core:'gb',ext:'.gb',color:'from-slate-600 to-slate-800',desc:'Portable OG'},
+  {id:'gbc',label:'Game Boy Color',emoji:'🟢',core:'gbc',ext:'.gbc',color:'from-teal-700 to-teal-900',desc:'Color portable'},
+  {id:'gba',label:'Game Boy Advance',emoji:'💠',core:'gba',ext:'.gba',color:'from-indigo-700 to-indigo-900',desc:'32-bit portable'},
+  {id:'nds',label:'Nintendo DS',emoji:'📱',core:'nds',ext:'.nds',color:'from-sky-700 to-sky-900',desc:'Dual screen'},
+  {id:'n64',label:'Nintendo 64',emoji:'🔵',core:'n64',ext:'.z64,.n64,.v64',color:'from-blue-700 to-blue-900',desc:'3D revolution'},
+  {id:'psx',label:'PlayStation 1',emoji:'⬜',core:'psx',ext:'.bin,.cue,.iso',color:'from-gray-600 to-gray-900',desc:'PS1 classics'},
+  {id:'sega',label:'Sega Genesis',emoji:'🔴',core:'segaMD',ext:'.md,.gen,.bin',color:'from-rose-700 to-rose-900',desc:'Blast processing'},
+  {id:'atari',label:'Atari 2600',emoji:'🟤',core:'atari2600',ext:'.a26,.bin',color:'from-amber-700 to-amber-900',desc:'The original'},
+  {id:'mame',label:'Arcade (MAME)',emoji:'🕹',core:'mame',ext:'.zip',color:'from-orange-700 to-orange-900',desc:'Arcade classics'},
+  {id:'dos',label:'DOS / PC',emoji:'💻',core:'dosbox',ext:'.exe,.com,.bat',color:'from-lime-700 to-lime-900',desc:'PC retro'},
+];
+function EmulatorZone({onBack}:{onBack:()=>void}){
+  const [console_,setConsole_]=useState<typeof EJS_CONSOLES[0]|null>(null);
+  const [romUrl,setRomUrl]=useState<string|null>(null);
+  const [romName,setRomName]=useState('');
+  const [launched,setLaunched]=useState(false);
+  const [shader,setShader]=useState<'none'|'crt'|'gb'>('none');
+  const iframeRef=useRef<HTMLIFrameElement>(null);
+
+  const handleRomUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const f=e.target.files?.[0];if(!f)return;
+    const url=URL.createObjectURL(f);setRomUrl(url);setRomName(f.name);setLaunched(false);
+  };
+  const buildHtml=()=>{if(!console_||!romUrl)return '';
+    return`<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#000;overflow:hidden;}#game{width:100vw;height:100vh;}${shader==='crt'?`canvas{filter:contrast(1.1) brightness(0.95);image-rendering:pixelated;}body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px);pointer-events:none;z-index:9999;}`:''}${shader==='gb'?`canvas{filter:sepia(0.8) hue-rotate(60deg) saturate(0.7) brightness(0.9);}`:''}</style></head><body><div id="game"></div><script>EJS_player='#game';EJS_gameName=${JSON.stringify(romName)};EJS_gameUrl=${JSON.stringify(romUrl)};EJS_core=${JSON.stringify(console_.core)};EJS_startOnLoaded=true;EJS_color='#8b5cf6';EJS_backgroundColor='#000000';EJS_pathtodata='https://cdn.emulatorjs.org/stable/data/';<\/script><script src="https://cdn.emulatorjs.org/stable/data/loader.js"><\/script></body></html>`;
+  };
+  const launch=()=>{
+    setLaunched(true);
+    setTimeout(()=>{
+      if(iframeRef.current){const html=buildHtml();const blob=new Blob([html],{type:'text/html'});const url=URL.createObjectURL(blob);iframeRef.current.src=url;}
+    },50);
+  };
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#08081a 100%)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{background:'rgba(8,8,20,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🕹️ Emulator Zone</span>
+        <span className="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full border border-violet-500/30 font-bold">EmulatorJS • Free & Open Source</span>
+        {launched&&console_&&<div className="ml-auto flex gap-2">
+          {(['none','crt','gb'] as const).map(s=><button key={s} onClick={()=>{setShader(s);setLaunched(false);setTimeout(()=>launch(),100);}} className={cn("text-[9px] px-2 py-0.5 rounded border transition-all",shader===s?"border-violet-400/50 bg-violet-400/15 text-violet-300":"border-white/10 text-white/30 hover:text-white/60")}>{s==='none'?'Normal':s==='crt'?'📺 CRT':'🟢 Game Boy'}</button>)}
+        </div>}
+      </div>
+      {!launched?(
+        <div className="flex-1 overflow-auto p-5">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="space-y-2">
+              <div className="text-white font-black text-lg">Select a Console</div>
+              <div className="text-white/30 text-xs">Choose a console, then upload your own ROM file. No ROMs are provided — bring your own legally obtained games.</div>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {EJS_CONSOLES.map(c=><button key={c.id} onClick={()=>{setConsole_(c);setRomUrl(null);setRomName('');}} className={cn("flex flex-col items-center gap-2 p-3 rounded-2xl border text-center transition-all",console_?.id===c.id?`bg-gradient-to-br ${c.color} border-white/30 shadow-xl scale-105`:`bg-white/3 border-white/8 hover:border-white/20 hover:bg-white/5`)}>
+                <span className="text-2xl">{c.emoji}</span>
+                <div>
+                  <div className="text-white font-bold text-[10px] leading-tight">{c.label}</div>
+                  <div className="text-white/35 text-[8px]">{c.desc}</div>
+                </div>
+              </button>)}
+            </div>
+            {console_&&(
+              <div className="p-5 rounded-2xl border border-white/10 bg-white/[0.025] space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{console_.emoji}</span>
+                  <div>
+                    <div className="text-white font-black">{console_.label} Emulator</div>
+                    <div className="text-white/30 text-xs">Accepted formats: {console_.ext}</div>
+                  </div>
+                </div>
+                <label className={cn("flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-all",romUrl?"border-green-500/50 bg-green-500/5":"border-white/15 hover:border-violet-500/40 hover:bg-violet-500/5")}>
+                  <input type="file" accept={console_.ext} onChange={handleRomUpload} className="hidden"/>
+                  {romUrl?<><div className="text-green-400 text-2xl">✓</div><div className="text-green-400 font-bold text-sm">{romName}</div><div className="text-green-400/60 text-xs">ROM loaded — ready to launch</div></>:<><div className="text-3xl">📁</div><div className="text-white/50 font-bold text-sm">Click to upload ROM</div><div className="text-white/25 text-xs">Your file never leaves your browser</div></>}
+                </label>
+                {romUrl&&(
+                  <div className="space-y-3">
+                    <div className="text-[9px] text-white/30 uppercase tracking-wider font-bold">Display Shader</div>
+                    <div className="flex gap-2">
+                      {(['none','crt','gb'] as const).map(s=><button key={s} onClick={()=>setShader(s)} className={cn("px-3 py-1.5 rounded-lg border text-xs font-bold transition-all",shader===s?"border-violet-400/50 bg-violet-400/15 text-violet-300":"border-white/10 text-white/30 hover:text-white/60")}>{s==='none'?'📺 Normal':s==='crt'?'📺 CRT Scanlines':'🟢 Game Boy'}</button>)}
+                    </div>
+                    <button onClick={launch} className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-pink-600 text-white font-black text-lg hover:from-violet-500 hover:to-pink-500 transition-all shadow-xl shadow-violet-500/20">
+                      ▶ Launch {console_.label}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="p-4 rounded-2xl border border-yellow-500/15 bg-yellow-500/5 text-[10px] text-yellow-400/60 space-y-1">
+              <div className="font-bold text-yellow-400/80">⚖️ Legal Notice</div>
+              <div>This emulator runs entirely in your browser using EmulatorJS (open source). No ROMs or BIOS files are provided. You must own the original game to use backup ROM files. Emulator use for your own cartridges is generally legal in most jurisdictions.</div>
+            </div>
+          </div>
+        </div>
+      ):(
+        <div className="flex-1 flex flex-col">
+          <iframe ref={iframeRef} className="flex-1 w-full border-0" allow="gamepad *; autoplay *; fullscreen *" title="Emulator"/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===== PIXEL ART STUDIO ===== */
+const PA_PALETTES:{name:string,colors:string[]}[]=[
+  {name:'NES',colors:['#000000','#fcfcfc','#f8f8f8','#bcbcbc','#7c7c7c','#a4e4fc','#3cbcfc','#0078f8','#0000fc','#b8b8f8','#6888fc','#0058f8','#0000bc','#d8b8f8','#9878f8','#6844fc','#4428bc','#f8b8f8','#f878f8','#d800cc','#940084','#f8a4c0','#f85898','#e40058','#a80020','#f0d0b0','#f87858','#f83800','#a81000','#fce0a8','#fca044','#e45c10','#881400','#f8d878','#f8b800','#ac7c00','#503000','#d8f878','#b8f818','#00b800','#007800','#b8f8b8','#58d854','#00a800','#006800','#b8f8d8','#58f898','#00a844','#005800','#00fcfc','#00e8d8','#008888','#004058','#f8d8f8','#787878']},
+  {name:'Game Boy',colors:['#0f380f','#306230','#8bac0f','#9bbc0f']},
+  {name:'Game Boy Color',colors:['#000000','#808080','#c0c0c0','#ffffff','#ff0000','#800000','#00ff00','#008000','#0000ff','#000080','#ffff00','#808000','#00ffff','#008080','#ff00ff','#800080']},
+  {name:'CGA',colors:['#000000','#0000aa','#00aa00','#00aaaa','#aa0000','#aa00aa','#aa5500','#aaaaaa','#555555','#5555ff','#55ff55','#55ffff','#ff5555','#ff55ff','#ffff55','#ffffff']},
+  {name:'Pico-8',colors:['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8','#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa']},
+  {name:'Pastel',colors:['#ffd1dc','#ffb3ba','#ff9aa2','#ffb7b2','#ffdac1','#e2f0cb','#b5ead7','#c7ceea','#9eb3d8','#b5b5ea','#dab3ea','#f9c6c9','#f3e0ec','#d4e6f1','#a8d8ea','#aa96da']},
+];
+function PixelArtStudio({onBack}:{onBack:()=>void}){
+  const [gridSize,setGridSize]=useState(16);
+  const [pal,setPal]=useState(0);
+  const [color,setColor]=useState('#000000');
+  const [tool,setTool]=useState<'draw'|'erase'|'fill'>('draw');
+  const [pixels,setPixels]=useState<string[][]>(()=>Array(16).fill(null).map(()=>Array(16).fill('transparent')));
+  const [undoStack,setUndoStack]=useState<string[][][]>([]);
+  const [showGrid,setShowGrid]=useState(true);
+  const [shader,setShader]=useState<'none'|'crt'|'gb'>('none');
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  const [isDrawing,setIsDrawing]=useState(false);
+
+  const resizeGrid=(sz:number)=>{
+    setGridSize(sz);
+    setPixels(Array(sz).fill(null).map(()=>Array(sz).fill('transparent')));
+    setUndoStack([]);
+  };
+
+  const pushUndo=(p:string[][])=>setUndoStack(prev=>[...prev.slice(-19),JSON.parse(JSON.stringify(p))]);
+  const undo=()=>{if(!undoStack.length)return;const prev=[...undoStack];const last=prev.pop()!;setUndoStack(prev);setPixels(last);};
+
+  const fillFlood=(px:string[][],row:number,col:number,target:string,fill:string):string[][]=>{
+    if(row<0||row>=gridSize||col<0||col>=gridSize)return px;
+    if(px[row][col]!==target||px[row][col]===fill)return px;
+    const np=px.map(r=>[...r]);np[row][col]=fill;
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>fillFlood(np,row+dr,col+dc,target,fill));
+    return np;
+  };
+
+  const handleCell=(row:number,col:number,px?:string[][])=>{
+    const p=px||pixels;
+    if(tool==='draw'){const np=p.map(r=>[...r]);np[row][col]=color;setPixels(np);}
+    else if(tool==='erase'){const np=p.map(r=>[...r]);np[row][col]='transparent';setPixels(np);}
+    else if(tool==='fill'){const target=p[row][col];const np=fillFlood(p.map(r=>[...r]),row,col,target,color);setPixels(np);}
+  };
+
+  const exportPng=()=>{
+    const scale=8;const c=document.createElement('canvas');c.width=gridSize*scale;c.height=gridSize*scale;
+    const ctx=c.getContext('2d')!;
+    pixels.forEach((row,r)=>row.forEach((col,c2)=>{if(col!=='transparent'){ctx.fillStyle=col;ctx.fillRect(c2*scale,r*scale,scale,scale);}}));
+    const a=document.createElement('a');a.download='pixel-art.png';a.href=c.toDataURL();a.click();
+  };
+
+  const cellSize=Math.min(Math.floor(360/gridSize),24);
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#08081a 100%)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 flex-wrap" style={{background:'rgba(8,8,20,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🎨 Pixel Art Studio</span>
+        <div className="flex gap-1 ml-auto">
+          {(['draw','erase','fill'] as const).map(t=><button key={t} onClick={()=>setTool(t)} className={cn("px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all",tool===t?"border-violet-400/50 bg-violet-400/15 text-violet-300":"border-white/10 text-white/30 hover:text-white/60")}>{t==='draw'?'✏️ Draw':t==='erase'?'⬜ Erase':'🪣 Fill'}</button>)}
+          <button onClick={undo} disabled={!undoStack.length} className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10 text-white/30 hover:text-white/60 disabled:opacity-30">↩ Undo</button>
+          <button onClick={exportPng} className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">⬇ Export PNG</button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto p-4">
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-4">
+          {/* Canvas */}
+          <div className="flex flex-col items-center gap-3">
+            <div className={cn("border border-white/15 rounded-xl overflow-hidden",shader==='crt'&&"[filter:contrast(1.1)_brightness(0.9)]",shader==='gb'&&"[filter:sepia(0.8)_hue-rotate(60deg)_saturate(0.7)]")}
+              style={{display:'grid',gridTemplateColumns:`repeat(${gridSize},${cellSize}px)`,gap:showGrid?'1px':'0px',background:showGrid?'rgba(255,255,255,0.08)':'#000',padding:showGrid?'1px':'0px'}}>
+              {pixels.map((row,ri)=>row.map((col,ci)=>(
+                <div key={`${ri}-${ci}`} style={{width:cellSize,height:cellSize,background:col==='transparent'?`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='4' height='4' fill='%23888'/%3E%3Crect x='4' y='4' width='4' height='4' fill='%23888'/%3E%3Crect x='4' width='4' height='4' fill='%23555'/%3E%3Crect y='4' width='4' height='4' fill='%23555'/%3E%3C/svg%3E")`:col,cursor:'crosshair'}}
+                  onMouseDown={()=>{setIsDrawing(true);pushUndo(pixels);handleCell(ri,ci);}}
+                  onMouseEnter={()=>{if(isDrawing)handleCell(ri,ci);}}
+                  onMouseUp={()=>setIsDrawing(false)}/>
+              )))}
+            </div>
+            <div className="flex gap-2 text-xs">
+              {[8,16,32,64].map(sz=><button key={sz} onClick={()=>resizeGrid(sz)} className={cn("px-2 py-0.5 rounded border text-[10px] font-bold",gridSize===sz?"border-violet-400/50 bg-violet-400/15 text-violet-300":"border-white/10 text-white/30")}>{sz}×{sz}</button>)}
+              <button onClick={()=>setShowGrid(v=>!v)} className={cn("px-2 py-0.5 rounded border text-[10px] font-bold",showGrid?"border-white/20 text-white/50":"border-white/10 text-white/25")}>Grid</button>
+              {(['none','crt','gb'] as const).map(s=><button key={s} onClick={()=>setShader(s)} className={cn("px-2 py-0.5 rounded border text-[10px] font-bold",shader===s?"border-violet-400/50 text-violet-300":"border-white/10 text-white/30")}>{s==='none'?'Normal':s==='crt'?'CRT':'GB'}</button>)}
+            </div>
+          </div>
+          {/* Palette + Color */}
+          <div className="space-y-4 min-w-[220px]">
+            <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/8 space-y-3">
+              <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Palette</div>
+              <div className="flex flex-wrap gap-1">
+                {PA_PALETTES.map((p,i)=><button key={p.name} onClick={()=>setPal(i)} className={cn("px-2 py-0.5 rounded border text-[9px] font-bold transition-all",pal===i?"border-violet-400/50 bg-violet-400/15 text-violet-300":"border-white/10 text-white/25 hover:text-white/60")}>{p.name}</button>)}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {PA_PALETTES[pal].colors.map(c=><button key={c} onClick={()=>setColor(c)} style={{background:c,width:20,height:20,borderRadius:4,border:color===c?'2px solid white':'2px solid transparent'}}/>)}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-[9px] text-white/30 uppercase tracking-wider font-bold">Custom</label>
+                <input type="color" value={color.startsWith('#')?color:'#000000'} onChange={e=>setColor(e.target.value)} className="w-8 h-6 rounded cursor-pointer border-0 bg-transparent"/>
+                <span className="text-[10px] text-white/40 font-mono">{color}</span>
+              </div>
+            </div>
+            <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/8">
+              <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold mb-2">Quick Clear</div>
+              <button onClick={()=>{pushUndo(pixels);setPixels(Array(gridSize).fill(null).map(()=>Array(gridSize).fill('transparent')));}} className="w-full py-1.5 rounded-lg border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 text-xs font-bold transition-all">Clear Canvas</button>
+            </div>
+            <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/8 text-[10px] text-white/30 space-y-1">
+              <div className="font-bold text-white/50 text-xs mb-2">Tips</div>
+              <div>✏️ Draw — click/drag to paint</div>
+              <div>⬜ Erase — remove pixels</div>
+              <div>🪣 Fill — flood fill area</div>
+              <div>↩ Undo — restore last state</div>
+              <div>⬇ Export — saves as PNG (8x scale)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== RETRO TOOLS HUB ===== */
+function RetroToolsHub({onBack}:{onBack:()=>void}){
+  const [ghResults,setGhResults]=useState<any[]>([]);
+  const [ghQuery,setGhQuery]=useState('');
+  const [ghLoading,setGhLoading]=useState(false);
+  const [ghTopic,setGhTopic]=useState('emulator');
+  const {toast}=useToast();
+
+  const searchGH=async(q:string)=>{
+    setGhLoading(true);
+    try{
+      const res=await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=12`);
+      const data=await res.json();setGhResults(data.items||[]);
+    }catch{toast({title:'GitHub search failed — check connection',variant:'destructive'});}
+    finally{setGhLoading(false);}
+  };
+
+  const TOPICS=['emulator','retro game','pixel art','chiptune','sprite tool','game engine','nes snes gba','dosbox','webassembly game'];
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#08081a 100%)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{background:'rgba(8,8,20,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🔧 Retro Tools Hub</span>
+        <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30 font-bold ml-1">GitHub • Free & Open Source</span>
+      </div>
+      <div className="flex-1 overflow-auto p-4">
+        <div className="max-w-3xl mx-auto space-y-5">
+          <div className="text-white font-black text-lg">GitHub Open-Source Tool Discovery</div>
+          <div className="text-white/30 text-xs">Browse and discover free retro gaming tools, emulators, sprite editors, and chiptune trackers from GitHub. All tools are open-source.</div>
+          {/* Quick topic buttons */}
+          <div className="flex flex-wrap gap-1.5">
+            {TOPICS.map(t=><button key={t} onClick={()=>{setGhTopic(t);searchGH(t);}} className={cn("px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all",ghTopic===t&&ghResults.length?"border-violet-400/50 bg-violet-400/15 text-violet-300":"border-white/10 text-white/30 hover:text-white/60")}>{t}</button>)}
+          </div>
+          {/* Search bar */}
+          <div className="flex gap-2">
+            <input value={ghQuery} onChange={e=>setGhQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchGH(ghQuery)} placeholder="Search GitHub (e.g. NES emulator, pixel art editor...)" className="flex-1 bg-white/5 border border-white/10 rounded-xl text-white text-xs px-3 py-2.5 placeholder-white/20 focus:outline-none focus:border-violet-500/40"/>
+            <button onClick={()=>searchGH(ghQuery||ghTopic)} disabled={ghLoading} className="px-4 py-2.5 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs font-bold hover:bg-violet-500/30 disabled:opacity-40">{ghLoading?'Searching...':'Search'}</button>
+          </div>
+          {/* Results */}
+          {ghResults.length>0&&(
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {ghResults.map((r:any)=>(
+                <a key={r.id} href={r.html_url} target="_blank" rel="noopener noreferrer" className="p-4 rounded-2xl bg-white/[0.025] border border-white/8 hover:border-white/20 hover:bg-white/5 transition-all block">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="font-bold text-white text-sm truncate">{r.name}</div>
+                    <div className="flex items-center gap-1 text-yellow-400 text-[10px] flex-shrink-0">⭐{r.stargazers_count?.toLocaleString()}</div>
+                  </div>
+                  <div className="text-white/40 text-xs line-clamp-2 mb-2">{r.description||'No description'}</div>
+                  <div className="flex flex-wrap gap-1">
+                    {r.language&&<span className="px-1.5 py-0.5 bg-violet-500/15 border border-violet-500/20 text-violet-400 rounded text-[8px] font-bold">{r.language}</span>}
+                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 text-white/30 rounded text-[8px]">🍴{r.forks_count}</span>
+                    <span className="px-1.5 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400/70 rounded text-[8px] ml-auto">Open Source →</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+          {!ghResults.length&&!ghLoading&&(
+            <div className="text-center py-12 text-white/20">
+              <div className="text-4xl mb-3">🔍</div>
+              <div className="text-sm font-bold mb-1">Search for open-source tools</div>
+              <div className="text-xs">Click a topic above or type your own search</div>
+            </div>
+          )}
+          {/* Retro shaders section */}
+          <div className="p-5 rounded-2xl bg-white/[0.025] border border-white/8 space-y-3">
+            <div className="text-white font-black">📺 Built-in Retro Shaders</div>
+            <div className="text-white/30 text-xs mb-3">These shaders are available inside the Emulator Zone and Pixel Art Studio.</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[{name:'CRT Scanlines',desc:'Classic TV scanline effect',css:'contrast(1.1) brightness(0.9)',emoji:'📺'},{name:'Game Boy',desc:'Warm green tinted LCD',css:'sepia(0.8) hue-rotate(60deg)',emoji:'🟢'},{name:'VHS',desc:'Washed out retro video',css:'saturate(0.6) contrast(1.15) sepia(0.3)',emoji:'📼'},{name:'Pixel Perfect',desc:'No filter, sharp pixels',css:'none',emoji:'🔲'},{name:'PS1 Dither',desc:'Low-color dithering look',css:'contrast(1.3) saturate(0.7)',emoji:'⬜'},{name:'Neon Glow',desc:'Vibrant arcade neons',css:'saturate(2) brightness(1.1)',emoji:'🌟'}].map(s=>(
+                <div key={s.name} className="p-3 rounded-xl bg-white/3 border border-white/8">
+                  <div className="text-lg mb-1">{s.emoji}</div>
+                  <div className="text-white/70 font-bold text-xs">{s.name}</div>
+                  <div className="text-white/30 text-[9px]">{s.desc}</div>
+                  <div className="text-white/15 text-[8px] font-mono mt-1 truncate">filter: {s.css}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const CARD_SUITS = ["♠","♥","♦","♣"];
 const CARD_VALUES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
@@ -7263,6 +7574,9 @@ function GamesPage() {
   if (gameMode === "scramble") return <WordScrambleGame onBack={()=>setGameMode("hub")} />;
   if (gameMode === "trivia") return <OmegaTriviaGame onBack={()=>setGameMode("hub")} />;
   if (gameMode === "creator") return <CreatorZoneGame onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "emulator") return <EmulatorZone onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "pixelart") return <PixelArtStudio onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "retrotools") return <RetroToolsHub onBack={()=>setGameMode("hub")} />;
 
   if (gameMode === "blackjack") return (
     <div className="flex-1 overflow-y-auto bg-gradient-to-b from-green-900 via-green-800 to-green-900 p-4">
@@ -7427,7 +7741,7 @@ function GamesPage() {
                 <h1 className="text-lg font-extrabold text-white tracking-tight" data-testid="text-games-title">MyAiGPT Gaming</h1>
                 <span className="text-[9px] bg-gradient-to-r from-violet-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-bold tracking-wide">SOVEREIGN PLATFORM</span>
               </div>
-              <p className="text-white/30 text-[10px] mt-0.5">7 Games Playable Now · 35+ In Development · AI-Powered Universe</p>
+              <p className="text-white/30 text-[10px] mt-0.5">10+ Games & Tools Playable Now · 35+ In Development · Emulator Zone · Pixel Art · AI Universe</p>
             </div>
             <button onClick={()=>setGameMode("creator")} data-testid="button-open-creator" className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white font-bold rounded-xl text-xs hover:from-violet-500 hover:to-pink-500 transition-all shadow-lg shadow-violet-500/20">
               <Wand size={11}/> Create Game
@@ -7465,6 +7779,43 @@ function GamesPage() {
           </div>
           <div className="absolute bottom-4 right-5 flex gap-1.5">
             {heroGames.map((_,i)=>(<button key={i} onClick={()=>setHeroIndex(i)} className={`rounded-full transition-all ${heroIndex%heroGames.length===i?"w-5 h-2 bg-white":"w-2 h-2 bg-white/25 hover:bg-white/50"}`}/>))}
+          </div>
+        </div>
+
+        {/* Sovereign Tools — Emulator Zone, Pixel Art, Retro Tools */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div><h2 className="text-base font-extrabold text-white">⚡ Sovereign Creator Tools</h2><p className="text-white/30 text-xs">Full retro emulation, pixel art studio, and open-source tool discovery — all free, all local</p></div>
+            <span className="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full border border-violet-500/30 font-bold">NEW</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button onClick={()=>setGameMode("emulator")} className="group relative overflow-hidden rounded-2xl border border-white/10 p-5 text-left hover:border-violet-500/40 hover:shadow-2xl hover:shadow-violet-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a003a,#2d005a)'}}>
+              <div className="text-4xl mb-3">🕹️</div>
+              <div className="text-white font-black text-base mb-1">Emulator Zone</div>
+              <div className="text-white/40 text-xs mb-3">Play NES, SNES, GBA, N64, PS1, Sega, Arcade, DOS & more — upload your own ROMs</div>
+              <div className="flex flex-wrap gap-1">
+                {['NES','SNES','GBA','N64','PS1','Sega','DOS','Arcade'].map(c=><span key={c} className="text-[8px] px-1.5 py-0.5 bg-violet-500/20 text-violet-400 rounded-full border border-violet-500/20">{c}</span>)}
+              </div>
+              <div className="absolute top-3 right-3"><span className="text-[8px] bg-violet-500 text-white px-2 py-0.5 rounded-full font-bold">12 CONSOLES</span></div>
+            </button>
+            <button onClick={()=>setGameMode("pixelart")} className="group relative overflow-hidden rounded-2xl border border-white/10 p-5 text-left hover:border-pink-500/40 hover:shadow-2xl hover:shadow-pink-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a001a,#3a0030)'}}>
+              <div className="text-4xl mb-3">🎨</div>
+              <div className="text-white font-black text-base mb-1">Pixel Art Studio</div>
+              <div className="text-white/40 text-xs mb-3">Canvas editor with NES, SNES, Game Boy & Pico-8 palettes, flood fill, undo, retro shaders, PNG export</div>
+              <div className="flex flex-wrap gap-1">
+                {['NES Palette','SNES','Game Boy','Pico-8','CRT Shader','PNG Export'].map(c=><span key={c} className="text-[8px] px-1.5 py-0.5 bg-pink-500/20 text-pink-400 rounded-full border border-pink-500/20">{c}</span>)}
+              </div>
+              <div className="absolute top-3 right-3"><span className="text-[8px] bg-pink-500 text-white px-2 py-0.5 rounded-full font-bold">STUDIO</span></div>
+            </button>
+            <button onClick={()=>setGameMode("retrotools")} className="group relative overflow-hidden rounded-2xl border border-white/10 p-5 text-left hover:border-cyan-500/40 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all" style={{background:'linear-gradient(135deg,#001a1a,#002a2a)'}}>
+              <div className="text-4xl mb-3">🔧</div>
+              <div className="text-white font-black text-base mb-1">Retro Tools Hub</div>
+              <div className="text-white/40 text-xs mb-3">Search GitHub for free emulators, sprite editors, chiptune trackers, pixel art tools & more</div>
+              <div className="flex flex-wrap gap-1">
+                {['GitHub Search','Open Source','Retro Shaders','Free Tools','Emulators','Sprite Tools'].map(c=><span key={c} className="text-[8px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full border border-cyan-500/20">{c}</span>)}
+              </div>
+              <div className="absolute top-3 right-3"><span className="text-[8px] bg-cyan-500 text-white px-2 py-0.5 rounded-full font-bold">DISCOVER</span></div>
+            </button>
           </div>
         </div>
 
@@ -7603,7 +7954,7 @@ function GamesPage() {
 
         {/* Platform Stats Footer */}
         <div className="grid grid-cols-3 gap-3">
-          {[["7","Games Live"],["35+","In Development"],["∞","AI Content"]].map(([num,label])=>(
+          {[["10+","Tools & Games Live"],["35+","In Development"],["12","Emulated Consoles"]].map(([num,label])=>(
             <div key={label} className="text-center rounded-2xl border border-white/8 p-4" style={{background:"rgba(255,255,255,0.02)"}}>
               <div className="text-2xl font-extrabold text-white mb-0.5">{num}</div>
               <div className="text-white/30 text-xs">{label}</div>

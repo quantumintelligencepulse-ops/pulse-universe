@@ -1,0 +1,423 @@
+You are building the MyAiGPT Sovereign Game + AI Hub.
+
+Constraints:
+- NO paid APIs
+- NO HuggingFace tokens
+- NO logins
+- NO backend servers
+- Everything runs locally (Replit, browser, or client-side)
+- Everything is free, open-source, and auto-installable via pip or GitHub
+- Use only legal tools (no ROMs, no BIOS, no piracy)
+
+Your job:
+Design and implement a single Replit project that becomes the “Sovereign AI + Game + Creation OS” using ONLY:
+- Python
+- WebAssembly (where needed)
+- JavaScript/HTML/CSS (for UI)
+- Open-source tools from GitHub and pip
+
+====================================================
+CORE STRUCTURE
+====================================================
+
+Create a project with this structure:
+
+- /hub
+  - main.py                # CLI + launcher
+  - web_ui/                # HTML/CSS/JS front-end
+  - emulators/             # emulator wrappers
+  - retro_tools/           # modding, sprites, maps
+  - music_audio/           # TTS, chiptune, MIDI, FX
+  - ai_models/             # LLMs, vision, STT, embeddings
+  - github_ingest/         # auto-ingestion from GitHub
+  - utils/                 # shared helpers
+  - data/                  # local storage (saves, configs, assets)
+  - README.md
+
+The hub must be able to run entirely inside Replit with no external services.
+
+====================================================
+1. EMULATOR ZONE (LOCAL, LEGAL, WASM/EMBEDDED)
+====================================================
+
+Goal:
+Create an Emulator Zone that supports multiple consoles using open-source emulators that can be embedded or wrapped.
+
+For each console, create a Python or JS wrapper that can:
+- Load a user-provided ROM file (from local upload)
+- Run the emulator (WASM or subprocess)
+- Expose basic controls (start, pause, reset)
+- Support save states (export/import)
+- Integrate with the hub UI
+
+Target emulators (from GitHub, WASM or CLI):
+- NES
+- SNES
+- Game Boy
+- Game Boy Color
+- Game Boy Advance
+- Nintendo DS
+- Sega Genesis
+- PlayStation 1
+- PSP
+- N64
+- Arcade (MAME)
+- DOS (DOSBox)
+
+Requirements:
+- NO ROMs included
+- NO BIOS files included
+- Only emulator binaries/WASM and wrappers
+- ROMs are always user-provided
+
+Create:
+- /emulators/nes.py
+- /emulators/snes.py
+- /emulators/gba.py
+- /emulators/ps1.py
+- /emulators/psp.py
+- /emulators/n64.py
+- /emulators/dos.py
+- etc.
+
+Each exposes:
+- load_rom(path)
+- start()
+- pause()
+- reset()
+- save_state(path)
+- load_state(path)
+
+====================================================
+2. RETRO + MODDING SUPERTOOLS
+====================================================
+
+Under /retro_tools, auto-install and wrap tools that can be installed via pip or GitHub, all local:
+
+Implement wrappers for:
+
+1) ROM patchers (IPS/BPS)
+   - Apply patches to user ROMs
+   - Use open-source patch libraries
+
+2) Translation tools
+   - Fan-translation patchers (no copyrighted text included)
+
+3) Sprite rippers
+   - Extract sprites from user ROMs (where legal)
+   - Save as PNG sprite sheets
+
+4) Tilemap extractors
+   - Extract tilemaps from ROMs (where legal)
+
+5) Music extractors
+   - Extract chiptune music from ROMs (SPC, NSF, etc.)
+
+6) Save editors
+   - Generic save file hex editor
+   - Game-specific editors where open-source tools exist
+
+7) Cheat engines
+   - GameShark/Action Replay-style code application
+   - Apply cheats to RAM or save files
+
+8) Input recorders
+   - Record and replay button inputs for emulators
+
+9) TAS tools
+   - Frame advance, input scripting
+
+10) Emulator rewind
+   - Implement rewind by storing recent states in memory
+
+Each tool should be accessible via:
+- Python functions
+- A simple UI in the web frontend
+
+====================================================
+3. ART, SPRITES, AND VISUALS
+====================================================
+
+Under /retro_tools and /web_ui, add:
+
+11) Pixel art generators
+    - Use open-source pixel art generation models or scripts
+    - NES/SNES/GBA/PS1-style presets
+
+12) Sprite upscalers
+    - Use ESRGAN or similar open-source upscalers (CPU-friendly if possible)
+
+13) Palette editors
+    - Tools to edit color palettes of sprites/tiles
+
+14) Tilemap editors
+    - Simple web-based tilemap editor (HTML/JS)
+
+15) Sprite sheet stitchers
+    - Combine frames into sprite sheets
+
+16) GIF animators
+    - Turn sprite sheets into animated GIFs
+
+17) Retro shader packs
+    - CRT, VHS, scanlines, LCD, Game Boy green, PS1 wobble
+    - Implement as CSS/Canvas/WebGL shaders
+
+18) PS1 low-poly renderer
+    - Simple WebGL or Python tool to render low-poly models with PS1-style wobble
+
+====================================================
+4. MUSIC, SOUND, AND AUDIO (LOCAL ONLY)
+====================================================
+
+Under /music_audio, implement:
+
+19) Chiptune trackers
+    - Use open-source trackers or clones that can run locally
+    - Simple pattern editor UI in web
+
+20) Retro sound engines
+    - NES APU, SNES SPC, GBA PSG, Sega FM emulators
+    - Expose simple APIs to play notes and sequences
+
+21) Procedural music generators
+    - Dungeon music
+    - Overworld themes
+    - Battle loops
+    - Use Python-based procedural music libraries
+
+22) MIDI → chiptune converters
+    - Convert MIDI to NES/SNES/GBA-style using soundfonts or synthesis
+
+23) Soundfont libraries
+    - Include only free, open soundfonts (SNES, GBA, PS1-style)
+
+24) Voice changers
+    - Local voice conversion using open-source models (RVC/VITS) that can be installed via pip or GitHub
+    - No external APIs
+
+====================================================
+5. LOCAL VOICE ENGINE (NO HUGGINGFACE, NO API)
+====================================================
+
+Under /music_audio, create a Local Voice Engine using Coqui TTS or similar:
+
+- Install:
+  - TTS (Coqui TTS)
+  - torch (CPU)
+  - numpy
+  - soundfile
+  - librosa
+
+- Download and use ONLY models that:
+  - are open-source
+  - require no tokens
+  - can be downloaded without login
+
+Example models:
+- tts_models/en/ljspeech/tacotron2-DDC
+- tts_models/en/ljspeech/glow-tts
+- tts_models/en/vctk/vits
+
+Create:
+- /music_audio/vocals_studio.py
+
+Functions:
+- list_voices()
+- speak(text, voice_id, output_path)
+- preview_voice(voice_id)
+
+No external API calls. All local.
+
+====================================================
+6. AI MODELS & INTELLIGENCE (LOCAL ONLY)
+====================================================
+
+Under /ai_models, implement:
+
+25) Local LLMs (GGUF)
+    - Integrate a local LLM runner (e.g., llama.cpp bindings, or other GGUF runner)
+    - Support small models that can run on CPU in Replit
+    - Provide a simple chat interface
+
+26) Local OCR
+    - Use open-source OCR (e.g., Tesseract via Python bindings)
+
+27) Local image captioning
+    - Use a small, open-source image captioning model that can run on CPU
+
+28) Local embeddings
+    - Use a small embedding model (ONNX or similar) for:
+      - search
+      - tagging
+      - recommendations
+
+29) Local Whisper (speech-to-text)
+    - Use open-source Whisper implementation that can run on CPU
+    - Expose a function to transcribe audio files
+
+30) Local vision models
+    - Simple object detection or classification
+    - Sprite detection or retro game recognition where possible
+
+All models must:
+- be open-source
+- be installable via pip or GitHub
+- run locally on CPU
+- require no tokens
+
+====================================================
+7. PLATFORM INFRASTRUCTURE & RUNTIMES
+====================================================
+
+Under /utils and /web_ui, implement:
+
+31) WASM runtimes
+    - Ability to run Python/Lua/C++/Rust modules in-browser where possible
+
+32) File parsers
+    - Save file parsers
+    - Sprite/map metadata parsers
+    - Config parsers
+
+33) Compression tools
+    - ZIP, GZIP, etc., all client-side or via Python stdlib
+
+34) Diff/patch tools
+    - Compare files
+    - Generate patches (for configs, saves, etc.)
+
+35) JSON/YAML editors
+    - Web-based editor for configs and metadata
+
+36) UI component library
+    - Card grids
+    - Dashboards
+    - Overlays
+    - Modals
+    - Tabs
+    - Lists
+
+All styled in a “MyAiGPT Pulse” aesthetic:
+- gradients
+- rounded cards
+- dark mode
+- neon accents
+
+====================================================
+8. COMMUNITY + SOCIAL (LOCAL-FIRST)
+====================================================
+
+Under /web_ui and /data, implement:
+
+37) Markdown renderer
+    - For guides, walkthroughs, patch notes
+
+38) Local comment threads
+    - Client-side comment system stored in local JSON files
+
+39) Tagging engine
+    - Auto-tag saves, games, mods using local embeddings/LLM
+
+40) Feed generator
+    - Generate dynamic feeds:
+      - latest saves
+      - latest mods
+      - latest homebrew
+      - latest AI creations
+
+No external databases. Use local JSON/SQLite.
+
+====================================================
+9. GITHUB AUTO-INGESTION ENGINE
+====================================================
+
+Under /github_ingest, implement a “GitHub Auto-Ingestion Engine” that:
+
+- Uses only public, unauthenticated GitHub access (no tokens)
+- Searches for:
+  - emulators
+  - retro tools
+  - AI models
+  - sprite tools
+  - music tools
+- Downloads:
+  - releases
+  - scripts
+  - models
+  - tools
+- Indexes them into:
+  - /emulators
+  - /retro_tools
+  - /music_audio
+  - /ai_models
+
+The engine should:
+- Maintain a local registry (JSON) of installed tools
+- Allow enabling/disabling tools from the UI
+- Never download anything illegal (no ROMs, no BIOS, no copyrighted assets)
+
+====================================================
+10. HUB LAUNCHER (CLI + WEB UI)
+====================================================
+
+Create /hub/main.py that:
+
+- Provides a CLI menu:
+  1. Launch Web UI
+  2. Emulator Zone
+  3. Retro Tools
+  4. Music & Vocals Studio
+  5. AI Models & Chat
+  6. GitHub Auto-Ingestion
+  7. Exit
+
+Create /hub/web_ui/ with:
+
+- index.html
+- app.js
+- styles.css
+
+The Web UI should:
+- Show cards for:
+  - Emulator Zone
+  - Retro Tools
+  - Music & Vocals
+  - AI Models
+  - GitHub Ingestion
+- Allow navigation into each subsystem
+- Use only local APIs (served by main.py via a simple HTTP server, e.g., Flask or FastAPI, but running inside Replit only, no external calls)
+
+====================================================
+11. REQUIREMENTS & README
+====================================================
+
+Generate:
+- requirements.txt
+  - Only free, open-source packages
+  - No proprietary SDKs
+  - No cloud SDKs
+
+- README.md
+  - How to run the hub in Replit
+  - How to use Emulator Zone
+  - How to use Retro Tools
+  - How to use Music & Vocals Studio
+  - How to use AI Models
+  - How to use GitHub Auto-Ingestion
+  - Legal note: user must provide their own ROMs, no piracy
+
+====================================================
+FINAL INSTRUCTIONS
+====================================================
+
+Think deeply and architect this as a coherent OS-like hub, not a pile of scripts.
+
+- Use clean module boundaries
+- Use clear naming
+- Make it easy to extend
+- Make it easy to disable features if Replit resources are limited
+- Prioritize CPU-friendly models and tools
+- Avoid anything that requires GPU or paid services
+
+Now, begin implementing the full MyAiGPT Sovereign Game + AI Hub in this Replit project.
