@@ -7781,89 +7781,365 @@ function MusicPage() {
   const [creatorTrack, setCreatorTrack] = useState<TrackCard|null>(null);
   const [creatorLoading, setCreatorLoading] = useState(false);
   const [userTracks, setUserTracks] = useState<TrackCard[]>([]);
+  const [performingId, setPerformingId] = useState<string|null>(null);
+  const [performStatus, setPerformStatus] = useState<"idle"|"loading-lyrics"|"performing">("idle");
   const audioCtxRef = useRef<AudioContext|null>(null);
   const stopRef = useRef<(()=>void)|null>(null);
+  const lyricsCache = useRef<Record<string,string>>({});
 
   const ensureAudio = () => {
     if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext||(window as any).webkitAudioContext)();
     if (audioCtxRef.current.state==="suspended") audioCtxRef.current.resume();
     return audioCtxRef.current;
   };
-  const createSynth = (ctx: AudioContext, freq: number, type: OscillatorType, gain: number, duration: number, timeOffset: number) => {
-    const now = ctx.currentTime + timeOffset; const osc = ctx.createOscillator(); const g = ctx.createGain();
-    osc.type = type; osc.frequency.value = freq; g.gain.value = gain;
-    osc.connect(g).connect(ctx.destination);
-    g.gain.setValueAtTime(gain, now); g.gain.exponentialRampToValueAtTime(0.0001, now+duration);
-    osc.start(now); osc.stop(now+duration+0.05);
+
+  // ── VOICE SETTINGS PER ARTIST ──────────────────────────────────────────────
+  const ARTIST_VOICE: Record<string,{rate:number;pitch:number}> = {
+    "violet-echo":    { rate:0.82,  pitch:1.5  },
+    "black-fracture": { rate:1.65,  pitch:0.45 },
+    "golden-horizon": { rate:0.88,  pitch:0.95 },
+    "silver-memory":  { rate:0.78,  pitch:1.25 },
+    "entropy-kill":   { rate:1.85,  pitch:0.55 },
+    "hive-choir":     { rate:0.84,  pitch:1.15 },
+    "fractal-depth":  { rate:1.15,  pitch:0.80 },
+    "coherence-rise": { rate:0.90,  pitch:1.35 },
   };
-  const scheduleKick = (ctx: AudioContext, t: number) => {
+
+  // ── ADVANCED BEAT ENGINE ───────────────────────────────────────────────────
+  const note = (ctx: AudioContext, freq: number, type: OscillatorType, gain: number, dur: number, t: number, detune=0) => {
+    const osc = ctx.createOscillator(); const g = ctx.createGain(); const comp = ctx.createDynamicsCompressor();
+    osc.type = type; osc.frequency.value = freq; if (detune) osc.detune.value = detune;
+    osc.connect(g); g.connect(comp); comp.connect(ctx.destination);
+    g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime(gain, t+0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    osc.start(t); osc.stop(t+dur+0.01);
+  };
+
+  const kick808 = (ctx: AudioContext, t: number, vol=0.9) => {
     const osc = ctx.createOscillator(); const g = ctx.createGain();
-    osc.frequency.setValueAtTime(120,t); osc.frequency.exponentialRampToValueAtTime(40,t+0.15);
-    g.gain.setValueAtTime(0.8,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
-    osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t+0.2);
+    osc.frequency.setValueAtTime(160, t); osc.frequency.exponentialRampToValueAtTime(38, t+0.25);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t+0.3);
+    osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t+0.35);
   };
-  const scheduleSnare = (ctx: AudioContext, t: number) => {
-    const buf = ctx.createBuffer(1,ctx.sampleRate*0.2,ctx.sampleRate);
-    const data = buf.getChannelData(0); for (let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
+
+  const bass808 = (ctx: AudioContext, freq: number, t: number, dur: number, vol=0.65) => {
+    const osc = ctx.createOscillator(); const g = ctx.createGain(); const dist = ctx.createWaveShaper();
+    const curve = new Float32Array(256); for(let i=0;i<256;i++){const x=i*2/256-1; curve[i]=x<0?-Math.pow(-x,0.6):Math.pow(x,0.6);}
+    dist.curve = curve;
+    osc.type = "sawtooth"; osc.frequency.value = freq;
+    osc.connect(dist); dist.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(vol, t); g.gain.setValueAtTime(vol*0.8, t+dur*0.7);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    osc.start(t); osc.stop(t+dur+0.01);
+  };
+
+  const snare = (ctx: AudioContext, t: number, vol=0.55, tight=false) => {
+    const buf = ctx.createBuffer(1, ctx.sampleRate*(tight?0.12:0.22), ctx.sampleRate);
+    const data = buf.getChannelData(0); for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*(tight?0.04:0.08)));
     const src = ctx.createBufferSource(); src.buffer = buf;
-    const g = ctx.createGain(); g.gain.setValueAtTime(0.5,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
-    src.connect(g).connect(ctx.destination); src.start(t); src.stop(t+0.21);
+    const g = ctx.createGain(); const hpf = ctx.createBiquadFilter(); hpf.type="highpass"; hpf.frequency.value=200;
+    src.connect(hpf); hpf.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t+(tight?0.12:0.22));
+    src.start(t);
   };
+
+  const hihat = (ctx: AudioContext, t: number, open=false, vol=0.18) => {
+    const buf = ctx.createBuffer(1, ctx.sampleRate*(open?0.3:0.05), ctx.sampleRate);
+    const data = buf.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const hpf = ctx.createBiquadFilter(); hpf.type="highpass"; hpf.frequency.value=8000;
+    const g = ctx.createGain();
+    src.connect(hpf); hpf.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t+(open?0.3:0.05));
+    src.start(t);
+  };
+
+  const vinylCrackle = (ctx: AudioContext, t: number) => {
+    const dur = 0.02;
+    if (Math.random()>0.85) {
+      const buf = ctx.createBuffer(1, ctx.sampleRate*dur, ctx.sampleRate);
+      const data = buf.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*0.04;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const g = ctx.createGain(); g.gain.value = 0.08;
+      src.connect(g).connect(ctx.destination); src.start(t);
+    }
+  };
+
+  const chord = (ctx: AudioContext, freqs: number[], t: number, dur: number, type: OscillatorType="triangle", vol=0.09) => {
+    freqs.forEach(freq => note(ctx, freq, type, vol, dur, t));
+  };
+
   const degreeToFreq = (root: number, scl: number[], degree: number, oct: number) => root * Math.pow(2,(scl[degree%scl.length]+12*oct)/12);
 
-  const stopTrack = () => { if (stopRef.current){stopRef.current();stopRef.current=null;} setPlayingId(null); };
+  // ── GENRE-SPECIFIC BEAT PATTERNS ─────────────────────────────────────────────
+  const scheduleBeat = (ctx: AudioContext, track: AiTrack|TrackCard, pulseKey: string, genreKey: string) => {
+    const bpm = (track as any).bpm;
+    const beats = (track as any).beats;
+    const randomness = (track as any).randomness;
+    const pulse = PULSE_COLORS_DEF[pulseKey as keyof typeof PULSE_COLORS_DEF];
+    const scl = MUSIC_SCALES[pulse.scale] || MUSIC_SCALES.minor;
+    const hd = 60/bpm; // half beat duration
+    const bd = hd * 2;  // full beat duration (2 half-beats)
+    const root = 55;    // A1 — low root for bass
+    const melRoot = 220; // A3 — mid range for melody
+
+    // Build chord progressions for the genre
+    const chordDegs: number[][] = [[0,2,4],[2,4,6],[4,6,1],[3,5,0]]; // I IV V vi
+    let step = 0;
+
+    const genre = genreKey.toLowerCase();
+    const isTrap = genre.includes("trap")||genre.includes("hip-hop")||genre.includes("entropy");
+    const isRnB = genre.includes("r&b")||genre.includes("coherence")||genre.includes("pop");
+    const isAmbient = genre.includes("ambient")||genre.includes("choir")||genre.includes("lineage")||genre.includes("quantum drift")||genre.includes("hive");
+    const isLoFi = genre.includes("lo-fi")||genre.includes("lineage");
+    const isEDM = genre.includes("edm")||genre.includes("pulsewave")||genre.includes("fractal");
+
+    while(step<beats) {
+      const t = ctx.currentTime + 0.05 + step*hd;
+      const bar = Math.floor(step/8); // 8 half-beats = 1 bar of 4/4
+      const pos = step%8; // position within bar
+
+      if (isTrap) {
+        // TRAP / HIP-HOP: 808 kick+bass, snare 2+4, triplet hats, dark pads
+        if (pos===0) kick808(ctx, t, 0.95);
+        if (pos===2) kick808(ctx, t, 0.7);  // syncopated kick
+        if (pos===4) { kick808(ctx, t, 0.85); snare(ctx, t, 0.6); } // snare on 2
+        if (pos===6) kick808(ctx, t, 0.55);
+        if (pos===0||pos===4) { // snare on beats 2 and 4
+          if(pos===4) snare(ctx, t+hd, 0.6);
+        }
+        // Hi-hat every 16th (every half-beat)
+        hihat(ctx, t, false, 0.12+Math.random()*0.08);
+        // Triplet roll every other bar
+        if (bar%2===1 && pos===6) { hihat(ctx,t+hd*0.33,false,0.15); hihat(ctx,t+hd*0.66,false,0.12); }
+        // 808 bass line on downbeats
+        if (pos===0||pos===3||pos===5) {
+          const deg=[0,0,4,3,5,0][Math.floor(Math.random()*6)];
+          const bassFreq = degreeToFreq(root, scl, deg, 0);
+          bass808(ctx, bassFreq, t, hd*1.8, 0.7);
+        }
+        // Dark background pad every 8 beats
+        if (step%8===0) {
+          const cdeg = chordDegs[bar%4];
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d, 0)), t, bd*4, "sawtooth", 0.04);
+        }
+
+      } else if (isRnB) {
+        // R&B: smooth kick, warm snare, open hats, lush chord pads, smooth bass
+        if (pos===0) kick808(ctx, t, 0.75);
+        if (pos===3) kick808(ctx, t, 0.45); // ghost kick
+        if (pos===4) snare(ctx, t, 0.5);    // snare on 2
+        if (step%8===6) snare(ctx, t, 0.5); // snare on 4
+        // Open hi-hats on offbeats
+        if (pos===2||pos===6) hihat(ctx, t, true, 0.12);
+        if (pos===1||pos===3||pos===5||pos===7) hihat(ctx, t, false, 0.08);
+        // Smooth chord pads — new chord every bar
+        if (pos===0) {
+          const cdeg = chordDegs[bar%4];
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d, 0)), t, bd*3, "sine", 0.1);
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d, 1)), t, bd*3, "triangle", 0.05);
+        }
+        // Smooth bass
+        if (pos===0||pos===4||pos===6) {
+          const deg=[0,4,5,0][pos===0?0:pos===4?1:2];
+          bass808(ctx, degreeToFreq(root, scl, deg, 1)*2, t, hd*1.5, 0.45);
+        }
+        // Melody run every 2 bars
+        if (bar%2===0 && pos===6) {
+          [0,1,2,3].forEach(i=>note(ctx, degreeToFreq(melRoot,scl,(3+i)%7,1), "sine", 0.06, hd*0.4, t+i*hd*0.4));
+        }
+
+      } else if (isAmbient) {
+        // AMBIENT / CHOIR: no drums, long evolving pads, ethereal melody
+        if (step%16===0) {
+          const cdeg = chordDegs[bar%4];
+          // Stacked chord voicings for richness
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d, -1)), t, hd*16, "sine", 0.06);
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d,  0)), t, hd*16, "triangle", 0.05);
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d,  1)), t+hd*0.5, hd*16, "sine", 0.03);
+          // Simulated reverb tail (delayed quieter copy)
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d, 0)), t+0.12, hd*16, "triangle", 0.025);
+        }
+        // Floating melody note every 6 steps
+        if (step%6===0) {
+          const deg=[0,2,4,6,5,3,1][step%7];
+          note(ctx, degreeToFreq(melRoot, scl, deg, 1), "sine", 0.07, hd*4, t);
+          note(ctx, degreeToFreq(melRoot, scl, deg, 1)*1.005, "sine", 0.04, hd*4, t+0.02); // detuned twin for choir effect
+        }
+        // Sub pulse every 8 steps for depth
+        if (step%8===0) note(ctx, degreeToFreq(root, scl, 0, -1), "sine", 0.08, hd*7, t);
+
+      } else if (isLoFi) {
+        // LO-FI: dusty off-time drums, piano chords, vinyl crackle
+        const jitter = (Math.random()-0.5)*0.015; // tape wobble
+        if (pos===0) kick808(ctx, t+jitter, 0.55);
+        if (pos===4||pos===5) kick808(ctx, t+jitter, 0.35);
+        if (pos===4) snare(ctx, t+jitter, 0.42);
+        if (step%8===6) snare(ctx, t+jitter, 0.42);
+        hihat(ctx, t+jitter, pos%4===2, 0.1);
+        vinylCrackle(ctx, t);
+        // Jazzy piano chord every bar (simulate piano with multiple sine waves)
+        if (pos===0) {
+          const cdeg = chordDegs[bar%4];
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d, 0)), t, bd*2, "sine", 0.07);
+          // 7th note for jazzy feel
+          note(ctx, degreeToFreq(melRoot, scl, 6, 0), "sine", 0.04, bd*2, t);
+        }
+        // Soft bass walk
+        if (pos===0||pos===3||pos===6) {
+          const bassNotes=[0,5,4,0]; const idx=Math.floor(step/2)%bassNotes.length;
+          note(ctx, degreeToFreq(root,scl,bassNotes[idx],1)*2, "triangle", 0.09, hd*1.4, t);
+        }
+
+      } else {
+        // EDM / PULSEWAVE / DEFAULT: energetic synths, hard kicks, heavy bass
+        if (pos===0||pos===4) kick808(ctx, t, 0.9);
+        if (pos===2||pos===6) kick808(ctx, t, 0.55);
+        if (pos===4) snare(ctx, t, 0.65, true);
+        if (step%8===6) snare(ctx, t, 0.65, true);
+        hihat(ctx, t, pos%4===0, pos%4===0?0.15:0.1);
+        // Aggressive sawtooth lead
+        if (pos===0) {
+          const cdeg = chordDegs[bar%4];
+          chord(ctx, cdeg.map(d=>degreeToFreq(melRoot, scl, d, 0)), t, bd*2, "sawtooth", 0.06);
+        }
+        // EDM bass drop
+        if (pos===0||pos===2||pos===5) {
+          bass808(ctx, degreeToFreq(root, scl, [0,0,5,0][pos%4], 0), t, hd*0.9, 0.65);
+        }
+        // Arpeggio melody
+        if (step%3===0) note(ctx, degreeToFreq(melRoot,scl,step%7,1), "square", 0.04, hd*0.4, t);
+      }
+
+      step++;
+    }
+  };
+
+  const stopTrack = () => {
+    if (stopRef.current){stopRef.current();stopRef.current=null;}
+    window.speechSynthesis?.cancel();
+    setPlayingId(null); setPerformingId(null); setPerformStatus("idle");
+  };
 
   const playAiTrack = (track: AiTrack) => {
     stopTrack();
     const ctx = ensureAudio();
-    const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
-    const genre = MUSIC_GENRES[track.genre] || MUSIC_GENRES["Pulsewave"];
-    const scl = MUSIC_SCALES[pulse.scale] || MUSIC_SCALES.minor;
-    const beatDur = 60/track.bpm; const rootFreq = 220;
+    const genreKey = track.genre;
     let cancelled = false; stopRef.current = ()=>{cancelled=true;};
-    for (let step=0; step<track.beats; step++) {
-      if (cancelled) break;
-      const t = ctx.currentTime + 0.05 + step*beatDur;
-      if (genre.drums) {
-        if (step%4===0) scheduleKick(ctx,t);
-        if (step%4===2 && Math.random()<0.7+track.randomness*0.2) scheduleSnare(ctx,t);
-      }
-      if (genre.bass && step%2===0) {
-        const deg=[0,2,4,5][Math.floor(Math.random()*4)];
-        createSynth(ctx,degreeToFreq(rootFreq,scl,deg,-1),"sawtooth",0.22+track.randomness*0.1,0.25,0.05+step*beatDur);
-      }
-      if (genre.pad && step%4===0) {
-        const deg=[0,2,4,6][Math.floor(Math.random()*4)];
-        createSynth(ctx,degreeToFreq(rootFreq,scl,deg,0),"triangle",0.15+track.randomness*0.1,0.7+track.randomness*0.6,0.05+step*beatDur);
-      }
-      if (genre.melody && step%3===0 && Math.random()<0.6) {
-        const deg=[0,1,2,3,4,5,6][Math.floor(Math.random()*7)];
-        createSynth(ctx,degreeToFreq(rootFreq,scl,deg,1),"sine",0.08+track.randomness*0.05,0.3,0.05+step*beatDur);
-      }
-    }
+    scheduleBeat(ctx, track, track.pulseKey, genreKey);
     setPlayingId(track.id);
-    setTimeout(()=>{if(!cancelled) setPlayingId(null);},(track.beats*beatDur+1)*1000);
+    const beatDur = (60/track.bpm)*track.beats;
+    setTimeout(()=>{if(!cancelled)setPlayingId(null);},(beatDur+1)*1000);
+  };
+
+  const performTrackWithArtist = async (track: AiTrack, artist: AiArtist) => {
+    stopTrack();
+    const ctx = ensureAudio();
+    let cancelled = false;
+    stopRef.current = ()=>{ cancelled=true; window.speechSynthesis?.cancel(); };
+
+    setPerformingId(track.id); setPerformStatus("loading-lyrics");
+
+    // Get or generate lyrics
+    let lyrics = lyricsCache.current[track.id];
+    if (!lyrics) {
+      const voiceGuide = artist.voiceType==="rapping"
+        ? "Write hard-hitting rap lyrics with rhyming bars, vivid street imagery, and punchy delivery."
+        : artist.voiceType==="choir"
+        ? "Write powerful anthem/choir lyrics with spiritual verses, builds, and uplifting choruses."
+        : artist.voiceType==="experimental"
+        ? "Write precise, glitchy experimental spoken word lyrics — mathematical, cryptic, layered."
+        : "Write soulful melodic song lyrics with emotional verses and memorable choruses.";
+      try {
+        const res = await fetch("/api/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:`You are ${artist.name}. ${voiceGuide}\nWrite lyrics for "${track.title}" (${track.genre}, ${artist.mood} mood).\nArtist style: ${artist.voiceDesc}\nFormat: [Verse 1], [Chorus], [Verse 2], [Bridge]. 16-24 lines. Make it powerful and authentic.`}]})});
+        const d = await res.json(); lyrics = d.content||"";
+        lyricsCache.current[track.id] = lyrics;
+        setLyricsText(lyrics); setLyricsTrackId(track.id);
+      } catch { lyrics=""; }
+    } else {
+      setLyricsText(lyrics); setLyricsTrackId(track.id);
+    }
+
+    if (cancelled) return;
+
+    // Start beat
+    scheduleBeat(ctx, track, track.pulseKey, track.genre);
+    setPerformStatus("performing");
+
+    // Perform lyrics via speech synthesis
+    if (lyrics && window.speechSynthesis) {
+      // Strip section labels, keep only actual lyric lines
+      const cleanLines = lyrics
+        .split('\n')
+        .filter(l=>l.trim()&&!l.match(/^\[.*\]$/))
+        .join('\n');
+
+      const utter = new SpeechSynthesisUtterance(cleanLines);
+      const voices = window.speechSynthesis.getVoices();
+      const voiceConfig = ARTIST_VOICE[artist.id] || {rate:1.0, pitch:1.0};
+
+      // Pick voice by artist type
+      let selectedVoice = null;
+      if (artist.voiceType==="rapping"||artist.voiceType==="experimental") {
+        // Deep/male voice for rappers
+        selectedVoice = voices.find(v=>v.name.toLowerCase().includes("daniel")||v.name.toLowerCase().includes("alex")||v.name.toLowerCase().includes("fred")||v.name.toLowerCase().includes("ralph"))
+          || voices.find(v=>v.lang.startsWith("en")&&v.name.toLowerCase().includes("male"))
+          || voices.find(v=>v.lang.startsWith("en")&&v.localService);
+      } else if (artist.voiceType==="choir") {
+        selectedVoice = voices.find(v=>v.name.toLowerCase().includes("samantha")||v.name.toLowerCase().includes("victoria")||v.name.toLowerCase().includes("karen"))
+          || voices.find(v=>v.lang.startsWith("en"));
+      } else {
+        // Female/high voice for singers
+        selectedVoice = voices.find(v=>v.name.toLowerCase().includes("samantha")||v.name.toLowerCase().includes("victoria")||v.name.toLowerCase().includes("karen")||v.name.toLowerCase().includes("fiona"))
+          || voices.find(v=>v.lang.startsWith("en")&&v.localService)
+          || voices.find(v=>v.lang.startsWith("en"));
+      }
+      if (selectedVoice) utter.voice = selectedVoice;
+      utter.rate = voiceConfig.rate;
+      utter.pitch = voiceConfig.pitch;
+      utter.volume = 0.85;
+      utter.onend = () => { if(!cancelled){setPerformingId(null);setPerformStatus("idle");} };
+      window.speechSynthesis.speak(utter);
+    }
+
+    // Beat timeout
+    const beatDur = (60/track.bpm)*track.beats;
+    setTimeout(()=>{if(!cancelled){setPlayingId(null);}}, (beatDur+1)*1000);
   };
 
   const playUserTrack = (track: TrackCard) => {
     stopTrack();
     const ctx = ensureAudio();
-    const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
-    const genre = MUSIC_GENRES[track.genreKey]||MUSIC_GENRES["Pulsewave"];
-    const useScale = track.scale==="auto"?pulse.scale:track.scale;
-    const scl = MUSIC_SCALES[useScale]||MUSIC_SCALES.minor;
-    const beatDur = 60/track.bpm; const rootFreq = 220;
     let cancelled = false; stopRef.current = ()=>{cancelled=true;};
-    for (let step=0;step<track.beats;step++) {
-      if (cancelled) break;
-      const t = ctx.currentTime+0.05+step*beatDur;
-      if (genre.drums){if(step%4===0)scheduleKick(ctx,t);if(step%4===2&&Math.random()<0.7+track.randomness*0.2)scheduleSnare(ctx,t);}
-      if (genre.bass&&step%2===0){const deg=[0,2,4,5][Math.floor(Math.random()*4)];createSynth(ctx,degreeToFreq(rootFreq,scl,deg,-1),"sawtooth",0.22+track.randomness*0.1,0.25,0.05+step*beatDur);}
-      if (genre.pad&&step%4===0){const deg=[0,2,4,6][Math.floor(Math.random()*4)];createSynth(ctx,degreeToFreq(rootFreq,scl,deg,0),"triangle",0.15+track.randomness*0.1,0.7+track.randomness*0.6,0.05+step*beatDur);}
-      if (genre.melody&&step%3===0&&Math.random()<0.6){const deg=[0,1,2,3,4,5,6][Math.floor(Math.random()*7)];createSynth(ctx,degreeToFreq(rootFreq,scl,deg,1),"sine",0.08,0.3,0.05+step*beatDur);}
-    }
+    scheduleBeat(ctx, track, track.pulseKey, track.genreKey);
     setPlayingId(track.id);
-    setTimeout(()=>{if(!cancelled)setPlayingId(null);},(track.beats*beatDur+1)*1000);
+    const beatDur = (60/track.bpm)*track.beats;
+    setTimeout(()=>{if(!cancelled)setPlayingId(null);},(beatDur+1)*1000);
+  };
+
+  const performCreatorTrack = (track: TrackCard, lyrics: string, voice: "singing"|"rapping") => {
+    stopTrack();
+    const ctx = ensureAudio();
+    let cancelled = false; stopRef.current = ()=>{ cancelled=true; window.speechSynthesis?.cancel(); };
+    scheduleBeat(ctx, track, track.pulseKey, track.genreKey);
+    setPlayingId(track.id); setPerformingId(track.id); setPerformStatus("performing");
+    if (lyrics && window.speechSynthesis) {
+      const cleanLines = lyrics.split('\n').filter(l=>l.trim()&&!l.match(/^\[.*\]$/)).join('\n');
+      const utter = new SpeechSynthesisUtterance(cleanLines);
+      const voices = window.speechSynthesis.getVoices();
+      if (voice==="rapping") {
+        const v = voices.find(v=>v.lang.startsWith("en")&&v.localService)||voices.find(v=>v.lang.startsWith("en"));
+        if(v) utter.voice=v; utter.rate=1.6; utter.pitch=0.6;
+      } else {
+        const v = voices.find(v=>v.name.toLowerCase().includes("samantha")||v.name.toLowerCase().includes("victoria"))||voices.find(v=>v.lang.startsWith("en"));
+        if(v) utter.voice=v; utter.rate=0.88; utter.pitch=1.25;
+      }
+      utter.volume=0.85;
+      utter.onend=()=>{if(!cancelled){setPerformingId(null);setPerformStatus("idle");}};
+      window.speechSynthesis.speak(utter);
+    }
+    const beatDur = (60/track.bpm)*track.beats;
+    setTimeout(()=>{if(!cancelled)setPlayingId(null);},(beatDur+1)*1000);
   };
 
   const generateLyrics = async (track: AiTrack, artist: AiArtist) => {
@@ -7903,11 +8179,14 @@ function MusicPage() {
     setCreatorLoading(false);
   };
 
-  const WaveBar = ({color,isPlaying}:{color:string;isPlaying:boolean}) => (
-    <div className="flex gap-0.5 items-end h-5">
-      {Array.from({length:12}).map((_,i)=>(
-        <div key={i} className={`w-0.5 rounded-sm ${isPlaying?"animate-pulse":"opacity-30"}`} style={{height:`${20+Math.random()*80}%`,background:color,animationDelay:`${i*0.06}s`}}/>
-      ))}
+  const WaveBar = ({color,isPlaying,label}:{color:string;isPlaying:boolean;label?:string}) => (
+    <div className="flex items-center gap-2">
+      <div className="flex gap-0.5 items-end h-5">
+        {Array.from({length:12}).map((_,i)=>(
+          <div key={i} className={`w-0.5 rounded-sm ${isPlaying?"animate-pulse":"opacity-30"}`} style={{height:`${20+Math.random()*80}%`,background:color,animationDelay:`${i*0.06}s`}}/>
+        ))}
+      </div>
+      {label&&<span className="text-[10px] animate-pulse" style={{color}}>{label}</span>}
     </div>
   );
 
@@ -7926,7 +8205,7 @@ function MusicPage() {
             <h1 className="text-base font-extrabold text-white" data-testid="text-music-title">Quantum Sound Records</h1>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-pink-500 text-white px-2 py-0.5 rounded-full font-bold">AI MUSIC LABEL</span>
           </div>
-          {playingId&&<div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/10"><div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"/><span className="text-white/60 text-xs">Playing</span><button onClick={stopTrack} className="text-white/40 hover:text-red-400 text-xs">✕</button></div>}
+          {(playingId||performingId)&&<div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border ${performingId?"bg-green-500/10 border-green-500/20":"bg-white/5 border-white/10"}`}><div className={`w-1.5 h-1.5 rounded-full animate-pulse ${performingId?"bg-green-400":"bg-white/50"}`}/><span className="text-white/60 text-xs">{performingId?"🎤 Performing LIVE":"▶ Playing"}</span><button onClick={stopTrack} className="text-white/40 hover:text-red-400 text-xs">✕</button></div>}
         </div>
         <div className="flex gap-1.5">{NAV_TABS.map(t=>(<button key={t.id} onClick={()=>{setView(t.id);setSelectedArtistId(null);setSelectedAlbumId(null);setLyricsTrackId(null);}} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${view===t.id||((view==="artist"||view==="album")&&t.id===(view==="artist"?"artists":"albums"))?"bg-white text-gray-900":"bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70"}`}>{t.label}</button>))}</div>
       </div>
@@ -7936,22 +8215,32 @@ function MusicPage() {
   const TrackRow = ({track,artistOrAlbum,onLyrics}:{track:AiTrack;artistOrAlbum:AiArtist|AiAlbum|null;onLyrics?:()=>void}) => {
     const pulse = PULSE_COLORS_DEF[track.pulseKey as keyof typeof PULSE_COLORS_DEF];
     const isPlaying = playingId===track.id;
+    const isPerforming = performingId===track.id;
     const isLyrics = lyricsTrackId===track.id;
+    const artist = artistOrAlbum && "voiceType" in artistOrAlbum ? (artistOrAlbum as AiArtist) : null;
     return (
-      <div className={`rounded-xl p-3 border transition-all ${isPlaying?"border-white/20 bg-white/5":"border-white/5 bg-white/[0.02] hover:bg-white/5"}`}>
+      <div className={`rounded-xl p-3 border transition-all ${isPlaying||isPerforming?"border-white/20 bg-white/5":"border-white/5 bg-white/[0.02] hover:bg-white/5"}`}>
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{background:`${pulse.color}25`}}>
-            {isPlaying?<Activity size={14} style={{color:pulse.color}} className="animate-pulse"/>:<Music size={14} style={{color:pulse.color}}/>}
+            {isPerforming?<Mic size={14} style={{color:pulse.color}} className="animate-pulse"/>:isPlaying?<Activity size={14} style={{color:pulse.color}} className="animate-pulse"/>:<Music size={14} style={{color:pulse.color}}/>}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-white text-sm font-semibold truncate">{track.title}</div>
             <div className="text-white/35 text-[10px] flex items-center gap-1.5">
               <span>{track.genre}</span><span>·</span><span>{track.bpm} BPM</span><span>·</span><span>{track.duration}</span>
+              {isPerforming&&<span className="text-green-400 animate-pulse">🎤 {performStatus==="loading-lyrics"?"Writing lyrics...":"Performing LIVE"}</span>}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {onLyrics&&<button onClick={onLyrics} data-testid={`button-lyrics-${track.id}`} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${isLyrics?"bg-violet-500/20 border-violet-500/40 text-violet-300":"border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>{isLyrics&&lyricsLoading?"...":(isLyrics?"Lyrics":"Lyrics")}</button>}
-            {isPlaying?(
+            {onLyrics&&<button onClick={onLyrics} data-testid={`button-lyrics-${track.id}`} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${isLyrics?"bg-violet-500/20 border-violet-500/40 text-violet-300":"border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>{isLyrics&&lyricsLoading?"...":"Lyrics"}</button>}
+            {artist&&(isPlaying||isPerforming)?(
+              <button onClick={stopTrack} data-testid={`button-stop-${track.id}`} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-red-500/30 text-red-400 hover:bg-red-500/10">⏹ Stop</button>
+            ):artist?(
+              <div className="flex items-center gap-1">
+                <button onClick={()=>playAiTrack(track)} data-testid={`button-play-${track.id}`} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white/70 border border-white/15 hover:bg-white/10" title="Play beat only">▶</button>
+                <button onClick={()=>performTrackWithArtist(track, artist)} data-testid={`button-perform-${track.id}`} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{background:pulse.color}} title="Perform: beat + artist voice">🎤 Perform</button>
+              </div>
+            ):isPlaying?(
               <button onClick={stopTrack} data-testid={`button-stop-${track.id}`} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 text-white/70 hover:bg-white/10">⏹</button>
             ):(
               <button onClick={()=>playAiTrack(track)} data-testid={`button-play-${track.id}`} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{background:pulse.color}}>▶</button>
@@ -7965,9 +8254,12 @@ function MusicPage() {
             ):(
               <div className="text-white/70 text-xs leading-relaxed whitespace-pre-line font-mono">{lyricsText}</div>
             )}
+            {lyricsText&&!lyricsLoading&&artist&&(
+              <button onClick={()=>performTrackWithArtist(track, artist)} className="mt-3 px-4 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5" style={{background:pulse.color}} data-testid={`button-perform-lyrics-${track.id}`}>🎤 Perform This Song Now</button>
+            )}
           </div>
         )}
-        {isPlaying&&<div className="mt-2"><WaveBar color={pulse.color} isPlaying={true}/></div>}
+        {(isPlaying||isPerforming)&&<div className="mt-2"><WaveBar color={pulse.color} isPlaying={true} label={isPerforming?"🎤 LIVE PERFORMANCE":undefined}/></div>}
       </div>
     );
   };
@@ -8121,7 +8413,12 @@ function MusicPage() {
             <div className="rounded-2xl p-5 border border-violet-500/20 bg-violet-500/5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-white font-bold text-sm">Generated Lyrics</h3>
-                {creatorTrack&&(<button onClick={()=>playUserTrack(creatorTrack)} data-testid="creator-button-play-beat" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white" style={{background:PULSE_COLORS_DEF[creatorPulse as keyof typeof PULSE_COLORS_DEF]?.color||"#8b5cf6"}}>▶ Play Beat</button>)}
+                {creatorTrack&&(
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={()=>playUserTrack(creatorTrack)} data-testid="creator-button-play-beat" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-white/70 border border-white/15 hover:bg-white/10">▶ Beat</button>
+                    <button onClick={()=>performCreatorTrack(creatorTrack, creatorLyrics, creatorVoice)} data-testid="creator-button-perform" className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white" style={{background:PULSE_COLORS_DEF[creatorPulse as keyof typeof PULSE_COLORS_DEF]?.color||"#8b5cf6"}}>🎤 Perform Live</button>
+                  </div>
+                )}
               </div>
               <div className="text-white/70 text-xs leading-relaxed whitespace-pre-line font-mono bg-black/20 rounded-xl p-4">{creatorLyrics}</div>
             </div>
