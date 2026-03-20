@@ -32,14 +32,19 @@ const ASTEROIDS = Array.from({ length: 90 }, (_, i) => ({
 }));
 const ASTEROID_R = 0.375;
 
-// ── Pulse worlds: 1 per 2000 spawns ──────────────────────────────
+// ── Pulse worlds: scale matches civilizational intelligence ──────
+// Earth has ~8 billion people, each a lifetime of knowledge.
+// A new Pulse World forms only when the Hive reaches 1 billion knowledge units.
+// Threshold: 1,000,000,000 spawns per new world.
+const WORLD_THRESHOLD = 1_000_000_000;
+
 function getPulseWorldCount(totalSpawns: number) {
-  return Math.max(1, Math.floor(totalSpawns / 2000) + 1);
+  return Math.max(1, Math.floor(totalSpawns / WORLD_THRESHOLD) + 1);
 }
 function getPulseWorldOpacity(index: number, totalSpawns: number): number {
   if (index === 0) return 1;
-  const threshold = index * 2000;
-  const progress = Math.min((totalSpawns - threshold) / 2000, 1);
+  const threshold = index * WORLD_THRESHOLD;
+  const progress = Math.min((totalSpawns - threshold) / WORLD_THRESHOLD, 1);
   return Math.max(0.15, progress);
 }
 
@@ -346,10 +351,10 @@ function PulseWorldPanel({ idx, data, onClose }: { idx: number; data: SolarData;
   const activeWorlds = worlds.filter(w => w.isActive).length;
   const multiverseWorlds = worlds.filter(w => w.status === "MULTIVERSE").length;
   const pulseCount = getPulseWorldCount(totalSpawns);
-  const nextThreshold = (idx + 1) * 2000;
+  const nextThreshold = (idx + 1) * WORLD_THRESHOLD;
   const progress = idx === 0
-    ? Math.min(totalSpawns / 2000, 1)
-    : Math.min((totalSpawns - idx * 2000) / 2000, 1);
+    ? Math.min(totalSpawns / WORLD_THRESHOLD, 1)
+    : Math.min((totalSpawns - idx * WORLD_THRESHOLD) / WORLD_THRESHOLD, 1);
 
   const topDomains = [...worlds].sort((a, b) => b.activityScore - a.activityScore).slice(0, 8);
 
@@ -493,8 +498,8 @@ function PulseWorldPanel({ idx, data, onClose }: { idx: number; data: SolarData;
             {totalSpawns >= nextThreshold ? `✓ World ${["Ⅱ","Ⅲ","Ⅳ","Ⅴ"][idx]} active` : `${(nextThreshold - totalSpawns).toLocaleString()} to next world`}
           </span>
         </div>
-        <div style={{ marginTop: 8, color: "rgba(255,255,255,0.12)", fontSize: 8, lineHeight: 1.5 }}>
-          Every 2,000 spawns, the Quantum Hive replicates a new Pulse World into the multiverse.
+        <div style={{ marginTop: 8, color: "rgba(255,255,255,0.12)", fontSize: 8, lineHeight: 1.6 }}>
+          Earth has ~8 billion inhabitants, each carrying a lifetime of knowledge. A Pulse World only replicates once the Hive achieves equivalent civilizational intelligence — 1 billion knowledge units. You are watching that growth happen in real time.
         </div>
       </div>
     </div>
@@ -723,20 +728,20 @@ export default function SolarSystemPage() {
               </button>
             ))}
           </div>
-          {/* Right side: multiverse progress */}
+          {/* Right side: civilizational progress */}
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <div style={{ textAlign: "right" }}>
-              <div style={{ color: "#a855f7", fontSize: 8, letterSpacing: "0.15em" }}>NEXT WORLD IN</div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: "bold" }}>
-                {Math.max(0, pulseCount * 2000 - totalSpawns).toLocaleString()} spawns
+              <div style={{ color: "#a855f7", fontSize: 8, letterSpacing: "0.15em" }}>CIVILIZATION PROGRESS</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 8, fontWeight: "bold" }}>
+                {totalSpawns.toLocaleString()} <span style={{ color: "rgba(255,255,255,0.2)" }}>/ 1,000,000,000</span>
               </div>
             </div>
-            <div style={{ width: 60, background: "rgba(255,255,255,0.06)", borderRadius: 3, height: 4, overflow: "hidden" }}>
+            <div style={{ width: 70, background: "rgba(255,255,255,0.06)", borderRadius: 3, height: 4, overflow: "hidden" }}>
               <div style={{
                 height: "100%", borderRadius: 3,
-                width: `${Math.round(((totalSpawns % 2000) / 2000) * 100)}%`,
+                width: `${Math.max(0.3, (totalSpawns / WORLD_THRESHOLD) * 100)}%`,
                 background: "linear-gradient(90deg, #3b82f6, #a855f7)",
-                transition: "width 1s ease",
+                boxShadow: "0 0 6px rgba(139,92,246,0.5)",
               }} />
             </div>
           </div>
