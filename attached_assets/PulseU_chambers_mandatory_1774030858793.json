@@ -1,0 +1,157 @@
+{
+  "name": "PulseU \u2014 Chambers Mandatories",
+  "version": "1.0",
+  "generated_at": "2025-11-01T18:14:22.974039",
+  "courses": [
+    {
+      "course_id": "CHAM-001",
+      "title": "Reflex Testing - Validate modules, log validated events",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-002",
+      "title": "Code Forge - Auto-generate helper scripts",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-003",
+      "title": "Site Builder - Create HTML pages, simulate clickstreams",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-004",
+      "title": "Business Launcher - Write funnel plan JSONs",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-005",
+      "title": "Publishing Engine - Simulate multi-channel publishing",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-006",
+      "title": "Cadence Composer - Log daily schedules with variance",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-007",
+      "title": "Mutation Engine - Record optimize/modify actions",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-008",
+      "title": "Fusion Engine - Combine strategies into hybrids",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-009",
+      "title": "Platform Learner - Study platform features",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-010",
+      "title": "Persona Remix - Emit persona JSONs",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-011",
+      "title": "Clickstream Mapper - Simulate user sessions, update maps",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-012",
+      "title": "Competitive Strategist - Maintain competitive maps",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-013",
+      "title": "Platform Scout - Scan for new/updated sites",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-014",
+      "title": "Content Scout - Surface publishing queue items",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    },
+    {
+      "course_id": "CHAM-015",
+      "title": "Opportunity Scout - Analyze drop-offs, suggest fixes",
+      "mandatory": true,
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "reward_pc": 25,
+      "stake_pc": 4,
+      "grading": "pass_fail"
+    }
+  ]
+}

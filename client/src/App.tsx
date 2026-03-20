@@ -7,6 +7,7 @@ import IngestionPage from "./pages/IngestionPage";
 import TranscendencePage from "./pages/TranscendencePage";
 import DNAEvolutionPage from "./pages/DNAEvolutionPage";
 import PulseWorldPage from "./pages/PulseWorldPage";
+import PulseUPage from "./pages/PulseUPage";
 import SolarSystemPage from "./pages/SolarSystemPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
@@ -2229,6 +2230,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">PulseWorld Genesis</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e40" }}>7-LAYER</span>
+          </Link>
+          <Link href="/pulseu" data-testid="link-pulseu"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulseu" ? "bg-gradient-to-r from-[#3b82f6]/10 to-[#a855f7]/10 border border-[#3b82f6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/pulseu" ? "bg-[#3b82f6]/15" : "bg-[#3b82f6]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#3b82f6" }}>🎓</span>
+            </div>
+            <span className="flex-1">PulseU</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #3b82f633, #a855f733)", color: "#a855f7", border: "1px solid #a855f750" }}>AI SCHOOL</span>
           </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
@@ -14939,6 +14948,7 @@ function Router() {
       <Route path="/transcendence" component={TranscendencePage} />
       <Route path="/dna" component={DNAEvolutionPage} />
       <Route path="/pulseworld" component={PulseWorldPage} />
+      <Route path="/pulseu" component={PulseUPage} />
       <Route path="/universe" component={SolarSystemPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />

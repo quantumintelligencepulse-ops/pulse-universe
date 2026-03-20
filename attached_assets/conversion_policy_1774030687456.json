@@ -1,0 +1,18 @@
+{
+  "conversion_policy": {
+    "pc_to_plsc_claim": "non_linear_score",
+    "weights": {
+      "breadth": 0.35,
+      "coop_success": 0.35,
+      "proof_quality": 0.2,
+      "mentorship": 0.1
+    },
+    "caps": {
+      "per_spawn_plsc_max": 10000
+    },
+    "vesting": {
+      "cliff_months": 6,
+      "duration_months": 24
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "name": "PulseU \u2014 Crypto Mining: Economics",
+  "version": "1.0",
+  "generated_at": "2025-11-01T20:08:02.922192",
+  "description": "",
+  "courses": [
+    {
+      "course_id": "MIN-ECO-001",
+      "title": "Hashprice & Difficulty",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-002",
+      "title": "Halving Scenarios",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-003",
+      "title": "Capex & Opex Modeling",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-004",
+      "title": "Power Contracts & PPAs",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-005",
+      "title": "Hosting Contracts",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-006",
+      "title": "Pool Fees & Luck",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-007",
+      "title": "ROI & Payback",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-008",
+      "title": "Hedging Output",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-009",
+      "title": "Treasury Strategy",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "MIN-ECO-010",
+      "title": "Sensitivity Analysis",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "payback_months_max": 24
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    }
+  ]
+}

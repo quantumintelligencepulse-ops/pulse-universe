@@ -1,0 +1,217 @@
+{
+  "name": "PulseU \u2014 Crypto Trading (CeFi & DeFi)",
+  "version": "1.0",
+  "generated_at": "2025-11-01T20:03:39.963296",
+  "courses": [
+    {
+      "course_id": "CRY-001",
+      "title": "Spot vs Perps",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-002",
+      "title": "Funding & Basis",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-003",
+      "title": "DEX Routing & Gas",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-004",
+      "title": "Arbitrage Loops",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-005",
+      "title": "Perp Funding Harvest",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-006",
+      "title": "DeFi Risk",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-007",
+      "title": "On-chain Analytics",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-008",
+      "title": "MEV Awareness",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-009",
+      "title": "Listing Plays",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "CRY-010",
+      "title": "Volatility Regimes",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    }
+  ]
+}

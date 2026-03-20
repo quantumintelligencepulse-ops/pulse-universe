@@ -1,0 +1,217 @@
+{
+  "name": "PulseU \u2014 Execution Algos & TCA",
+  "version": "1.0",
+  "generated_at": "2025-11-01T20:03:39.964095",
+  "courses": [
+    {
+      "course_id": "EXE-001",
+      "title": "VWAP/TWAP/Bucket",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-002",
+      "title": "POV & IS",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-003",
+      "title": "Arrival Price & Implementation Shortfall",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-004",
+      "title": "Child Orders & Slicing",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-005",
+      "title": "Venue Selection",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-006",
+      "title": "Slippage Modeling",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-007",
+      "title": "Pre/Post-Trade TCA",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-008",
+      "title": "Anti-Gaming",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-009",
+      "title": "Minimize Signaling",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    },
+    {
+      "course_id": "EXE-010",
+      "title": "Broker Comparisons",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 50,
+      "stake_pc": 8,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "win_rate": 0.52,
+        "sharpe_min": 0.8,
+        "max_drawdown_pct": 0.1,
+        "slippage_bps_max": 25
+      },
+      "proof_requirements": [
+        "orders_csv",
+        "pnl_csv",
+        "charts",
+        "strategy_json"
+      ]
+    }
+  ]
+}

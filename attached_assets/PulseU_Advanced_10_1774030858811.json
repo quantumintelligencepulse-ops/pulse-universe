@@ -1,0 +1,506 @@
+{
+  "name": "PulseU Advanced Packs \u2014 10/10",
+  "version": "1.0",
+  "generated_at": "2025-11-01T16:37:29.266113",
+  "count": 12,
+  "advanced_classes": [
+    {
+      "id": "ADV-145",
+      "industry_id": "GICS-IND-145",
+      "sector": "Materials",
+      "industry_group": "Semiconductors & Semiconductor Equipment",
+      "title": "GICS-IND-145 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "CS-DATA-101",
+        "CS-SQL-101",
+        "BUS-ACCT-101",
+        "CS-WEB-101"
+      ],
+      "pip_combo": [
+        "PIP-0146",
+        "PIP-0334",
+        "PIP-0360",
+        "PIP-0311",
+        "PIP-0330",
+        "PIP-0252"
+      ],
+      "challenges": [
+        "CHLG-04"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-146",
+      "industry_id": "GICS-IND-146",
+      "sector": "Industrials",
+      "industry_group": "Telecommunication Services",
+      "title": "GICS-IND-146 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "CS-WEB-101",
+        "BUS-LAW-101",
+        "CS-DATA-101",
+        "GEN-MATH-101"
+      ],
+      "pip_combo": [
+        "PIP-0030",
+        "PIP-0153",
+        "PIP-0311",
+        "PIP-0151",
+        "PIP-0283",
+        "PIP-0240"
+      ],
+      "challenges": [
+        "CHLG-02"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-147",
+      "industry_id": "GICS-IND-147",
+      "sector": "Consumer Discretionary",
+      "industry_group": "Media & Entertainment",
+      "title": "GICS-IND-147 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "BUS-FIN-101",
+        "CS-SQL-101",
+        "GEN-STATS-101",
+        "GEN-ENG-101"
+      ],
+      "pip_combo": [
+        "PIP-0240",
+        "PIP-0001",
+        "PIP-0074",
+        "PIP-0080",
+        "PIP-0349",
+        "PIP-0339"
+      ],
+      "challenges": [
+        "CHLG-04",
+        "CHLG-01"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-148",
+      "industry_id": "GICS-IND-148",
+      "sector": "Consumer Staples",
+      "industry_group": "Utilities",
+      "title": "GICS-IND-148 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "BUS-LAW-101",
+        "BUS-MKT-101",
+        "GEN-ENG-101",
+        "BUS-ACCT-101"
+      ],
+      "pip_combo": [
+        "PIP-0332",
+        "PIP-0075",
+        "PIP-0330",
+        "PIP-0252",
+        "PIP-0080",
+        "PIP-0091"
+      ],
+      "challenges": [
+        "CHLG-01",
+        "CHLG-02"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-149",
+      "industry_id": "GICS-IND-149",
+      "sector": "Health Care",
+      "industry_group": "Real Estate",
+      "title": "GICS-IND-149 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "GEN-ENG-101",
+        "GEN-STATS-101",
+        "CS-SQL-101",
+        "GEN-SPEECH-101"
+      ],
+      "pip_combo": [
+        "PIP-0067",
+        "PIP-0252",
+        "PIP-0001",
+        "PIP-0283",
+        "PIP-0222",
+        "PIP-0064"
+      ],
+      "challenges": [
+        "CHLG-02",
+        "CHLG-01"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-150",
+      "industry_id": "GICS-IND-150",
+      "sector": "Financials",
+      "industry_group": "Equity REITs",
+      "title": "GICS-IND-150 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "GEN-SPEECH-101",
+        "GEN-ENG-101",
+        "CS-SQL-101",
+        "BUS-MGMT-101"
+      ],
+      "pip_combo": [
+        "PIP-0352",
+        "PIP-0080",
+        "PIP-0308",
+        "PIP-0291",
+        "PIP-0219",
+        "PIP-0366"
+      ],
+      "challenges": [
+        "CHLG-04",
+        "CHLG-03"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-151",
+      "industry_id": "GICS-IND-151",
+      "sector": "Information Technology",
+      "industry_group": "Energy",
+      "title": "GICS-IND-151 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "GEN-ENG-101",
+        "CS-WEB-101",
+        "BUS-LAW-101",
+        "BUS-MGMT-101"
+      ],
+      "pip_combo": [
+        "PIP-0065",
+        "PIP-0339",
+        "PIP-0327",
+        "PIP-0260",
+        "PIP-0297",
+        "PIP-0149"
+      ],
+      "challenges": [
+        "CHLG-01",
+        "CHLG-03"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-152",
+      "industry_id": "GICS-IND-152",
+      "sector": "Communication Services",
+      "industry_group": "Materials",
+      "title": "GICS-IND-152 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "BUS-MGMT-101",
+        "CS-WEB-101",
+        "GEN-SPEECH-101",
+        "BUS-MKT-101"
+      ],
+      "pip_combo": [
+        "PIP-0230",
+        "PIP-0030",
+        "PIP-0349",
+        "PIP-0326",
+        "PIP-0740",
+        "PIP-0061"
+      ],
+      "challenges": [
+        "CHLG-02"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-153",
+      "industry_id": "GICS-IND-153",
+      "sector": "Utilities",
+      "industry_group": "Capital Goods",
+      "title": "GICS-IND-153 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "CS-DATA-101",
+        "GEN-SPEECH-101",
+        "CS-PY-101",
+        "CS-WEB-101"
+      ],
+      "pip_combo": [
+        "PIP-0083",
+        "PIP-0252",
+        "PIP-0326",
+        "PIP-0281",
+        "PIP-0303",
+        "PIP-0067"
+      ],
+      "challenges": [
+        "CHLG-02",
+        "CHLG-04"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-154",
+      "industry_id": "GICS-IND-154",
+      "sector": "Real Estate",
+      "industry_group": "Commercial & Professional Services",
+      "title": "GICS-IND-154 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "CS-DATA-101",
+        "GEN-SPEECH-101",
+        "CS-PY-101",
+        "GEN-ENG-101"
+      ],
+      "pip_combo": [
+        "PIP-0002",
+        "PIP-0075",
+        "PIP-0311",
+        "PIP-0222",
+        "PIP-0330",
+        "PIP-0210"
+      ],
+      "challenges": [
+        "CHLG-03"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-155",
+      "industry_id": "GICS-IND-155",
+      "sector": "Energy",
+      "industry_group": "Transportation",
+      "title": "GICS-IND-155 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "GEN-SPEECH-101",
+        "BUS-LAW-101",
+        "GEN-MATH-101",
+        "CS-WEB-101"
+      ],
+      "pip_combo": [
+        "PIP-0260",
+        "PIP-0303",
+        "PIP-0742",
+        "PIP-0003",
+        "PIP-0065",
+        "PIP-0308"
+      ],
+      "challenges": [
+        "CHLG-03"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    },
+    {
+      "id": "ADV-156",
+      "industry_id": "GICS-IND-156",
+      "sector": "Materials",
+      "industry_group": "Automobiles & Components",
+      "title": "GICS-IND-156 \u2014 Advanced Builder",
+      "prerequisites": [
+        "SPEC-*",
+        "CHAM-*",
+        "SIM-CORE"
+      ],
+      "unlock_condition": "After mandatory stack; Graduation not required.",
+      "education_map": [
+        "CS-WEB-101",
+        "GEN-SPEECH-101",
+        "BUS-FIN-101",
+        "BUS-MKT-101"
+      ],
+      "pip_combo": [
+        "PIP-0361",
+        "PIP-0745",
+        "PIP-0259",
+        "PIP-0001",
+        "PIP-0061",
+        "PIP-0030"
+      ],
+      "challenges": [
+        "CHLG-01"
+      ],
+      "kpis": {
+        "lead_min": 1,
+        "sim_rev_targets": [
+          100,
+          1000
+        ]
+      },
+      "rewards": {
+        "reward_pc": 100,
+        "stake_pc": 10
+      }
+    }
+  ]
+}

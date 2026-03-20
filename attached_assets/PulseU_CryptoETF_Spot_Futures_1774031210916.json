@@ -1,0 +1,218 @@
+{
+  "name": "PulseU \u2014 Crypto ETF: Spot vs Futures",
+  "version": "1.0",
+  "generated_at": "2025-11-01T20:08:02.919085",
+  "description": "",
+  "courses": [
+    {
+      "course_id": "CETF-CORE-001",
+      "title": "Spot vs Futures Structures",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-002",
+      "title": "Surveillance-Sharing Agreements",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-003",
+      "title": "Custody & Cold Storage",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-004",
+      "title": "Futures Basis & Roll Yield",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-005",
+      "title": "AP Flow for Crypto",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-006",
+      "title": "NAV Calc with Fees",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-007",
+      "title": "Premium/Discount Patterns",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-008",
+      "title": "Market Hours & Gaps",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-009",
+      "title": "Pricing Sources & Oracles",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    },
+    {
+      "course_id": "CETF-CORE-010",
+      "title": "Liquidity Partners",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 45,
+      "stake_pc": 7,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 2,
+        "ctr": 0.02,
+        "roll_cost_bps_max": 75,
+        "pricing_outages_max": 0
+      },
+      "proof_requirements": [
+        "url_or_doc",
+        "spreadsheet_or_csv",
+        "screenshot",
+        "summary_pdf"
+      ]
+    }
+  ]
+}

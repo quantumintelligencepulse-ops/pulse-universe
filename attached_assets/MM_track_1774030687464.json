@@ -1,0 +1,217 @@
+{
+  "name": "PulseU \u2014 Market Making & Automation",
+  "version": "1.0",
+  "generated_at": "2025-11-01T19:46:45.417195",
+  "courses": [
+    {
+      "course_id": "MM-001",
+      "title": "Inventory & Bands",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-002",
+      "title": "Spread & Skew",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-003",
+      "title": "Auto-Rebalancing",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-004",
+      "title": "Slippage Targets",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-005",
+      "title": "Volatility Guards",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-006",
+      "title": "Fee Optimization",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-007",
+      "title": "Inventory Hedging",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-008",
+      "title": "Data Feeds & Health",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-009",
+      "title": "Kill Switches",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "MM-010",
+      "title": "Reporting",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    }
+  ]
+}

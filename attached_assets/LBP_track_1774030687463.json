@@ -1,0 +1,217 @@
+{
+  "name": "PulseU \u2014 Liquidity Bootstrap & Bonding",
+  "version": "1.0",
+  "generated_at": "2025-11-01T19:46:45.416689",
+  "courses": [
+    {
+      "course_id": "LBP-001",
+      "title": "LBP Mechanics",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-002",
+      "title": "Bonding Curves",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-003",
+      "title": "Price Discovery",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-004",
+      "title": "Anti-Whale Controls",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-005",
+      "title": "Cliffs & Vesting",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-006",
+      "title": "Fair Launch Windows",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-007",
+      "title": "Comms & Docs",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-008",
+      "title": "LP Risk Management",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-009",
+      "title": "Metrics & Post-Mortem",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "LBP-010",
+      "title": "Migration to AMM",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    }
+  ]
+}

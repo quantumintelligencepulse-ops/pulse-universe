@@ -1,0 +1,217 @@
+{
+  "name": "PulseU \u2014 DAO & Governance",
+  "version": "1.0",
+  "generated_at": "2025-11-01T19:46:45.416094",
+  "courses": [
+    {
+      "course_id": "DAO-001",
+      "title": "Token Voting vs Rep Voting",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-002",
+      "title": "Proposal Lifecycle",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-003",
+      "title": "Quorum & Thresholds",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-004",
+      "title": "Delegation & Councils",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-005",
+      "title": "Working Groups & Budgets",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-006",
+      "title": "Constitutional Law",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-007",
+      "title": "Elections & Terms",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-008",
+      "title": "Conflict Resolution",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-009",
+      "title": "Audits & Sunsets",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "DAO-010",
+      "title": "Emergency Powers",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    }
+  ]
+}

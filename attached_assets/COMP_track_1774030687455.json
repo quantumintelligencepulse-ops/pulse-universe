@@ -1,0 +1,217 @@
+{
+  "name": "PulseU \u2014 Compliance-by-Design",
+  "version": "1.0",
+  "generated_at": "2025-11-01T19:46:45.411005",
+  "courses": [
+    {
+      "course_id": "COMP-001",
+      "title": "PC Off-chain XP (no convert promise)",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-002",
+      "title": "Claim-based, Vested Token Drops",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-003",
+      "title": "KYC/Geo Windows for Claims/LP",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-004",
+      "title": "Logging & Reporting (journals)",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-005",
+      "title": "Partner Terms & SLAs",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-006",
+      "title": "Risk Disclosures & UX",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-007",
+      "title": "Data Retention & Privacy",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-008",
+      "title": "Audit Trails & Appeals",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-009",
+      "title": "Treasury Transparency",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "COMP-010",
+      "title": "Constitutional Amendments",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "oracle_policy": {
+    "signals": [
+      "burn_7d",
+      "emit_7d",
+      "activity_index",
+      "slippage_pct",
+      "treasury_usd_30d",
+      "escrow_success_rate"
+    ],
+    "thresholds": {
+      "burn_emit_min": 1.0,
+      "activity_min": 100,
+      "slippage_max_pct": 1.0
+    },
+    "actions": {
+      "below_threshold": "pause_or_halve",
+      "above_threshold": "resume_or_increase_small"
+    }
+  }
+}

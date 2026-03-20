@@ -1,0 +1,116 @@
+{
+  "name": "PulseU Pack \u2014 E\u2011commerce & Monetization",
+  "version": "1.0",
+  "generated_at": "2025-11-01T16:47:08.667647",
+  "count": 6,
+  "courses": [
+    {
+      "course_id": "ECOMMERCE_MONETIZATION-001",
+      "title": "Offer Architecture",
+      "track": "ecommerce_monetization",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "ECOMMERCE_MONETIZATION-002",
+      "title": "Checkout Optimization",
+      "track": "ecommerce_monetization",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "ECOMMERCE_MONETIZATION-003",
+      "title": "Subscriptions/MRR",
+      "track": "ecommerce_monetization",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "ECOMMERCE_MONETIZATION-004",
+      "title": "Marketplace Listing SEO",
+      "track": "ecommerce_monetization",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "ECOMMERCE_MONETIZATION-005",
+      "title": "Affiliate Systems",
+      "track": "ecommerce_monetization",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    },
+    {
+      "course_id": "ECOMMERCE_MONETIZATION-006",
+      "title": "Attribution Setup",
+      "track": "ecommerce_monetization",
+      "reward_pc": 25,
+      "stake_pc": 5,
+      "grading": "pass_fail",
+      "repeatable": true,
+      "repeat_lock_first_pass_all": true,
+      "mandatory": false,
+      "unlock": {
+        "after": [
+          "SPEC-*",
+          "CHAM-*"
+        ],
+        "min_level": "A"
+      }
+    }
+  ]
+}

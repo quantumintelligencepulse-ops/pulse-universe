@@ -1,0 +1,217 @@
+{
+  "name": "PulseU \u2014 AMM & Liquidity Mechanics",
+  "version": "1.0",
+  "generated_at": "2025-11-01T19:46:45.408653",
+  "courses": [
+    {
+      "course_id": "AMM-001",
+      "title": "Constant-Product AMM Basics",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-002",
+      "title": "Seed & Slippage Targets",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-003",
+      "title": "Internal SC Unit Economics",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-004",
+      "title": "Routing Activity Fees \u2192 SC",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-005",
+      "title": "Hourly SC\u2192PLSC Swap Ratios",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-006",
+      "title": "Community LP with Vested Rewards",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-007",
+      "title": "LBP & Bonding Curve Options",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-008",
+      "title": "Oracles & Price Stability Checks",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-009",
+      "title": "Front-run & Sandwich Defenses",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    },
+    {
+      "course_id": "AMM-010",
+      "title": "Liquidity Stress Drills",
+      "mandatory": false,
+      "repeatable": true,
+      "reward_pc": 40,
+      "stake_pc": 6,
+      "grading": "pass_fail",
+      "kpi_targets": {
+        "leads": 3,
+        "ctr": 0.02,
+        "burn_emit_ratio_7d": 1.05
+      },
+      "proof_requirements": [
+        "url",
+        "screenshot",
+        "ga4_event",
+        "csv",
+        "commit_hash"
+      ]
+    }
+  ]
+}
