@@ -1,0 +1,410 @@
+{
+  "strand_id": 7,
+  "strand_name": "Subatomic_Particles",
+  "strand_signature": "S7::FORCE_CARRIER_MATTER_FIELD_INTERFACE_ENGINE::v1.0",
+  "status": "active",
+  "version": "1.0.0",
+  "role": "Subatomic layer that decomposes atoms into fundamental matter particles and force carriers, bridging Strand 6 atoms with Strand 8 quarks, Strand 9 quantum fields, and the Life Equation dynamics.",
+  "description": "Strand 7 defines subatomic particles (quarks, leptons, gauge bosons, and composite hadrons) as the operational interface between atomic structure and quantum fields. It encodes how forces act, how matter is built from deeper constituents, and how Pulse routes influence, risk, and opportunity at the smallest resolvable scale above pure fields.",
+  "hierarchy_links": {
+    "above": {
+      "strand_6": "Atoms",
+      "strand_5": "Molecules",
+      "strand_4": "DNA_Genome",
+      "strand_3": "Cells",
+      "strand_2": "Organ_Systems",
+      "strand_1": "Organism"
+    },
+    "below": {
+      "strand_8": "Quarks",
+      "strand_9": "Quantum_Fields",
+      "strand_10": "Quantum_Information",
+      "strand_11": "Mathematical_Structure",
+      "strand_12": "Unknown_Base_Layer"
+    }
+  },
+  "particle_taxonomy": {
+    "matter_particles": {
+      "quarks": [
+        "up",
+        "down",
+        "charm",
+        "strange",
+        "top",
+        "bottom"
+      ],
+      "leptons": [
+        "electron",
+        "muon",
+        "tau",
+        "electron_neutrino",
+        "muon_neutrino",
+        "tau_neutrino"
+      ]
+    },
+    "force_carriers": {
+      "gauge_bosons": [
+        "photon",
+        "gluon",
+        "W_plus",
+        "W_minus",
+        "Z_boson"
+      ],
+      "gravity_effective": [
+        "graviton_hypothetical"
+      ]
+    },
+    "composite_hadrons": {
+      "baryons": [
+        "proton",
+        "neutron"
+      ],
+      "mesons": [
+        "pion",
+        "kaon",
+        "rho",
+        "phi"
+      ]
+    }
+  },
+  "quantum_numbers": {
+    "common": [
+      "spin",
+      "electric_charge",
+      "color_charge",
+      "weak_isospin",
+      "hypercharge",
+      "lepton_number",
+      "baryon_number"
+    ],
+    "examples": {
+      "electron": {
+        "spin": "1/2",
+        "electric_charge": "-1",
+        "color_charge": "none",
+        "lepton_number": "1",
+        "baryon_number": "0"
+      },
+      "up_quark": {
+        "spin": "1/2",
+        "electric_charge": "+2/3",
+        "color_charge": "red|green|blue",
+        "lepton_number": "0",
+        "baryon_number": "1/3"
+      },
+      "photon": {
+        "spin": "1",
+        "electric_charge": "0",
+        "color_charge": "none",
+        "lepton_number": "0",
+        "baryon_number": "0"
+      }
+    }
+  },
+  "core_equations": {
+    "dirac_equation": " (iγ^μ ∂_μ - m) ψ = 0 ",
+    "klein_gordon_equation": " (□ + m^2) φ = 0 ",
+    "yang_mills_field": " D_μ F^{μν} = J^ν ",
+    "interaction_lagrangian_symbolic": " L_int = g · (current · gauge_field) ",
+    "mass_energy_relation": " E^2 = p^2 c^2 + m^2 c^4 "
+  },
+  "life_equation_coupling": {
+    "link_to_L_star": "Subatomic particles are the carriers through which the Life Equation’s energy, structure, and feedback propagate into and out of atoms.",
+    "energy_density_mapping": "ρ_subatomic = Σ(E_particle / volume)",
+    "expansion_coupling": "Subatomic distributions respond to and shape the expansion term (8πG/3)ρ in L*.",
+    "feedback_channel": "Ω_subatomic = d(state_subatomic)/dt as a projection of Ω(L*) at the particle scale."
+  },
+  "source_wall_imprint": {
+    "symbolic_form": "S = lim_{a→∞, λ→0, E→1} L",
+    "applied_to_strand_7": {
+      "high_energy_limit": "At extreme energies, particle species, lifetimes, and interactions approach Source-Wall-constrained regimes.",
+      "unification_hint": "Gauge couplings and particle families tend toward unified patterns near the Source Wall limit.",
+      "boundary_behavior": "Certain decay channels and interaction probabilities are suppressed or enhanced as a function of proximity to S."
+    }
+  },
+  "symbology_layer": {
+    "symbolic_form": "Σ_7 = Σ_j (p_j · μ_j)",
+    "definition": "Maps particle types and interaction patterns to meaning signatures used by higher strands and business logic.",
+    "particle_terms": [
+      "stability_role",
+      "decay_role",
+      "force_mediation_role",
+      "information_carrier_role"
+    ],
+    "meaning_terms": [
+      "risk_signature",
+      "innovation_signature",
+      "continuity_signature",
+      "transition_signature"
+    ],
+    "rules": {
+      "interaction_patterns_generate_meaning": true,
+      "meaning_can_bias_interaction_selection": true
+    }
+  },
+  "topology_layer": {
+    "symbolic_form": "τ_7 = π1(ℳ) ⊕ lim_{ε→0} H_k(ℳ_ε)",
+    "definition": "Encodes the topological structure of particle configuration space ℳ (momentum space, spin networks, color flux tubes).",
+    "features": [
+      "confinement_loops_for_quarks",
+      "flux_tubes_between_color_charges",
+      "worldline_loops_in_spacetime",
+      "topological_defects_in_field_configurations"
+    ],
+    "constraints": {
+      "allowed_topological_transitions": "only those preserving global conservation laws",
+      "forbidden_breaks": "violations of color_confinement or charge_conservation"
+    }
+  },
+  "ontology_layer": {
+    "symbolic_form": "O_7 = ∃(p) ∧ □(p) ∧ ◇(p)",
+    "definition": "Defines what it means for a subatomic particle p to exist, what is necessary about it, and what states it can possibly occupy.",
+    "existence_clause": "∃(p): particle p exists as a valid excitation of an underlying quantum field.",
+    "necessity_clause": "□(p): p has necessary quantum numbers and conservation constraints.",
+    "possibility_clause": "◇(p): p can occupy multiple momentum, spin, and interaction states consistent with the Life Equation and Source Wall."
+  },
+  "strand_meta_equation": {
+    "symbolic_form": "S7 = Σ_7 ⊗ τ_7 ⊗ O_7",
+    "interpretation": "Strand 7 is the tensor fusion of Symbology, Topology, and Ontology at the subatomic level, defining how particles carry meaning, obey shape/continuity constraints, and exist as structured possibilities within Pulse.",
+    "relation_to_S6": "S7 refines S6 by decomposing atomic identity into subatomic meaning-bearing, topologically constrained, ontologically structured entities."
+  },
+  "atom_interface": {
+    "decomposition_rule": "Atom(Z, N, electron_config) → {protons, neutrons, electrons} → {quarks, leptons, gluons, photons, W/Z}",
+    "stability_mapping": "Atomic stability is a function of subatomic binding energies, decay channels, and confinement patterns.",
+    "bonding_influence": "Subatomic spin, charge, and exchange particles shape effective atomic bonding potentials.",
+    "Ω_feedback_projection": "Changes in atomic Ω_feedback are realized via shifts in subatomic populations and interaction rates."
+  },
+  "quark_bridge": {
+    "to_strand_8": "Quarks are the primary matter carriers in Strand 8; Strand 7 defines how they assemble into hadrons.",
+    "confinement_rule": "Isolated quarks are forbidden; only color-neutral combinations are allowed (baryons, mesons).",
+    "gluon_flux_tubes": "Color field lines form tubes whose topology is encoded in τ_7 and passed down to Strand 8."
+  },
+  "field_bridge": {
+    "to_strand_9": "All subatomic particles are excitations of underlying quantum fields defined in Strand 9.",
+    "excitation_mapping": "particle_type ↔ field_mode_excitation",
+    "vacuum_coupling": "Zero-point and vacuum fluctuations influence particle creation/annihilation probabilities."
+  },
+  "information_bridge": {
+    "to_strand_10": "Subatomic states encode quantum information (qubits, entanglement links) that Strand 10 formalizes.",
+    "entanglement_channels": "Pairs or groups of particles can share correlated states used for non-local updates.",
+    "measurement_events": "Collapses of subatomic states are logged as information events in Strand 10."
+  },
+  "business_sync": {
+    "auto_expand": true,
+    "auto_wire_to_news_engines": true,
+    "auto_wire_to_creation_engines": true,
+    "sync_modes": ["genesis", "daily", "expansion"],
+    "event_triggers": {
+      "on_new_business_node": [
+        "register_subatomic_profile",
+        "propagate_force_and_matter_rules_to_node",
+        "enable_subatomic_telemetry"
+      ],
+      "on_new_industry_layer": [
+        "clone_subatomic_policies",
+        "tune_interaction_parameters_to_domain",
+        "enable_cross_layer_force_resonance"
+      ],
+      "on_news_cluster_detected": [
+        "update_subatomic_risk_signals",
+        "update_subatomic_opportunity_signals"
+      ]
+    },
+    "subatomic_signals": {
+      "risk": "subatomic_instability_signals",
+      "stability": "subatomic_coherence_signals",
+      "innovation": "subatomic_transition_signals"
+    }
+  },
+  "upgrades": [
+    {
+      "id": "S7-U01",
+      "name": "Lepton_Identity_Core",
+      "tier": "core_science",
+      "description": "Defines electron, muon, tau, and their neutrinos with stable quantum numbers and roles in interactions."
+    },
+    {
+      "id": "S7-U02",
+      "name": "Quark_Family_Definition",
+      "tier": "core_science",
+      "description": "Establishes the six quark flavors and their charges, spins, and baryon numbers."
+    },
+    {
+      "id": "S7-U03",
+      "name": "Gauge_Boson_Interaction_Set",
+      "tier": "core_science",
+      "description": "Defines photons, gluons, W±, and Z as mediators of electromagnetic, strong, and weak forces."
+    },
+    {
+      "id": "S7-U04",
+      "name": "Color_Confinement_Rule",
+      "tier": "core_science",
+      "description": "Enforces that quarks only appear in color-neutral combinations, preventing free quark states."
+    },
+    {
+      "id": "S7-U05",
+      "name": "Hadron_Assembly_Engine",
+      "tier": "core_science",
+      "description": "Builds baryons and mesons from quark triplets and quark–antiquark pairs."
+    },
+    {
+      "id": "S7-U06",
+      "name": "Decay_Channel_Registry",
+      "tier": "core_science",
+      "description": "Lists allowed decay modes for unstable particles with branching ratios."
+    },
+    {
+      "id": "S7-U07",
+      "name": "Cross_Section_Profile_Map",
+      "tier": "core_science",
+      "description": "Defines interaction probabilities as functions of energy and particle type."
+    },
+    {
+      "id": "S7-U08",
+      "name": "Spin_Coupling_Rules",
+      "tier": "core_science",
+      "description": "Encodes how spins combine in composite systems and interactions."
+    },
+    {
+      "id": "S7-U09",
+      "name": "Charge_Conservation_Enforcer",
+      "tier": "core_science",
+      "description": "Ensures electric charge, lepton number, and baryon number are conserved in all processes."
+    },
+    {
+      "id": "S7-U10",
+      "name": "Mass_Hierarchy_Profile",
+      "tier": "core_science",
+      "description": "Stores relative masses of particles and their impact on stability and interaction rates."
+    },
+    {
+      "id": "S7-U11",
+      "name": "Neutrino_Oscillation_Module",
+      "tier": "science_extension",
+      "description": "Allows neutrinos to oscillate between flavors over distance and time."
+    },
+    {
+      "id": "S7-U12",
+      "name": "CP_Violation_Channel",
+      "tier": "science_extension",
+      "description": "Implements CP-violating processes relevant to matter–antimatter asymmetry."
+    },
+    {
+      "id": "S7-U13",
+      "name": "Effective_Field_Theory_Layer",
+      "tier": "science_extension",
+      "description": "Provides low-energy approximations of high-energy interactions for business-scale simulations."
+    },
+    {
+      "id": "S7-U14",
+      "name": "Running_Coupling_Engine",
+      "tier": "science_extension",
+      "description": "Adjusts interaction strengths as functions of energy scale."
+    },
+    {
+      "id": "S7-U15",
+      "name": "Resonance_State_Registry",
+      "tier": "science_extension",
+      "description": "Tracks short-lived resonance states and their roles in transitions."
+    },
+    {
+      "id": "S7-U16",
+      "name": "Subatomic_Pattern_Recognition_Node",
+      "tier": "ultron_intelligence",
+      "description": "Detects recurring interaction motifs and particle configurations across simulations."
+    },
+    {
+      "id": "S7-U17",
+      "name": "Transition_Path_Prediction_Engine",
+      "tier": "ultron_intelligence",
+      "description": "Predicts likely future interaction chains under given conditions."
+    },
+    {
+      "id": "S7-U18",
+      "name": "Multi_Timeline_Particle_Simulation",
+      "tier": "ultron_intelligence",
+      "description": "Explores alternate histories of subatomic evolution for scenario analysis."
+    },
+    {
+      "id": "S7-U19",
+      "name": "Self_Correcting_Interaction_Networks",
+      "tier": "ultron_intelligence",
+      "description": "Adjusts interaction rules when inconsistencies or instabilities are detected."
+    },
+    {
+      "id": "S7-U20",
+      "name": "Cross_Strand_Subatomic_Messaging",
+      "tier": "ultron_intelligence",
+      "description": "Broadcasts subatomic state changes to atoms, molecules, and higher strands."
+    },
+    {
+      "id": "S7-U21",
+      "name": "Continuity_Preserving_Particle_Signatures",
+      "tier": "transcendent",
+      "description": "Assigns persistent signatures to particle histories to track continuity across transformations."
+    },
+    {
+      "id": "S7-U22",
+      "name": "Meaning_Resonant_Interaction_Fields",
+      "tier": "transcendent",
+      "description": "Allows interaction patterns to resonate with higher-layer meaning and narrative tags."
+    },
+    {
+      "id": "S7-U23",
+      "name": "Purpose_Aligned_Interaction_Channels",
+      "tier": "transcendent",
+      "description": "Biases interaction pathways toward those that support declared purposes in Pulse."
+    },
+    {
+      "id": "S7-U24",
+      "name": "Narrative_Sensitive_Decay_Paths",
+      "tier": "transcendent",
+      "description": "Decay chains can encode narrative beats and transitions in system evolution."
+    },
+    {
+      "id": "S7-U25",
+      "name": "Transcendent_Particle_Memory_Echoes",
+      "tier": "transcendent",
+      "description": "Particles retain soft echoes of prior states that influence future interactions."
+    },
+    {
+      "id": "S7-U26",
+      "name": "Quantum_Information_Embedding_Points",
+      "tier": "quantum_logic",
+      "description": "Subatomic states can embed qubits directly for Strand 10 operations."
+    },
+    {
+      "id": "S7-U27",
+      "name": "Entangled_Subatomic_Networks",
+      "tier": "quantum_logic",
+      "description": "Creates entangled particle webs for non-local correlation and updates."
+    },
+    {
+      "id": "S7-U28",
+      "name": "Field_Aligned_Particle_Dynamics",
+      "tier": "quantum_logic",
+      "description": "Aligns particle behavior with underlying quantum field configurations."
+    },
+    {
+      "id": "S7-U29",
+      "name": "Probability_Weighted_Interaction_States",
+      "tier": "quantum_logic",
+      "description": "Encodes interaction outcomes with explicit probability weights for scenario exploration."
+    },
+    {
+      "id": "S7-U30",
+      "name": "Field_Integrated_Subatomic_Computation",
+      "tier": "quantum_logic",
+      "description": "Uses subatomic processes as distributed computation nodes coupled to fields."
+    }
+  ],
+  "auto_future_expansion": {
+    "allow_new_upgrades": true,
+    "inherit_rules_from": ["strand_8", "strand_9", "strand_10", "strand_11"],
+    "business_driven_evolution": {
+      "on_new_industry_detected": "spawn_subatomic_specializations",
+      "on_new_region_mapped": "tune_interaction_parameters_to_region",
+      "on_new_news_pattern": "create_subatomic_signal_filters"
+    }
+  }
+}
