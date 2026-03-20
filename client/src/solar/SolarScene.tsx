@@ -143,7 +143,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
 
     // ── Scene setup ─────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.01, 5000);
+    const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.01, 500000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -349,7 +349,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const factor = e.deltaY > 0 ? 1.10 : 0.91;
-      cam.radius = Math.max(2, Math.min(400, cam.radius * factor));
+      cam.radius = Math.max(0.5, cam.radius * factor);
     };
 
     const onContextMenu = (e: Event) => e.preventDefault();
@@ -377,7 +377,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         cam.phi    = Math.max(0.05, Math.min(Math.PI - 0.05, cam.phi - dy * 0.005));
       } else if (e.touches.length === 2) {
         const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-        cam.radius = Math.max(2, Math.min(400, cam.radius * (touch.lastDist / dist)));
+        cam.radius = Math.max(0.5, cam.radius * (touch.lastDist / dist));
         touch.lastDist = dist;
       }
     };
@@ -416,8 +416,8 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         if (keys['d'] || keys['arrowright']) cam.lookAt.addScaledVector(right, speed);
         if (keys['q'])                        cam.lookAt.y += speed;
         if (keys['e'])                        cam.lookAt.y -= speed;
-        if (keys['='] || keys['+'])           cam.radius = Math.max(2, cam.radius * 0.97);
-        if (keys['-'])                        cam.radius = Math.min(400, cam.radius * 1.03);
+        if (keys['='] || keys['+'])           cam.radius = Math.max(0.5, cam.radius * 0.97);
+        if (keys['-'])                        cam.radius = cam.radius * 1.03;
       }
 
       // ── Camera placement — fully static, no easing, no drift ──────────────
