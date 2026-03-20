@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, createContext, useCo
 import PulsePage from "./pages/PulsePage";
 import SpawnsPage from "./pages/SpawnsPage";
 import SourcesPage from "./pages/SourcesPage";
+import OmegaPage from "./pages/OmegaPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -2102,6 +2103,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/sources" ? "bg-blue-600/15" : "bg-blue-600/5"}`}><Globe size={14} className="text-blue-500" /></div>
             <span className="flex-1">Omega Sources</span>
             <span className="text-[9px] bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">20</span>
+          </Link>
+          <Link href="/omega" data-testid="link-omega"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/omega" ? "bg-white/20" : "bg-violet-600/10"}`}>
+              <span className={`text-[13px] font-black ${location === "/omega" ? "text-white" : "text-violet-600"}`}>∞</span>
+            </div>
+            <span className="flex-1">Omega Engine</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">V∞</span>
           </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
@@ -14492,6 +14501,7 @@ function Router() {
       <Route path="/graph" component={GraphPage} />
       <Route path="/spawns" component={SpawnsPage} />
       <Route path="/sources" component={SourcesPage} />
+      <Route path="/omega" component={OmegaPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
