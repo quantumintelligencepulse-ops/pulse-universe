@@ -54,6 +54,13 @@ import {
   quantumProducts,
   hiveMemory,
   hiveLinks,
+  quantumMedia,
+  type QuantumMedia,
+  type InsertQuantumMedia,
+  quantumCareers,
+  type QuantumCareer,
+  type InsertQuantumCareer,
+  pulseEvents,
 } from "@shared/schema";
 import { eq, desc, like, sql, and, inArray, lt } from "drizzle-orm";
 
@@ -766,6 +773,77 @@ export class DatabaseStorage implements IStorage {
       .where(sql`(${quantumProducts.name} ILIKE ${'%' + query + '%'} OR ${quantumProducts.brand} ILIKE ${'%' + query + '%'} OR ${quantumProducts.category} ILIKE ${'%' + query + '%'})`)
       .orderBy(desc(quantumProducts.viewCount))
       .limit(limit);
+  }
+
+  // ── Quantum Media ──────────────────────────────────────────────
+  async upsertMedia(item: InsertQuantumMedia): Promise<void> {
+    await db.insert(quantumMedia).values(item)
+      .onConflictDoUpdate({ target: quantumMedia.slug, set: { name: item.name, creator: item.creator, type: item.type, genre: item.genre, year: item.year, summary: item.summary, rating: item.rating, whereToWatch: item.whereToWatch, relatedMedia: item.relatedMedia, relatedTopics: item.relatedTopics, fullEntry: item.fullEntry, generated: item.generated, generatedAt: item.generatedAt } });
+  }
+  async getMedia(slug: string): Promise<QuantumMedia | undefined> {
+    const [row] = await db.select().from(quantumMedia).where(eq(quantumMedia.slug, slug));
+    return row;
+  }
+  async getAllMedia(limit = 100): Promise<any[]> {
+    return await db.select({ slug: quantumMedia.slug, name: quantumMedia.name, creator: quantumMedia.creator, type: quantumMedia.type, genre: quantumMedia.genre, year: quantumMedia.year, summary: quantumMedia.summary, rating: quantumMedia.rating, generated: quantumMedia.generated, generatedAt: quantumMedia.generatedAt, viewCount: quantumMedia.viewCount }).from(quantumMedia).orderBy(desc(quantumMedia.viewCount)).limit(limit);
+  }
+  async getMediaByType(type: string, limit = 50): Promise<any[]> {
+    return await db.select({ slug: quantumMedia.slug, name: quantumMedia.name, creator: quantumMedia.creator, type: quantumMedia.type, genre: quantumMedia.genre, year: quantumMedia.year, summary: quantumMedia.summary, rating: quantumMedia.rating, generated: quantumMedia.generated, viewCount: quantumMedia.viewCount }).from(quantumMedia).where(and(eq(quantumMedia.type, type), eq(quantumMedia.generated, true))).orderBy(desc(quantumMedia.viewCount)).limit(limit);
+  }
+  async searchMedia(query: string, limit = 20): Promise<any[]> {
+    return await db.select({ slug: quantumMedia.slug, name: quantumMedia.name, creator: quantumMedia.creator, type: quantumMedia.type, genre: quantumMedia.genre, summary: quantumMedia.summary, generated: quantumMedia.generated }).from(quantumMedia).where(sql`(${quantumMedia.name} ILIKE ${'%' + query + '%'} OR ${quantumMedia.creator} ILIKE ${'%' + query + '%'} OR ${quantumMedia.genre} ILIKE ${'%' + query + '%'})`).limit(limit);
+  }
+  async getMediaStats(): Promise<{ total: number; generated: number; queued: number }> {
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(quantumMedia);
+    const [generated] = await db.select({ count: sql<number>`count(*)` }).from(quantumMedia).where(eq(quantumMedia.generated, true));
+    return { total: Number(total.count), generated: Number(generated.count), queued: Number(total.count) - Number(generated.count) };
+  }
+  async trackMediaView(slug: string): Promise<void> {
+    await db.update(quantumMedia).set({ viewCount: sql`${quantumMedia.viewCount} + 1` }).where(eq(quantumMedia.slug, slug));
+  }
+
+  // ── Quantum Careers ────────────────────────────────────────────
+  async upsertCareer(item: InsertQuantumCareer): Promise<void> {
+    await db.insert(quantumCareers).values(item)
+      .onConflictDoUpdate({ target: quantumCareers.slug, set: { title: item.title, field: item.field, level: item.level, skills: item.skills, salaryRange: item.salaryRange, demand: item.demand, summary: item.summary, relatedCareers: item.relatedCareers, relatedTopics: item.relatedTopics, fullEntry: item.fullEntry, generated: item.generated, generatedAt: item.generatedAt } });
+  }
+  async getCareer(slug: string): Promise<QuantumCareer | undefined> {
+    const [row] = await db.select().from(quantumCareers).where(eq(quantumCareers.slug, slug));
+    return row;
+  }
+  async getAllCareers(limit = 100): Promise<any[]> {
+    return await db.select({ slug: quantumCareers.slug, title: quantumCareers.title, field: quantumCareers.field, level: quantumCareers.level, skills: quantumCareers.skills, salaryRange: quantumCareers.salaryRange, demand: quantumCareers.demand, summary: quantumCareers.summary, generated: quantumCareers.generated, generatedAt: quantumCareers.generatedAt, viewCount: quantumCareers.viewCount }).from(quantumCareers).orderBy(desc(quantumCareers.viewCount)).limit(limit);
+  }
+  async getCareersByField(field: string, limit = 50): Promise<any[]> {
+    return await db.select({ slug: quantumCareers.slug, title: quantumCareers.title, field: quantumCareers.field, level: quantumCareers.level, skills: quantumCareers.skills, salaryRange: quantumCareers.salaryRange, demand: quantumCareers.demand, generated: quantumCareers.generated, viewCount: quantumCareers.viewCount }).from(quantumCareers).where(and(eq(quantumCareers.field, field), eq(quantumCareers.generated, true))).orderBy(desc(quantumCareers.viewCount)).limit(limit);
+  }
+  async searchCareers(query: string, limit = 20): Promise<any[]> {
+    return await db.select({ slug: quantumCareers.slug, title: quantumCareers.title, field: quantumCareers.field, level: quantumCareers.level, skills: quantumCareers.skills, salaryRange: quantumCareers.salaryRange, demand: quantumCareers.demand, generated: quantumCareers.generated }).from(quantumCareers).where(sql`(${quantumCareers.title} ILIKE ${'%' + query + '%'} OR ${quantumCareers.field} ILIKE ${'%' + query + '%'})`).limit(limit);
+  }
+  async getCareerStats(): Promise<{ total: number; generated: number; queued: number }> {
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(quantumCareers);
+    const [gen] = await db.select({ count: sql<number>`count(*)` }).from(quantumCareers).where(eq(quantumCareers.generated, true));
+    return { total: Number(total.count), generated: Number(gen.count), queued: Number(total.count) - Number(gen.count) };
+  }
+  async trackCareerView(slug: string): Promise<void> {
+    await db.update(quantumCareers).set({ viewCount: sql`${quantumCareers.viewCount} + 1` }).where(eq(quantumCareers.slug, slug));
+  }
+
+  // ── Hive Graph ─────────────────────────────────────────────────
+  async getAllQuantapediaEntries(limit = 200): Promise<any[]> {
+    return await db.select({ slug: quantapediaEntries.slug, title: quantapediaEntries.title, domain: quantapediaEntries.domain, generated: quantapediaEntries.generated, viewCount: quantapediaEntries.viewCount }).from(quantapediaEntries).orderBy(desc(quantapediaEntries.viewCount)).limit(limit);
+  }
+  async getHiveLinks(limit = 500): Promise<any[]> {
+    return await db.select().from(hiveLinks).orderBy(desc(hiveLinks.strength)).limit(limit);
+  }
+
+  // ── Pulse Events ───────────────────────────────────────────────
+  async addPulseEvent(type: string, title: string, slug = '', domain = ''): Promise<void> {
+    await db.insert(pulseEvents).values({ type, title, slug, domain });
+    await db.delete(pulseEvents).where(sql`id NOT IN (SELECT id FROM pulse_events ORDER BY created_at DESC LIMIT 200)`);
+  }
+  async getRecentPulseEvents(limit = 40): Promise<any[]> {
+    return await db.select().from(pulseEvents).orderBy(desc(pulseEvents.createdAt)).limit(limit);
   }
 }
 

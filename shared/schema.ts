@@ -328,3 +328,57 @@ export const hiveLinks = pgTable("hive_links", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type HiveLink = typeof hiveLinks.$inferSelect;
+
+export const quantumMedia = pgTable("quantum_media", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  creator: text("creator").default(""),
+  type: text("type").default("film"),
+  genre: text("genre").default(""),
+  year: text("year").default(""),
+  summary: text("summary").default(""),
+  rating: real("rating"),
+  whereToWatch: jsonb("where_to_watch").default([]),
+  relatedMedia: text("related_media").array().default([]),
+  relatedTopics: text("related_topics").array().default([]),
+  fullEntry: jsonb("full_entry"),
+  generated: boolean("generated").default(false),
+  generatedAt: timestamp("generated_at"),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertQuantumMediaSchema = createInsertSchema(quantumMedia).omit({ id: true, createdAt: true });
+export type QuantumMedia = typeof quantumMedia.$inferSelect;
+export type InsertQuantumMedia = z.infer<typeof insertQuantumMediaSchema>;
+
+export const quantumCareers = pgTable("quantum_careers", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  field: text("field").default("Technology"),
+  level: text("level").default("Mid"),
+  skills: text("skills").array().default([]),
+  salaryRange: text("salary_range").default(""),
+  demand: text("demand").default("High"),
+  summary: text("summary").default(""),
+  relatedCareers: text("related_careers").array().default([]),
+  relatedTopics: text("related_topics").array().default([]),
+  fullEntry: jsonb("full_entry"),
+  generated: boolean("generated").default(false),
+  generatedAt: timestamp("generated_at"),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertQuantumCareerSchema = createInsertSchema(quantumCareers).omit({ id: true, createdAt: true });
+export type QuantumCareer = typeof quantumCareers.$inferSelect;
+export type InsertQuantumCareer = z.infer<typeof insertQuantumCareerSchema>;
+
+export const pulseEvents = pgTable("pulse_events", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  slug: text("slug").default(""),
+  domain: text("domain").default(""),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

@@ -5,6 +5,8 @@ import { createServer } from "http";
 import { startQuantapediaEngine } from "./quantapedia-engine";
 import { startQuantumProductEngine } from "./quantum-product-engine";
 import { startHiveBrain } from "./hive-brain";
+import { startQuantumMediaEngine } from "./quantum-media-engine";
+import { startQuantumCareerEngine } from "./quantum-career-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -104,6 +106,8 @@ app.use((req, res, next) => {
       startQuantapediaEngine().catch((e) => log(`QuantapediaEngine start error: ${e}`));
       startQuantumProductEngine().catch((e) => log(`ProductEngine start error: ${e}`));
       startHiveBrain().catch((e) => log(`HiveBrain start error: ${e}`));
+      startQuantumMediaEngine().catch((e) => log(`MediaEngine start error: ${e}`));
+      startQuantumCareerEngine().catch((e) => log(`CareerEngine start error: ${e}`));
     },
   );
 })();

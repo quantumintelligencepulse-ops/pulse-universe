@@ -1,4 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
+import PulsePage from "./pages/PulsePage";
+import AgentsPage from "./pages/AgentsPage";
+import FinancePage from "./pages/FinancePage";
+import MediaPage from "./pages/MediaPage";
+import CareersPage from "./pages/CareersPage";
+import HiveCommandPage from "./pages/HiveCommandPage";
+import MyMindPage from "./pages/MyMindPage";
+import GraphPage from "./pages/GraphPage";
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -25,7 +33,8 @@ import {
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
   LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
   GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter, Activity, BookMarked, Telescope,
-  Shuffle, Undo2, Redo2, Columns, Loader2, Save, Sliders, Minus, Guitar, Waves, Radio
+  Shuffle, Undo2, Redo2, Columns, Loader2, Save, Sliders, Minus, Guitar, Waves, Radio,
+  Film, Bot, Briefcase, Network
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
@@ -2038,6 +2047,47 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Shopping</span>
           </Link>
           )}
+          <Link href="/media" data-testid="link-media"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/media" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/media" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Film size={14} className="text-pink-500" /></div>
+            <span className="flex-1">Media</span>
+          </Link>
+          <Link href="/careers" data-testid="link-careers"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/careers" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/careers" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
+            <span className="flex-1">Careers</span>
+          </Link>
+          <Link href="/finance" data-testid="link-finance"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/finance" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/finance" ? "bg-yellow-500/15" : "bg-yellow-500/5"}`}><TrendingUp size={14} className="text-yellow-500" /></div>
+            <span className="flex-1">Finance Oracle</span>
+          </Link>
+          <Link href="/agents" data-testid="link-agents"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/agents" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/agents" ? "bg-indigo-500/15" : "bg-indigo-500/5"}`}><Bot size={14} className="text-indigo-400" /></div>
+            <span className="flex-1">AI Agents</span>
+          </Link>
+          <Link href="/pulse" data-testid="link-pulse"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/pulse" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><Radio size={14} className="text-emerald-500" /></div>
+            <span className="flex-1">Live Pulse</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          </Link>
+          <Link href="/hive-command" data-testid="link-hive-command"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-command" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/hive-command" ? "bg-violet-500/15" : "bg-violet-500/5"}`}><Brain size={14} className="text-violet-400" /></div>
+            <span className="flex-1">Hive Command</span>
+          </Link>
+          <Link href="/graph" data-testid="link-graph"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/graph" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/graph" ? "bg-cyan-500/15" : "bg-cyan-500/5"}`}><Network size={14} className="text-cyan-400" /></div>
+            <span className="flex-1">Knowledge Graph</span>
+          </Link>
+          <Link href="/my-mind" data-testid="link-my-mind"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/my-mind" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/my-mind" ? "bg-fuchsia-500/15" : "bg-fuchsia-500/5"}`}><Sparkles size={14} className="text-fuchsia-400" /></div>
+            <span className="flex-1">My Mind</span>
+          </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -14415,6 +14465,14 @@ function Router() {
       <Route path="/education" component={EducationPageWrapper} />
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping" component={ShoppingPageWrapper} />
+      <Route path="/pulse" component={PulsePage} />
+      <Route path="/agents" component={AgentsPage} />
+      <Route path="/finance" component={FinancePage} />
+      <Route path="/media" component={MediaPage} />
+      <Route path="/careers" component={CareersPage} />
+      <Route path="/hive-command" component={HiveCommandPage} />
+      <Route path="/my-mind" component={MyMindPage} />
+      <Route path="/graph" component={GraphPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

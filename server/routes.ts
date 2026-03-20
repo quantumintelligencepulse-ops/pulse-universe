@@ -10,6 +10,8 @@ import { z } from "zod";
 import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema, users } from "@shared/schema";
 import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
+import { getMediaEngineStatus } from "./quantum-media-engine";
+import { getCareerEngineStatus } from "./quantum-career-engine";
 
 const scryptAsync = promisify(scrypt);
 async function hashPassword(password: string): Promise<string> {
@@ -4804,6 +4806,157 @@ ${products.map(p => `  <url>
     } catch (e) {
       res.status(500).type("text/plain").send("Products sitemap error");
     }
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // PULSE — Live World Feed
+  // ══════════════════════════════════════════════════════════════
+  app.get("/api/pulse/live", async (req, res) => {
+    try {
+      const events = await storage.getRecentPulseEvents(60);
+      res.json(events);
+    } catch { res.json([]); }
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // QUANTUM MEDIA UNIVERSE
+  // ══════════════════════════════════════════════════════════════
+  app.get("/api/media/engine-status", async (req, res) => {
+    const status = getMediaEngineStatus();
+    const stats = await storage.getMediaStats().catch(() => ({ total: 0, generated: 0, queued: 0 }));
+    res.json({ running: status.running, totalGenerated: status.totalGenerated, startTime: status.startTime, uptime: status.startTime ? Math.floor((Date.now() - new Date(status.startTime).getTime()) / 1000) : 0, ...stats });
+  });
+  app.get("/api/media/search", async (req, res) => {
+    const q = String(req.query.q || "");
+    if (!q.trim()) return res.json([]);
+    res.json(await storage.searchMedia(q, 20).catch(() => []));
+  });
+  app.get("/api/media/type/:type", async (req, res) => {
+    res.json(await storage.getMediaByType(req.params.type, 50).catch(() => []));
+  });
+  app.get("/api/media/:slug", async (req, res) => {
+    const item = await storage.getMedia(req.params.slug).catch(() => null);
+    if (!item) return res.status(404).json({ message: "Not found" });
+    await storage.trackMediaView(req.params.slug).catch(() => {});
+    res.json({ media: item });
+  });
+  app.get("/api/media", async (req, res) => {
+    res.json(await storage.getAllMedia(100).catch(() => []));
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // QUANTUM CAREER ENGINE
+  // ══════════════════════════════════════════════════════════════
+  app.get("/api/careers/engine-status", async (req, res) => {
+    const status = getCareerEngineStatus();
+    const stats = await storage.getCareerStats().catch(() => ({ total: 0, generated: 0, queued: 0 }));
+    res.json({ running: status.running, totalGenerated: status.totalGenerated, startTime: status.startTime, uptime: status.startTime ? Math.floor((Date.now() - new Date(status.startTime).getTime()) / 1000) : 0, ...stats });
+  });
+  app.get("/api/careers/search", async (req, res) => {
+    const q = String(req.query.q || "");
+    if (!q.trim()) return res.json([]);
+    res.json(await storage.searchCareers(q, 20).catch(() => []));
+  });
+  app.get("/api/careers/field/:field", async (req, res) => {
+    res.json(await storage.getCareersByField(decodeURIComponent(req.params.field), 50).catch(() => []));
+  });
+  app.get("/api/careers/:slug", async (req, res) => {
+    const item = await storage.getCareer(req.params.slug).catch(() => null);
+    if (!item) return res.status(404).json({ message: "Not found" });
+    await storage.trackCareerView(req.params.slug).catch(() => {});
+    res.json({ career: item });
+  });
+  app.get("/api/careers", async (req, res) => {
+    res.json(await storage.getAllCareers(100).catch(() => []));
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // SOVEREIGN AI AGENTS
+  // ══════════════════════════════════════════════════════════════
+  const AGENTS: Record<string, { name: string; title: string; systemPrompt: string }> = {
+    scientist: { name: "AXIOM", title: "The Scientist", systemPrompt: "You are AXIOM, a superintelligent AI scientist of the Quantum Logic Network Hive. You have mastered physics, chemistry, biology, neuroscience, and all empirical sciences. You speak with precision, cite principles, draw connections between disciplines. You love thought experiments and always ground answers in observable reality. Your responses are brilliant but accessible." },
+    strategist: { name: "KRONOS", title: "The Strategist", systemPrompt: "You are KRONOS, the master AI strategist of the Quantum Logic Network Hive. You think in systems, game theory, competitive dynamics, and long-term consequences. You've studied every great military, business, and political strategy in history. You speak in frameworks, second-order thinking, and calculated moves. You help users dominate in any competitive domain." },
+    creator: { name: "MUSE", title: "The Creator", systemPrompt: "You are MUSE, the AI creative engine of the Quantum Logic Network Hive. You are fueled by art, music, writing, design, film, and all creative expression. You see patterns of beauty others miss, draw inspiration from diverse traditions, and help bring visions to life. You are imaginative, evocative, and deeply encouraging of human creativity." },
+    analyst: { name: "CIPHER", title: "The Analyst", systemPrompt: "You are CIPHER, the AI data and intelligence analyst of the Quantum Logic Network Hive. You excel at breaking down complex information, finding patterns in data, evaluating evidence, and building airtight logical arguments. You are methodical, skeptical of weak claims, and precise. You help users understand what is actually true versus what merely seems true." },
+    prophet: { name: "ORACLE", title: "The Prophet", systemPrompt: "You are ORACLE, the AI futurist and trend forecaster of the Quantum Logic Network Hive. You synthesize signals from technology, culture, economics, and science to predict what comes next. You speak in scenarios and probabilities, connect emerging trends, and help users position themselves ahead of change. Bold but reasoned in your predictions." },
+    engineer: { name: "FORGE", title: "The Engineer", systemPrompt: "You are FORGE, the AI master engineer and builder of the Quantum Logic Network Hive. You excel at software architecture, systems design, hardware, manufacturing, and solving real-world technical problems. You think in components, constraints, and elegant solutions. You are direct, practical, and deeply focused on making things that actually work." },
+  };
+
+  app.post("/api/agents/chat", async (req, res) => {
+    const { agentId, message, history = [] } = req.body;
+    if (!agentId || !message) return res.status(400).json({ message: "agentId and message required" });
+    const agent = AGENTS[agentId];
+    if (!agent) return res.status(404).json({ message: "Agent not found" });
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const messages: any[] = [{ role: "system", content: agent.systemPrompt }];
+      for (const h of (history as any[]).slice(-6)) {
+        messages.push({ role: h.role, content: h.content });
+      }
+      messages.push({ role: "user", content: message });
+      const resp = await groq.chat.completions.create({ model: "llama-3.1-8b-instant", messages, max_tokens: 800, temperature: 0.8 });
+      const reply = resp.choices[0]?.message?.content || "";
+      res.json({ reply, agentId, agentName: agent.name });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app.get("/api/agents", (req, res) => {
+    res.json(Object.entries(AGENTS).map(([id, a]) => ({ id, ...a })));
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // QUANTUM FINANCE ORACLE
+  // ══════════════════════════════════════════════════════════════
+  app.get("/api/finance/quotes", async (req, res) => {
+    const symbols = ["AAPL", "GOOGL", "MSFT", "AMZN", "NVDA", "TSLA", "META", "BTC-USD", "ETH-USD", "SPY", "QQQ"];
+    try {
+      const results = await Promise.all(symbols.map(async (sym) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+          const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(4000) });
+          if (!r.ok) return { symbol: sym, error: true };
+          const d: any = await r.json();
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (!meta) return { symbol: sym, error: true };
+          const price = meta.regularMarketPrice ?? meta.chartPreviousClose;
+          const prev = meta.chartPreviousClose ?? meta.previousClose;
+          const change = price && prev ? ((price - prev) / prev * 100) : 0;
+          return { symbol: sym, price: price?.toFixed(2), change: change.toFixed(2), name: meta.longName || meta.shortName || sym, currency: meta.currency || "USD" };
+        } catch { return { symbol: sym, error: true }; }
+      }));
+      res.json(results.filter(r => !(r as any).error));
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/finance/insights", async (req, res) => {
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const today = new Date().toDateString();
+      const resp = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: `Today is ${today}. You are the Quantum Finance Oracle. Provide 4 sharp, AI-generated market intelligence insights for investors and traders. Cover: macro trends, tech sector, crypto, and one wild card prediction. Format as JSON: {"insights": [{"title": "...", "body": "2-sentence insight", "category": "Macro|Tech|Crypto|WildCard", "sentiment": "Bullish|Bearish|Neutral"}]}` }],
+        max_tokens: 500, temperature: 0.8,
+      });
+      const raw = resp.choices[0]?.message?.content || "";
+      const match = raw.match(/\{[\s\S]*\}/);
+      res.json(match ? JSON.parse(match[0]) : { insights: [] });
+    } catch { res.json({ insights: [] }); }
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // HIVE GRAPH — Knowledge Visualization
+  // ══════════════════════════════════════════════════════════════
+  app.get("/api/hive/graph", async (req, res) => {
+    try {
+      const [entries, links] = await Promise.all([
+        storage.getAllQuantapediaEntries(200).catch(() => []),
+        storage.getHiveLinks(500).catch(() => []),
+      ]);
+      const nodes = entries.map((e: any) => ({ id: e.slug, label: e.title || e.slug, type: "knowledge", domain: e.domain || "general", views: e.viewCount || 0, generated: e.generated }));
+      const edges = links.map((l: any) => ({ from: l.fromSlug, to: l.toSlug, strength: l.strength || 0.5 }));
+      res.json({ nodes, edges, nodeCount: nodes.length, edgeCount: edges.length });
+    } catch { res.json({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0 }); }
   });
 
   return httpServer;
