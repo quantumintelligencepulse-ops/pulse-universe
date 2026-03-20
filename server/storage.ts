@@ -51,8 +51,11 @@ import {
   type InsertSavedArticle,
   type FollowedTopic,
   type InsertFollowedTopic,
+  quantumProducts,
+  hiveMemory,
+  hiveLinks,
 } from "@shared/schema";
-import { eq, desc, like, sql, and, inArray } from "drizzle-orm";
+import { eq, desc, like, sql, and, inArray, lt } from "drizzle-orm";
 
 export interface IStorage {
   getChatsByUser(userId: number): Promise<Chat[]>;
@@ -154,6 +157,17 @@ export interface IStorage {
   getUngeneratedQuantapediaTopics(limit: number): Promise<{ slug: string; title: string }[]>;
   queueQuantapediaTopics(topics: { slug: string; title: string }[]): Promise<void>;
   getQuantapediaStats(): Promise<{ total: number; generated: number; queued: number }>;
+
+  queueQuantumProducts(products: { slug: string; name: string; brand?: string; category?: string }[]): Promise<void>;
+  getUngeneratedProducts(limit: number): Promise<{ slug: string; name: string; brand: string; category: string }[]>;
+  storeFullProduct(slug: string, data: { name: string; brand: string; category: string; subcategory: string; priceRange: string; summary: string; categories: string[]; relatedProducts: string[]; relatedTopics: string[]; retailerLinks: any; fullProduct: any }): Promise<void>;
+  getFullProduct(slug: string): Promise<any | null>;
+  markProductFailed(slug: string, name: string, brand: string, category: string): Promise<void>;
+  getAllProducts(limit?: number, offset?: number): Promise<any[]>;
+  getProductsByCategory(category: string, limit?: number): Promise<any[]>;
+  getQuantumProductStats(): Promise<{ total: number; generated: number; queued: number }>;
+  trackProductView(slug: string): Promise<void>;
+  searchProducts(query: string, limit?: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -664,6 +678,94 @@ export class DatabaseStorage implements IStorage {
       generated: Number(generated.count),
       queued: Number(total.count) - Number(generated.count),
     };
+  }
+
+  async queueQuantumProducts(products: { slug: string; name: string; brand?: string; category?: string }[]): Promise<void> {
+    if (!products.length) return;
+    for (const p of products) {
+      await db.insert(quantumProducts)
+        .values({ slug: p.slug, name: p.name, brand: p.brand || "", category: p.category || "General", generated: false, viewCount: 0 })
+        .onConflictDoNothing();
+    }
+  }
+
+  async getUngeneratedProducts(limit: number): Promise<{ slug: string; name: string; brand: string; category: string }[]> {
+    return await db.select({ slug: quantumProducts.slug, name: quantumProducts.name, brand: quantumProducts.brand, category: quantumProducts.category })
+      .from(quantumProducts)
+      .where(eq(quantumProducts.generated, false))
+      .orderBy(desc(quantumProducts.viewCount))
+      .limit(limit) as { slug: string; name: string; brand: string; category: string }[];
+  }
+
+  async storeFullProduct(slug: string, data: { name: string; brand: string; category: string; subcategory: string; priceRange: string; summary: string; categories: string[]; relatedProducts: string[]; relatedTopics: string[]; retailerLinks: any; fullProduct: any }): Promise<void> {
+    await db.insert(quantumProducts)
+      .values({ slug, ...data, generated: true, generatedAt: new Date(), viewCount: 0 })
+      .onConflictDoUpdate({
+        target: quantumProducts.slug,
+        set: { ...data, generated: true, generatedAt: new Date(), updatedAt: new Date() },
+      });
+  }
+
+  async getFullProduct(slug: string): Promise<any | null> {
+    const [row] = await db.select({ fullProduct: quantumProducts.fullProduct, generated: quantumProducts.generated })
+      .from(quantumProducts)
+      .where(eq(quantumProducts.slug, slug));
+    if (!row || !row.generated || !row.fullProduct) return null;
+    return row.fullProduct;
+  }
+
+  async markProductFailed(slug: string, name: string, brand: string, category: string): Promise<void> {
+    await db.insert(quantumProducts)
+      .values({ slug, name, brand, category, generated: true, generatedAt: new Date() })
+      .onConflictDoUpdate({ target: quantumProducts.slug, set: { generated: true, generatedAt: new Date(), updatedAt: new Date() } });
+  }
+
+  async getAllProducts(limit = 50, offset = 0): Promise<any[]> {
+    return await db.select({
+      slug: quantumProducts.slug, name: quantumProducts.name, brand: quantumProducts.brand,
+      category: quantumProducts.category, priceRange: quantumProducts.priceRange,
+      summary: quantumProducts.summary, generated: quantumProducts.generated, viewCount: quantumProducts.viewCount,
+    }).from(quantumProducts)
+      .where(eq(quantumProducts.generated, true))
+      .orderBy(desc(quantumProducts.viewCount))
+      .limit(limit).offset(offset);
+  }
+
+  async getProductsByCategory(category: string, limit = 24): Promise<any[]> {
+    return await db.select({
+      slug: quantumProducts.slug, name: quantumProducts.name, brand: quantumProducts.brand,
+      category: quantumProducts.category, priceRange: quantumProducts.priceRange,
+      summary: quantumProducts.summary, viewCount: quantumProducts.viewCount,
+    }).from(quantumProducts)
+      .where(and(eq(quantumProducts.category, category), eq(quantumProducts.generated, true)))
+      .orderBy(desc(quantumProducts.viewCount))
+      .limit(limit);
+  }
+
+  async getQuantumProductStats(): Promise<{ total: number; generated: number; queued: number }> {
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(quantumProducts);
+    const [generated] = await db.select({ count: sql<number>`count(*)` }).from(quantumProducts).where(eq(quantumProducts.generated, true));
+    return {
+      total: Number(total.count),
+      generated: Number(generated.count),
+      queued: Number(total.count) - Number(generated.count),
+    };
+  }
+
+  async trackProductView(slug: string): Promise<void> {
+    await db.update(quantumProducts).set({ viewCount: sql`${quantumProducts.viewCount} + 1`, updatedAt: new Date() })
+      .where(eq(quantumProducts.slug, slug));
+  }
+
+  async searchProducts(query: string, limit = 20): Promise<any[]> {
+    return await db.select({
+      slug: quantumProducts.slug, name: quantumProducts.name, brand: quantumProducts.brand,
+      category: quantumProducts.category, priceRange: quantumProducts.priceRange,
+      summary: quantumProducts.summary, generated: quantumProducts.generated,
+    }).from(quantumProducts)
+      .where(sql`(${quantumProducts.name} ILIKE ${'%' + query + '%'} OR ${quantumProducts.brand} ILIKE ${'%' + query + '%'} OR ${quantumProducts.category} ILIKE ${'%' + query + '%'})`)
+      .orderBy(desc(quantumProducts.viewCount))
+      .limit(limit);
   }
 }
 

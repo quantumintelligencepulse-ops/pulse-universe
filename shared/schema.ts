@@ -279,3 +279,52 @@ export const quantapediaEntries = pgTable("quantapedia_entries", {
 export const insertQuantapediaEntrySchema = createInsertSchema(quantapediaEntries).omit({ id: true, createdAt: true, updatedAt: true });
 export type QuantapediaEntry = typeof quantapediaEntries.$inferSelect;
 export type InsertQuantapediaEntry = z.infer<typeof insertQuantapediaEntrySchema>;
+
+export const quantumProducts = pgTable("quantum_products", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  brand: text("brand").default(""),
+  category: text("category").default("General"),
+  subcategory: text("subcategory").default(""),
+  priceRange: text("price_range").default(""),
+  summary: text("summary").default(""),
+  categories: text("categories").array().default([]),
+  relatedProducts: text("related_products").array().default([]),
+  relatedTopics: text("related_topics").array().default([]),
+  retailerLinks: jsonb("retailer_links").default({}),
+  fullProduct: jsonb("full_product"),
+  generated: boolean("generated").default(false),
+  generatedAt: timestamp("generated_at"),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const insertQuantumProductSchema = createInsertSchema(quantumProducts).omit({ id: true, createdAt: true, updatedAt: true });
+export type QuantumProduct = typeof quantumProducts.$inferSelect;
+export type InsertQuantumProduct = z.infer<typeof insertQuantumProductSchema>;
+
+export const hiveMemory = pgTable("hive_memory", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  domain: text("domain").notNull().default("general"),
+  facts: jsonb("facts").default([]),
+  patterns: jsonb("patterns").default([]),
+  confidence: real("confidence").default(0.5),
+  accessCount: integer("access_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type HiveMemory = typeof hiveMemory.$inferSelect;
+
+export const hiveLinks = pgTable("hive_links", {
+  id: serial("id").primaryKey(),
+  fromType: text("from_type").notNull(),
+  fromSlug: text("from_slug").notNull(),
+  toType: text("to_type").notNull(),
+  toSlug: text("to_slug").notNull(),
+  toTitle: text("to_title").default(""),
+  strength: real("strength").default(0.5),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type HiveLink = typeof hiveLinks.$inferSelect;

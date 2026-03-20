@@ -663,6 +663,7 @@ Sitemap: ${baseUrl}/sitemap-profiles.xml
 Sitemap: ${baseUrl}/sitemap-posts.xml
 Sitemap: ${baseUrl}/sitemap-industries.xml
 Sitemap: ${baseUrl}/sitemap-quantapedia.xml
+Sitemap: ${baseUrl}/sitemap-products.xml
 Sitemap: ${baseUrl}/news-rss.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
@@ -701,6 +702,10 @@ Sitemap: ${baseUrl}/news-rss.xml
   </sitemap>
   <sitemap>
     <loc>${baseUrl}/sitemap-quantapedia.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-products.xml</loc>
     <lastmod>${now}</lastmod>
   </sitemap>
 </sitemapindex>`;
@@ -4627,6 +4632,86 @@ If you have live data provided in this prompt, USE IT and present it confidently
     }
   });
 
+  // ═══════ QUANTUM SHOPPING UNIVERSE API ═══════
+  app.get("/api/products", async (req, res) => {
+    try {
+      const limit = parseInt(String(req.query.limit || "48"));
+      const offset = parseInt(String(req.query.offset || "0"));
+      const products = await storage.getAllProducts(limit, offset);
+      res.json(products);
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/products/engine-status", async (_req, res) => {
+    try {
+      const { getProductEngineStatus } = await import("./quantum-product-engine");
+      const stats = await storage.getQuantumProductStats();
+      res.json({ ...getProductEngineStatus(), ...stats });
+    } catch { res.json({ running: false, total: 0, generated: 0, queued: 0 }); }
+  });
+
+  app.get("/api/products/search", async (req, res) => {
+    try {
+      const q = String(req.query.q || "");
+      if (!q) return res.json([]);
+      const results = await storage.searchProducts(q, 24);
+      res.json(results);
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/products/category/:cat", async (req, res) => {
+    try {
+      const products = await storage.getProductsByCategory(req.params.cat, 48);
+      res.json(products);
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/products/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const product = await storage.getFullProduct(slug);
+      if (product) await storage.trackProductView(slug).catch(() => {});
+      res.json({ product: product || null });
+    } catch { res.json({ product: null }); }
+  });
+
+  app.post("/api/products/queue", async (req, res) => {
+    try {
+      const { products } = req.body;
+      if (Array.isArray(products) && products.length) {
+        await storage.queueQuantumProducts(products.slice(0, 20));
+      }
+      res.json({ ok: true });
+    } catch { res.json({ ok: false }); }
+  });
+
+  // ═══════ HIVE BRAIN API ═══════
+  app.get("/api/hive/status", async (_req, res) => {
+    try {
+      const { getHiveBrainStats } = await import("./hive-brain");
+      const stats = await getHiveBrainStats();
+      res.json(stats);
+    } catch { res.json({ memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0 } }); }
+  });
+
+  app.get("/api/hive/links/:type/:slug", async (req, res) => {
+    try {
+      const { getResonanceLinks } = await import("./hive-brain");
+      const links = await getResonanceLinks(req.params.type, req.params.slug);
+      res.json(links);
+    } catch { res.json([]); }
+  });
+
+  app.post("/api/hive/consensus", async (req, res) => {
+    try {
+      const { prompt, context } = req.body;
+      if (!prompt) return res.status(400).json({ error: "prompt required" });
+      const { consensusGenerate } = await import("./hive-brain");
+      const result = await consensusGenerate(prompt, context);
+      res.json({ result });
+    } catch { res.status(500).json({ error: "consensus failed" }); }
+  });
+
   // ═══════ SEO: SITEMAP QUANTAPEDIA ═══════
   app.get("/sitemap-quantapedia.xml", async (req, res) => {
     try {
@@ -4691,6 +4776,33 @@ ${allEntries.map(e => `  <url>
       res.type("application/xml").send(xml);
     } catch (e) {
       res.status(500).type("text/plain").send("Quantapedia sitemap error");
+    }
+  });
+
+  app.get("/sitemap-products.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString().split("T")[0];
+      const products = await storage.getAllProducts(5000).catch(() => []);
+      const escapeXml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/shopping</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+    <lastmod>${now}</lastmod>
+  </url>
+${products.map(p => `  <url>
+    <loc>${baseUrl}/shopping/${escapeXml(p.slug)}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>${now}</lastmod>
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e) {
+      res.status(500).type("text/plain").send("Products sitemap error");
     }
   });
 

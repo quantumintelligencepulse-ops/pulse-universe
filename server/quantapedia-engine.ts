@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 import { storage } from "./storage";
 import { log } from "./index";
+import { onEntryGenerated } from "./hive-brain";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -208,6 +209,8 @@ export async function startQuantapediaEngine() {
           entry.relatedTerms || [],
           entry
         );
+
+        onEntryGenerated(next.slug, entry.title || next.title, entry).catch(() => {});
 
         if (discovered.length) {
           await storage.queueQuantapediaTopics(discovered);
