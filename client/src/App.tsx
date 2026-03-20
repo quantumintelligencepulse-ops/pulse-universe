@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import PulsePage from "./pages/PulsePage";
+import SpawnsPage from "./pages/SpawnsPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -34,7 +35,7 @@ import {
   LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
   GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter, Activity, BookMarked, Telescope,
   Shuffle, Undo2, Redo2, Columns, Loader2, Save, Sliders, Minus, Guitar, Waves, Radio,
-  Film, Bot, Briefcase, Network
+  Film, Bot, Briefcase, Network, Dna
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
@@ -2088,6 +2089,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/my-mind" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/my-mind" ? "bg-fuchsia-500/15" : "bg-fuchsia-500/5"}`}><Sparkles size={14} className="text-fuchsia-400" /></div>
             <span className="flex-1">My Mind</span>
+          </Link>
+          <Link href="/spawns" data-testid="link-spawns"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/spawns" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/spawns" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><Dna size={14} className="text-violet-500" /></div>
+            <span className="flex-1">Spawn Engine</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">Ω</span>
           </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
@@ -14476,6 +14483,7 @@ function Router() {
       <Route path="/hive-command" component={HiveCommandPage} />
       <Route path="/my-mind" component={MyMindPage} />
       <Route path="/graph" component={GraphPage} />
+      <Route path="/spawns" component={SpawnsPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

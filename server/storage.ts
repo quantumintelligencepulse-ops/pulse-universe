@@ -61,6 +61,8 @@ import {
   type QuantumCareer,
   type InsertQuantumCareer,
   pulseEvents,
+  quantumSpawns,
+  type QuantumSpawn,
 } from "@shared/schema";
 import { eq, desc, like, sql, and, inArray, lt } from "drizzle-orm";
 
@@ -844,6 +846,42 @@ export class DatabaseStorage implements IStorage {
   }
   async getRecentPulseEvents(limit = 40): Promise<any[]> {
     return await db.select().from(pulseEvents).orderBy(desc(pulseEvents.createdAt)).limit(limit);
+  }
+
+  async createSpawn(spawn: any): Promise<any> {
+    const [s] = await db.insert(quantumSpawns).values(spawn).returning();
+    return s;
+  }
+  async getSpawnStats(): Promise<any> {
+    const all = await db.select().from(quantumSpawns);
+    const total = all.length;
+    const active = all.filter(s => s.status === 'ACTIVE').length;
+    const completed = all.filter(s => s.status === 'COMPLETED').length;
+    const byFamily: Record<string, number> = {};
+    const byType: Record<string, number> = {};
+    const byBusiness: Record<string, number> = {};
+    for (const s of all) {
+      byFamily[s.familyId] = (byFamily[s.familyId] || 0) + 1;
+      byType[s.spawnType] = (byType[s.spawnType] || 0) + 1;
+      byBusiness[s.businessId] = (byBusiness[s.businessId] || 0) + 1;
+    }
+    return { total, active, completed, byFamily, byType, byBusiness };
+  }
+  async getRecentSpawns(limit = 30): Promise<any[]> {
+    return await db.select().from(quantumSpawns).orderBy(desc(quantumSpawns.createdAt)).limit(limit);
+  }
+  async getFamilySpawns(familyId: string): Promise<any[]> {
+    return await db.select().from(quantumSpawns).where(eq(quantumSpawns.familyId, familyId)).orderBy(quantumSpawns.generation, quantumSpawns.createdAt);
+  }
+  async getActiveSpawnsByFamily(): Promise<any[]> {
+    return await db.select().from(quantumSpawns).where(eq(quantumSpawns.status, 'ACTIVE')).orderBy(desc(quantumSpawns.createdAt)).limit(1000);
+  }
+  async updateSpawnStatus(spawnId: string, status: string): Promise<void> {
+    await db.update(quantumSpawns).set({ status, lastActiveAt: new Date() }).where(eq(quantumSpawns.spawnId, spawnId));
+  }
+  async getTotalSpawnCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(quantumSpawns);
+    return result[0]?.count ?? 0;
   }
 }
 

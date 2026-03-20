@@ -4959,5 +4959,27 @@ ${products.map(p => `  <url>
     } catch { res.json({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0 }); }
   });
 
+  app.get("/api/spawns/stats", async (req, res) => {
+    try { res.json(await storage.getSpawnStats()); }
+    catch { res.json({ total: 0, active: 0, completed: 0, byFamily: {}, byType: {}, byBusiness: {} }); }
+  });
+
+  app.get("/api/spawns/recent", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 30;
+      res.json(await storage.getRecentSpawns(limit));
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/spawns/family/:familyId", async (req, res) => {
+    try { res.json(await storage.getFamilySpawns(req.params.familyId)); }
+    catch { res.json([]); }
+  });
+
+  app.get("/api/spawns/active", async (req, res) => {
+    try { res.json(await storage.getActiveSpawnsByFamily()); }
+    catch { res.json([]); }
+  });
+
   return httpServer;
 }

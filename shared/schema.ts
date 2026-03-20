@@ -382,3 +382,34 @@ export const pulseEvents = pgTable("pulse_events", {
   domain: text("domain").default(""),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const quantumSpawns = pgTable("quantum_spawns", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull().unique(),
+  parentId: text("parent_id"),
+  ancestorIds: text("ancestor_ids").array().default([]),
+  familyId: text("family_id").notNull(),
+  businessId: text("business_id").notNull(),
+  generation: integer("generation").default(0),
+  spawnType: text("spawn_type").notNull().default("EXPLORER"),
+  domainFocus: text("domain_focus").array().default([]),
+  taskDescription: text("task_description").default(""),
+  nodesCreated: integer("nodes_created").default(0),
+  linksCreated: integer("links_created").default(0),
+  iterationsRun: integer("iterations_run").default(0),
+  successScore: real("success_score").default(0.75),
+  confidenceScore: real("confidence_score").default(0.8),
+  explorationBias: real("exploration_bias").default(0.5),
+  depthBias: real("depth_bias").default(0.5),
+  linkingBias: real("linking_bias").default(0.5),
+  summarizationStyle: text("summarization_style").default("balanced"),
+  riskTolerance: real("risk_tolerance").default(0.3),
+  status: text("status").notNull().default("ACTIVE"),
+  visibility: text("visibility").default("public"),
+  notes: text("notes").default(""),
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertQuantumSpawnSchema = createInsertSchema(quantumSpawns).omit({ id: true, createdAt: true });
+export type QuantumSpawn = typeof quantumSpawns.$inferSelect;
+export type InsertQuantumSpawn = z.infer<typeof insertQuantumSpawnSchema>;
