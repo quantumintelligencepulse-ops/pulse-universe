@@ -3,6 +3,7 @@ import PulsePage from "./pages/PulsePage";
 import SpawnsPage from "./pages/SpawnsPage";
 import SourcesPage from "./pages/SourcesPage";
 import OmegaPage from "./pages/OmegaPage";
+import IngestionPage from "./pages/IngestionPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -37,7 +38,7 @@ import {
   LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
   GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter, Activity, BookMarked, Telescope,
   Shuffle, Undo2, Redo2, Columns, Loader2, Save, Sliders, Minus, Guitar, Waves, Radio,
-  Film, Bot, Briefcase, Network, Dna
+  Film, Bot, Briefcase, Network, Dna, Plug
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
@@ -2111,6 +2112,15 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Omega Engine</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">V∞</span>
+          </Link>
+          <Link href="/ingestion" data-testid="link-ingestion"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/ingestion" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/ingestion" ? "bg-green-600/15" : "bg-green-600/5"}`}><Plug size={14} className="text-green-500" /></div>
+            <span className="flex-1">Live Ingestion</span>
+            <span className="relative flex items-center gap-1 text-[9px] bg-green-500/10 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+              LIVE
+            </span>
           </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
@@ -14502,6 +14512,7 @@ function Router() {
       <Route path="/spawns" component={SpawnsPage} />
       <Route path="/sources" component={SourcesPage} />
       <Route path="/omega" component={OmegaPage} />
+      <Route path="/ingestion" component={IngestionPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

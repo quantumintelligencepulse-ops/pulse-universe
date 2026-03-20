@@ -413,3 +413,20 @@ export const quantumSpawns = pgTable("quantum_spawns", {
 export const insertQuantumSpawnSchema = createInsertSchema(quantumSpawns).omit({ id: true, createdAt: true });
 export type QuantumSpawn = typeof quantumSpawns.$inferSelect;
 export type InsertQuantumSpawn = z.infer<typeof insertQuantumSpawnSchema>;
+
+export const ingestionLogs = pgTable("ingestion_logs", {
+  id: serial("id").primaryKey(),
+  sourceId: text("source_id").notNull(),
+  sourceName: text("source_name").notNull(),
+  familyId: text("family_id").notNull(),
+  query: text("query").notNull(),
+  itemsFetched: integer("items_fetched").default(0),
+  nodesCreated: integer("nodes_created").default(0),
+  status: text("status").notNull().default("success"),
+  errorMessage: text("error_message").default(""),
+  sampleTitle: text("sample_title").default(""),
+  sampleSummary: text("sample_summary").default(""),
+  sourceUrl: text("source_url").default(""),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+});
+export type IngestionLog = typeof ingestionLogs.$inferSelect;

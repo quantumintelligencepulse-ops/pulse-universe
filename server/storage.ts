@@ -3,6 +3,7 @@ import {
   users,
   chats,
   messages,
+  ingestionLogs,
   feedComments,
   socialProfiles,
   socialPosts,
@@ -177,6 +178,12 @@ export interface IStorage {
   getQuantumProductStats(): Promise<{ total: number; generated: number; queued: number }>;
   trackProductView(slug: string): Promise<void>;
   searchProducts(query: string, limit?: number): Promise<any[]>;
+
+  createIngestionLog(data: { sourceId: string; sourceName: string; familyId: string; query: string; itemsFetched: number; nodesCreated: number; status: string; errorMessage?: string; sampleTitle?: string; sampleSummary?: string; sourceUrl?: string; }): Promise<void>;
+  getIngestionLogs(limit?: number): Promise<any[]>;
+  getIngestionStats(): Promise<any>;
+  getQuantapediaBySlug(slug: string): Promise<any | null>;
+  createQuantapediaEntry(entry: { slug: string; title: string; type?: string; summary?: string; categories?: string[]; relatedTerms?: string[]; generated?: boolean; generatedAt?: Date; }): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -829,6 +836,65 @@ export class DatabaseStorage implements IStorage {
   }
   async trackCareerView(slug: string): Promise<void> {
     await db.update(quantumCareers).set({ viewCount: sql`${quantumCareers.viewCount} + 1` }).where(eq(quantumCareers.slug, slug));
+  }
+
+  // ── Ingestion Engine ───────────────────────────────────────────
+  async createIngestionLog(data: {
+    sourceId: string; sourceName: string; familyId: string; query: string;
+    itemsFetched: number; nodesCreated: number; status: string;
+    errorMessage?: string; sampleTitle?: string; sampleSummary?: string; sourceUrl?: string;
+  }): Promise<void> {
+    await db.insert(ingestionLogs).values({
+      sourceId: data.sourceId, sourceName: data.sourceName, familyId: data.familyId,
+      query: data.query, itemsFetched: data.itemsFetched, nodesCreated: data.nodesCreated,
+      status: data.status, errorMessage: data.errorMessage || "",
+      sampleTitle: data.sampleTitle || "", sampleSummary: data.sampleSummary || "",
+      sourceUrl: data.sourceUrl || "",
+    });
+    // Keep only last 500 logs
+    await db.execute(sql`DELETE FROM ingestion_logs WHERE id NOT IN (SELECT id FROM ingestion_logs ORDER BY fetched_at DESC LIMIT 500)`);
+  }
+
+  async getIngestionLogs(limit = 50): Promise<any[]> {
+    return await db.select().from(ingestionLogs).orderBy(desc(ingestionLogs.fetchedAt)).limit(limit);
+  }
+
+  async getIngestionStats(): Promise<any> {
+    const all = await db.select().from(ingestionLogs);
+    const total = all.length;
+    const success = all.filter(l => l.status === "success").length;
+    const errors = all.filter(l => l.status === "error").length;
+    const totalNodes = all.reduce((s, l) => s + (l.nodesCreated || 0), 0);
+    const totalFetched = all.reduce((s, l) => s + (l.itemsFetched || 0), 0);
+    const bySrc: Record<string, { count: number; nodes: number; lastTitle: string; lastFetched: Date | null; status: string }> = {};
+    for (const l of all) {
+      if (!bySrc[l.sourceId]) bySrc[l.sourceId] = { count: 0, nodes: 0, lastTitle: "", lastFetched: null, status: "success" };
+      bySrc[l.sourceId].count++;
+      bySrc[l.sourceId].nodes += (l.nodesCreated || 0);
+      if (!bySrc[l.sourceId].lastFetched || (l.fetchedAt && l.fetchedAt > bySrc[l.sourceId].lastFetched!)) {
+        bySrc[l.sourceId].lastFetched = l.fetchedAt;
+        bySrc[l.sourceId].lastTitle = l.sampleTitle || "";
+        bySrc[l.sourceId].status = l.status;
+      }
+    }
+    return { total, success, errors, totalNodes, totalFetched, bySrc };
+  }
+
+  async getQuantapediaBySlug(slug: string): Promise<any | null> {
+    const [row] = await db.select({ id: quantapediaEntries.id }).from(quantapediaEntries).where(eq(quantapediaEntries.slug, slug));
+    return row || null;
+  }
+
+  async createQuantapediaEntry(entry: {
+    slug: string; title: string; type?: string; summary?: string;
+    categories?: string[]; relatedTerms?: string[]; generated?: boolean; generatedAt?: Date;
+  }): Promise<void> {
+    await db.insert(quantapediaEntries).values({
+      slug: entry.slug, title: entry.title, type: entry.type || "concept",
+      summary: entry.summary || "", categories: entry.categories || [],
+      relatedTerms: entry.relatedTerms || [], generated: entry.generated || false,
+      generatedAt: entry.generatedAt || new Date(),
+    }).onConflictDoNothing();
   }
 
   // ── Hive Graph ─────────────────────────────────────────────────

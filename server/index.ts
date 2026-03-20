@@ -8,6 +8,7 @@ import { startHiveBrain } from "./hive-brain";
 import { startQuantumMediaEngine } from "./quantum-media-engine";
 import { startQuantumCareerEngine } from "./quantum-career-engine";
 import { startSpawnEngine } from "./quantum-spawn-engine";
+import { startIngestionEngine } from "./quantum-ingestion-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -110,6 +111,7 @@ app.use((req, res, next) => {
       startQuantumMediaEngine().catch((e) => log(`MediaEngine start error: ${e}`));
       startQuantumCareerEngine().catch((e) => log(`CareerEngine start error: ${e}`));
       startSpawnEngine().catch((e) => log(`SpawnEngine start error: ${e}`));
+      startIngestionEngine().catch((e) => log(`IngestionEngine start error: ${e}`));
     },
   );
 })();

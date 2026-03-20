@@ -4981,5 +4981,18 @@ ${products.map(p => `  <url>
     catch { res.json([]); }
   });
 
+  // ── Real Ingestion Engine Routes ────────────────────────────
+  app.get("/api/ingestion/logs", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      res.json(await storage.getIngestionLogs(limit));
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/ingestion/stats", async (req, res) => {
+    try { res.json(await storage.getIngestionStats()); }
+    catch { res.json({ total: 0, success: 0, errors: 0, totalNodes: 0, totalFetched: 0, bySrc: {} }); }
+  });
+
   return httpServer;
 }
