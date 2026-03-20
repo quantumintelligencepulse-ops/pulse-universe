@@ -61,6 +61,7 @@ export default function PulseUniversePage() {
           onDeselect={() => setSelectedPlanet(null)}
           timeScale={timeScale}
           quantumMode={quantumMode}
+          liveData={universe as any}
         />
       </div>
 

@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { PLANET_DATA, MOON_DATA, MAIN_PLANETS } from "./planetData";
 import { createSpaceEnvironment } from "./SpaceEnvironment";
 import { createQuantumField, createTunnelingParticles } from "./QuantumPhysics";
+import { QuantumLiveEngine, type QLiveData } from "./QuantumLiveEngine";
 
 const TEX = 'https://www.solarsystemscope.com/textures/download';
 
@@ -116,9 +117,10 @@ interface Props {
   timeScale?: number;
   quantumMode?: boolean;
   onQuantumToggle?: (v: boolean) => void;
+  liveData?: QLiveData;
 }
 
-export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, timeScale = 1, quantumMode = false, onQuantumToggle }: Props) {
+export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, timeScale = 1, quantumMode = false, onQuantumToggle, liveData }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<any>({});
   const timeScaleRef = useRef(timeScale);
@@ -130,11 +132,13 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
   // Keep refs always up-to-date so the scene useEffect never needs to re-run
   const onPlanetClickRef = useRef(onPlanetClick);
   const onDeselectRef = useRef(onDeselect);
+  const liveDataRef = useRef(liveData);
   useEffect(() => { timeScaleRef.current = timeScale; }, [timeScale]);
   useEffect(() => { selectedRef.current = selectedPlanet; }, [selectedPlanet]);
   useEffect(() => { quantumRef.current = quantumMode; }, [quantumMode]);
   useEffect(() => { onPlanetClickRef.current = onPlanetClick; }, [onPlanetClick]);
   useEffect(() => { onDeselectRef.current = onDeselect; }, [onDeselect]);
+  useEffect(() => { liveDataRef.current = liveData; }, [liveData]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -206,7 +210,9 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         const corona = buildSunCorona(data.radius);
         tiltGroup.add(corona);
         planets._sunCorona = corona;
-        group.add(makeGlowSprite(0xffaa22, data.radius * 14));
+        const sunGlowSprite = makeGlowSprite(0xffaa22, data.radius * 14);
+        group.add(sunGlowSprite);
+        planets._sunGlow = sunGlowSprite;
       }
 
       if (name === 'Earth') {
@@ -276,7 +282,12 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       radius: 55, theta: 0.4, phi: 0.45,
       lookAt: new THREE.Vector3(),
     };
-    sceneRef.current = { cam, planets, moonObjects, quantumField };
+    // ── QUANTUM LIVE ENGINE ───────────────────────────────────────────────────
+    const liveEngine = new QuantumLiveEngine(scene);
+    if (planets._sunGlow) {
+      liveEngine.setSunGlow(planets._sunGlow as THREE.Sprite, PLANET_DATA['Sun'].radius * 14);
+    }
+    sceneRef.current = { cam, planets, moonObjects, quantumField, liveEngine };
 
     // ── INPUT ────────────────────────────────────────────────────────────────
     const keys: Record<string, boolean> = {};
@@ -398,9 +409,13 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
 
     // ── ANIMATION LOOP ────────────────────────────────────────────────────────
     let time = 0;
+    let lastNow = performance.now();
 
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
+      const now = performance.now();
+      const dt = Math.min((now - lastNow) / 1000, 0.05);
+      lastNow = now;
       const ts = timeScaleRef.current;
       time += 0.003 * ts;
 
@@ -463,6 +478,16 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       if (planets['Sun']) planets['Sun'].mesh.rotation.y += 0.002 * ts;
       lensFlare.lookAt(camera.position);
 
+      // ── Quantum Live Engine ────────────────────────────────────────────────
+      const ld = liveDataRef.current;
+      if (ld) {
+        if (!liveEngine.orbsBuilt) liveEngine.buildDomainOrbs(ld.domains);
+        const planetPositions = Object.values(planets)
+          .filter((p: any) => p?.group && p?.data?.semiMajor > 0)
+          .map((p: any) => p.group.position.clone());
+        liveEngine.update(dt, ld, now, planetPositions);
+      }
+
       // ── Hover ring ────────────────────────────────────────────────────────
       if (hoveredName && planets[hoveredName]) {
         const p = planets[hoveredName];
@@ -512,6 +537,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
       renderer.dispose();
+      liveEngine.dispose();
     };
   }, []); // runs once — callbacks accessed via refs, never causes scene rebuild
 
