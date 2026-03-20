@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createChart, CrosshairMode, LineStyle } from "lightweight-charts";
+import { createChart, CandlestickSeries, LineSeries, HistogramSeries, CrosshairMode, LineStyle, ColorType } from "lightweight-charts";
 import { TrendingUp, TrendingDown, Minus, RefreshCw, Brain, Zap, Search, X, Building2, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Flame, Layers, DollarSign, Gauge, CandlestickChart, LineChart } from "lucide-react";
 
 // ── Symbol universes ────────────────────────────────────────────
@@ -76,10 +76,9 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
     if (!data?.ohlcv?.length || !containerRef.current) return;
     if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
 
-    const isIntraday = tf === "1W" && data.ohlcv[0]?.time && typeof data.ohlcv[0].time === "number";
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { color: "transparent" } as any,
+        background: { type: ColorType.Solid, color: "#05000e" },
         textColor: "rgba(255,255,255,0.45)",
         fontSize: 11,
       },
@@ -98,23 +97,24 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
         timeVisible: true,
         secondsVisible: false,
       },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true },
-      handleScale: { mouseWheel: true, pinch: true },
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight || 340,
-    } as any);
+    });
     chartRef.current = chart;
 
+    const priceScaleMargins = indicators.volume ? { top: 0.06, bottom: 0.28 } : { top: 0.06, bottom: 0.04 };
+
     if (mode === "candle") {
-      const cs = chart.addCandlestickSeries({
+      const cs = chart.addSeries(CandlestickSeries, {
         upColor: "#4ade80",
         downColor: "#f87171",
         wickUpColor: "#4ade80",
         wickDownColor: "#f87171",
         borderVisible: false,
+        priceScaleId: "right",
       });
+      cs.priceScale().applyOptions({ scaleMargins: priceScaleMargins });
       cs.setData(data.ohlcv);
-      cs.priceScale().applyOptions({ scaleMargins: indicators.volume ? { top: 0.06, bottom: 0.28 } : { top: 0.06, bottom: 0.04 } });
 
       chart.subscribeCrosshairMove((param: any) => {
         if (param?.seriesData?.get(cs)) {
@@ -124,37 +124,38 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
         }
       });
     } else {
-      const ls = chart.addLineSeries({
+      const ls = chart.addSeries(LineSeries, {
         color: "#a78bfa",
         lineWidth: 2,
         crosshairMarkerVisible: true,
         crosshairMarkerRadius: 4,
         crosshairMarkerBackgroundColor: "#7c3aed",
         lastValueVisible: true,
+        priceScaleId: "right",
       });
+      ls.priceScale().applyOptions({ scaleMargins: priceScaleMargins });
       ls.setData(data.ohlcv.map((d: any) => ({ time: d.time, value: d.close })));
-      ls.priceScale().applyOptions({ scaleMargins: indicators.volume ? { top: 0.06, bottom: 0.28 } : { top: 0.06, bottom: 0.04 } });
     }
 
     if (indicators.ma20 && data.ohlcv.length >= 20) {
-      const s = chart.addLineSeries({ color: "#fbbf24", lineWidth: 1, title: "MA20", lastValueVisible: false, priceLineVisible: false });
+      const s = chart.addSeries(LineSeries, { color: "#fbbf24", lineWidth: 1, title: "MA20", lastValueVisible: false, priceLineVisible: false, priceScaleId: "right" });
       s.setData(computeSMA(data.ohlcv, 20));
     }
     if (indicators.ma50 && data.ohlcv.length >= 50) {
-      const s = chart.addLineSeries({ color: "#60a5fa", lineWidth: 1, title: "MA50", lastValueVisible: false, priceLineVisible: false });
+      const s = chart.addSeries(LineSeries, { color: "#60a5fa", lineWidth: 1, title: "MA50", lastValueVisible: false, priceLineVisible: false, priceScaleId: "right" });
       s.setData(computeSMA(data.ohlcv, 50));
     }
     if (indicators.ma200 && data.ohlcv.length >= 200) {
-      const s = chart.addLineSeries({ color: "#f472b6", lineWidth: 1, lineStyle: LineStyle.Dashed, title: "MA200", lastValueVisible: false, priceLineVisible: false });
+      const s = chart.addSeries(LineSeries, { color: "#f472b6", lineWidth: 1, lineStyle: LineStyle.Dashed, title: "MA200", lastValueVisible: false, priceLineVisible: false, priceScaleId: "right" });
       s.setData(computeSMA(data.ohlcv, 200));
     }
     if (indicators.volume) {
-      const vs = chart.addHistogramSeries({
+      const vs = chart.addSeries(HistogramSeries, {
         priceFormat: { type: "volume" },
         priceScaleId: "vol",
         lastValueVisible: false,
         priceLineVisible: false,
-      } as any);
+      });
       vs.priceScale().applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
       vs.setData(data.ohlcv.map((d: any) => ({
         time: d.time,
