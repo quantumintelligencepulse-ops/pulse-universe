@@ -1,105 +1,136 @@
-import { useState, useEffect, useRef } from "react";
-import { Zap, Brain, ShoppingBag, BookOpen, Film, Briefcase, Activity, Radio } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Brain, ShoppingBag, BookOpen, Film, Briefcase, Radio, RefreshCw, Pause, Play, Activity } from "lucide-react";
 
-const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any; bg: string }> = {
-  knowledge: { label: "Knowledge", color: "#818cf8", icon: Brain, bg: "#818cf820" },
-  product: { label: "Product", color: "#4ade80", icon: ShoppingBag, bg: "#4ade8020" },
-  media: { label: "Media", color: "#f472b6", icon: Film, bg: "#f472b620" },
-  career: { label: "Career", color: "#fb923c", icon: Briefcase, bg: "#fb923c20" },
-  quantapedia: { label: "Quantapedia", color: "#818cf8", icon: BookOpen, bg: "#818cf820" },
+const TYPE_CFG: Record<string, { label: string; color: string; Icon: any }> = {
+  knowledge:   { label: "Knowledge",   color: "#818cf8", Icon: Brain },
+  quantapedia: { label: "Quantapedia", color: "#a78bfa", Icon: BookOpen },
+  product:     { label: "Product",     color: "#4ade80", Icon: ShoppingBag },
+  media:       { label: "Media",       color: "#f472b6", Icon: Film },
+  career:      { label: "Career",      color: "#fb923c", Icon: Briefcase },
 };
 
 function timeAgo(ts: string) {
   const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
   if (diff < 5) return "just now";
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  return `${Math.floor(diff / 3600)}h`;
+}
+
+function EventRow({ e, i }: { e: any; i: number }) {
+  const cfg = TYPE_CFG[e.type] || TYPE_CFG.knowledge;
+  const Icon = cfg.Icon;
+  const [vis, setVis] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setVis(true), Math.min(i * 25, 400)); return () => clearTimeout(t); }, [i]);
+  return (
+    <div data-testid={`pulse-event-${e.id}`}
+      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+        opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(-6px)", transition: "opacity 0.3s ease, transform 0.3s ease" }}>
+      <div style={{ width: 28, height: 28, borderRadius: 7, background: `${cfg.color}18`, border: `1px solid ${cfg.color}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Icon size={12} style={{ color: cfg.color }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</div>
+        <div style={{ display: "flex", gap: 5, marginTop: 1 }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: cfg.color, textTransform: "uppercase", letterSpacing: "0.06em" }}>{cfg.label}</span>
+          {e.domain && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>· {e.domain}</span>}
+        </div>
+      </div>
+      <span style={{ flexShrink: 0, color: "rgba(255,255,255,0.18)", fontSize: 9, fontWeight: 600 }}>{timeAgo(e.createdAt || e.created_at || "")}</span>
+    </div>
+  );
 }
 
 export default function PulsePage() {
   const [events, setEvents] = useState<any[]>([]);
   const [live, setLive] = useState(true);
-  const [tick, setTick] = useState(0);
-  const listRef = useRef<HTMLDivElement>(null);
+  const streamRef = useRef<HTMLDivElement>(null);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     const data = await fetch("/api/pulse/live").then(r => r.json()).catch(() => []);
     setEvents(data);
-  };
+  }, []);
 
   useEffect(() => {
     fetchEvents();
-    const id = setInterval(() => { if (live) fetchEvents(); setTick(t => t + 1); }, 3000);
+    const id = setInterval(() => { if (live) fetchEvents(); }, 3000);
     return () => clearInterval(id);
-  }, [live]);
+  }, [live, fetchEvents]);
 
-  const totalToday = events.length;
   const byType = events.reduce((acc: any, e: any) => { acc[e.type] = (acc[e.type] || 0) + 1; return acc; }, {});
+  const total = events.length;
+  const typeEntries = Object.entries(byType).sort(([, a]: any, [, b]: any) => b - a);
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="flex items-start justify-between mb-6">
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "linear-gradient(180deg,#020010,#04000d)", overflow: "hidden", minHeight: 0 }}>
+      <div style={{ padding: "14px 18px 0", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-emerald-400 text-xs font-bold tracking-widest uppercase">Live</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: live ? "#4ade80" : "#94a3b8", boxShadow: live ? "0 0 8px #4ade80" : "none", animation: live ? "hbPulse 1.8s infinite" : "none" }} />
+              <span style={{ color: live ? "#4ade80" : "#94a3b8", fontSize: 9, fontWeight: 800, letterSpacing: "0.14em" }}>{live ? "LIVE FEED" : "PAUSED"}</span>
             </div>
-            <h1 className="text-3xl font-black text-white tracking-tight">Live World Pulse</h1>
-            <p className="text-white/30 text-sm mt-0.5">Every discovery the Hive makes, in real time</p>
+            <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 20, margin: 0, letterSpacing: "-0.02em" }}>Hive World Pulse</h1>
+            <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, margin: "2px 0 0" }}>Every discovery the Quantum Logic Network Hive makes — in real time</p>
           </div>
-          <button onClick={() => setLive(l => !l)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${live ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/40"}`}>
-            <Radio size={12} /> {live ? "LIVE" : "PAUSED"}
-          </button>
+          <div style={{ display: "flex", gap: 5 }}>
+            <button onClick={() => setLive(l => !l)} data-testid="button-toggle-live"
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 8, border: `1px solid ${live ? "rgba(74,222,128,0.3)" : "rgba(255,255,255,0.1)"}`, background: live ? "rgba(74,222,128,0.07)" : "rgba(255,255,255,0.03)", color: live ? "#4ade80" : "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+              {live ? <Pause size={9} /> : <Play size={9} />}{live ? "Pause" : "Resume"}
+            </button>
+            <button onClick={fetchEvents} data-testid="button-refresh-pulse"
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)", color: "rgba(255,255,255,0.35)", cursor: "pointer" }}>
+              <RefreshCw size={10} />
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
-            const count = byType[type] || 0;
-            const Icon = cfg.icon;
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 5, marginBottom: 10 }}>
+          {Object.entries(TYPE_CFG).map(([k, cfg]) => {
+            const count = byType[k] || 0;
+            const Icon = cfg.Icon;
             return (
-              <div key={type} className="rounded-xl border border-white/8 p-3" style={{ background: cfg.bg }}>
-                <Icon size={14} style={{ color: cfg.color }} className="mb-1.5" />
-                <div className="text-xl font-black" style={{ color: cfg.color }}>{count}</div>
-                <div className="text-white/40 text-[10px] font-semibold">{cfg.label}</div>
+              <div key={k} style={{ borderRadius: 10, border: `1px solid ${cfg.color}25`, background: `${cfg.color}08`, padding: "8px 10px", textAlign: "center" }}>
+                <Icon size={11} style={{ color: cfg.color, margin: "0 auto 4px" }} />
+                <div style={{ color: cfg.color, fontWeight: 900, fontSize: 16 }}>{count}</div>
+                <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, marginTop: 1 }}>{cfg.label}</div>
               </div>
             );
           })}
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5">
-            <Activity size={13} className="text-white/40" />
-            <span className="text-white/60 text-xs font-semibold">Hive Activity Stream</span>
-            <span className="ml-auto text-white/20 text-[10px]">{totalToday} events recorded</span>
-          </div>
-          <div ref={listRef} className="divide-y divide-white/5">
-            {events.length === 0 ? (
-              <div className="py-16 text-center text-white/20 text-sm">Waiting for Hive activity...</div>
-            ) : events.map((e: any, i: number) => {
-              const cfg = TYPE_CONFIG[e.type] || { label: e.type, color: "#ffffff", icon: Zap, bg: "#ffffff10" };
-              const Icon = cfg.icon;
+        {typeEntries.length > 0 && (
+          <div style={{ borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)", padding: "8px 12px", marginBottom: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+            {typeEntries.map(([t, count]: any) => {
+              const cfg = TYPE_CFG[t] || { color: "#94a3b8", label: t };
+              const pct = total > 0 ? (count / total) * 100 : 0;
               return (
-                <div key={e.id || i} className="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors group">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: cfg.bg }}>
-                    <Icon size={12} style={{ color: cfg.color }} />
+                <div key={t} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.color, flexShrink: 0 }} />
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, fontWeight: 700, width: 68, textTransform: "uppercase", letterSpacing: "0.05em" }}>{cfg.label}</div>
+                  <div style={{ flex: 1, height: 2, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: cfg.color, borderRadius: 2, transition: "width 0.8s ease" }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white/80 text-sm font-medium leading-snug truncate">{e.title}</div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ color: cfg.color, background: cfg.bg }}>{cfg.label}</span>
-                      {e.domain && <span className="text-white/20 text-[10px]">{e.domain}</span>}
-                    </div>
-                  </div>
-                  <div className="text-white/20 text-[10px] flex-shrink-0 mt-0.5">{timeAgo(e.createdAt)}</div>
+                  <div style={{ color: cfg.color, fontSize: 10, fontWeight: 800, width: 20, textAlign: "right" }}>{count}</div>
                 </div>
               );
             })}
           </div>
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6, paddingBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 0 }}>
+          <Activity size={10} style={{ color: "rgba(255,255,255,0.2)" }} />
+          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, fontWeight: 600 }}>{total} events captured across all Hive engines</span>
         </div>
       </div>
+
+      <div ref={streamRef} style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.06) transparent" }}>
+        {events.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(255,255,255,0.15)", fontSize: 12 }}>Waiting for Hive activity...</div>
+        ) : events.map((e: any, i: number) => <EventRow key={e.id || i} e={e} i={i} />)}
+      </div>
+
+      <style>{`@keyframes hbPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }`}</style>
     </div>
   );
 }

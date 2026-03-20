@@ -4696,6 +4696,40 @@ If you have live data provided in this prompt, USE IT and present it confidently
     } catch { res.json({ memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0 } }); }
   });
 
+  // ── Personal Intelligence Profile ──────────────────────────────
+  app.get("/api/profile/intelligence", async (req, res) => {
+    try {
+      const [hiveStatus, pulseEvents, topEntries, recentMedia, recentCareers, mediaStats, careerStats] = await Promise.all([
+        fetch(`http://localhost:${process.env.PORT || 5000}/api/hive/status`).then(r => r.json()).catch(() => null),
+        storage.getRecentPulseEvents(50).catch(() => []),
+        storage.getAllQuantapediaEntries(20).catch(() => []),
+        storage.getAllMedia(8).catch(() => []),
+        storage.getAllCareers(8).catch(() => []),
+        storage.getMediaStats().catch(() => ({ total: 0, generated: 0 })),
+        storage.getCareerStats().catch(() => ({ total: 0, generated: 0 })),
+      ]);
+      const byType = pulseEvents.reduce((acc: any, e: any) => { acc[e.type] = (acc[e.type] || 0) + 1; return acc; }, {});
+      const domains: Record<string, number> = {};
+      for (const e of topEntries) { if (e.domain) domains[e.domain] = (domains[e.domain] || 0) + 1; }
+      const recentByType: Record<string, any[]> = {};
+      for (const e of pulseEvents.slice(0, 20)) { if (!recentByType[e.type]) recentByType[e.type] = []; recentByType[e.type].push(e); }
+      res.json({
+        hive: hiveStatus,
+        pulse: { total: pulseEvents.length, byType, recent: pulseEvents.slice(0, 10) },
+        knowledge: { topEntries: topEntries.slice(0, 10), domains },
+        media: { items: recentMedia.filter((m: any) => m.generated).slice(0, 6), stats: mediaStats },
+        careers: { items: recentCareers.filter((c: any) => c.generated).slice(0, 6), stats: careerStats },
+        summary: {
+          totalEvents: pulseEvents.length,
+          memorizedPatterns: hiveStatus?.memory?.total || 0,
+          knowledgeLinks: hiveStatus?.network?.totalLinks || 0,
+          mediaIndexed: mediaStats.generated,
+          careersIndexed: careerStats.generated,
+        },
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   app.get("/api/hive/links/:type/:slug", async (req, res) => {
     try {
       const { getResonanceLinks } = await import("./hive-brain");

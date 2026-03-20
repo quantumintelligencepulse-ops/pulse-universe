@@ -899,7 +899,7 @@ export class DatabaseStorage implements IStorage {
 
   // ── Hive Graph ─────────────────────────────────────────────────
   async getAllQuantapediaEntries(limit = 200): Promise<any[]> {
-    return await db.select({ slug: quantapediaEntries.slug, title: quantapediaEntries.title, domain: quantapediaEntries.domain, generated: quantapediaEntries.generated, viewCount: quantapediaEntries.viewCount }).from(quantapediaEntries).orderBy(desc(quantapediaEntries.viewCount)).limit(limit);
+    return await db.select({ slug: quantapediaEntries.slug, title: quantapediaEntries.title, domain: quantapediaEntries.type, generated: quantapediaEntries.generated, viewCount: quantapediaEntries.lookupCount }).from(quantapediaEntries).where(eq(quantapediaEntries.generated, true)).orderBy(desc(quantapediaEntries.lookupCount)).limit(limit);
   }
   async getHiveLinks(limit = 500): Promise<any[]> {
     return await db.select().from(hiveLinks).orderBy(desc(hiveLinks.strength)).limit(limit);
