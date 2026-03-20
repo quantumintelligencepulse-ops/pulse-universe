@@ -927,7 +927,7 @@ export default function PulseGamesPage() {
                     style={{
                       borderColor: season.color + "30",
                       background: `linear-gradient(135deg, ${season.color}${isCurrent ? "20" : "08"}, transparent)`,
-                      ...(isCurrent ? { "--tw-ring-color": season.color + "60" } as React.CSSProperties : {}),
+                      ...(isCurrent ? { outline: `2px solid ${season.color}60`, outlineOffset: "2px" } : {}),
                     }}
                     data-testid={`season-card-${season.name.replace(/\s+/g, "-").toLowerCase()}`}
                   >

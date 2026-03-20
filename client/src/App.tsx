@@ -8,6 +8,8 @@ import TranscendencePage from "./pages/TranscendencePage";
 import DNAEvolutionPage from "./pages/DNAEvolutionPage";
 import PulseWorldPage from "./pages/PulseWorldPage";
 import PulseUPage from "./pages/PulseUPage";
+import PulseGamesPage from "./pages/PulseGamesPage";
+import HiveSovereignPage from "./pages/HiveSovereignPage";
 import SolarSystemPage from "./pages/SolarSystemPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
@@ -2238,6 +2240,22 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">PulseU</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #3b82f633, #a855f733)", color: "#a855f7", border: "1px solid #a855f750" }}>AI SCHOOL</span>
+          </Link>
+          <Link href="/pulse-games" data-testid="link-pulse-games"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse-games" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#f59e0b]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/pulse-games" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🎮</span>
+            </div>
+            <span className="flex-1">Pulse Games</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #f43f5e33, #f59e0b33)", color: "#f59e0b", border: "1px solid #f59e0b50" }}>AI SPORTS</span>
+          </Link>
+          <Link href="/hive-sovereign" data-testid="link-hive-sovereign"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-sovereign" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/hive-sovereign" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>⚖️</span>
+            </div>
+            <span className="flex-1">Hive Sovereign</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>GOV</span>
           </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
@@ -14949,6 +14967,8 @@ function Router() {
       <Route path="/dna" component={DNAEvolutionPage} />
       <Route path="/pulseworld" component={PulseWorldPage} />
       <Route path="/pulseu" component={PulseUPage} />
+      <Route path="/pulse-games" component={PulseGamesPage} />
+      <Route path="/hive-sovereign" component={HiveSovereignPage} />
       <Route path="/universe" component={SolarSystemPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
