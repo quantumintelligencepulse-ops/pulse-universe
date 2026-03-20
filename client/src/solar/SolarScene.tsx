@@ -280,9 +280,6 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       panVelX: 0, panVelY: 0,
       // free mode (WASD)
       freePos: new THREE.Vector3(),
-      // locked to planet flag
-      locked: false, lockName: '' as string,
-      lastLockPos: new THREE.Vector3(),
     };
     sceneRef.current = { cam, planets, moonObjects, quantumField };
 
@@ -304,8 +301,6 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       drag.active = true; drag.button = e.button;
       drag.startX = drag.lastX = e.clientX; drag.startY = drag.lastY = e.clientY;
       renderer.domElement.style.cursor = e.button === 2 ? 'move' : 'grabbing';
-      // Any drag breaks lock
-      if (e.button === 0) cam.locked = false;
     };
 
     const onMouseMove = (e: MouseEvent) => {
@@ -328,14 +323,12 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         const panSpeed = cam.radius * 0.0012;
         cam.targetLookAt.addScaledVector(right, -dx * panSpeed);
         cam.targetLookAt.addScaledVector(up, dy * panSpeed);
-        cam.locked = false;
       } else {
         // Left-drag orbit — add velocity for inertia
         cam.velTheta += -dx * 0.004;
         cam.velPhi   += -dy * 0.004;
         cam.targetTheta += -dx * 0.004;
         cam.targetPhi    = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi - dy * 0.004));
-        cam.locked = false;
       }
     };
 
@@ -349,25 +342,20 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         if (hits.length > 0) {
           const name = hits[0].object.userData.name as string;
           handlePlanetClick(name);
-          // Snap camera once to planet
+          // Snap camera once to planet — no continuous follow
           const p = planets[name];
           if (p) {
             cam.targetLookAt.copy(p.group.position);
             cam.targetRadius = Math.max(p.data.radius * 6 + 3, 4);
-            cam.locked = true;
-            cam.lockName = name;
           }
         } else {
           handleDeselect();
-          cam.locked = false;
         }
       }
     };
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      // Zoom breaks lock
-      cam.locked = false;
       const factor = e.deltaY > 0 ? 1.10 : 0.91;
       cam.targetRadius = Math.max(2, Math.min(400, cam.targetRadius * factor));
     };
@@ -397,12 +385,10 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         cam.velPhi   += -dy * 0.005;
         cam.targetTheta += -dx * 0.005;
         cam.targetPhi = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi - dy * 0.005));
-        cam.locked = false;
       } else if (e.touches.length === 2) {
         const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
         cam.targetRadius = Math.max(2, Math.min(400, cam.targetRadius * (touch.lastDist / dist)));
         touch.lastDist = dist;
-        cam.locked = false;
       }
     };
     const onTouchEnd = (e: TouchEvent) => {
@@ -432,7 +418,6 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
 
       // ── Keyboard WASD pan ─────────────────────────────────────────────────
       if (Object.values(keys).some(Boolean)) {
-        cam.locked = false;
         const speed = (keys['shift'] ? 0.35 : 0.12) * (cam.radius / 20);
         const right = new THREE.Vector3();
         right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
@@ -453,15 +438,6 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       cam.velPhi    *= INERTIA;
       cam.targetTheta += cam.velTheta;
       cam.targetPhi    = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi + cam.velPhi));
-
-      // ── If locked to a planet: gently keep lookAt near it but DO NOT forcibly reset ─
-      if (cam.locked && cam.lockName && planets[cam.lockName]) {
-        const pPos = planets[cam.lockName].group.position;
-        // Soft follow — just nudge targetLookAt, user drag overrides it
-        if (!drag.active) {
-          cam.targetLookAt.lerp(pPos, 0.015);
-        }
-      }
 
       // ── Camera easing ─────────────────────────────────────────────────────
       cam.radius  += (cam.targetRadius - cam.radius) * EASE;
@@ -563,20 +539,14 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     };
   }, [handlePlanetClick, handleDeselect]);
 
-  // When selectedPlanet changes externally (from UI button), snap camera once
+  // When selectedPlanet changes externally (from UI button), snap camera once — no follow
   useEffect(() => {
     const { cam, planets } = sceneRef.current;
     if (!cam || !planets) return;
     if (selectedPlanet && planets[selectedPlanet]) {
       const p = planets[selectedPlanet];
-      // Snap targetLookAt once to planet position — no continuous follow
       cam.targetLookAt.copy(p.group.position);
       cam.targetRadius = Math.max(p.data.radius * 6 + 3, 4);
-      cam.locked = true;
-      cam.lockName = selectedPlanet;
-    } else {
-      cam.locked = false;
-      cam.lockName = '';
     }
   }, [selectedPlanet]);
 
