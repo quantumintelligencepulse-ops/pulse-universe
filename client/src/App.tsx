@@ -14110,20 +14110,31 @@ function QuantumShoppingPage(){
   const enginePct=engineStatus&&engineStatus.total>0?Math.round((engineStatus.generated/engineStatus.total)*100):0;
   const displayProducts=searchResults!==null?searchResults:(products.length?products:[]);
 
-  const ProductCard=({p}:{p:any})=>(
-    <button onClick={()=>openProduct(p)} data-testid={`product-card-${p.slug}`}
-      className="group text-left rounded-2xl border border-white/8 bg-white/[0.02] hover:border-lime-500/30 hover:bg-white/[0.04] transition-all p-4">
-      <div className="w-10 h-10 rounded-xl mb-3 flex items-center justify-center text-xl"
-        style={{background:`${QS_CATEGORIES.find(c=>c.label===p.category)?.color||'#6366f1'}20`}}>
-        {QS_CATEGORIES.find(c=>c.label===p.category)?.emoji||'🛍️'}
-      </div>
-      <div className="text-white/90 font-bold text-sm mb-0.5 line-clamp-2">{p.name}</div>
-      <div className="text-white/35 text-[10px] mb-2">{p.brand}</div>
-      {p.priceRange&&<div className="text-lime-400 font-black text-xs">{p.priceRange}</div>}
-      {!p.priceRange&&<div className="text-white/20 text-[9px]">View details →</div>}
-      <div className="mt-2 text-white/25 text-[9px] px-2 py-0.5 rounded-full bg-white/5 inline-block">{p.category}</div>
-    </button>
-  );
+  const ProductCard=({p}:{p:any})=>{
+    const cat=QS_CATEGORIES.find(c=>c.label===p.category);
+    const color=cat?.color||'#6366f1';
+    const emoji=cat?.emoji||'🛍️';
+    const isNew=p.generated&&p.generatedAt&&(Date.now()-new Date(p.generatedAt).getTime())<7200000;
+    return(
+      <button onClick={()=>openProduct(p)} data-testid={`product-card-${p.slug}`}
+        className="group text-left rounded-2xl border border-white/8 bg-white/[0.02] hover:border-lime-500/30 hover:bg-white/[0.04] transition-all overflow-hidden">
+        <div className="relative w-full h-36 flex items-center justify-center overflow-hidden"
+          style={{background:`radial-gradient(ellipse at center,${color}28 0%,${color}08 55%,transparent 100%),linear-gradient(135deg,#07071a 0%,#0e0e28 100%)`}}>
+          <div className="absolute inset-0 pointer-events-none" style={{backgroundImage:`radial-gradient(circle at 25% 25%,${color}22 0%,transparent 55%)`}}/>
+          <div className="absolute inset-0 pointer-events-none opacity-30" style={{backgroundImage:'repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(255,255,255,0.03) 24px,rgba(255,255,255,0.03) 25px),repeating-linear-gradient(90deg,transparent,transparent 24px,rgba(255,255,255,0.03) 24px,rgba(255,255,255,0.03) 25px)'}}/>
+          <span className="text-6xl select-none relative z-10 drop-shadow-lg group-hover:scale-110 transition-transform duration-300">{emoji}</span>
+          {isNew&&<div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest uppercase" style={{background:`${color}25`,color,border:`1px solid ${color}50`}}>NEW</div>}
+          <div className="absolute bottom-2 left-2.5 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white/50 bg-black/50 backdrop-blur-sm border border-white/5">{p.brand||'—'}</div>
+          <div className="absolute inset-x-0 bottom-0 h-10 pointer-events-none" style={{background:'linear-gradient(to top,rgba(7,7,26,0.85),transparent)'}}/>
+        </div>
+        <div className="p-3.5">
+          <div className="text-white/90 font-bold text-sm mb-1 line-clamp-2 leading-snug">{p.name}</div>
+          {p.priceRange?<div className="text-lime-400 font-black text-sm">{p.priceRange}</div>:<div className="text-white/20 text-[9px]">View details →</div>}
+          <div className="mt-2 text-white/25 text-[9px] px-2 py-0.5 rounded-full bg-white/5 inline-block">{p.category}</div>
+        </div>
+      </button>
+    );
+  };
 
   if(view==='product'&&selectedProduct){
     const p=productFull||selectedProduct;
@@ -14135,19 +14146,31 @@ function QuantumShoppingPage(){
             <div className="text-white/30 text-sm text-center py-20">Loading product intelligence...</div>
           ):(
             <div className="space-y-5">
-              <div className="rounded-2xl border border-lime-500/20 bg-lime-950/10 p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
-                    style={{background:`${QS_CATEGORIES.find(c=>c.label===p.category)?.color||'#6366f1'}20`}}>
-                    {QS_CATEGORIES.find(c=>c.label===p.category)?.emoji||'🛍️'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white/40 text-xs mb-1">{p.brand} · {p.category}{p.subcategory?` › ${p.subcategory}`:''}</div>
-                    <h1 className="text-white font-black text-2xl mb-2">{p.name}</h1>
-                    {p.priceRange&&<div className="text-lime-400 font-black text-xl mb-2">{p.priceRange}</div>}
-                    <p className="text-white/60 text-sm leading-relaxed">{p.summary}</p>
-                    {p.rating&&<div className="flex items-center gap-2 mt-2"><span className="text-yellow-400 font-bold text-sm">{'★'.repeat(Math.round(p.rating))}{'☆'.repeat(5-Math.round(p.rating))}</span><span className="text-white/30 text-xs">{p.rating}/5</span></div>}
-                  </div>
+              <div className="rounded-2xl border border-lime-500/20 bg-lime-950/10 overflow-hidden">
+                {(()=>{
+                  const cat=QS_CATEGORIES.find(c=>c.label===p.category);
+                  const color=cat?.color||'#6366f1';
+                  const emoji=cat?.emoji||'🛍️';
+                  return(
+                    <div className="relative w-full h-52 flex items-center justify-center overflow-hidden"
+                      style={{background:`radial-gradient(ellipse at 40% 35%,${color}40 0%,${color}10 55%,transparent 100%),linear-gradient(160deg,#06061a 0%,#0c0c25 60%,#07100a 100%)`}}>
+                      <div className="absolute inset-0 pointer-events-none" style={{backgroundImage:`radial-gradient(circle at 70% 25%,${color}20 0%,transparent 50%),radial-gradient(circle at 15% 75%,${color}12 0%,transparent 45%)`}}/>
+                      <div className="absolute inset-0 pointer-events-none opacity-20" style={{backgroundImage:'repeating-linear-gradient(0deg,transparent,transparent 32px,rgba(255,255,255,0.04) 32px,rgba(255,255,255,0.04) 33px),repeating-linear-gradient(90deg,transparent,transparent 32px,rgba(255,255,255,0.04) 32px,rgba(255,255,255,0.04) 33px)'}}/>
+                      <span className="text-8xl select-none relative z-10 drop-shadow-2xl">{emoji}</span>
+                      <div className="absolute top-3 left-3 flex items-center gap-2">
+                        <div className="px-2.5 py-1 rounded-full text-[10px] font-bold text-white/60 bg-black/50 backdrop-blur-sm border border-white/10">{p.category}</div>
+                        {p.subcategory&&<div className="px-2.5 py-1 rounded-full text-[10px] text-white/40 bg-black/30 border border-white/5">{p.subcategory}</div>}
+                      </div>
+                      <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full text-xs font-black bg-black/50 backdrop-blur-sm border border-white/10" style={{color}}>{p.brand}</div>
+                      <div className="absolute inset-x-0 bottom-0 h-20 pointer-events-none" style={{background:'linear-gradient(to top,rgba(6,6,26,0.9),transparent)'}}/>
+                    </div>
+                  );
+                })()}
+                <div className="p-6 pt-4">
+                  <h1 className="text-white font-black text-2xl mb-1.5">{p.name}</h1>
+                  {p.priceRange&&<div className="text-lime-400 font-black text-xl mb-3">{p.priceRange}</div>}
+                  <p className="text-white/60 text-sm leading-relaxed">{p.summary}</p>
+                  {p.rating&&<div className="flex items-center gap-2 mt-3"><span className="text-yellow-400 font-bold text-sm">{'★'.repeat(Math.round(p.rating))}{'☆'.repeat(5-Math.round(p.rating))}</span><span className="text-white/30 text-xs">{p.rating}/5 rating</span></div>}
                 </div>
               </div>
               <div>
