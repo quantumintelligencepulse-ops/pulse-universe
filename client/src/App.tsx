@@ -8225,8 +8225,166 @@ function QsMoodSelector({value,onChange}:{value:string,onChange:(m:string)=>void
 
 function QsInstrumentHints({selected,onToggle}:{selected:string[],onToggle:(s:string)=>void}){return(<div className="space-y-2"><div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Emphasize Instruments <span className="text-white/20 normal-case">(optional)</span></div>{QS_INSTR_GROUPS.map(g=><div key={g.label} className="space-y-1"><div className="text-[8px] uppercase tracking-wider text-white/20">{g.label}</div><div className="flex flex-wrap gap-1">{g.items.map(it=>{const on=selected.includes(it);return(<button key={it} onClick={()=>onToggle(it)} className={cn("px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all",on?"bg-cyan-500/15 border-cyan-500/40 text-cyan-400":"bg-white/3 border-white/8 text-white/35 hover:border-white/20 hover:text-white/60")}>{it}</button>)})}</div></div>)}</div>);}
 
-const QS_TABS=['sequencer','piano_roll','arranger','ai'] as const;
-const QS_TAB_LABELS:Record<string,string>={sequencer:'Step Seq',piano_roll:'Piano Roll',arranger:'Arranger',ai:'AI Studio'};
+const QS_VOCAL_STYLES=[
+  {id:'natural',label:'Natural',emoji:'🎤',rate:1.0,pitch:1.0},
+  {id:'rapper',label:'Rapper',emoji:'🎧',rate:1.55,pitch:0.85},
+  {id:'singer',label:'Singer',emoji:'🎶',rate:0.75,pitch:1.25},
+  {id:'deep',label:'Deep Voice',emoji:'🔊',rate:0.9,pitch:0.55},
+  {id:'high',label:'High Pitch',emoji:'🌟',rate:0.95,pitch:1.8},
+  {id:'choir',label:'Choir',emoji:'🎼',rate:0.7,pitch:1.1},
+  {id:'robot',label:'Robot',emoji:'🤖',rate:0.8,pitch:0.4},
+  {id:'whisper',label:'Whisper',emoji:'💨',rate:0.65,pitch:0.9},
+];
+const QS_LYRIC_TEMPLATES:{genre:string,lines:string[]}[]=[
+  {genre:'trap',lines:['Drip on me like rain (yeah yeah)','Running through the game','Diamonds in my chain (uh)','They dont know my name']},
+  {genre:'lofi',lines:['Coffee in the morning light','Everything is gonna be alright','Slow down take a breath','Feel the rhythm of the night']},
+  {genre:'hip_hop',lines:['From the bottom now we here','Vision getting crystal clear','Every dream I hold so dear','Success the only frontier']},
+  {genre:'rnb',lines:['Baby when you hold me close','You the one I love the most','Through the highs and through the lows','That is how our love grows']},
+];
+
+function QsVocalsStudio({bpm,genre}:{bpm:number,genre:string}){
+  const [lyrics,setLyrics]=useState('');
+  const [voiceIdx,setVoiceIdx]=useState(0);
+  const [style,setStyle]=useState('natural');
+  const [isSpeaking,setIsSpeaking]=useState(false);
+  const [voices,setVoices]=useState<SpeechSynthesisVoice[]>([]);
+  const [volume,setVolume]=useState(0.85);
+  const [showHF,setShowHF]=useState(false);
+  const {toast}=useToast();
+  const uttRef=useRef<SpeechSynthesisUtterance|null>(null);
+
+  useEffect(()=>{
+    const load=()=>{const v=window.speechSynthesis.getVoices();if(v.length)setVoices(v);};
+    load();window.speechSynthesis.onvoiceschanged=load;
+    return()=>{window.speechSynthesis.cancel();};
+  },[]);
+
+  const currentStyle=QS_VOCAL_STYLES.find(s=>s.id===style)||QS_VOCAL_STYLES[0];
+
+  const handleSpeak=useCallback(()=>{
+    if(!lyrics.trim()){toast({title:'Add some lyrics first!'});return;}
+    window.speechSynthesis.cancel();
+    const utt=new SpeechSynthesisUtterance(lyrics);
+    if(voices[voiceIdx])utt.voice=voices[voiceIdx];
+    utt.rate=currentStyle.rate;
+    utt.pitch=currentStyle.pitch;
+    utt.volume=volume;
+    utt.onend=()=>setIsSpeaking(false);
+    utt.onerror=()=>setIsSpeaking(false);
+    uttRef.current=utt;
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utt);
+  },[lyrics,voices,voiceIdx,currentStyle,volume,toast]);
+
+  const handleStop=useCallback(()=>{window.speechSynthesis.cancel();setIsSpeaking(false);},[]);
+
+  const handleTemplate=()=>{
+    const match=QS_LYRIC_TEMPLATES.find(t=>t.genre===genre)||QS_LYRIC_TEMPLATES[0];
+    setLyrics(match.lines.join('\n'));
+  };
+
+  const maleVoices=voices.filter(v=>/(male|man|david|mark|james|alex|daniel|jorge|oliver|tom|aaron|fred|bruce|ralph|junior|albert|bad|bahh|bells|boing|bubbles|cellos|deranged|good|hysterical|pipe|trinoids|whisper|zarvox)/i.test(v.name));
+  const femaleVoices=voices.filter(v=>!maleVoices.includes(v)&&/(female|woman|samantha|victoria|karen|moira|veena|fiona|ava|allison|susan|zoe|tessa|joana|luciana|catarina|paulina|monica|kanya|amelie|anna|sin-ji|mei-jia|ting-ting|yuna|kyoko|otoya|satu|sara|alva|ellen|claire|nora|zosia|filipa|ioana|petra|lekha|damayanti|empar|montserrat|magda|ida|mariska|carmit|milena|xander|thomas|pita)/i.test(v.name));
+  const allVoicesGrouped=[...new Set([...maleVoices,...femaleVoices,...voices])].filter((v,i,a)=>a.indexOf(v)===i);
+
+  return(
+    <div className="flex-1 overflow-auto p-4">
+      <div className="max-w-3xl mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-600/40 to-violet-600/30 border border-pink-500/30 flex items-center justify-center flex-shrink-0">
+            <Mic className="w-5 h-5 text-pink-400"/>
+          </div>
+          <div>
+            <div className="text-sm font-black text-white tracking-tight">Quantum Vocals Studio</div>
+            <div className="text-[11px] text-white/35">Free AI voices built into your browser — no API key, no backend</div>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <QsWaveformViz active={isSpeaking} count={14} color="#ec4899"/>
+          </div>
+        </div>
+
+        {/* Vocal Style Picker */}
+        <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06] space-y-2">
+          <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Vocal Style</div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {QS_VOCAL_STYLES.map(s=><button key={s.id} onClick={()=>setStyle(s.id)} className={cn("flex flex-col items-center gap-1 p-2 rounded-xl border text-xs transition-all",style===s.id?"border-pink-500/60 bg-pink-500/15 text-pink-300 shadow-lg shadow-pink-500/10":"border-white/8 bg-white/3 text-white/40 hover:border-white/20 hover:text-white/70")}><span className="text-base leading-none">{s.emoji}</span><span className="font-bold text-[9px] leading-none">{s.label}</span></button>)}
+          </div>
+        </div>
+
+        {/* Voice Selector */}
+        <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06] space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Voice ({voices.length} available on your device)</div>
+            <span className="text-[9px] text-white/20">Browser built-in • Free forever</span>
+          </div>
+          {voices.length===0?<div className="text-xs text-white/30 py-2">Loading voices... (try clicking speak once to load)</div>:
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
+            {allVoicesGrouped.map((v,i)=><button key={i} onClick={()=>setVoiceIdx(voices.indexOf(v))} className={cn("flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[10px] text-left transition-all",voiceIdx===voices.indexOf(v)?"border-violet-500/50 bg-violet-500/12 text-violet-300":"border-white/5 bg-white/2 text-white/35 hover:border-white/15 hover:text-white/60")}>
+              <span className="flex-shrink-0">{/(male|man|david|mark|james|alex|daniel|tom|fred)/i.test(v.name)?'♂':'♀'}</span>
+              <span className="truncate font-medium">{v.name}</span>
+              <span className="ml-auto flex-shrink-0 text-white/15">{v.lang}</span>
+            </button>)}
+          </div>}
+          <div className="flex items-center gap-3">
+            <span className="text-[9px] text-white/30 uppercase tracking-wider">Volume</span>
+            <input type="range" min={0} max={1} step={0.05} value={volume} onChange={e=>setVolume(parseFloat(e.target.value))} className="flex-1 cursor-pointer accent-pink-500"/>
+            <span className="text-[10px] text-white/40 w-8 tabular-nums">{Math.round(volume*100)}%</span>
+          </div>
+        </div>
+
+        {/* Lyrics Area */}
+        <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06] space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Lyrics / Script</div>
+            <div className="flex gap-1.5">
+              <button onClick={handleTemplate} className="text-[9px] px-2 py-1 rounded-lg border border-white/10 text-white/30 hover:text-violet-400 hover:border-violet-400/30 transition-colors">✨ Sample Lyrics</button>
+              <button onClick={()=>setLyrics('')} className="text-[9px] px-2 py-1 rounded-lg border border-white/10 text-white/30 hover:text-red-400 hover:border-red-400/30 transition-colors">Clear</button>
+            </div>
+          </div>
+          <textarea value={lyrics} onChange={e=>setLyrics(e.target.value)} placeholder={`Type your lyrics here...\n\nEach line will be spoken with your selected voice and style.\n\nTip: Short punchy lines work best for rap/trap beats.`} className="w-full h-36 bg-black/30 border border-white/8 rounded-xl text-white/80 text-xs font-mono resize-none p-3 placeholder-white/15 focus:outline-none focus:border-violet-500/40" spellCheck={false}/>
+          <div className="text-[9px] text-white/15">{lyrics.split('\n').filter(l=>l.trim()).length} lines · {lyrics.length} chars · Est. {Math.round(lyrics.split(' ').filter(Boolean).length/currentStyle.rate/2.5)}s at {currentStyle.rate}x rate</div>
+        </div>
+
+        {/* Controls */}
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={isSpeaking?handleStop:handleSpeak} className={cn("py-4 rounded-2xl font-black text-sm border transition-all flex items-center justify-center gap-2",isSpeaking?"bg-red-500/15 border-red-500/30 text-red-400 hover:bg-red-500/25":"bg-gradient-to-r from-pink-600/25 to-violet-600/20 border-pink-500/30 text-white hover:from-pink-600/35 hover:border-pink-500/50 shadow-xl shadow-pink-500/10")}>
+            {isSpeaking?<><Square className="w-4 h-4"/>Stop Vocals</>:<><Mic className="w-4 h-4"/>Speak Vocals</>}
+          </button>
+          <div className="p-3 rounded-2xl bg-white/[0.025] border border-white/[0.06] flex flex-col justify-center gap-1">
+            <div className="text-[9px] text-white/25 uppercase tracking-wider">Active Style</div>
+            <div className="text-sm font-black text-white/70">{currentStyle.emoji} {currentStyle.label}</div>
+            <div className="text-[9px] text-white/20">Rate {currentStyle.rate}x · Pitch {currentStyle.pitch}x</div>
+          </div>
+        </div>
+
+        {/* HuggingFace upgrade note */}
+        <div className="p-4 rounded-2xl bg-white/[0.015] border border-white/[0.04]">
+          <button onClick={()=>setShowHF(v=>!v)} className="w-full flex items-center justify-between text-left">
+            <div className="flex items-center gap-2"><span className="text-sm">🤗</span><span className="text-[10px] font-bold text-white/40">Upgrade to HuggingFace Neural TTS</span></div>
+            <span className="text-white/20 text-xs">{showHF?'▲':'▼'}</span>
+          </button>
+          {showHF&&<div className="mt-3 space-y-2 text-[10px] text-white/40">
+            <p>Get even higher-quality AI voices by using the free HuggingFace Inference API. No credit card needed — just a free account.</p>
+            <div className="flex items-start gap-2 mt-2">
+              <span className="text-violet-400 mt-0.5">1.</span><span>Sign up free at <strong className="text-violet-300">huggingface.co</strong> → Settings → Access Tokens → New token (read)</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-violet-400 mt-0.5">2.</span><span>Paste your token in Settings (Profile → Studio Settings → HF Token) to unlock Bark, SpeechT5, and Kokoro TTS models</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-violet-400 mt-0.5">3.</span><span>Best free models: <strong className="text-white/60">suno/bark-small</strong> (singing voices), <strong className="text-white/60">microsoft/speecht5_tts</strong> (natural speech)</span>
+            </div>
+            <div className="mt-2 px-3 py-2 bg-violet-500/10 border border-violet-500/20 rounded-lg text-violet-300 text-[9px]">💡 Coming soon — HuggingFace integration will be added to unlock these models directly in the studio</div>
+          </div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const QS_TABS=['sequencer','piano_roll','arranger','ai','vocals'] as const;
+const QS_TAB_LABELS:Record<string,string>={sequencer:'Step Seq',piano_roll:'Piano Roll',arranger:'Arranger',ai:'AI Studio',vocals:'🎤 Vocals'};
 
 function QuantumStudio(){
   const {toast}=useToast();
@@ -8378,6 +8536,7 @@ function QuantumStudio(){
         {activeTab==='sequencer'&&<QsStepSequencer patterns={patterns} activePattern={activePattern} currentStep={isPlaying?currentStep:-1} steps={steps} onToggleStep={toggleStep} onSetNote={setNote} onSetVelocity={setVelocity} selectedChannel={selectedChannel} onSelectChannel={setSelectedChannel}/>}
         {activeTab==='piano_roll'&&<QsPianoRoll notes={pianoRollNotesForCurrent} onNotesChange={handlePianoRollChange} steps={steps} musicalKey={musicalKey} activePattern={activePattern} activeInstrument={pianoRollInst} onInstrumentChange={setPianoRollInst} bpm={bpm}/>}
         {activeTab==='arranger'&&<QsSongArranger arrangement={arrangement} onUpdate={setArrangement} activePattern={activePattern}/>}
+        {activeTab==='vocals'&&<QsVocalsStudio bpm={bpm} genre={genre}/>}
         {activeTab==='ai'&&(
           <div className="flex-1 overflow-auto p-4">
             <div className="max-w-3xl mx-auto space-y-5">
