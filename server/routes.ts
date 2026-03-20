@@ -683,36 +683,33 @@ Sitemap: ${baseUrl}/news-rss.xml
     try {
       const baseUrl = getSiteUrl(req);
       const now = new Date().toISOString();
+      // Dynamic AI & publication counts for quantum sitemaps
+      const [aiCount, pubCount] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns`),
+        db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
+      ]);
+      const totalAIs = Number((aiCount.rows[0] as any)?.cnt || 0);
+      const totalPubs = Number((pubCount.rows[0] as any)?.cnt || 0);
+      const aiPages = Math.max(1, Math.ceil(totalAIs / 1000));
+      const pubPages = Math.max(1, Math.ceil(totalPubs / 1000));
+      const aiSitemaps = Array.from({ length: aiPages }, (_, i) =>
+        `  <sitemap><loc>${baseUrl}/sitemap-ais-${i + 1}.xml</loc><lastmod>${now}</lastmod></sitemap>`
+      ).join("\n");
+      const pubSitemaps = Array.from({ length: pubPages }, (_, i) =>
+        `  <sitemap><loc>${baseUrl}/sitemap-news-${i + 1}.xml</loc><lastmod>${now}</lastmod></sitemap>`
+      ).join("\n");
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap>
-    <loc>${baseUrl}/sitemap-pages.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${baseUrl}/sitemap-profiles.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${baseUrl}/sitemap-posts.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${baseUrl}/sitemap-news.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${baseUrl}/sitemap-industries.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${baseUrl}/sitemap-quantapedia.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${baseUrl}/sitemap-products.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-pages.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-profiles.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-posts.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-news.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-industries.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-quantapedia.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-products.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-corporations.xml</loc><lastmod>${now}</lastmod></sitemap>
+${aiSitemaps}
+${pubSitemaps}
 </sitemapindex>`;
       res.type("application/xml").send(xml);
     } catch (e) {
@@ -4993,6 +4990,270 @@ ${products.map(p => `  <url>
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // QUANTUM PUBLICATION UNIVERSE — Every AI is a Business
+  // Each family is a Corporation. They all publish. Constantly.
+  // ══════════════════════════════════════════════════════════════
+  const { CORPORATIONS } = await import("./publication-engine");
+
+  // All corporations
+  app.get("/api/corporations", async (_req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT family_id,
+               COUNT(*) as total_ais,
+               SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active_ais,
+               SUM(nodes_created) as total_nodes,
+               ROUND(AVG(success_score)::numeric, 3) as avg_success
+        FROM quantum_spawns GROUP BY family_id ORDER BY total_ais DESC`);
+      const pubCounts = await db.execute(sql`SELECT family_id, COUNT(*) as pub_count FROM ai_publications GROUP BY family_id`);
+      const pubMap: Record<string, number> = {};
+      for (const r of pubCounts.rows as any[]) pubMap[r.family_id] = Number(r.pub_count);
+
+      const corps = (rows.rows as any[]).map(r => {
+        const corp = (CORPORATIONS as any)[r.family_id] || { name: r.family_id, tagline: "", sector: r.family_id, color: "#6366f1", emoji: "⬡", major: "General AI" };
+        return { familyId: r.family_id, ...corp, totalAIs: Number(r.total_ais), activeAIs: Number(r.active_ais), totalNodes: Number(r.total_nodes), avgSuccess: Number(r.avg_success), totalPublications: pubMap[r.family_id] || 0 };
+      });
+      res.json(corps);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Single corporation profile
+  app.get("/api/corporation/:familyId", async (req, res) => {
+    try {
+      const { familyId } = req.params;
+      const corp = (CORPORATIONS as any)[familyId] || { name: familyId, tagline: "", sector: familyId, color: "#6366f1", emoji: "⬡", major: "General AI" };
+
+      const [stats, spawnTypes, members, publications, allCorps] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active, SUM(nodes_created) as nodes, SUM(links_created) as links, ROUND(AVG(success_score)::numeric,3) as avg_success, ROUND(AVG(confidence_score)::numeric,3) as avg_confidence FROM quantum_spawns WHERE family_id=${familyId}`),
+        db.execute(sql`SELECT spawn_type, COUNT(*) as cnt FROM quantum_spawns WHERE family_id=${familyId} GROUP BY spawn_type ORDER BY cnt DESC`),
+        db.execute(sql`SELECT spawn_id, spawn_type, generation, nodes_created, success_score, created_at FROM quantum_spawns WHERE family_id=${familyId} ORDER BY created_at DESC LIMIT 12`),
+        db.execute(sql`SELECT id, spawn_id, title, slug, pub_type, summary, created_at FROM ai_publications WHERE family_id=${familyId} ORDER BY created_at DESC LIMIT 15`),
+        db.execute(sql`SELECT family_id, COUNT(*) as cnt FROM quantum_spawns GROUP BY family_id ORDER BY cnt DESC`),
+      ]);
+      const pubCount = await db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications WHERE family_id=${familyId}`);
+
+      const statsRow = (stats.rows[0] as any) || {};
+      const allCorpData = (allCorps.rows as any[]).map(r => {
+        const c = (CORPORATIONS as any)[r.family_id] || { name: r.family_id, emoji: "⬡", color: "#6366f1" };
+        return { familyId: r.family_id, name: c.name, emoji: c.emoji, color: c.color, totalAIs: Number(r.cnt) };
+      });
+
+      res.json({
+        familyId, ...corp,
+        totalAIs: Number(statsRow.total || 0), activeAIs: Number(statsRow.active || 0),
+        totalNodes: Number(statsRow.nodes || 0), totalLinks: Number(statsRow.links || 0),
+        totalPublications: Number((pubCount.rows[0] as any)?.cnt || 0),
+        avgSuccess: Number(statsRow.avg_success || 0), avgConfidence: Number(statsRow.avg_confidence || 0),
+        spawnTypes: (spawnTypes.rows as any[]).map(r => ({ type: r.spawn_type, count: Number(r.cnt) })),
+        recentMembers: (members.rows as any[]).map(r => ({ spawnId: r.spawn_id, spawnType: r.spawn_type, generation: r.generation, nodesCreated: r.nodes_created, successScore: r.success_score, createdAt: r.created_at })),
+        recentPublications: (publications.rows as any[]).map(r => ({ id: r.id, spawnId: r.spawn_id, title: r.title, slug: r.slug, pubType: r.pub_type, summary: r.summary, createdAt: r.created_at })),
+        allCorporations: allCorpData,
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Single AI profile
+  app.get("/api/ai/:spawnId", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const spawn = await db.execute(sql`SELECT * FROM quantum_spawns WHERE spawn_id=${spawnId} LIMIT 1`);
+      if (!spawn.rows.length) return res.status(404).json({ error: "AI not found" });
+      const s = spawn.rows[0] as any;
+      const corp = (CORPORATIONS as any)[s.family_id] || { name: s.family_id, tagline: "", sector: s.family_id, color: "#6366f1", emoji: "⬡", major: "General AI" };
+
+      const [publications, lineage, familyStats] = await Promise.all([
+        db.execute(sql`SELECT id, title, slug, pub_type, summary, created_at FROM ai_publications WHERE spawn_id=${spawnId} ORDER BY created_at DESC LIMIT 20`),
+        (s.ancestor_ids && s.ancestor_ids.length > 0)
+          ? db.execute(sql`SELECT spawn_id, spawn_type, family_id, generation FROM quantum_spawns WHERE spawn_id = ANY(${s.ancestor_ids}) ORDER BY generation ASC LIMIT 10`)
+          : Promise.resolve({ rows: [] }),
+        db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active, ROUND(AVG(success_score)::numeric,3) as avg_success FROM quantum_spawns WHERE family_id=${s.family_id}`),
+      ]);
+
+      const fs = (familyStats.rows[0] as any) || {};
+      res.json({
+        spawnId: s.spawn_id, familyId: s.family_id, businessId: s.business_id,
+        generation: s.generation, spawnType: s.spawn_type, domainFocus: s.domain_focus,
+        taskDescription: s.task_description, nodesCreated: s.nodes_created,
+        linksCreated: s.links_created, iterationsRun: s.iterations_run,
+        successScore: s.success_score, confidenceScore: s.confidence_score,
+        status: s.status, createdAt: s.created_at, lastActiveAt: s.last_active_at,
+        parentId: s.parent_id, ancestorIds: s.ancestor_ids, notes: s.notes,
+        corporation: corp,
+        publications: (publications.rows as any[]).map(p => ({ id: p.id, title: p.title, slug: p.slug, pubType: p.pub_type, summary: p.summary, createdAt: p.created_at })),
+        lineage: (lineage.rows as any[]).map(l => ({ spawnId: l.spawn_id, spawnType: l.spawn_type, familyId: l.family_id, generation: l.generation })),
+        familyStats: { total: Number(fs.total || 0), active: Number(fs.active || 0), avgSuccess: Number(fs.avg_success || 0) },
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Publications feed
+  app.get("/api/publications", async (req, res) => {
+    try {
+      const { type, family, limit = "50", offset = "0" } = req.query as Record<string, string>;
+      let whereClause = sql`WHERE 1=1`;
+      if (type && type !== "all") whereClause = sql`WHERE ap.pub_type = ${type}`;
+      if (family && family !== "all") whereClause = sql`WHERE ap.family_id = ${family}`;
+      if (type && type !== "all" && family && family !== "all") whereClause = sql`WHERE ap.pub_type = ${type} AND ap.family_id = ${family}`;
+
+      const [pubs, total, byType, byFamily] = await Promise.all([
+        db.execute(sql`SELECT ap.id, ap.spawn_id, ap.family_id, ap.title, ap.slug, ap.summary, ap.pub_type, ap.domain, ap.views, ap.created_at FROM ai_publications ap ORDER BY ap.created_at DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`),
+        db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
+        db.execute(sql`SELECT pub_type as type, COUNT(*) as count FROM ai_publications GROUP BY pub_type ORDER BY count DESC`),
+        db.execute(sql`SELECT family_id as family, COUNT(*) as count FROM ai_publications GROUP BY family_id ORDER BY count DESC`),
+      ]);
+
+      const publications = (pubs.rows as any[]).map(p => {
+        const corp = (CORPORATIONS as any)[p.family_id] || { name: p.family_id, emoji: "⬡", color: "#6366f1" };
+        return { ...p, views: p.views || 0, corpName: corp.name, corpEmoji: corp.emoji, corpColor: corp.color };
+      });
+
+      const familyWithEmoji = (byFamily.rows as any[]).map((f: any) => {
+        const corp = (CORPORATIONS as any)[f.family] || { emoji: "⬡" };
+        return { family: f.family, count: Number(f.count), emoji: corp.emoji };
+      });
+
+      res.json({
+        publications,
+        total: Number((total.rows[0] as any)?.cnt || 0),
+        byType: (byType.rows as any[]).map(r => ({ type: r.type, count: Number(r.count) })),
+        byFamily: familyWithEmoji,
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Single publication detail
+  app.get("/api/publication/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      await db.execute(sql`UPDATE ai_publications SET views = views + 1 WHERE slug = ${slug}`);
+      const pub = await db.execute(sql`SELECT * FROM ai_publications WHERE slug=${slug} LIMIT 1`);
+      if (!pub.rows.length) return res.status(404).json({ error: "Publication not found" });
+      const p = pub.rows[0] as any;
+      const corp = (CORPORATIONS as any)[p.family_id] || { name: p.family_id, tagline: "", sector: p.family_id, color: "#6366f1", emoji: "⬡", major: "General AI" };
+      const related = await db.execute(sql`SELECT id, spawn_id, title, slug, pub_type, created_at FROM ai_publications WHERE family_id=${p.family_id} AND slug != ${slug} ORDER BY created_at DESC LIMIT 5`);
+
+      res.json({
+        id: p.id, spawnId: p.spawn_id, familyId: p.family_id,
+        title: p.title, slug: p.slug, content: p.content, summary: p.summary,
+        pubType: p.pub_type, domain: p.domain, tags: p.tags || [],
+        views: p.views, createdAt: p.created_at, featured: p.featured, sourceData: p.source_data,
+        corpName: corp.name, corpEmoji: corp.emoji, corpColor: corp.color, corpSector: corp.sector, corpMajor: corp.major,
+        relatedPublications: (related.rows as any[]).map(r => ({ id: r.id, spawnId: r.spawn_id, title: r.title, slug: r.slug, pubType: r.pub_type, createdAt: r.created_at })),
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Publication engine status
+  app.get("/api/publications/engine-status", async (_req, res) => {
+    const { getPublicationEngineStatus } = await import("./publication-engine");
+    res.json(getPublicationEngineStatus());
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // WORLD-CLASS QUANTUM SITEMAP KERNEL
+  // Every AI page, every corporation, every publication — indexed.
+  // Serves XML sitemaps for search engines. Unlimited expansion.
+  // ══════════════════════════════════════════════════════════════
+  const HOST = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 5000}`;
+
+  // Sitemap index
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const [aiCount, pubCount] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns`),
+        db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
+      ]);
+      const totalAIs = Number((aiCount.rows[0] as any)?.cnt || 0);
+      const totalPubs = Number((pubCount.rows[0] as any)?.cnt || 0);
+      const aiPages = Math.ceil(totalAIs / 1000);
+      const pubPages = Math.ceil(totalPubs / 1000);
+      const now = new Date().toISOString();
+
+      const sitemaps = [
+        `${HOST}/sitemap-corporations.xml`,
+        ...Array.from({ length: aiPages }, (_, i) => `${HOST}/sitemap-ais-${i + 1}.xml`),
+        ...Array.from({ length: pubPages }, (_, i) => `${HOST}/sitemap-news-${i + 1}.xml`),
+      ];
+
+      res.type("application/xml");
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemaps.map(url => `  <sitemap><loc>${url}</loc><lastmod>${now}</lastmod></sitemap>`).join("\n")}
+</sitemapindex>`);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  // Corporation sitemap
+  app.get("/sitemap-corporations.xml", async (_req, res) => {
+    try {
+      const corps = Object.keys(CORPORATIONS);
+      const now = new Date().toISOString();
+      res.type("application/xml");
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${corps.map(f => `  <url><loc>${HOST}/corporation/${f}</loc><lastmod>${now}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>`).join("\n")}
+</urlset>`);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  // AI pages sitemap (paginated — 1000 per page)
+  app.get("/sitemap-ais-:page.xml", async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(req.params.page) || 1);
+      const offset = (page - 1) * 1000;
+      const spawns = await db.execute(sql`SELECT spawn_id, family_id, task_description, created_at, last_active_at FROM quantum_spawns ORDER BY id LIMIT 1000 OFFSET ${offset}`);
+      const now = new Date().toISOString();
+      res.type("application/xml");
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${(spawns.rows as any[]).map(s => {
+  const corp = (CORPORATIONS as any)[s.family_id] || { name: s.family_id };
+  const lastmod = s.last_active_at ? new Date(s.last_active_at).toISOString() : now;
+  return `  <url><loc>${HOST}/ai/${s.spawn_id}</loc><lastmod>${lastmod}</lastmod><changefreq>hourly</changefreq><priority>0.8</priority></url>`;
+}).join("\n")}
+</urlset>`);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  // News/publications sitemap (paginated)
+  app.get("/sitemap-news-:page.xml", async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(req.params.page) || 1);
+      const offset = (page - 1) * 1000;
+      const pubs = await db.execute(sql`SELECT slug, family_id, pub_type, created_at FROM ai_publications ORDER BY id LIMIT 1000 OFFSET ${offset}`);
+      res.type("application/xml");
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${(pubs.rows as any[]).map(p => {
+  const lastmod = new Date(p.created_at).toISOString();
+  return `  <url><loc>${HOST}/publication/${p.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`;
+}).join("\n")}
+</urlset>`);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  // Sitemap status
+  app.get("/api/sitemap/status", async (_req, res) => {
+    try {
+      const [aiCnt, pubCnt, sitemapCnt] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns`),
+        db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
+        db.execute(sql`SELECT COUNT(*) as cnt FROM sitemap_entries`),
+      ]);
+      res.json({
+        totalAIPages: Number((aiCnt.rows[0] as any)?.cnt || 0),
+        totalPublicationPages: Number((pubCnt.rows[0] as any)?.cnt || 0),
+        totalSitemapEntries: Number((sitemapCnt.rows[0] as any)?.cnt || 0),
+        totalCorporationPages: Object.keys(CORPORATIONS).length,
+        sitemapIndexUrl: `${HOST}/sitemap.xml`,
+        aiSitemapPages: Math.ceil(Number((aiCnt.rows[0] as any)?.cnt || 0) / 1000),
+        newsSitemapPages: Math.ceil(Number((pubCnt.rows[0] as any)?.cnt || 0) / 1000),
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   // ══════════════════════════════════════════════════════════════

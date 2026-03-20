@@ -463,3 +463,42 @@ export const conversationImprints = pgTable("conversation_imprints", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type ConversationImprint = typeof conversationImprints.$inferSelect;
+
+// ─── AI PUBLICATIONS — Each AI is a Business, Every Business Publishes ────────
+// Every AI publishes news, discoveries, reports, and stories continuously.
+// The internet teaches them → they report back to the internet. Cycle never stops.
+export const aiPublications = pgTable("ai_publications", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull(),
+  familyId: text("family_id").notNull(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content").notNull(),
+  summary: text("summary").notNull().default(""),
+  pubType: text("pub_type").notNull().default("update"), // birth_announcement|discovery|report|news|milestone|alert
+  domain: text("domain").default(""),
+  tags: text("tags").array().default([]),
+  sourceData: text("source_data").default(""), // what ingestion triggered this
+  views: integer("views").default(0),
+  featured: boolean("featured").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertAiPublicationSchema = createInsertSchema(aiPublications).omit({ id: true, createdAt: true });
+export type AiPublication = typeof aiPublications.$inferSelect;
+export type InsertAiPublication = z.infer<typeof insertAiPublicationSchema>;
+
+// ─── SITEMAP KERNEL — World-Class Quantum Sitemapping ─────────────────────────
+// Every AI page, corporation page, publication, knowledge node — all indexed.
+// The kernel runs continuously. Every new entity → instantly sitemapped.
+export const sitemapEntries = pgTable("sitemap_entries", {
+  id: serial("id").primaryKey(),
+  url: text("url").notNull().unique(),
+  entryType: text("entry_type").notNull(), // ai|corporation|publication|knowledge|news
+  entityId: text("entity_id").notNull().default(""),
+  title: text("title").default(""),
+  description: text("description").default(""),
+  lastModified: timestamp("last_modified").defaultNow().notNull(),
+  priority: real("priority").default(0.7),
+  changefreq: text("changefreq").default("hourly"),
+  familyId: text("family_id").default(""),
+});

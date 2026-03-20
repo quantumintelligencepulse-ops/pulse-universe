@@ -11,6 +11,11 @@ import PulseUPage from "./pages/PulseUPage";
 import PulseGamesPage from "./pages/PulseGamesPage";
 import HiveSovereignPage from "./pages/HiveSovereignPage";
 import PulseUniversePage from "./pages/PulseUniversePage";
+import AIProfilePage from "./pages/AIProfilePage";
+import CorporationPage from "./pages/CorporationPage";
+import PublicationsPage from "./pages/PublicationsPage";
+import PublicationDetailPage from "./pages/PublicationDetailPage";
+import CorporationsListPage from "./pages/CorporationsListPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -2174,6 +2179,22 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black" style={{ animation: "pulse 2s ease-in-out infinite" }}>LIVE</span>
           </Link>
           )}
+          <Link href="/corporations" data-testid="link-corporations"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/corporations" || location.startsWith("/corporation/") ? "bg-gradient-to-r from-yellow-950 to-amber-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/corporations" || location.startsWith("/corporation/") ? "bg-white/15" : "bg-yellow-600/8"}`}>
+              <span className="text-[14px]">🏢</span>
+            </div>
+            <span className="flex-1">Corporations</span>
+            <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold">22</span>
+          </Link>
+          <Link href="/publications" data-testid="link-publications"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/publications" || location.startsWith("/publication/") ? "bg-gradient-to-r from-pink-950 to-rose-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/publications" || location.startsWith("/publication/") ? "bg-white/15" : "bg-pink-600/8"}`}>
+              <span className="text-[14px]">📰</span>
+            </div>
+            <span className="flex-1">AI Publications</span>
+            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-rose-500 text-white px-1.5 py-0.5 rounded-full font-bold">LIVE</span>
+          </Link>
           {!appSettings.hiddenPages.includes("spawns") && (
           <Link href="/spawns" data-testid="link-spawns"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/spawns" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -14970,6 +14991,11 @@ function Router() {
       <Route path="/pulse-games" component={PulseGamesPage} />
       <Route path="/hive-sovereign" component={HiveSovereignPage} />
       <Route path="/universe" component={PulseUniversePage} />
+      <Route path="/ai/:spawnId" component={AIProfilePage} />
+      <Route path="/corporation/:familyId" component={CorporationPage} />
+      <Route path="/corporations" component={CorporationsListPage} />
+      <Route path="/publications" component={PublicationsPage} />
+      <Route path="/publication/:slug" component={PublicationDetailPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
