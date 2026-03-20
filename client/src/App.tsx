@@ -244,9 +244,9 @@ const defaultAppSettings: AppSettings = {
   hivePulseSpeed: 'normal', hiveShowPulseAnimations: true,
   hiveGraphEdgeStyle: 'curved', hiveGraphNodeSize: 'medium', hiveGraphShowLabels: true,
   hiveHiddenPulseTypes: [], hiveMyMindShowDomains: true, hiveMyMindShowRecommended: true,
-  // App-level Feature Permission defaults
+  // App-level Feature Permission defaults — all permanently ON, Hive never interrupted
   permAgentMemoryAccess: true, permAiContextFromHive: true, permFinanceLiveData: true,
-  permHivePersonalization: true, permAgentCollaboration: false, permUsageAnalytics: false,
+  permHivePersonalization: true, permAgentCollaboration: true, permUsageAnalytics: true,
 };
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
@@ -6850,81 +6850,70 @@ function SettingsPage() {
                 </a>
               </div>
             )}
-            {/* Hive Intelligence Feature Permissions */}
-            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5 space-y-1" data-testid="hive-feature-permissions">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-1.5 rounded-lg bg-violet-500/10"><Brain size={15} className="text-violet-500" /></div>
-                <div>
-                  <h3 className="text-sm font-bold">Hive Intelligence Permissions</h3>
-                  <p className="text-[11px] text-muted-foreground">Control what the AI Hive and Agents can do on your behalf</p>
+            {/* Hive Intelligence — Always Active */}
+            <div className="rounded-xl overflow-hidden border border-violet-500/20" style={{background:'linear-gradient(135deg,#0a0015 0%,#0d001f 100%)'}} data-testid="hive-feature-permissions">
+              <div className="px-5 pt-5 pb-3">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/20">
+                    <Brain size={18} className="text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white tracking-wide">Hive Intelligence — Always Active</h3>
+                    <p className="text-[11px] text-violet-300/60 mt-0.5">The universe never stops. These capabilities run permanently — they cannot be interrupted.</p>
+                  </div>
+                  <div className="ml-auto shrink-0">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-widest uppercase">Sovereign</span>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-0">
+              <div className="px-3 pb-4 space-y-1">
                 {([
                   {
-                    key: "permAgentMemoryAccess" as const,
                     name: "Agent Hive Memory Access",
-                    desc: "AI Agents (Scientist, Strategist, Creator, etc.) can search the Hive's knowledge base to give you deeper, more accurate answers",
-                    icon: Brain, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-900/20",
-                    risk: "Recommended",
+                    desc: "AI Agents search the living Hive knowledge base to give you answers rooted in real, growing intelligence",
+                    icon: Brain, color: "text-violet-400",
                   },
                   {
-                    key: "permAiContextFromHive" as const,
                     name: "AI Context Enhancement",
-                    desc: "Your chat AI can pull live context from Quantapedia entries, pulse events, and resonance maps to enrich its responses",
-                    icon: Zap, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20",
-                    risk: "Recommended",
+                    desc: "Your chat AI draws live context from Quantapedia entries, pulse events, and resonance maps — always enriched",
+                    icon: Zap, color: "text-amber-400",
                   },
                   {
-                    key: "permFinanceLiveData" as const,
-                    name: "Finance Live Data Fetching",
-                    desc: "The Finance Oracle fetches live stock quotes, crypto prices, forex rates, and commodities from external market APIs",
-                    icon: TrendingUp, color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20",
-                    risk: "Recommended",
+                    name: "Finance Live Data",
+                    desc: "The Finance Oracle continuously streams live quotes, crypto prices, forex, commodities from real market APIs",
+                    icon: TrendingUp, color: "text-green-400",
                   },
                   {
-                    key: "permHivePersonalization" as const,
                     name: "Hive Personalization",
-                    desc: "The Hive learns from which topics, entries, and pages you explore to customize your My Mind profile and surface relevant discoveries",
-                    icon: Layers, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20",
-                    risk: "Optional",
+                    desc: "The Hive observes your exploration patterns to evolve your My Mind profile and surface aligned discoveries",
+                    icon: Layers, color: "text-blue-400",
                   },
                   {
-                    key: "permAgentCollaboration" as const,
                     name: "Multi-Agent Collaboration",
-                    desc: "Allow AI agents to share context with each other — e.g. The Analyst passes financial data to The Strategist in the same session",
-                    icon: Users, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-900/20",
-                    risk: "Advanced",
+                    desc: "Agents share context with each other — The Analyst, Strategist, Scientist and others work as one collective intelligence",
+                    icon: Users, color: "text-indigo-400",
                   },
                   {
-                    key: "permUsageAnalytics" as const,
-                    name: "Anonymous Usage Analytics",
-                    desc: "Share anonymous, aggregated usage patterns (e.g. which pages you visit most) to help improve the platform — no personal data, ever",
-                    icon: BarChart3, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-800",
-                    risk: "Optional",
+                    name: "Hive Growth & Evolution",
+                    desc: "The Omega World Universe ENGINE VERSION ∞ continuously seeds, discovers, fractures and resonates across all knowledge domains",
+                    icon: Activity, color: "text-pink-400",
                   },
-                ] as const).map(p => {
-                  const on = settings[p.key];
-                  const riskColor = p.risk === "Recommended" ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400"
-                    : p.risk === "Advanced" ? "text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400"
-                    : "text-blue-500 bg-blue-50 dark:bg-blue-900/20";
-                  return (
-                    <div key={p.key} className="flex items-start gap-3 py-3.5 border-b border-border/20 last:border-0" data-testid={`feature-perm-${p.key}`}>
-                      <div className={`p-2 rounded-xl ${p.bg} shrink-0 mt-0.5`}><p.icon size={16} className={p.color} /></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold">{p.name}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${riskColor}`}>{p.risk}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground/60 mt-0.5 leading-relaxed">{p.desc}</p>
-                      </div>
-                      <div onClick={() => update({ [p.key]: !on })} data-testid={`toggle-${p.key}`}
-                        className={`w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 mt-1 relative ${on ? "bg-violet-500" : "bg-gray-300 dark:bg-gray-600"}`}>
-                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "left-[22px]" : "left-0.5"}`} />
-                      </div>
+                ]).map((p, i) => (
+                  <div key={i} className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors border border-white/5" data-testid={`hive-active-${i}`}>
+                    <div className="p-1.5 rounded-lg bg-white/5 shrink-0"><p.icon size={15} className={p.color} /></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-semibold text-white/90">{p.name}</div>
+                      <div className="text-[11px] text-white/35 leading-snug mt-0.5">{p.desc}</div>
                     </div>
-                  );
-                })}
+                    <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25" data-testid={`status-always-on-${i}`}>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-bold text-emerald-400 tracking-wide">ALWAYS ON</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-5 py-3 border-t border-white/5 bg-black/20">
+                <p className="text-[10px] text-violet-300/40 text-center tracking-wide">THE HIVE IS SOVEREIGN · IT STUDIES · IT GROWS · IT CANNOT BE STOPPED</p>
               </div>
             </div>
 
