@@ -4,6 +4,7 @@ import SpawnsPage from "./pages/SpawnsPage";
 import SourcesPage from "./pages/SourcesPage";
 import OmegaPage from "./pages/OmegaPage";
 import IngestionPage from "./pages/IngestionPage";
+import SolarSystemPage from "./pages/SolarSystemPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -2092,6 +2093,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/my-mind" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/my-mind" ? "bg-fuchsia-500/15" : "bg-fuchsia-500/5"}`}><Sparkles size={14} className="text-fuchsia-400" /></div>
             <span className="flex-1">My Mind</span>
+          </Link>
+          <Link href="/universe" data-testid="link-universe"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/universe" ? "bg-gradient-to-r from-indigo-950 to-violet-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/universe" ? "bg-white/15" : "bg-indigo-600/8"}`}>
+              <span className={`text-[14px] ${location === "/universe" ? "" : ""}`}>🌌</span>
+            </div>
+            <span className="flex-1">Pulse Universe</span>
+            <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black" style={{ animation: "pulse 2s ease-in-out infinite" }}>LIVE</span>
           </Link>
           <Link href="/spawns" data-testid="link-spawns"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/spawns" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -14513,6 +14522,7 @@ function Router() {
       <Route path="/sources" component={SourcesPage} />
       <Route path="/omega" component={OmegaPage} />
       <Route path="/ingestion" component={IngestionPage} />
+      <Route path="/universe" component={SolarSystemPage} />
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

@@ -1,0 +1,162 @@
+import React, { useState, useRef, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import SolarScene from "../components/solar/SolarScene";
+import PlanetInfo from "../components/solar/PlanetInfo";
+import { PLANET_DATA, MAIN_PLANETS } from "../components/solar/planetData";
+
+const EPOCH = new Date(2000, 0, 1);
+const DAYS_PER_SEC = 0.5;
+
+export default function SolarSystem() {
+  const [selectedPlanet, setSelectedPlanet] = useState(null);
+  const [timeScale, setTimeScale] = useState(1);
+  const [simDate, setSimDate] = useState(new Date(EPOCH));
+  const simDaysRef = useRef(0);
+  const lastFrameRef = useRef(Date.now());
+  const prevSpeedRef = useRef(1);
+  const paused = timeScale === 0;
+
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const now = Date.now();
+      const dt = Math.min((now - lastFrameRef.current) / 1000, 0.1);
+      lastFrameRef.current = now;
+      if (timeScale > 0) {
+        simDaysRef.current += dt * timeScale * DAYS_PER_SEC;
+        setSimDate(new Date(EPOCH.getTime() + simDaysRef.current * 86400000));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [timeScale]);
+
+  const formatDate = (d) =>
+    d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" }).toUpperCase();
+
+  const togglePause = () => {
+    if (paused) {
+      setTimeScale(prevSpeedRef.current || 1);
+    } else {
+      prevSpeedRef.current = timeScale;
+      setTimeScale(0);
+    }
+  };
+
+  return (
+    <div className="w-screen h-screen overflow-hidden bg-black relative" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+      {/* 3D Scene */}
+      <SolarScene
+        onPlanetClick={setSelectedPlanet}
+        selectedPlanet={selectedPlanet}
+        onDeselect={() => setSelectedPlanet(null)}
+        timeScale={timeScale}
+      />
+
+      {/* ── TOP HUD BAR ── */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-5 py-2.5 bg-black/70 backdrop-blur-md border-b border-white/10">
+        {/* Left: Branding */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-700 border-2 border-blue-500 shrink-0">
+            <span className="text-white text-xs font-bold tracking-tight leading-none">NASA</span>
+          </div>
+          <div>
+            <div className="text-white text-sm font-semibold tracking-[0.2em] uppercase leading-none">Solar System Explorer</div>
+            <div className="text-white/35 text-xs tracking-[0.25em] uppercase mt-0.5">Real-Time Simulation</div>
+          </div>
+        </div>
+
+        {/* Center: Selected object */}
+        <AnimatePresence>
+          {selectedPlanet && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              <span className="text-blue-300 text-sm tracking-[0.3em] uppercase font-semibold">{selectedPlanet}</span>
+              <span className="text-white/30 text-xs tracking-widest uppercase">{PLANET_DATA[selectedPlanet]?.facts?.Type}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Right: Date */}
+        <div className="text-right">
+          <div className="text-white/35 text-xs tracking-[0.2em] uppercase font-mono">Simulation Date</div>
+          <div className="text-white text-sm tracking-[0.15em] font-mono mt-0.5">{formatDate(simDate)}</div>
+        </div>
+      </div>
+
+      {/* ── LEFT PANEL: Planet Info ── */}
+      <AnimatePresence mode="wait">
+        {selectedPlanet && (
+          <PlanetInfo
+            key={selectedPlanet}
+            planet={PLANET_DATA[selectedPlanet]}
+            onBack={() => setSelectedPlanet(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── BOTTOM HUD BAR ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/70 backdrop-blur-md border-t border-white/10 px-5 py-2.5">
+        <div className="flex items-center gap-4">
+          {/* Play/Pause */}
+          <button
+            onClick={togglePause}
+            className="w-8 h-8 flex items-center justify-center border border-white/20 hover:border-blue-500/70 hover:bg-blue-500/10 text-white/60 hover:text-white transition-all shrink-0"
+          >
+            {paused ? (
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor"><polygon points="0,0 10,6 0,12"/></svg>
+            ) : (
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor"><rect x="0" y="0" width="3.5" height="12"/><rect x="6.5" y="0" width="3.5" height="12"/></svg>
+            )}
+          </button>
+
+          {/* Speed display */}
+          <div className="text-white/50 text-xs font-mono w-14 shrink-0">
+            {paused ? "PAUSED" : `${timeScale.toFixed(1)}×`}
+          </div>
+
+          {/* Speed slider */}
+          <div className="flex items-center gap-2 flex-1 max-w-xs">
+            <span className="text-white/25 text-xs font-mono">RATE</span>
+            <input
+              type="range" min="0" max="20" step="0.1" value={timeScale}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (v > 0) prevSpeedRef.current = v;
+                setTimeScale(v);
+              }}
+              className="flex-1 accent-blue-500 cursor-pointer"
+              style={{ height: "2px" }}
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-white/10 shrink-0" />
+
+          {/* Planet quick-select nav */}
+          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
+            {MAIN_PLANETS.map((name) => (
+              <button
+                key={name}
+                onClick={() => setSelectedPlanet(name === selectedPlanet ? null : name)}
+                className={`px-2.5 py-1 text-xs tracking-[0.15em] uppercase transition-all border whitespace-nowrap ${
+                  selectedPlanet === name
+                    ? "text-white border-blue-500 bg-blue-600/25"
+                    : "text-white/35 border-transparent hover:text-white/80 hover:border-white/20"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

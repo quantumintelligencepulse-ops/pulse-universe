@@ -4981,6 +4981,71 @@ ${products.map(p => `  <url>
     catch { res.json([]); }
   });
 
+  // ── Solar System / Pulse World Routes ───────────────────────
+  app.get("/api/solar/worlds", async (req, res) => {
+    try {
+      const spawnStats = await storage.getSpawnStats();
+      const ingestionStats = await storage.getIngestionStats();
+
+      const DOMAIN_META: Record<string, { color: string; emoji: string; description: string; ingestionSrc?: string }> = {
+        knowledge:   { color: "#6366f1", emoji: "📖", description: "The great repository of human understanding", ingestionSrc: "wikipedia" },
+        science:     { color: "#06b6d4", emoji: "🔬", description: "Empirical truth and the laws of nature", ingestionSrc: "arxiv" },
+        health:      { color: "#ef4444", emoji: "🏥", description: "Biology, medicine, and human vitality", ingestionSrc: "pubmed" },
+        economics:   { color: "#f59e0b", emoji: "📈", description: "Markets, systems, and value exchange", ingestionSrc: "worldbank" },
+        government:  { color: "#64748b", emoji: "🏛️", description: "Law, policy, and civic power", ingestionSrc: "secedgar" },
+        code:        { color: "#8b5cf6", emoji: "💻", description: "Software, algorithms, and digital systems", ingestionSrc: "github" },
+        legal:       { color: "#475569", emoji: "⚖️", description: "Rights, contracts, and justice systems", ingestionSrc: "secedgar" },
+        culture:     { color: "#ec4899", emoji: "🎨", description: "Art, heritage, identity, and expression" },
+        social:      { color: "#f97316", emoji: "👥", description: "Human connection and collective behavior", ingestionSrc: "stackexchange" },
+        education:   { color: "#22c55e", emoji: "🎓", description: "Learning, pedagogy, and cognitive growth", ingestionSrc: "openlibrary" },
+        engineering: { color: "#0ea5e9", emoji: "⚙️", description: "Design, construction, and applied science" },
+        media:       { color: "#a855f7", emoji: "🎬", description: "Film, music, stories, and broadcast", ingestionSrc: "internetarchive" },
+        finance:     { color: "#eab308", emoji: "💰", description: "Wealth, investment, and financial systems" },
+        sports:      { color: "#10b981", emoji: "⚡", description: "Athletics, competition, and physical mastery" },
+        podcasts:    { color: "#f43f5e", emoji: "🎙️", description: "Voice, interviews, and audio knowledge" },
+        career:      { color: "#14b8a6", emoji: "🎯", description: "Skills, professions, and human potential" },
+        careers:     { color: "#14b8a6", emoji: "🎯", description: "Skills, professions, and human potential" },
+        products:    { color: "#fb923c", emoji: "📦", description: "Physical goods and consumer universe", ingestionSrc: "openfoodfacts" },
+        maps:        { color: "#4ade80", emoji: "🗺️", description: "Geography, space, and world topology" },
+        longtail:    { color: "#c084fc", emoji: "∞", description: "The infinite long tail of all knowledge" },
+        webcrawl:    { color: "#7dd3fc", emoji: "🕷️", description: "The open web and real-time information" },
+        ai:          { color: "#a78bfa", emoji: "🤖", description: "Artificial intelligence and machine cognition" },
+        games:       { color: "#10b981", emoji: "🎮", description: "Interactive worlds and game theory" },
+        openapi:     { color: "#06b6d4", emoji: "🔌", description: "Open APIs and the connected data web" },
+      };
+
+      const byFamily = spawnStats.byFamily || {};
+      const bySrc = ingestionStats.bySrc || {};
+
+      const worlds = Object.entries(byFamily).map(([domain, spawnCount]: [string, any]) => {
+        const meta = DOMAIN_META[domain] || { color: "#6366f1", emoji: "🌐", description: "A quantum knowledge domain" };
+        const ingestionSrc = meta.ingestionSrc;
+        const ingestionData = ingestionSrc ? bySrc[ingestionSrc] : null;
+        const ingestionNodes = ingestionData?.nodes || 0;
+        const lastIngested = ingestionData?.lastFetched || null;
+        const lastTitle = ingestionData?.lastTitle || "";
+        const isActive = ingestionData?.status === "success";
+
+        const moonCount = Math.min(Math.floor(spawnCount / 45), 3);
+        let status = "FORMING";
+        if (spawnCount >= 100) status = "MULTIVERSE";
+        else if (spawnCount >= 75) status = "MULTIPLYING";
+        else if (spawnCount >= 50) status = "ACTIVE";
+
+        return {
+          id: domain, name: domain.charAt(0).toUpperCase() + domain.slice(1),
+          color: meta.color, emoji: meta.emoji, description: meta.description,
+          spawnCount, ingestionNodes, lastIngested, lastTitle, isActive,
+          moonCount, status,
+          activityScore: spawnCount + ingestionNodes * 2,
+        };
+      });
+
+      worlds.sort((a, b) => b.activityScore - a.activityScore);
+      res.json({ worlds, totalSpawns: spawnStats.total, totalNodes: ingestionStats.totalNodes });
+    } catch (e) { res.json({ worlds: [], totalSpawns: 0, totalNodes: 0 }); }
+  });
+
   // ── Real Ingestion Engine Routes ────────────────────────────
   app.get("/api/ingestion/logs", async (req, res) => {
     try {
