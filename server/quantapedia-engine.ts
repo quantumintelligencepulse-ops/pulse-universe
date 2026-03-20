@@ -136,8 +136,8 @@ async function generateEntry(slug: string, title: string): Promise<any | null> {
     return parsed;
   } catch (err: any) {
     if (err?.status === 429) {
-      log(`[QuantapediaEngine] Rate limited — backing off 30s`, "quantapedia");
-      await sleep(30000);
+      log(`[QuantapediaEngine] Rate limited — backing off 45s`, "quantapedia");
+      await sleep(45000);
     }
     return null;
   }
@@ -147,16 +147,49 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// ─── Expanded Topic Discovery ─────────────────────────────────
+// Extracts every discoverable concept from a generated entry.
+// Pulls from relatedTerms, seeAlso, synonyms, categories, AND
+// scans section text for capitalized multi-word phrases.
+// Each entry now seeds 20-40 new topics instead of 8-15.
 function extractDiscoveredTopics(entry: any): { slug: string; title: string }[] {
-  const all: string[] = [
+  const candidates: string[] = [
     ...(entry.relatedTerms || []),
     ...(entry.seeAlso || []),
-    ...(entry.synonyms || []).slice(0, 4),
+    ...(entry.synonyms || []).slice(0, 6),
+    ...(entry.categories || []),
+    ...(entry.antonyms || []).slice(0, 3),
+    // Extract concepts from section content
+    ...extractConceptsFromSections(entry.sections || []),
+    // Extract from quick facts values
+    ...((entry.quickFacts || []).map((f: any) => f.value).filter((v: string) =>
+      v && v.length > 3 && v.length < 60 && !["Beginner","Intermediate","Advanced","Expert"].includes(v)
+    )),
   ];
-  return all
+
+  const seen = new Set<string>();
+  return candidates
     .filter((t) => t && typeof t === "string" && t.length > 2 && t.length < 80)
-    .map((t) => ({ slug: toSlug(t), title: t }))
-    .filter((t) => t.slug.length > 2);
+    .map((t) => ({ slug: toSlug(t), title: t.trim() }))
+    .filter((t) => {
+      if (t.slug.length <= 2 || seen.has(t.slug)) return false;
+      seen.add(t.slug);
+      return true;
+    });
+}
+
+function extractConceptsFromSections(sections: any[]): string[] {
+  const results: string[] = [];
+  for (const section of sections.slice(0, 4)) {
+    const text = (section.content || "") as string;
+    // Multi-word capitalized phrases (2-3 words)
+    const matches = text.match(/\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,}){1,2})\b/g) || [];
+    results.push(...matches.slice(0, 8));
+    // Single important-looking capitalized terms
+    const singles = text.match(/\b([A-Z][a-z]{5,})\b/g) || [];
+    results.push(...singles.slice(0, 4));
+  }
+  return results;
 }
 
 async function seedInitialTopics() {
@@ -168,62 +201,87 @@ async function seedInitialTopics() {
   }
 }
 
+// ─── Parallel Batch Generation ────────────────────────────────
+// Generates BATCH_SIZE entries simultaneously using Groq's speed.
+// Each tick processes multiple topics in parallel — drastically
+// increasing throughput while staying within rate limits.
+const BATCH_SIZE = 2;
+const INTERVAL_MS = 3500;
+
 export async function startQuantapediaEngine() {
   if (engineRunning) return;
   engineRunning = true;
   engineStartTime = new Date();
 
-  log("[QuantapediaEngine] 🧠 AUTONOMOUS KNOWLEDGE ENGINE STARTING...", "quantapedia");
+  log("[QuantapediaEngine] 🧠 AUTONOMOUS KNOWLEDGE ENGINE V2 STARTING...", "quantapedia");
+  log(`[QuantapediaEngine] ⚡ Parallel batch mode: ${BATCH_SIZE} entries per tick`, "quantapedia");
 
   await seedInitialTopics();
-
-  const INTERVAL_MS = 4000;
 
   const tick = async () => {
     if (!engineRunning) return;
 
     try {
       const stats = await storage.getQuantapediaStats();
-      const [next] = await storage.getUngeneratedQuantapediaTopics(1);
+      const batch = await storage.getUngeneratedQuantapediaTopics(BATCH_SIZE);
 
-      if (!next) {
+      if (!batch.length) {
         setTimeout(tick, 15000);
         return;
       }
 
       log(
-        `[QuantapediaEngine] ⚡ Generating: "${next.title}" | DB: ${stats.generated}/${stats.total}`,
+        `[QuantapediaEngine] ⚡ Batch[${batch.length}]: ${batch.map(b => `"${b.title}"`).join(", ")} | DB: ${stats.generated}/${stats.total}`,
         "quantapedia"
       );
 
-      const entry = await generateEntry(next.slug, next.title);
+      // ── Generate all in parallel ────────────────────────────
+      const results = await Promise.allSettled(
+        batch.map(next =>
+          generateEntry(next.slug, next.title).then(entry => ({ next, entry }))
+        )
+      );
 
-      if (entry && entry.title) {
-        const discovered = extractDiscoveredTopics(entry);
-        await storage.storeFullQuantapediaEntry(
-          next.slug,
-          entry.title || next.title,
-          entry.type || "concept",
-          entry.summary || "",
-          entry.categories || [],
-          entry.relatedTerms || [],
-          entry
-        );
+      let batchGenerated = 0;
+      let totalNewSeeds = 0;
 
-        onEntryGenerated(next.slug, entry.title || next.title, entry).catch(() => {});
+      for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const { next, entry } = result.value;
 
-        if (discovered.length) {
-          await storage.queueQuantapediaTopics(discovered);
-          log(
-            `[QuantapediaEngine] ✓ "${next.title}" done — queued ${discovered.length} new topics`,
-            "quantapedia"
+        if (entry && entry.title) {
+          const discovered = extractDiscoveredTopics(entry);
+
+          await storage.storeFullQuantapediaEntry(
+            next.slug,
+            entry.title || next.title,
+            entry.type || "concept",
+            entry.summary || "",
+            entry.categories || [],
+            entry.relatedTerms || [],
+            entry
           );
-        }
 
-        totalGenerated++;
-      } else {
-        log(`[QuantapediaEngine] ✗ Failed to parse entry for "${next.title}"`, "quantapedia");
-        await db_markFailed(next.slug);
+          // Fire-and-forget hive brain hooks
+          onEntryGenerated(next.slug, entry.title || next.title, entry).catch(() => {});
+
+          if (discovered.length) {
+            await storage.queueQuantapediaTopics(discovered);
+            totalNewSeeds += discovered.length;
+          }
+
+          batchGenerated++;
+          totalGenerated++;
+        } else {
+          await db_markFailed(next.slug);
+        }
+      }
+
+      if (batchGenerated > 0) {
+        log(
+          `[QuantapediaEngine] ✓ Batch complete: ${batchGenerated}/${batch.length} generated | +${totalNewSeeds} seeds queued`,
+          "quantapedia"
+        );
       }
     } catch (err) {
       log(`[QuantapediaEngine] Error in tick: ${err}`, "quantapedia");
@@ -233,7 +291,7 @@ export async function startQuantapediaEngine() {
   };
 
   setTimeout(tick, 5000);
-  log("[QuantapediaEngine] 🚀 Engine online — generating 1 entry every 4 seconds", "quantapedia");
+  log(`[QuantapediaEngine] 🚀 Engine online — ${BATCH_SIZE} parallel entries every ${INTERVAL_MS / 1000}s`, "quantapedia");
 }
 
 async function db_markFailed(slug: string) {

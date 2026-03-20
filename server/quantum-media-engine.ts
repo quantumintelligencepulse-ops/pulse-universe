@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { storage } from "./storage";
+import { onMediaGenerated as hiveBrainOnMedia } from "./hive-brain";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -71,10 +72,6 @@ let running = false;
 let totalGenerated = 0;
 let startTime: Date;
 const queue: Array<{ name: string; creator: string; type: string; genre: string }> = [];
-let onMediaGenerated: ((item: any) => void) | null = null;
-
-export function setMediaHiveHook(fn: (item: any) => void) { onMediaGenerated = fn; }
-
 async function generateMediaEntry(item: { name: string; creator: string; type: string; genre: string }): Promise<void> {
   const slug = toSlug(item.name, item.creator);
   const existing = await storage.getMedia(slug);
@@ -127,7 +124,7 @@ Return ONLY valid JSON (no markdown), exactly this structure:
     }
   }
   totalGenerated++;
-  if (onMediaGenerated) onMediaGenerated({ slug, name: data.name, creator: data.creator, type: data.type });
+  hiveBrainOnMedia(slug, data).catch(() => {});
 }
 
 async function runLoop() {

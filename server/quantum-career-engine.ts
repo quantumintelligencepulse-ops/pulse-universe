@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { storage } from "./storage";
+import { onCareerGenerated as hiveBrainOnCareer } from "./hive-brain";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -64,10 +65,6 @@ let running = false;
 let totalGenerated = 0;
 let startTime: Date;
 const queue: Array<{ title: string; field: string; level: string }> = [];
-let onCareerGenerated: ((item: any) => void) | null = null;
-
-export function setCareerHiveHook(fn: (item: any) => void) { onCareerGenerated = fn; }
-
 const DEMAND_LEVELS = ["Critical", "Very High", "High", "Growing", "Stable"];
 
 async function generateCareerEntry(item: { title: string; field: string; level: string }): Promise<void> {
@@ -126,7 +123,7 @@ Return ONLY valid JSON (no markdown), exactly this structure:
     }
   }
   totalGenerated++;
-  if (onCareerGenerated) onCareerGenerated({ slug, title: data.title, field: data.field });
+  hiveBrainOnCareer(slug, data).catch(() => {});
 }
 
 async function runLoop() {
