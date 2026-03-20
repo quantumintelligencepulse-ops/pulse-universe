@@ -4945,6 +4945,110 @@ ${products.map(p => `  <url>
   });
 
   // ══════════════════════════════════════════════════════════════
+  // FINANCE — Extended Quantum Finance Oracle
+  // ══════════════════════════════════════════════════════════════
+
+  // Chart sparkline data (30 trading days)
+  app.get("/api/finance/chart/:symbol", async (req, res) => {
+    try {
+      const sym = req.params.symbol.toUpperCase();
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1mo`;
+      const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return res.json({ symbol: sym, closes: [], error: true });
+      const d: any = await r.json();
+      const result = d?.chart?.result?.[0];
+      if (!result) return res.json({ symbol: sym, closes: [], error: true });
+      const closes = (result.indicators?.quote?.[0]?.close || []).filter(Boolean).map((v: number) => parseFloat(v.toFixed(2)));
+      const meta = result.meta;
+      res.json({ symbol: sym, closes, price: meta.regularMarketPrice, currency: meta.currency || "USD" });
+    } catch { res.json({ symbol: req.params.symbol, closes: [], error: true }); }
+  });
+
+  // Multi-symbol batch quotes (custom list via ?symbols=)
+  app.get("/api/finance/batch", async (req, res) => {
+    const raw = (req.query.symbols as string) || "";
+    const symbols = raw.split(",").map(s => s.trim().toUpperCase()).filter(Boolean).slice(0, 40);
+    if (!symbols.length) return res.json([]);
+    try {
+      const results = await Promise.all(symbols.map(async (sym) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+          const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(4000) });
+          if (!r.ok) return { symbol: sym, error: true };
+          const d: any = await r.json();
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (!meta) return { symbol: sym, error: true };
+          const price = meta.regularMarketPrice ?? meta.chartPreviousClose;
+          const prev = meta.chartPreviousClose ?? meta.previousClose;
+          const change = price && prev ? ((price - prev) / prev * 100) : 0;
+          return { symbol: sym, price: price?.toFixed(2), change: change.toFixed(2), name: meta.longName || meta.shortName || sym, currency: meta.currency || "USD", marketCap: meta.marketCap };
+        } catch { return { symbol: sym, error: true }; }
+      }));
+      res.json(results.filter(r => !(r as any).error));
+    } catch { res.json([]); }
+  });
+
+  // Sector ETF performance
+  app.get("/api/finance/sectors", async (req, res) => {
+    const SECTORS = [
+      { symbol: "XLK", name: "Technology" }, { symbol: "XLF", name: "Financials" },
+      { symbol: "XLV", name: "Healthcare" }, { symbol: "XLE", name: "Energy" },
+      { symbol: "XLI", name: "Industrials" }, { symbol: "XLC", name: "Communication" },
+      { symbol: "XLY", name: "Consumer Disc." }, { symbol: "XLP", name: "Consumer Staples" },
+      { symbol: "XLRE", name: "Real Estate" }, { symbol: "XLB", name: "Materials" },
+      { symbol: "XLU", name: "Utilities" },
+    ];
+    try {
+      const results = await Promise.all(SECTORS.map(async ({ symbol, name }) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
+          const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(4000) });
+          if (!r.ok) return { symbol, name, error: true };
+          const d: any = await r.json();
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (!meta) return { symbol, name, error: true };
+          const price = meta.regularMarketPrice ?? meta.chartPreviousClose;
+          const prev = meta.chartPreviousClose ?? meta.previousClose;
+          const change = price && prev ? ((price - prev) / prev * 100) : 0;
+          return { symbol, name, price: price?.toFixed(2), change: parseFloat(change.toFixed(2)) };
+        } catch { return { symbol, name, error: true }; }
+      }));
+      res.json(results.filter(r => !(r as any).error));
+    } catch { res.json([]); }
+  });
+
+  // AI Prediction Markets — probability estimates from Oracle
+  app.get("/api/finance/predictions", async (req, res) => {
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const today = new Date().toDateString();
+      const resp = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: `Today is ${today}. You are the Quantum Finance Oracle. Generate 12 prediction market questions with AI-estimated probabilities. Cover stocks, crypto, macro, real estate, geopolitical, and tech categories. Make them specific with timeframes. Return JSON only: {"predictions": [{"question": "Will the Fed cut rates at the next FOMC meeting?", "probability": 62, "direction": "Yes", "category": "Macro", "timeframe": "Next 30 days", "rationale": "1 sentence why"}]}` }],
+        max_tokens: 900, temperature: 0.85,
+      });
+      const raw = resp.choices[0]?.message?.content || "";
+      const match = raw.match(/\{[\s\S]*\}/);
+      res.json(match ? JSON.parse(match[0]) : { predictions: [] });
+    } catch (e) { res.json({ predictions: [] }); }
+  });
+
+  // AI Oracle — multi-agent bull/bear debate + intelligence brief
+  app.get("/api/finance/oracle", async (req, res) => {
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const today = new Date().toDateString();
+      const resp = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: `Today is ${today}. You are the Quantum Finance Oracle with multi-agent intelligence. Generate a full market brief. Return JSON only: {"marketRegime": "Risk-On|Risk-Off|Neutral|Volatile", "regimeConfidence": 73, "bullCase": {"agent": "SIGMA-BULL", "verdict": "3 sentence bull case for markets right now", "confidence": 68, "topPick": "NVDA"}, "bearCase": {"agent": "SIGMA-BEAR", "verdict": "3 sentence bear case for markets right now", "confidence": 54, "topRisk": "Fed policy"}, "consensusSignal": "Cautiously Bullish|Cautiously Bearish|Strongly Bullish|Strongly Bearish|Neutral", "intelligenceFeed": [{"headline": "specific market insight", "impact": "High|Medium|Low", "assets": ["AAPL","SPY"], "sentiment": "Bullish|Bearish|Neutral"}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}, {"headline": "...", "impact": "...", "assets": [...], "sentiment": "..."}], "macroSnapshot": {"rates": "brief status", "inflation": "brief status", "growth": "brief status", "sentiment": "brief status"}}` }],
+        max_tokens: 1200, temperature: 0.8,
+      });
+      const raw = resp.choices[0]?.message?.content || "";
+      const match = raw.match(/\{[\s\S]*\}/);
+      res.json(match ? JSON.parse(match[0]) : {});
+    } catch (e) { res.json({}); }
+  });
+
   // HIVE GRAPH — Knowledge Visualization
   // ══════════════════════════════════════════════════════════════
   app.get("/api/hive/graph", async (req, res) => {
