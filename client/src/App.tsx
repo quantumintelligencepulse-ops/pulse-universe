@@ -25,7 +25,7 @@ import {
   Volume2, VolumeX, Navigation, Bell, BellOff, Locate, ImagePlus, VideoIcon, Wand, Paintbrush, Aperture, PhoneCall,
   LogIn, LogOut, Mail, KeyRound, Gamepad2, Music, Languages, Smile, Gauge, Headphones, DollarSign, Gift, Banknote, ClipboardCopy, ArrowUpRight, Wallet,
   GraduationCap, ShoppingBag, Filter, SlidersHorizontal, ListFilter, Activity, BookMarked, Telescope,
-  Shuffle, Undo2, Redo2, Columns, Loader2, Save, Sliders
+  Shuffle, Undo2, Redo2, Columns, Loader2, Save, Sliders, Minus, Guitar, Waves, Radio
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
@@ -8210,6 +8210,21 @@ function QsProjectManager({open,onClose,onSave,onLoad}:any){
   );
 }
 
+const QS_MOODS=[{id:'energetic',label:'Energetic',emoji:'⚡'},{id:'chill',label:'Chill',emoji:'😌'},{id:'dark',label:'Dark',emoji:'🌑'},{id:'uplifting',label:'Uplifting',emoji:'☀️'},{id:'melancholic',label:'Melancholic',emoji:'🌧️'},{id:'aggressive',label:'Aggressive',emoji:'🔥'},{id:'dreamy',label:'Dreamy',emoji:'✨'},{id:'trippy',label:'Trippy',emoji:'🌀'}];
+const QS_GENRE_GRID=[{id:'trap',label:'Trap',emoji:'🎧'},{id:'hip_hop',label:'Hip Hop',emoji:'🎤'},{id:'rnb',label:'R&B',emoji:'🎸'},{id:'drill',label:'Drill',emoji:'🥁'},{id:'lofi',label:'Lo-Fi',emoji:'📻'},{id:'electronic',label:'Electronic',emoji:'⚡'},{id:'jazz',label:'Jazz',emoji:'🎷'},{id:'afrobeat',label:'Afrobeat',emoji:'🌍'},{id:'reggaeton',label:'Reggaeton',emoji:'🌊'},{id:'rock',label:'Rock',emoji:'🎸'},{id:'ambient',label:'Ambient',emoji:'🌙'},{id:'synthwave',label:'Synthwave',emoji:'🌆'},{id:'house',label:'House',emoji:'🏠'},{id:'drum_and_bass',label:'D&B',emoji:'🔊'},{id:'dubstep',label:'Dubstep',emoji:'💥'},{id:'phonk',label:'Phonk',emoji:'👻'},{id:'future_bass',label:'Future Bass',emoji:'🚀'},{id:'pop',label:'Pop',emoji:'🎵'},{id:'classical',label:'Classical',emoji:'🎻'},{id:'techno',label:'Techno',emoji:'🤖'},{id:'hyperpop',label:'Hyperpop',emoji:'🌸'}];
+const QS_INSTR_GROUPS=[{label:'Keys & Synths',items:['Lead Synth','Pad','Pluck','Keys','Arp']},{label:'Drums & Percussion',items:['Kick','Snare','Hi-Hats','Clap','Toms','Cymbal']},{label:'Bass',items:['808 Bass','Bass Synth','Sub Bass']},{label:'FX & Texture',items:['Vinyl Crackle','Atmosphere','Foley FX','White Noise']}];
+
+function QsWaveformViz({count=22,color='#8b5cf6',active=true}:{count?:number,color?:string,active?:boolean}){
+  const heights=[10,24,16,36,20,30,12,40,28,14,34,22,38,16,26,32,10,28,20,36,14,24];
+  return(<div className="flex items-end gap-[3px]" style={{height:48}}>{Array.from({length:count},(_,i)=>{const h=active?heights[i%heights.length]:4;return(<div key={i} className={active?"qs-wave-bar":"rounded-full"} style={{width:4,height:h,backgroundColor:color,borderRadius:4,animationDelay:active?`${i*0.04}s`:'0s',animationDuration:active?`${0.6+(i%4)*0.1}s`:'0s',opacity:active?0.7+(i%4)*0.07:0.15,transition:'height 0.4s'}}/>);})}
+  </div>);}
+
+function QsGenreSelector({value,onChange}:{value:string,onChange:(g:string)=>void}){return(<div className="space-y-2"><div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Genre</div><div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-7 gap-1.5">{QS_GENRE_GRID.map(g=><button key={g.id} onClick={()=>onChange(g.id)} className={cn("flex flex-col items-center gap-1 p-2 rounded-xl border text-xs transition-all",value===g.id?"border-violet-500/60 bg-violet-500/15 text-violet-300 shadow-lg shadow-violet-500/10":"border-white/8 bg-white/3 text-white/40 hover:border-white/20 hover:bg-white/6 hover:text-white/70")}><span className="text-base leading-none">{g.emoji}</span><span className="font-medium text-[9px] leading-none">{g.label}</span></button>)}</div></div>);}
+
+function QsMoodSelector({value,onChange}:{value:string,onChange:(m:string)=>void}){return(<div className="space-y-2"><div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Mood / Vibe</div><div className="grid grid-cols-4 gap-1.5">{QS_MOODS.map(m=><button key={m.id} onClick={()=>onChange(m.id)} className={cn("flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold transition-all",value===m.id?"border-pink-500/60 bg-pink-500/15 text-pink-300":"border-white/8 bg-white/3 text-white/40 hover:border-white/20 hover:text-white/70")}><span>{m.emoji}</span>{m.label}</button>)}</div></div>);}
+
+function QsInstrumentHints({selected,onToggle}:{selected:string[],onToggle:(s:string)=>void}){return(<div className="space-y-2"><div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Emphasize Instruments <span className="text-white/20 normal-case">(optional)</span></div>{QS_INSTR_GROUPS.map(g=><div key={g.label} className="space-y-1"><div className="text-[8px] uppercase tracking-wider text-white/20">{g.label}</div><div className="flex flex-wrap gap-1">{g.items.map(it=>{const on=selected.includes(it);return(<button key={it} onClick={()=>onToggle(it)} className={cn("px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all",on?"bg-cyan-500/15 border-cyan-500/40 text-cyan-400":"bg-white/3 border-white/8 text-white/35 hover:border-white/20 hover:text-white/60")}>{it}</button>)})}</div></div>)}</div>);}
+
 const QS_TABS=['sequencer','piano_roll','arranger','ai'] as const;
 const QS_TAB_LABELS:Record<string,string>={sequencer:'Step Seq',piano_roll:'Piano Roll',arranger:'Arranger',ai:'AI Studio'};
 
@@ -8228,6 +8243,10 @@ function QuantumStudio(){
   const [arrangeMode,setArrangeMode]=useState(false);
   const [selectedChannel,setSelectedChannel]=useState<string|null>(null);
   const [pianoRollInst,setPianoRollInst]=useState('lead');
+  const [mood,setMood]=useState('energetic');
+  const [aiInstrHints,setAiInstrHints]=useState<string[]>([]);
+  const [clipboardPat,setClipboardPat]=useState<any>(null);
+  const tapTimesRef=useRef<number[]>([]);
   const [isGenerating,setIsGenerating]=useState(false);
   const [isExporting,setIsExporting]=useState(false);
   const [isStemsExporting,setIsStemsExporting]=useState(false);
@@ -8252,12 +8271,19 @@ function QuantumStudio(){
   const setVelocity=useCallback((instId:string,stepIdx:number,velocity:number)=>{setPatterns(prev=>{const pat={...prev};const track=[...(pat[activePattern][instId]||[])];track[stepIdx]={...track[stepIdx],velocity};pat[activePattern]={...pat[activePattern],[instId]:track};return pat;});},[activePattern]);
   const updateMixer=useCallback((chanId:string,key:string,value:any)=>setMixer(prev=>({...prev,[chanId]:{...(prev[chanId]||{}),[key]:value}})),[]);
   const handleStepsChange=useCallback((newSteps:number)=>{setSteps(newSteps);setPatterns(prev=>{const updated:any={};QS_ALL_PATTERNS.forEach(p=>{const newPat:any={};INSTRUMENTS.forEach(inst=>{const old=prev[p]?.[inst.id]||[];newPat[inst.id]=newSteps>old.length?[...old,...qsDefaultTrack(newSteps-old.length)]:old.slice(0,newSteps);});updated[p]=newPat;});return updated;});},[]);
+  const handleTapTempo=useCallback(()=>{const now=Date.now(),times=tapTimesRef.current;times.push(now);if(times.length>8)times.shift();if(times.length>=2){const diffs=times.slice(1).map((t,i)=>t-times[i]);const avg=diffs.reduce((a,b)=>a+b,0)/diffs.length;const det=Math.round(60000/avg);if(det>=40&&det<=240)setBpm(det);}},[]);
+  const handleRandomizePattern=useCallback(()=>{pushUndo();setPatterns(prev=>{const pat={...prev},newPat:any={};INSTRUMENTS.forEach(inst=>{newPat[inst.id]=Array(steps).fill(0).map(()=>({active:Math.random()<(inst.type==='drum'?0.3:0.2),velocity:Math.floor(Math.random()*60+67),note:Math.floor(Math.random()*8),length:1}));});pat[activePattern]=newPat;return pat;});},[activePattern,steps,pushUndo]);
+  const handleClearPattern=useCallback(()=>{pushUndo();setPatterns(prev=>({...prev,[activePattern]:qsBuildEmptyPattern(steps)}));},[activePattern,steps,pushUndo]);
+  const handleCopyPattern=useCallback(()=>{setClipboardPat(JSON.parse(JSON.stringify(patterns[activePattern])));toast({title:`Pattern ${activePattern} copied to clipboard`});},[patterns,activePattern,toast]);
+  const handlePastePattern=useCallback(()=>{if(!clipboardPat){toast({title:'Nothing in clipboard',variant:'destructive'});return;}pushUndo();setPatterns(prev=>({...prev,[activePattern]:clipboardPat}));toast({title:'Pattern pasted!'});},[clipboardPat,activePattern,pushUndo,toast]);
+  const handleHumanize=useCallback(()=>{setPatterns(prev=>{const pat={...prev},newPat:any={};INSTRUMENTS.forEach(inst=>{newPat[inst.id]=(pat[activePattern][inst.id]||[]).map((s:any)=>s.active?{...s,velocity:Math.max(40,Math.min(127,(s.velocity||100)+Math.round((Math.random()-0.5)*30)))}:s);});pat[activePattern]=newPat;return pat;});toast({title:'Humanized!',description:'Natural velocity variation applied'});},[activePattern,toast]);
+  const handleFillEven=useCallback((every:number)=>{pushUndo();setPatterns(prev=>{const pat={...prev},newPat:any={...pat[activePattern]};const inst=selectedChannel||'kick';newPat[inst]=(pat[activePattern][inst]||[]).map((s:any,i:number)=>({...s,active:i%every===0}));pat[activePattern]=newPat;return pat;});},[activePattern,selectedChannel,pushUndo]);
   const handleAIGenerate=useCallback(async()=>{
-    setIsGenerating(true);setAiStatus('🎵 AI is composing your beat...');pushUndo();
-    try{const{pattern,description}=await qsGenerateAIPattern({genre,mood:'energetic',bpm,musicalKey,steps});setPatterns(prev=>({...prev,[activePattern]:pattern}));setAiStatus('');toast({title:'AI Beat Generated!',description:description?.slice(0,80)||'Pattern ready'});}
+    setIsGenerating(true);setAiStatus('🎵 Quantum AI is composing your beat...');pushUndo();
+    try{const{pattern,description}=await qsGenerateAIPattern({genre,mood,bpm,musicalKey,steps});setPatterns(prev=>({...prev,[activePattern]:pattern}));setAiStatus('');toast({title:'AI Beat Generated!',description:description?.slice(0,80)||'Pattern ready'});}
     catch(e){setAiStatus('');toast({title:'AI generation failed',variant:'destructive'});}
     finally{setIsGenerating(false);}
-  },[genre,bpm,musicalKey,steps,activePattern,pushUndo,toast]);
+  },[genre,mood,bpm,musicalKey,steps,activePattern,pushUndo,toast]);
   const handleExport=useCallback(async()=>{setIsExporting(true);try{await qsExportWav({patterns,mixer,bpm,steps,musicalKey,activePattern,swing});toast({title:'WAV exported!'});}catch(e:any){toast({title:'Export failed',description:e.message,variant:'destructive'});}finally{setIsExporting(false);}
   },[patterns,mixer,bpm,steps,musicalKey,activePattern,swing,toast]);
   const handleExportStems=useCallback(async()=>{setIsStemsExporting(true);toast({title:'Exporting stems...',description:'This may take a moment'});try{await qsExportStems({patterns,mixer,bpm,steps,musicalKey,activePattern,swing});toast({title:'All stems exported!'});}catch(e:any){toast({title:'Stems export failed',variant:'destructive'});}finally{setIsStemsExporting(false);}
@@ -8281,11 +8307,17 @@ function QuantumStudio(){
         </button>
         <button onClick={handleUndo} disabled={!undoStack.current.length} title="Undo (Ctrl+Z)" className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/8 text-white/30 hover:text-white/70 disabled:opacity-20"><Undo2 className="w-3 h-3"/></button>
         <button onClick={handleRedo} disabled={!redoStack.current.length} title="Redo (Ctrl+Y)" className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/8 text-white/30 hover:text-white/70 disabled:opacity-20"><Redo2 className="w-3 h-3"/></button>
-        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1.5">
-          <span className="text-[9px] text-white/40 uppercase tracking-wider font-bold">BPM</span>
-          <input type="range" min={40} max={240} value={bpm} onChange={e=>setBpm(parseInt(e.target.value))} className="w-12 cursor-pointer accent-violet-500"/>
+        <div className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1.5">
+          <span className="text-[9px] text-white/40 uppercase tracking-wider font-bold mr-1">BPM</span>
+          <button onClick={()=>setBpm(b=>Math.max(40,b-5))} className="w-5 h-5 rounded flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"><Minus className="w-2.5 h-2.5"/></button>
+          <input type="range" min={40} max={240} value={bpm} onChange={e=>setBpm(parseInt(e.target.value))} className="w-14 cursor-pointer accent-violet-500"/>
+          <button onClick={()=>setBpm(b=>Math.min(240,b+5))} className="w-5 h-5 rounded flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"><Plus className="w-2.5 h-2.5"/></button>
           <input type="number" value={bpm} min={40} max={240} onChange={e=>{const v=parseInt(e.target.value);if(v>=40&&v<=240)setBpm(v);}} className="w-9 bg-transparent text-xs font-bold text-white tabular-nums text-center outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+          <button onClick={handleTapTempo} title="Tap Tempo" className="ml-1 text-[8px] font-black text-white/25 hover:text-violet-400 uppercase tracking-wider px-1 py-0.5 rounded border border-transparent hover:border-violet-400/30 transition-all">TAP</button>
         </div>
+        {/* Live step visualizer */}
+        <div className="hidden lg:flex gap-px bg-white/5 rounded-lg px-2 py-1.5 items-center">
+          {Array.from({length:Math.min(16,steps)},(_,i)=>{const is4=i%4===0;return(<div key={i} className={cn("rounded-sm transition-all duration-75 flex-shrink-0",is4?"ml-1":"")} style={{width:10,height:isPlaying&&currentStep===i?18:8,backgroundColor:isPlaying&&currentStep===i?'#8b5cf6':'rgba(255,255,255,0.1)',boxShadow:isPlaying&&currentStep===i?'0 0 8px #8b5cf680':''}}/>);})}</div>
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1.5">
           <span className="text-[9px] text-white/40 uppercase tracking-wider font-bold">SWING</span>
           <input type="range" min={0} max={1} step={0.01} value={swing} onChange={e=>setSwing(parseFloat(e.target.value))} className="w-10 cursor-pointer accent-violet-500"/>
@@ -8317,14 +8349,28 @@ function QuantumStudio(){
           <Zap className={cn("w-3 h-3",isGenerating&&"animate-pulse")}/>{isGenerating?"Generating...":"AI Generate"}
         </button>
       </div>
-      {aiStatus&&<div className="px-4 py-2 bg-violet-500/10 border-b border-violet-500/20 text-violet-300 text-xs animate-pulse">{aiStatus}</div>}
+      {aiStatus&&<div className="px-4 py-1.5 bg-violet-500/10 border-b border-violet-500/20 text-violet-300 text-[11px] flex items-center gap-3"><div className="flex items-end gap-[2px] h-4">{[8,14,10,18,12,16,10,20,14,10,18,12,16,8,14,10].map((h,i)=><div key={i} className="qs-wave-bar rounded-sm bg-violet-400" style={{width:2,height:h/2,animationDelay:`${i*0.04}s`,animationDuration:`${0.5+i%3*0.1}s`}}/>)}</div>{aiStatus}</div>}
+      {/* Pattern Tools Bar */}
+      <div className="flex items-center gap-1 px-3 py-1 bg-[#0b0b11] border-b border-white/[0.04] overflow-x-auto">
+        <span className="text-[8px] text-white/15 uppercase tracking-widest font-black mr-1 flex-shrink-0">Pattern {activePattern}</span>
+        <button onClick={handleClearPattern} className="flex items-center gap-1 h-5 px-2 rounded text-[9px] border border-white/8 text-white/25 hover:text-red-400 hover:border-red-400/30 flex-shrink-0 transition-colors">Clear</button>
+        <button onClick={handleRandomizePattern} className="flex items-center gap-1 h-5 px-2 rounded text-[9px] border border-white/8 text-white/25 hover:text-yellow-400 hover:border-yellow-400/30 flex-shrink-0 transition-colors"><Shuffle className="w-2.5 h-2.5"/>Random</button>
+        <button onClick={handleHumanize} className="flex items-center gap-1 h-5 px-2 rounded text-[9px] border border-white/8 text-white/25 hover:text-green-400 hover:border-green-400/30 flex-shrink-0 transition-colors">Humanize</button>
+        <button onClick={handleCopyPattern} className="flex items-center gap-1 h-5 px-2 rounded text-[9px] border border-white/8 text-white/25 hover:text-cyan-400 hover:border-cyan-400/30 flex-shrink-0 transition-colors">Copy</button>
+        <button onClick={handlePastePattern} disabled={!clipboardPat} className="flex items-center gap-1 h-5 px-2 rounded text-[9px] border border-white/8 text-white/25 hover:text-cyan-400 hover:border-cyan-400/30 flex-shrink-0 transition-colors disabled:opacity-30">Paste</button>
+        <div className="w-px h-4 bg-white/5 mx-1 flex-shrink-0"/>
+        <span className="text-[8px] text-white/15 uppercase tracking-widest flex-shrink-0">Fill {selectedChannel||'kick'}</span>
+        {[1,2,4].map(n=><button key={n} onClick={()=>handleFillEven(n)} className="h-5 px-1.5 rounded text-[9px] border border-white/8 text-white/25 hover:text-violet-400 hover:border-violet-400/30 flex-shrink-0 transition-colors">1/{n===1?'1':'every '+n}</button>)}
+        <div className="w-px h-4 bg-white/5 mx-1 flex-shrink-0"/>
+        <span className="text-[8px] text-white/10 flex-shrink-0">{selectedChannel?`Selected: ${INSTRUMENTS.find(i=>i.id===selectedChannel)?.name||selectedChannel}`:'Click instrument row to select'}</span>
+      </div>
       {/* Tab Bar */}
       <div className="flex items-center gap-1 px-4 py-1.5 bg-[#0a0a10] border-b border-white/5">
         {QS_TABS.map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} className={cn("px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border",activeTab===tab?"bg-violet-500/20 border-violet-500/30 text-violet-400":"border-transparent text-white/30 hover:text-white/60")}>{QS_TAB_LABELS[tab]}</button>)}
         <div className="ml-auto flex items-center gap-2">
           <button onClick={()=>setShowMixer(v=>!v)} className={cn("flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold border",showMixer?"bg-white/8 border-white/15 text-white/60":"border-transparent text-white/30 hover:text-white/50")}><Sliders className="w-2.5 h-2.5"/>Mixer</button>
           {selectedChannel&&activeTab==='sequencer'&&<button onClick={()=>setShowFX(v=>!v)} className={cn("flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold border",showFX?"bg-white/8 border-white/15 text-white/60":"border-transparent text-white/30 hover:text-white/50")}><Zap className="w-2.5 h-2.5"/>FX</button>}
-          <span className="text-[9px] text-white/10">{activeTab==='sequencer'?'Click=toggle · Right-click drum=velocity · Right-click melodic=note':activeTab==='piano_roll'?'Click=add · Right-click=remove · Drag right edge=resize':activeTab==='arranger'?'Select pattern → click bar to place':''}</span>
+          <span className="text-[9px] text-white/10 hidden md:block">{activeTab==='sequencer'?'Click=toggle · Right-click drum=velocity · Right-click melodic=note':activeTab==='piano_roll'?'Click=add · Right-click=remove · Drag right edge=resize':activeTab==='arranger'?'Select pattern → click bar to place':''}</span>
         </div>
       </div>
       {/* Main Content */}
@@ -8333,42 +8379,74 @@ function QuantumStudio(){
         {activeTab==='piano_roll'&&<QsPianoRoll notes={pianoRollNotesForCurrent} onNotesChange={handlePianoRollChange} steps={steps} musicalKey={musicalKey} activePattern={activePattern} activeInstrument={pianoRollInst} onInstrumentChange={setPianoRollInst} bpm={bpm}/>}
         {activeTab==='arranger'&&<QsSongArranger arrangement={arrangement} onUpdate={setArrangement} activePattern={activePattern}/>}
         {activeTab==='ai'&&(
-          <div className="flex-1 overflow-auto p-6">
-            <div className="max-w-2xl mx-auto space-y-6">
-              <div className="p-6 rounded-2xl bg-white/3 border border-white/5">
-                <div className="flex items-center gap-3 mb-3"><Zap className="w-5 h-5 text-violet-400"/><div><div className="text-sm font-bold text-white">AI Beat Generator</div><div className="text-xs text-white/40">AI composes a full 16-instrument pattern — drums, bass, melodics, FX — for your selected genre and key.</div></div></div>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div><label className="text-[9px] text-white/30 uppercase tracking-wider block mb-1">Genre</label><select value={genre} onChange={e=>setGenre(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs px-2 py-1.5 capitalize">{QS_GENRES.map(g=><option key={g} value={g}>{g.replace(/_/g,' ')}</option>)}</select></div>
-                  <div><label className="text-[9px] text-white/30 uppercase tracking-wider block mb-1">Key</label><select value={musicalKey} onChange={e=>setMusicalKey(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs px-2 py-1.5">{QS_TRANSPORT_KEYS.map(k=><option key={k} value={k}>{k}</option>)}</select></div>
+          <div className="flex-1 overflow-auto p-4">
+            <div className="max-w-3xl mx-auto space-y-5">
+              {/* Header */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600/40 to-pink-600/30 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 text-violet-400"/>
                 </div>
-                <button onClick={handleAIGenerate} disabled={isGenerating} className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold text-sm hover:from-violet-400 hover:to-pink-400 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                  {isGenerating?<><Loader2 className="w-4 h-4 animate-spin"/>Composing with AI...</>:<><Zap className="w-4 h-4"/>Generate AI Beat Pattern</>}
+                <div>
+                  <div className="text-sm font-black text-white tracking-tight">Quantum AI Beat Generator</div>
+                  <div className="text-[11px] text-white/35">Describe your vibe — AI composes the full pattern in seconds</div>
+                </div>
+                <div className="ml-auto"><QsWaveformViz active={isGenerating} count={18} color="#8b5cf6"/></div>
+              </div>
+
+              {/* Genre Grid */}
+              <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06]">
+                <QsGenreSelector value={genre} onChange={setGenre}/>
+              </div>
+
+              {/* Mood + Key row */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
+                <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06]">
+                  <QsMoodSelector value={mood} onChange={setMood}/>
+                </div>
+                <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06] min-w-[160px]">
+                  <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold mb-2">Musical Key</div>
+                  <select value={musicalKey} onChange={e=>setMusicalKey(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs px-2 py-1.5 mb-3">{QS_TRANSPORT_KEYS.map(k=><option key={k} value={k}>{k}</option>)}</select>
+                  <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold mb-2">Current BPM</div>
+                  <div className="text-2xl font-black text-violet-400 tabular-nums text-center">{bpm}</div>
+                  <div className="text-[9px] text-white/20 text-center mt-0.5">{bpm<90?'Slow':bpm<130?'Medium':'Fast'}</div>
+                </div>
+              </div>
+
+              {/* Instrument hints */}
+              <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06]">
+                <QsInstrumentHints selected={aiInstrHints} onToggle={h=>setAiInstrHints(prev=>prev.includes(h)?prev.filter(x=>x!==h):[...prev,h])}/>
+              </div>
+
+              {/* Generate Button */}
+              <div className="relative">
+                <button onClick={handleAIGenerate} disabled={isGenerating} data-testid="ai-generate-btn" className={cn("w-full py-4 rounded-2xl font-black text-sm tracking-wider border transition-all",isGenerating?"bg-violet-500/8 border-violet-500/20 text-violet-500/40 cursor-not-allowed":"bg-gradient-to-r from-violet-600/25 to-pink-600/20 border-violet-500/30 text-white hover:from-violet-600/35 hover:to-pink-600/30 hover:border-violet-500/50 shadow-xl shadow-violet-500/10 hover:shadow-violet-500/20")}>
+                  {isGenerating
+                    ?<div className="flex items-center justify-center gap-3"><QsWaveformViz active count={24} color="#8b5cf6"/><span>Quantum AI composing...</span><QsWaveformViz active count={24} color="#ec4899"/></div>
+                    :<div className="flex items-center justify-center gap-2"><Zap className="w-4 h-4 text-violet-400"/>Generate Beat for Pattern {activePattern}<span className="ml-1 text-violet-400/50">· {genre.replace(/_/g,' ')} · {mood} · {bpm}bpm</span></div>
+                  }
                 </button>
               </div>
+
+              {/* Export & Tips */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-white/3 border border-white/5">
-                  <div className="text-sm font-bold text-white mb-1 flex items-center gap-2"><Download className="w-4 h-4 text-cyan-400"/>Export Options</div>
-                  <div className="text-xs text-white/40 mb-3">Export your beat as high-quality audio or individual stems for mixing.</div>
+                <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06]">
+                  <div className="text-[10px] font-black text-white/60 mb-3 uppercase tracking-wider flex items-center gap-2"><Download className="w-3 h-3 text-cyan-400"/>Export</div>
                   <div className="flex flex-col gap-2">
-                    <button onClick={handleExport} disabled={isExporting} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-xs font-bold hover:bg-cyan-500/25 disabled:opacity-50">
-                      {isExporting?<Loader2 className="w-3 h-3 animate-spin"/>:<Download className="w-3 h-3"/>}Export Full Mix (WAV)
-                    </button>
-                    <button onClick={handleExportStems} disabled={isStemsExporting} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 disabled:opacity-50">
-                      {isStemsExporting?<Loader2 className="w-3 h-3 animate-spin"/>:<Layers className="w-3 h-3"/>}Export Stems (16 WAV files)
-                    </button>
-                    <button onClick={()=>qsExportMidi(pianoRollNotesForCurrent,bpm,INSTRUMENTS.find(i=>i.id===pianoRollInst)?.name||'Piano Roll')} disabled={!pianoRollNotesForCurrent.length} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold hover:bg-purple-500/25 disabled:opacity-30">
-                      Export Piano Roll (MIDI)
-                    </button>
+                    <button onClick={handleExport} disabled={isExporting} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold hover:bg-cyan-500/20 disabled:opacity-40">
+                      {isExporting?<Loader2 className="w-3 h-3 animate-spin"/>:<Download className="w-3 h-3"/>}Full Mix (WAV)</button>
+                    <button onClick={handleExportStems} disabled={isStemsExporting} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 disabled:opacity-40">
+                      {isStemsExporting?<Loader2 className="w-3 h-3 animate-spin"/>:<Layers className="w-3 h-3"/>}Stems (16 WAV)</button>
+                    <button onClick={()=>qsExportMidi(pianoRollNotesForCurrent,bpm,INSTRUMENTS.find(i=>i.id===pianoRollInst)?.name||'Piano Roll')} disabled={!pianoRollNotesForCurrent.length} className="flex items-center justify-center gap-2 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold hover:bg-purple-500/20 disabled:opacity-30">Piano Roll (MIDI)</button>
                   </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-white/3 border border-white/5">
-                  <div className="text-sm font-bold text-white mb-1 flex items-center gap-2"><Music className="w-4 h-4 text-yellow-400"/>Studio Tips</div>
-                  <div className="space-y-2 text-xs text-white/50">
-                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Step Seq:</strong> Click to toggle steps. Right-click drums to cycle velocity, melodics to change pitch.</span></div>
-                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Piano Roll:</strong> Click grid to add notes, right-click to remove, drag right edge to resize.</span></div>
-                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Mixer:</strong> Every channel has volume, pan, EQ, compressor, reverb, delay, distortion, chorus & phaser.</span></div>
-                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Patterns A–H:</strong> Create 8 unique patterns and arrange them in the Song Arranger.</span></div>
-                    <div className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span><span><strong className="text-white/70">Ctrl+Z / Ctrl+Y:</strong> Full undo/redo history for all pattern edits.</span></div>
+                <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06]">
+                  <div className="text-[10px] font-black text-white/60 mb-3 uppercase tracking-wider flex items-center gap-2"><Music className="w-3 h-3 text-yellow-400"/>Tips</div>
+                  <div className="space-y-1.5 text-[10px] text-white/40">
+                    <div className="flex gap-2"><span className="text-violet-400">▸</span><span><strong className="text-white/55">Step Seq</strong> — Click to toggle, right-click = velocity/pitch</span></div>
+                    <div className="flex gap-2"><span className="text-violet-400">▸</span><span><strong className="text-white/55">Pattern Tools</strong> — Fill, Randomize, Humanize, Copy/Paste</span></div>
+                    <div className="flex gap-2"><span className="text-violet-400">▸</span><span><strong className="text-white/55">Tap Tempo</strong> — TAP button in transport bar</span></div>
+                    <div className="flex gap-2"><span className="text-violet-400">▸</span><span><strong className="text-white/55">Patterns A–H</strong> — Arrange in Song Arranger</span></div>
+                    <div className="flex gap-2"><span className="text-violet-400">▸</span><span><strong className="text-white/55">Ctrl+Z / Ctrl+Y</strong> — Full undo/redo</span></div>
                   </div>
                 </div>
               </div>

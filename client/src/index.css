@@ -251,3 +251,12 @@ html[style*="--accent-color"] .focus\:ring-teal-500:focus { --tw-ring-color: var
 code, pre, .font-mono {
   font-family: var(--code-font, 'JetBrains Mono', monospace);
 }
+
+@keyframes qsWaveBar {
+  0%, 100% { transform: scaleY(0.15); opacity: 0.4; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+.qs-wave-bar {
+  transform-origin: bottom;
+  animation: qsWaveBar 0.8s ease-in-out infinite;
+}
