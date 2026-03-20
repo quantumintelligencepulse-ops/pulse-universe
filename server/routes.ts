@@ -5017,6 +5017,212 @@ ${products.map(p => `  <url>
     } catch { res.json([]); }
   });
 
+  // Forex pairs
+  app.get("/api/finance/forex", async (req, res) => {
+    const PAIRS = [
+      { symbol: "EURUSD=X", base: "EUR", quote: "USD", name: "Euro / US Dollar" },
+      { symbol: "GBPUSD=X", base: "GBP", quote: "USD", name: "British Pound / US Dollar" },
+      { symbol: "USDJPY=X", base: "USD", quote: "JPY", name: "US Dollar / Japanese Yen" },
+      { symbol: "AUDUSD=X", base: "AUD", quote: "USD", name: "Australian Dollar / US Dollar" },
+      { symbol: "USDCAD=X", base: "USD", quote: "CAD", name: "US Dollar / Canadian Dollar" },
+      { symbol: "USDCHF=X", base: "USD", quote: "CHF", name: "US Dollar / Swiss Franc" },
+      { symbol: "USDCNY=X", base: "USD", quote: "CNY", name: "US Dollar / Chinese Yuan" },
+      { symbol: "USDINR=X", base: "USD", quote: "INR", name: "US Dollar / Indian Rupee" },
+      { symbol: "USDBRL=X", base: "USD", quote: "BRL", name: "US Dollar / Brazilian Real" },
+      { symbol: "USDMXN=X", base: "USD", quote: "MXN", name: "US Dollar / Mexican Peso" },
+      { symbol: "USDKRW=X", base: "USD", quote: "KRW", name: "US Dollar / Korean Won" },
+      { symbol: "USDZAR=X", base: "USD", quote: "ZAR", name: "US Dollar / South African Rand" },
+      { symbol: "EURGBP=X", base: "EUR", quote: "GBP", name: "Euro / British Pound" },
+      { symbol: "EURJPY=X", base: "EUR", quote: "JPY", name: "Euro / Japanese Yen" },
+      { symbol: "GBPJPY=X", base: "GBP", quote: "JPY", name: "British Pound / Japanese Yen" },
+      { symbol: "USDSGD=X", base: "USD", quote: "SGD", name: "US Dollar / Singapore Dollar" },
+      { symbol: "USDHKD=X", base: "USD", quote: "HKD", name: "US Dollar / Hong Kong Dollar" },
+      { symbol: "USDNOK=X", base: "USD", quote: "NOK", name: "US Dollar / Norwegian Krone" },
+      { symbol: "USDSEK=X", base: "USD", quote: "SEK", name: "US Dollar / Swedish Krona" },
+      { symbol: "NZDUSD=X", base: "NZD", quote: "USD", name: "New Zealand Dollar / US Dollar" },
+    ];
+    try {
+      const results = await Promise.all(PAIRS.map(async (pair) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${pair.symbol}?interval=1d&range=2d`;
+          const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(4000) });
+          if (!r.ok) return { ...pair, error: true };
+          const d: any = await r.json();
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (!meta) return { ...pair, error: true };
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose ?? meta.previousClose;
+          const change = price && prev ? ((price - prev) / prev * 100) : 0;
+          return { ...pair, price: price?.toFixed(5), change: change.toFixed(3) };
+        } catch { return { ...pair, error: true }; }
+      }));
+      res.json(results.filter(r => !(r as any).error));
+    } catch { res.json([]); }
+  });
+
+  // Commodities futures
+  app.get("/api/finance/commodities", async (req, res) => {
+    const COMMODITIES = [
+      { symbol: "GC=F", name: "Gold", unit: "$/oz", category: "Metals" },
+      { symbol: "SI=F", name: "Silver", unit: "$/oz", category: "Metals" },
+      { symbol: "HG=F", name: "Copper", unit: "$/lb", category: "Metals" },
+      { symbol: "PL=F", name: "Platinum", unit: "$/oz", category: "Metals" },
+      { symbol: "PA=F", name: "Palladium", unit: "$/oz", category: "Metals" },
+      { symbol: "CL=F", name: "Crude Oil (WTI)", unit: "$/bbl", category: "Energy" },
+      { symbol: "BZ=F", name: "Brent Crude", unit: "$/bbl", category: "Energy" },
+      { symbol: "NG=F", name: "Natural Gas", unit: "$/MMBtu", category: "Energy" },
+      { symbol: "RB=F", name: "Gasoline RBOB", unit: "$/gal", category: "Energy" },
+      { symbol: "HO=F", name: "Heating Oil", unit: "$/gal", category: "Energy" },
+      { symbol: "ZC=F", name: "Corn", unit: "¢/bu", category: "Agricultural" },
+      { symbol: "ZW=F", name: "Wheat", unit: "¢/bu", category: "Agricultural" },
+      { symbol: "ZS=F", name: "Soybeans", unit: "¢/bu", category: "Agricultural" },
+      { symbol: "KC=F", name: "Coffee", unit: "¢/lb", category: "Agricultural" },
+      { symbol: "CC=F", name: "Cocoa", unit: "$/MT", category: "Agricultural" },
+      { symbol: "SB=F", name: "Sugar #11", unit: "¢/lb", category: "Agricultural" },
+      { symbol: "CT=F", name: "Cotton", unit: "¢/lb", category: "Agricultural" },
+      { symbol: "OJ=F", name: "Orange Juice", unit: "¢/lb", category: "Agricultural" },
+    ];
+    try {
+      const results = await Promise.all(COMMODITIES.map(async (c) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?interval=1d&range=2d`;
+          const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(4000) });
+          if (!r.ok) return { ...c, error: true };
+          const d: any = await r.json();
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (!meta) return { ...c, error: true };
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose ?? meta.previousClose;
+          const change = price && prev ? ((price - prev) / prev * 100) : 0;
+          return { ...c, price: price?.toFixed(2), change: change.toFixed(2) };
+        } catch { return { ...c, error: true }; }
+      }));
+      res.json(results.filter(r => !(r as any).error));
+    } catch { res.json([]); }
+  });
+
+  // Bonds & rates — US Treasuries + VIX + credit ETFs
+  app.get("/api/finance/bonds", async (req, res) => {
+    const BONDS = [
+      { symbol: "^IRX", name: "3-Month T-Bill", maturity: "3M", type: "Treasury" },
+      { symbol: "^FVX", name: "5-Year Treasury", maturity: "5Y", type: "Treasury" },
+      { symbol: "^TNX", name: "10-Year Treasury", maturity: "10Y", type: "Treasury" },
+      { symbol: "^TYX", name: "30-Year Treasury", maturity: "30Y", type: "Treasury" },
+      { symbol: "^VIX", name: "CBOE Volatility Index", maturity: "VIX", type: "Volatility" },
+      { symbol: "LQD", name: "Investment Grade Corp Bond ETF", maturity: "IG", type: "Credit" },
+      { symbol: "HYG", name: "High Yield Corp Bond ETF", maturity: "HY", type: "Credit" },
+      { symbol: "TIP", name: "TIPS (Inflation-Protected)", maturity: "TIPS", type: "Treasury" },
+      { symbol: "SHY", name: "1-3yr Treasury ETF", maturity: "Short", type: "Treasury" },
+      { symbol: "TLT", name: "20+ Year Treasury ETF", maturity: "Long", type: "Treasury" },
+      { symbol: "AGG", name: "US Aggregate Bond ETF", maturity: "Agg", type: "Aggregate" },
+      { symbol: "MUB", name: "Municipal Bond ETF", maturity: "Muni", type: "Municipal" },
+      { symbol: "BND", name: "Vanguard Total Bond ETF", maturity: "Total", type: "Aggregate" },
+      { symbol: "BNDX", name: "International Bond ETF", maturity: "Intl", type: "International" },
+    ];
+    try {
+      const results = await Promise.all(BONDS.map(async (b) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${b.symbol}?interval=1d&range=2d`;
+          const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(4000) });
+          if (!r.ok) return { ...b, error: true };
+          const d: any = await r.json();
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (!meta) return { ...b, error: true };
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose ?? meta.previousClose;
+          const change = price && prev ? ((price - prev) / prev * 100) : 0;
+          return { ...b, price: price?.toFixed(3), change: change.toFixed(2) };
+        } catch { return { ...b, error: true }; }
+      }));
+      res.json(results.filter(r => !(r as any).error));
+    } catch { res.json([]); }
+  });
+
+  // International stock market indices
+  app.get("/api/finance/global", async (req, res) => {
+    const INDICES = [
+      { symbol: "^FTSE", name: "FTSE 100", country: "UK", region: "Europe" },
+      { symbol: "^GDAXI", name: "DAX 40", country: "Germany", region: "Europe" },
+      { symbol: "^FCHI", name: "CAC 40", country: "France", region: "Europe" },
+      { symbol: "^STOXX50E", name: "EURO STOXX 50", country: "Eurozone", region: "Europe" },
+      { symbol: "^AEX", name: "AEX Index", country: "Netherlands", region: "Europe" },
+      { symbol: "^IBEX", name: "IBEX 35", country: "Spain", region: "Europe" },
+      { symbol: "^N225", name: "Nikkei 225", country: "Japan", region: "Asia-Pacific" },
+      { symbol: "^HSI", name: "Hang Seng", country: "Hong Kong", region: "Asia-Pacific" },
+      { symbol: "^AXJO", name: "ASX 200", country: "Australia", region: "Asia-Pacific" },
+      { symbol: "^BSESN", name: "BSE SENSEX", country: "India", region: "Asia-Pacific" },
+      { symbol: "^KS11", name: "KOSPI", country: "South Korea", region: "Asia-Pacific" },
+      { symbol: "^TWII", name: "TAIEX", country: "Taiwan", region: "Asia-Pacific" },
+      { symbol: "000001.SS", name: "Shanghai Composite", country: "China", region: "Asia-Pacific" },
+      { symbol: "^STI", name: "Straits Times Index", country: "Singapore", region: "Asia-Pacific" },
+      { symbol: "^BVSP", name: "BOVESPA", country: "Brazil", region: "Americas" },
+      { symbol: "^GSPTSE", name: "S&P/TSX Composite", country: "Canada", region: "Americas" },
+      { symbol: "^MXX", name: "IPC Mexico", country: "Mexico", region: "Americas" },
+      { symbol: "^MERV", name: "MERVAL", country: "Argentina", region: "Americas" },
+      { symbol: "^TA125.TA", name: "Tel Aviv 125", country: "Israel", region: "Middle East" },
+      { symbol: "^CASE30", name: "EGX 30", country: "Egypt", region: "Africa" },
+    ];
+    try {
+      const results = await Promise.all(INDICES.map(async (idx) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${idx.symbol}?interval=1d&range=2d`;
+          const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(4000) });
+          if (!r.ok) return { ...idx, error: true };
+          const d: any = await r.json();
+          const meta = d?.chart?.result?.[0]?.meta;
+          if (!meta) return { ...idx, error: true };
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose ?? meta.previousClose;
+          const change = price && prev ? ((price - prev) / prev * 100) : 0;
+          return { ...idx, price: price?.toLocaleString("en-US", { maximumFractionDigits: 0 }), change: change.toFixed(2) };
+        } catch { return { ...idx, error: true }; }
+      }));
+      res.json(results.filter(r => !(r as any).error));
+    } catch { res.json([]); }
+  });
+
+  // Top 100 crypto via CoinGecko (no API key required)
+  app.get("/api/finance/crypto/top", async (req, res) => {
+    const page = parseInt(req.query.page as string) || 1;
+    try {
+      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=${page}&sparkline=false&price_change_percentage=24h,7d`;
+      const r = await fetch(url, { headers: { "Accept": "application/json" }, signal: AbortSignal.timeout(6000) });
+      if (!r.ok) return res.json([]);
+      const data: any[] = await r.json();
+      res.json(data.map(c => ({
+        id: c.id, symbol: c.symbol.toUpperCase(), name: c.name, image: c.image,
+        price: c.current_price, change24h: c.price_change_percentage_24h?.toFixed(2),
+        change7d: c.price_change_percentage_7d_in_currency?.toFixed(2),
+        marketCap: c.market_cap, rank: c.market_cap_rank, volume: c.total_volume,
+        ath: c.ath, athChange: c.ath_change_percentage?.toFixed(1),
+      })));
+    } catch (e) { res.json([]); }
+  });
+
+  // DeFi tokens via CoinGecko
+  app.get("/api/finance/defi", async (req, res) => {
+    try {
+      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=decentralized-finance-defi&order=market_cap_desc&per_page=30&page=1`;
+      const r = await fetch(url, { headers: { "Accept": "application/json" }, signal: AbortSignal.timeout(6000) });
+      if (!r.ok) return res.json([]);
+      const data: any[] = await r.json();
+      res.json(data.map(c => ({
+        id: c.id, symbol: c.symbol.toUpperCase(), name: c.name,
+        price: c.current_price, change24h: c.price_change_percentage_24h?.toFixed(2),
+        marketCap: c.market_cap, rank: c.market_cap_rank, volume: c.total_volume,
+      })));
+    } catch (e) { res.json([]); }
+  });
+
+  // Fear & Greed Index (crypto) — Alternative.me
+  app.get("/api/finance/feargreed", async (req, res) => {
+    try {
+      const r = await fetch("https://api.alternative.me/fng/?limit=30", { signal: AbortSignal.timeout(4000) });
+      const d: any = await r.json();
+      res.json(d.data || []);
+    } catch { res.json([]); }
+  });
+
   // AI Prediction Markets — probability estimates from Oracle
   app.get("/api/finance/predictions", async (req, res) => {
     try {
