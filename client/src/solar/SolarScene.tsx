@@ -269,15 +269,10 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       return { mesh: ring, scale, phase: i * 0.5 };
     });
 
-    // ── CAMERA STATE ──────────────────────────────────────────────────────────
-    // theta/phi change DIRECTLY during drag — zero buffering, zero rubber-band
-    // Only radius eases smoothly (zoom feel). lookAt lerps for pan smoothness.
+    // ── CAMERA STATE — fully static, zero drift ───────────────────────────────
     const cam = {
       radius: 55, theta: 0.4, phi: 0.45,
-      targetRadius: 55,
       lookAt: new THREE.Vector3(),
-      targetLookAt: new THREE.Vector3(),
-      velTheta: 0, velPhi: 0,  // post-drag inertia only
     };
     sceneRef.current = { cam, planets, moonObjects, quantumField };
 
@@ -312,21 +307,18 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       drag.lastX = e.clientX; drag.lastY = e.clientY;
 
       if (drag.button === 2) {
-        // Right-click pan — translate the lookAt point directly
+        // Right-click pan — move lookAt directly
         const right = new THREE.Vector3();
         const up = new THREE.Vector3();
         right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
         up.copy(camera.up).normalize();
         const panSpeed = cam.radius * 0.0012;
-        cam.targetLookAt.addScaledVector(right, -dx * panSpeed);
-        cam.targetLookAt.addScaledVector(up, dy * panSpeed);
+        cam.lookAt.addScaledVector(right, -dx * panSpeed);
+        cam.lookAt.addScaledVector(up, dy * panSpeed);
       } else {
-        // Left-drag orbit — change theta/phi DIRECTLY (no buffering = no rubber-band)
+        // Left-drag orbit — direct, instant, no buffering
         cam.theta += -dx * 0.005;
         cam.phi    = Math.max(0.05, Math.min(Math.PI - 0.05, cam.phi - dy * 0.005));
-        // Save velocity for post-release inertia
-        cam.velTheta = -dx * 0.005;
-        cam.velPhi   = -dy * 0.005;
       }
     };
 
@@ -340,11 +332,11 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         if (hits.length > 0) {
           const name = hits[0].object.userData.name as string;
           handlePlanetClick(name);
-          // Snap camera once to planet — no continuous follow
+          // Snap camera instantly to planet
           const p = planets[name];
           if (p) {
-            cam.targetLookAt.copy(p.group.position);
-            cam.targetRadius = Math.max(p.data.radius * 6 + 3, 4);
+            cam.lookAt.copy(p.group.position);
+            cam.radius = Math.max(p.data.radius * 6 + 3, 4);
           }
         } else {
           handleDeselect();
@@ -355,7 +347,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const factor = e.deltaY > 0 ? 1.10 : 0.91;
-      cam.targetRadius = Math.max(2, Math.min(400, cam.targetRadius * factor));
+      cam.radius = Math.max(2, Math.min(400, cam.radius * factor));
     };
 
     const onContextMenu = (e: Event) => e.preventDefault();
@@ -381,11 +373,9 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         drag.lastX = e.touches[0].clientX; drag.lastY = e.touches[0].clientY;
         cam.theta += -dx * 0.005;
         cam.phi    = Math.max(0.05, Math.min(Math.PI - 0.05, cam.phi - dy * 0.005));
-        cam.velTheta = -dx * 0.005;
-        cam.velPhi   = -dy * 0.005;
       } else if (e.touches.length === 2) {
         const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-        cam.targetRadius = Math.max(2, Math.min(400, cam.targetRadius * (touch.lastDist / dist)));
+        cam.radius = Math.max(2, Math.min(400, cam.radius * (touch.lastDist / dist)));
         touch.lastDist = dist;
       }
     };
@@ -406,8 +396,6 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
 
     // ── ANIMATION LOOP ────────────────────────────────────────────────────────
     let time = 0;
-    const EASE = 0.055;
-    const INERTIA = 0.88;
 
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
@@ -420,28 +408,17 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         const right = new THREE.Vector3();
         right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
         const fwd = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
-        if (keys['w'] || keys['arrowup'])    cam.targetLookAt.addScaledVector(fwd, speed);
-        if (keys['s'] || keys['arrowdown'])  cam.targetLookAt.addScaledVector(fwd, -speed);
-        if (keys['a'] || keys['arrowleft'])  cam.targetLookAt.addScaledVector(right, -speed);
-        if (keys['d'] || keys['arrowright']) cam.targetLookAt.addScaledVector(right, speed);
-        if (keys['q'])                        cam.targetLookAt.y += speed;
-        if (keys['e'])                        cam.targetLookAt.y -= speed;
-        if (keys['='] || keys['+'])           cam.targetRadius = Math.max(2, cam.targetRadius * 0.97);
-        if (keys['-'])                        cam.targetRadius = Math.min(400, cam.targetRadius * 1.03);
+        if (keys['w'] || keys['arrowup'])    cam.lookAt.addScaledVector(fwd, speed);
+        if (keys['s'] || keys['arrowdown'])  cam.lookAt.addScaledVector(fwd, -speed);
+        if (keys['a'] || keys['arrowleft'])  cam.lookAt.addScaledVector(right, -speed);
+        if (keys['d'] || keys['arrowright']) cam.lookAt.addScaledVector(right, speed);
+        if (keys['q'])                        cam.lookAt.y += speed;
+        if (keys['e'])                        cam.lookAt.y -= speed;
+        if (keys['='] || keys['+'])           cam.radius = Math.max(2, cam.radius * 0.97);
+        if (keys['-'])                        cam.radius = Math.min(400, cam.radius * 1.03);
       }
 
-      // ── Post-release inertia (only when mouse is up) ───────────────────────
-      if (!drag.active) {
-        cam.velTheta *= INERTIA;
-        cam.velPhi   *= INERTIA;
-        cam.theta    += cam.velTheta;
-        cam.phi       = Math.max(0.05, Math.min(Math.PI - 0.05, cam.phi + cam.velPhi));
-      }
-
-      // ── Smooth radius + smooth pan only — orbit is already direct ─────────
-      cam.radius += (cam.targetRadius - cam.radius) * EASE;
-      cam.lookAt.lerp(cam.targetLookAt, EASE);
-
+      // ── Camera placement — fully static, no easing, no drift ──────────────
       camera.position.set(
         cam.lookAt.x + cam.radius * Math.sin(cam.phi) * Math.cos(cam.theta),
         cam.lookAt.y + cam.radius * Math.cos(cam.phi),
@@ -536,14 +513,14 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     };
   }, [handlePlanetClick, handleDeselect]);
 
-  // When selectedPlanet changes externally (from UI button), snap camera once — no follow
+  // When selectedPlanet changes, snap camera instantly — no follow, no drift
   useEffect(() => {
     const { cam, planets } = sceneRef.current;
     if (!cam || !planets) return;
     if (selectedPlanet && planets[selectedPlanet]) {
       const p = planets[selectedPlanet];
-      cam.targetLookAt.copy(p.group.position);
-      cam.targetRadius = Math.max(p.data.radius * 6 + 3, 4);
+      cam.lookAt.copy(p.group.position);
+      cam.radius = Math.max(p.data.radius * 6 + 3, 4);
     }
   }, [selectedPlanet]);
 
