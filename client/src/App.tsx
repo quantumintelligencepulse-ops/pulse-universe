@@ -2009,6 +2009,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-rose-500 to-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
+          <Link href="/quantapedia" data-testid="link-quantapedia"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/quantapedia" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/quantapedia" ? "bg-violet-500/15" : "bg-violet-500/5"}`}><BookOpen size={14} className="text-violet-600" /></div>
+            <span className="flex-1">Quantapedia</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
+          </Link>
           {!appSettings.hiddenPages.includes("music") && (
           <Link href="/music" data-testid="link-music"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/music" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -8402,10 +8408,10 @@ function GameLibrary({onBack,setGameMode}:{onBack:()=>void,setGameMode:(m:GameMo
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
               {native.filter(g=>g.featured).map(g=>(
-                <button key={g.id} onClick={()=>launch(g)} data-testid={`game-lib-${g.id}`}
-                  className="group relative p-3.5 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                <div key={g.id} onClick={()=>launch(g)} data-testid={`game-lib-${g.id}`} role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter'&&launch(g)}
+                  className="group relative p-3.5 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   style={{background:'linear-gradient(135deg,rgba(139,92,246,0.15),rgba(59,130,246,0.1))',border:'1px solid rgba(139,92,246,0.25)'}}>
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 right-2" onClick={e=>e.stopPropagation()}>
                     <button onClick={e=>{e.stopPropagation();toggleFav(g.id);}} className={cn("text-xs transition-all",favs.includes(g.id)?"text-red-400":"text-white/20 hover:text-white/50")}>❤</button>
                   </div>
                   <div className="text-3xl mb-2">{g.emoji}</div>
@@ -8417,7 +8423,7 @@ function GameLibrary({onBack,setGameMode}:{onBack:()=>void,setGameMode:(m:GameMo
                     <span className="text-green-400 text-[9px] font-black ml-auto group-hover:text-green-300">▶ PLAY</span>
                   </div>
                   {played[g.id]&&<div className="text-white/20 text-[8px] mt-1">{played[g.id]} plays</div>}
-                </button>
+                </div>
               ))}
             </div>
           </div>
@@ -8429,8 +8435,8 @@ function GameLibrary({onBack,setGameMode}:{onBack:()=>void,setGameMode:(m:GameMo
           {genre==='all'&&!search&&<div className="flex items-center gap-2 mb-3"><span className="text-[9px] text-white/30 font-black uppercase tracking-widest">All Instant-Play Games</span><div className="flex-1 h-px bg-white/5"/></div>}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {native.filter(g=>!g.featured||genre!=='all'||search).map(g=>(
-              <button key={g.id} onClick={()=>launch(g)} data-testid={`game-lib-${g.id}`}
-                className="group p-3 rounded-xl bg-white/[0.025] border border-white/8 hover:border-white/20 hover:bg-white/[0.04] transition-all text-left">
+              <div key={g.id} onClick={()=>launch(g)} data-testid={`game-lib-${g.id}`} role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter'&&launch(g)}
+                className="group p-3 rounded-xl bg-white/[0.025] border border-white/8 hover:border-white/20 hover:bg-white/[0.04] transition-all text-left cursor-pointer">
                 <div className="flex items-start justify-between mb-1">
                   <span className="text-2xl">{g.emoji}</span>
                   <button onClick={e=>{e.stopPropagation();toggleFav(g.id);}} className={cn("text-xs transition-all",favs.includes(g.id)?"text-red-400":"text-white/15 hover:text-white/40")}>❤</button>
@@ -8442,7 +8448,7 @@ function GameLibrary({onBack,setGameMode}:{onBack:()=>void,setGameMode:(m:GameMo
                   {g.ai&&<span className="text-[7px] px-1 py-0.5 rounded border border-cyan-500/30 text-cyan-400">AI</span>}
                   <span className="text-green-400 text-[9px] font-black ml-auto">▶</span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -10805,6 +10811,449 @@ function QuantumStudio(){
       <QsProjectManager open={showProjects} onClose={()=>setShowProjects(false)} onSave={handleSaveProject} onLoad={handleLoadProject}/>
     </div>
   );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   QUANTAPEDIA — The AI-Native Knowledge Universe
+   Replaces: Wikipedia · All Dictionaries · All Encyclopedias · Every Reference
+   Powered by Groq AI · localStorage cache · Concept graph · A-Z browse
+   ═══════════════════════════════════════════════════════════════════════ */
+type QuantaEntry={
+  title:string;type:string;pronunciation?:string;partOfSpeech?:string;
+  summary:string;definitions:{number:number;text:string;example?:string}[];
+  etymology?:string;synonyms:string[];antonyms:string[];relatedTerms:string[];
+  sections:{title:string;content:string}[];quickFacts:{label:string;value:string}[];
+  categories:string[];seeAlso:string[];
+};
+const QP_FEATURED=[
+  {q:'Quantum mechanics',emoji:'⚛️',cat:'Physics'},
+  {q:'Artificial intelligence',emoji:'🤖',cat:'Technology'},
+  {q:'DNA',emoji:'🧬',cat:'Biology'},
+  {q:'Consciousness',emoji:'🧠',cat:'Philosophy'},
+  {q:'Language',emoji:'💬',cat:'Linguistics'},
+  {q:'Democracy',emoji:'🗳️',cat:'Politics'},
+  {q:'Universe',emoji:'🌌',cat:'Cosmology'},
+  {q:'Love',emoji:'❤️',cat:'Emotion'},
+  {q:'Mathematics',emoji:'∞',cat:'Science'},
+  {q:'Time',emoji:'⏳',cat:'Philosophy'},
+  {q:'Music',emoji:'🎵',cat:'Art'},
+  {q:'Evolution',emoji:'🦎',cat:'Biology'},
+];
+const QP_CATEGORIES=[
+  {label:'Science',emoji:'🔬',topics:['Physics','Chemistry','Biology','Astronomy','Geology','Ecology','Neuroscience']},
+  {label:'Technology',emoji:'💻',topics:['Artificial Intelligence','Computer Science','Engineering','Robotics','Blockchain','Quantum Computing']},
+  {label:'History',emoji:'📜',topics:['Ancient Rome','Renaissance','World War II','Industrial Revolution','Cold War','Egyptian Empire']},
+  {label:'Philosophy',emoji:'🤔',topics:['Ethics','Epistemology','Metaphysics','Logic','Aesthetics','Existentialism','Stoicism']},
+  {label:'Language',emoji:'💬',topics:['Etymology','Grammar','Linguistics','Phonetics','Semantics','Pragmatics','Morphology']},
+  {label:'Mathematics',emoji:'∑',topics:['Calculus','Algebra','Geometry','Statistics','Number Theory','Topology','Combinatorics']},
+  {label:'Arts',emoji:'🎨',topics:['Painting','Sculpture','Music Theory','Film','Literature','Architecture','Dance']},
+  {label:'Nature',emoji:'🌿',topics:['Ecology','Botany','Zoology','Climate','Oceans','Forests','Microbiome']},
+  {label:'Culture',emoji:'🌍',topics:['Mythology','Religion','Anthropology','Sociology','Folklore','Ritual','Tradition']},
+  {label:'People',emoji:'👤',topics:['Albert Einstein','Leonardo da Vinci','Marie Curie','Nikola Tesla','Socrates','Ada Lovelace']},
+];
+const QP_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+function QuantapediaPage(){
+  const [view,setView]=useState<'home'|'entry'|'browse'|'letter'>('home');
+  const [query,setQuery]=useState('');
+  const [entry,setEntry]=useState<QuantaEntry|null>(null);
+  const [loading,setLoading]=useState(false);
+  const [activeTab,setActiveTab]=useState<'encyclopedia'|'dictionary'|'thesaurus'|'graph'>('encyclopedia');
+  const [letter,setLetter]=useState('A');
+  const [history,setHistory]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem('qp_history')||'[]');}catch{return [];}});
+  const [bookmarks,setBookmarks]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem('qp_bookmarks')||'[]');}catch{return [];}});
+  const [cache,setCache]=useState<Record<string,QuantaEntry>>(()=>{try{return JSON.parse(localStorage.getItem('qp_cache')||'{}');}catch{return {};}});
+  const [inputVal,setInputVal]=useState('');
+  const {toast}=useToast();
+
+  const saveHistory=(t:string)=>{const h=[t,...history.filter(x=>x!==t)].slice(0,20);setHistory(h);localStorage.setItem('qp_history',JSON.stringify(h));};
+  const toggleBookmark=(t:string)=>{const b=bookmarks.includes(t)?bookmarks.filter(x=>x!==t):[t,...bookmarks];setBookmarks(b);localStorage.setItem('qp_bookmarks',JSON.stringify(b));};
+
+  const lookup=async(q:string)=>{
+    if(!q.trim())return;
+    const key=q.trim().toLowerCase();
+    if(cache[key]){setEntry(cache[key]);setQuery(q);setView('entry');saveHistory(q);return;}
+    setLoading(true);setQuery(q);setView('entry');
+    try{
+      const res=await fetch('/api/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:`You are QuantapediaAI — the world's most comprehensive AI knowledge engine. Generate a complete structured knowledge entry for: "${q}"
+
+Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) with this exact schema:
+{
+  "title": "canonical title",
+  "type": "word|phrase|person|place|concept|event|field|organism|chemical|historical|cultural|mathematical|other",
+  "pronunciation": "IPA pronunciation if applicable or empty string",
+  "partOfSpeech": "noun|verb|adjective|adverb|... or empty string if not a word",
+  "summary": "2-3 sentence comprehensive overview",
+  "definitions": [
+    {"number": 1, "text": "primary definition", "example": "usage example sentence"},
+    {"number": 2, "text": "secondary definition if applicable", "example": ""}
+  ],
+  "etymology": "word origin and history if applicable, otherwise empty string",
+  "synonyms": ["up to 8 synonyms or related terms"],
+  "antonyms": ["up to 5 antonyms if applicable"],
+  "relatedTerms": ["8-12 closely related concepts, terms, or topics"],
+  "sections": [
+    {"title": "Overview", "content": "3-4 paragraph comprehensive overview"},
+    {"title": "History & Origin", "content": "historical background and development"},
+    {"title": "Key Concepts", "content": "core ideas, mechanisms, or components"},
+    {"title": "Applications & Significance", "content": "real-world uses and importance"},
+    {"title": "Modern Context", "content": "current state, debates, and future directions"}
+  ],
+  "quickFacts": [
+    {"label": "Category", "value": "..."},
+    {"label": "Domain", "value": "..."},
+    {"label": "First Known Use", "value": "..."},
+    {"label": "Complexity", "value": "Beginner|Intermediate|Advanced|Expert"}
+  ],
+  "categories": ["3-6 category tags"],
+  "seeAlso": ["6-10 related topics to explore next"]
+}`}]})});
+      const data=await res.json();
+      let parsed:QuantaEntry;
+      try{parsed=JSON.parse(data.content);}
+      catch{
+        const match=data.content.match(/\{[\s\S]*\}/);
+        if(match)parsed=JSON.parse(match[0]);
+        else throw new Error('parse fail');
+      }
+      const newCache={...cache,[key]:parsed};
+      setCache(newCache);
+      localStorage.setItem('qp_cache',JSON.stringify(newCache));
+      setEntry(parsed);
+      saveHistory(q);
+    } catch{toast({title:'Error generating entry. Please try again.',variant:'destructive'});}
+    finally{setLoading(false);}
+  };
+
+  const typeColor=(t:string)=>{
+    const m:Record<string,string>={word:'violet',phrase:'blue',person:'amber',place:'green',concept:'cyan',event:'orange',field:'pink',organism:'emerald',chemical:'red',historical:'yellow',cultural:'purple',mathematical:'indigo'};
+    return m[t?.toLowerCase()]||'white';
+  };
+
+  // ─── HOME VIEW ────────────────────────────────────────────────────────
+  if(view==='home') return(
+    <div className="flex-1 overflow-auto" style={{background:'linear-gradient(180deg,#020010,#050020)'}}>
+      {/* Hero */}
+      <div className="px-4 pt-10 pb-8 text-center" style={{background:'linear-gradient(180deg,#0a0030,#050020)'}}>
+        <div className="text-6xl mb-3 font-black" style={{background:'linear-gradient(135deg,#a78bfa,#60a5fa,#34d399)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Q</div>
+        <h1 className="text-white font-black text-3xl mb-1" style={{letterSpacing:'-0.03em'}}>Quantapedia</h1>
+        <p className="text-white/30 text-sm mb-1">The AI-Native Knowledge Universe</p>
+        <p className="text-white/15 text-[10px] mb-6">Every word · Every concept · Every entity · Every fact · Powered by AI</p>
+        {/* Search */}
+        <div className="max-w-xl mx-auto relative">
+          <div className="flex gap-2">
+            <input value={inputVal} onChange={e=>setInputVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&lookup(inputVal)}
+              placeholder="Search anything — word, person, concept, place, event..."
+              data-testid="input-quantapedia-search"
+              className="flex-1 bg-white/8 border border-violet-500/30 rounded-2xl text-white text-sm px-5 py-3.5 placeholder-white/20 focus:outline-none focus:border-violet-400/60 focus:bg-white/10 transition-all"/>
+            <button onClick={()=>lookup(inputVal)} data-testid="button-quantapedia-search"
+              className="px-6 py-3.5 rounded-2xl font-black text-white text-sm transition-all hover:opacity-90"
+              style={{background:'linear-gradient(135deg,#7c3aed,#4f46e5)'}}>Search</button>
+          </div>
+        </div>
+        {/* Featured quick-access */}
+        <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto mt-4">
+          {QP_FEATURED.map(f=>(
+            <button key={f.q} onClick={()=>lookup(f.q)} className="px-3 py-1.5 rounded-full text-xs bg-white/5 border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10 hover:border-white/20 transition-all">
+              {f.emoji} {f.q}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-4 pb-8 max-w-4xl mx-auto space-y-8">
+        {/* Stats banner */}
+        <div className="grid grid-cols-4 gap-3">
+          {[{v:'∞',label:'Entries'},{v:'18',label:'Layers'},{v:'AI',label:'Powered'},{v:'0ms*',label:'Cached'}].map(s=>(
+            <div key={s.label} className="text-center p-3 rounded-2xl bg-white/[0.03] border border-white/8">
+              <div className="text-violet-400 font-black text-xl">{s.v}</div>
+              <div className="text-white/30 text-[10px]">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Browse by category */}
+        <div>
+          <div className="flex items-center gap-2 mb-4"><span className="text-white font-black text-sm">📚 Browse by Domain</span><div className="flex-1 h-px bg-white/5"/></div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+            {QP_CATEGORIES.map(cat=>(
+              <button key={cat.label} onClick={()=>lookup(cat.topics[0])} data-testid={`qp-cat-${cat.label.toLowerCase()}`}
+                className="group p-3 rounded-2xl bg-white/[0.025] border border-white/8 hover:border-white/20 hover:bg-white/[0.05] transition-all text-left">
+                <div className="text-2xl mb-1.5">{cat.emoji}</div>
+                <div className="text-white/80 font-bold text-xs mb-1">{cat.label}</div>
+                <div className="text-white/25 text-[9px] leading-relaxed">{cat.topics.slice(0,3).join(' · ')}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* A-Z Browse */}
+        <div>
+          <div className="flex items-center gap-2 mb-3"><span className="text-white font-black text-sm">🔤 Browse A–Z</span><div className="flex-1 h-px bg-white/5"/></div>
+          <div className="flex flex-wrap gap-1.5">
+            {QP_ALPHABET.map(l=>(
+              <button key={l} onClick={()=>{setLetter(l);setView('letter');}} data-testid={`qp-letter-${l}`}
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-white/40 font-black text-xs hover:text-white hover:bg-violet-500/20 hover:border-violet-500/30 transition-all">{l}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent + Bookmarks */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          {history.length>0&&(
+            <div>
+              <div className="flex items-center gap-2 mb-2"><span className="text-white/50 font-bold text-xs">🕐 Recent</span><div className="flex-1 h-px bg-white/5"/><button onClick={()=>{setHistory([]);localStorage.removeItem('qp_history');}} className="text-[9px] text-white/20 hover:text-white/40">Clear</button></div>
+              <div className="space-y-1">
+                {history.slice(0,8).map(h=>(
+                  <button key={h} onClick={()=>lookup(h)} className="w-full text-left px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:border-white/15 hover:bg-white/[0.04] transition-all">
+                    <span className="text-white/50 text-xs hover:text-white/70">{h}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {bookmarks.length>0&&(
+            <div>
+              <div className="flex items-center gap-2 mb-2"><span className="text-white/50 font-bold text-xs">🔖 Bookmarks</span><div className="flex-1 h-px bg-white/5"/></div>
+              <div className="space-y-1">
+                {bookmarks.slice(0,8).map(b=>(
+                  <button key={b} onClick={()=>lookup(b)} className="w-full text-left px-3 py-1.5 rounded-lg bg-white/[0.02] border border-violet-500/10 hover:border-violet-500/20 hover:bg-violet-500/5 transition-all">
+                    <span className="text-violet-300/60 text-xs hover:text-violet-300/80">{b}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── LETTER BROWSE VIEW ───────────────────────────────────────────────
+  if(view==='letter'){
+    const letterTopics:Record<string,string[]>={A:['Atom','Algorithm','Architecture','Algebra','Astronomy','Anthropology','Anxiety','Automation'],B:['Biology','Brain','Buddhism','Blockchain','Black Hole','Bacteria','Byzantine'],C:['Calculus','Chemistry','Consciousness','Culture','Cosmology','Cyberpunk','Cryptography'],D:['DNA','Democracy','Dimension','Differential equations','Dystopia','Dark matter'],E:['Evolution','Ethics','Entropy','Economics','Ecology','Electricity','Epistemology'],F:['Fibonacci','Folklore','Fluid dynamics','Fractal','Freudian psychology','Fusion'],G:['Genetics','Gravity','Greek mythology','Graph theory','Geodesy'],H:['History','Hydrogen','Holography','Homeostasis','Heisenberg uncertainty'],I:['Intelligence','Internet','Immune system','Infinity','Information theory'],J:['JavaScript','Jupiter','Jurisprudence','Jazz theory'],K:['Knowledge','Kinetics','Kant philosophy','Kepler laws'],L:['Language','Light','Logic','Linguistics','Logarithm','Love'],M:['Mathematics','Metaphysics','Music theory','Machine learning','Magnetism','Mythology'],N:['Neuroscience','Nanotechnology','Nuclear physics','Number theory','Network theory'],O:['Optics','Ontology','Organic chemistry','Ocean science'],P:['Philosophy','Physics','Photosynthesis','Psychology','Prime numbers','Plate tectonics'],Q:['Quantum mechanics','Quasar','Qualia','Quantum computing'],R:['Relativity','Rhetoric','Renaissance','RNA','Recursion'],S:['Sociology','String theory','Statistics','Stoicism','Symmetry','Semiotics'],T:['Thermodynamics','Time','Topology','Trigonometry','Turing machine'],U:['Universe','Utopia','Uncertainty principle','Ultraviolet'],V:['Vector calculus','Virus','Vocabulary','Virtue ethics'],W:['Wave mechanics','Wisdom','World War II','Wormhole'],X:['X-ray','Xenobiology','XML'],Y:['Yin and yang'],Z:['Zero','Zoology','Zeta function']};
+    const topics=letterTopics[letter]||[];
+    return(
+      <div className="flex-1 overflow-auto" style={{background:'linear-gradient(180deg,#020010,#050020)'}}>
+        <div className="px-4 py-4 border-b border-white/8 flex items-center gap-3" style={{background:'rgba(2,0,16,0.98)'}}>
+          <button onClick={()=>setView('home')} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+          <div className="w-px h-4 bg-white/10"/>
+          <span className="text-white font-black">Browse: {letter}</span>
+          <div className="flex gap-1 ml-auto flex-wrap">
+            {QP_ALPHABET.map(l=><button key={l} onClick={()=>setLetter(l)} className={cn("w-7 h-7 rounded text-[10px] font-black transition-all",l===letter?"bg-violet-500 text-white":"bg-white/5 text-white/30 hover:text-white/60")}>{l}</button>)}
+          </div>
+        </div>
+        <div className="p-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-2 gap-2.5">
+            {topics.map(t=>(
+              <button key={t} onClick={()=>lookup(t)} className="p-3 rounded-xl bg-white/[0.025] border border-white/8 hover:border-violet-500/30 hover:bg-violet-500/5 text-left transition-all group">
+                <div className="text-white/70 font-bold text-sm group-hover:text-violet-300">{t}</div>
+                <div className="text-white/20 text-[9px] mt-0.5">Click to explore →</div>
+              </button>
+            ))}
+            <button onClick={()=>lookup(`list of terms starting with ${letter}`)} className="p-3 rounded-xl bg-violet-500/5 border border-violet-500/15 hover:bg-violet-500/10 text-left transition-all">
+              <div className="text-violet-400 font-bold text-sm">+ More {letter} topics...</div>
+              <div className="text-white/20 text-[9px] mt-0.5">AI generates on demand</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── ENTRY LOADING STATE ──────────────────────────────────────────────
+  if(loading) return(
+    <div className="flex-1 flex flex-col items-center justify-center gap-4" style={{background:'linear-gradient(180deg,#020010,#050020)'}}>
+      <div className="text-6xl animate-pulse">Q</div>
+      <div className="space-y-2 text-center">
+        <div className="text-white font-black text-lg">Querying the Knowledge Universe...</div>
+        <div className="text-white/30 text-sm">Generating your entry for: <span className="text-violet-300">{query}</span></div>
+        <div className="flex gap-1 justify-center mt-3">
+          {['QuantumPedia','Dictionary','Thesaurus','Concepts','Graph'].map((l,i)=>(
+            <span key={l} className="text-[9px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400" style={{animationDelay:`${i*0.15}s`}}>{l}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── ENTRY VIEW ───────────────────────────────────────────────────────
+  if(view==='entry'&&entry){
+    const tc=typeColor(entry.type);
+    const isBookmarked=bookmarks.includes(query);
+    return(
+      <div className="flex-1 overflow-auto" style={{background:'linear-gradient(180deg,#020010,#060025)'}}>
+        {/* Top bar */}
+        <div className="px-4 py-3 border-b border-white/8 flex items-center gap-3 flex-wrap" style={{background:'rgba(2,0,16,0.98)'}}>
+          <button onClick={()=>setView('home')} className="flex items-center gap-1 text-white/40 hover:text-white text-xs"><ChevronLeft size={14}/>Back</button>
+          <div className="w-px h-4 bg-white/10"/>
+          <div className="flex-1 max-w-sm">
+            <input value={inputVal} onChange={e=>setInputVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&lookup(inputVal)}
+              placeholder="Search another term..." data-testid="input-qp-entry-search"
+              className="w-full bg-white/5 border border-white/10 rounded-xl text-white text-xs px-3 py-2 placeholder-white/20 focus:outline-none focus:border-violet-500/40"/>
+          </div>
+          <button onClick={()=>toggleBookmark(query)} data-testid="button-qp-bookmark" className={cn("px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",isBookmarked?"border-violet-500/40 bg-violet-500/20 text-violet-300":"border-white/10 text-white/30 hover:text-white/60")}>{isBookmarked?'🔖 Saved':'🔖 Save'}</button>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-4 py-5 space-y-5">
+          {/* Entry header */}
+          <div className="rounded-2xl p-5 border" style={{background:'linear-gradient(135deg,rgba(124,58,237,0.1),rgba(79,70,229,0.08))',borderColor:'rgba(124,58,237,0.2)'}}>
+            <div className="flex items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold bg-${tc}-500/15 text-${tc}-400 border border-${tc}-500/20 capitalize`}>{entry.type}</span>
+                  {entry.partOfSpeech&&<span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/5 text-white/40 border border-white/10 italic">{entry.partOfSpeech}</span>}
+                  {entry.categories?.slice(0,3).map(c=><span key={c} className="text-[9px] px-2 py-0.5 rounded-full bg-white/[0.03] text-white/25 border border-white/8">{c}</span>)}
+                </div>
+                <h1 className="text-white font-black text-2xl mb-1" style={{letterSpacing:'-0.02em'}}>{entry.title}</h1>
+                {entry.pronunciation&&<div className="text-violet-400/60 text-sm font-mono mb-2">{entry.pronunciation}</div>}
+                <p className="text-white/60 text-sm leading-relaxed">{entry.summary}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick facts bar */}
+          {entry.quickFacts?.length>0&&(
+            <div className="flex gap-3 overflow-x-auto" style={{scrollbarWidth:'none'}}>
+              {entry.quickFacts.map(f=>(
+                <div key={f.label} className="flex-shrink-0 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/8 text-center">
+                  <div className="text-white/30 text-[9px]">{f.label}</div>
+                  <div className="text-white/70 font-bold text-xs mt-0.5">{f.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/8">
+            {(['encyclopedia','dictionary','thesaurus','graph'] as const).map(t=>(
+              <button key={t} onClick={()=>setActiveTab(t)} data-testid={`qp-tab-${t}`}
+                className={cn("flex-1 py-2 rounded-lg text-xs font-bold capitalize transition-all",activeTab===t?"bg-white text-gray-900 shadow":"text-white/40 hover:text-white/70")}>{t}</button>
+            ))}
+          </div>
+
+          {/* ENCYCLOPEDIA TAB */}
+          {activeTab==='encyclopedia'&&(
+            <div className="space-y-4">
+              {entry.sections?.map(s=>(
+                <div key={s.title} className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
+                  <h3 className="text-white font-black text-sm mb-2 flex items-center gap-2"><span className="w-1 h-4 rounded-full bg-violet-500 inline-block"/>{s.title}</h3>
+                  <p className="text-white/55 text-sm leading-relaxed">{s.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* DICTIONARY TAB */}
+          {activeTab==='dictionary'&&(
+            <div className="space-y-4">
+              {/* Definitions */}
+              <div className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
+                <h3 className="text-white font-black text-xs mb-3 uppercase tracking-widest">Definitions</h3>
+                <div className="space-y-3">
+                  {entry.definitions?.map(d=>(
+                    <div key={d.number} className="flex gap-3">
+                      <span className="text-violet-400 font-black text-sm w-5 flex-shrink-0">{d.number}.</span>
+                      <div>
+                        <p className="text-white/70 text-sm">{d.text}</p>
+                        {d.example&&<p className="text-white/30 text-xs italic mt-1">"{d.example}"</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Etymology */}
+              {entry.etymology&&(
+                <div className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
+                  <h3 className="text-white font-black text-xs mb-2 uppercase tracking-widest">Etymology</h3>
+                  <p className="text-white/50 text-sm leading-relaxed">{entry.etymology}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* THESAURUS TAB */}
+          {activeTab==='thesaurus'&&(
+            <div className="space-y-4">
+              {entry.synonyms?.length>0&&(
+                <div className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
+                  <h3 className="text-white font-black text-xs mb-3 uppercase tracking-widest text-green-400">✓ Synonyms</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {entry.synonyms.map(s=><button key={s} onClick={()=>lookup(s)} className="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-xs hover:bg-green-500/20 transition-all">{s}</button>)}
+                  </div>
+                </div>
+              )}
+              {entry.antonyms?.length>0&&(
+                <div className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
+                  <h3 className="text-white font-black text-xs mb-3 uppercase tracking-widest text-red-400">✗ Antonyms</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {entry.antonyms.map(a=><button key={a} onClick={()=>lookup(a)} className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs hover:bg-red-500/20 transition-all">{a}</button>)}
+                  </div>
+                </div>
+              )}
+              {entry.relatedTerms?.length>0&&(
+                <div className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
+                  <h3 className="text-white font-black text-xs mb-3 uppercase tracking-widest text-blue-400">↔ Related Terms</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {entry.relatedTerms.map(r=><button key={r} onClick={()=>lookup(r)} className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs hover:bg-blue-500/20 transition-all">{r}</button>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CONCEPT GRAPH TAB */}
+          {activeTab==='graph'&&(
+            <div className="space-y-3">
+              <div className="rounded-xl p-4 bg-white/[0.025] border border-white/8">
+                <h3 className="text-white font-black text-xs mb-3 uppercase tracking-widest">🕸 Concept Graph — See Also</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {entry.seeAlso?.map(t=>(
+                    <button key={t} onClick={()=>lookup(t)} data-testid={`qp-seealso-${t.replace(/\s+/g,'-').toLowerCase()}`}
+                      className="group p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:border-violet-500/30 hover:bg-violet-500/5 text-left transition-all">
+                      <div className="text-white/60 font-bold text-xs group-hover:text-violet-300">{t}</div>
+                      <div className="text-white/15 text-[9px] mt-0.5">Explore →</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Concept connections visualization */}
+              <div className="rounded-xl p-4 bg-white/[0.02] border border-white/5 text-center">
+                <div className="text-white/20 text-xs mb-2">Node: <span className="text-violet-400 font-bold">{entry.title}</span></div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {[...entry.synonyms?.slice(0,3),...entry.relatedTerms?.slice(0,5)].filter(Boolean).map(t=>(
+                    <button key={t} onClick={()=>lookup(t)} className="text-[10px] px-2 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300/60 hover:text-violet-300 transition-all">{t}</button>
+                  ))}
+                </div>
+                <div className="text-white/10 text-[9px] mt-2">Each term is a node in the Quantum knowledge graph. Click to traverse.</div>
+              </div>
+            </div>
+          )}
+
+          {/* See Also quick navigation */}
+          {entry.seeAlso?.length>0&&activeTab!=='graph'&&(
+            <div>
+              <div className="flex items-center gap-2 mb-2"><span className="text-white/30 text-xs font-bold">See Also</span><div className="flex-1 h-px bg-white/5"/></div>
+              <div className="flex flex-wrap gap-1.5">
+                {entry.seeAlso.map(t=><button key={t} onClick={()=>lookup(t)} className="px-2.5 py-1 rounded-full text-[10px] bg-white/[0.03] border border-white/8 text-white/35 hover:text-white/60 hover:border-white/20 transition-all">{t}</button>)}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── FALLBACK (entry=null after search) ───────────────────────────────
+  return(
+    <div className="flex-1 flex items-center justify-center" style={{background:'linear-gradient(180deg,#020010,#050020)'}}>
+      <div className="text-center text-white/30"><div className="text-4xl mb-2">🔍</div><div>No entry found. Try a different search.</div><button onClick={()=>setView('home')} className="mt-3 px-4 py-2 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm">← Back to Quantapedia</button></div>
+    </div>
+  );
+}
+
+function QuantapediaPageWrapper(){
+  return <Layout><QuantapediaPage /></Layout>;
 }
 
 function MusicPage() {
@@ -13571,6 +14020,7 @@ function Router() {
       <Route path="/social" component={SocialPageWrapper} />
       <Route path="/create" component={AIStudioPageWrapper} />
       <Route path="/games" component={GamesPageWrapper} />
+      <Route path="/quantapedia" component={QuantapediaPageWrapper} />
       <Route path="/music" component={MusicPageWrapper} />
       <Route path="/education" component={EducationPageWrapper} />
       <Route path="/story/:articleId" component={StoryReaderPage} />
