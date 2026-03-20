@@ -6767,7 +6767,7 @@ function SocialPageWrapper() {
 }
 
 // ─── GAMES PAGE ──────────────────────────────────────────────────────────────
-type GameMode = "hub" | "blackjack" | "memory" | "rps" | "snake" | "surge" | "scramble" | "trivia" | "creator" | "emulator" | "pixelart" | "retrotools";
+type GameMode = "hub" | "blackjack" | "memory" | "rps" | "snake" | "surge" | "scramble" | "trivia" | "creator" | "emulator" | "pixelart" | "retrotools" | "rompatch" | "spritetools" | "opengames";
 
 /* ===== EMULATOR ZONE ===== */
 const EJS_CONSOLES=[
@@ -6993,89 +6993,595 @@ function PixelArtStudio({onBack}:{onBack:()=>void}){
   );
 }
 
-/* ===== RETRO TOOLS HUB ===== */
-function RetroToolsHub({onBack}:{onBack:()=>void}){
-  const [ghResults,setGhResults]=useState<any[]>([]);
+/* ===== SOVEREIGN HUB OS — Auto-Ingestion Registry ===== */
+type HubTool={id:string,name:string,cat:'emulator'|'tool'|'audio'|'game'|'ai'|'engine',emoji:string,desc:string,url:string,stars:number,lang:string,installed:boolean,instantMode?:string};
+const SOVEREIGN_SEED:HubTool[]=[
+  // EMULATORS — all pre-installed via EmulatorJS
+  {id:'ejs-nes',name:'NES Emulator',cat:'emulator',emoji:'🎮',desc:'Nintendo 8-bit — upload your ROM, play instantly',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-snes',name:'SNES Emulator',cat:'emulator',emoji:'🕹️',desc:'Super Nintendo 16-bit golden era',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-gba',name:'GBA Emulator',cat:'emulator',emoji:'💠',desc:'Game Boy Advance 32-bit portable',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-n64',name:'N64 Emulator',cat:'emulator',emoji:'🔵',desc:'Nintendo 64 — 3D revolution',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-psx',name:'PS1 Emulator',cat:'emulator',emoji:'⬜',desc:'PlayStation 1 classics',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-sega',name:'Sega Genesis',cat:'emulator',emoji:'🔴',desc:'Sega Mega Drive — blast processing',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-dos',name:'DOS Emulator',cat:'emulator',emoji:'💻',desc:'DOSBox — classic PC gaming',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-arcade',name:'Arcade (MAME)',cat:'emulator',emoji:'🕹',desc:'MAME arcade emulation',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-gb',name:'Game Boy',cat:'emulator',emoji:'⬛',desc:'Original Game Boy — 4-color portable',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-gbc',name:'Game Boy Color',cat:'emulator',emoji:'🟢',desc:'Game Boy Color portable',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-nds',name:'Nintendo DS',cat:'emulator',emoji:'📱',desc:'Dual-screen portable gaming',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'ejs-atari',name:'Atari 2600',cat:'emulator',emoji:'🟤',desc:'The original home console',url:'https://github.com/EmulatorJS/EmulatorJS',stars:7200,lang:'JavaScript',installed:true,instantMode:'emulator'},
+  {id:'jsnes',name:'JSNES',cat:'emulator',emoji:'🟥',desc:'Pure JS NES emulator — open source',url:'https://github.com/bfirsh/jsnes',stars:5100,lang:'JavaScript',installed:false},
+  {id:'mgba',name:'mGBA',cat:'emulator',emoji:'🟣',desc:'Accurate GBA emulator with WASM build',url:'https://github.com/mgba-emu/mgba',stars:11000,lang:'C',installed:false},
+  {id:'duckstation',name:'DuckStation',cat:'emulator',emoji:'🦆',desc:'High-accuracy PS1 emulator',url:'https://github.com/stenzek/duckstation',stars:9000,lang:'C++',installed:false},
+  // RETRO TOOLS — built into hub
+  {id:'rompatch',name:'ROM Patcher',cat:'tool',emoji:'🔧',desc:'IPS/BPS/UPS patch format — apply fan translations & hacks',url:'https://github.com/Alcaro/Flips',stars:980,lang:'JavaScript',installed:true,instantMode:'rompatch'},
+  {id:'pixelstudio',name:'Pixel Art Studio',cat:'tool',emoji:'🎨',desc:'NES/SNES/GB palettes, flood fill, undo, PNG export',url:'https://github.com/nicoptere/pixel-art-tool',stars:500,lang:'JavaScript',installed:true,instantMode:'pixelart'},
+  {id:'spriteslicer',name:'Sprite Sheet Slicer',cat:'tool',emoji:'✂️',desc:'Extract individual sprites from any sprite sheet image',url:'https://github.com/nicoptere/SpriteSheet',stars:400,lang:'JavaScript',installed:true,instantMode:'spritetools'},
+  {id:'tiled',name:'Tiled Map Editor',cat:'tool',emoji:'🗺️',desc:'Flexible tile map editor for game levels',url:'https://github.com/mapeditor/tiled',stars:11000,lang:'C++',installed:false},
+  {id:'libresprite',name:'LibreSprite',cat:'tool',emoji:'🖼️',desc:'Free sprite editor — Aseprite open-source fork',url:'https://github.com/LibreSprite/LibreSprite',stars:2300,lang:'C++',installed:false},
+  {id:'superflips',name:'Floating IPS (Flips)',cat:'tool',emoji:'🔩',desc:'IPS/BPS ROM patcher for fan hacks',url:'https://github.com/Alcaro/Flips',stars:980,lang:'C',installed:false},
+  {id:'vgmtools',name:'VGMTools',cat:'tool',emoji:'🎵',desc:'Extract & convert video game music from ROMs',url:'https://github.com/vgmrips/vgmtools',stars:300,lang:'C',installed:false},
+  // AUDIO
+  {id:'quantumstudio',name:'Quantum Studio DAW',cat:'audio',emoji:'🎛',desc:'Full pro DAW — 16-instrument sequencer, piano roll, effects, MIDI',url:'/music',stars:0,lang:'TypeScript',installed:true,instantMode:'music'},
+  {id:'chiptune2js',name:'Chiptune2.js',cat:'audio',emoji:'🎵',desc:'Play .mod .xm .s3m .it chiptune files in browser',url:'https://github.com/deskjet/chiptune2.js',stars:740,lang:'JavaScript',installed:false},
+  {id:'jsfxr',name:'jsfxr',cat:'audio',emoji:'🔊',desc:'Retro sound effect generator — bleeps, booms, blips',url:'https://github.com/chr15m/jsfxr',stars:1400,lang:'JavaScript',installed:false},
+  {id:'tonejs',name:'Tone.js',cat:'audio',emoji:'🎼',desc:'Web Audio framework for synthesis and music',url:'https://github.com/Tonejs/Tone.js',stars:24000,lang:'TypeScript',installed:false},
+  {id:'soundbox',name:'SoundBox',cat:'audio',emoji:'📦',desc:'Tiny music tracker/synthesizer in JavaScript',url:'https://github.com/mbitsnbites/soundbox',stars:500,lang:'JavaScript',installed:false},
+  {id:'tic80audio',name:'TIC-80 Audio Engine',cat:'audio',emoji:'🖥️',desc:'Fantasy computer with built-in tracker/synth',url:'https://github.com/nesbox/TIC-80',stars:5400,lang:'C',installed:false},
+  // GAMES — pre-installed mini-games
+  {id:'opengames',name:'Open Games Zone',cat:'game',emoji:'🌐',desc:'Curated open-source WASM/HTML5 games — no download required',url:'/games',stars:0,lang:'Various',installed:true,instantMode:'opengames'},
+  {id:'snake-game',name:'Pulse Snake',cat:'game',emoji:'🐍',desc:'AI-powered snake — compete against AI pathfinding',url:'/games',stars:0,lang:'TypeScript',installed:true,instantMode:'snake'},
+  {id:'blackjack-game',name:'Blackjack vs AI',cat:'game',emoji:'♠️',desc:'Beat the AI dealer to 21 — full chip economy',url:'/games',stars:0,lang:'TypeScript',installed:true,instantMode:'blackjack'},
+  {id:'trivia-game',name:'Omega Trivia',cat:'game',emoji:'🧠',desc:'AI-generated trivia across all topics',url:'/games',stars:0,lang:'TypeScript',installed:true,instantMode:'trivia'},
+  {id:'creator-game',name:'AI Game Creator',cat:'game',emoji:'⚡',desc:'Describe any game → AI generates it in seconds',url:'/games',stars:0,lang:'TypeScript',installed:true,instantMode:'creator'},
+  {id:'phaser',name:'Phaser.js',cat:'game',emoji:'🎮',desc:'HTML5 game framework — 36k+ stars, used by millions',url:'https://github.com/phaserjs/phaser',stars:36000,lang:'JavaScript',installed:false},
+  {id:'godot',name:'Godot Engine',cat:'engine',emoji:'🌀',desc:'Full open-source game engine — 2D/3D, GDScript/C#',url:'https://github.com/godotengine/godot',stars:91000,lang:'C++',installed:false},
+  // AI TOOLS
+  {id:'groq-ai',name:'Groq AI (Active)',cat:'ai',emoji:'⚡',desc:'Llama 3.1 8B — live AI in chat, music, game generation',url:'/',stars:0,lang:'TypeScript',installed:true,instantMode:'chat'},
+  {id:'llamacpp',name:'llama.cpp',cat:'ai',emoji:'🦙',desc:'Local LLM inference — GGUF models, CPU-only, no API',url:'https://github.com/ggerganov/llama.cpp',stars:69000,lang:'C++',installed:false},
+  {id:'transformersjs',name:'Transformers.js',cat:'ai',emoji:'🤗',desc:'Run ML models (BERT, Whisper, etc.) directly in browser',url:'https://github.com/xenova/transformers.js',stars:12000,lang:'JavaScript',installed:false},
+  {id:'whispercpp',name:'Whisper.cpp',cat:'ai',emoji:'🎙️',desc:'Speech-to-text — OpenAI Whisper in C++/WASM',url:'https://github.com/ggerganov/whisper.cpp',stars:36000,lang:'C++',installed:false},
+  {id:'onnxweb',name:'ONNX Runtime Web',cat:'ai',emoji:'🧮',desc:'Run any ONNX ML model in the browser via WebAssembly',url:'https://github.com/microsoft/onnxruntime',stars:14000,lang:'TypeScript',installed:false},
+  // ENGINES
+  {id:'love2d',name:'LÖVE 2D',cat:'engine',emoji:'❤️',desc:'Lua-based 2D game engine — portable and fun',url:'https://github.com/love2d/love',stars:4700,lang:'C++',installed:false},
+  {id:'tic80',name:'TIC-80',cat:'engine',emoji:'🖥️',desc:'Fantasy computer — code, sprites, maps, sound in one app',url:'https://github.com/nesbox/TIC-80',stars:5400,lang:'C',installed:false},
+  {id:'babylonjs',name:'Babylon.js',cat:'engine',emoji:'🎮',desc:'3D web game engine — WebGL/WebGPU',url:'https://github.com/BabylonJS/Babylon.js',stars:23000,lang:'TypeScript',installed:false},
+];
+const HUB_CATS=['all','emulator','tool','audio','game','ai','engine'] as const;
+type HubCat=typeof HUB_CATS[number];
+const CAT_LABELS:Record<HubCat,string>={all:'⭐ All',emulator:'🎮 Emulators',tool:'🔧 Tools',audio:'🎵 Audio',game:'🕹 Games',ai:'🤖 AI',engine:'⚙️ Engines'};
+
+function RetroToolsHub({onBack,setGameMode}:{onBack:()=>void,setGameMode:(m:GameMode)=>void}){
+  const [cat,setCat]=useState<HubCat>('all');
+  const [view,setView]=useState<'registry'|'search'>('registry');
   const [ghQuery,setGhQuery]=useState('');
+  const [ghResults,setGhResults]=useState<any[]>([]);
   const [ghLoading,setGhLoading]=useState(false);
-  const [ghTopic,setGhTopic]=useState('emulator');
+  const [lastUpdated,setLastUpdated]=useState<string|null>(null);
+  const [updating,setUpdating]=useState(false);
   const {toast}=useToast();
 
-  const searchGH=async(q:string)=>{
-    setGhLoading(true);
+  useEffect(()=>{
+    const cached=localStorage.getItem('hub_gh_cache');
+    const ts=localStorage.getItem('hub_gh_ts');
+    if(cached){try{const items=JSON.parse(cached);if(items.length)setGhResults(items);}catch{}}
+    if(ts)setLastUpdated(ts);
+    const age=ts?Date.now()-parseInt(ts):Infinity;
+    if(age>3600000)autoScan();
+  },[]);
+
+  const autoScan=async()=>{
     try{
-      const res=await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=12`);
-      const data=await res.json();setGhResults(data.items||[]);
-    }catch{toast({title:'GitHub search failed — check connection',variant:'destructive'});}
+      const qs=['emulator browser wasm','retro tool javascript open-source'];
+      const all:any[]=[];
+      for(const q of qs){
+        const r=await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=8`);
+        if(r.ok){const d=await r.json();all.push(...(d.items||[]));}
+        await new Promise(res=>setTimeout(res,600));
+      }
+      const uniq=all.filter((r,i,a)=>a.findIndex(x=>x.id===r.id)===i).slice(0,20);
+      if(uniq.length){
+        setGhResults(uniq);
+        localStorage.setItem('hub_gh_cache',JSON.stringify(uniq));
+        const ts=Date.now().toString();
+        localStorage.setItem('hub_gh_ts',ts);
+        setLastUpdated(ts);
+      }
+    }catch{}
+  };
+
+  const manualUpdate=async()=>{
+    setUpdating(true);
+    await autoScan();
+    setUpdating(false);
+    toast({title:'Hub Updated ✅',description:'Latest tools fetched from GitHub and cached locally'});
+  };
+
+  const searchGH=async()=>{
+    if(!ghQuery.trim())return;
+    setGhLoading(true);setView('search');
+    try{
+      const r=await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(ghQuery)}&sort=stars&order=desc&per_page=16`);
+      if(r.ok){const d=await r.json();setGhResults(d.items||[]);}
+    }catch{toast({title:'GitHub search failed',variant:'destructive'});}
     finally{setGhLoading(false);}
   };
 
-  const TOPICS=['emulator','retro game','pixel art','chiptune','sprite tool','game engine','nes snes gba','dosbox','webassembly game'];
+  const launch=(t:HubTool)=>{
+    const m=t.instantMode;
+    if(!m){window.open(t.url,'_blank');return;}
+    if(m==='emulator')setGameMode('emulator');
+    else if(m==='pixelart')setGameMode('pixelart');
+    else if(m==='rompatch')setGameMode('rompatch');
+    else if(m==='spritetools')setGameMode('spritetools');
+    else if(m==='opengames')setGameMode('opengames');
+    else if(m==='snake')setGameMode('snake');
+    else if(m==='blackjack')setGameMode('blackjack');
+    else if(m==='memory')setGameMode('memory');
+    else if(m==='rps')setGameMode('rps');
+    else if(m==='trivia')setGameMode('trivia');
+    else if(m==='creator')setGameMode('creator');
+    else if(m==='music'){window.location.href='/music';}
+    else if(m==='chat'){window.location.href='/';}
+    else window.open(t.url,'_blank');
+  };
+
+  const reg=cat==='all'?SOVEREIGN_SEED:SOVEREIGN_SEED.filter(t=>t.cat===cat);
+  const installed=reg.filter(t=>t.installed);
+  const available=reg.filter(t=>!t.installed);
+  const totalInstalled=SOVEREIGN_SEED.filter(t=>t.installed).length;
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#08081a 100%)'}}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/8 flex-wrap" style={{background:'rgba(8,8,20,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">⚡ Sovereign Hub OS</span>
+        <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30 font-bold">{totalInstalled} Pre-Installed</span>
+        <span className="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full border border-violet-500/30 font-bold">{SOVEREIGN_SEED.length} Indexed</span>
+        {lastUpdated&&<span className="text-[9px] text-white/20">Auto-updated {new Date(parseInt(lastUpdated)).toLocaleDateString()}</span>}
+        <button onClick={manualUpdate} disabled={updating} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-[10px] font-bold hover:bg-cyan-500/25 transition-all disabled:opacity-50">
+          {updating?'⏳ Updating...':'⬆ Update Hub'}
+        </button>
+      </div>
+      {/* Category tabs */}
+      <div className="flex gap-1 overflow-x-auto px-4 py-2 border-b border-white/5 flex-shrink-0" style={{scrollbarWidth:'none'}}>
+        {HUB_CATS.map(c=><button key={c} onClick={()=>{setCat(c);setView('registry');}} className={cn("flex-shrink-0 px-3 py-1 rounded-lg text-[10px] font-bold transition-all",cat===c&&view==='registry'?"bg-white text-gray-900":"bg-white/5 text-white/40 hover:text-white/70 border border-white/8")}>{CAT_LABELS[c]}</button>)}
+        <button onClick={()=>setView('search')} className={cn("flex-shrink-0 px-3 py-1 rounded-lg text-[10px] font-bold transition-all",view==='search'?"bg-cyan-500/20 text-cyan-300 border border-cyan-500/30":"bg-white/5 text-white/40 hover:text-white/70 border border-white/8")}>🔍 GitHub</button>
+      </div>
+
+      <div className="flex-1 overflow-auto p-4">
+        <div className="max-w-4xl mx-auto">
+
+          {/* REGISTRY VIEW */}
+          {view==='registry'&&(
+            <div className="space-y-6">
+              {/* Installed — Pre-Loaded & Ready */}
+              {installed.length>0&&(
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[9px] text-green-400 font-black uppercase tracking-widest">✅ Pre-Installed & Ready ({installed.length})</span>
+                    <div className="flex-1 h-px bg-green-500/15"/>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {installed.map(t=>(
+                      <button key={t.id} onClick={()=>launch(t)} data-testid={`hub-tool-${t.id}`}
+                        className="group p-3.5 rounded-xl border border-green-500/20 bg-green-500/[0.04] hover:border-green-500/50 hover:bg-green-500/[0.08] transition-all text-left">
+                        <div className="flex items-start gap-2.5">
+                          <span className="text-2xl flex-shrink-0">{t.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-white font-bold text-xs truncate">{t.name}</span>
+                              <span className="text-[7px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-black flex-shrink-0">READY</span>
+                            </div>
+                            <div className="text-white/40 text-[10px] line-clamp-2 leading-relaxed">{t.desc}</div>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-green-400 text-[10px] font-bold group-hover:text-green-300 transition-colors">▶ Launch Instantly →</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Available on GitHub */}
+              {available.length>0&&(
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">🌐 Available on GitHub ({available.length})</span>
+                    <div className="flex-1 h-px bg-white/5"/>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {available.map(t=>(
+                      <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
+                        className="group p-3.5 rounded-xl border border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] transition-all block">
+                        <div className="flex items-start gap-2.5">
+                          <span className="text-2xl flex-shrink-0">{t.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                              <span className="text-white font-bold text-xs truncate">{t.name}</span>
+                              {t.stars>0&&<span className="text-yellow-400 text-[8px] flex-shrink-0">⭐{t.stars>=1000?(t.stars/1000).toFixed(0)+'k':t.stars}</span>}
+                            </div>
+                            <div className="text-white/40 text-[10px] line-clamp-2 leading-relaxed">{t.desc}</div>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-[8px] px-1.5 py-0.5 bg-white/5 border border-white/10 text-white/30 rounded font-mono">{t.lang}</span>
+                          <span className="text-white/25 text-[10px] ml-auto group-hover:text-white/50 transition-colors">GitHub →</span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* GITHUB SEARCH VIEW */}
+          {view==='search'&&(
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input value={ghQuery} onChange={e=>setGhQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchGH()} placeholder="Search GitHub (e.g. NES emulator, pixel art, chiptune tracker...)" className="flex-1 bg-white/5 border border-white/10 rounded-xl text-white text-xs px-3 py-2.5 placeholder-white/20 focus:outline-none focus:border-cyan-500/40"/>
+                <button onClick={searchGH} disabled={ghLoading} className="px-4 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 disabled:opacity-40">{ghLoading?'Searching...':'Search'}</button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {['emulator WASM','retro tool JavaScript','pixel art editor','chiptune tracker','sprite editor canvas','game engine WebGL','NES SNES GBA browser','open source game','TIC-80 game','fantasy console'].map(t=>(
+                  <button key={t} onClick={()=>{setGhQuery(t);}} className="px-2.5 py-1 rounded-lg border border-white/10 text-[10px] text-white/30 hover:text-white/60 hover:border-white/20 transition-all">{t}</button>
+                ))}
+              </div>
+              {ghLoading&&<div className="text-center py-8 text-white/30 text-sm animate-pulse">Searching GitHub...</div>}
+              {ghResults.length>0&&(
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {ghResults.map((r:any)=>(
+                    <a key={r.id} href={r.html_url} target="_blank" rel="noopener noreferrer" className="p-4 rounded-2xl bg-white/[0.025] border border-white/8 hover:border-white/20 hover:bg-white/5 transition-all block">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div className="font-bold text-white text-sm truncate">{r.name}</div>
+                        <div className="text-yellow-400 text-[10px] flex-shrink-0">⭐{r.stargazers_count?.toLocaleString()}</div>
+                      </div>
+                      <div className="text-white/40 text-xs line-clamp-2 mb-2">{r.description||'No description'}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {r.language&&<span className="px-1.5 py-0.5 bg-violet-500/15 border border-violet-500/20 text-violet-400 rounded text-[8px] font-bold">{r.language}</span>}
+                        <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 text-white/30 rounded text-[8px]">🍴{r.forks_count}</span>
+                        <span className="px-1.5 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400/70 rounded text-[8px] ml-auto">Open Source →</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+              {!ghResults.length&&!ghLoading&&(
+                <div className="text-center py-12 text-white/20">
+                  <div className="text-4xl mb-3">🔍</div>
+                  <div className="text-sm">Enter a search or click a topic above</div>
+                  {lastUpdated&&<div className="text-xs mt-2">Cache has {ghResults.length} results from {new Date(parseInt(lastUpdated)).toLocaleDateString()}</div>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== ROM PATCHER TOOL — IPS/BPS pure browser ===== */
+function RomPatcherTool({onBack}:{onBack:()=>void}){
+  const [romFile,setRomFile]=useState<File|null>(null);
+  const [patchFile,setPatchFile]=useState<File|null>(null);
+  const [status,setStatus]=useState<'idle'|'patching'|'done'|'error'>('idle');
+  const [msg,setMsg]=useState('');
+  const {toast}=useToast();
+
+  const readBuf=async(f:File)=>new Uint8Array(await f.arrayBuffer());
+  const readStr=(buf:Uint8Array,off:number,len:number)=>Array.from(buf.slice(off,off+len)).map(c=>String.fromCharCode(c)).join('');
+  const read3BE=(buf:Uint8Array,off:number)=>(buf[off]<<16)|(buf[off+1]<<8)|buf[off+2];
+  const read2BE=(buf:Uint8Array,off:number)=>(buf[off]<<8)|buf[off+1];
+
+  const applyIPS=(rom:Uint8Array,patch:Uint8Array):Uint8Array=>{
+    const hdr=readStr(patch,0,5);
+    if(hdr!=='PATCH')throw new Error('Invalid IPS header — expected "PATCH"');
+    let out=new Uint8Array(rom);
+    let i=5;
+    while(i<patch.length-3){
+      const eof=readStr(patch,i,3);
+      if(eof==='EOF')break;
+      const offset=read3BE(patch,i);i+=3;
+      const size=read2BE(patch,i);i+=2;
+      if(size===0){
+        // RLE
+        const count=read2BE(patch,i);i+=2;
+        const fill=patch[i++];
+        if(offset+count>out.length){const n=new Uint8Array(offset+count);n.set(out);out=n;}
+        for(let j=0;j<count;j++)out[offset+j]=fill;
+      } else {
+        if(offset+size>out.length){const n=new Uint8Array(offset+size);n.set(out);out=n;}
+        for(let j=0;j<size;j++)out[offset+j]=patch[i+j];
+        i+=size;
+      }
+    }
+    return out;
+  };
+
+  const applyBPS=(rom:Uint8Array,patch:Uint8Array):Uint8Array=>{
+    // BPS format: header "BPS1" + sourceSize (varint) + targetSize (varint) + metadataSize (varint) + actions + checksum
+    if(readStr(patch,0,4)!=='BPS1')throw new Error('Invalid BPS header');
+    const readVarint=(p:Uint8Array,off:{v:number})=>{let r=0,s=0;while(true){const b=p[off.v++];r|=(b&0x7f)<<s;s+=7;if(b&0x128)break;}return r;};
+    const off={v:4};
+    const srcSize=readVarint(patch,off);
+    const tgtSize=readVarint(patch,off);
+    const metaSize=readVarint(patch,off);
+    off.v+=metaSize;
+    const out=new Uint8Array(tgtSize);
+    let srcPos=0,outPos=0;
+    while(off.v<patch.length-12){
+      const d=readVarint(patch,off);
+      const action=d&3,len=((d>>2)+1);
+      if(action===0){for(let i=0;i<len;i++)out[outPos++]=patch[off.v++];}
+      else if(action===1){for(let i=0;i<len;i++)out[outPos++]=rom[srcPos++];}
+      else if(action===2){for(let i=0;i<len;i++){out[outPos]=out[outPos>0?outPos-1:0];outPos++;}}
+      else break;
+    }
+    return out;
+  };
+
+  const patch=async()=>{
+    if(!romFile||!patchFile){toast({title:'Select both ROM and patch files',variant:'destructive'});return;}
+    setStatus('patching');setMsg('Applying patch...');
+    try{
+      const [rom,patchData]=await Promise.all([readBuf(romFile),readBuf(patchFile)]);
+      const ext=patchFile.name.split('.').pop()?.toLowerCase();
+      let patched:Uint8Array;
+      if(ext==='ips')patched=applyIPS(rom,patchData);
+      else if(ext==='bps')patched=applyBPS(rom,patchData);
+      else throw new Error(`Unsupported format: .${ext} — supported: .ips .bps`);
+      const blob=new Blob([patched],{type:'application/octet-stream'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=romFile.name.replace(/\.[^.]+$/,`_patched.${romFile.name.split('.').pop()}`);a.click();
+      setStatus('done');setMsg(`Patch applied! ROM expanded from ${rom.length} → ${patched.length} bytes. Patched ROM downloaded.`);
+    }catch(e:any){setStatus('error');setMsg(e.message||'Patch failed');}
+  };
 
   return(
     <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#08081a 100%)'}}>
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8" style={{background:'rgba(8,8,20,0.98)'}}>
         <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>Back</button>
         <div className="w-px h-4 bg-white/10"/>
-        <span className="text-sm font-black text-white">🔧 Retro Tools Hub</span>
-        <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30 font-bold ml-1">GitHub • Free & Open Source</span>
+        <span className="text-sm font-black text-white">🔧 ROM Patcher</span>
+        <span className="text-[9px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full border border-orange-500/30 font-bold">IPS • BPS • Pure Browser</span>
       </div>
-      <div className="flex-1 overflow-auto p-4">
-        <div className="max-w-3xl mx-auto space-y-5">
-          <div className="text-white font-black text-lg">GitHub Open-Source Tool Discovery</div>
-          <div className="text-white/30 text-xs">Browse and discover free retro gaming tools, emulators, sprite editors, and chiptune trackers from GitHub. All tools are open-source.</div>
-          {/* Quick topic buttons */}
-          <div className="flex flex-wrap gap-1.5">
-            {TOPICS.map(t=><button key={t} onClick={()=>{setGhTopic(t);searchGH(t);}} className={cn("px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all",ghTopic===t&&ghResults.length?"border-violet-400/50 bg-violet-400/15 text-violet-300":"border-white/10 text-white/30 hover:text-white/60")}>{t}</button>)}
+      <div className="flex-1 overflow-auto p-5">
+        <div className="max-w-xl mx-auto space-y-5">
+          <div className="text-white font-black text-lg">ROM Patch Tool</div>
+          <div className="text-white/30 text-xs">Apply IPS or BPS patch files to ROM files. Used for fan translations, bug fixes, and game hacks. Everything runs locally — no uploads.</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className={cn("flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed cursor-pointer transition-all",romFile?"border-green-500/50 bg-green-500/5":"border-white/15 hover:border-violet-500/40 hover:bg-violet-500/5")}>
+              <input type="file" onChange={e=>setRomFile(e.target.files?.[0]||null)} className="hidden"/>
+              {romFile?<><div className="text-green-400 text-2xl">✓</div><div className="text-green-400 font-bold text-sm text-center break-all">{romFile.name}</div><div className="text-green-400/50 text-xs">{(romFile.size/1024).toFixed(1)} KB</div></>:<><div className="text-3xl">📁</div><div className="text-white/50 font-bold text-sm">ROM File</div><div className="text-white/25 text-xs text-center">.nes .sfc .gba .z64 .bin etc.</div></>}
+            </label>
+            <label className={cn("flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed cursor-pointer transition-all",patchFile?"border-orange-500/50 bg-orange-500/5":"border-white/15 hover:border-orange-500/40 hover:bg-orange-500/5")}>
+              <input type="file" accept=".ips,.bps,.ups" onChange={e=>setPatchFile(e.target.files?.[0]||null)} className="hidden"/>
+              {patchFile?<><div className="text-orange-400 text-2xl">✓</div><div className="text-orange-400 font-bold text-sm text-center break-all">{patchFile.name}</div><div className="text-orange-400/50 text-xs">{(patchFile.size/1024).toFixed(1)} KB</div></>:<><div className="text-3xl">🔧</div><div className="text-white/50 font-bold text-sm">Patch File</div><div className="text-white/25 text-xs text-center">.ips or .bps</div></>}
+            </label>
           </div>
-          {/* Search bar */}
-          <div className="flex gap-2">
-            <input value={ghQuery} onChange={e=>setGhQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchGH(ghQuery)} placeholder="Search GitHub (e.g. NES emulator, pixel art editor...)" className="flex-1 bg-white/5 border border-white/10 rounded-xl text-white text-xs px-3 py-2.5 placeholder-white/20 focus:outline-none focus:border-violet-500/40"/>
-            <button onClick={()=>searchGH(ghQuery||ghTopic)} disabled={ghLoading} className="px-4 py-2.5 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs font-bold hover:bg-violet-500/30 disabled:opacity-40">{ghLoading?'Searching...':'Search'}</button>
-          </div>
-          {/* Results */}
-          {ghResults.length>0&&(
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ghResults.map((r:any)=>(
-                <a key={r.id} href={r.html_url} target="_blank" rel="noopener noreferrer" className="p-4 rounded-2xl bg-white/[0.025] border border-white/8 hover:border-white/20 hover:bg-white/5 transition-all block">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="font-bold text-white text-sm truncate">{r.name}</div>
-                    <div className="flex items-center gap-1 text-yellow-400 text-[10px] flex-shrink-0">⭐{r.stargazers_count?.toLocaleString()}</div>
-                  </div>
-                  <div className="text-white/40 text-xs line-clamp-2 mb-2">{r.description||'No description'}</div>
-                  <div className="flex flex-wrap gap-1">
-                    {r.language&&<span className="px-1.5 py-0.5 bg-violet-500/15 border border-violet-500/20 text-violet-400 rounded text-[8px] font-bold">{r.language}</span>}
-                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 text-white/30 rounded text-[8px]">🍴{r.forks_count}</span>
-                    <span className="px-1.5 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400/70 rounded text-[8px] ml-auto">Open Source →</span>
-                  </div>
-                </a>
-              ))}
-            </div>
+          <button onClick={patch} disabled={!romFile||!patchFile||status==='patching'} className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 text-white font-black text-lg hover:from-orange-500 hover:to-red-500 transition-all shadow-xl disabled:opacity-40">
+            {status==='patching'?'⏳ Patching...':'🔧 Apply Patch & Download'}
+          </button>
+          {msg&&(
+            <div className={cn("p-4 rounded-xl text-sm border",status==='done'?"bg-green-500/10 border-green-500/30 text-green-300":status==='error'?"bg-red-500/10 border-red-500/30 text-red-300":"bg-white/5 border-white/10 text-white/60")}>{msg}</div>
           )}
-          {!ghResults.length&&!ghLoading&&(
-            <div className="text-center py-12 text-white/20">
-              <div className="text-4xl mb-3">🔍</div>
-              <div className="text-sm font-bold mb-1">Search for open-source tools</div>
-              <div className="text-xs">Click a topic above or type your own search</div>
-            </div>
-          )}
-          {/* Retro shaders section */}
-          <div className="p-5 rounded-2xl bg-white/[0.025] border border-white/8 space-y-3">
-            <div className="text-white font-black">📺 Built-in Retro Shaders</div>
-            <div className="text-white/30 text-xs mb-3">These shaders are available inside the Emulator Zone and Pixel Art Studio.</div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {[{name:'CRT Scanlines',desc:'Classic TV scanline effect',css:'contrast(1.1) brightness(0.9)',emoji:'📺'},{name:'Game Boy',desc:'Warm green tinted LCD',css:'sepia(0.8) hue-rotate(60deg)',emoji:'🟢'},{name:'VHS',desc:'Washed out retro video',css:'saturate(0.6) contrast(1.15) sepia(0.3)',emoji:'📼'},{name:'Pixel Perfect',desc:'No filter, sharp pixels',css:'none',emoji:'🔲'},{name:'PS1 Dither',desc:'Low-color dithering look',css:'contrast(1.3) saturate(0.7)',emoji:'⬜'},{name:'Neon Glow',desc:'Vibrant arcade neons',css:'saturate(2) brightness(1.1)',emoji:'🌟'}].map(s=>(
-                <div key={s.name} className="p-3 rounded-xl bg-white/3 border border-white/8">
-                  <div className="text-lg mb-1">{s.emoji}</div>
-                  <div className="text-white/70 font-bold text-xs">{s.name}</div>
-                  <div className="text-white/30 text-[9px]">{s.desc}</div>
-                  <div className="text-white/15 text-[8px] font-mono mt-1 truncate">filter: {s.css}</div>
-                </div>
-              ))}
-            </div>
+          <div className="p-4 rounded-xl bg-white/[0.025] border border-white/8 space-y-2 text-[10px] text-white/30">
+            <div className="font-bold text-white/50 text-xs">Supported Formats</div>
+            <div><span className="text-orange-400 font-bold">IPS</span> — International Patching System. Oldest and most common format. Works for most retro ROM hacks.</div>
+            <div><span className="text-orange-400 font-bold">BPS</span> — Beat Patch System. Modern format with checksums and better diffing. Used by newer hacks.</div>
+            <div className="text-white/20 mt-1">Files never leave your browser. This tool runs 100% locally.</div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ===== SPRITE SHEET SLICER ===== */
+function SpriteSlicer({onBack}:{onBack:()=>void}){
+  const [imgSrc,setImgSrc]=useState<string|null>(null);
+  const [imgEl,setImgEl]=useState<HTMLImageElement|null>(null);
+  const [cellW,setCellW]=useState(16);
+  const [cellH,setCellH]=useState(16);
+  const [scale,setScale]=useState(2);
+  const [selected,setSelected]=useState<{col:number,row:number}|null>(null);
+  const canvasRef=useRef<HTMLCanvasElement>(null);
+  const previewRef=useRef<HTMLCanvasElement>(null);
+
+  const loadImg=(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const f=e.target.files?.[0];if(!f)return;
+    const url=URL.createObjectURL(f);
+    const img=new Image();img.onload=()=>{setImgEl(img);setSelected(null);};img.src=url;setImgSrc(url);
+  };
+
+  useEffect(()=>{
+    if(!imgEl||!canvasRef.current)return;
+    const c=canvasRef.current;c.width=imgEl.width;c.height=imgEl.height;
+    const ctx=c.getContext('2d')!;ctx.drawImage(imgEl,0,0);
+    // Draw grid
+    ctx.strokeStyle='rgba(139,92,246,0.6)';ctx.lineWidth=0.5;
+    for(let x=0;x<=imgEl.width;x+=cellW){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,imgEl.height);ctx.stroke();}
+    for(let y=0;y<=imgEl.height;y+=cellH){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(imgEl.width,y);ctx.stroke();}
+    // Highlight selected
+    if(selected){
+      ctx.fillStyle='rgba(139,92,246,0.3)';ctx.fillRect(selected.col*cellW,selected.row*cellH,cellW,cellH);
+      ctx.strokeStyle='rgba(139,92,246,1)';ctx.lineWidth=1.5;ctx.strokeRect(selected.col*cellW,selected.row*cellH,cellW,cellH);
+    }
+  },[imgEl,cellW,cellH,selected]);
+
+  useEffect(()=>{
+    if(!selected||!imgEl||!previewRef.current)return;
+    const c=previewRef.current;c.width=cellW*scale;c.height=cellH*scale;
+    const ctx=c.getContext('2d')!;ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(imgEl,selected.col*cellW,selected.row*cellH,cellW,cellH,0,0,cellW*scale,cellH*scale);
+  },[selected,imgEl,cellW,cellH,scale]);
+
+  const handleCanvasClick=(e:React.MouseEvent<HTMLCanvasElement>)=>{
+    if(!canvasRef.current||!imgEl)return;
+    const rect=canvasRef.current.getBoundingClientRect();
+    const scX=imgEl.width/rect.width;const scY=imgEl.height/rect.height;
+    const x=(e.clientX-rect.left)*scX;const y=(e.clientY-rect.top)*scY;
+    setSelected({col:Math.floor(x/cellW),row:Math.floor(y/cellH)});
+  };
+
+  const exportSprite=()=>{
+    if(!selected||!imgEl)return;
+    const c=document.createElement('canvas');c.width=cellW;c.height=cellH;
+    const ctx=c.getContext('2d')!;ctx.drawImage(imgEl,selected.col*cellW,selected.row*cellH,cellW,cellH,0,0,cellW,cellH);
+    const a=document.createElement('a');a.download=`sprite_${selected.row}_${selected.col}.png`;a.href=c.toDataURL();a.click();
+  };
+
+  const cols=imgEl?Math.floor(imgEl.width/cellW):0;
+  const rows=imgEl?Math.floor(imgEl.height/cellH):0;
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#08081a 100%)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 flex-wrap" style={{background:'rgba(8,8,20,0.98)'}}>
+        <button onClick={onBack} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>Back</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">✂️ Sprite Sheet Slicer</span>
+        <span className="text-[9px] bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded-full border border-pink-500/30 font-bold">Canvas • Pure Browser</span>
+        {selected&&<button onClick={exportSprite} className="ml-auto px-3 py-1.5 rounded-lg bg-pink-500/20 border border-pink-500/30 text-pink-300 text-[10px] font-bold hover:bg-pink-500/30">⬇ Export Sprite [{selected.col},{selected.row}]</button>}
+      </div>
+      <div className="flex-1 overflow-auto p-4">
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-4">
+          <div className="flex-1 space-y-3">
+            {!imgSrc?(
+              <label className="flex flex-col items-center gap-3 p-10 rounded-2xl border-2 border-dashed border-white/15 hover:border-pink-500/40 hover:bg-pink-500/5 cursor-pointer transition-all">
+                <input type="file" accept="image/*" onChange={loadImg} className="hidden"/>
+                <div className="text-5xl">🖼️</div>
+                <div className="text-white/50 font-bold">Upload Sprite Sheet</div>
+                <div className="text-white/25 text-xs text-center">PNG, JPG, GIF — any image with repeating sprite tiles</div>
+              </label>
+            ):(
+              <div className="overflow-auto rounded-xl border border-white/10 bg-black/30">
+                <canvas ref={canvasRef} onClick={handleCanvasClick} className="cursor-crosshair" style={{maxWidth:'100%',imageRendering:'pixelated'}}/>
+              </div>
+            )}
+            {imgEl&&(
+              <div className="text-xs text-white/30 text-center">{imgEl.width}×{imgEl.height}px → {cols}×{rows} sprites at {cellW}×{cellH} — Click to select</div>
+            )}
+          </div>
+          <div className="space-y-4 min-w-[200px]">
+            <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/8 space-y-3">
+              <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Cell Size</div>
+              {[['Cell W',cellW,setCellW],['Cell H',cellH,setCellH]].map(([label,val,setter])=>(
+                <div key={label as string} className="flex items-center gap-2">
+                  <span className="text-white/40 text-[10px] w-12">{label}</span>
+                  <button onClick={()=>(setter as any)(Math.max(1,(val as number)-1))} className="w-6 h-6 rounded bg-white/5 text-white/50 text-sm hover:bg-white/10">-</button>
+                  <span className="text-white font-mono text-sm w-8 text-center">{val}</span>
+                  <button onClick={()=>(setter as any)((val as number)+1)} className="w-6 h-6 rounded bg-white/5 text-white/50 text-sm hover:bg-white/10">+</button>
+                </div>
+              ))}
+              <div className="flex flex-wrap gap-1 mt-1">
+                {[[8,8],[16,16],[32,32],[48,48],[64,64]].map(([w,h])=><button key={`${w}x${h}`} onClick={()=>{setCellW(w);setCellH(h);}} className="px-2 py-0.5 rounded border border-white/10 text-[9px] text-white/30 hover:text-white/60">{w}×{h}</button>)}
+              </div>
+            </div>
+            {selected&&(
+              <div className="p-4 rounded-2xl bg-white/[0.025] border border-white/8 space-y-3">
+                <div className="text-[9px] text-white/30 uppercase tracking-widest font-bold">Selected Sprite [{selected.col},{selected.row}]</div>
+                <div className="flex justify-center">
+                  <canvas ref={previewRef} style={{imageRendering:'pixelated',border:'1px solid rgba(255,255,255,0.1)',borderRadius:4}}/>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-white/40 text-[10px]">Preview Scale</span>
+                  {[1,2,4,8].map(s=><button key={s} onClick={()=>setScale(s)} className={cn("px-2 py-0.5 rounded border text-[9px]",scale===s?"border-pink-400/50 text-pink-300":"border-white/10 text-white/30")}>{s}x</button>)}
+                </div>
+                <button onClick={exportSprite} className="w-full py-2 rounded-xl bg-pink-500/20 border border-pink-500/30 text-pink-300 text-xs font-bold hover:bg-pink-500/30">⬇ Export as PNG</button>
+              </div>
+            )}
+            {imgSrc&&<button onClick={()=>{setImgSrc(null);setImgEl(null);setSelected(null);}} className="w-full py-1.5 rounded-lg border border-white/10 text-white/25 text-xs hover:text-white/50 transition-all">Load Different Image</button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== OPEN GAMES ZONE — Pre-seeded open-source games ===== */
+const OPEN_GAMES=[
+  {id:'2048',name:'2048',emoji:'🔢',desc:'Slide tiles, reach 2048 — MIT licensed classic',url:'https://play2048.co',cat:'puzzle',src:'https://play2048.co'},
+  {id:'chess',name:'Chess.js Board',emoji:'♟️',desc:'Open-source chess engine — play vs computer',url:'https://github.com/jhlywa/chess.js',cat:'strategy',src:'https://chessboardjs.com/examples/5000.html'},
+  {id:'flappy',name:'Flappy Bird Clone',emoji:'🐦',desc:'Open-source Flappy Bird — tap to fly',url:'https://github.com/nicoptere/flappy',cat:'arcade',src:'https://nebez.github.io/floppybird/'},
+  {id:'tetris',name:'Jstris (Tetris)',emoji:'🟦',desc:'Browser Tetris — competitive stacking',url:'https://jstris.jezevec10.com',cat:'puzzle',src:'https://jstris.jezevec10.com'},
+  {id:'doom',name:'DOOM (WebGL)',emoji:'💀',desc:'DOOM running in browser via WebAssembly',url:'https://github.com/cloudwu/prboom',cat:'fps',src:'https://silentspacemarine.com/'},
+  {id:'diablo',name:'Diablo 1 Web',emoji:'🔥',desc:'Diablo I running in browser (DevilutionX)',url:'https://github.com/diasurgical/devilutionX',cat:'rpg',src:'https://d07riv.github.io/diabloweb/'},
+  {id:'quake',name:'Quake (Browser)',emoji:'⚡',desc:'Quake running in WebAssembly + WebGL',url:'https://github.com/GMaissa/quakejs',cat:'fps',src:'http://www.quakejs.com/'},
+  {id:'openage',name:'OpenAge (AoE)',emoji:'🏰',desc:'Open source Age of Empires engine',url:'https://github.com/SFTtech/openage',cat:'strategy',src:'https://openage.sft.mx/'},
+  {id:'veloren',name:'Veloren (Voxel RPG)',emoji:'🗻',desc:'Open world voxel RPG — open source',url:'https://veloren.net',cat:'rpg',src:'https://veloren.net/download/'},
+  {id:'0ad',name:'0 A.D.',emoji:'⚔️',desc:'Free open-source real-time strategy game',url:'https://play0ad.com',cat:'strategy',src:'https://play0ad.com/'},
+  {id:'freedoom',name:'FreeDoom',emoji:'👾',desc:'Free DOOM replacement assets — open source',url:'https://freedoom.github.io',cat:'fps',src:'https://freedoom.github.io/'},
+  {id:'supertux',name:'SuperTux',emoji:'🐧',desc:'Open-source 2D platformer like Mario',url:'https://supertux.org',cat:'platform',src:'https://supertux.org/'},
+];
+const OPEN_GAME_CATS=['all','puzzle','arcade','fps','rpg','strategy','platform'];
+
+function OpenGamesZone({onBack}:{onBack:()=>void}){
+  const [filter,setFilter]=useState('all');
+  const [active,setActive]=useState<typeof OPEN_GAMES[0]|null>(null);
+  const [iframeErr,setIframeErr]=useState(false);
+
+  const games=filter==='all'?OPEN_GAMES:OPEN_GAMES.filter(g=>g.cat===filter);
+
+  return(
+    <div className="flex-1 flex flex-col" style={{background:'linear-gradient(180deg,#040410 0%,#08081a 100%)'}}>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8 flex-wrap" style={{background:'rgba(8,8,20,0.98)'}}>
+        <button onClick={()=>{if(active){setActive(null);setIframeErr(false);}else onBack();}} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors"><ChevronLeft size={14}/>{active?'Back to Library':'Back'}</button>
+        <div className="w-px h-4 bg-white/10"/>
+        <span className="text-sm font-black text-white">🌐 Open Games Zone</span>
+        <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full border border-green-500/30 font-bold">{OPEN_GAMES.length} Games • Open Source</span>
+        {active&&<span className="text-xs text-white/60 font-bold">{active.emoji} {active.name}</span>}
+      </div>
+
+      {!active?(
+        <div className="flex-1 overflow-auto p-4">
+          <div className="max-w-4xl mx-auto space-y-5">
+            <div>
+              <div className="text-white font-black text-lg mb-1">Open-Source Game Library</div>
+              <div className="text-white/30 text-xs">Curated collection of legal, open-source, and freely playable browser games. Click to play instantly — no download, no account.</div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {OPEN_GAME_CATS.map(c=><button key={c} onClick={()=>setFilter(c)} className={cn("px-3 py-1 rounded-lg border text-[10px] font-bold transition-all capitalize",filter===c?"bg-white text-gray-900":"bg-white/5 text-white/40 hover:text-white/70 border border-white/8")}>{c}</button>)}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {games.map(g=>(
+                <button key={g.id} onClick={()=>{setActive(g);setIframeErr(false);}} data-testid={`open-game-${g.id}`}
+                  className="group p-4 rounded-2xl bg-white/[0.025] border border-white/8 hover:border-white/25 hover:bg-white/[0.05] transition-all text-left">
+                  <div className="text-3xl mb-2">{g.emoji}</div>
+                  <div className="text-white font-bold text-xs mb-0.5">{g.name}</div>
+                  <div className="text-white/35 text-[9px] line-clamp-2 mb-2">{g.desc}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[8px] px-1.5 py-0.5 bg-white/5 border border-white/10 text-white/30 rounded capitalize">{g.cat}</span>
+                    <span className="text-green-400 text-[9px] font-bold group-hover:text-green-300">▶ Play</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="p-4 rounded-xl border border-white/5 bg-white/[0.01] text-[10px] text-white/20">
+              <span className="font-bold text-white/40">Note:</span> Some games may not embed due to iframe restrictions. Use "Open in New Tab" if the game doesn't load. All listed games are free and open-source.
+            </div>
+          </div>
+        </div>
+      ):(
+        <div className="flex-1 flex flex-col">
+          {iframeErr?(
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+              <div className="text-5xl">{active.emoji}</div>
+              <div className="text-white font-black text-xl">{active.name}</div>
+              <div className="text-white/40 text-sm max-w-sm">{active.desc}</div>
+              <div className="text-white/25 text-xs">This game blocks iframe embedding (X-Frame-Options). Open it in a new tab instead.</div>
+              <a href={active.src} target="_blank" rel="noopener noreferrer" className="px-6 py-3 rounded-2xl bg-gradient-to-r from-green-600 to-cyan-600 text-white font-black text-sm hover:from-green-500 hover:to-cyan-500 transition-all shadow-xl">
+                🌐 Open {active.name} in New Tab
+              </a>
+              <a href={active.url} target="_blank" rel="noopener noreferrer" className="text-white/30 text-xs hover:text-white/60 transition-colors">View on GitHub / Project Page →</a>
+            </div>
+          ):(
+            <iframe src={active.src} className="flex-1 w-full border-0" allow="gamepad *; autoplay *; fullscreen *" title={active.name} onError={()=>setIframeErr(true)}/>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -7576,7 +8082,10 @@ function GamesPage() {
   if (gameMode === "creator") return <CreatorZoneGame onBack={()=>setGameMode("hub")} />;
   if (gameMode === "emulator") return <EmulatorZone onBack={()=>setGameMode("hub")} />;
   if (gameMode === "pixelart") return <PixelArtStudio onBack={()=>setGameMode("hub")} />;
-  if (gameMode === "retrotools") return <RetroToolsHub onBack={()=>setGameMode("hub")} />;
+  if (gameMode === "retrotools") return <RetroToolsHub onBack={()=>setGameMode("hub")} setGameMode={setGameMode} />;
+  if (gameMode === "rompatch") return <RomPatcherTool onBack={()=>setGameMode("retrotools")} />;
+  if (gameMode === "spritetools") return <SpriteSlicer onBack={()=>setGameMode("retrotools")} />;
+  if (gameMode === "opengames") return <OpenGamesZone onBack={()=>setGameMode("retrotools")} />;
 
   if (gameMode === "blackjack") return (
     <div className="flex-1 overflow-y-auto bg-gradient-to-b from-green-900 via-green-800 to-green-900 p-4">
@@ -7782,39 +8291,66 @@ function GamesPage() {
           </div>
         </div>
 
-        {/* Sovereign Tools — Emulator Zone, Pixel Art, Retro Tools */}
+        {/* Sovereign Tools — Full Instant-Play OS */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <div><h2 className="text-base font-extrabold text-white">⚡ Sovereign Creator Tools</h2><p className="text-white/30 text-xs">Full retro emulation, pixel art studio, and open-source tool discovery — all free, all local</p></div>
-            <span className="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-1 rounded-full border border-violet-500/30 font-bold">NEW</span>
+            <div><h2 className="text-base font-extrabold text-white">⚡ Sovereign Game OS</h2><p className="text-white/30 text-xs">Pre-installed tools — click once, runs instantly. No downloads. No installs. No friction.</p></div>
+            <span className="text-[9px] bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30 font-bold">{SOVEREIGN_SEED.filter(t=>t.installed).length} READY</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button onClick={()=>setGameMode("emulator")} className="group relative overflow-hidden rounded-2xl border border-white/10 p-5 text-left hover:border-violet-500/40 hover:shadow-2xl hover:shadow-violet-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a003a,#2d005a)'}}>
-              <div className="text-4xl mb-3">🕹️</div>
-              <div className="text-white font-black text-base mb-1">Emulator Zone</div>
-              <div className="text-white/40 text-xs mb-3">Play NES, SNES, GBA, N64, PS1, Sega, Arcade, DOS & more — upload your own ROMs</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <button onClick={()=>setGameMode("emulator")} data-testid="hub-card-emulator" className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left hover:border-violet-500/40 hover:shadow-2xl hover:shadow-violet-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a003a,#2d005a)'}}>
+              <div className="text-3xl mb-2">🕹️</div>
+              <div className="text-white font-black text-sm mb-1">Emulator Zone</div>
+              <div className="text-white/40 text-[10px] mb-2">NES, SNES, GBA, N64, PS1, Sega, DOS, Arcade + 4 more — upload ROM, play instantly</div>
               <div className="flex flex-wrap gap-1">
-                {['NES','SNES','GBA','N64','PS1','Sega','DOS','Arcade'].map(c=><span key={c} className="text-[8px] px-1.5 py-0.5 bg-violet-500/20 text-violet-400 rounded-full border border-violet-500/20">{c}</span>)}
+                {['NES','SNES','GBA','N64','PS1'].map(c=><span key={c} className="text-[8px] px-1 py-0.5 bg-violet-500/20 text-violet-400 rounded-full">{c}</span>)}
               </div>
-              <div className="absolute top-3 right-3"><span className="text-[8px] bg-violet-500 text-white px-2 py-0.5 rounded-full font-bold">12 CONSOLES</span></div>
+              <div className="absolute top-2 right-2"><span className="text-[7px] bg-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold">12 CONSOLES</span></div>
             </button>
-            <button onClick={()=>setGameMode("pixelart")} className="group relative overflow-hidden rounded-2xl border border-white/10 p-5 text-left hover:border-pink-500/40 hover:shadow-2xl hover:shadow-pink-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a001a,#3a0030)'}}>
-              <div className="text-4xl mb-3">🎨</div>
-              <div className="text-white font-black text-base mb-1">Pixel Art Studio</div>
-              <div className="text-white/40 text-xs mb-3">Canvas editor with NES, SNES, Game Boy & Pico-8 palettes, flood fill, undo, retro shaders, PNG export</div>
+            <button onClick={()=>setGameMode("pixelart")} data-testid="hub-card-pixelart" className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left hover:border-pink-500/40 hover:shadow-2xl hover:shadow-pink-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a001a,#3a0030)'}}>
+              <div className="text-3xl mb-2">🎨</div>
+              <div className="text-white font-black text-sm mb-1">Pixel Art Studio</div>
+              <div className="text-white/40 text-[10px] mb-2">NES/GB/Pico-8 palettes, flood fill, undo, CRT shaders, PNG export at 8× scale</div>
               <div className="flex flex-wrap gap-1">
-                {['NES Palette','SNES','Game Boy','Pico-8','CRT Shader','PNG Export'].map(c=><span key={c} className="text-[8px] px-1.5 py-0.5 bg-pink-500/20 text-pink-400 rounded-full border border-pink-500/20">{c}</span>)}
+                {['NES','Game Boy','Pico-8','CRT'].map(c=><span key={c} className="text-[8px] px-1 py-0.5 bg-pink-500/20 text-pink-400 rounded-full">{c}</span>)}
               </div>
-              <div className="absolute top-3 right-3"><span className="text-[8px] bg-pink-500 text-white px-2 py-0.5 rounded-full font-bold">STUDIO</span></div>
+              <div className="absolute top-2 right-2"><span className="text-[7px] bg-pink-500 text-white px-1.5 py-0.5 rounded-full font-bold">STUDIO</span></div>
             </button>
-            <button onClick={()=>setGameMode("retrotools")} className="group relative overflow-hidden rounded-2xl border border-white/10 p-5 text-left hover:border-cyan-500/40 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all" style={{background:'linear-gradient(135deg,#001a1a,#002a2a)'}}>
-              <div className="text-4xl mb-3">🔧</div>
-              <div className="text-white font-black text-base mb-1">Retro Tools Hub</div>
-              <div className="text-white/40 text-xs mb-3">Search GitHub for free emulators, sprite editors, chiptune trackers, pixel art tools & more</div>
+            <button onClick={()=>setGameMode("rompatch")} data-testid="hub-card-rompatch" className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left hover:border-orange-500/40 hover:shadow-2xl hover:shadow-orange-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a0a00,#2a1500)'}}>
+              <div className="text-3xl mb-2">🔧</div>
+              <div className="text-white font-black text-sm mb-1">ROM Patcher</div>
+              <div className="text-white/40 text-[10px] mb-2">Apply IPS and BPS patch files — fan translations, bug fixes, game hacks. 100% local.</div>
               <div className="flex flex-wrap gap-1">
-                {['GitHub Search','Open Source','Retro Shaders','Free Tools','Emulators','Sprite Tools'].map(c=><span key={c} className="text-[8px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full border border-cyan-500/20">{c}</span>)}
+                {['IPS','BPS','Browser'].map(c=><span key={c} className="text-[8px] px-1 py-0.5 bg-orange-500/20 text-orange-400 rounded-full">{c}</span>)}
               </div>
-              <div className="absolute top-3 right-3"><span className="text-[8px] bg-cyan-500 text-white px-2 py-0.5 rounded-full font-bold">DISCOVER</span></div>
+              <div className="absolute top-2 right-2"><span className="text-[7px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold">PATCH</span></div>
+            </button>
+            <button onClick={()=>setGameMode("spritetools")} data-testid="hub-card-spritetools" className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left hover:border-rose-500/40 hover:shadow-2xl hover:shadow-rose-500/10 transition-all" style={{background:'linear-gradient(135deg,#1a001a,#2a0020)'}}>
+              <div className="text-3xl mb-2">✂️</div>
+              <div className="text-white font-black text-sm mb-1">Sprite Slicer</div>
+              <div className="text-white/40 text-[10px] mb-2">Upload sprite sheet → set grid → click sprite → export PNG. Canvas-based, pure browser.</div>
+              <div className="flex flex-wrap gap-1">
+                {['Grid','Export','Canvas'].map(c=><span key={c} className="text-[8px] px-1 py-0.5 bg-rose-500/20 text-rose-400 rounded-full">{c}</span>)}
+              </div>
+              <div className="absolute top-2 right-2"><span className="text-[7px] bg-rose-500 text-white px-1.5 py-0.5 rounded-full font-bold">SLICER</span></div>
+            </button>
+            <button onClick={()=>setGameMode("opengames")} data-testid="hub-card-opengames" className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left hover:border-green-500/40 hover:shadow-2xl hover:shadow-green-500/10 transition-all" style={{background:'linear-gradient(135deg,#001a05,#002a0a)'}}>
+              <div className="text-3xl mb-2">🌐</div>
+              <div className="text-white font-black text-sm mb-1">Open Games Zone</div>
+              <div className="text-white/40 text-[10px] mb-2">{OPEN_GAMES.length} open-source games — 2048, DOOM, Chess, Tetris, Flappy & more. Click → play.</div>
+              <div className="flex flex-wrap gap-1">
+                {['2048','Chess','DOOM','Flappy'].map(c=><span key={c} className="text-[8px] px-1 py-0.5 bg-green-500/20 text-green-400 rounded-full">{c}</span>)}
+              </div>
+              <div className="absolute top-2 right-2"><span className="text-[7px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-bold">{OPEN_GAMES.length} GAMES</span></div>
+            </button>
+            <button onClick={()=>setGameMode("retrotools")} data-testid="hub-card-retrotools" className="group relative overflow-hidden rounded-2xl border border-white/10 p-4 text-left hover:border-cyan-500/40 hover:shadow-2xl hover:shadow-cyan-500/10 transition-all" style={{background:'linear-gradient(135deg,#001a1a,#002a2a)'}}>
+              <div className="text-3xl mb-2">⚡</div>
+              <div className="text-white font-black text-sm mb-1">Sovereign Hub OS</div>
+              <div className="text-white/40 text-[10px] mb-2">{SOVEREIGN_SEED.length} indexed tools — auto-ingests GitHub, pre-installed registry, 1-click launch.</div>
+              <div className="flex flex-wrap gap-1">
+                {['Registry','GitHub','Auto-Ingest'].map(c=><span key={c} className="text-[8px] px-1 py-0.5 bg-cyan-500/20 text-cyan-400 rounded-full">{c}</span>)}
+              </div>
+              <div className="absolute top-2 right-2"><span className="text-[7px] bg-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">{SOVEREIGN_SEED.filter(t=>t.installed).length} READY</span></div>
             </button>
           </div>
         </div>
