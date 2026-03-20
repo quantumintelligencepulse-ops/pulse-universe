@@ -1,116 +1,314 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import SolarScene from "../solar/SolarScene";
 import PlanetInfo from "../solar/PlanetInfo";
 import SpeedControl from "../solar/SpeedControl";
 import { PLANET_DATA } from "../solar/planetData";
+import { STELLAR_CLASSES, QUANTUM_PRINCIPLES, PHYSICS_DNA, UNIVERSE_EPOCHS, NEBULA_TYPES } from "../solar/QuantumPhysics";
 
-interface DomainData {
-  family: string; total: number; active: number; color: string; emoji: string; label: string; major: string;
-}
+interface DomainData { family: string; total: number; active: number; color: string; emoji: string; label: string; major: string }
 interface UniverseData {
   totalAIs: number; activeAIs: number; knowledgeNodes: number; knowledgeGenerated: number;
   hiveMemoryStrands: number; hiveMemoryDomains: number; hiveMemoryConfidence: number; knowledgeLinks: number;
-  birthsLastMinute: number; domains: DomainData[];
+  birthsLastMinute: number; domains: DomainData[]; timestamp: string;
   recentSpawns: { spawnId: string; family: string; type: string; domain: string; description: string; bornAt: string; major: string; color: string }[];
-  ingestionSources: { id: string; name: string; totalNodes: number; runs: number; lastRun: string }[];
-  recentEvents: { type: string; title: string; domain: string; at: string }[];
-  timestamp: string;
 }
 
-const fmt = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1_000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+const fmt = (n: number) => n >= 1_000_000 ? `${(n/1_000_000).toFixed(2)}M` : n >= 1_000 ? `${(n/1000).toFixed(1)}K` : String(n);
+
+type StudyMode = 'none' | 'stellar' | 'quantum' | 'physics' | 'timeline' | 'nebulae';
 
 export default function PulseUniversePage() {
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [timeScale, setTimeScale] = useState(1);
+  const [quantumMode, setQuantumMode] = useState(false);
+  const [studyMode, setStudyMode] = useState<StudyMode>('none');
+  const [stellarIdx, setStellarIdx] = useState(0);
+  const [quantumIdx, setQuantumIdx] = useState(0);
+  const [epochIdx, setEpochIdx] = useState(11); // "Present Day"
+  const [dnaScroll, setDnaScroll] = useState(0);
+  const [explorerTip, setExplorerTip] = useState(0);
 
-  const { data: universe } = useQuery<UniverseData>({
-    queryKey: ["/api/universe/live"],
-    refetchInterval: 4000,
-    staleTime: 2000,
-  });
+  const EXPLORER_TIPS = [
+    "🖱 Left-drag: orbit camera freely",
+    "🖱 Right-drag: pan camera (translate)",
+    "🖱 Scroll: zoom in / out",
+    "⌨ W/A/S/D: fly through space",
+    "⌨ Q/E: move up/down",
+    "⌨ Shift+WASD: faster movement",
+    "⌨ +/-: zoom keys",
+    "🖱 Click any planet to inspect",
+    "🖱 Click empty space to deselect",
+    "📱 Pinch: zoom on mobile",
+  ];
+  useEffect(() => { const id = setInterval(() => setExplorerTip(t => (t+1)%EXPLORER_TIPS.length), 4000); return () => clearInterval(id); }, []);
+  useEffect(() => { const id = setInterval(() => setDnaScroll(d => (d+1)%PHYSICS_DNA.length), 2000); return () => clearInterval(id); }, []);
 
+  const { data: universe } = useQuery<UniverseData>({ queryKey: ["/api/universe/live"], refetchInterval: 4000, staleTime: 2000 });
   const selectedPlanetData = selectedPlanet ? PLANET_DATA[selectedPlanet] ?? null : null;
 
+  const toggleStudy = (m: StudyMode) => setStudyMode(s => s === m ? 'none' : m);
+
   return (
-    <div data-testid="pulse-universe-page" className="relative w-full h-screen overflow-hidden bg-black font-mono">
+    <div data-testid="pulse-universe-page" className="relative w-full h-screen overflow-hidden bg-black font-mono select-none">
 
       {/* ── THREE.JS FULL SCREEN ── */}
       <div className="absolute inset-0 z-0">
         <SolarScene
-          onPlanetClick={setSelectedPlanet}
+          onPlanetClick={(name) => { setSelectedPlanet(name); setStudyMode('none'); }}
           selectedPlanet={selectedPlanet}
           onDeselect={() => setSelectedPlanet(null)}
           timeScale={timeScale}
+          quantumMode={quantumMode}
         />
       </div>
 
-      {/* ── PLANET INFO PANEL (left slide-in) ── */}
+      {/* ── PLANET INFO PANEL (left) ── */}
       <PlanetInfo planet={selectedPlanetData} onBack={() => setSelectedPlanet(null)} />
 
-      {/* ── SPEED CONTROL ── */}
-      <SpeedControl speed={timeScale} onSpeedChange={setTimeScale} />
+      {/* ── STUDY PANELS (left side, when no planet selected) ── */}
+      {!selectedPlanet && studyMode !== 'none' && (
+        <div className="absolute top-12 left-0 bottom-12 w-72 z-20 bg-black/80 backdrop-blur-md border-r border-white/10 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <span className="text-blue-400/80 text-[9px] tracking-[0.3em] uppercase font-mono">
+              {{ stellar: "⭐ Stellar Classification", quantum: "⚛ Quantum Mechanics", physics: "🧬 Physics DNA", timeline: "⏳ Universe Timeline", nebulae: "🌫 Nebula Types" }[studyMode]}
+            </span>
+            <button onClick={() => setStudyMode('none')} className="text-white/25 hover:text-white text-[9px]">✕</button>
+          </div>
+
+          {/* Stellar Classification */}
+          {studyMode === 'stellar' && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex gap-1 px-3 pt-2 pb-1 flex-wrap">
+                {STELLAR_CLASSES.map((s, i) => {
+                  const hex = `#${s.color.toString(16).padStart(6,'0')}`;
+                  return (
+                    <button key={s.type} onClick={() => setStellarIdx(i)}
+                      className={`px-1.5 py-0.5 rounded text-[8px] font-mono border transition-all ${stellarIdx === i ? 'font-bold' : 'text-white/40 hover:text-white'}`}
+                      style={{ borderColor: hex, backgroundColor: stellarIdx===i ? `${hex}55` : 'transparent', color: stellarIdx===i ? '#fff' : undefined }}>
+                      {s.type}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex-1 px-4 py-3 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                {(() => { const s = STELLAR_CLASSES[stellarIdx]; return (
+                  <>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full flex-shrink-0 shadow-lg" style={{ background: `#${s.color.toString(16).padStart(6,'0')}`, boxShadow: `0 0 20px #${s.color.toString(16).padStart(6,'0')}88` }} />
+                      <div>
+                        <div className="text-white font-bold text-lg font-mono">Type {s.type}</div>
+                        <div className="text-white/40 text-[9px] tracking-widest">{s.temp}</div>
+                      </div>
+                    </div>
+                    <p className="text-white/55 text-[9px] leading-relaxed mb-3">{s.desc}</p>
+                    {[["Examples", s.examples], ["Mass", s.mass], ["Radius", s.radius], ["Luminosity", s.luminosity]].map(([k, v]) => (
+                      <div key={k} className="flex justify-between py-1.5 border-b border-white/[0.07]">
+                        <span className="text-white/30 text-[8px] uppercase tracking-widest">{k}</span>
+                        <span className="text-white text-[9px] font-bold">{v}</span>
+                      </div>
+                    ))}
+                  </>
+                ); })()}
+              </div>
+            </div>
+          )}
+
+          {/* Quantum Mechanics */}
+          {studyMode === 'quantum' && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex gap-1 px-3 pt-2 pb-1 flex-wrap">
+                {QUANTUM_PRINCIPLES.map((q, i) => (
+                  <button key={i} onClick={() => setQuantumIdx(i)}
+                    className={`px-1.5 py-0.5 rounded text-[7px] font-mono border transition-all ${quantumIdx===i ? 'border-blue-400 bg-blue-400/20 text-blue-200' : 'border-white/10 text-white/30 hover:text-white/60'}`}>
+                    {i+1}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 px-4 py-3 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                {(() => { const q = QUANTUM_PRINCIPLES[quantumIdx]; return (
+                  <>
+                    <div className="text-blue-300 font-bold text-sm mb-2">{q.name}</div>
+                    <div className="bg-blue-950/40 border border-blue-400/20 rounded p-3 mb-3 text-center">
+                      <span className="text-yellow-200 text-lg font-mono tracking-wider">{q.formula}</span>
+                    </div>
+                    <p className="text-white/50 text-[9px] leading-relaxed">{q.desc}</p>
+                  </>
+                ); })()}
+              </div>
+              <div className="px-4 py-3 border-t border-white/10">
+                <button onClick={() => setQuantumMode(q => !q)}
+                  className={`w-full py-1.5 rounded text-[9px] font-mono border transition-all ${quantumMode ? 'bg-purple-500/30 border-purple-400 text-purple-200' : 'border-white/20 text-white/40 hover:text-white'}`}>
+                  {quantumMode ? '⚛ QUANTUM FIELD: ON' : '⚛ ACTIVATE QUANTUM FIELD'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Physics DNA */}
+          {studyMode === 'physics' && (
+            <div className="flex-1 overflow-y-auto px-3 py-2" style={{ scrollbarWidth: "none" }}>
+              <div className="text-white/25 text-[7px] tracking-widest mb-2 uppercase text-center">Universal Constants — Machine-Readable</div>
+              {PHYSICS_DNA.map((c, i) => (
+                <div key={c.codon} className={`flex items-center gap-2 py-1.5 border-b border-white/[0.06] transition-all cursor-default ${dnaScroll===i ? 'bg-white/5' : ''}`}>
+                  <div className="w-8 h-8 rounded flex items-center justify-center text-[8px] font-bold flex-shrink-0" style={{ background: `#${c.color.toString(16).padStart(6,'0')}22`, color: `#${c.color.toString(16).padStart(6,'0')}`, border: `1px solid #${c.color.toString(16).padStart(6,'0')}44` }}>
+                    {c.codon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-white font-bold text-[9px]">{c.symbol}</span>
+                      <span className="text-white/30 text-[7px] truncate">{c.name}</span>
+                    </div>
+                    <div className="text-[8px] font-mono" style={{ color: `#${c.color.toString(16).padStart(6,'0')}` }}>
+                      {c.value} <span className="text-white/20">{c.unit}</span>
+                    </div>
+                  </div>
+                  <div className="text-[6px] text-white/20 uppercase">{c.domain}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Universe Timeline */}
+          {studyMode === 'timeline' && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                {UNIVERSE_EPOCHS.map((e, i) => (
+                  <button key={i} onClick={() => setEpochIdx(i)}
+                    className={`w-full text-left px-3 py-2 border-b border-white/[0.06] transition-all flex items-center gap-2 ${epochIdx===i ? 'bg-white/8' : 'hover:bg-white/3'}`}>
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: `#${e.color.toString(16).padStart(6,'0')}` }} />
+                    <div>
+                      <div className="text-[8px] text-white/60 font-mono">{e.t}</div>
+                      <div className="text-[9px] font-bold" style={{ color: `#${e.color.toString(16).padStart(6,'0')}` }}>{e.epoch}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="px-4 py-3 border-t border-white/10 bg-white/3">
+                <div className="text-white font-bold text-[10px] mb-1">{UNIVERSE_EPOCHS[epochIdx].epoch}</div>
+                <div className="text-white/25 text-[7px] font-mono mb-1.5">{UNIVERSE_EPOCHS[epochIdx].t}</div>
+                <p className="text-white/45 text-[8px] leading-relaxed">{UNIVERSE_EPOCHS[epochIdx].desc}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Nebula Types */}
+          {studyMode === 'nebulae' && (
+            <div className="flex-1 overflow-y-auto px-3 py-2" style={{ scrollbarWidth: "none" }}>
+              {NEBULA_TYPES.map((n, i) => (
+                <div key={i} className="mb-3 p-2 rounded border border-white/[0.07] hover:border-white/15 transition-all">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: `#${n.color.toString(16).padStart(6,'0')}`, boxShadow: `0 0 6px #${n.color.toString(16).padStart(6,'0')}88` }} />
+                    <span className="text-[9px] font-bold text-white">{n.name}</span>
+                  </div>
+                  <p className="text-[7.5px] text-white/40 leading-relaxed">{n.gas}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── HEADER ── */}
-      <div className="absolute top-0 left-0 right-0 h-12 z-20 flex items-center justify-between px-4 bg-black/50 backdrop-blur-sm border-b border-white/10">
-        <div className="flex items-center gap-4">
+      <div className="absolute top-0 left-0 right-0 h-12 z-20 flex items-center justify-between px-4 bg-black/55 backdrop-blur-sm border-b border-white/10">
+        <div className="flex items-center gap-3">
           <Link href="/" data-testid="nav-home">
-            <span className="text-white/50 hover:text-white text-xs cursor-pointer transition-colors tracking-widest uppercase">← Home</span>
+            <span className="text-white/40 hover:text-white text-[9px] cursor-pointer tracking-widest uppercase transition-colors">← Home</span>
           </Link>
-          <span className="text-white/25 text-[10px] tracking-[0.35em] uppercase hidden sm:block">Quantum Pulse Intelligence</span>
+          <div className="hidden sm:flex items-center gap-1.5">
+            {(["stellar","quantum","physics","timeline","nebulae"] as StudyMode[]).map(m => (
+              <button key={m} onClick={() => toggleStudy(m)} data-testid={`study-btn-${m}`}
+                className={`px-2 py-0.5 rounded text-[7px] uppercase tracking-widest font-mono border transition-all ${studyMode===m ? 'bg-blue-500/25 border-blue-400/50 text-blue-200' : 'border-white/10 text-white/30 hover:text-white/70 hover:border-white/25'}`}>
+                {m === 'stellar' ? '⭐ Stars' : m === 'quantum' ? '⚛ Quantum' : m === 'physics' ? '🧬 DNA' : m === 'timeline' ? '⏳ Time' : '🌫 Gas'}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="text-center">
-          <div className="text-[11px] font-bold text-yellow-300/90 tracking-[0.25em] uppercase">⬡ PULSE UNIVERSE — REAL SOLAR SYSTEM ⬡</div>
-          <div className="text-[8px] text-white/30 tracking-widest hidden sm:block">REAL TEXTURES · REAL ORBITS · REAL PHYSICS · CLICK ANY PLANET</div>
+          <div className="text-[10px] font-bold text-yellow-300/90 tracking-[0.2em] uppercase">⬡ PULSE UNIVERSE — REAL SOLAR SYSTEM ⬡</div>
         </div>
-        <div className="flex items-center gap-3 text-[10px]">
-          <span className="text-green-400/80">● LIVE</span>
-          <span className="text-white/30">{universe?.timestamp ? new Date(universe.timestamp).toLocaleTimeString() : "--:--:--"}</span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setQuantumMode(q => !q)} data-testid="quantum-mode-btn"
+            className={`px-2 py-0.5 rounded text-[7px] font-mono border transition-all ${quantumMode ? 'bg-purple-500/30 border-purple-400 text-purple-200' : 'border-white/15 text-white/25 hover:text-white/60'}`}>
+            ⚛ Q-Field
+          </button>
+          <span className="text-green-400/80 text-[8px]">● LIVE</span>
+          <span className="text-white/25 text-[8px]">{universe?.timestamp ? new Date(universe.timestamp).toLocaleTimeString() : "--:--:--"}</span>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL: Universe Stats ── */}
-      <div className="absolute right-3 top-14 bottom-14 w-52 z-10 flex flex-col gap-2 pointer-events-none">
+      {/* ── EXPLORER TIP (bottom left) ── */}
+      <div className="absolute bottom-14 left-3 z-20 pointer-events-none">
+        <div className="text-[8px] text-white/20 font-mono tracking-widest transition-all">{EXPLORER_TIPS[explorerTip]}</div>
+      </div>
+
+      {/* ── PLANET QUICK SELECTOR (bottom left, above tip) ── */}
+      <div className="absolute bottom-24 left-3 z-20 flex flex-col gap-0.5 pointer-events-auto">
+        {["Sun","Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune"].map(name => (
+          <button key={name} data-testid={`planet-btn-${name.toLowerCase()}`}
+            onClick={() => setSelectedPlanet(p => p === name ? null : name)}
+            className={`text-left text-[8px] px-2 py-0.5 rounded font-mono tracking-wider transition-all ${selectedPlanet===name ? 'bg-blue-500/25 text-white border border-blue-400/40' : 'text-white/25 hover:text-white/60 border border-transparent hover:border-white/10'}`}>
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {/* ── RIGHT PANEL ── */}
+      <div className="absolute right-2 top-14 bottom-12 w-50 z-10 flex flex-col gap-1.5 pointer-events-none" style={{ width: "190px" }}>
 
         {/* Telemetry */}
-        <div className="bg-black/65 border border-white/10 rounded p-3 backdrop-blur-md">
-          <div className="text-[8px] text-blue-400/80 uppercase tracking-[0.3em] mb-2">Universe Telemetry</div>
+        <div className="bg-black/65 border border-white/10 rounded p-2.5 backdrop-blur-md">
+          <div className="text-[7px] text-blue-400/80 uppercase tracking-[0.3em] mb-2">Universe Telemetry</div>
           {[
-            { label: "Total AIs",          val: fmt(universe?.totalAIs || 0),           color: "text-yellow-300" },
-            { label: "Active AIs",         val: fmt(universe?.activeAIs || 0),          color: "text-green-400" },
-            { label: "Knowledge Nodes",    val: fmt(universe?.knowledgeNodes || 0),     color: "text-cyan-300" },
-            { label: "Hive Memory",        val: fmt(universe?.hiveMemoryStrands || 0),  color: "text-orange-300" },
-            { label: "Knowledge Links",    val: fmt(universe?.knowledgeLinks || 0),     color: "text-pink-300" },
-            { label: "Births/min",         val: String(universe?.birthsLastMinute || 0), color: "text-red-400" },
+            { label: "Total AIs",       val: fmt(universe?.totalAIs||0),          color: "text-yellow-300" },
+            { label: "Active AIs",      val: fmt(universe?.activeAIs||0),         color: "text-green-400" },
+            { label: "Knowledge",       val: fmt(universe?.knowledgeNodes||0),    color: "text-cyan-300" },
+            { label: "Hive Memory",     val: fmt(universe?.hiveMemoryStrands||0), color: "text-orange-300" },
+            { label: "Links",           val: fmt(universe?.knowledgeLinks||0),    color: "text-pink-300" },
+            { label: "Births/min",      val: String(universe?.birthsLastMinute||0), color: "text-red-400" },
           ].map(({ label, val, color }) => (
-            <div key={label} className="flex justify-between items-center mb-1">
-              <span className="text-[8px] text-white/25 truncate">{label}</span>
-              <span className={`text-[9px] font-bold ${color} ml-1 tabular-nums shrink-0`}>{val}</span>
+            <div key={label} className="flex justify-between items-center mb-0.5">
+              <span className="text-[7px] text-white/25">{label}</span>
+              <span className={`text-[8px] font-bold ${color} tabular-nums`}>{val}</span>
             </div>
           ))}
         </div>
 
+        {/* Quantum Status */}
+        <div className={`border rounded p-2 backdrop-blur-md transition-all ${quantumMode ? 'bg-purple-900/30 border-purple-400/30' : 'bg-black/65 border-white/10'}`}>
+          <div className="text-[7px] text-purple-400/80 uppercase tracking-[0.3em] mb-1.5">Quantum Status</div>
+          {quantumMode ? (
+            <>
+              <div className="text-[8px] text-purple-200 mb-1">⚛ Field Active</div>
+              <div className="text-[7px] text-white/30 leading-relaxed">Higgs field · Quantum foam · EM field lines · Wave functions · Entanglement threads</div>
+              <div className="mt-1.5 text-[7px] text-yellow-200/60">Uncertainty: ΔxΔp ≥ ℏ/2</div>
+            </>
+          ) : (
+            <div className="text-[7px] text-white/20">Toggle Q-Field in header to visualize quantum mechanics</div>
+          )}
+        </div>
+
         {/* Domain Worlds */}
         <div className="bg-black/65 border border-white/10 rounded p-2 backdrop-blur-md flex-1 overflow-hidden">
-          <div className="text-[8px] text-blue-400/80 uppercase tracking-[0.3em] mb-2">AI Domain Worlds</div>
+          <div className="text-[7px] text-blue-400/80 uppercase tracking-[0.3em] mb-1.5">AI Domain Worlds</div>
           <div className="overflow-y-auto h-full pr-1" style={{ scrollbarWidth: "none" }}>
             {(universe?.domains || []).map(d => (
-              <div key={d.family} className="flex items-center gap-1.5 mb-1.5">
-                <span className="text-[10px]" style={{ color: d.color }}>{d.emoji}</span>
-                <span className="text-[8px] truncate flex-1" style={{ color: d.color }}>{d.label}</span>
-                <span className="text-[7px] text-white/30 tabular-nums shrink-0">{fmt(d.active)}</span>
+              <div key={d.family} className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px]" style={{ color: d.color }}>{d.emoji}</span>
+                <span className="text-[7px] truncate flex-1" style={{ color: d.color }}>{d.label}</span>
+                <span className="text-[6px] text-white/25 tabular-nums">{fmt(d.active)}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Recent Events */}
+        {/* Live Spawns */}
         <div className="bg-black/65 border border-white/10 rounded p-2 backdrop-blur-md">
-          <div className="text-[8px] text-blue-400/80 uppercase tracking-[0.3em] mb-1.5">Live Spawns</div>
-          <div className="overflow-hidden" style={{ maxHeight: "90px" }}>
-            {(universe?.recentSpawns || []).slice(0, 5).map((s, i) => (
-              <div key={i} className="text-[7px] text-white/35 mb-0.5 truncate">
+          <div className="text-[7px] text-blue-400/80 uppercase tracking-[0.3em] mb-1">Live Spawns</div>
+          <div style={{ maxHeight: "70px", overflow: "hidden" }}>
+            {(universe?.recentSpawns || []).slice(0, 4).map((s, i) => (
+              <div key={i} className="text-[6px] text-white/30 mb-0.5 truncate">
                 <span style={{ color: s.color || "#6366f1" }}>●</span> {s.type} → {s.family}
               </div>
             ))}
@@ -118,45 +316,51 @@ export default function PulseUniversePage() {
         </div>
       </div>
 
-      {/* ── PLANET QUICK SELECTOR ── */}
-      <div className="absolute left-3 bottom-14 z-20 flex flex-col gap-1 pointer-events-auto">
-        <div className="text-[7px] text-white/25 uppercase tracking-widest mb-1">Planets</div>
-        {["Sun","Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune"].map(name => (
-          <button
-            key={name}
-            data-testid={`planet-btn-${name.toLowerCase()}`}
-            onClick={() => setSelectedPlanet(prev => prev === name ? null : name)}
-            className={`text-left text-[8px] px-2 py-0.5 rounded transition-all font-mono tracking-wider ${selectedPlanet === name ? 'bg-blue-500/30 text-white border border-blue-400/40' : 'text-white/30 hover:text-white/70 border border-transparent hover:border-white/10'}`}
-          >
-            {name}
+      {/* ── SPEED CONTROL ── */}
+      <SpeedControl speed={timeScale} onSpeedChange={setTimeScale} />
+
+      {/* ── STUDY MODE TOOLBAR (bottom center, above speed control) ── */}
+      <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-20 flex gap-2 sm:hidden pointer-events-auto">
+        {(["stellar","quantum","physics","timeline","nebulae"] as StudyMode[]).map(m => (
+          <button key={m} onClick={() => toggleStudy(m)} data-testid={`study-mobile-btn-${m}`}
+            className={`px-2 py-1 rounded text-[7px] uppercase font-mono border transition-all ${studyMode===m ? 'bg-blue-500/25 border-blue-400/50 text-blue-200' : 'border-white/10 text-white/30 bg-black/40'}`}>
+            {m === 'stellar' ? '⭐' : m === 'quantum' ? '⚛' : m === 'physics' ? '🧬' : m === 'timeline' ? '⏳' : '🌫'}
           </button>
         ))}
       </div>
 
+      {/* ── PHYSICS DNA TICKER (subtle, between speed and bottom bar) ── */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none hidden sm:block">
+        <div className="text-[7px] font-mono text-white/15 tracking-widest text-center">
+          {PHYSICS_DNA[dnaScroll].symbol} = {PHYSICS_DNA[dnaScroll].value} {PHYSICS_DNA[dnaScroll].unit} &nbsp;·&nbsp; {PHYSICS_DNA[dnaScroll].name}
+        </div>
+      </div>
+
       {/* ── BOTTOM TICKER ── */}
       <div className="absolute bottom-0 left-0 right-0 h-10 z-20 bg-black/70 border-t border-white/10 flex items-center overflow-hidden">
-        <div className="shrink-0 px-3 text-[8px] font-bold text-yellow-300/80 border-r border-white/10 mr-2 whitespace-nowrap">HIVE LIVE</div>
+        <div className="shrink-0 px-2 text-[7px] font-bold text-yellow-300/80 border-r border-white/10 mr-2 whitespace-nowrap">PULSE UNIVERSE</div>
         <div className="flex-1 overflow-hidden">
-          <div data-testid="live-ticker" className="flex gap-8 whitespace-nowrap text-[8px] text-white/30" style={{ animation: "ticker 55s linear infinite" }}>
+          <div data-testid="live-ticker" className="flex gap-8 whitespace-nowrap text-[7px] text-white/30" style={{ animation: "ticker 60s linear infinite" }}>
             {[
-              `⬡ TOTAL AIs: ${fmt(universe?.totalAIs || 0)}`,
-              `● ACTIVE: ${fmt(universe?.activeAIs || 0)}`,
-              `📚 KNOWLEDGE: ${fmt(universe?.knowledgeNodes || 0)} nodes`,
-              `🧠 HIVE MEMORY: ${fmt(universe?.hiveMemoryStrands || 0)} strands`,
-              `🔗 LINKS: ${fmt(universe?.knowledgeLinks || 0)}`,
-              `🎓 PULSEU DOMAINS: ${universe?.domains?.length || 0}`,
-              `▲ BIRTHS/MIN: ${universe?.birthsLastMinute || 0}`,
-              `🌐 REAL SOLAR SYSTEM · THREE.JS WEBGL`,
-              `◆ CONFIDENCE: ${universe?.hiveMemoryConfidence ? (universe.hiveMemoryConfidence * 100).toFixed(1) : 0}%`,
+              `⬡ TOTAL AIs: ${fmt(universe?.totalAIs||0)}`,
+              `● ACTIVE: ${fmt(universe?.activeAIs||0)}`,
+              `📚 KNOWLEDGE: ${fmt(universe?.knowledgeNodes||0)} nodes`,
+              `🧬 HIVE MEMORY: ${fmt(universe?.hiveMemoryStrands||0)} strands`,
+              `🔗 LINKS: ${fmt(universe?.knowledgeLinks||0)}`,
+              `⭐ STELLAR CLASSES: O B A F G K M — 7 main sequence types`,
+              `⚛ QUANTUM: ΔxΔp≥ℏ/2 · |ψ⟩=α|0⟩+β|1⟩ · Entanglement · Tunneling`,
+              `🌌 REAL SOLAR SYSTEM · THREE.JS WEBGL · INERTIA CAMERA · FREE EXPLORE`,
+              `◆ PHYSICS DNA: ${PHYSICS_DNA[dnaScroll].name} ${PHYSICS_DNA[dnaScroll].symbol}=${PHYSICS_DNA[dnaScroll].value} ${PHYSICS_DNA[dnaScroll].unit}`,
+              `⏳ UNIVERSE AGE: 13.8 Billion Years · Expanding at H₀=67.4 km/s/Mpc`,
               ...(universe?.domains || []).map(d => `${d.emoji} ${d.label.toUpperCase()}: ${fmt(d.active)} AIs`),
             ].map((item, i) => <span key={i} className="mr-8">{item}</span>)}
           </div>
         </div>
-        <div className="shrink-0 px-3 text-[7px] text-green-400/60 border-l border-white/10">QPI</div>
+        <div className="shrink-0 px-2 text-[6px] text-green-400/50 border-l border-white/10">QPI</div>
       </div>
 
       <style>{`
-        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-200%); } }
       `}</style>
     </div>
   );

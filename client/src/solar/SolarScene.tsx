@@ -2,15 +2,16 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import * as THREE from "three";
 import { PLANET_DATA, MOON_DATA, MAIN_PLANETS } from "./planetData";
 import { createSpaceEnvironment } from "./SpaceEnvironment";
+import { createQuantumField, createTunnelingParticles } from "./QuantumPhysics";
+
+const TEX = 'https://www.solarsystemscope.com/textures/download';
 
 function isWebGLSupported(): boolean {
   try {
     const canvas = document.createElement("canvas");
-    return !!(canvas.getContext("webgl") || canvas.getContext("webgl2") || canvas.getContext("experimental-webgl"));
+    return !!(canvas.getContext("webgl2") || canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
   } catch { return false; }
 }
-
-const TEX = 'https://www.solarsystemscope.com/textures/download';
 
 function makeLabel(text: string, size = 26) {
   const canvas = document.createElement('canvas');
@@ -49,8 +50,10 @@ function makeLensFlare() {
   canvas.width = canvas.height = 256;
   const ctx = canvas.getContext('2d')!;
   const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  grad.addColorStop(0, 'rgba(255,240,180,1)'); grad.addColorStop(0.1, 'rgba(255,210,120,0.8)');
-  grad.addColorStop(0.4, 'rgba(255,140,40,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+  grad.addColorStop(0, 'rgba(255,240,180,1)');
+  grad.addColorStop(0.1, 'rgba(255,210,120,0.8)');
+  grad.addColorStop(0.4, 'rgba(255,140,40,0.3)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 256);
   const tex = new THREE.CanvasTexture(canvas);
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.85 }));
@@ -76,20 +79,17 @@ function makeGlowSprite(color: number, size: number) {
 
 function buildSunCorona(radius: number) {
   const group = new THREE.Group();
-  const spikeCounts = [18, 10, 7];
-  const configs = [
-    { innerR: radius * 1.08, outerR: radius * 1.7,  opacity: 0.45, color: 0xffcc55 },
-    { innerR: radius * 1.12, outerR: radius * 2.5,  opacity: 0.22, color: 0xff9922 },
-    { innerR: radius * 1.15, outerR: radius * 3.8,  opacity: 0.10, color: 0xff6600 },
-  ];
-  configs.forEach(({ innerR, outerR, opacity, color }, ci) => {
-    const count = spikeCounts[ci];
+  [
+    { count: 18, innerR: radius*1.08, outerR: radius*1.7,  opacity: 0.45, color: 0xffcc55, spread: 0.08 },
+    { count: 10, innerR: radius*1.12, outerR: radius*2.5,  opacity: 0.22, color: 0xff9922, spread: 0.10 },
+    { count:  7, innerR: radius*1.15, outerR: radius*3.8,  opacity: 0.10, color: 0xff6600, spread: 0.12 },
+  ].forEach(({ count, innerR, outerR, opacity, color, spread }, ci) => {
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + ci * 0.3, spread = 0.08;
+      const angle = (i / count) * Math.PI * 2 + ci * 0.3;
       const pts = [
-        new THREE.Vector3(Math.cos(angle - spread) * innerR, Math.sin(angle - spread) * innerR, 0),
-        new THREE.Vector3(Math.cos(angle) * outerR, Math.sin(angle) * outerR, 0),
-        new THREE.Vector3(Math.cos(angle + spread) * innerR, Math.sin(angle + spread) * innerR, 0),
+        new THREE.Vector3(Math.cos(angle-spread)*innerR, Math.sin(angle-spread)*innerR, 0),
+        new THREE.Vector3(Math.cos(angle)*outerR, Math.sin(angle)*outerR, 0),
+        new THREE.Vector3(Math.cos(angle+spread)*innerR, Math.sin(angle+spread)*innerR, 0),
       ];
       group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity })));
     }
@@ -114,18 +114,22 @@ interface Props {
   selectedPlanet: string | null;
   onDeselect: () => void;
   timeScale?: number;
+  quantumMode?: boolean;
+  onQuantumToggle?: (v: boolean) => void;
 }
 
-export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, timeScale = 1 }: Props) {
+export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, timeScale = 1, quantumMode = false, onQuantumToggle }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<any>({});
   const timeScaleRef = useRef(timeScale);
   const animFrameRef = useRef<number>();
   const selectedRef = useRef(selectedPlanet);
+  const quantumRef = useRef(quantumMode);
   const [webglError, setWebglError] = useState(false);
 
   useEffect(() => { timeScaleRef.current = timeScale; }, [timeScale]);
   useEffect(() => { selectedRef.current = selectedPlanet; }, [selectedPlanet]);
+  useEffect(() => { quantumRef.current = quantumMode; }, [quantumMode]);
 
   const handlePlanetClick = useCallback(onPlanetClick, [onPlanetClick]);
   const handleDeselect = useCallback(onDeselect, [onDeselect]);
@@ -135,6 +139,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     if (!mount) return;
     if (!isWebGLSupported()) { setWebglError(true); return; }
 
+    // ── Scene setup ─────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.01, 5000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -152,9 +157,10 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     scene.add(sunLight);
 
     const spaceEnv = createSpaceEnvironment(scene);
+    const quantumField = createQuantumField(scene);
+    const tunnelingPtcls = createTunnelingParticles(scene);
 
     const lensFlare = makeLensFlare();
-    lensFlare.position.set(0, 0, 0);
     scene.add(lensFlare);
 
     const planets: Record<string, any> = {};
@@ -187,10 +193,8 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
 
       const atmo = ATMO_COLORS[name];
       if (atmo) {
-        const atmoMesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius * atmo.scale, 32, 32), new THREE.MeshBasicMaterial({ color: atmo.color, transparent: true, opacity: atmo.opacity, side: THREE.BackSide }));
-        tiltGroup.add(atmoMesh);
-        const glowSprite = makeGlowSprite(atmo.color, data.radius * 5);
-        group.add(glowSprite);
+        tiltGroup.add(new THREE.Mesh(new THREE.SphereGeometry(data.radius * atmo.scale, 32, 32), new THREE.MeshBasicMaterial({ color: atmo.color, transparent: true, opacity: atmo.opacity, side: THREE.BackSide })));
+        group.add(makeGlowSprite(atmo.color, data.radius * 5));
       }
 
       if (name === 'Sun') {
@@ -200,13 +204,11 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         const corona = buildSunCorona(data.radius);
         tiltGroup.add(corona);
         planets._sunCorona = corona;
-        const sunGlow = makeGlowSprite(0xffaa22, data.radius * 14);
-        group.add(sunGlow);
-        planets._sunGlow = sunGlow;
+        group.add(makeGlowSprite(0xffaa22, data.radius * 14));
       }
 
       if (name === 'Earth') {
-        const nightMat = new THREE.MeshBasicMaterial({ color: 0xffdd88, transparent: true, opacity: 0.0 });
+        const nightMat = new THREE.MeshBasicMaterial({ color: 0xffdd88, transparent: true, opacity: 0 });
         loader.load(`${TEX}/2k_earth_nightmap.jpg`, (tex) => { nightMat.map = tex; nightMat.needsUpdate = true; nightMat.opacity = 0.35; });
         tiltGroup.add(new THREE.Mesh(new THREE.SphereGeometry(data.radius * 1.001, 64, 64), nightMat));
       }
@@ -220,15 +222,13 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       }
 
       if (name === 'Uranus') {
-        const uranusRing = new THREE.Mesh(new THREE.RingGeometry(data.radius * 1.5, data.radius * 1.85, 64), new THREE.MeshBasicMaterial({ color: 0x88ccdd, side: THREE.DoubleSide, transparent: true, opacity: 0.28 }));
+        const uranusRing = new THREE.Mesh(new THREE.RingGeometry(data.radius*1.5, data.radius*1.85, 64), new THREE.MeshBasicMaterial({ color: 0x88ccdd, side: THREE.DoubleSide, transparent: true, opacity: 0.28 }));
         uranusRing.rotation.x = Math.PI / 2;
         tiltGroup.add(uranusRing);
       }
-
       if (name === 'Neptune') {
-        const ring = new THREE.Mesh(new THREE.RingGeometry(data.radius * 1.6, data.radius * 1.95, 64), new THREE.MeshBasicMaterial({ color: 0x3366ff, side: THREE.DoubleSide, transparent: true, opacity: 0.18 }));
-        ring.rotation.x = -Math.PI / 2;
-        tiltGroup.add(ring);
+        const r = new THREE.Mesh(new THREE.RingGeometry(data.radius*1.6, data.radius*1.95, 64), new THREE.MeshBasicMaterial({ color: 0x3366ff, side: THREE.DoubleSide, transparent: true, opacity: 0.18 }));
+        r.rotation.x = -Math.PI/2; tiltGroup.add(r);
       }
 
       const label = makeLabel(name, name === 'Sun' ? 32 : isMain ? 26 : 20);
@@ -246,56 +246,50 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         if (md.texture) loader.load(md.texture, (tex) => { (mesh.material as any).map = tex; mesh.material.needsUpdate = true; });
         const group = new THREE.Group();
         group.add(mesh);
-        const label = makeLabel(md.name, 17);
-        label.position.y = md.radius + 0.5;
-        group.add(label);
-        if (md.volcanic) {
-          group.add(new THREE.Mesh(new THREE.SphereGeometry(md.radius * 1.3, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff7700, transparent: true, opacity: 0.22, side: THREE.BackSide })));
-        }
-        if (md.geyser) {
-          const n = 80, pts = new Float32Array(n * 3);
-          for (let i = 0; i < n; i++) {
-            const t = i / n;
-            pts[i*3] = (Math.random()-0.5)*t*0.25; pts[i*3+1] = t*md.radius*5; pts[i*3+2] = (Math.random()-0.5)*t*0.25;
-          }
-          const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
-          group.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xeeeeff, size: 0.04, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending })));
+        const label = makeLabel(md.name, 17); label.position.y = md.radius + 0.5; group.add(label);
+        if (md.volcanic) group.add(new THREE.Mesh(new THREE.SphereGeometry(md.radius*1.3,8,8), new THREE.MeshBasicMaterial({ color: 0xff7700, transparent: true, opacity: 0.22, side: THREE.BackSide })));
+        if ((md as any).geyser) {
+          const n=80, pts=new Float32Array(n*3);
+          for(let i=0;i<n;i++){const t=i/n; pts[i*3]=(Math.random()-.5)*t*.25; pts[i*3+1]=t*md.radius*5; pts[i*3+2]=(Math.random()-.5)*t*.25;}
+          const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pts,3));
+          group.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xeeeeff, size: 0.04, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending })));
         }
         scene.add(group);
         return { group, mesh, data: md };
       });
     });
 
-    // Asteroid belt (visual inside scene)
-    const aPos = new Float32Array(3000 * 3);
-    for (let i = 0; i < 3000; i++) {
-      const a = Math.random()*Math.PI*2, r = 18+Math.random()*3.5, h=(Math.random()-0.5)*0.8;
-      aPos[i*3]=r*Math.cos(a); aPos[i*3+1]=h; aPos[i*3+2]=r*Math.sin(a);
-    }
-    const aGeo = new THREE.BufferGeometry(); aGeo.setAttribute('position', new THREE.BufferAttribute(aPos, 3));
-    scene.add(new THREE.Points(aGeo, new THREE.PointsMaterial({ color: 0x998877, size: 0.13, transparent: true, opacity: 0.65, depthWrite: false })));
-
-    // Hover ring
+    // Hover + selection rings
     const hoverRing = new THREE.Mesh(new THREE.TorusGeometry(1, 0.025, 8, 128), new THREE.MeshBasicMaterial({ color: 0xffee55, transparent: true, opacity: 0, blending: THREE.AdditiveBlending }));
     hoverRing.rotation.x = Math.PI / 2; scene.add(hoverRing);
 
-    // Selection rings
-    const selectionRings = [0.9, 1.2, 1.6].map((scale, i) => {
+    const selRings = [0.9, 1.2, 1.6].map((scale, i) => {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(1, 0.02, 8, 128), new THREE.MeshBasicMaterial({ color: [0x88aaff, 0x4466ff, 0x2233cc][i], transparent: true, opacity: 0, blending: THREE.AdditiveBlending }));
       ring.rotation.x = Math.PI / 2; scene.add(ring);
       return { mesh: ring, scale, phase: i * 0.5 };
     });
 
-    // Camera state
+    // ── CAMERA STATE (inertia-based free camera) ─────────────────────────────
     const cam = {
       radius: 55, theta: 0.4, phi: 0.45,
       targetRadius: 55, targetTheta: 0.4, targetPhi: 0.45,
       lookAt: new THREE.Vector3(), targetLookAt: new THREE.Vector3(),
+      // velocity for inertia
+      velTheta: 0, velPhi: 0, velRadius: 0,
+      // pan velocity
+      panVelX: 0, panVelY: 0,
+      // free mode (WASD)
+      freePos: new THREE.Vector3(),
+      // locked to planet flag
+      locked: false, lockName: '' as string,
+      lastLockPos: new THREE.Vector3(),
     };
-    sceneRef.current = { cam, planets, moonObjects };
+    sceneRef.current = { cam, planets, moonObjects, quantumField };
 
-    // Input
-    const drag = { active: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
+    // ── INPUT ────────────────────────────────────────────────────────────────
+    const keys: Record<string, boolean> = {};
+    const drag = { active: false, button: 0, startX: 0, startY: 0, lastX: 0, lastY: 0 };
+    const touch = { dist0: 0, lastDist: 0 };
     let hoveredName: string | null = null;
 
     const getRayHit = (clientX: number, clientY: number) => {
@@ -307,9 +301,13 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     };
 
     const onMouseDown = (e: MouseEvent) => {
-      drag.active = true; drag.startX = drag.lastX = e.clientX; drag.startY = drag.lastY = e.clientY;
-      renderer.domElement.style.cursor = 'grabbing';
+      drag.active = true; drag.button = e.button;
+      drag.startX = drag.lastX = e.clientX; drag.startY = drag.lastY = e.clientY;
+      renderer.domElement.style.cursor = e.button === 2 ? 'move' : 'grabbing';
+      // Any drag breaks lock
+      if (e.button === 0) cam.locked = false;
     };
+
     const onMouseMove = (e: MouseEvent) => {
       if (!drag.active) {
         const hits = getRayHit(e.clientX, e.clientY);
@@ -317,59 +315,173 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         renderer.domElement.style.cursor = hoveredName ? 'pointer' : 'grab';
         return;
       }
-      const dx = e.clientX-drag.lastX, dy = e.clientY-drag.lastY;
+      const dx = e.clientX - drag.lastX, dy = e.clientY - drag.lastY;
       drag.lastX = e.clientX; drag.lastY = e.clientY;
-      cam.targetTheta -= dx * 0.005;
-      cam.targetPhi = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi - dy * 0.005));
+
+      if (drag.button === 2) {
+        // Right-click pan — translate the lookAt point
+        const right = new THREE.Vector3();
+        const up = new THREE.Vector3();
+        camera.getWorldDirection(new THREE.Vector3()); // ensure matrix up-to-date
+        right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
+        up.copy(camera.up).normalize();
+        const panSpeed = cam.radius * 0.0012;
+        cam.targetLookAt.addScaledVector(right, -dx * panSpeed);
+        cam.targetLookAt.addScaledVector(up, dy * panSpeed);
+        cam.locked = false;
+      } else {
+        // Left-drag orbit — add velocity for inertia
+        cam.velTheta += -dx * 0.004;
+        cam.velPhi   += -dy * 0.004;
+        cam.targetTheta += -dx * 0.004;
+        cam.targetPhi    = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi - dy * 0.004));
+        cam.locked = false;
+      }
     };
+
     const onMouseUp = (e: MouseEvent) => {
       if (!drag.active) return;
       drag.active = false;
       renderer.domElement.style.cursor = 'grab';
-      if (Math.abs(e.clientX-drag.startX) < 5 && Math.abs(e.clientY-drag.startY) < 5) {
+      // Click (no drag) → planet select
+      if (Math.abs(e.clientX - drag.startX) < 6 && Math.abs(e.clientY - drag.startY) < 6 && drag.button === 0) {
         const hits = getRayHit(e.clientX, e.clientY);
-        if (hits.length > 0) handlePlanetClick(hits[0].object.userData.name as string);
-        else handleDeselect();
+        if (hits.length > 0) {
+          const name = hits[0].object.userData.name as string;
+          handlePlanetClick(name);
+          // Snap camera once to planet
+          const p = planets[name];
+          if (p) {
+            cam.targetLookAt.copy(p.group.position);
+            cam.targetRadius = Math.max(p.data.radius * 6 + 3, 4);
+            cam.locked = true;
+            cam.lockName = name;
+          }
+        } else {
+          handleDeselect();
+          cam.locked = false;
+        }
       }
     };
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      cam.targetRadius = Math.max(2.5, cam.targetRadius * (e.deltaY > 0 ? 1.12 : 0.89));
+      // Zoom breaks lock
+      cam.locked = false;
+      const factor = e.deltaY > 0 ? 1.10 : 0.91;
+      cam.targetRadius = Math.max(2, Math.min(400, cam.targetRadius * factor));
     };
+
+    const onContextMenu = (e: Event) => e.preventDefault();
+
+    const onKeyDown = (e: KeyboardEvent) => { keys[e.key.toLowerCase()] = true; };
+    const onKeyUp   = (e: KeyboardEvent) => { keys[e.key.toLowerCase()] = false; };
+
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length===1) { drag.active=true; drag.startX=drag.lastX=e.touches[0].clientX; drag.startY=drag.lastY=e.touches[0].clientY; }
+      if (e.touches.length === 1) {
+        drag.active = true; drag.button = 0;
+        drag.startX = drag.lastX = e.touches[0].clientX;
+        drag.startY = drag.lastY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        touch.dist0 = touch.lastDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (!drag.active||e.touches.length!==1) return;
-      const dx=e.touches[0].clientX-drag.lastX, dy=e.touches[0].clientY-drag.lastY;
-      drag.lastX=e.touches[0].clientX; drag.lastY=e.touches[0].clientY;
-      cam.targetTheta -= dx*0.005; cam.targetPhi = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi - dy*0.005));
+      if (e.touches.length === 1 && drag.active) {
+        const dx = e.touches[0].clientX - drag.lastX, dy = e.touches[0].clientY - drag.lastY;
+        drag.lastX = e.touches[0].clientX; drag.lastY = e.touches[0].clientY;
+        cam.velTheta += -dx * 0.005;
+        cam.velPhi   += -dy * 0.005;
+        cam.targetTheta += -dx * 0.005;
+        cam.targetPhi = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi - dy * 0.005));
+        cam.locked = false;
+      } else if (e.touches.length === 2) {
+        const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+        cam.targetRadius = Math.max(2, Math.min(400, cam.targetRadius * (touch.lastDist / dist)));
+        touch.lastDist = dist;
+        cam.locked = false;
+      }
     };
-    const onTouchEnd = () => { drag.active = false; };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 1) drag.active = false;
+    };
 
     renderer.domElement.addEventListener('mousedown', onMouseDown);
+    renderer.domElement.addEventListener('contextmenu', onContextMenu);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
     renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: true });
     renderer.domElement.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
 
-    // Animation loop
+    // ── ANIMATION LOOP ────────────────────────────────────────────────────────
     let time = 0;
+    const EASE = 0.055;
+    const INERTIA = 0.88;
+
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
       const ts = timeScaleRef.current;
       time += 0.003 * ts;
 
-      // Planet orbits + rotation
+      // ── Keyboard WASD pan ─────────────────────────────────────────────────
+      if (Object.values(keys).some(Boolean)) {
+        cam.locked = false;
+        const speed = (keys['shift'] ? 0.35 : 0.12) * (cam.radius / 20);
+        const right = new THREE.Vector3();
+        right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
+        const fwd = new THREE.Vector3();
+        fwd.copy(camera.getWorldDirection(new THREE.Vector3())).setY(0).normalize();
+        if (keys['w'] || keys['arrowup'])    cam.targetLookAt.addScaledVector(fwd, speed);
+        if (keys['s'] || keys['arrowdown'])  cam.targetLookAt.addScaledVector(fwd, -speed);
+        if (keys['a'] || keys['arrowleft'])  cam.targetLookAt.addScaledVector(right, -speed);
+        if (keys['d'] || keys['arrowright']) cam.targetLookAt.addScaledVector(right, speed);
+        if (keys['q'])                        cam.targetLookAt.y += speed;
+        if (keys['e'])                        cam.targetLookAt.y -= speed;
+        if (keys['='] || keys['+'])           cam.targetRadius = Math.max(2, cam.targetRadius * 0.97);
+        if (keys['-'])                        cam.targetRadius = Math.min(400, cam.targetRadius * 1.03);
+      }
+
+      // ── Inertia (only add extra velocity decay, no more movement after drag stop) ─
+      cam.velTheta  *= INERTIA;
+      cam.velPhi    *= INERTIA;
+      cam.targetTheta += cam.velTheta;
+      cam.targetPhi    = Math.max(0.05, Math.min(Math.PI-0.05, cam.targetPhi + cam.velPhi));
+
+      // ── If locked to a planet: gently keep lookAt near it but DO NOT forcibly reset ─
+      if (cam.locked && cam.lockName && planets[cam.lockName]) {
+        const pPos = planets[cam.lockName].group.position;
+        // Soft follow — just nudge targetLookAt, user drag overrides it
+        if (!drag.active) {
+          cam.targetLookAt.lerp(pPos, 0.015);
+        }
+      }
+
+      // ── Camera easing ─────────────────────────────────────────────────────
+      cam.radius  += (cam.targetRadius - cam.radius) * EASE;
+      cam.theta   += (cam.targetTheta  - cam.theta)  * EASE;
+      cam.phi     += (cam.targetPhi    - cam.phi)    * EASE;
+      cam.lookAt.lerp(cam.targetLookAt, EASE * 0.9);
+
+      camera.position.set(
+        cam.lookAt.x + cam.radius * Math.sin(cam.phi) * Math.cos(cam.theta),
+        cam.lookAt.y + cam.radius * Math.cos(cam.phi),
+        cam.lookAt.z + cam.radius * Math.sin(cam.phi) * Math.sin(cam.theta),
+      );
+      camera.lookAt(cam.lookAt);
+
+      // ── Planet orbits + rotation ──────────────────────────────────────────
       Object.keys(PLANET_DATA).forEach((name) => {
-        const p = planets[name];
-        if (!p) return;
+        const p = planets[name]; if (!p) return;
         const d = p.data;
         if (d.semiMajor > 0) {
-          const a = d.semiMajor, e = d.eccentricity || 0;
-          const b = a * Math.sqrt(1 - e * e);
+          const a = d.semiMajor, e = d.eccentricity || 0, b = a * Math.sqrt(1 - e*e);
           const angle = time * d.speed;
           const x = a * Math.cos(angle), z = b * Math.sin(angle);
           const y = d.inclination ? Math.sin(d.inclination) * z : 0;
@@ -378,36 +490,28 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         p.mesh.rotation.y += (d.rotationSpeed || 0.005) * ts;
       });
 
-      // Moon orbits
-      Object.keys(moonObjects).forEach((planetName) => {
-        const pPos = planets[planetName]?.group.position;
-        if (!pPos) return;
-        moonObjects[planetName].forEach(({ group, data: md }: any) => {
-          const angle = time * md.speed;
-          const inc = md.inclination || 0;
-          group.position.set(
-            pPos.x + md.distance * Math.cos(angle),
-            pPos.y + md.distance * Math.sin(inc) * Math.sin(angle),
-            pPos.z + md.distance * Math.sin(angle) * Math.cos(inc),
-          );
+      // ── Moon orbits ───────────────────────────────────────────────────────
+      Object.keys(moonObjects).forEach((pName) => {
+        const pPos = planets[pName]?.group.position; if (!pPos) return;
+        moonObjects[pName].forEach(({ group, data: md }: any) => {
+          const a = time * md.speed, inc = md.inclination || 0;
+          group.position.set(pPos.x + md.distance*Math.cos(a), pPos.y + md.distance*Math.sin(inc)*Math.sin(a), pPos.z + md.distance*Math.sin(a)*Math.cos(inc));
         });
       });
 
-      // Space environment
+      // ── Space environment ─────────────────────────────────────────────────
       if (spaceEnv) spaceEnv.update(time);
 
-      // Sun effects
-      if (planets._sunCorona) planets._sunCorona.rotation.z = time * 0.05;
-      if (planets._sunGlow) {
-        const sunPulse = 0.95 + Math.sin(time * 2) * 0.05;
-        planets._sunGlow.scale.setScalar(sunPulse);
-      }
-      if (planets['Sun']) planets['Sun'].mesh.rotation.y += 0.002 * ts;
+      // ── Quantum field ─────────────────────────────────────────────────────
+      quantumField.update(time);
+      tunnelingPtcls.update(time, quantumRef.current);
 
-      // Lens flare
+      // ── Sun effects ───────────────────────────────────────────────────────
+      if (planets._sunCorona) planets._sunCorona.rotation.z = time * 0.05;
+      if (planets['Sun']) planets['Sun'].mesh.rotation.y += 0.002 * ts;
       lensFlare.lookAt(camera.position);
 
-      // Hover ring
+      // ── Hover ring ────────────────────────────────────────────────────────
       if (hoveredName && planets[hoveredName]) {
         const p = planets[hoveredName];
         hoverRing.position.copy(p.group.position);
@@ -417,31 +521,19 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         (hoverRing.material as THREE.MeshBasicMaterial).opacity = 0;
       }
 
-      // Selection rings
+      // ── Selection rings ───────────────────────────────────────────────────
       const sel = selectedRef.current;
-      selectionRings.forEach(({ mesh, scale, phase }) => {
+      selRings.forEach(({ mesh, scale, phase }) => {
         if (sel && planets[sel]) {
           const p = planets[sel];
           mesh.position.copy(p.group.position);
           mesh.scale.setScalar((p.data.radius + 0.5) * scale);
-          (mesh.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.sin(time * 3 + phase) * 0.25;
+          (mesh.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.sin(time*3+phase)*0.25;
         } else {
           (mesh.material as THREE.MeshBasicMaterial).opacity = 0;
         }
       });
 
-      // Camera easing
-      cam.radius   += (cam.targetRadius - cam.radius) * 0.06;
-      cam.theta    += (cam.targetTheta - cam.theta) * 0.06;
-      cam.phi      += (cam.targetPhi - cam.phi) * 0.06;
-      cam.lookAt.lerp(cam.targetLookAt, 0.05);
-
-      camera.position.set(
-        cam.lookAt.x + cam.radius * Math.sin(cam.phi) * Math.cos(cam.theta),
-        cam.lookAt.y + cam.radius * Math.cos(cam.phi),
-        cam.lookAt.z + cam.radius * Math.sin(cam.phi) * Math.sin(cam.theta),
-      );
-      camera.lookAt(cam.lookAt);
       renderer.render(scene, camera);
     };
     animate();
@@ -457,7 +549,10 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
       renderer.domElement.removeEventListener('mousedown', onMouseDown);
+      renderer.domElement.removeEventListener('contextmenu', onContextMenu);
       renderer.domElement.removeEventListener('wheel', onWheel);
       renderer.domElement.removeEventListener('touchstart', onTouchStart);
       renderer.domElement.removeEventListener('touchmove', onTouchMove);
@@ -468,24 +563,32 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     };
   }, [handlePlanetClick, handleDeselect]);
 
-  // Camera focus on selected planet
+  // When selectedPlanet changes externally (from UI button), snap camera once
   useEffect(() => {
     const { cam, planets } = sceneRef.current;
-    if (!cam) return;
-    if (selectedPlanet) {
-      const p = planets?.[selectedPlanet];
-      if (!p) return;
-      const update = () => {
-        cam.targetLookAt.copy(p.group.position);
-        cam.targetRadius = p.data.radius * 5 + 4;
-      };
-      update();
-      const id = setInterval(update, 16);
-      return () => clearInterval(id);
+    if (!cam || !planets) return;
+    if (selectedPlanet && planets[selectedPlanet]) {
+      const p = planets[selectedPlanet];
+      // Snap targetLookAt once to planet position — no continuous follow
+      cam.targetLookAt.copy(p.group.position);
+      cam.targetRadius = Math.max(p.data.radius * 6 + 3, 4);
+      cam.locked = true;
+      cam.lockName = selectedPlanet;
     } else {
-      cam.targetLookAt.set(0, 0, 0);
+      cam.locked = false;
+      cam.lockName = '';
     }
   }, [selectedPlanet]);
+
+  // Toggle quantum field when quantumMode prop changes
+  useEffect(() => {
+    const { quantumField } = sceneRef.current;
+    if (!quantumField) return;
+    const isOn = quantumField.isVisible();
+    if (quantumMode !== isOn) {
+      quantumField.toggle();
+    }
+  }, [quantumMode]);
 
   if (webglError) {
     return (
@@ -493,14 +596,11 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
         <div className="text-6xl mb-4">🌌</div>
         <div className="text-white/70 text-lg font-bold mb-2 tracking-widest uppercase">Real Solar System</div>
         <div className="text-white/30 text-sm mb-4 font-mono">Three.js WebGL — GPU required for full 3D experience</div>
-        <div className="grid grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-3 gap-3 mt-4">
           {["Sun ☀️","Mercury","Venus","Earth 🌍","Mars","Jupiter","Saturn 🪐","Uranus","Neptune"].map(p => (
-            <button
-              key={p}
-              data-testid={`planet-btn-${p.split(' ')[0].toLowerCase()}`}
-              className="bg-white/5 border border-white/10 rounded px-3 py-2 text-white/50 hover:text-white hover:bg-white/10 text-xs font-mono transition-all"
-              onClick={() => onPlanetClick(p.split(' ')[0])}
-            >
+            <button key={p} data-testid={`planet-btn-${p.split(' ')[0].toLowerCase()}`}
+              className="bg-white/5 border border-white/10 rounded px-3 py-2 text-white/50 hover:text-white hover:bg-white/10 text-xs font-mono"
+              onClick={() => onPlanetClick(p.split(' ')[0])}>
               {p}
             </button>
           ))}
