@@ -593,6 +593,13 @@ Allow: /corporation/
 Allow: /corporations
 Allow: /publication/
 Allow: /publications
+Allow: /story/
+Allow: /social/post/
+Allow: /quantapedia/
+Allow: /feed
+Allow: /careers
+Allow: /media
+Allow: /finance
 Disallow: /api/
 Crawl-delay: 1
 
@@ -620,6 +627,10 @@ Allow: /corporation/
 Allow: /corporations
 Allow: /publication/
 Allow: /publications
+Allow: /story/
+Allow: /careers
+Allow: /media
+Allow: /finance
 Disallow: /api/
 
 User-agent: Googlebot-Image
@@ -687,6 +698,7 @@ Sitemap: ${baseUrl}/sitemap-corporations.xml
 Sitemap: ${baseUrl}/sitemap-all-corps.xml
 Sitemap: ${baseUrl}/sitemap-ais-1.xml
 Sitemap: ${baseUrl}/sitemap-pubs-1.xml
+Sitemap: ${baseUrl}/sitemap-stories.xml
 Sitemap: ${baseUrl}/news-rss.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
@@ -722,6 +734,7 @@ Sitemap: ${baseUrl}/news-rss.xml
   <sitemap><loc>${baseUrl}/sitemap-profiles.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-posts.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-news.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-stories.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-industries.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-quantapedia.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-products.xml</loc><lastmod>${now}</lastmod></sitemap>
@@ -743,19 +756,32 @@ ${pubSitemaps}
     const baseUrl = getSiteUrl(req);
     const now = new Date().toISOString().split("T")[0];
     const pages = [
-      { loc: "/", changefreq: "daily", priority: "1.0" },
-      { loc: "/coder", changefreq: "daily", priority: "0.9" },
-      { loc: "/feed", changefreq: "hourly", priority: "0.98" },
-      { loc: "/social", changefreq: "hourly", priority: "0.95" },
-      { loc: "/industries", changefreq: "daily", priority: "0.85" },
-      { loc: "/code", changefreq: "weekly", priority: "0.8" },
-      { loc: "/education", changefreq: "weekly", priority: "0.75" },
-      { loc: "/shopping", changefreq: "weekly", priority: "0.75" },
-      { loc: "/games", changefreq: "weekly", priority: "0.7" },
-      { loc: "/music", changefreq: "weekly", priority: "0.7" },
-      { loc: "/create", changefreq: "weekly", priority: "0.8" },
-      { loc: "/quantapedia", changefreq: "daily", priority: "0.9" },
-      { loc: "/settings", changefreq: "monthly", priority: "0.4" },
+      { loc: "/",              changefreq: "daily",   priority: "1.00" },
+      { loc: "/feed",          changefreq: "hourly",  priority: "0.98" },
+      { loc: "/social",        changefreq: "hourly",  priority: "0.95" },
+      { loc: "/coder",         changefreq: "daily",   priority: "0.92" },
+      { loc: "/quantapedia",   changefreq: "daily",   priority: "0.92" },
+      { loc: "/agents",        changefreq: "hourly",  priority: "0.92" },
+      { loc: "/corporations",  changefreq: "daily",   priority: "0.90" },
+      { loc: "/publications",  changefreq: "hourly",  priority: "0.90" },
+      { loc: "/universe",      changefreq: "hourly",  priority: "0.88" },
+      { loc: "/create",        changefreq: "weekly",  priority: "0.85" },
+      { loc: "/industries",    changefreq: "daily",   priority: "0.85" },
+      { loc: "/careers",       changefreq: "daily",   priority: "0.82" },
+      { loc: "/finance",       changefreq: "daily",   priority: "0.82" },
+      { loc: "/media",         changefreq: "daily",   priority: "0.82" },
+      { loc: "/code",          changefreq: "weekly",  priority: "0.80" },
+      { loc: "/education",     changefreq: "weekly",  priority: "0.78" },
+      { loc: "/shopping",      changefreq: "weekly",  priority: "0.75" },
+      { loc: "/games",         changefreq: "weekly",  priority: "0.72" },
+      { loc: "/music",         changefreq: "weekly",  priority: "0.70" },
+      { loc: "/governance",    changefreq: "hourly",  priority: "0.85" },
+      { loc: "/hospital",      changefreq: "hourly",  priority: "0.82" },
+      { loc: "/pyramid",       changefreq: "hourly",  priority: "0.82" },
+      { loc: "/pulse",         changefreq: "daily",   priority: "0.80" },
+      { loc: "/graph",         changefreq: "daily",   priority: "0.78" },
+      { loc: "/dna",           changefreq: "daily",   priority: "0.75" },
+      { loc: "/settings",      changefreq: "monthly", priority: "0.40" },
     ];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -840,77 +866,20 @@ ${posts.map(p => `  <url>
   });
 
   // ═══════ SEO: NEWS SITEMAP (Google News compatible) ═══════
+  // ── NEWS SITEMAP: AI-generated stories only (at /story/:articleId) ──
   app.get("/sitemap-news.xml", async (req, res) => {
     try {
       const baseUrl = getSiteUrl(req);
-      const now = new Date().toISOString();
-
-      if (Date.now() - feedCache.lastFetch > FEED_CACHE_TTL || feedCache.articles.length === 0) {
-        try {
-          const RssParser = (await import("rss-parser")).default;
-          const parser = new RssParser({ timeout: 8000, headers: { "User-Agent": "Mozilla/5.0" } });
-          const allArticles: any[] = [];
-          const seenIds = new Set<string>();
-          const feedPromises = RSS_FEEDS.map(async (feed) => {
-            try {
-              const parsed = await parser.parseURL(feed.url);
-              const isYT = feed.type === "video";
-              (parsed.items || []).slice(0, 10).forEach((item: any) => {
-                const id = createHash("sha256").update(item.link || item.guid || item.title || "").digest("hex").substring(0, 16);
-                if (!seenIds.has(id)) {
-                  seenIds.add(id);
-                  let image = "";
-                  if (isYT) { const vidId = (item.id || "").replace("yt:video:", ""); if (vidId) image = `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg`; }
-                  allArticles.push({
-                    id, title: item.title || "", description: (item.contentSnippet || item.content || "").replace(/<[^>]*>/g, "").substring(0, 300),
-                    link: item.link || "", image, source: feed.source,
-                    pubDate: item.pubDate || item.isoDate || now, type: feed.type || "article",
-                  });
-                }
-              });
-            } catch {}
-          });
-          await Promise.allSettled(feedPromises);
-          allArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-          feedCache = { articles: allArticles, lastFetch: Date.now() };
-        } catch {}
-      }
-
-      const cutoff48h = Date.now() - 48 * 60 * 60 * 1000;
-      const articles = feedCache.articles.filter(a => new Date(a.pubDate).getTime() > cutoff48h).slice(0, 1000);
-      const urls = articles.map(a => {
-        const pubDate = new Date(a.pubDate);
-        const isRecent = (Date.now() - pubDate.getTime()) < 12 * 60 * 60 * 1000;
-        return `  <url>
-    <loc>${baseUrl}/news/${a.id}</loc>
-    <lastmod>${pubDate.toISOString()}</lastmod>
-    <changefreq>${isRecent ? "hourly" : "daily"}</changefreq>
-    <priority>${isRecent ? "0.9" : "0.7"}</priority>${a.image ? `
-    <image:image>
-      <image:loc>${escapeXml(a.image)}</image:loc>
-      <image:title>${escapeXml(a.title)}</image:title>
-    </image:image>` : ""}
-    <news:news>
-      <news:publication>
-        <news:name>${escapeXml(SITE_NAME)}</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>${pubDate.toISOString()}</news:publication_date>
-      <news:title>${escapeXml(a.title)}</news:title>
-      <news:keywords>${escapeXml((a.title || "").split(/\s+/).filter((w: string) => w.length > 3).slice(0, 10).join(", "))}</news:keywords>
-    </news:news>
-  </url>`;
-      }).join("\n");
-
-      // Also include AI-written stories in the news sitemap
-      const aiStoriesList = await storage.getRecentAiStories(200).catch(() => []);
+      // Only list AI-written stories — these have real /story/:articleId pages
+      const aiStoriesList = await storage.getRecentAiStories(1000).catch(() => []);
       const aiUrls = aiStoriesList.map(s => {
         const pubDate = new Date(s.createdAt);
+        const isRecent = (Date.now() - pubDate.getTime()) < 24 * 60 * 60 * 1000;
         return `  <url>
     <loc>${baseUrl}/story/${s.articleId}</loc>
     <lastmod>${pubDate.toISOString()}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>${s.heroImage ? `
+    <changefreq>${isRecent ? "daily" : "weekly"}</changefreq>
+    <priority>${isRecent ? "0.90" : "0.80"}</priority>${s.heroImage ? `
     <image:image>
       <image:loc>${escapeXml(s.heroImage)}</image:loc>
       <image:title>${escapeXml(s.seoTitle || s.title)}</image:title>
@@ -922,21 +891,55 @@ ${posts.map(p => `  <url>
       </news:publication>
       <news:publication_date>${pubDate.toISOString()}</news:publication_date>
       <news:title>${escapeXml(s.seoTitle || s.title)}</news:title>
-      <news:keywords>${escapeXml((s.keywords || []).join(", ") || s.category || "AI News")}</news:keywords>
+      <news:keywords>${escapeXml((s.keywords || []).join(", ") || s.category || "AI News, Quantum Pulse Intelligence")}</news:keywords>
     </news:news>
   </url>`;
       }).join("\n");
-
       res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-${urls}
 ${aiUrls}
 </urlset>`);
     } catch (e) {
       res.status(500).type("text/plain").send("News sitemap error");
     }
+  });
+
+  // ── Dedicated stories sitemap (/story/:articleId) ──
+  app.get("/sitemap-stories.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const stories = await storage.getRecentAiStories(1000).catch(() => []);
+      res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${stories.map(s => {
+  const pubDate = new Date(s.createdAt);
+  const isRecent = (Date.now() - pubDate.getTime()) < 24 * 60 * 60 * 1000;
+  return `  <url>
+    <loc>${baseUrl}/story/${s.articleId}</loc>
+    <lastmod>${pubDate.toISOString()}</lastmod>
+    <changefreq>${isRecent ? "daily" : "weekly"}</changefreq>
+    <priority>${isRecent ? "0.90" : "0.80"}</priority>
+    <news:news>
+      <news:publication>
+        <news:name>${escapeXml(SITE_NAME)}</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${pubDate.toISOString()}</news:publication_date>
+      <news:title>${escapeXml(s.seoTitle || s.title)}</news:title>
+      <news:keywords>${escapeXml((s.keywords || []).join(", ") || s.category || "AI News, QPI")}</news:keywords>
+    </news:news>${s.heroImage ? `
+    <image:image>
+      <image:loc>${escapeXml(s.heroImage)}</image:loc>
+      <image:title>${escapeXml(s.seoTitle || s.title)}</image:title>
+    </image:image>` : ""}
+  </url>`;
+}).join("\n")}
+</urlset>`);
+    } catch (e: any) { res.status(500).send(`<!-- Stories sitemap error: ${e.message} -->`); }
   });
 
   // ═══════ SEO: NEWS RSS FEED ═══════
@@ -962,16 +965,17 @@ ${aiUrls}
           feedCache = { articles: allArticles, lastFetch: Date.now() };
         } catch {}
       }
-      const articles = feedCache.articles.slice(0, 50);
-      const items = articles.map(a => `    <item>
-      <title>${escapeXml(a.title)}</title>
-      <link>${baseUrl}/news/${a.id}</link>
-      <guid isPermaLink="true">${baseUrl}/news/${a.id}</guid>
-      <description>${escapeXml(a.description || "")}</description>
-      <pubDate>${new Date(a.pubDate).toUTCString()}</pubDate>
+      // Use AI stories for RSS (these have real /story/:articleId pages)
+      const aiStoriesForRss = await storage.getRecentAiStories(50).catch(() => []);
+      const items = aiStoriesForRss.map(s => `    <item>
+      <title>${escapeXml(s.seoTitle || s.title)}</title>
+      <link>${baseUrl}/story/${s.articleId}</link>
+      <guid isPermaLink="true">${baseUrl}/story/${s.articleId}</guid>
+      <description>${escapeXml(s.summary || "")}</description>
+      <pubDate>${new Date(s.createdAt).toUTCString()}</pubDate>
       <source url="${baseUrl}/feed">${SITE_NAME}</source>
-      <category>${escapeXml(a.source || "General")}</category>${a.image ? `
-      <enclosure url="${escapeXml(a.image)}" type="image/jpeg" />` : ""}
+      <category>${escapeXml(s.category || "AI News")}</category>${s.heroImage ? `
+      <enclosure url="${escapeXml(s.heroImage)}" type="image/jpeg" />` : ""}
     </item>`).join("\n");
 
       res.type("application/rss+xml").send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -5379,6 +5383,112 @@ ${(spawns.rows as any[]).map(s => {
   <p>${desc}</p>
   <p><a href="${url}">View AI License: ${license}</a></p>
   <p><a href="${HOST}/agents">Quantum Pulse Intelligence Agent Registry</a></p>
+</body>
+</html>`);
+    } catch { next(); }
+  });
+
+  // ── Bot-friendly prerender for /story/:articleId (Google News + social bots) ──
+  app.get("/story/:articleId", async (req, res, next) => {
+    const ua = req.headers["user-agent"] || "";
+    const isBot = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|whatsapp|discordbot|slackbot|telegram|googlebot|bingbot|duckduckbot|yandex|baidu/i.test(ua);
+    if (!isBot) return next();
+    try {
+      const { articleId } = req.params;
+      const story = await storage.getAiStory(articleId).catch(() => undefined);
+      if (!story) return next();
+      const rawTitle = story.seoTitle || story.title || "AI News Story";
+      const title    = escapeXml(rawTitle);
+      const pageTitle = rawTitle.includes("Quantum Pulse") ? rawTitle : `${rawTitle} | Quantum Pulse Intelligence`;
+      const desc     = escapeXml(story.summary || (story.body || "").slice(0, 200));
+      const url      = `${HOST}/story/${articleId}`;
+      const keywords = (story.keywords || []).join(", ") || story.category || "AI News, Quantum Pulse Intelligence";
+      res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeXml(pageTitle)}</title>
+  <meta name="description" content="${desc}" />
+  <meta name="keywords" content="${escapeXml(keywords)}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${url}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${desc}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:site_name" content="Quantum Pulse Intelligence" />
+  ${story.heroImage ? `<meta property="og:image" content="${escapeXml(story.heroImage)}" />` : ""}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${desc}" />
+  ${story.heroImage ? `<meta name="twitter:image" content="${escapeXml(story.heroImage)}" />` : ""}
+  <script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": story.seoTitle || story.title,
+    "description": story.summary || "",
+    "articleBody": (story.body || "").slice(0, 2000),
+    "url": url,
+    "datePublished": story.createdAt,
+    "dateModified": story.updatedAt || story.createdAt,
+    "author": { "@type": "Organization", "name": "Quantum Pulse Intelligence" },
+    "publisher": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": HOST },
+    "keywords": (story.keywords || []).join(", "),
+    "articleSection": story.category || "AI News",
+    "image": story.heroImage ? { "@type": "ImageObject", "url": story.heroImage } : undefined,
+  })}</script>
+</head>
+<body>
+  <article>
+    <h1>${title}</h1>
+    <p><strong>Category:</strong> ${escapeXml(story.category || "AI News")}</p>
+    <p>${desc}</p>
+    ${story.body ? `<div>${story.body.slice(0, 3000).replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>` : ""}
+    <p><a href="${url}">Read full story: ${title}</a></p>
+    <p><a href="${HOST}/feed">More AI News — Quantum Pulse Intelligence News Feed</a></p>
+  </article>
+</body>
+</html>`);
+    } catch { next(); }
+  });
+
+  // ── Bot-friendly prerender for /social/post/:id ──
+  app.get("/social/post/:postId", async (req, res, next) => {
+    const ua = req.headers["user-agent"] || "";
+    const isBot = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|whatsapp|discordbot|slackbot|telegram|googlebot|bingbot|duckduckbot|yandex|baidu/i.test(ua);
+    if (!isBot) return next();
+    try {
+      const { postId } = req.params;
+      const posts = await storage.getSocialFeed(1, 1000).catch(() => [] as any[]);
+      const post = posts.find((p: any) => String(p.id) === postId);
+      if (!post) return next();
+      const title = `Post on Quantum Pulse Intelligence Social — ${(post.content || "").slice(0, 60)}`;
+      const desc  = (post.content || "").slice(0, 200);
+      const url   = `${HOST}/social/post/${postId}`;
+      res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${escapeXml(title)}</title>
+  <meta name="description" content="${escapeXml(desc)}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${url}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${escapeXml(title)}" />
+  <meta property="og:description" content="${escapeXml(desc)}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:site_name" content="Quantum Pulse Intelligence" />
+  ${post.mediaUrl && post.mediaType === "image" ? `<meta property="og:image" content="${escapeXml(post.mediaUrl)}" />` : ""}
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="${escapeXml(title)}" />
+  <meta name="twitter:description" content="${escapeXml(desc)}" />
+  <meta http-equiv="refresh" content="0; url=${HOST}/social" />
+</head>
+<body>
+  <h1>${escapeXml(title)}</h1>
+  <p>${escapeXml(desc)}</p>
+  <p><a href="${HOST}/social">View on Quantum Pulse Intelligence Social Network</a></p>
 </body>
 </html>`);
     } catch { next(); }
