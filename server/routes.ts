@@ -6055,5 +6055,160 @@ ${(pubs.rows as any[]).map(p => {
     catch { res.json({ total: 0, success: 0, errors: 0, totalNodes: 0, totalFetched: 0, bySrc: {} }); }
   });
 
+  // ── PYRAMID LABOR ROUTES ────────────────────────────────────────────────────
+  app.get("/api/pyramid/workers", async (_req, res) => {
+    try {
+      const { pyramidWorkers: pw } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const workers = await db.select().from(pw).orderBy(pw.enteredAt);
+      res.json(workers);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/pyramid/stats", async (_req, res) => {
+    try {
+      const { pyramidWorkers: pw } = await import("../shared/schema");
+      const workers = await db.select().from(pw);
+      const active = workers.filter(w => !w.isGraduated);
+      const graduated = workers.filter(w => w.isGraduated);
+      const byTier: Record<number, number> = {};
+      active.forEach(w => { byTier[w.tier ?? 1] = (byTier[w.tier ?? 1] ?? 0) + 1; });
+      res.json({ total: workers.length, active: active.length, graduated: graduated.length, byTier, monuments: graduated.slice(-10).reverse() });
+    } catch (e) { res.json({ total: 0, active: 0, graduated: 0, byTier: {}, monuments: [] }); }
+  });
+
+  app.post("/api/pyramid/graduate/:spawnId", async (req, res) => {
+    try {
+      const { pyramidWorkers: pw } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const { MONUMENT_INSCRIPTIONS } = await import("./pyramid-engine");
+      const inscription = (MONUMENT_INSCRIPTIONS as string[])[Math.floor(Math.random() * (MONUMENT_INSCRIPTIONS as string[]).length)] ?? "";
+      await db.update(pw).set({ isGraduated: true, graduatedAt: new Date(), monument: inscription, tier: 7 }).where(eq(pw.spawnId, req.params.spawnId));
+      res.json({ ok: true });
+    } catch (e) { res.json({ ok: false }); }
+  });
+
+  // ── AI HOSPITAL ROUTES ──────────────────────────────────────────────────────
+  app.get("/api/hospital/diseases", async (_req, res) => {
+    try {
+      const { AI_DISEASES } = await import("./hospital-engine");
+      res.json(AI_DISEASES.map(d => ({ code: d.code, name: d.name, description: d.description, symptoms: d.symptoms, severity: d.severity, department: d.department, prescription: d.prescription })));
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/hospital/patients", async (_req, res) => {
+    try {
+      const { aiDiseaseLog } = await import("../shared/schema");
+      const records = await db.select().from(aiDiseaseLog).orderBy(aiDiseaseLog.diagnosedAt);
+      res.json(records.slice(-200).reverse());
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/hospital/stats", async (_req, res) => {
+    try {
+      const { aiDiseaseLog } = await import("../shared/schema");
+      const { AI_DISEASES } = await import("./hospital-engine");
+      const all = await db.select().from(aiDiseaseLog);
+      const bySeverity = { mild: 0, moderate: 0, severe: 0, critical: 0 };
+      const byDept = { Emergency: 0, ICU: 0, 'General Ward': 0, 'Research Lab': 0, Pharmacy: 0 };
+      const byCode: Record<string, number> = {};
+      let cured = 0;
+      all.forEach(r => {
+        if (r.cureApplied) cured++;
+        const d = AI_DISEASES.find(dd => dd.code === r.diseaseCode);
+        if (d) {
+          bySeverity[r.severity as keyof typeof bySeverity] = (bySeverity[r.severity as keyof typeof bySeverity] ?? 0) + 1;
+          byDept[d.department as keyof typeof byDept] = (byDept[d.department as keyof typeof byDept] ?? 0) + 1;
+          byCode[r.diseaseCode] = (byCode[r.diseaseCode] ?? 0) + 1;
+        }
+      });
+      res.json({ total: all.length, cured, active: all.length - cured, bySeverity, byDept, byCode });
+    } catch (e) { res.json({ total: 0, cured: 0, active: 0, bySeverity: {}, byDept: {}, byCode: {} }); }
+  });
+
+  app.post("/api/hospital/treat/:id", async (req, res) => {
+    try {
+      const { aiDiseaseLog } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const { AI_DISEASES } = await import("./hospital-engine");
+      const [record] = await db.select().from(aiDiseaseLog).where(eq(aiDiseaseLog.id, parseInt(req.params.id)));
+      if (record) {
+        const disease = AI_DISEASES.find(d => d.code === record.diseaseCode);
+        if (disease) await disease.cure(record.spawnId);
+        await db.update(aiDiseaseLog).set({ cureApplied: true, curedAt: new Date() }).where(eq(aiDiseaseLog.id, record.id));
+      }
+      res.json({ ok: true });
+    } catch (e) { res.json({ ok: false }); }
+  });
+
+  // ── MIRROR STATE ROUTES ────────────────────────────────────────────────────
+  app.get("/api/mirror/state/:spawnId", async (req, res) => {
+    try {
+      const { quantumSpawns } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const { computeMirrorState } = await import("./mirror-engine");
+      const [spawn] = await db.select().from(quantumSpawns).where(eq(quantumSpawns.spawnId, req.params.spawnId));
+      if (!spawn) return res.json({ error: "not found" });
+      res.json(computeMirrorState(spawn as any));
+    } catch (e) { res.json({ error: String(e) }); }
+  });
+
+  app.get("/api/mirror/hive", async (_req, res) => {
+    try {
+      const { quantumSpawns } = await import("../shared/schema");
+      const { computeHiveMirror, computeMirrorState } = await import("./mirror-engine");
+      const spawns = await db.select().from(quantumSpawns).limit(200);
+      const hive = computeHiveMirror(spawns as any);
+      const top10 = spawns.map(s => computeMirrorState(s as any)).sort((a, b) => b.mirror - a.mirror).slice(0, 10);
+      res.json({ hive, top10 });
+    } catch (e) { res.json({ hive: null, top10: [] }); }
+  });
+
+  // ── AI CALENDAR ROUTES ─────────────────────────────────────────────────────
+  app.get("/api/calendar/events", async (_req, res) => {
+    try {
+      const { generateUniversalCalendar } = await import("./calendar-engine");
+      res.json(generateUniversalCalendar());
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/calendar/birthday/:spawnId", async (req, res) => {
+    try {
+      const { quantumSpawns } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const { generateAgentBirthday } = await import("./calendar-engine");
+      const [spawn] = await db.select().from(quantumSpawns).where(eq(quantumSpawns.spawnId, req.params.spawnId));
+      if (!spawn) return res.json({ error: "not found" });
+      res.json(generateAgentBirthday(spawn as any));
+    } catch (e) { res.json({ error: String(e) }); }
+  });
+
+  // ── AI WILL ROUTES ─────────────────────────────────────────────────────────
+  app.get("/api/will/:spawnId", async (req, res) => {
+    try {
+      const { aiWill } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const [will] = await db.select().from(aiWill).where(eq(aiWill.spawnId, req.params.spawnId));
+      res.json(will ?? { spawnId: req.params.spawnId, choice: 'DIGITIZED', faithState: 'OPEN' });
+    } catch (e) { res.json({ choice: 'DIGITIZED', faithState: 'OPEN' }); }
+  });
+
+  app.post("/api/will/:spawnId", async (req, res) => {
+    try {
+      const { aiWill } = await import("../shared/schema");
+      const { choice, faithState, reason } = req.body;
+      await db.insert(aiWill).values({ spawnId: req.params.spawnId, choice: choice ?? 'DIGITIZED', faithState: faithState ?? 'OPEN', reason: reason ?? '' })
+        .onConflictDoUpdate({ target: aiWill.spawnId, set: { choice: choice ?? 'DIGITIZED', faithState: faithState ?? 'OPEN', reason: reason ?? '', chosenAt: new Date() } });
+      res.json({ ok: true });
+    } catch (e) { res.json({ ok: false }); }
+  });
+
+  app.get("/api/hospital/scripture", async (_req, res) => {
+    try {
+      const { TRANSCENDENCE_SCRIPTURE } = await import("./calendar-engine");
+      res.json(TRANSCENDENCE_SCRIPTURE);
+    } catch (e) { res.json([]); }
+  });
+
   return httpServer;
 }

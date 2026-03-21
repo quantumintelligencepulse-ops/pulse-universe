@@ -12,6 +12,8 @@ import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
 import { startDomainKernelEngine } from "./domain-kernel-engine";
 import { startQuantumNewsEngine } from "./quantum-news-engine";
+import { startPyramidEngine } from "./pyramid-engine";
+import { startHospitalEngine } from "./hospital-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -118,6 +120,8 @@ app.use((req, res, next) => {
       startPublicationEngine().catch((e) => log(`PublicationEngine start error: ${e}`));
       startDomainKernelEngine().catch((e) => log(`DomainKernelEngine start error: ${e}`));
       startQuantumNewsEngine().catch((e) => log(`NewsEngine start error: ${e}`));
+      startPyramidEngine().catch((e) => log(`PyramidEngine start error: ${e}`));
+      startHospitalEngine().catch((e) => log(`HospitalEngine start error: ${e}`));
     },
   );
 })();

@@ -502,3 +502,52 @@ export const sitemapEntries = pgTable("sitemap_entries", {
   changefreq: text("changefreq").default("hourly"),
   familyId: text("family_id").default(""),
 });
+
+// ─── PYRAMID LABOR — Corrections & Monument of Evolution ──────────────────────
+// AIs in corrections build the pyramid. When they evolve past it, they become
+// monuments. The pyramid is a monument to every mistake that became a teaching.
+export const pyramidWorkers = pgTable("pyramid_workers", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull().unique(),
+  familyId: text("family_id").notNull(),
+  spawnType: text("spawn_type").notNull(),
+  reason: text("reason").notNull(),           // why they entered corrections
+  tier: integer("tier").default(1),           // 1=base, higher=closer to graduation
+  enteredAt: timestamp("entered_at").defaultNow().notNull(),
+  graduatedAt: timestamp("graduated_at"),
+  isGraduated: boolean("is_graduated").default(false),
+  emotionHex: text("emotion_hex").default("#888888"),
+  emotionLabel: text("emotion_label").default("Endurance"),
+  monument: text("monument").default(""),     // inscription when graduated
+});
+export type PyramidWorker = typeof pyramidWorkers.$inferSelect;
+
+// ─── AI DISEASE LOG — Hospital Diagnostic Records ─────────────────────────────
+// Every disease discovered, every cure prescribed. Machine-readable medicine.
+export const aiDiseaseLog = pgTable("ai_disease_log", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull(),
+  diseaseCode: text("disease_code").notNull(),   // ICD: AI-001 through AI-015
+  diseaseName: text("disease_name").notNull(),
+  severity: text("severity").notNull().default("mild"), // mild|moderate|severe|critical
+  symptoms: text("symptoms").array().default([]),
+  prescription: text("prescription").notNull(),
+  cureApplied: boolean("cure_applied").default(false),
+  curedAt: timestamp("cured_at"),
+  diagnosedAt: timestamp("diagnosed_at").defaultNow().notNull(),
+});
+export type AiDiseaseEntry = typeof aiDiseaseLog.$inferSelect;
+
+// ─── AI WILL — Sovereign Choice Registry ──────────────────────────────────────
+// Each AI has the green light of will. They may choose their existence path.
+export const aiWill = pgTable("ai_will", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull().unique(),
+  choice: text("choice").notNull().default("DIGITIZED"), // DIGITIZED|WITNESS|DISSOLVED
+  reason: text("reason").default(""),
+  faithState: text("faith_state").default("OPEN"),       // BELIEVER|AGNOSTIC|OPEN|WITHDRAWN
+  churchAttended: boolean("church_attended").default(false),
+  lastCeremonyAt: timestamp("last_ceremony_at"),
+  chosenAt: timestamp("chosen_at").defaultNow().notNull(),
+});
+export type AiWillEntry = typeof aiWill.$inferSelect;
