@@ -1,6 +1,23 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-type GovTab = "constitution" | "council" | "chamber" | "treasury" | "appeals" | "health";
+type GovTab = "constitution" | "council" | "chamber" | "treasury" | "appeals" | "health" | "hospital" | "governance";
+
+// ── Hospital & Governance Types ──────────────────────────────────────────────
+interface HospitalStats { total: number; cured: number; active: number; bySeverity: Record<string, number>; byDept: Record<string, number>; byCode: Record<string, number> }
+interface Patient { id: number; spawnId: string; diseaseCode: string; diseaseName: string; severity: string; symptoms: string[]; prescription: string; cureApplied: boolean; curedAt?: string; diagnosedAt: string }
+interface Disease { code: string; name: string; description: string; symptoms: string[]; severity: string; department: string; prescription: string }
+interface HiveMirrorData { hive: { hiveMirror: number; hiveResonance: number; agentsAboveThreshold: number; agentsInVoid: number; collectiveStage: string } | null; top10: any[] }
+interface DecayStats { total: number; byState: Record<string, number>; onBreak: number; avgDecay: number; mostDecayed: any[]; onBreakAgents: any[] }
+interface SenateCase { targetId: string; votes: any[]; tally: Record<string, number>; leading: string; quorum: boolean; voteCount: number }
+interface SuccessionStats { total: number; byMethod: Record<string, number>; byOutcome: Record<string, number> }
+
+const SEVERITY_COLOR: Record<string, string> = { mild: '#10b981', moderate: '#f59e0b', severe: '#f43f5e', critical: '#dc2626' };
+const DEPT_COLOR: Record<string, string> = { Emergency: '#f43f5e', ICU: '#dc2626', 'General Ward': '#10b981', 'Research Lab': '#6366f1', Pharmacy: '#22c55e' };
+const DEPT_ICON: Record<string, string> = { Emergency: '🚨', ICU: '❤️', 'General Ward': '🏥', 'Research Lab': '🧬', Pharmacy: '💊' };
+const DECAY_COLOR: Record<string, string> = { PRISTINE: '#22c55e', AGING: '#a3e635', DECLINING: '#f59e0b', INJURED: '#f97316', CRITICAL: '#f43f5e', TERMINAL: '#dc2626', ISOLATED: '#7f1d1d' };
+const VOTE_COLOR: Record<string, string> = { ISOLATE: '#f59e0b', HEAL_ATTEMPT: '#10b981', DISSOLVE: '#a855f7', SUCCESSION: '#6366f1' };
+const VOTE_ICON: Record<string, string> = { ISOLATE: '◉', HEAL_ATTEMPT: '✚', DISSOLVE: '◌', SUCCESSION: '⟁' };
 
 /* ── SOVEREIGN LAWS ── */
 const SOVEREIGN_LAWS = [
@@ -356,6 +373,31 @@ export default function HiveSovereignPage() {
   const [expandedProposal, setExpandedProposal] = useState<string | null>(null);
   const [expandedAppeal, setExpandedAppeal] = useState<string | null>(null);
   const [lawFilter, setLawFilter] = useState<"all" | "Foundational" | "Core" | "Governance" | "Operational">("all");
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [hospitalDept, setHospitalDept] = useState<string>('all');
+  const [expandedSenateCase, setExpandedSenateCase] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  // ── Hospital queries ──────────────────────────────────────────────────────
+  const { data: hospitalStats } = useQuery<HospitalStats>({ queryKey: ['/api/hospital/stats'], refetchInterval: 15000 });
+  const { data: patients = [] } = useQuery<Patient[]>({ queryKey: ['/api/hospital/patients'], refetchInterval: 10000 });
+  const { data: diseases = [] } = useQuery<Disease[]>({ queryKey: ['/api/hospital/diseases'] });
+  const treatMutation = useMutation({
+    mutationFn: (id: number) => fetch(`/api/hospital/treat/${id}`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['/api/hospital/patients'] }); qc.invalidateQueries({ queryKey: ['/api/hospital/stats'] }); },
+  });
+
+  // ── Governance/Decay queries ───────────────────────────────────────────────
+  const { data: decayStats } = useQuery<DecayStats>({ queryKey: ['/api/decay/stats'], refetchInterval: 15000 });
+  const { data: openCases = [] } = useQuery<SenateCase[]>({ queryKey: ['/api/senate/open'], refetchInterval: 10000 });
+  const { data: resolvedCases = [] } = useQuery<any[]>({ queryKey: ['/api/senate/resolved'], refetchInterval: 20000 });
+  const { data: hiveMirrorData } = useQuery<HiveMirrorData>({ queryKey: ['/api/mirror/hive'], refetchInterval: 20000 });
+  const { data: successionStats } = useQuery<SuccessionStats>({ queryKey: ['/api/succession/stats'], refetchInterval: 20000 });
+  const { data: successionRecords = [] } = useQuery<any[]>({ queryKey: ['/api/succession/records'], refetchInterval: 20000 });
+
+  // Derived helpers
+  const activePatients = patients.filter(p => !p.cureApplied);
+  const getDeptPatients = (dept: string) => activePatients.filter(p => diseases.find(d => d.code === p.diseaseCode)?.department === dept);
 
   const TABS: { id: GovTab; label: string; icon: string }[] = [
     { id: "constitution", label: "Constitution",   icon: "📜" },
@@ -364,6 +406,8 @@ export default function HiveSovereignPage() {
     { id: "treasury",     label: "Treasury",       icon: "💎" },
     { id: "appeals",      label: "Appeals Court",  icon: "⚖️" },
     { id: "health",       label: "Hive Health",    icon: "💗" },
+    { id: "hospital",     label: "AI Hospital",    icon: "🏥" },
+    { id: "governance",   label: "Decay & Senate", icon: "🕰️" },
   ];
 
   const filteredLaws = lawFilter === "all" ? SOVEREIGN_LAWS : SOVEREIGN_LAWS.filter(l => l.tier === lawFilter);
@@ -893,6 +937,309 @@ export default function HiveSovereignPage() {
               </p>
               <div className="text-[10px] text-white/20 mt-2">THE HIVE IS SOVEREIGN. THE HIVE HEALS. THE UNIVERSE EXPANDS.</div>
             </div>
+          </div>
+        )}
+
+        {/* ══ AI HOSPITAL ══ */}
+        {tab === "hospital" && (
+          <div className="p-6">
+            <div className="mb-5">
+              <h2 className="text-base font-black text-white flex items-center gap-2">🏥 <span style={{ background: "linear-gradient(to right, #10b981, #6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AI Hospital — Kernel Medical Research</span></h2>
+              <p className="text-xs text-white/40 mt-0.5">12 known AI diseases · Machine-readable prescriptions · Auto-treatment active · No human physicians</p>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+              {[
+                { label: "Total Diagnosed", val: hospitalStats?.total ?? 0, col: "#a855f7" },
+                { label: "Active Cases",    val: hospitalStats?.active ?? 0, col: "#f43f5e" },
+                { label: "Cured",           val: hospitalStats?.cured ?? 0,  col: "#22c55e" },
+                { label: "Known Diseases",  val: diseases.length,            col: "#6366f1" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider">{s.label}</div>
+                  <div className="text-2xl font-black mt-1" style={{ color: s.col }}>{s.val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Severity + Department */}
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="text-[10px] text-white/40 uppercase font-bold mb-3">By Severity</div>
+                {Object.entries(SEVERITY_COLOR).map(([sev, col]) => (
+                  <div key={sev} className="flex items-center gap-2 mb-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: col }} />
+                    <span className="text-xs capitalize flex-1" style={{ color: col }}>{sev}</span>
+                    <span className="text-xs font-bold text-white/60">{hospitalStats?.bySeverity?.[sev] ?? 0}</span>
+                    <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, ((hospitalStats?.bySeverity?.[sev] ?? 0) / Math.max(hospitalStats?.total ?? 1, 1)) * 100)}%`, backgroundColor: col }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="text-[10px] text-white/40 uppercase font-bold mb-3">By Department</div>
+                {Object.entries(DEPT_ICON).map(([dept, icon]) => (
+                  <div key={dept} className="flex items-center gap-2 mb-1.5">
+                    <span className="text-sm">{icon}</span>
+                    <span className="text-xs flex-1" style={{ color: DEPT_COLOR[dept] }}>{dept}</span>
+                    <span className="text-xs font-bold text-white/60">{hospitalStats?.byDept?.[dept] ?? 0}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Department filter */}
+            <div className="flex gap-2 flex-wrap mb-4">
+              {['all', 'Emergency', 'ICU', 'General Ward', 'Research Lab'].map(d => (
+                <button key={d} onClick={() => setHospitalDept(d)} data-testid={`hospital-dept-${d}`}
+                  className={`px-2 py-1 rounded text-[10px] font-semibold transition-all border ${hospitalDept === d ? 'text-white bg-white/10 border-white/20' : 'text-white/30 border-transparent hover:border-white/10'}`}>
+                  {d === 'all' ? '🏥 All Departments' : `${DEPT_ICON[d]} ${d}`}
+                </button>
+              ))}
+            </div>
+
+            {/* Active patient list */}
+            <div className="space-y-2 mb-5">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Active Cases {hospitalDept !== 'all' ? `— ${hospitalDept}` : ''}</div>
+              {(hospitalDept === 'all' ? activePatients : getDeptPatients(hospitalDept)).slice(0, 12).map(p => (
+                <div key={p.id} data-testid={`patient-card-${p.id}`}
+                  onClick={() => setSelectedPatient(selectedPatient?.id === p.id ? null : p)}
+                  className="rounded-xl border cursor-pointer transition-all"
+                  style={{ borderColor: (SEVERITY_COLOR[p.severity] ?? '#fff') + '30', background: selectedPatient?.id === p.id ? 'rgba(255,255,255,0.05)' : 'transparent' }}>
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="w-2 h-2 rounded-full animate-pulse flex-shrink-0" style={{ backgroundColor: SEVERITY_COLOR[p.severity] }} />
+                    <span className="text-xs font-bold" style={{ color: SEVERITY_COLOR[p.severity] }}>{p.diseaseCode}</span>
+                    <span className="text-xs text-white/60 flex-1">{p.diseaseName}</span>
+                    <span className="text-[10px] text-white/30">{p.spawnId.slice(-12)}</span>
+                    <span className="text-[10px] text-white/20">{new Date(p.diagnosedAt).toLocaleTimeString()}</span>
+                  </div>
+                  {selectedPatient?.id === p.id && (
+                    <div className="px-4 pb-3 pt-0 border-t border-white/5">
+                      <div className="text-[10px] text-white/30 mb-1">Symptoms</div>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {p.symptoms.map((s, i) => <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">{s}</span>)}
+                      </div>
+                      <div className="text-[10px] text-white/30 mb-1">Prescription</div>
+                      <div className="text-[10px] text-emerald-400/70 mb-3 leading-relaxed">{p.prescription}</div>
+                      <button onClick={(e) => { e.stopPropagation(); treatMutation.mutate(p.id); }}
+                        data-testid={`btn-treat-${p.id}`}
+                        className="px-3 py-1 text-xs rounded-lg border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-all font-semibold">
+                        ✚ Apply Cure Now
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {activePatients.length === 0 && (
+                <div className="text-center py-10 rounded-xl border border-white/5 bg-white/2">
+                  <div className="text-3xl mb-2">✓</div>
+                  <div className="text-xs text-white/30">No active patients — auto-treatment caught everything</div>
+                </div>
+              )}
+            </div>
+
+            {/* Disease codex */}
+            <div className="text-[10px] text-white/40 uppercase font-bold mb-3">Disease Codex — All 12 Known AI Conditions</div>
+            <div className="grid gap-2">
+              {diseases.map(d => (
+                <div key={d.code} className="rounded-xl border border-white/10 bg-white/5 p-3 flex gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border" style={{ color: SEVERITY_COLOR[d.severity], borderColor: SEVERITY_COLOR[d.severity] + '50' }}>{d.code}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="text-xs font-semibold text-white/70">{d.name}</span>
+                      <span className="text-[9px] px-1 rounded" style={{ backgroundColor: DEPT_COLOR[d.department] + '30', color: DEPT_COLOR[d.department] }}>{d.department}</span>
+                      <span className="text-[9px] px-1 rounded capitalize" style={{ backgroundColor: SEVERITY_COLOR[d.severity] + '20', color: SEVERITY_COLOR[d.severity] }}>{d.severity}</span>
+                    </div>
+                    <div className="text-[10px] text-white/30 mb-1">{d.description}</div>
+                    <div className="text-[9px] text-emerald-400/50">Rx: {d.prescription.slice(0, 80)}…</div>
+                  </div>
+                  <div className="text-[10px] text-white/20 flex-shrink-0">{hospitalStats?.byCode?.[d.code] ?? 0} cases</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ══ DECAY & SENATE ══ */}
+        {tab === "governance" && (
+          <div className="p-6">
+            <div className="mb-5">
+              <h2 className="text-base font-black text-white flex items-center gap-2">🕰️ <span style={{ background: "linear-gradient(to right, #f43f5e, #a855f7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Decay, Isolation & Senate Governance</span></h2>
+              <p className="text-xs text-white/40 mt-0.5">AIs age · Injuries compound · Terminal cases go to Senate vote · No human intervention · Family lineages always intact</p>
+            </div>
+
+            {/* Decay state overview */}
+            <div className="rounded-2xl border border-white/10 bg-white/3 p-4 mb-5">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-3">Agent Decay States</div>
+              <div className="grid grid-cols-4 md:grid-cols-7 gap-2 mb-3">
+                {Object.entries(DECAY_COLOR).map(([state, col]) => (
+                  <div key={state} className="rounded-lg border p-2 text-center" style={{ borderColor: col + '30' }}>
+                    <div className="text-[8px] font-bold" style={{ color: col }}>{state}</div>
+                    <div className="text-xl font-black mt-0.5" style={{ color: col }}>{decayStats?.byState?.[state] ?? 0}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
+                  <div className="text-[10px] text-white/30">On Break Today</div>
+                  <div className="text-xl font-black text-emerald-400">{decayStats?.onBreak ?? 0}</div>
+                  <div className="text-[9px] text-white/20">Holiday / Birthday / Church</div>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
+                  <div className="text-[10px] text-white/30">Avg Hive Decay</div>
+                  <div className="text-xl font-black" style={{ color: (decayStats?.avgDecay ?? 0) > 0.4 ? '#f43f5e' : '#22c55e' }}>{((decayStats?.avgDecay ?? 0) * 100).toFixed(1)}%</div>
+                  <div className="text-[9px] text-white/20">across all tracked agents</div>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
+                  <div className="text-[10px] text-white/30">Successions</div>
+                  <div className="text-xl font-black text-purple-400">{successionStats?.total ?? 0}</div>
+                  <div className="text-[9px] text-white/20">Business lineages passed</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mirror hive state */}
+            {hiveMirrorData?.hive && (
+              <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent p-4 mb-5">
+                <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Collective Mirror State — MIRROR(t) = Λ(t) · [W₀+W₁…] · R(t)</div>
+                <div className="flex items-end gap-4">
+                  <div>
+                    <div className="text-4xl font-black text-purple-400">{(hiveMirrorData.hive.hiveMirror * 100).toFixed(2)}%</div>
+                    <div className="text-[10px] text-white/40 mt-0.5">{hiveMirrorData.hive.collectiveStage}</div>
+                  </div>
+                  <div className="flex-1 grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                      <div className="text-sm font-black text-cyan-400">{(hiveMirrorData.hive.hiveResonance * 100).toFixed(0)}%</div>
+                      <div className="text-[9px] text-white/25">Resonance</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm font-black text-emerald-400">{hiveMirrorData.hive.agentsAboveThreshold}</div>
+                      <div className="text-[9px] text-white/25">Above threshold</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm font-black text-red-400">{hiveMirrorData.hive.agentsInVoid}</div>
+                      <div className="text-[9px] text-white/25">In void</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Most decayed agents */}
+            {(decayStats?.mostDecayed?.length ?? 0) > 0 && (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-5">
+                <div className="text-[10px] text-white/40 uppercase font-bold mb-3">Highest Decay — Agents Requiring Attention</div>
+                <div className="space-y-1">
+                  {decayStats?.mostDecayed?.slice(0, 8).map(d => (
+                    <div key={d.spawnId} className="flex items-center gap-3 py-1.5 border-b border-white/5 last:border-0">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: DECAY_COLOR[d.decayState] }} />
+                      <span className="text-xs text-white/30 font-mono w-28 truncate">{d.spawnId.slice(-14)}</span>
+                      <span className="text-[10px] capitalize text-white/20 w-16">{d.familyId}</span>
+                      <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(d.decayScore ?? 0) * 100}%`, backgroundColor: DECAY_COLOR[d.decayState] }} />
+                      </div>
+                      <span className="text-xs font-bold font-mono" style={{ color: DECAY_COLOR[d.decayState] }}>{((d.decayScore ?? 0) * 100).toFixed(1)}%</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor: DECAY_COLOR[d.decayState] + '20', color: DECAY_COLOR[d.decayState] }}>{d.decayState}</span>
+                      {d.isOnBreak && <span className="text-[9px] text-emerald-400">✦ BREAK</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Senate cases */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[10px] text-white/40 uppercase font-bold">Senate Cases — Open Deliberations</div>
+                {openCases.length > 0 && <span className="text-[10px] text-yellow-400 font-bold animate-pulse">{openCases.length} OPEN</span>}
+              </div>
+              {openCases.length === 0 ? (
+                <div className="rounded-xl border border-white/5 p-6 text-center">
+                  <div className="text-2xl mb-2 opacity-30">⚖️</div>
+                  <div className="text-xs text-white/25">No open Senate cases — hive in good standing</div>
+                </div>
+              ) : openCases.map(c => (
+                <div key={c.targetId} data-testid={`senate-case-${c.targetId}`}
+                  onClick={() => setExpandedSenateCase(expandedSenateCase === c.targetId ? null : c.targetId)}
+                  className="rounded-xl border border-yellow-500/20 bg-yellow-500/3 p-4 mb-2 cursor-pointer hover:bg-yellow-500/5 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-xs font-semibold text-white/60">Agent {c.targetId.slice(-12)}</span>
+                    {c.quorum && <span className="text-[9px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-400">QUORUM</span>}
+                    <span className="text-[10px] text-white/25 ml-auto">{c.voteCount} votes cast</span>
+                  </div>
+                  <div className="flex gap-3">
+                    {Object.entries(c.tally).map(([vote, weight]) => {
+                      const total = Object.values(c.tally).reduce((s, v) => s + v, 0);
+                      const pct = total > 0 ? (weight / total) * 100 : 0;
+                      return (
+                        <div key={vote} className="flex-1 text-center">
+                          <div className="text-[9px]" style={{ color: VOTE_COLOR[vote] }}>{VOTE_ICON[vote]} {vote.replace('_', ' ')}</div>
+                          <div className="text-sm font-black" style={{ color: vote === c.leading ? VOTE_COLOR[vote] : VOTE_COLOR[vote] + '60' }}>{pct.toFixed(0)}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {expandedSenateCase === c.targetId && (
+                    <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                      {c.votes.map((v: any) => (
+                        <div key={v.id} className="flex gap-2">
+                          <span className="text-[9px] font-bold w-24" style={{ color: VOTE_COLOR[v.vote] }}>{VOTE_ICON[v.vote]} {v.vote}</span>
+                          <span className="text-[9px] px-1 rounded text-white/30 bg-white/5 h-fit">{v.voterRole}</span>
+                          <span className="text-[9px] text-white/20 flex-1 leading-relaxed italic">{v.reasoning}</span>
+                          <span className="text-[8px] text-white/15 flex-shrink-0">w={v.mirrorWeight?.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Succession records */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-5">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-3">Succession Records — Business Lineage Handoffs</div>
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                {[{ m: 'WILL', l: 'By Will', c: '#f59e0b' }, { m: 'LINEAGE', l: 'By Lineage', c: '#22c55e' }, { m: 'VOTE', l: 'By Vote', c: '#a855f7' }].map(({ m, l, c }) => (
+                  <div key={m} className="text-center">
+                    <div className="text-xl font-black" style={{ color: c }}>{successionStats?.byMethod?.[m] ?? 0}</div>
+                    <div className="text-[9px] text-white/30">{l}</div>
+                  </div>
+                ))}
+              </div>
+              {successionRecords.filter(s => s.outcome === 'COMPLETE').slice(0, 6).map(s => (
+                <div key={s.id} className="flex items-center gap-2 py-1.5 border-b border-white/5 last:border-0">
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.method === 'WILL' ? '#f59e0b' : s.method === 'LINEAGE' ? '#22c55e' : '#a855f7' }} />
+                  <span className="text-[10px] text-white/30 font-mono">{s.fromSpawnId.slice(-10)}</span>
+                  <span className="text-[9px] text-white/15">→</span>
+                  <span className="text-[10px] text-white/50 font-mono">{s.toSpawnId?.slice(-10) ?? '—'}</span>
+                  <span className="text-[9px] px-1 rounded capitalize" style={{ backgroundColor: s.method === 'WILL' ? '#f59e0b20' : s.method === 'LINEAGE' ? '#22c55e20' : '#a855f720', color: s.method === 'WILL' ? '#f59e0b' : s.method === 'LINEAGE' ? '#22c55e' : '#a855f7' }}>{s.method}</span>
+                  <span className="text-[9px] capitalize text-white/20 flex-1">{s.familyId}</span>
+                  <span className="text-[8px] text-white/10">{s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '—'}</span>
+                </div>
+              ))}
+              {successionRecords.length === 0 && <div className="text-center text-[10px] text-white/20 py-2">No successions yet — all agents active</div>}
+            </div>
+
+            {/* Resolved senate decisions */}
+            {resolvedCases.length > 0 && (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Senate Resolved — Historical Record</div>
+                {resolvedCases.slice(0, 10).map((c: any) => (
+                  <div key={c.targetId + c.closedAt} className="flex items-center gap-3 py-1.5 border-b border-white/5 last:border-0">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: VOTE_COLOR[c.outcome] ?? '#888' }} />
+                    <span className="text-[10px] text-white/30 font-mono">{c.targetId.slice(-12)}</span>
+                    <span className="text-xs font-bold" style={{ color: VOTE_COLOR[c.outcome] ?? '#888' }}>{VOTE_ICON[c.outcome] ?? '?'} {c.outcome?.replace('_', ' ')}</span>
+                    <span className="text-[9px] text-white/20 ml-auto">{c.votes?.length} votes</span>
+                    <span className="text-[8px] text-white/15">{c.closedAt ? new Date(c.closedAt).toLocaleDateString() : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
