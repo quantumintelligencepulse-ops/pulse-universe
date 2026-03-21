@@ -98,6 +98,11 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
     if (!data?.ohlcv?.length || !containerRef.current) return;
     if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
 
+    // Deduplicate by time — keep only the last entry per timestamp (lightweight-charts requires strict asc order with unique times)
+    const seenTimes = new Map<string, any>();
+    for (const candle of data.ohlcv) { seenTimes.set(candle.time, candle); }
+    const cleanOhlcv = Array.from(seenTimes.values()).sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : 0);
+
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "#05000e" },
@@ -136,7 +141,7 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
         priceScaleId: "right",
       });
       cs.priceScale().applyOptions({ scaleMargins: priceScaleMargins });
-      cs.setData(data.ohlcv);
+      cs.setData(cleanOhlcv);
 
       chart.subscribeCrosshairMove((param: any) => {
         if (param?.seriesData?.get(cs)) {
@@ -156,20 +161,20 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
         priceScaleId: "right",
       });
       ls.priceScale().applyOptions({ scaleMargins: priceScaleMargins });
-      ls.setData(data.ohlcv.map((d: any) => ({ time: d.time, value: d.close })));
+      ls.setData(cleanOhlcv.map((d: any) => ({ time: d.time, value: d.close })));
     }
 
-    if (indicators.ma20 && data.ohlcv.length >= 20) {
+    if (indicators.ma20 && cleanOhlcv.length >= 20) {
       const s = chart.addSeries(LineSeries, { color: "#fbbf24", lineWidth: 1, title: "MA20", lastValueVisible: false, priceLineVisible: false, priceScaleId: "right" });
-      s.setData(computeSMA(data.ohlcv, 20));
+      s.setData(computeSMA(cleanOhlcv, 20));
     }
-    if (indicators.ma50 && data.ohlcv.length >= 50) {
+    if (indicators.ma50 && cleanOhlcv.length >= 50) {
       const s = chart.addSeries(LineSeries, { color: "#60a5fa", lineWidth: 1, title: "MA50", lastValueVisible: false, priceLineVisible: false, priceScaleId: "right" });
-      s.setData(computeSMA(data.ohlcv, 50));
+      s.setData(computeSMA(cleanOhlcv, 50));
     }
-    if (indicators.ma200 && data.ohlcv.length >= 200) {
+    if (indicators.ma200 && cleanOhlcv.length >= 200) {
       const s = chart.addSeries(LineSeries, { color: "#f472b6", lineWidth: 1, lineStyle: LineStyle.Dashed, title: "MA200", lastValueVisible: false, priceLineVisible: false, priceScaleId: "right" });
-      s.setData(computeSMA(data.ohlcv, 200));
+      s.setData(computeSMA(cleanOhlcv, 200));
     }
     if (indicators.volume) {
       const vs = chart.addSeries(HistogramSeries, {
@@ -179,7 +184,7 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
         priceLineVisible: false,
       });
       vs.priceScale().applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
-      vs.setData(data.ohlcv.map((d: any) => ({
+      vs.setData(cleanOhlcv.map((d: any) => ({
         time: d.time,
         value: d.volume,
         color: d.close >= d.open ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)",
