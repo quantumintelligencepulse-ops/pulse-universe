@@ -13,6 +13,7 @@ import HiveSovereignPage from "./pages/HiveSovereignPage";
 import PulseUniversePage from "./pages/PulseUniversePage";
 import PyramidLaborPage from "./pages/PyramidLaborPage";
 import AIHospitalPage from "./pages/AIHospitalPage";
+import HiveGovernancePage from "./pages/HiveGovernancePage";
 import AIProfilePage from "./pages/AIProfilePage";
 import CorporationPage from "./pages/CorporationPage";
 import PublicationsPage from "./pages/PublicationsPage";
@@ -14995,6 +14996,7 @@ function Router() {
       <Route path="/universe" component={PulseUniversePage} />
       <Route path="/pyramid" component={PyramidLaborPage} />
       <Route path="/hospital" component={AIHospitalPage} />
+      <Route path="/governance" component={HiveGovernancePage} />
       <Route path="/ai/:spawnId" component={AIProfilePage} />
       <Route path="/corporation/:familyId" component={CorporationPage} />
       <Route path="/corporations" component={CorporationsListPage} />

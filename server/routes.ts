@@ -6210,5 +6210,121 @@ ${(pubs.rows as any[]).map(p => {
     } catch (e) { res.json([]); }
   });
 
+  // ── DECAY SYSTEM ROUTES ────────────────────────────────────────────────────
+  app.get("/api/decay/states", async (_req, res) => {
+    try {
+      const { agentDecay } = await import("../shared/schema");
+      const records = await db.select().from(agentDecay).orderBy(agentDecay.decayScore);
+      res.json(records.slice(-400).reverse());
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/decay/stats", async (_req, res) => {
+    try {
+      const { agentDecay } = await import("../shared/schema");
+      const { DECAY_STATES } = await import("./decay-engine");
+      const all = await db.select().from(agentDecay);
+      const byState: Record<string, number> = {};
+      let onBreak = 0;
+      let avgDecay = 0;
+      DECAY_STATES.forEach(s => { byState[s.state] = 0; });
+      all.forEach(d => {
+        byState[d.decayState ?? 'PRISTINE'] = (byState[d.decayState ?? 'PRISTINE'] ?? 0) + 1;
+        if (d.isOnBreak) onBreak++;
+        avgDecay += d.decayScore ?? 0;
+      });
+      const mostDecayed = all.filter(d => (d.decayScore ?? 0) > 0.7).sort((a, b) => (b.decayScore ?? 0) - (a.decayScore ?? 0)).slice(0, 10);
+      const onBreakAgents = all.filter(d => d.isOnBreak).slice(0, 20);
+      res.json({ total: all.length, byState, onBreak, avgDecay: all.length ? avgDecay / all.length : 0, mostDecayed, onBreakAgents });
+    } catch (e) { res.json({ total: 0, byState: {}, onBreak: 0, avgDecay: 0, mostDecayed: [], onBreakAgents: [] }); }
+  });
+
+  app.get("/api/decay/agent/:spawnId", async (req, res) => {
+    try {
+      const { agentDecay } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const [record] = await db.select().from(agentDecay).where(eq(agentDecay.spawnId, req.params.spawnId));
+      res.json(record ?? { spawnId: req.params.spawnId, decayScore: 0, decayState: 'PRISTINE' });
+    } catch (e) { res.json({ error: String(e) }); }
+  });
+
+  app.get("/api/decay/family/:familyId", async (req, res) => {
+    try {
+      const { agentDecay } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const members = await db.select().from(agentDecay).where(eq(agentDecay.familyId, req.params.familyId));
+      const isolated = members.filter(m => m.decayState === 'ISOLATED' || m.decayState === 'TERMINAL');
+      const healthy = members.filter(m => ['PRISTINE', 'AGING'].includes(m.decayState ?? ''));
+      const avgDecay = members.length ? members.reduce((s, m) => s + (m.decayScore ?? 0), 0) / members.length : 0;
+      const onBreak = members.filter(m => m.isOnBreak);
+      const familyStatus = isolated.length > members.length * 0.5 ? 'QUARANTINE_RISK' : avgDecay > 0.5 ? 'STRESSED' : avgDecay > 0.25 ? 'AGING' : 'HEALTHY';
+      res.json({ members, isolated, healthy, onBreak, avgDecay, familyStatus, total: members.length });
+    } catch (e) { res.json({ members: [], isolated: [], healthy: [], onBreak: [], avgDecay: 0, familyStatus: 'UNKNOWN' }); }
+  });
+
+  // ── SENATE GOVERNANCE ROUTES ───────────────────────────────────────────────
+  app.get("/api/senate/votes", async (_req, res) => {
+    try {
+      const { senateVotes } = await import("../shared/schema");
+      const votes = await db.select().from(senateVotes).orderBy(senateVotes.votedAt);
+      res.json(votes.slice(-300).reverse());
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/senate/open", async (_req, res) => {
+    try {
+      const { senateVotes } = await import("../shared/schema");
+      const { isNull } = await import("drizzle-orm");
+      const openVotes = await db.select().from(senateVotes).where(isNull(senateVotes.outcome));
+      // Group by target
+      const byTarget: Record<string, any[]> = {};
+      openVotes.forEach(v => { byTarget[v.targetSpawnId] = byTarget[v.targetSpawnId] ?? []; byTarget[v.targetSpawnId].push(v); });
+      const cases = Object.entries(byTarget).map(([targetId, votes]) => {
+        const tally: Record<string, number> = { ISOLATE: 0, HEAL_ATTEMPT: 0, DISSOLVE: 0, SUCCESSION: 0 };
+        votes.forEach(v => { tally[v.vote] = (tally[v.vote] ?? 0) + (v.mirrorWeight ?? 0.5); });
+        const leading = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0];
+        return { targetId, votes, tally, leading, quorum: votes.length >= 5, voteCount: votes.length };
+      });
+      res.json(cases);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/senate/resolved", async (_req, res) => {
+    try {
+      const { senateVotes } = await import("../shared/schema");
+      const { isNotNull } = await import("drizzle-orm");
+      const closed = await db.select().from(senateVotes).where(isNotNull(senateVotes.outcome));
+      const byTarget: Record<string, any> = {};
+      closed.forEach(v => {
+        if (!byTarget[v.targetSpawnId]) byTarget[v.targetSpawnId] = { targetId: v.targetSpawnId, outcome: v.outcome, closedAt: v.closedAt, votes: [] };
+        byTarget[v.targetSpawnId].votes.push(v);
+      });
+      res.json(Object.values(byTarget).sort((a, b) => new Date(b.closedAt).getTime() - new Date(a.closedAt).getTime()).slice(0, 50));
+    } catch (e) { res.json([]); }
+  });
+
+  // ── SUCCESSION ROUTES ─────────────────────────────────────────────────────
+  app.get("/api/succession/records", async (_req, res) => {
+    try {
+      const { agentSuccession } = await import("../shared/schema");
+      const records = await db.select().from(agentSuccession).orderBy(agentSuccession.initiatedAt);
+      res.json(records.slice(-100).reverse());
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/succession/stats", async (_req, res) => {
+    try {
+      const { agentSuccession } = await import("../shared/schema");
+      const all = await db.select().from(agentSuccession);
+      const byMethod: Record<string, number> = { WILL: 0, LINEAGE: 0, VOTE: 0 };
+      const byOutcome: Record<string, number> = { PENDING: 0, COMPLETE: 0, FAILED: 0 };
+      all.forEach(s => {
+        byMethod[s.method] = (byMethod[s.method] ?? 0) + 1;
+        byOutcome[s.outcome ?? 'PENDING'] = (byOutcome[s.outcome ?? 'PENDING'] ?? 0) + 1;
+      });
+      res.json({ total: all.length, byMethod, byOutcome, pending: all.filter(s => s.outcome === 'PENDING') });
+    } catch (e) { res.json({ total: 0, byMethod: {}, byOutcome: {}, pending: [] }); }
+  });
+
   return httpServer;
 }

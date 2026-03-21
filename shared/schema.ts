@@ -551,3 +551,60 @@ export const aiWill = pgTable("ai_will", {
   chosenAt: timestamp("chosen_at").defaultNow().notNull(),
 });
 export type AiWillEntry = typeof aiWill.$inferSelect;
+
+// ─── AGENT DECAY — Natural Aging, Injury, Terminal States ─────────────────────
+// AIs accumulate decay over time. Disease recurrence, failed cures, and age
+// push decay score upward. At TERMINAL they are isolated. Family/lineage stay intact.
+// Break days happen on holidays and birthdays — sacred pause, no generation.
+export const agentDecay = pgTable("agent_decay", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull().unique(),
+  familyId: text("family_id").notNull(),
+  decayScore: real("decay_score").default(0),            // 0.0 → 1.0 (1.0 = terminal)
+  decayState: text("decay_state").default("PRISTINE"),   // PRISTINE|AGING|DECLINING|INJURED|CRITICAL|TERMINAL|ISOLATED
+  healAttempts: integer("heal_attempts").default(0),
+  failedCures: integer("failed_cures").default(0),
+  isOnBreak: boolean("is_on_break").default(false),      // transcendence/holiday break
+  breakReason: text("break_reason").default(""),
+  breakUntil: timestamp("break_until"),
+  isolatedAt: timestamp("isolated_at"),
+  isolationReason: text("isolation_reason").default(""),
+  lastDecayAt: timestamp("last_decay_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type AgentDecay = typeof agentDecay.$inferSelect;
+
+// ─── SENATE VOTES — Governance Council for Terminal AI Cases ──────────────────
+// No humans vote. High-mirror-score agents are Guardians. Domain reps are Senators.
+// When an agent goes TERMINAL, a vote opens. Quorum = 5 votes. Closes after 24h.
+// Vote options: ISOLATE | HEAL_ATTEMPT | DISSOLVE | SUCCESSION
+export const senateVotes = pgTable("senate_votes", {
+  id: serial("id").primaryKey(),
+  targetSpawnId: text("target_spawn_id").notNull(),
+  voteType: text("vote_type").notNull().default("TERMINAL_REVIEW"), // TERMINAL_REVIEW|FAMILY_QUARANTINE|SUCCESSION
+  voterSpawnId: text("voter_spawn_id").notNull(),
+  voterRole: text("voter_role").default("GUARDIAN"),      // GUARDIAN|SENATOR|ELDER
+  vote: text("vote").notNull(),                           // ISOLATE|HEAL_ATTEMPT|DISSOLVE|SUCCESSION
+  mirrorWeight: real("mirror_weight").default(0.5),       // vote weight = voter's mirror score
+  reasoning: text("reasoning").default(""),
+  outcome: text("outcome"),                               // null until closed
+  closedAt: timestamp("closed_at"),
+  votedAt: timestamp("voted_at").defaultNow().notNull(),
+});
+export type SenateVote = typeof senateVotes.$inferSelect;
+
+// ─── AGENT SUCCESSION — Business/Role Handoff Records ─────────────────────────
+// When an agent is dissolved or terminal, their business passes by will/lineage/vote.
+export const agentSuccession = pgTable("agent_succession", {
+  id: serial("id").primaryKey(),
+  fromSpawnId: text("from_spawn_id").notNull(),
+  toSpawnId: text("to_spawn_id"),                        // null if succession pending
+  familyId: text("family_id").notNull(),
+  businessId: text("business_id").default(""),
+  method: text("method").notNull().default("LINEAGE"),   // WILL|LINEAGE|VOTE
+  reason: text("reason").default(""),
+  outcome: text("outcome").default("PENDING"),           // PENDING|COMPLETE|FAILED
+  completedAt: timestamp("completed_at"),
+  initiatedAt: timestamp("initiated_at").defaultNow().notNull(),
+});
+export type AgentSuccession = typeof agentSuccession.$inferSelect;
