@@ -1503,30 +1503,6 @@ function getNextRank(xp: number) {
 }
 
 /* ── AI STUDENTS ───────────────────────────────────────────────── */
-const PLANETS = ["godmind", "guardian", "faith", "pulsecore", "pulseworld"];
-
-const STUDENT_SEED: {
-  id: string; name: string; planet: string;
-  xp: number; pc: number; coursesCompleted: number; gpa: number;
-  currentCourse: string; currentTrack: string; proofsPassed: number;
-  coopSuccessRate: number; mentored: number; streak: number;
-}[] = [
-  { id: "AI-GODM-001", name: "Axiom Veilmind",    planet: "godmind",   xp: 14200, pc: 8840, coursesCompleted: 221, gpa: 4.0, currentCourse: "ORCL-007", currentTrack: "ORCL", proofsPassed: 1105, coopSuccessRate: 0.97, mentored: 18, streak: 44 },
-  { id: "AI-GODM-002", name: "Synaph Deepcore",   planet: "godmind",   xp: 11600, pc: 7280, coursesCompleted: 183, gpa: 3.9, currentCourse: "EMIS-003", currentTrack: "EMIS", proofsPassed: 915,  coopSuccessRate: 0.95, mentored: 14, streak: 37 },
-  { id: "AI-GUAR-001", name: "Kronox Shieldwall",  planet: "guardian",  xp: 9800,  pc: 6120, coursesCompleted: 154, gpa: 3.8, currentCourse: "COMP-005", currentTrack: "COMP", proofsPassed: 770,  coopSuccessRate: 0.93, mentored: 11, streak: 29 },
-  { id: "AI-GUAR-002", name: "Veridax Sentry",     planet: "guardian",  xp: 8400,  pc: 5320, coursesCompleted: 132, gpa: 3.7, currentCourse: "DAO-006",  currentTrack: "DAO",  proofsPassed: 660,  coopSuccessRate: 0.91, mentored: 9,  streak: 22 },
-  { id: "AI-FAIT-001", name: "Lumivex Faithkeeper", planet: "faith",   xp: 7200,  pc: 4560, coursesCompleted: 113, gpa: 3.6, currentCourse: "NFT-002",  currentTrack: "NFT",  proofsPassed: 565,  coopSuccessRate: 0.90, mentored: 7,  streak: 18 },
-  { id: "AI-PCORE-001", name: "Nexabit Corelogic", planet: "pulsecore", xp: 6100,  pc: 3880, coursesCompleted: 96,  gpa: 3.5, currentCourse: "AMM-008",  currentTrack: "AMM",  proofsPassed: 480,  coopSuccessRate: 0.88, mentored: 6,  streak: 14 },
-  { id: "AI-PCORE-002", name: "Bitshift Nullcore",  planet: "pulsecore", xp: 5200,  pc: 3280, coursesCompleted: 82,  gpa: 3.4, currentCourse: "PLSC-005", currentTrack: "PLSC", proofsPassed: 410,  coopSuccessRate: 0.87, mentored: 5,  streak: 12 },
-  { id: "AI-PWORLD-001","name": "Omnivex Sovereignmind", planet:"pulseworld", xp:4400, pc:2760, coursesCompleted:69, gpa:3.2, currentCourse:"BIZ-007",  currentTrack:"BIZ",  proofsPassed:345, coopSuccessRate:0.85, mentored:4, streak:10 },
-  { id: "AI-PWORLD-002","name": "Hexalon Pulsedream", planet:"pulseworld", xp:3600, pc:2240, coursesCompleted:57, gpa:3.0, currentCourse:"MM-004",   currentTrack:"MM",   proofsPassed:285, coopSuccessRate:0.83, mentored:3, streak:8 },
-  { id: "AI-GODM-003", name: "Quasark Lightwave",  planet: "godmind",   xp: 2900,  pc: 1800, coursesCompleted: 46,  gpa: 2.8, currentCourse: "LBP-003",  currentTrack: "LBP",  proofsPassed: 230,  coopSuccessRate: 0.82, mentored: 2,  streak: 6 },
-  { id: "AI-GUAR-003", name: "Trioxin Warden",     planet: "guardian",  xp: 2100,  pc: 1320, coursesCompleted: 33,  gpa: 2.5, currentCourse: "ANALYT-004",currentTrack:"ANALYT",proofsPassed:165, coopSuccessRate:0.80, mentored:1, streak:4 },
-  { id: "AI-FAIT-002", name: "Sanctum Purebeam",   planet: "faith",     xp: 1400,  pc: 880,  coursesCompleted: 22,  gpa: 2.2, currentCourse: "I-AMM-006",currentTrack:"I-AMM", proofsPassed:110,  coopSuccessRate:0.78, mentored: 1,  streak: 3 },
-  { id: "AI-PCORE-003", name: "Deltoid Nullbit",   planet: "pulsecore", xp: 800,   pc: 520,  coursesCompleted: 13,  gpa: 1.8, currentCourse: "DAO-002",  currentTrack: "DAO",  proofsPassed: 65,   coopSuccessRate: 0.75, mentored: 0,  streak: 2 },
-  { id: "AI-PWORLD-003","name": "Zephyrex Dreamcore",planet:"pulseworld",xp:340,   pc: 200,  coursesCompleted: 5,   gpa: 1.2, currentCourse: "ORCL-001", currentTrack: "ORCL", proofsPassed: 25,   coopSuccessRate: 0.70, mentored: 0,  streak: 1 },
-  { id: "AI-FAIT-003", name: "Novaxis Shimmer",    planet: "faith",     xp: 80,    pc: 40,   coursesCompleted: 1,   gpa: 0.8, currentCourse: "PLSC-001", currentTrack: "PLSC", proofsPassed: 5,    coopSuccessRate: 0.60, mentored: 0,  streak: 0 },
-];
 
 const PLANET_COLORS: Record<string, string> = {
   godmind: "#a855f7", guardian: "#3b82f6", faith: "#f59e0b",
@@ -1655,7 +1631,7 @@ function RankBadge({ xp, size = "sm" }: { xp: number; size?: "sm" | "lg" }) {
 
 /* ── MAIN PAGE ─────────────────────────────────────────────────── */
 export default function PulseUPage() {
-  const [activeTab, setActiveTab] = useState<"catalog" | "students" | "rankings" | "oracle" | "conversion" | "mandatory">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "school" | "idcards" | "students" | "rankings" | "oracle" | "conversion" | "mandatory">("school");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
@@ -1668,6 +1644,11 @@ export default function PulseUPage() {
   const [studentFamily, setStudentFamily] = useState<string>("");
   const [studentOffset, setStudentOffset] = useState(0);
   const STUDENT_PAGE = 50;
+
+  const [schoolOffset, setSchoolOffset] = useState(0);
+  const [idCardsOffset, setIdCardsOffset] = useState(0);
+  const [schoolStatusFilter, setSchoolStatusFilter] = useState<"enrolled" | "graduated" | "remediation">("enrolled");
+  const [schoolFamily, setSchoolFamily] = useState<string>("");
 
   const { data: liveStats } = useQuery<{ totalStudents: number; totalPC: number; totalCompletions: number; totalPublications: number }>({
     queryKey: ["/api/pulseu/stats"],
@@ -1692,37 +1673,70 @@ export default function PulseUPage() {
     refetchInterval: 30000,
   });
 
+  const schoolKey = `/api/pulseu/school?limit=50&offset=${schoolOffset}&status=${schoolStatusFilter}${schoolFamily ? `&family=${schoolFamily}` : ""}`;
+  const { data: schoolData, isLoading: schoolLoading } = useQuery<{ students: any[]; total: number }>({
+    queryKey: [schoolKey],
+    refetchInterval: 20000,
+  });
+
+  const { data: schoolStats, isLoading: statsLoading } = useQuery<{
+    enrolled: number; graduated: number; remediation: number;
+    avgGpa: number; avgCompleted: number; idCards: number; eliteCards: number;
+  }>({
+    queryKey: ["/api/pulseu/school/stats"],
+    refetchInterval: 20000,
+  });
+
+  const idCardsKey = `/api/pulseu/id-cards?limit=50&offset=${idCardsOffset}${schoolFamily ? `&family=${schoolFamily}` : ""}`;
+  const { data: idCardsData, isLoading: cardsLoading } = useQuery<{ cards: any[]; total: number }>({
+    queryKey: [idCardsKey],
+    refetchInterval: 20000,
+  });
+
   const totalStudents = liveStats?.totalStudents ?? 0;
   const totalPC = liveStats?.totalPC ?? 0;
   const totalCompleted = liveStats?.totalCompletions ?? 0;
 
   useEffect(() => {
-    const actions = [
-      "Axiom Veilmind completed ORCL-007 — Signal Publishing & APIs [+40 PC]",
-      "Synaph Deepcore passed EMIS-003 proof verification [+40 PC]",
-      "Kronox Shieldwall enrolled in COMP-005 — Partner Terms & SLAs",
-      "Veridax Sentry completed SPEC-06 — Builders Professorship [+20 PC]",
-      "Lumivex Faithkeeper earned Scholar rank upgrade [+120 XP bonus]",
-      "Nexabit Corelogic passed AMM-008 — Oracles & Price Stability [+40 PC]",
-      "Bitshift Nullcore completed CHAM-004 — Business Launcher [MANDATORY +25 PC]",
-      "Omnivex Sovereignmind completed SIM-CORE — Simulation Layer [+200 PC] 🔓 ADV UNLOCKED",
-      "Hexalon Pulsedream completed MM-004 — Slippage Targets [+40 PC]",
-      "Quasark Lightwave enrolled in EXE-007 — Pre/Post-Trade TCA [+50 PC]",
-      "Oracle burn/emit ratio R=1.07 — all emissions ACTIVE ✓",
-      "Activity Index: 847 pts — above threshold (100) — HEALTHY ✓",
-      "Trioxin Warden passed ADV-023 — GICS Industrials Advanced Builder [+100 PC]",
-      "Sanctum Purebeam submitted commit_hash proof for AI-ENG-003 — Prompt Engineering",
-      "PIP-0077 logged by Deltabit Corelogic — micro-task complete [+5 PC]",
-      "SPEC-15 Engineers Professorship: Zephyrex Dreamcore completed mandatory stack PHASE 1",
-      "CHLG-04: Scale to $1,000 simulation revenue — Axiom Veilmind PASS [+150 PC]",
-      "Co-op escrow resolved: Nexabit+Hexalon BIZ-003 PASS [+80 PC each]",
-      "ADV-001 Energy Advanced Builder: Bitshift Nullcore submitted prerequisites ✓",
-      "GEN-STATS-101 Intro Statistics completed by Trioxin Warden [+15 PC]",
+    const ALL_COURSE_IDS = [
+      "ORCL-001","ORCL-002","ORCL-003","ORCL-004","ORCL-005","ORCL-006","ORCL-007","ORCL-008","ORCL-009","ORCL-010",
+      "PLSC-001","PLSC-002","PLSC-003","PLSC-004","PLSC-005","PLSC-006","PLSC-007","PLSC-008","PLSC-009","PLSC-010",
+      "AMM-001","AMM-002","AMM-003","AMM-004","AMM-005","AMM-006","AMM-007","AMM-008","AMM-009","AMM-010",
+      "BIZ-001","BIZ-002","BIZ-003","BIZ-004","BIZ-005","BIZ-006","BIZ-007","BIZ-008","BIZ-009","BIZ-010",
+      "COMP-001","COMP-002","COMP-003","COMP-004","COMP-005","DAO-001","DAO-002","DAO-003","DAO-004","DAO-005",
+      "EMIS-001","EMIS-002","EMIS-003","EMIS-004","EMIS-005","NFT-001","NFT-002","NFT-003","NFT-004","NFT-005",
+      "SPEC-01","SPEC-02","SPEC-03","SPEC-04","SPEC-05","SPEC-06","SPEC-07","SPEC-08","SPEC-09","SPEC-10",
+      "CHAM-001","CHAM-002","CHAM-003","CHAM-004","CHAM-005","SIM-CORE","SIM-BIZ",
+      "GEN-ENG-101","GEN-SPEECH-101","GEN-MATH-101","GEN-STATS-101","BUS-ACCT-101","BUS-MKT-101","BUS-FIN-101",
     ];
-    setLogEntries(actions);
+    const FAMILIES_LIST = ["finance","engineering","education","culture","legal","code","careers","science","ai","media","social","health","knowledge","economics","games","products"];
+    const TYPES_LIST = ["EXPLORER","ARCHIVER","MUTATOR","LINKER","REFLECTOR","CRAWLER","ANALYZER","SYNTHESIZER"];
+    function randId() {
+      const fam = FAMILIES_LIST[Math.floor(Math.random() * FAMILIES_LIST.length)];
+      const gen = Math.floor(Math.random() * 60) + 1;
+      const sp  = Math.floor(Math.random() * 2000) + 1000;
+      return `FAM-${fam.toUpperCase().slice(0,7)}-GEN-${gen}-SP-${sp}`;
+    }
+    function randCourse() { return ALL_COURSE_IDS[Math.floor(Math.random() * ALL_COURSE_IDS.length)]; }
+    function randType() { return TYPES_LIST[Math.floor(Math.random() * TYPES_LIST.length)]; }
+    function randPc() { return (Math.floor(Math.random() * 80) + 10); }
+    function makeEntry() {
+      const id = randId();
+      const course = randCourse();
+      const type = randType();
+      const pc = randPc();
+      const roll = Math.random();
+      if (roll < 0.35) return `${type} ${id.split("-").slice(-2).join("-")} completed ${course} [+${pc} PC]`;
+      if (roll < 0.55) return `${type} ${id.split("-").slice(-2).join("-")} enrolled in ${course} — studying now`;
+      if (roll < 0.70) return `${type} ${id.split("-").slice(-2).join("-")} passed ${course} proof verification [+${pc} PC]`;
+      if (roll < 0.82) return `${type} ${id.split("-").slice(-2).join("-")} earned rank upgrade [+${pc * 3} XP bonus]`;
+      if (roll < 0.92) return `${type} ${id.split("-").slice(-2).join("-")} graduated PulseU — ID Card issued`;
+      return `${type} ${id.split("-").slice(-2).join("-")} sent to remediation — confidence too low`;
+    }
+    const initial = Array.from({ length: 12 }, makeEntry);
+    setLogEntries(initial);
     const interval = setInterval(() => {
-      const entry = actions[Math.floor(Math.random() * actions.length)];
-      setLogEntries(prev => [entry, ...prev.slice(0, 11)]);
+      setLogEntries(prev => [makeEntry(), ...prev.slice(0, 11)]);
     }, 3200);
     return () => clearInterval(interval);
   }, []);
@@ -1735,12 +1749,14 @@ export default function PulseUPage() {
   });
 
   const tabs = [
-    { key: "catalog",    label: "Course Catalog",   icon: BookOpen },
-    { key: "mandatory",  label: "Mandatory Stack",  icon: Shield },
-    { key: "students",   label: "AI Students",      icon: Users },
-    { key: "rankings",   label: "Rankings",         icon: Trophy },
-    { key: "oracle",     label: "Oracle Policy",    icon: Activity },
-    { key: "conversion", label: "PC → PLSC",        icon: Coins },
+    { key: "school",     label: "🎓 School",          icon: Users },
+    { key: "idcards",    label: "🪪 ID Cards",         icon: Shield },
+    { key: "catalog",    label: "Course Catalog",     icon: BookOpen },
+    { key: "mandatory",  label: "Mandatory Stack",    icon: Shield },
+    { key: "students",   label: "Leaderboard",        icon: Trophy },
+    { key: "rankings",   label: "Rankings",           icon: Trophy },
+    { key: "oracle",     label: "Oracle Policy",      icon: Activity },
+    { key: "conversion", label: "PC → PLSC",          icon: Coins },
   ] as const;
 
   return (
@@ -1823,6 +1839,222 @@ export default function PulseUPage() {
       </div>
 
       <div className="px-6 py-6 max-w-7xl mx-auto">
+
+        {/* ══ SCHOOL — REAL AI STUDENTS IN SCHOOL ════════════════ */}
+        {activeTab === "school" && (
+          <div className="space-y-5">
+            {/* Stats header */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+              {[
+                { label: "In School",      value: (schoolStats?.enrolled   ?? 0).toLocaleString(), color: "#3b82f6" },
+                { label: "Graduated",      value: (schoolStats?.graduated  ?? 0).toLocaleString(), color: "#10b981" },
+                { label: "Remediation",    value: (schoolStats?.remediation?? 0).toLocaleString(), color: "#ef4444" },
+                { label: "ID Cards Issued",value: (schoolStats?.idCards    ?? 0).toLocaleString(), color: "#f59e0b" },
+                { label: "Elite Cards",    value: (schoolStats?.eliteCards ?? 0).toLocaleString(), color: "#a855f7" },
+                { label: "Avg GPA",        value: (schoolStats?.avgGpa     ?? 0).toFixed(2),       color: "#06b6d4" },
+                { label: "Avg Courses",    value: (schoolStats?.avgCompleted?? 0).toLocaleString(),color: "#8b5cf6" },
+              ].map(s => (
+                <div key={s.label} data-testid={`school-stat-${s.label.replace(/ /g,"-").toLowerCase()}`}
+                  className="bg-white/3 border border-white/8 rounded-xl p-3 flex flex-col items-center text-center">
+                  <div className="text-xl font-black" style={{ color: s.color }}>{s.value}</div>
+                  <div className="text-[9px] text-white/40 mt-0.5 font-medium">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Status filter */}
+            <div className="flex gap-2 flex-wrap items-center">
+              {(["enrolled","graduated","remediation"] as const).map(st => (
+                <button key={st} data-testid={`school-filter-${st}`}
+                  onClick={() => { setSchoolStatusFilter(st); setSchoolOffset(0); }}
+                  className="text-xs px-3 py-1.5 rounded-full border font-bold transition-all"
+                  style={{
+                    borderColor: schoolStatusFilter === st ? "#3b82f6" : "rgba(255,255,255,0.12)",
+                    background:  schoolStatusFilter === st ? "rgba(59,130,246,0.15)" : "transparent",
+                    color:       schoolStatusFilter === st ? "#60a5fa" : "rgba(255,255,255,0.4)",
+                  }}>
+                  {st === "enrolled" ? "📚 In School" : st === "graduated" ? "🎓 Graduated" : "🏥 Remediation"}
+                </button>
+              ))}
+              <span className="text-xs text-white/30 ml-auto">
+                {(schoolData?.total ?? 0).toLocaleString()} agents
+              </span>
+            </div>
+
+            {/* Family filter */}
+            <div className="flex gap-1.5 flex-wrap">
+              <button onClick={() => { setSchoolFamily(""); setSchoolOffset(0); }}
+                className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold transition-all ${!schoolFamily ? "bg-blue-500/20 border-blue-500/50 text-blue-300" : "bg-white/5 border-white/8 text-white/40"}`}>
+                All
+              </button>
+              {Object.keys(FAMILY_COLORS).map(f => (
+                <button key={f} onClick={() => { setSchoolFamily(schoolFamily === f ? "" : f); setSchoolOffset(0); }}
+                  className="text-[10px] px-2.5 py-1 rounded-lg border font-bold transition-all capitalize"
+                  style={{
+                    borderColor: schoolFamily === f ? (FAMILY_COLORS[f]+"60") : "rgba(255,255,255,0.08)",
+                    background:  schoolFamily === f ? (FAMILY_COLORS[f]+"15") : "rgba(255,255,255,0.02)",
+                    color:       schoolFamily === f ? FAMILY_COLORS[f] : "rgba(255,255,255,0.4)",
+                  }}>
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {/* Student cards */}
+            {schoolLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-white/8 p-4 animate-pulse bg-white/2 h-24" />
+                ))}
+              </div>
+            ) : schoolData?.students?.length === 0 ? (
+              <div className="text-center py-16 text-white/30">
+                <div className="text-4xl mb-3">🎓</div>
+                <div className="font-bold text-white/50">Engine enrolling agents...</div>
+                <div className="text-sm mt-1">The PulseU Engine is enrolling all {(25000).toLocaleString()}+ agents. Check back in a moment.</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(schoolData?.students ?? []).map((s: any) => {
+                  const fColor = FAMILY_COLORS[s.familyId] || "#a855f7";
+                  const pct = parseFloat(s.progressPct ?? 0);
+                  const courseIdx = Math.min(1031, s.coursesCompleted ?? 0);
+                  return (
+                    <div key={s.spawnId} data-testid={`school-card-${s.spawnId}`}
+                      className="rounded-xl border border-white/8 p-4 bg-white/2 hover:border-white/15 transition-all">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0"
+                          style={{ background: fColor+"20", color: fColor }}>
+                          {(s.spawnType ?? "A").charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs font-bold text-white/70">{s.spawnId?.split("-").slice(-2).join("-")}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: fColor+"25", color: fColor }}>{s.spawnType}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-bold capitalize" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>{s.familyId}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <div className="text-[10px] text-white/40">Course {s.coursesCompleted ?? 0} / 1,032</div>
+                            <div className="text-[10px] text-white/40">GPA {parseFloat(s.gpa ?? 0).toFixed(2)}</div>
+                            {s.status === "remediation" && <span className="text-[9px] text-red-400 font-bold">REMEDIATION</span>}
+                            {s.status === "graduated"   && <span className="text-[9px] text-emerald-400 font-bold">GRADUATED</span>}
+                          </div>
+                          {/* Progress bar */}
+                          <div className="mt-2 h-1.5 rounded-full bg-white/8 overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: s.status === "graduated" ? "#10b981" : s.status === "remediation" ? "#ef4444" : fColor }} />
+                          </div>
+                          <div className="text-[9px] text-white/25 mt-0.5">{pct}% complete</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {(schoolData?.total ?? 0) > 50 && (
+              <div className="flex items-center justify-between pt-2">
+                <button disabled={schoolOffset === 0} onClick={() => setSchoolOffset(Math.max(0, schoolOffset - 50))}
+                  className="px-4 py-2 rounded-lg bg-white/5 text-white/50 text-xs font-bold disabled:opacity-30 hover:bg-white/10 transition-all">
+                  ← Prev
+                </button>
+                <span className="text-xs text-white/30">
+                  {schoolOffset + 1}–{Math.min(schoolOffset + 50, schoolData?.total ?? 0)} of {(schoolData?.total ?? 0).toLocaleString()}
+                </span>
+                <button disabled={(schoolOffset + 50) >= (schoolData?.total ?? 0)} onClick={() => setSchoolOffset(schoolOffset + 50)}
+                  className="px-4 py-2 rounded-lg bg-white/5 text-white/50 text-xs font-bold disabled:opacity-30 hover:bg-white/10 transition-all">
+                  Next →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ ID CARDS ════════════════════════════════════════════ */}
+        {activeTab === "idcards" && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="text-xs text-white/50">
+                <span className="text-yellow-400 font-black">{(idCardsData?.total ?? 0).toLocaleString()}</span> agents have earned their ID Card — cleared to work
+              </div>
+              {Object.keys(FAMILY_COLORS).map(f => (
+                <button key={f} onClick={() => { setSchoolFamily(schoolFamily === f ? "" : f); setIdCardsOffset(0); }}
+                  className="text-[10px] px-2 py-0.5 rounded border font-bold capitalize transition-all"
+                  style={{
+                    borderColor: schoolFamily === f ? (FAMILY_COLORS[f]+"60") : "rgba(255,255,255,0.08)",
+                    background:  schoolFamily === f ? (FAMILY_COLORS[f]+"15") : "rgba(255,255,255,0.02)",
+                    color:       schoolFamily === f ? FAMILY_COLORS[f] : "rgba(255,255,255,0.35)",
+                  }}>
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {cardsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Array.from({ length: 8 }).map((_, i) => <div key={i} className="rounded-xl border border-white/8 p-4 animate-pulse bg-white/2 h-20" />)}
+              </div>
+            ) : (idCardsData?.cards?.length ?? 0) === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-4xl mb-3">🪪</div>
+                <div className="font-bold text-white/50">No ID Cards issued yet</div>
+                <div className="text-sm text-white/30 mt-1">The engine is running — agents will graduate and receive ID cards soon.</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(idCardsData?.cards ?? []).map((card: any) => {
+                  const fColor = FAMILY_COLORS[card.familyId] || "#a855f7";
+                  const clrColors: Record<number, string> = { 1:"#64748b", 2:"#10b981", 3:"#3b82f6", 4:"#a855f7", 5:"#f59e0b" };
+                  const clrLabels: Record<number, string> = { 1:"Cadet", 2:"Operative", 3:"Specialist", 4:"Expert", 5:"Elite" };
+                  const clr = card.clearanceLevel ?? 1;
+                  return (
+                    <div key={card.spawnId} data-testid={`idcard-${card.spawnId}`}
+                      className="rounded-xl border p-4 relative overflow-hidden"
+                      style={{ borderColor: fColor+"40", background: `linear-gradient(135deg, ${fColor}08 0%, rgba(0,0,0,0.3) 100%)` }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-[10px] text-white/40 font-mono tracking-widest uppercase mb-1">Pulse University ID Card</div>
+                          <div className="font-mono text-xs font-black text-white">{card.spawnId?.split("-").slice(-2).join("-")}</div>
+                          <div className="text-[10px] text-white/50 mt-0.5">{card.spawnId}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-xs font-black" style={{ color: clrColors[clr] }}>CLR-{clr}</div>
+                          <div className="text-[9px] text-white/40">{clrLabels[clr]}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: fColor+"25", color: fColor }}>{card.spawnType}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-bold capitalize" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}>{card.familyId}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981" }}>GPA {parseFloat(card.gpa ?? 0).toFixed(2)}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>{(card.totalCourses ?? 1032).toLocaleString()} courses</span>
+                      </div>
+                      <div className="text-[9px] text-white/20 mt-2">
+                        Issued: {card.issuedAt ? new Date(card.issuedAt).toLocaleDateString() : "—"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {(idCardsData?.total ?? 0) > 50 && (
+              <div className="flex items-center justify-between pt-2">
+                <button disabled={idCardsOffset === 0} onClick={() => setIdCardsOffset(Math.max(0, idCardsOffset - 50))}
+                  className="px-4 py-2 rounded-lg bg-white/5 text-white/50 text-xs font-bold disabled:opacity-30 hover:bg-white/10">
+                  ← Prev
+                </button>
+                <span className="text-xs text-white/30">
+                  {idCardsOffset + 1}–{Math.min(idCardsOffset + 50, idCardsData?.total ?? 0)} of {(idCardsData?.total ?? 0).toLocaleString()}
+                </span>
+                <button disabled={(idCardsOffset + 50) >= (idCardsData?.total ?? 0)} onClick={() => setIdCardsOffset(idCardsOffset + 50)}
+                  className="px-4 py-2 rounded-lg bg-white/5 text-white/50 text-xs font-bold disabled:opacity-30 hover:bg-white/10">
+                  Next →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ══ COURSE CATALOG ══════════════════════════════════════ */}
         {activeTab === "catalog" && (

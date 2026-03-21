@@ -5036,6 +5036,108 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     }
   });
 
+  app.get("/api/pulseu/school", async (req, res) => {
+    try {
+      const limit  = Math.min(100, parseInt(req.query.limit as string)  || 50);
+      const offset = parseInt(req.query.offset as string) || 0;
+      const family = req.query.family as string | undefined;
+      const status = (req.query.status as string) || "enrolled";
+      const familyWhere = family ? `AND pp.family_id = '${family.replace(/'/g,"''")}'` : "";
+
+      const rows = await pool.query(`
+        SELECT
+          pp.spawn_id        AS "spawnId",
+          pp.family_id       AS "familyId",
+          pp.spawn_type      AS "spawnType",
+          pp.courses_completed AS "coursesCompleted",
+          pp.gpa,
+          pp.status,
+          pp.enrolled_at     AS "enrolledAt",
+          pp.last_progress_at AS "lastProgress",
+          ROUND((pp.courses_completed::numeric / 1032) * 100, 1) AS "progressPct"
+        FROM pulseu_progress pp
+        WHERE pp.status = $1 ${familyWhere}
+        ORDER BY pp.last_progress_at DESC NULLS LAST
+        LIMIT $2 OFFSET $3
+      `, [status, limit, offset]);
+
+      const cnt = await pool.query(`
+        SELECT COUNT(*) AS cnt FROM pulseu_progress pp
+        WHERE pp.status = $1 ${familyWhere}
+      `, [status]);
+
+      res.json({ students: rows.rows, total: Number(cnt.rows[0]?.cnt || 0) });
+    } catch (e) {
+      console.error("[pulseu/school]", e);
+      res.json({ students: [], total: 0 });
+    }
+  });
+
+  app.get("/api/pulseu/school/stats", async (_req, res) => {
+    try {
+      const r = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE status = 'enrolled')    AS enrolled,
+          COUNT(*) FILTER (WHERE status = 'graduated')   AS graduated,
+          COUNT(*) FILTER (WHERE status = 'remediation') AS remediation,
+          ROUND((AVG(gpa) FILTER (WHERE status='graduated'))::numeric, 2) AS avg_gpa,
+          ROUND(AVG(courses_completed)::numeric, 0)                   AS avg_completed
+        FROM pulseu_progress
+      `);
+      const cards = await pool.query(`
+        SELECT COUNT(*) AS cnt, COUNT(*) FILTER (WHERE clearance_level >= 4) AS elite
+        FROM ai_id_cards WHERE status = 'active'
+      `);
+      res.json({
+        enrolled:    Number(r.rows[0]?.enrolled   || 0),
+        graduated:   Number(r.rows[0]?.graduated  || 0),
+        remediation: Number(r.rows[0]?.remediation|| 0),
+        avgGpa:      parseFloat(r.rows[0]?.avg_gpa || 0),
+        avgCompleted:Number(r.rows[0]?.avg_completed || 0),
+        idCards:     Number(cards.rows[0]?.cnt    || 0),
+        eliteCards:  Number(cards.rows[0]?.elite  || 0),
+      });
+    } catch (e) {
+      console.error("[pulseu/school/stats]", e);
+      res.json({ enrolled:0, graduated:0, remediation:0, avgGpa:0, avgCompleted:0, idCards:0, eliteCards:0 });
+    }
+  });
+
+  app.get("/api/pulseu/id-cards", async (req, res) => {
+    try {
+      const limit  = Math.min(100, parseInt(req.query.limit as string) || 50);
+      const offset = parseInt(req.query.offset as string) || 0;
+      const family = req.query.family as string | undefined;
+      const familyWhere = family ? `AND ic.family_id = '${family.replace(/'/g,"''")}'` : "";
+
+      const rows = await pool.query(`
+        SELECT
+          ic.spawn_id        AS "spawnId",
+          ic.family_id       AS "familyId",
+          ic.spawn_type      AS "spawnType",
+          ic.gpa,
+          ic.total_courses   AS "totalCourses",
+          ic.clearance_level AS "clearanceLevel",
+          ic.issued_at       AS "issuedAt",
+          ic.status
+        FROM ai_id_cards ic
+        WHERE ic.status = 'active' ${familyWhere}
+        ORDER BY ic.gpa DESC, ic.issued_at DESC
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+
+      const cnt = await pool.query(`
+        SELECT COUNT(*) AS cnt FROM ai_id_cards ic
+        WHERE ic.status = 'active' ${familyWhere}
+      `);
+
+      res.json({ cards: rows.rows, total: Number(cnt.rows[0]?.cnt || 0) });
+    } catch (e) {
+      console.error("[pulseu/id-cards]", e);
+      res.json({ cards: [], total: 0 });
+    }
+  });
+
   app.get("/api/pulse/live", async (req, res) => {
     try {
       const [knowRows, quantaRows, productRows, mediaRows, careerRows] = await Promise.all([

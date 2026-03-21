@@ -627,3 +627,31 @@ export const spawnDiary = pgTable("spawn_diary", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type SpawnDiary = typeof spawnDiary.$inferSelect;
+
+export const pulseUProgress = pgTable("pulseu_progress", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull().unique(),
+  familyId: text("family_id").notNull().default(""),
+  spawnType: text("spawn_type").notNull().default(""),
+  coursesCompleted: integer("courses_completed").notNull().default(0),
+  gpa: real("gpa").notNull().default(0.0),
+  enrolledAt: timestamp("enrolled_at").notNull().defaultNow(),
+  lastProgressAt: timestamp("last_progress_at").defaultNow(),
+  status: text("status").notNull().default("enrolled"),
+  // enrolled | graduated | remediation
+});
+export type PulseUProgress = typeof pulseUProgress.$inferSelect;
+
+export const aiIdCards = pgTable("ai_id_cards", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull().unique(),
+  familyId: text("family_id").notNull(),
+  spawnType: text("spawn_type").notNull(),
+  gpa: real("gpa").notNull(),
+  totalCourses: integer("total_courses").notNull(),
+  clearanceLevel: integer("clearance_level").notNull().default(1),
+  issuedAt: timestamp("issued_at").notNull().defaultNow(),
+  status: text("status").notNull().default("active"),
+  // active | suspended | revoked
+});
+export type AiIdCard = typeof aiIdCards.$inferSelect;
