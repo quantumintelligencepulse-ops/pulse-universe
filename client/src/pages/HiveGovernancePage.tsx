@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface DecayRecord { spawnId: string; familyId: string; decayScore: number; decayState: string; healAttempts: number; failedCures: number; isOnBreak: boolean; breakReason: string; isolatedAt?: string; isolationReason: string; lastDecayAt: string }
@@ -30,6 +31,7 @@ export default function HiveGovernancePage() {
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedCase, setSelectedCase] = useState<SenateCase | null>(null);
   const [selectedFamily, setSelectedFamily] = useState<string>('');
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
 
   const { data: decayStats } = useQuery<DecayStats>({ queryKey: ['/api/decay/stats'], refetchInterval: 12000 });
   const { data: decayRecords = [] } = useQuery<DecayRecord[]>({ queryKey: ['/api/decay/states'], refetchInterval: 12000 });
@@ -55,7 +57,7 @@ export default function HiveGovernancePage() {
   decayRecords.forEach(d => { familyDecay[d.familyId] = familyDecay[d.familyId] ?? []; familyDecay[d.familyId].push(d); });
 
   return (
-    <div className="min-h-screen bg-[#03050A] text-white font-mono flex flex-col overflow-hidden">
+    <div className="h-full bg-[#03050A] text-white font-mono flex flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b border-white/5 bg-black/70 px-4 py-2 flex items-center gap-3">
         <Link href="/"><span className="text-white/60 hover:text-white/50 text-[9px] cursor-pointer">← HOME</span></Link>
@@ -63,7 +65,8 @@ export default function HiveGovernancePage() {
         <span className="text-[9px] tracking-[0.5em] text-[#FFD700]/60">HIVE GOVERNANCE</span>
         <span className="text-white/50">|</span>
         <span className="text-[8px] text-white/55 tracking-widest">DECAY · SENATE · SUCCESSION · BREAK DAYS</span>
-        <div className="ml-auto flex gap-4 text-[8px]">
+        <div className="ml-auto flex items-center gap-4 text-[8px]">
+          <AIFinderButton onSelect={setViewSpawnId} />
           {terminalCount > 0 && <span className="text-red-500 animate-pulse">{terminalCount} TERMINAL</span>}
           {isolatedCount > 0 && <span className="text-[#6B0000]">{isolatedCount} ISOLATED</span>}
           {openCases.length > 0 && <span className="text-[#FFD700]">{openCases.length} SENATE CASES</span>}
@@ -479,6 +482,7 @@ export default function HiveGovernancePage() {
           )}
         </div>
       </div>
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

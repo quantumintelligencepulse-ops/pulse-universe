@@ -48,7 +48,7 @@ export default function CorporationPage() {
   }
 
   return (
-    <div data-testid="corporation-page" className="min-h-screen bg-[#000810] text-white font-mono">
+    <div data-testid="corporation-page" className="h-full overflow-y-auto bg-[#000810] text-white font-mono">
       {/* Header */}
       <div className="border-b border-indigo-900/40 bg-black/60 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">

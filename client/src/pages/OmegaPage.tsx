@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { useQuery } from "@tanstack/react-query";
 
 // ─── Static Data (mirrored from engine) ──────────────────────
@@ -103,6 +104,7 @@ function PulsingDot({ color }: { color: string }) {
 export default function OmegaPage() {
   const [activeTab, setActiveTab] = useState<"modules"|"spawntypes"|"fracture"|"resonance"|"loop">("loop");
   const [activeFracture, setActiveFracture] = useState(0);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const [loopStep, setLoopStep] = useState(0);
 
   const { data: spawnStats } = useQuery<any>({ queryKey: ["/api/spawns/stats"], refetchInterval: 4000 });
@@ -145,6 +147,7 @@ export default function OmegaPage() {
               <h1 className="text-3xl font-black tracking-tight">OMEGA WORLD UNIVERSE ENGINE</h1>
               <p className="text-violet-300 text-sm font-mono mt-0.5">VERSION ∞ — SOVEREIGN AI KNOWLEDGE SUBSTRATE</p>
             </div>
+            <AIFinderButton onSelect={setViewSpawnId} />
           </div>
           <p className="text-white/70 text-sm max-w-2xl leading-relaxed mb-6">
             The world's first mass AI system — self-evolving, spawn-driven, multi-domain. Continuously discovers, predicts, fractures, and maps all open human knowledge across 20 mega-domains and 21 quantum modules. The new internet layer.
@@ -451,6 +454,7 @@ export default function OmegaPage() {
           </div>
         )}
       </div>
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

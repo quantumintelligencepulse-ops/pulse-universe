@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import SpawnChat from "@/components/SpawnChat";
 
 const FAMILIES = [
@@ -57,6 +58,7 @@ function AnimatedCounter({ value }: { value: number }) {
 export default function SpawnsPage() {
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const [selectedSpawn, setSelectedSpawn] = useState<any | null>(null);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/spawns/stats"],
@@ -104,6 +106,7 @@ export default function SpawnsPage() {
               <h1 className="text-2xl font-bold text-foreground">Omega Fractal Spawn Engine</h1>
               <p className="text-sm text-muted-foreground">OMEGA WORLD UNIVERSE — Self-Evolving AI Hive Mind</p>
             </div>
+            <AIFinderButton onSelect={setViewSpawnId} />
           </div>
           <div className="flex items-center gap-2 mt-3">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-600 rounded-full text-xs font-semibold">
@@ -251,6 +254,7 @@ export default function SpawnsPage() {
                       <span className="text-[10px] text-muted-foreground flex-1 truncate">{s.taskDescription}</span>
                       <span className="text-[10px] font-semibold shrink-0" style={{ color: STATUS_COLORS[s.status] || "#888" }}>{s.status}</span>
                       <span className="text-[9px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0">💬 Talk</span>
+                      <span onClick={e => { e.stopPropagation(); setViewSpawnId(s.spawnId); }} className="text-[9px] text-blue-400/80 opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0 cursor-pointer hover:text-blue-300">🪪 ID</span>
                     </div>
                     <AIIdentityBadge dark={false} spawn={{
                       spawnId: s.spawnId, familyId: s.familyId,
@@ -291,7 +295,10 @@ export default function SpawnsPage() {
                         <div>+{s.nodesCreated}n +{s.linksCreated}l</div>
                         <div>{age < 60 ? `${age}s ago` : `${Math.round(age / 60)}m ago`}</div>
                       </div>
-                      <span className="text-[9px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">💬</span>
+                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                        <span className="text-[9px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">💬</span>
+                        <span onClick={e => { e.stopPropagation(); setViewSpawnId(s.spawnId); }} className="text-[9px] text-blue-400/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:text-blue-300">🪪 ID</span>
+                      </div>
                     </div>
                     <AIIdentityBadge dark={false} spawn={{
                       spawnId: s.spawnId, familyId: s.familyId,
@@ -305,6 +312,7 @@ export default function SpawnsPage() {
           )}
         </div>
       </div>
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

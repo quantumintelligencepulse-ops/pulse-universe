@@ -17,7 +17,7 @@ export default function CorporationsListPage() {
   const totalPubs = corporations.reduce((s, c) => s + c.totalPublications, 0);
 
   return (
-    <div data-testid="corporations-list-page" className="min-h-screen bg-[#000810] text-white font-mono">
+    <div data-testid="corporations-list-page" className="h-full overflow-y-auto bg-[#000810] text-white font-mono">
       <div className="border-b border-indigo-900/40 bg-black/60 px-4 py-3 flex items-center justify-between">
         <Link href="/universe"><span className="text-indigo-400 hover:text-white text-xs cursor-pointer">← UNIVERSE</span></Link>
         <div className="text-center">

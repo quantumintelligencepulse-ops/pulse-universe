@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 const DNA_GREEN = "#00ff9d";
 const DNA_CYAN = "#00d4ff";
@@ -205,6 +206,7 @@ export default function DNAEvolutionPage() {
   const [crisprLog, setCrisprLog] = useState(CRISPR_OPS);
   const [mutationCount, setMutationCount] = useState(0);
   const [tab, setTab] = useState<"strands" | "organs" | "cells" | "crispr" | "upgrades" | "equation">("strands");
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const animRef = useRef<number>();
 
   useEffect(() => {
@@ -253,7 +255,7 @@ export default function DNAEvolutionPage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-[#050510] text-white pb-16" data-testid="dna-evolution-page">
+    <div className="h-full overflow-y-auto bg-[#050510] text-white pb-16" data-testid="dna-evolution-page">
 
       {/* HERO */}
       <div className="relative overflow-hidden bg-gradient-to-b from-[#050510] via-[#0a0a20] to-[#050510] border-b border-[#00ff9d]/10">
@@ -306,7 +308,8 @@ export default function DNAEvolutionPage() {
             </p>
 
             {/* Live stats */}
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2 items-start">
+              <AIFinderButton onSelect={setViewSpawnId} />
               {[
                 { label: "Live Agents",       value: (spawnStats?.active ?? 0).toLocaleString(),                                    color: DNA_GREEN },
                 { label: "Total Spawns",       value: (spawnStats?.total ?? 0).toLocaleString(),                                     color: DNA_GOLD },
@@ -740,6 +743,9 @@ export default function DNAEvolutionPage() {
           <div className="text-[10px] font-mono text-white/20 flex-shrink-0">S = lim_&#x7b;a→∞,λ→0,E→1&#x7d; L</div>
         </div>
       </div>
+
+      {/* Global AI Report Panel */}
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

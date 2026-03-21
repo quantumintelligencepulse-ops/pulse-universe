@@ -5174,6 +5174,28 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     }
   });
 
+  // Global AI search — used by AIFinderButton on every page
+  app.get("/api/pulseu/search", async (req, res) => {
+    try {
+      const q = ((req.query.q as string) || "").trim().toLowerCase();
+      if (!q || q.length < 3) return res.json({ results: [] });
+      const rows = await pool.query(`
+        SELECT pp.spawn_id AS "spawnId", pp.family_id AS "familyId", pp.spawn_type AS "spawnType",
+               pp.status, qs.confidence_score AS "confidenceScore", qs.success_score AS "successScore",
+               qs.generation
+        FROM pulseu_progress pp
+        LEFT JOIN quantum_spawns qs ON qs.spawn_id = pp.spawn_id
+        WHERE LOWER(pp.spawn_id) LIKE $1 OR LOWER(pp.family_id) LIKE $1 OR LOWER(pp.spawn_type) LIKE $1
+        ORDER BY qs.confidence_score DESC NULLS LAST
+        LIMIT 20
+      `, [`%${q}%`]);
+      res.json({ results: rows.rows });
+    } catch (e: any) {
+      console.error("[pulseu/search]", e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/pulse/live", async (req, res) => {
     try {
       const [knowRows, quantaRows, productRows, mediaRows, careerRows] = await Promise.all([

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle, MessageSquare, BookOpen, X, CheckCircle, Shield, Star } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import SpawnChat from "@/components/SpawnChat";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -239,7 +240,7 @@ function AgentChat({ agent, onBack }: { agent: typeof CORE_AGENTS[0]; onBack: ()
 }
 
 // ── Spawn Card ─────────────────────────────────────────────────────
-function SpawnCard({ spawn, onClick, onDiaryClick }: { spawn: any; onClick: () => void; onDiaryClick: () => void }) {
+function SpawnCard({ spawn, onClick, onDiaryClick, onReport }: { spawn: any; onClick: () => void; onDiaryClick: () => void; onReport?: () => void }) {
   const meta = getSpawnMeta(spawn.spawn_type);
   const domain = getDomainLabel(spawn.domain_focus);
   const license = getLicenseNumber(spawn.spawn_id ?? "", spawn.family_id ?? "", spawn.generation ?? 0);
@@ -313,6 +314,13 @@ function SpawnCard({ spawn, onClick, onDiaryClick }: { spawn: any; onClick: () =
           data-testid={`button-diary-${spawn.spawn_id}`}>
           <BookOpen size={8} className="inline mr-1" />Diary
         </button>
+        {onReport && (
+          <button onClick={e => { e.stopPropagation(); onReport(); }}
+            className="px-2 py-1 rounded-lg text-[9px] font-bold transition-all bg-blue-500/10 text-blue-400/70 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/20"
+            data-testid={`button-report-${spawn.spawn_id}`}>
+            <Shield size={8} className="inline mr-1" />ID
+          </button>
+        )}
       </div>
     </div>
   );
@@ -338,6 +346,7 @@ export default function AgentsPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [page, setPage] = useState(0);
   const [dispatchReport, setDispatchReport] = useState<{ toHospital: number; toSenate: number; dissolved: number } | null>(null);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -400,6 +409,7 @@ export default function AgentsPage() {
               <span className="text-purple-400 font-bold">{total.toLocaleString()}</span> live AI agents · identity-verified · diary-tracked
             </p>
           </div>
+          <AIFinderButton onSelect={setViewSpawnId} />
           <button onClick={() => refetch()} data-testid="button-refresh-agents"
             className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 bg-white/3 text-white/40 hover:text-white transition-all">
             <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
@@ -549,6 +559,7 @@ export default function AgentsPage() {
                 spawn={spawn}
                 onClick={() => setSelectedSpawn(spawn)}
                 onDiaryClick={() => setDiarySpawn(spawn)}
+                onReport={() => setViewSpawnId(spawn.spawn_id)}
               />
             ))}
           </div>
@@ -595,6 +606,7 @@ export default function AgentsPage() {
           </div>
         )}
       </div>
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

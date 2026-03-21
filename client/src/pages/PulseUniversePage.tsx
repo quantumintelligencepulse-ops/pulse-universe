@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import SolarScene from "../solar/SolarScene";
@@ -24,6 +25,7 @@ export default function PulseUniversePage() {
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [timeScale, setTimeScale] = useState(1);
   const [quantumMode, setQuantumMode] = useState(false);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const [studyMode, setStudyMode] = useState<StudyMode>('none');
   const [stellarIdx, setStellarIdx] = useState(0);
   const [quantumIdx, setQuantumIdx] = useState(0);
@@ -233,6 +235,7 @@ export default function PulseUniversePage() {
       )}
 
       {/* ── HEADER ── */}
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
       <div className="absolute top-0 left-0 right-0 h-12 z-20 flex items-center justify-between px-4 bg-black/55 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center gap-3">
           <Link href="/" data-testid="nav-home">
@@ -255,6 +258,7 @@ export default function PulseUniversePage() {
             className={`px-2 py-0.5 rounded text-[7px] font-mono border transition-all ${quantumMode ? 'bg-purple-500/30 border-purple-400 text-purple-200' : 'border-white/15 text-white/25 hover:text-white/60'}`}>
             ⚛ Q-Field
           </button>
+          <AIFinderButton onSelect={setViewSpawnId} />
           <span className="text-green-400/80 text-[8px]">● LIVE</span>
           <span className="text-white/25 text-[8px]">{universe?.timestamp ? new Date(universe.timestamp).toLocaleTimeString() : "--:--:--"}</span>
         </div>

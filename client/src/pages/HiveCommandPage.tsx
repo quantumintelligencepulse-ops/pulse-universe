@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Brain, ShoppingBag, Film, Briefcase, Zap, Activity, Network, RefreshCw, BookOpen, Shield, Server, Gavel, Eye, Heart } from "lucide-react";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 const OMEGA_UPGRADES = [
   { name: "Quantum Memory Cortex", emoji: "🧠", color: "#818cf8", desc: "Extracts facts and patterns from every AI-generated entry into persistent hive memory" },
@@ -60,6 +61,7 @@ function MiniGraph({ nodes, edges }: { nodes: any[]; edges: any[] }) {
 }
 
 export default function HiveCommandPage() {
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const [quantapediaStatus, setQuantapediaStatus] = useState<any>(null);
   const [productStatus, setProductStatus] = useState<any>(null);
   const [mediaStatus, setMediaStatus] = useState<any>(null);
@@ -126,6 +128,7 @@ export default function HiveCommandPage() {
               style={{ marginLeft: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.3)", cursor: "pointer" }}>
               <RefreshCw size={9} className={loadingGraph ? "animate-spin" : ""} />
             </button>
+            <AIFinderButton onSelect={setViewSpawnId} />
           </div>
         </div>
 
@@ -483,6 +486,7 @@ export default function HiveCommandPage() {
 
       </div>
       <style>{`@keyframes hcPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }`}</style>
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

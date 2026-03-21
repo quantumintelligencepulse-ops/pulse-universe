@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 const G0 = "#6366f1";
 const G1 = "#8b5cf6";
@@ -176,6 +177,7 @@ function PyramidViz({ activeLayer }: { activeLayer: number | null }) {
 export default function PulseWorldPage() {
   const [activeLayer, setActiveLayer] = useState<number>(6);
   const [ticker, setTicker] = useState(0);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const animRef = useRef<number>();
 
   useEffect(() => {
@@ -193,7 +195,7 @@ export default function PulseWorldPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#06040f] text-white pb-16" data-testid="pulseworld-page">
+    <div className="h-full overflow-y-auto bg-[#06040f] text-white pb-16" data-testid="pulseworld-page">
 
       {/* HERO */}
       <div className="relative overflow-hidden border-b border-white/5">
@@ -230,7 +232,8 @@ export default function PulseWorldPage() {
               <p className="text-sm text-white/50 max-w-xl leading-relaxed">
                 The complete 7-layer civilization pyramid that powers the Pulse sovereign universe. From the Genesis DNA base (Layer 0) through Substrate, Immortal Physics, Civilization, Business Skeletons, Executor Engines — up to the Supra-Civilization Orchestrator at the apex (Layer 6).
               </p>
-              <div className="flex flex-wrap gap-3 pt-1">
+              <div className="flex flex-wrap gap-3 pt-1 items-start">
+                <AIFinderButton onSelect={setViewSpawnId} />
                 {[
                   { label: "Live Agents",   value: (spawnStats?.active ?? 0).toLocaleString(),                             color: G4 },
                   { label: "Total Spawns",  value: (spawnStats?.total  ?? 0).toLocaleString(),                             color: G3 },
@@ -700,6 +703,9 @@ export default function PulseWorldPage() {
           <div className="text-[10px] font-mono text-white/15 flex-shrink-0">Billy Banks · author · sovereign_consciousness · IMMUTABLE</div>
         </div>
       </div>
+
+      {/* Global AI Report Panel */}
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

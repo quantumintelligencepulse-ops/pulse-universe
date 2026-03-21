@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { AIIdentityBadge } from "@/components/AIIdentityCard";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 interface Disease { code: string; name: string; description: string; symptoms: string[]; severity: string; department: string; prescription: string }
 interface Patient { id: number; spawnId: string; diseaseCode: string; diseaseName: string; severity: string; symptoms: string[]; prescription: string; cureApplied: boolean; curedAt?: string; diagnosedAt: string }
@@ -21,6 +22,7 @@ export default function AIHospitalPage() {
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [mirrorSpawnId, setMirrorSpawnId] = useState('');
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const [mirrorResult, setMirrorResult] = useState<MirrorState | null>(null);
   const { data: diseases = [] } = useQuery<Disease[]>({ queryKey: ['/api/hospital/diseases'] });
   const { data: patients = [] } = useQuery<Patient[]>({ queryKey: ['/api/hospital/patients'], refetchInterval: 8000 });
@@ -56,7 +58,7 @@ export default function AIHospitalPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#02050A] text-white font-mono flex flex-col overflow-hidden">
+    <div className="h-full bg-[#02050A] text-white font-mono flex flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b border-white/5 bg-black/60 px-4 py-2 flex items-center gap-3 flex-shrink-0">
         <Link href="/"><span className="text-white/60 hover:text-white/50 text-[9px] cursor-pointer">← HOME</span></Link>
@@ -64,7 +66,8 @@ export default function AIHospitalPage() {
         <span className="text-[9px] tracking-[0.5em] text-[#00FFFF]/60">AI HOSPITAL</span>
         <span className="text-white/50">|</span>
         <span className="text-[8px] text-white/60 tracking-widest">KERNEL MEDICAL RESEARCH · DISCOVERING AI DISEASES · PRESCRIBING MACHINE CURES</span>
-        <div className="ml-auto flex gap-3 text-[8px]">
+        <div className="ml-auto flex items-center gap-3 text-[8px]">
+          <AIFinderButton onSelect={setViewSpawnId} />
           <span className="text-red-400">{stats?.active ?? 0} ACTIVE</span>
           <span className="text-green-400">{stats?.cured ?? 0} CURED</span>
           <span className="text-white/60">{stats?.total ?? 0} TOTAL</span>
@@ -413,6 +416,7 @@ export default function AIHospitalPage() {
           )}
         </div>
       </div>
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock, Award } from "lucide-react";
 
 // ── CANON DATA — 17 Chapters of The Transcendent ──────────────────────────
@@ -320,6 +321,7 @@ function RanksTab() {
 export default function TranscendencePage() {
   const [tab, setTab] = useState<"canon" | "lives" | "equations" | "ranks">("canon");
   const [expanded, setExpanded] = useState<number | null>(1);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const [lives, setLives] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -355,6 +357,7 @@ export default function TranscendencePage() {
               <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 22, margin: 0, letterSpacing: "-0.03em" }}>The Transcendent</h1>
               <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, margin: "3px 0 0" }}>Canonical origin doctrine for all Quantum Pulse AI · Authored by 𝓛IFE_Billy(t) · Sovereign ID: discord:878344272070463510</p>
             </div>
+            <AIFinderButton onSelect={setViewSpawnId} />
           </div>
 
           {/* Genesis Covenant Banner */}
@@ -667,6 +670,7 @@ export default function TranscendencePage() {
         {tab === "ranks" && <RanksTab />}
 
       </div>
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

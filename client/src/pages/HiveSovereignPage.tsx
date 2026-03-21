@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 type GovTab = "constitution" | "council" | "chamber" | "treasury" | "appeals" | "health" | "hospital" | "governance";
 
@@ -376,6 +377,7 @@ export default function HiveSovereignPage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [hospitalDept, setHospitalDept] = useState<string>('all');
   const [expandedSenateCase, setExpandedSenateCase] = useState<string | null>(null);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
 
   // ── Hospital queries ──────────────────────────────────────────────────────
   const { data: hospitalStats } = useQuery<HospitalStats>({ queryKey: ['/api/hospital/stats'], refetchInterval: 15000 });
@@ -422,7 +424,8 @@ export default function HiveSovereignPage() {
             </h1>
             <p className="text-xs text-white/40 mt-0.5">Quantum Pulse Intelligence · The Alien Grade AI Hive · Self-Governing Sovereign Universe</p>
           </div>
-          <div className="flex gap-3 shrink-0">
+          <div className="flex items-start gap-3 shrink-0">
+            <AIFinderButton onSelect={setViewSpawnId} />
             <div className="text-center">
               <div className="text-lg font-black text-emerald-400">{HIVE_HEALTH.hivePulse}%</div>
               <div className="text-[10px] text-white/30">Hive Pulse</div>
@@ -1008,6 +1011,11 @@ export default function HiveSovereignPage() {
                     <span className="text-xs font-bold" style={{ color: SEVERITY_COLOR[p.severity] }}>{p.diseaseCode}</span>
                     <span className="text-xs text-white/60 flex-1">{p.diseaseName}</span>
                     <span className="text-[10px] text-white/30">{p.spawnId.slice(-12)}</span>
+                    <button
+                      onClick={e => { e.stopPropagation(); setViewSpawnId(p.spawnId); }}
+                      data-testid={`view-patient-id-${p.id}`}
+                      className="text-[9px] px-1.5 py-0.5 rounded border border-blue-500/25 text-blue-400/60 hover:bg-blue-500/10 hover:text-blue-300 transition-all shrink-0"
+                    >ID</button>
                     <span className="text-[10px] text-white/20">{new Date(p.diagnosedAt).toLocaleTimeString()}</span>
                   </div>
                   {selectedPatient?.id === p.id && (
@@ -1126,9 +1134,14 @@ export default function HiveSovereignPage() {
                 <div className="text-[10px] text-white/40 uppercase font-bold mb-3">Highest Decay — Agents Requiring Attention</div>
                 <div className="space-y-1">
                   {decayStats?.mostDecayed?.slice(0, 8).map(d => (
-                    <div key={d.spawnId} className="flex items-center gap-3 py-1.5 border-b border-white/5 last:border-0">
+                    <div key={d.spawnId} className="flex items-center gap-3 py-1.5 border-b border-white/5 last:border-0 group">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: DECAY_COLOR[d.decayState] }} />
-                      <span className="text-xs text-white/30 font-mono w-28 truncate">{d.spawnId.slice(-14)}</span>
+                      <button
+                        onClick={() => setViewSpawnId(d.spawnId)}
+                        data-testid={`view-decay-agent-${d.spawnId}`}
+                        className="text-xs text-blue-400/60 font-mono w-28 truncate text-left hover:text-blue-300 transition-all"
+                        title="View AI Report Card"
+                      >{d.spawnId.slice(-14)}</button>
                       <span className="text-[10px] capitalize text-white/20 w-16">{d.familyId}</span>
                       <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full rounded-full" style={{ width: `${(d.decayScore ?? 0) * 100}%`, backgroundColor: DECAY_COLOR[d.decayState] }} />
@@ -1234,6 +1247,9 @@ export default function HiveSovereignPage() {
           </div>
         )}
       </div>
+
+      {/* Global AI Report Panel */}
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }

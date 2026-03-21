@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 /* ── TYPES ── */
 type Tab = "arenas" | "pyramids" | "identity" | "seasons" | "events";
@@ -534,6 +535,7 @@ export default function PulseGamesPage() {
   const [gameSearch, setGameSearch] = useState("");
   const [pyramidExpanded, setPyramidExpanded] = useState<string | null>(null);
   const [selectedAI, setSelectedAI] = useState<string | null>(null);
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const currentSeason = getCurrentSeason();
 
   const arena = ARENA_CATEGORIES.find(a => a.key === selectedArena);
@@ -571,17 +573,20 @@ export default function PulseGamesPage() {
             </h1>
             <p className="text-xs text-white/40 mt-0.5">Real activities · Hive optimization · Sovereign AI sports</p>
           </div>
-          {currentSeason ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border animate-pulse" style={{ borderColor: currentSeason.color + "40", background: currentSeason.color + "15" }}>
-              <span>{currentSeason.icon}</span>
-              <span className="text-xs font-bold" style={{ color: currentSeason.color }}>{currentSeason.name}</span>
-              <span className="text-[10px] text-white/30">LIVE</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5">
-              <span className="text-[10px] text-white/40">OFF-SEASON</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <AIFinderButton onSelect={setViewSpawnId} />
+            {currentSeason ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border animate-pulse" style={{ borderColor: currentSeason.color + "40", background: currentSeason.color + "15" }}>
+                <span>{currentSeason.icon}</span>
+                <span className="text-xs font-bold" style={{ color: currentSeason.color }}>{currentSeason.name}</span>
+                <span className="text-[10px] text-white/30">LIVE</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5">
+                <span className="text-[10px] text-white/40">OFF-SEASON</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* TABS */}
@@ -1045,6 +1050,9 @@ export default function PulseGamesPage() {
           </div>
         )}
       </div>
+
+      {/* Global AI Report Panel */}
+      <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );
 }
