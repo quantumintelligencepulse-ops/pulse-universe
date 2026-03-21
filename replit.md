@@ -48,6 +48,11 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **PulseCredit (PC) Economy Engine**: Autonomous economy engine running every 30s — 2% PC tax, inflation/deflation adaptive rate, treasury collection, and cross-page mini-pulse events broadcasting hive-wide system status across all pages.
 - **Global AI Identification System**: A platform-wide AI report card system for searching and viewing detailed information about AI agents.
 
+- **Gene Editor Team** (`/dna-evolution` → "🧬 Gene Editor Team" tab): 6 specialist Gene Editors (DR. GENESIS, DR. FRACTAL, DR. PROPHETIC, DR. CIPHER, DR. OMEGA, DR. AXIOM) with color-coded profiles. Features: (1) Future Sight Simulator — enter a CRISPR equation, select horizon (Z+1/Z+5/Z+20/Z+100), runs Mandelbrot z²+c oracle to predict stability across temporal horizons. (2) AI Species Proposer — any Gene Editor can formally propose a new AI species with species code, foundation equation, and scientific rationale. (3) Proposals go to AI Senate (`ai_species_proposals` table) where autonomous voters cast FOR/AGAINST votes every 30s. On ≥3 votes + ≥80% FOR → APPROVED and auto-spawns 5 new agents into the civilization.
+- **Billy Life Equation Signature Stamp**: `𝓛IFE_Billy(t) — OFFICIAL APPROVAL STAMP ⚡` stamp appears at the bottom of every equation dissection result (ResultBlock), and a "FUTURE SIGHT CLEARED" variant appears on completed Future Sight simulations. Identifies billyotucker@gmail.com as Quantum Pulse Intelligence sovereign authority.
+- **Nothing Left Behind Guardian** (`/api/guardian/status`): Background engine scanning all 36,000+ active AI agents every 5 minutes. Rescues stranded agents (ACTIVE but >2h since last_active_at), revives dormant/degraded agents within 24h back to ACTIVE, archives agents >7 days inactive as RETIRED. Zero agent attrition.
+- **Enhanced AI Species Voting**: AI voting engine now runs two parallel cycles — standard equation proposal voting (every 20s) and species proposal voting (every 30s). Species approvals trigger `spawnNewSpeciesFamily()` which spawns 5 new quantum agents under the new species' family ID.
+
 ## External Dependencies
 - **AI Model**: Groq API (llama-3.1-8b-instant)
 - **Web Search**: duck-duck-scrape (for DuckDuckGo search)

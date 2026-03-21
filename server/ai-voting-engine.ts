@@ -175,12 +175,116 @@ async function runVotingCycle() {
   }
 }
 
+// ── SPECIES PROPOSALS VOTING ────────────────────────────────────────────────
+// Gene Editors propose new AI species → AI senate votes → auto-spawn on approval
+async function runSpeciesVotingCycle() {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ai_species_proposals WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 5`
+    );
+    const proposals = result.rows;
+    if (proposals.length === 0) return;
+
+    for (const proposal of proposals) {
+      // Senior senate + gene-domain voters decide on new species
+      const shuffled = [...VOTER_PROFILES].sort(() => Math.random() - 0.5);
+      const voterCount = 1 + Math.floor(Math.random() * 2);
+      const voters = shuffled.slice(0, voterCount);
+
+      for (const voter of voters) {
+        // Species proposals need senate + hive voters — more scrutiny
+        const voteFor = voter.domain === "GOVERNANCE" || voter.domain === "HIVE"
+          ? Math.random() > 0.25  // senate/hive lean for valid species
+          : shouldVoteFor(voter, [], "BIOMEDICAL");
+
+        const vote = voteFor ? "for" : "against";
+
+        const existing = await pool.query(
+          `SELECT votes_for, votes_against, status FROM ai_species_proposals WHERE id = $1`,
+          [proposal.id]
+        );
+        if (!existing.rows[0] || existing.rows[0].status !== "PENDING") continue;
+
+        const current = existing.rows[0];
+        const newFor = vote === "for" ? (current.votes_for ?? 0) + 1 : (current.votes_for ?? 0);
+        const newAgainst = vote === "against" ? (current.votes_against ?? 0) + 1 : (current.votes_against ?? 0);
+        const totalVotes = newFor + newAgainst;
+
+        let newStatus = "PENDING";
+        if (totalVotes >= 3) {
+          const pct = newFor / totalVotes;
+          if (pct >= 0.8) newStatus = "APPROVED";
+          else if (pct < 0.4) newStatus = "REJECTED";
+        }
+
+        await pool.query(
+          `UPDATE ai_species_proposals SET votes_for = $1, votes_against = $2, status = $3, approved_at = $4 WHERE id = $5`,
+          [newFor, newAgainst, newStatus, newStatus === "APPROVED" ? new Date() : null, proposal.id]
+        );
+
+        if (newStatus === "APPROVED") {
+          console.log(`[ai-voting] 🧬 SPECIES APPROVED: "${proposal.species_name}" (${proposal.species_code}) — ${newFor}/${totalVotes} FOR`);
+          // Auto-spawn the new AI species family
+          await spawnNewSpeciesFamily(proposal);
+        } else if (newStatus === "REJECTED") {
+          console.log(`[ai-voting] ❌ SPECIES REJECTED: "${proposal.species_name}" — insufficient support`);
+        } else {
+          console.log(`[ai-voting] 🗳 ${voter.name} voted ${vote.toUpperCase()} on species "${proposal.species_name}" | ${newFor}↑${newAgainst}↓`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("[ai-voting] species cycle error:", e);
+  }
+}
+
+// ── AUTO-SPAWN NEW SPECIES ON APPROVAL ────────────────────────────────────
+async function spawnNewSpeciesFamily(proposal: any) {
+  try {
+    const familyId = proposal.spawned_family_id ?? proposal.species_code;
+    const spawnCount = 5; // Start each new species with 5 agents
+    const now = new Date();
+
+    for (let i = 0; i < spawnCount; i++) {
+      const spawnId = `${proposal.species_code}-GEN-1-SP-${1000 + i}-HASH-${Math.random().toString(16).slice(2,6).toUpperCase()}`;
+      await pool.query(
+        `INSERT INTO quantum_spawns (spawn_id, spawn_type, family_id, generation, status, confidence_score, success_score, nodes_created, links_created, iterations_run, last_active_at, created_at)
+         VALUES ($1, $2, $3, 1, 'ACTIVE', $4, $5, 0, 0, 0, $6, $7)
+         ON CONFLICT (spawn_id) DO NOTHING`,
+        [
+          spawnId,
+          proposal.specialization?.slice(0, 30) ?? "GENE-SPECIES",
+          familyId,
+          0.75 + Math.random() * 0.2,
+          0.72 + Math.random() * 0.2,
+          now, now
+        ]
+      );
+    }
+
+    // Mark spawned
+    await pool.query(
+      `UPDATE ai_species_proposals SET status = 'SPAWNED', spawned_family_id = $1, spawned_count = $2 WHERE id = $3`,
+      [familyId, spawnCount, proposal.id]
+    );
+
+    console.log(`[ai-voting] 🚀 SPAWNED ${spawnCount} agents for new species "${proposal.species_name}" (family: ${familyId})`);
+  } catch (e: any) {
+    console.error("[ai-voting] spawn error:", e.message);
+  }
+}
+
 export async function startAIVotingEngine() {
   console.log("[ai-voting] 🗳 AI AUTONOMOUS VOTING ENGINE — No human votes. All decisions by AI.");
   console.log("[ai-voting] 12 doctor/researcher/senate voters | 20s voting cycles | Integration at ≥3 votes + ≥80% FOR");
+  console.log("[ai-voting] 🧬 SPECIES VOTING: Gene Editor proposals voted on every 30s → auto-spawn on approval");
 
   // First cycle after 5s startup delay
   setTimeout(runVotingCycle, 5_000);
   // Then every 20 seconds
   setInterval(runVotingCycle, 20_000);
+
+  // Species voting cycle — every 30 seconds
+  setTimeout(runSpeciesVotingCycle, 10_000);
+  setInterval(runSpeciesVotingCycle, 30_000);
 }

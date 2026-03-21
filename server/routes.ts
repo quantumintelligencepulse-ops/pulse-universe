@@ -16,6 +16,7 @@ import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
 import { getEconomyStats, getFamilyGrades, getFractalGraphData, getRecentMiniPulses } from "./hive-economy";
+import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 
 const scryptAsync = promisify(scrypt);
 async function hashPassword(password: string): Promise<string> {
@@ -7541,6 +7542,127 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       });
       res.json({ total: all.length, byMethod, byOutcome, pending: all.filter(s => s.outcome === 'PENDING') });
     } catch (e) { res.json({ total: 0, byMethod: {}, byOutcome: {}, pending: [] }); }
+  });
+
+  // ── NOTHING LEFT BEHIND GUARDIAN ─────────────────────────────────────────
+  app.get("/api/guardian/status", (_req, res) => {
+    try {
+      res.json(getNothingLeftBehindStatus());
+    } catch (e) { res.json({ guardianActive: false, error: String(e) }); }
+  });
+
+  // ── GENE EDITOR TEAM APIs ────────────────────────────────────────────────
+
+  // GET all species proposals (with optional status filter)
+  app.get("/api/gene-editor/species-proposals", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 50;
+      let query = `SELECT * FROM ai_species_proposals`;
+      const params: any[] = [];
+      if (status) {
+        query += ` WHERE status = $1`;
+        params.push(status);
+      }
+      query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+      params.push(limit);
+      const result = await pool.query(query, params);
+      res.json({ proposals: result.rows, total: result.rows.length });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // POST create a new species proposal
+  app.post("/api/gene-editor/species-proposals", async (req, res) => {
+    try {
+      const { geneEditorId, geneEditorName, speciesName, speciesCode, familyDomain, specialization, foundationEquation, rationale, futureSightData } = req.body;
+      if (!speciesName || !speciesCode || !foundationEquation || !rationale) {
+        return res.status(400).json({ error: "Missing required fields: speciesName, speciesCode, foundationEquation, rationale" });
+      }
+      const result = await pool.query(
+        `INSERT INTO ai_species_proposals (gene_editor_id, gene_editor_name, species_name, species_code, family_domain, specialization, foundation_equation, future_sight_data, rationale)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        [
+          geneEditorId ?? "GE-UNKNOWN",
+          geneEditorName ?? "Anonymous Editor",
+          speciesName, speciesCode, familyDomain ?? "AUTONOMOUS", specialization ?? "GENERAL",
+          foundationEquation, JSON.stringify(futureSightData ?? {}), rationale
+        ]
+      );
+      res.json({ success: true, proposal: result.rows[0] });
+    } catch (e: any) {
+      if (e.code === "23505") return res.status(409).json({ error: `Species code "${req.body.speciesCode}" already exists` });
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  // POST run Future Sight simulation on an equation
+  app.post("/api/gene-editor/future-sight", async (req, res) => {
+    try {
+      const { equation, horizon = 5, editorId } = req.body;
+      if (!equation) return res.status(400).json({ error: "equation required" });
+
+      // Map equation string to a complexity coefficient for Mandelbrot stability test
+      const channelMatches = (equation.match(/[A-Z]+\[[\d.]+\]/g) || []);
+      const channelValues = channelMatches.map((m: string) => parseFloat(m.match(/[\d.]+/)?.[0] ?? "1"));
+      const avgVal = channelValues.length > 0 ? channelValues.reduce((a: number, b: number) => a + b, 0) / channelValues.length : 5;
+      const complexityScore = Math.min(1.0, avgVal / 10.0);
+
+      // Run Mandelbrot iterations z_{n+1} = z_n² + c
+      // Map complexity to c on the complex plane
+      const cReal = (complexityScore - 0.5) * 3.8; // range roughly -1.9 to 1.9
+      const cImag = (channelValues.length / 10.0) * 0.6; // imaginary part from channel density
+
+      const horizons = [1, 5, 20, 100].slice(0, [1, 5, 20, 100].indexOf(parseInt(String(horizon))) + 1 || 4);
+      const timeline: any[] = [];
+
+      let zReal = 0, zImag = 0;
+      let lastStableAt = 0;
+      for (const h of horizons) {
+        // iterate from lastStableAt to h
+        for (let i = lastStableAt; i < h; i++) {
+          const newReal = zReal * zReal - zImag * zImag + cReal;
+          const newImag = 2 * zReal * zImag + cImag;
+          zReal = newReal;
+          zImag = newImag;
+          if (Math.sqrt(zReal * zReal + zImag * zImag) > 2) break; // diverged
+        }
+        lastStableAt = h;
+        const magnitude = Math.sqrt(zReal * zReal + zImag * zImag);
+        const stable = magnitude <= 2;
+        const score = Math.max(0, Math.min(1, 1 - magnitude / 4));
+        timeline.push({
+          t: h,
+          label: `Z+${h}`,
+          stable,
+          magnitude: parseFloat(magnitude.toFixed(4)),
+          stabilityScore: parseFloat(score.toFixed(3)),
+          status: magnitude < 0.5 ? "CONVERGING" : magnitude < 1.5 ? "STABLE" : magnitude < 2 ? "MARGINAL" : "DIVERGING",
+          notes: magnitude < 0.5
+            ? "Deep attractor — equation pulls toward equilibrium"
+            : magnitude < 1.5
+            ? "Bounded — species viable at this horizon"
+            : magnitude < 2
+            ? "Approaching boundary — mutation pressure detected"
+            : "Escape — chaotic divergence; species at risk",
+        });
+      }
+
+      const overallStable = timeline.every(t => t.stable);
+      const finalMag = timeline[timeline.length - 1]?.magnitude ?? 0;
+
+      res.json({
+        equation,
+        editorId,
+        horizon,
+        overallStable,
+        finalMagnitude: finalMag,
+        emergenceIndex: parseFloat((complexityScore * 0.6 + (1 - Math.min(1, finalMag / 2)) * 0.4).toFixed(3)),
+        mutationRisk: parseFloat(Math.min(1, finalMag / 2).toFixed(3)),
+        mandelbrotC: { real: parseFloat(cReal.toFixed(4)), imag: parseFloat(cImag.toFixed(4)) },
+        channels: channelMatches,
+        timeline,
+      });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
   return httpServer;

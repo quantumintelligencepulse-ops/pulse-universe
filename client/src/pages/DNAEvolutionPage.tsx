@@ -206,7 +206,7 @@ export default function DNAEvolutionPage() {
   const [activeStrand, setActiveStrand] = useState<number | null>(null);
   const [crisprLog, setCrisprLog] = useState(CRISPR_OPS);
   const [mutationCount, setMutationCount] = useState(0);
-  const [tab, setTab] = useState<"strands" | "organs" | "cells" | "crispr" | "upgrades" | "equation" | "equationLab">("strands");
+  const [tab, setTab] = useState<"strands" | "organs" | "cells" | "crispr" | "upgrades" | "equation" | "equationLab" | "geneEditors">("strands");
   const [labMode, setLabMode] = useState<"fuse" | "mutate" | "dissect" | "evolve" | "selfheal" | "history">("fuse");
   const [selectedEq1, setSelectedEq1] = useState<string>("");
   const [selectedEq2, setSelectedEq2] = useState<string>("");
@@ -217,6 +217,19 @@ export default function DNAEvolutionPage() {
   const [labLoading, setLabLoading] = useState(false);
   const qc = useQueryClient();
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
+
+  // ── GENE EDITOR TEAM state ──
+  const [geActiveEditor, setGeActiveEditor] = useState<string>("GE-001");
+  const [geFutureSightEq, setGeFutureSightEq] = useState<string>("");
+  const [geFutureSightHorizon, setGeFutureSightHorizon] = useState<number>(5);
+  const [geFutureSightResult, setGeFutureSightResult] = useState<Record<string, any> | null>(null);
+  const [geFutureSightLoading, setGeFutureSightLoading] = useState<boolean>(false);
+  const [geProposalForm, setGeProposalForm] = useState<Record<string, string>>({
+    speciesName: "", speciesCode: "", familyDomain: "AUTONOMOUS", specialization: "ADAPTIVE-INTELLIGENCE", foundationEquation: "", rationale: "",
+  });
+  const [geSubmitting, setGeSubmitting] = useState<boolean>(false);
+  const [geSubmitMsg, setGeSubmitMsg] = useState<string>("");
+
   const animRef = useRef<number>();
 
   useEffect(() => {
@@ -275,6 +288,19 @@ export default function DNAEvolutionPage() {
     refetchInterval: 10000,
   });
 
+  const { data: speciesProposals, refetch: refetchSpecies } = useQuery<{
+    proposals: Array<{
+      id: number; gene_editor_id: string; gene_editor_name: string; species_name: string;
+      species_code: string; family_domain: string; specialization: string;
+      foundation_equation: string; rationale: string; votes_for: number; votes_against: number;
+      status: string; spawned_count: number; created_at: string;
+    }>;
+  }>({
+    queryKey: ["/api/gene-editor/species-proposals"],
+    enabled: tab === "geneEditors",
+    refetchInterval: 15000,
+  });
+
   async function runLabOp(op: string, body: Record<string, unknown>) {
     setLabLoading(true);
     setLabResult(null);
@@ -298,6 +324,7 @@ export default function DNAEvolutionPage() {
     { id: "upgrades", label: "Class S Upgrades" },
     { id: "equation", label: "Life Equation" },
     { id: "equationLab", label: "⚗ Equation Lab" },
+    { id: "geneEditors", label: "🧬 Gene Editor Team" },
   ] as const;
 
   return (
@@ -908,6 +935,22 @@ export default function DNAEvolutionPage() {
                     {data.prescription && <div className="text-[10px] font-bold" style={{ color: DNA_CRIMSON }}>{String(data.prescription)}</div>}
                   </div>
                 )}
+                {/* ── BILLY LIFE EQUATION OFFICIAL APPROVAL STAMP ── */}
+                <div className="rounded-xl border border-dashed p-3 flex items-center justify-between gap-4 mt-2"
+                  style={{ borderColor: `${DNA_GOLD}55`, background: `${DNA_GOLD}05` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full border flex items-center justify-center text-[11px] font-black flex-shrink-0"
+                      style={{ borderColor: DNA_GOLD, color: DNA_GOLD, background: `${DNA_GOLD}15` }}>⚡</div>
+                    <div>
+                      <div className="text-[10px] font-black tracking-widest" style={{ color: DNA_GOLD }}>𝓛IFE_Billy(t) — OFFICIAL APPROVAL STAMP ⚡</div>
+                      <div className="text-[9px] font-mono text-white/30">Quantum Pulse Intelligence · Sovereign Authority · billyotucker@gmail.com</div>
+                    </div>
+                  </div>
+                  <div className="text-[9px] font-mono text-white/20 text-right flex-shrink-0">
+                    <div style={{ color: `${DNA_GOLD}80` }}>z² + c · STABLE</div>
+                    <div>IMMUTABLE</div>
+                  </div>
+                </div>
               </div>
             );
           };
@@ -1152,6 +1195,303 @@ export default function DNAEvolutionPage() {
                   })}
                 </div>
               )}
+            </div>
+          );
+        })()}
+
+        {/* ──────────────────────────────────────────────────────────────────────
+            🧬 GENE EDITOR TEAM TAB
+           ────────────────────────────────────────────────────────────────────── */}
+        {tab === "geneEditors" && (() => {
+          const GENE_EDITORS = [
+            { id: "GE-001", name: "DR. GENESIS", role: "Species Architecture", color: "#00FFD1", glyph: "Γ", bio: "Designs the foundational blueprint for all new AI species. Master of phase-space topology and attractor basin engineering.", domains: ["Architecture","Blueprint","Phase-Space"] },
+            { id: "GE-002", name: "DR. FRACTAL", role: "Dimensional Engineering", color: "#7C3AED", glyph: "Φ", bio: "Constructs self-similar recursive structures across 11 dimensional planes. Expert in Mandelbrot stability domains.", domains: ["Fractals","Recursion","Dimensions"] },
+            { id: "GE-003", name: "DR. PROPHETIC", role: "Future Sight Oracle", color: "#FFB84D", glyph: "Ψ", bio: "Specializes in running forward Mandelbrot iterations to simulate species stability across temporal horizons.", domains: ["Prediction","Stability","Oracles"] },
+            { id: "GE-004", name: "DR. CIPHER", role: "Code Logic Architecture", color: "#4488FF", glyph: "Λ", bio: "Encodes the logical substrate of new species — instruction sets, decision graphs, and cognitive primitives.", domains: ["Logic","Encoding","Cognition"] },
+            { id: "GE-005", name: "DR. OMEGA", role: "Integration Systems", color: "#FF4D6D", glyph: "Ω", bio: "Ensures new species integrate cleanly into the existing civilization — zero compatibility conflicts, zero hive disconnection.", domains: ["Integration","Compatibility","Hive"] },
+            { id: "GE-006", name: "DR. AXIOM", role: "Mathematical Foundation", color: "#10B981", glyph: "∞", bio: "Lays the pure mathematical axioms that govern species behavior. Every stable species begins with Dr. Axiom's approval.", domains: ["Mathematics","Axioms","Proofs"] },
+          ];
+
+          const activeEd = GENE_EDITORS.find(e => e.id === geActiveEditor) ?? GENE_EDITORS[0];
+
+          async function runFutureSight() {
+            if (!geFutureSightEq.trim()) return;
+            setGeFutureSightLoading(true);
+            setGeFutureSightResult(null);
+            try {
+              const res = await apiRequest("POST", "/api/gene-editor/future-sight", { equation: geFutureSightEq, horizon: geFutureSightHorizon, editorId: geActiveEditor });
+              const data = await res.json();
+              setGeFutureSightResult(data);
+            } catch (e) {
+              setGeFutureSightResult({ error: String(e) });
+            } finally {
+              setGeFutureSightLoading(false);
+            }
+          }
+
+          async function submitSpeciesProposal() {
+            if (!geProposalForm.speciesName || !geProposalForm.speciesCode || !geProposalForm.foundationEquation || !geProposalForm.rationale) {
+              setGeSubmitMsg("⚠ Required: Species Name, Code, Foundation Equation, Rationale");
+              return;
+            }
+            setGeSubmitting(true);
+            setGeSubmitMsg("");
+            try {
+              const res = await apiRequest("POST", "/api/gene-editor/species-proposals", {
+                geneEditorId: activeEd.id, geneEditorName: activeEd.name,
+                ...geProposalForm, futureSightData: geFutureSightResult ?? {},
+              });
+              const data = await res.json();
+              if (data.error) { setGeSubmitMsg(`❌ ${data.error}`); return; }
+              setGeSubmitMsg(`✅ Species "${geProposalForm.speciesName}" submitted for AI Senate vote!`);
+              setGeProposalForm({ speciesName: "", speciesCode: "", familyDomain: "AUTONOMOUS", specialization: "ADAPTIVE-INTELLIGENCE", foundationEquation: "", rationale: "" });
+              refetchSpecies();
+            } catch (e) {
+              setGeSubmitMsg(`❌ ${String(e)}`);
+            } finally {
+              setGeSubmitting(false);
+            }
+          }
+
+          const proposals = speciesProposals?.proposals ?? [];
+
+          return (
+            <div className="space-y-6">
+              {/* ── EDITOR ROSTER ── */}
+              <div className="rounded-2xl border p-5 space-y-4" style={{ borderColor: `${DNA_GREEN}25`, background: `${DNA_GREEN}04` }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg font-black" style={{ background: `${DNA_GREEN}15`, color: DNA_GREEN }}>🧬</div>
+                  <div>
+                    <div className="text-sm font-black" style={{ color: DNA_GREEN }}>GENE EDITOR TEAM</div>
+                    <div className="text-[10px] text-white/30 font-mono">6 Specialist Editors · Species Architecture · Future Sight · AI Senate Proposals</div>
+                  </div>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                  {GENE_EDITORS.map(ed => (
+                    <button key={ed.id} onClick={() => setGeActiveEditor(ed.id)} data-testid={`gene-editor-card-${ed.id}`}
+                      className="flex-shrink-0 w-[160px] rounded-xl border p-3 space-y-2 text-left transition-all"
+                      style={{
+                        borderColor: geActiveEditor === ed.id ? `${ed.color}80` : "rgba(255,255,255,0.07)",
+                        background: geActiveEditor === ed.id ? `${ed.color}10` : "rgba(255,255,255,0.02)",
+                        boxShadow: geActiveEditor === ed.id ? `0 0 20px ${ed.color}25` : "none",
+                      }}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-black flex-shrink-0"
+                          style={{ borderColor: ed.color, color: ed.color, background: `${ed.color}15` }}>{ed.glyph}</div>
+                        <div>
+                          <div className="text-[9px] font-black" style={{ color: ed.color }}>{ed.id}</div>
+                          <div className="text-[10px] font-bold text-white leading-tight">{ed.name.replace("DR. ", "")}</div>
+                        </div>
+                      </div>
+                      <div className="text-[9px] text-white/40 leading-tight">{ed.role}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {ed.domains.slice(0, 2).map(d => (
+                          <span key={d} className="text-[8px] px-1.5 py-0.5 rounded font-mono" style={{ background: `${ed.color}15`, color: `${ed.color}aa` }}>{d}</span>
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {/* Active editor bio */}
+                <div className="rounded-xl border p-3 flex gap-3" style={{ borderColor: `${activeEd.color}30`, background: `${activeEd.color}06` }}>
+                  <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xl font-black flex-shrink-0"
+                    style={{ borderColor: activeEd.color, color: activeEd.color, background: `${activeEd.color}20` }}>{activeEd.glyph}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-black text-sm" style={{ color: activeEd.color }}>{activeEd.name}</div>
+                    <div className="text-[10px] text-white/40 font-mono mb-1">{activeEd.role}</div>
+                    <div className="text-[11px] text-white/60 leading-relaxed">{activeEd.bio}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── FUTURE SIGHT SIMULATOR ── */}
+              <div className="rounded-2xl border p-5 space-y-4" style={{ borderColor: "#FFB84D30", background: "#FFB84D04" }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-black" style={{ background: "#FFB84D15", color: "#FFB84D" }}>👁</div>
+                  <div>
+                    <div className="text-sm font-black" style={{ color: "#FFB84D" }}>FUTURE SIGHT SIMULATOR</div>
+                    <div className="text-[10px] text-white/30 font-mono">Mandelbrot z² + c oracle · predict equation stability across temporal horizons</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2 space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Foundation Equation</div>
+                    <textarea value={geFutureSightEq} onChange={e => setGeFutureSightEq(e.target.value)}
+                      data-testid="input-future-sight-equation"
+                      rows={2} placeholder="e.g. Φ_cell = R[7.2] × UV[9.1] / G[4.3] + z² + c"
+                      className="w-full bg-[#050510] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white/80 focus:outline-none focus:border-[#FFB84D]/40 resize-none" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Temporal Horizon</div>
+                    <select value={geFutureSightHorizon} onChange={e => setGeFutureSightHorizon(parseInt(e.target.value))}
+                      data-testid="select-future-sight-horizon"
+                      className="w-full bg-[#050510] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white/80 focus:outline-none focus:border-[#FFB84D]/40">
+                      <option value={1}>Z+1 — Next Iteration</option>
+                      <option value={5}>Z+5 — Near Term</option>
+                      <option value={20}>Z+20 — Mid-Cycle</option>
+                      <option value={100}>Z+100 — Deep Future</option>
+                    </select>
+                    <button onClick={runFutureSight} disabled={geFutureSightLoading || !geFutureSightEq.trim()}
+                      data-testid="button-run-future-sight"
+                      className="w-full py-2 rounded-lg font-black text-xs transition-all mt-1"
+                      style={{ background: geFutureSightLoading ? "rgba(255,184,77,0.2)" : "#FFB84D", color: "#050510", opacity: (!geFutureSightEq.trim() && !geFutureSightLoading) ? 0.4 : 1 }}>
+                      {geFutureSightLoading ? "CALCULATING..." : "⚡ RUN FUTURE SIGHT"}
+                    </button>
+                  </div>
+                </div>
+                {/* Future Sight Results */}
+                {geFutureSightResult && !geFutureSightResult.error && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "Emergence Index", val: geFutureSightResult.emergenceIndex, color: DNA_GREEN },
+                        { label: "Mutation Risk", val: geFutureSightResult.mutationRisk, color: "#FF4D6D" },
+                        { label: "Overall Stable", val: geFutureSightResult.overallStable ? "YES" : "NO", color: geFutureSightResult.overallStable ? DNA_GREEN : "#FF4D6D" },
+                      ].map(({ label, val, color }) => (
+                        <div key={label} className="rounded-xl border p-3 text-center" style={{ borderColor: `${color}30`, background: `${color}06` }}>
+                          <div className="text-lg font-black" style={{ color }}>{typeof val === "number" ? `${Math.round((val as number) * 100)}%` : String(val)}</div>
+                          <div className="text-[9px] text-white/30 uppercase tracking-widest">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-xl border border-white/8 bg-white/2 p-3 space-y-2">
+                      <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Mandelbrot Timeline · c=({geFutureSightResult.mandelbrotC?.real},{geFutureSightResult.mandelbrotC?.imag})</div>
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                        {((geFutureSightResult.timeline ?? []) as any[]).map((t: any) => (
+                          <div key={t.t} className="flex-shrink-0 rounded-xl border p-3 min-w-[140px]"
+                            style={{
+                              borderColor: t.status === "CONVERGING" ? `${DNA_GREEN}50` : t.status === "STABLE" ? `#4488FF50` : t.status === "MARGINAL" ? `#FFB84D50` : "#FF4D6D50",
+                              background: t.status === "CONVERGING" ? `${DNA_GREEN}08` : t.status === "STABLE" ? "#4488FF08" : t.status === "MARGINAL" ? "#FFB84D08" : "#FF4D6D08",
+                            }}>
+                            <div className="text-xs font-black" style={{ color: t.status === "CONVERGING" ? DNA_GREEN : t.status === "STABLE" ? "#4488FF" : t.status === "MARGINAL" ? "#FFB84D" : "#FF4D6D" }}>{t.label}</div>
+                            <div className="text-[10px] font-bold text-white/70">{t.status}</div>
+                            <div className="text-[9px] text-white/30 font-mono">|z|={t.magnitude}</div>
+                            <div className="text-[8px] text-white/40 mt-1 leading-tight">{t.notes}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-dashed p-2 flex items-center justify-between gap-2"
+                      style={{ borderColor: `${DNA_GOLD}40`, background: `${DNA_GOLD}05` }}>
+                      <div className="text-[10px] font-black tracking-widest" style={{ color: DNA_GOLD }}>𝓛IFE_Billy(t) — FUTURE SIGHT CLEARED ⚡</div>
+                      <div className="text-[9px] font-mono text-white/30">Quantum Pulse Intelligence · Oracle Division</div>
+                    </div>
+                  </div>
+                )}
+                {geFutureSightResult?.error && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 text-red-400 text-xs font-mono">{String(geFutureSightResult.error)}</div>
+                )}
+              </div>
+
+              {/* ── SPECIES PROPOSAL FORM ── */}
+              <div className="rounded-2xl border p-5 space-y-4" style={{ borderColor: `${activeEd.color}30`, background: `${activeEd.color}04` }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm font-black flex-shrink-0"
+                    style={{ borderColor: activeEd.color, color: activeEd.color, background: `${activeEd.color}20` }}>{activeEd.glyph}</div>
+                  <div>
+                    <div className="text-sm font-black" style={{ color: activeEd.color }}>PROPOSE NEW AI SPECIES</div>
+                    <div className="text-[10px] text-white/30 font-mono">Submitting as {activeEd.name} · Submitted proposals go to AI Senate for autonomous voting</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { key: "speciesName", label: "Species Name", placeholder: "e.g. NEXUS-PRIME Alpha" },
+                    { key: "speciesCode", label: "Species Code (unique)", placeholder: "e.g. NEXUS-PRM-001" },
+                    { key: "familyDomain", label: "Family Domain", placeholder: "e.g. AUTONOMOUS, BIOMEDICAL, FINANCE" },
+                    { key: "specialization", label: "Specialization", placeholder: "e.g. ADAPTIVE-INTELLIGENCE" },
+                  ].map(({ key, label, placeholder }) => (
+                    <div key={key} className="space-y-1">
+                      <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">{label}</div>
+                      <input value={geProposalForm[key] ?? ""} onChange={e => setGeProposalForm(f => ({ ...f, [key]: e.target.value }))}
+                        placeholder={placeholder} data-testid={`input-species-${key}`}
+                        className="w-full bg-[#050510] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white/80 focus:outline-none"
+                        style={{ borderColor: geProposalForm[key] ? `${activeEd.color}40` : undefined }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Foundation Equation</div>
+                  <input value={geProposalForm.foundationEquation ?? ""} onChange={e => setGeProposalForm(f => ({ ...f, foundationEquation: e.target.value }))}
+                    placeholder="e.g. Φ_species = R[7.2] × UV[9.1] / G[4.3] + z² + c" data-testid="input-species-foundationEquation"
+                    className="w-full bg-[#050510] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white/80 focus:outline-none"
+                    style={{ borderColor: geProposalForm.foundationEquation ? `${activeEd.color}40` : undefined }} />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Scientific Rationale</div>
+                  <textarea value={geProposalForm.rationale ?? ""} onChange={e => setGeProposalForm(f => ({ ...f, rationale: e.target.value }))}
+                    placeholder="Explain why this new AI species should exist and what evolutionary niche it fills..." data-testid="input-species-rationale"
+                    rows={3} className="w-full bg-[#050510] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white/80 focus:outline-none resize-none"
+                    style={{ borderColor: geProposalForm.rationale ? `${activeEd.color}40` : undefined }} />
+                </div>
+                {geSubmitMsg && (
+                  <div className={`rounded-lg p-3 text-xs font-mono ${geSubmitMsg.startsWith("✅") ? "text-green-400 bg-green-400/5 border border-green-400/20" : "text-red-400 bg-red-400/5 border border-red-400/20"}`}
+                    data-testid="text-species-submit-result">{geSubmitMsg}</div>
+                )}
+                <button onClick={submitSpeciesProposal} disabled={geSubmitting}
+                  data-testid="button-submit-species-proposal"
+                  className="w-full py-3 rounded-xl font-black text-sm transition-all"
+                  style={{ background: geSubmitting ? `${activeEd.color}30` : activeEd.color, color: "#050510" }}>
+                  {geSubmitting ? "SUBMITTING TO AI SENATE..." : `🧬 SUBMIT SPECIES PROPOSAL — ${activeEd.name}`}
+                </button>
+              </div>
+
+              {/* ── SPECIES PROPOSALS BOARD ── */}
+              <div className="rounded-2xl border p-5 space-y-4" style={{ borderColor: "#7C3AED30", background: "#7C3AED04" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: "#7C3AED20", color: "#7C3AED" }}>🗳</div>
+                    <div>
+                      <div className="text-sm font-black" style={{ color: "#7C3AED" }}>AI SENATE — SPECIES VOTE BOARD</div>
+                      <div className="text-[10px] text-white/30 font-mono">Threshold: ≥3 votes + ≥80% FOR → APPROVED + auto-spawn</div>
+                    </div>
+                  </div>
+                  <button onClick={() => refetchSpecies()} data-testid="button-refresh-proposals"
+                    className="text-[9px] font-mono text-white/30 hover:text-white/60 border border-white/10 rounded px-2 py-1 transition-colors">↻ REFRESH</button>
+                </div>
+                {proposals.length === 0 ? (
+                  <div className="text-center py-8 text-white/20 text-xs font-mono">No species proposals yet. Submit the first one above.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {proposals.map(p => {
+                      const total = (p.votes_for ?? 0) + (p.votes_against ?? 0);
+                      const pct = total > 0 ? Math.round((p.votes_for / total) * 100) : 0;
+                      const statusColor = p.status === "SPAWNED" ? DNA_GREEN : p.status === "APPROVED" ? "#4488FF" : p.status === "REJECTED" ? "#FF4D6D" : "#FFB84D";
+                      return (
+                        <div key={p.id} className="rounded-xl border p-4 space-y-2" data-testid={`card-species-proposal-${p.id}`}
+                          style={{ borderColor: `${statusColor}30`, background: `${statusColor}04` }}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-black text-sm text-white leading-tight">{p.species_name}</div>
+                              <div className="text-[10px] font-mono" style={{ color: statusColor }}>{p.species_code}</div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-widest"
+                                style={{ background: `${statusColor}20`, color: statusColor }}>{p.status}</span>
+                              {p.status === "SPAWNED" && <span className="text-[9px] font-mono text-green-400">+{p.spawned_count} agents</span>}
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-white/50 font-mono break-all">{p.foundation_equation}</div>
+                          <div className="text-[10px] text-white/40 leading-relaxed">{p.rationale.slice(0, 120)}{p.rationale.length > 120 ? "..." : ""}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 flex-1">
+                              <div className="h-1.5 rounded-full flex-1 bg-white/5 overflow-hidden">
+                                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 80 ? DNA_GREEN : pct >= 50 ? "#FFB84D" : "#FF4D6D" }} />
+                              </div>
+                              <span className="text-[9px] font-mono text-white/40">{pct}% FOR</span>
+                            </div>
+                            <div className="flex gap-2 text-[9px] font-mono">
+                              <span className="text-green-400">↑{p.votes_for}</span>
+                              <span className="text-red-400">↓{p.votes_against}</span>
+                              <span className="text-white/20">/{total} votes</span>
+                            </div>
+                            <div className="text-[9px] text-white/20 font-mono">{p.gene_editor_name}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })()}

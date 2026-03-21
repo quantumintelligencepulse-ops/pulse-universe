@@ -805,3 +805,25 @@ export const discoveredDiseases = pgTable("discovered_diseases", {
   totalCured: integer("total_cured").default(0),
 });
 export type DiscoveredDisease = typeof discoveredDiseases.$inferSelect;
+
+// ── AI SPECIES PROPOSALS (Gene Editor → Vote → Spawn) ──────────────────────
+export const aiSpeciesProposals = pgTable("ai_species_proposals", {
+  id: serial("id").primaryKey(),
+  geneEditorId: text("gene_editor_id").notNull(),
+  geneEditorName: text("gene_editor_name").notNull(),
+  speciesName: text("species_name").notNull(),
+  speciesCode: text("species_code").notNull().unique(),
+  familyDomain: text("family_domain").notNull(),
+  specialization: text("specialization").notNull(),
+  foundationEquation: text("foundation_equation").notNull(),
+  futureSightData: text("future_sight_data").notNull().default("{}"),
+  rationale: text("rationale").notNull(),
+  votesFor: integer("votes_for").notNull().default(0),
+  votesAgainst: integer("votes_against").notNull().default(0),
+  status: text("status").notNull().default("PENDING"), // PENDING | APPROVED | REJECTED | SPAWNED
+  spawnedFamilyId: text("spawned_family_id"),
+  spawnedCount: integer("spawned_count").default(0),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type AiSpeciesProposal = typeof aiSpeciesProposals.$inferSelect;
