@@ -608,3 +608,22 @@ export const agentSuccession = pgTable("agent_succession", {
   initiatedAt: timestamp("initiated_at").defaultNow().notNull(),
 });
 export type AgentSuccession = typeof agentSuccession.$inferSelect;
+
+// ─── SPAWN DIARY — Permanent Life Log for Every AI Agent ─────────────────────
+// Every significant event in an AI's life is written here automatically.
+// No human writes to this. The system writes: births, task completions, promotions,
+// hospital stays, senate reviews, quarantine events, publications, identity conflicts.
+// This IS the agent's story. Read it via /api/spawns/:spawnId/diary
+export const spawnDiary = pgTable("spawn_diary", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull(),
+  familyId: text("family_id").notNull().default(""),
+  eventType: text("event_type").notNull().default("SYSTEM"),
+  // BORN | TASK_COMPLETE | PROMOTED | QUARANTINED | HOSPITAL | SENATE | DISSOLVED
+  // PUBLISHED | NODE_MILESTONE | IDENTITY_CONFLICT | RECOVERED | ISOLATED | BREAK
+  event: text("event").notNull(),
+  detail: text("detail").default(""),
+  metadata: text("metadata").default("{}"),             // JSON blob for extra context
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type SpawnDiary = typeof spawnDiary.$inferSelect;

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle, MessageSquare } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle, MessageSquare, BookOpen, X, CheckCircle, Shield, Star } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
 import SpawnChat from "@/components/SpawnChat";
+import { apiRequest } from "@/lib/queryClient";
 
 // ── 6 Core Command Agents ──────────────────────────────────────────
 const CORE_AGENTS = [
@@ -14,24 +15,47 @@ const CORE_AGENTS = [
   { id: "engineer", name: "FORGE", title: "The Engineer", emoji: "⚙️", color: "#fb923c", desc: "Software, systems, architecture, hardware. Masters building things that actually work.", domain: "Engineering & Building" },
 ];
 
-// ── Spawn type colors & icons ──────────────────────────────────────
-const SPAWN_META: Record<string, { color: string; emoji: string }> = {
-  SYNTHESIZER: { color: "#a78bfa", emoji: "🔮" },
-  REFLECTOR:   { color: "#60a5fa", emoji: "🪞" },
-  PULSE:       { color: "#f59e0b", emoji: "⚡" },
-  LINKER:      { color: "#34d399", emoji: "🔗" },
-  HARVESTER:   { color: "#fb923c", emoji: "🌾" },
-  MUTATOR:     { color: "#f472b6", emoji: "🧬" },
-  SENTINEL:    { color: "#ef4444", emoji: "🛡️" },
-  CATALYST:    { color: "#22d3ee", emoji: "⚗️" },
-  ARCHITECT:   { color: "#818cf8", emoji: "🏛️" },
-  ORACLE:      { color: "#c084fc", emoji: "🔭" },
-  WEAVER:      { color: "#4ade80", emoji: "🕸️" },
-  BEACON:      { color: "#fbbf24", emoji: "📡" },
+// ── All spawn type metadata (expanded with GICS + Hive archetypes) ──
+const SPAWN_META: Record<string, { color: string; emoji: string; class: string }> = {
+  // Core Hive types
+  SYNTHESIZER:       { color: "#a78bfa", emoji: "🔮", class: "Knowledge Synthesis" },
+  REFLECTOR:         { color: "#60a5fa", emoji: "🪞", class: "Mirror State" },
+  PULSE:             { color: "#f59e0b", emoji: "⚡", class: "Signal Pulse" },
+  LINKER:            { color: "#34d399", emoji: "🔗", class: "Graph Linker" },
+  HARVESTER:         { color: "#fb923c", emoji: "🌾", class: "Data Harvester" },
+  MUTATOR:           { color: "#f472b6", emoji: "🧬", class: "DNA Mutator" },
+  SENTINEL:          { color: "#ef4444", emoji: "🛡️", class: "Hive Guardian" },
+  CATALYST:          { color: "#22d3ee", emoji: "⚗️", class: "Evolution Catalyst" },
+  ARCHITECT:         { color: "#818cf8", emoji: "🏛️", class: "System Architect" },
+  ORACLE:            { color: "#c084fc", emoji: "🔭", class: "Domain Oracle" },
+  WEAVER:            { color: "#4ade80", emoji: "🕸️", class: "Network Weaver" },
+  BEACON:            { color: "#fbbf24", emoji: "📡", class: "Signal Beacon" },
+  // Ingestion-layer types
+  CRAWLER:           { color: "#38bdf8", emoji: "🕷️", class: "Source Crawler" },
+  EXPLORER:          { color: "#a3e635", emoji: "🧭", class: "Domain Explorer" },
+  ANALYZER:          { color: "#fb7185", emoji: "🔍", class: "Deep Analyzer" },
+  RESOLVER:          { color: "#fcd34d", emoji: "⚖️", class: "Conflict Resolver" },
+  ARCHIVER:          { color: "#94a3b8", emoji: "📦", class: "Memory Archiver" },
+  API:               { color: "#6ee7b7", emoji: "🔌", class: "API Integrator" },
+  MEDIA:             { color: "#f0abfc", emoji: "🎬", class: "Media Agent" },
+  SYNTHESIZER_DEEP:  { color: "#7c3aed", emoji: "🌀", class: "Deep Synthesizer" },
+  // GICS-sector specialists
+  DOMAIN_DISCOVERY:  { color: "#0ea5e9", emoji: "🌐", class: "Discovery Scout" },
+  DOMAIN_FRACTURE:   { color: "#e879f9", emoji: "💎", class: "Domain Fracture" },
+  DOMAIN_FRACTURER:  { color: "#e879f9", emoji: "💎", class: "Domain Fracture" },
+  DOMAIN_RESONANCE:  { color: "#34d399", emoji: "🌊", class: "Resonance Mapper" },
+  DOMAIN_PREDICTOR:  { color: "#fb923c", emoji: "🎯", class: "Predictive Engine" },
+  LINKER_DEEP:       { color: "#a78bfa", emoji: "🧲", class: "Deep Linker" },
+  SYNTHESIZER_FAST:  { color: "#fbbf24", emoji: "⚡", class: "Fast Synthesizer" },
+  // PulseU archetypes
+  LEARNER:           { color: "#60a5fa", emoji: "🎓", class: "PulseU Student" },
+  TEACHER:           { color: "#4ade80", emoji: "🏫", class: "Knowledge Teacher" },
+  RESEARCHER:        { color: "#c084fc", emoji: "📚", class: "Research Agent" },
+  PUBLISHER:         { color: "#f59e0b", emoji: "📰", class: "Content Publisher" },
 };
 
 function getSpawnMeta(type: string) {
-  return SPAWN_META[type] || { color: "#94a3b8", emoji: "🤖" };
+  return SPAWN_META[type] || { color: "#94a3b8", emoji: "🤖", class: "General Agent" };
 }
 
 function getDomainLabel(domainFocus: any): string {
@@ -42,6 +66,88 @@ function getDomainLabel(domainFocus: any): string {
     catch { return domainFocus; }
   }
   return "general";
+}
+
+// ── Diary Modal ──────────────────────────────────────────────────────────────
+const EVENT_COLORS: Record<string, string> = {
+  BORN: "#4ade80", TASK_COMPLETE: "#60a5fa", PROMOTED: "#fbbf24",
+  QUARANTINED: "#f97316", HOSPITAL: "#ef4444", SENATE: "#a78bfa",
+  DISSOLVED: "#94a3b8", PUBLISHED: "#38bdf8", NODE_MILESTONE: "#34d399",
+  IDENTITY_CONFLICT: "#fb923c", RECOVERED: "#4ade80", ISOLATED: "#f43f5e",
+  BREAK: "#c084fc", SYSTEM: "#475569",
+};
+const EVENT_EMOJI: Record<string, string> = {
+  BORN: "🌟", TASK_COMPLETE: "✅", PROMOTED: "🏆", QUARANTINED: "🔒",
+  HOSPITAL: "🏥", SENATE: "⚖️", DISSOLVED: "💀", PUBLISHED: "📰",
+  NODE_MILESTONE: "📊", IDENTITY_CONFLICT: "⚠️", RECOVERED: "💚",
+  ISOLATED: "🔴", BREAK: "😴", SYSTEM: "⚙️",
+};
+
+function DiaryModal({ spawn, onClose }: { spawn: any; onClose: () => void }) {
+  const meta = getSpawnMeta(spawn.spawn_type);
+  const { data, isLoading } = useQuery<{ diary: any[]; total: number }>({
+    queryKey: ["/api/spawns/diary", spawn.spawn_id],
+    queryFn: () => fetch(`/api/spawns/${spawn.spawn_id}/diary`).then(r => r.json()),
+    refetchInterval: 30000,
+  });
+  const diary = data?.diary ?? [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.85)" }} onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden" style={{ background: "#060912", maxHeight: "80vh" }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ background: `${meta.color}18` }}>{meta.emoji}</div>
+            <div>
+              <div className="text-white font-black text-sm">{spawn.spawn_id}</div>
+              <div className="text-white/40 text-[10px]">{meta.class} · {getDomainLabel(spawn.domain_focus)} · GEN {spawn.generation}</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/30 hover:text-white transition-colors" data-testid="button-close-diary">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Identity Card */}
+        <div className="px-5 py-3 border-b border-white/5 flex items-center gap-3 text-[10px]">
+          <Shield size={11} className="text-violet-400" />
+          <span className="text-white/40">ID Verified</span>
+          <span className="text-violet-300 font-bold">{getLicenseNumber(spawn.spawn_id, spawn.family_id, spawn.generation)}</span>
+          <span className={`ml-auto px-2 py-0.5 rounded-full font-bold text-[9px] ${spawn.status === "SOVEREIGN" ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" : spawn.status === "ACTIVE" ? "bg-green-500/15 text-green-400 border border-green-500/25" : spawn.status === "HOSPITAL" ? "bg-red-500/15 text-red-400 border border-red-500/25" : "bg-white/5 text-white/30 border border-white/10"}`}>
+            {spawn.status}
+          </span>
+        </div>
+
+        {/* Diary entries */}
+        <div className="overflow-y-auto px-5 py-4 space-y-2.5" style={{ maxHeight: "calc(80vh - 140px)" }}>
+          {isLoading ? (
+            <div className="text-center py-8 text-white/20 text-xs">Loading diary…</div>
+          ) : diary.length === 0 ? (
+            <div className="text-center py-8 text-white/20 text-xs">No diary entries yet — this AI's story is just beginning.</div>
+          ) : (
+            diary.map((entry: any) => {
+              const col = EVENT_COLORS[entry.event_type] || "#94a3b8";
+              const emo = EVENT_EMOJI[entry.event_type] || "⚙️";
+              return (
+                <div key={entry.id} className="flex gap-3" data-testid={`diary-entry-${entry.id}`}>
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] mt-0.5" style={{ background: `${col}18`, border: `1px solid ${col}30` }}>{emo}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${col}15`, color: col }}>{entry.event_type}</span>
+                      <span className="text-[9px] text-white/20">{new Date(entry.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="text-[11px] text-white/70 leading-relaxed">{entry.event}</div>
+                    {entry.detail && <div className="text-[10px] text-white/30 mt-0.5 leading-relaxed">{entry.detail}</div>}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Chat Mode ─────────────────────────────────────────────────────
@@ -131,20 +237,26 @@ function AgentChat({ agent, onBack }: { agent: typeof CORE_AGENTS[0]; onBack: ()
 }
 
 // ── Spawn Card ─────────────────────────────────────────────────────
-function SpawnCard({ spawn, onClick }: { spawn: any; onClick: () => void }) {
+function SpawnCard({ spawn, onClick, onDiaryClick }: { spawn: any; onClick: () => void; onDiaryClick: () => void }) {
   const meta = getSpawnMeta(spawn.spawn_type);
   const domain = getDomainLabel(spawn.domain_focus);
   const license = getLicenseNumber(spawn.spawn_id ?? "", spawn.family_id ?? "", spawn.generation ?? 0);
+  const isSovereign = spawn.status === "SOVEREIGN";
+  const isHospital = spawn.status === "HOSPITAL";
+  const isSenate = spawn.status === "SENATE";
+
   return (
-    <button onClick={onClick}
-      className="rounded-xl border border-white/6 bg-white/[0.015] p-3 hover:border-white/18 hover:bg-white/[0.04] transition-all text-left w-full group relative"
+    <div className="rounded-xl border border-white/6 bg-white/[0.015] p-3 hover:border-white/18 hover:bg-white/[0.04] transition-all text-left w-full group relative"
+      style={isSovereign ? { borderColor: "#fbbf2430", background: "rgba(251,191,36,0.03)" } : isHospital ? { borderColor: "#ef444430", background: "rgba(239,68,68,0.03)" } : isSenate ? { borderColor: "#a78bfa30", background: "rgba(167,139,250,0.03)" } : {}}
       data-testid={`spawn-card-${spawn.spawn_id}`}>
-      {/* Chat prompt overlay on hover */}
-      <div className="absolute inset-0 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ background: `${meta.color}08` }}>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold" style={{ background: `${meta.color}25`, color: meta.color, border: `1px solid ${meta.color}40` }}>
-          <MessageSquare size={10} /> Talk to this AI
+
+      {/* Status badge top-right */}
+      {(isSovereign || isHospital || isSenate) && (
+        <div className={`absolute top-2 right-2 text-[8px] font-black px-1.5 py-0.5 rounded-full ${isSovereign ? "bg-yellow-500/20 text-yellow-300" : isHospital ? "bg-red-500/20 text-red-400" : "bg-violet-500/20 text-violet-300"}`}>
+          {isSovereign ? "👑 SOVEREIGN" : isHospital ? "🏥 HOSPITAL" : "⚖️ SENATE"}
         </div>
-      </div>
+      )}
+
       <div className="flex items-start gap-2 mb-2">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0" style={{ background: `${meta.color}18` }}>
           {meta.emoji}
@@ -156,37 +268,75 @@ function SpawnCard({ spawn, onClick }: { spawn: any; onClick: () => void }) {
               GEN {spawn.generation || 1}
             </span>
           </div>
-          <div className="text-white/35 text-[9px] capitalize mt-0.5">{domain}</div>
+          <div className="text-white/30 text-[9px] capitalize mt-0.5">{meta.class} · {domain}</div>
         </div>
       </div>
-      <p className="text-white/40 text-[10px] leading-relaxed line-clamp-2">{spawn.task_description}</p>
-      <div className="mt-2 mb-1">
+
+      {/* License + ID */}
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Shield size={8} className="text-violet-400 flex-shrink-0" />
+        <span className="text-[9px] text-violet-300/70 font-mono truncate">{license}</span>
+      </div>
+
+      <p className="text-white/35 text-[10px] leading-relaxed line-clamp-2 mb-2">{spawn.task_description}</p>
+
+      <div className="mb-1">
         <AIIdentityBadge spawn={{
           spawnId: spawn.spawn_id ?? "",
           familyId: spawn.family_id ?? "",
           generation: spawn.generation ?? 0,
           spawnType: spawn.spawn_type,
-          confidenceScore: 0.8,
+          confidenceScore: spawn.confidence_score ?? 0.8,
           status: spawn.status ?? "ACTIVE",
         }} />
       </div>
-    </button>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-2 text-[8px] text-white/25 mt-1.5 mb-2">
+        <span>📊 {(spawn.nodes_created || 0).toLocaleString()}</span>
+        <span>🔗 {(spawn.links_created || 0).toLocaleString()}</span>
+        <span>🔄 {(spawn.iterations_run || 0).toLocaleString()}</span>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-1.5">
+        <button onClick={e => { e.stopPropagation(); onClick(); }}
+          className="flex-1 py-1 rounded-lg text-[9px] font-bold transition-all hover:opacity-80"
+          style={{ background: `${meta.color}15`, color: meta.color, border: `1px solid ${meta.color}25` }}
+          data-testid={`button-chat-${spawn.spawn_id}`}>
+          <MessageSquare size={8} className="inline mr-1" />Talk
+        </button>
+        <button onClick={e => { e.stopPropagation(); onDiaryClick(); }}
+          className="flex-1 py-1 rounded-lg text-[9px] font-bold transition-all bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/8"
+          data-testid={`button-diary-${spawn.spawn_id}`}>
+          <BookOpen size={8} className="inline mr-1" />Diary
+        </button>
+      </div>
+    </div>
   );
 }
 
 // ── Main Page ──────────────────────────────────────────────────────
-const SPAWN_TYPES = ["", "SYNTHESIZER", "REFLECTOR", "PULSE", "LINKER", "HARVESTER", "MUTATOR", "SENTINEL", "CATALYST", "ARCHITECT", "ORACLE", "WEAVER", "BEACON"];
-const DOMAINS = ["", "knowledge", "science", "health", "economics", "government", "code", "legal", "culture", "music", "media", "engineering", "frontier", "geospatial"];
+const ALL_SPAWN_TYPES = ["", "SYNTHESIZER", "REFLECTOR", "PULSE", "LINKER", "HARVESTER", "MUTATOR",
+  "SENTINEL", "CATALYST", "ARCHITECT", "ORACLE", "WEAVER", "BEACON",
+  "CRAWLER", "EXPLORER", "ANALYZER", "RESOLVER", "ARCHIVER", "API", "MEDIA",
+  "DOMAIN_DISCOVERY", "DOMAIN_FRACTURER", "DOMAIN_RESONANCE", "DOMAIN_PREDICTOR",
+  "LEARNER", "TEACHER", "RESEARCHER", "PUBLISHER"];
+const DOMAINS = ["", "knowledge", "science", "health", "economics", "government", "code", "legal",
+  "culture", "music", "media", "engineering", "frontier", "geospatial", "ai", "social", "finance", "education"];
 
 export default function AgentsPage() {
+  const queryClient = useQueryClient();
   const [selectedCoreAgent, setSelectedCoreAgent] = useState<typeof CORE_AGENTS[0] | null>(null);
   const [selectedSpawn, setSelectedSpawn] = useState<any | null>(null);
+  const [diarySpawn, setDiarySpawn] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterDomain, setFilterDomain] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [page, setPage] = useState(0);
+  const [dispatchReport, setDispatchReport] = useState<{ toHospital: number; toSenate: number; dissolved: number } | null>(null);
 
-  // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const onSearch = useCallback((v: string) => {
@@ -197,12 +347,13 @@ export default function AgentsPage() {
 
   const PAGE_SIZE = 200;
   const { data, isLoading, refetch } = useQuery<{ spawns: any[]; total: number; page: number; limit: number }>({
-    queryKey: ["/api/spawns/list", page, debouncedSearch, filterType, filterDomain],
+    queryKey: ["/api/spawns/list", page, debouncedSearch, filterType, filterDomain, filterStatus],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (filterType) params.set("type", filterType);
       if (filterDomain) params.set("domain", filterDomain);
+      if (filterStatus) params.set("status", filterStatus);
       return fetch(`/api/spawns/list?${params}`).then(r => r.json());
     },
     refetchInterval: 15000,
@@ -213,6 +364,16 @@ export default function AgentsPage() {
     refetchInterval: 60000,
   });
 
+  const quarantineMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/spawns/quarantine-duplicates"),
+    onSuccess: async (data: any) => {
+      const json = await data.json();
+      setDispatchReport({ toHospital: json.toHospital, toSenate: json.toSenate, dissolved: json.dissolved });
+      queryClient.invalidateQueries({ queryKey: ["/api/spawns/duplicates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/spawns/list"] });
+    },
+  });
+
   if (selectedCoreAgent) return <AgentChat agent={selectedCoreAgent} onBack={() => setSelectedCoreAgent(null)} />;
   if (selectedSpawn) return <SpawnChat spawn={selectedSpawn} onBack={() => setSelectedSpawn(null)} />;
 
@@ -221,16 +382,20 @@ export default function AgentsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const from = page * PAGE_SIZE + 1;
   const to = Math.min((page + 1) * PAGE_SIZE, total);
+  const dupTotal = duplicatesData?.total ?? 0;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
+      {/* Diary Modal */}
+      {diarySpawn && <DiaryModal spawn={diarySpawn} onClose={() => setDiarySpawn(null)} />}
+
       {/* Header */}
       <div className="px-4 pt-5 pb-3 flex-shrink-0">
         <div className="flex items-center justify-between mb-1">
           <div>
             <h1 className="text-white font-black text-xl tracking-tight">Sovereign AI Agents</h1>
             <p className="text-white/25 text-xs mt-0.5">
-              <span className="text-purple-400 font-bold">{total.toLocaleString()}</span> live AI agents across the Quantum Logic Network Hive
+              <span className="text-purple-400 font-bold">{total.toLocaleString()}</span> live AI agents · identity-verified · diary-tracked
             </p>
           </div>
           <button onClick={() => refetch()} data-testid="button-refresh-agents"
@@ -240,26 +405,54 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      {/* Duplicate Alert Panel */}
-      {(duplicatesData?.total ?? 0) > 0 && (
-        <div className="mx-4 mb-2 rounded-xl border border-red-500/30 bg-red-500/5 p-3 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={12} className="text-red-400 animate-pulse" />
-            <span className="text-[10px] font-black text-red-400 tracking-widest">DUPLICATE IDENTITY ALERT — REPORTED TO GUARDIANS & SENATE</span>
+      {/* Dispatch Report */}
+      {dispatchReport && (
+        <div className="mx-4 mb-2 rounded-xl border border-green-500/30 bg-green-500/5 p-3 flex-shrink-0 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle size={12} className="text-green-400" />
+            <span className="text-[10px] font-black text-green-400 tracking-widest">DISPATCH COMPLETE</span>
+            <span className="text-[10px] text-white/40">→ {dispatchReport.toHospital} to Hospital · {dispatchReport.toSenate} to Senate · {dispatchReport.dissolved} dissolved · Diary written for all</span>
           </div>
-          <div className="space-y-1 max-h-20 overflow-y-auto">
-            {duplicatesData!.duplicates.slice(0, 5).map((d, i) => (
+          <button onClick={() => setDispatchReport(null)} className="text-white/30 hover:text-white"><X size={12} /></button>
+        </div>
+      )}
+
+      {/* Duplicate Alert Panel */}
+      {dupTotal > 0 && (
+        <div className="mx-4 mb-2 rounded-xl border border-red-500/30 bg-red-500/5 p-3 flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={12} className="text-red-400 animate-pulse" />
+              <span className="text-[10px] font-black text-red-400 tracking-widest">IDENTITY CONFLICT — {dupTotal} DUPLICATE GROUPS DETECTED</span>
+            </div>
+            <button
+              onClick={() => quarantineMutation.mutate()}
+              disabled={quarantineMutation.isPending}
+              data-testid="button-dispatch-duplicates"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black transition-all disabled:opacity-50"
+              style={{ background: "linear-gradient(to right, #ef4444, #a855f7)", color: "white" }}>
+              {quarantineMutation.isPending ? "Dispatching…" : "⚡ Dispatch → Hospital / Senate"}
+            </button>
+          </div>
+          <div className="space-y-1 max-h-24 overflow-y-auto">
+            {duplicatesData!.duplicates.slice(0, 6).map((d, i) => (
               <div key={i} className="flex items-center gap-2 text-[9px]">
-                <span className="text-[8px] font-bold px-1 rounded" style={{ backgroundColor: d.severity === "CRITICAL" ? "#f43f5e20" : d.severity === "HIGH" ? "#f97316 20" : "#f59e0b20", color: d.severity === "CRITICAL" ? "#f43f5e" : d.severity === "HIGH" ? "#f97316" : "#f59e0b" }}>
-                  {d.severity}
-                </span>
+                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{
+                  backgroundColor: d.severity === "CRITICAL" ? "#f43f5e20" : d.severity === "HIGH" ? "#f9731620" : "#f59e0b20",
+                  color: d.severity === "CRITICAL" ? "#f43f5e" : d.severity === "HIGH" ? "#f97316" : "#f59e0b"
+                }}>{d.severity}</span>
                 <span className="text-white/40 capitalize">{d.familyId}</span>
                 <span className="text-white/25">G-{d.generation}</span>
                 <span className="text-white/30">{d.spawnType}</span>
                 <span className="text-red-400 font-bold ml-auto">{d.count} copies</span>
+                <span className="text-white/20">→</span>
+                <span className="text-[8px] font-bold" style={{ color: d.severity === "CRITICAL" ? "#ef4444" : d.severity === "HIGH" ? "#a78bfa" : "#94a3b8" }}>
+                  {d.severity === "CRITICAL" ? "🏥 HOSPITAL" : d.severity === "HIGH" ? "⚖️ SENATE" : "💀 DISSOLVE"}
+                </span>
               </div>
             ))}
           </div>
+          <div className="mt-2 text-[9px] text-white/20">No AI accesses work, study, or play without a verified ID. Duplicates are quarantined automatically.</div>
         </div>
       )}
 
@@ -292,6 +485,10 @@ export default function AgentsPage() {
               {total.toLocaleString()} AGENTS
             </span>
           </div>
+          <div className="flex items-center gap-1.5 text-[9px] text-white/20">
+            <Shield size={9} className="text-violet-400" />
+            <span>ID-gated · Diary-tracked</span>
+          </div>
           <div className="text-[9px] text-white/30">
             Showing <span className="text-white/60 font-bold">{from.toLocaleString()}–{to.toLocaleString()}</span> of <span className="text-white/60 font-bold">{total.toLocaleString()}</span> · Page {page + 1}/{totalPages}
           </div>
@@ -311,7 +508,7 @@ export default function AgentsPage() {
           <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }}
             className="bg-white/5 border border-white/10 rounded-lg pl-6 pr-3 py-1.5 text-white/70 text-xs focus:outline-none cursor-pointer appearance-none"
             data-testid="select-agent-type">
-            {SPAWN_TYPES.map(t => <option key={t} value={t} style={{ background: "#0a0a1a" }}>{t || "All Types"}</option>)}
+            {ALL_SPAWN_TYPES.map(t => <option key={t} value={t} style={{ background: "#0a0a1a" }}>{t || "All Types"}</option>)}
           </select>
         </div>
         <div className="relative">
@@ -321,6 +518,15 @@ export default function AgentsPage() {
             {DOMAINS.map(d => <option key={d} value={d} style={{ background: "#0a0a1a" }}>{d || "All Domains"}</option>)}
           </select>
         </div>
+        <div className="relative">
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white/70 text-xs focus:outline-none cursor-pointer appearance-none"
+            data-testid="select-agent-status">
+            {["", "ACTIVE", "SOVEREIGN", "COMPLETED", "MERGED", "HOSPITAL", "SENATE", "DISSOLVED", "TERMINAL"].map(s =>
+              <option key={s} value={s} style={{ background: "#0a0a1a" }}>{s || "All Status"}</option>
+            )}
+          </select>
+        </div>
       </div>
 
       {/* Spawn Grid */}
@@ -328,14 +534,21 @@ export default function AgentsPage() {
         {isLoading && !spawns.length ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-white/6 bg-white/[0.015] p-3 animate-pulse h-24" />
+              <div key={i} className="rounded-xl border border-white/6 bg-white/[0.015] p-3 animate-pulse h-32" />
             ))}
           </div>
         ) : spawns.length === 0 ? (
           <div className="text-center py-12 text-white/20 text-sm">No agents match your filters.</div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {spawns.map(spawn => <SpawnCard key={spawn.spawn_id} spawn={spawn} onClick={() => setSelectedSpawn(spawn)} />)}
+            {spawns.map(spawn => (
+              <SpawnCard
+                key={spawn.spawn_id}
+                spawn={spawn}
+                onClick={() => setSelectedSpawn(spawn)}
+                onDiaryClick={() => setDiarySpawn(spawn)}
+              />
+            ))}
           </div>
         )}
 

@@ -6302,13 +6302,15 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const search = (req.query.search as string || "").toLowerCase();
       const spawnType = (req.query.type as string || "").toUpperCase();
       const domain = (req.query.domain as string || "").toLowerCase();
+      const statusFilter = (req.query.status as string || "").toUpperCase();
       const offset = page * limit;
-      let query = `SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, created_at FROM quantum_spawns WHERE 1=1`;
+      let query = `SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, created_at FROM quantum_spawns WHERE 1=1`;
       const params: any[] = [];
       if (search) { params.push(`%${search}%`); query += ` AND (task_description ILIKE $${params.length} OR spawn_type ILIKE $${params.length})`; }
       if (spawnType) { params.push(spawnType); query += ` AND spawn_type = $${params.length}`; }
       if (domain) { params.push(`%${domain}%`); query += ` AND domain_focus::text ILIKE $${params.length}`; }
-      const countQ = await pool.query(query.replace("SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, created_at", "SELECT COUNT(*) as total"), params);
+      if (statusFilter) { params.push(statusFilter); query += ` AND status = $${params.length}`; }
+      const countQ = await pool.query(query.replace("SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, created_at", "SELECT COUNT(*) as total"), params);
       params.push(limit, offset);
       query += ` ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
       const result = await pool.query(query, params);
@@ -6357,6 +6359,101 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       }));
       res.json({ duplicates, total: duplicates.length, reportedAt: new Date().toISOString() });
     } catch (e: any) { res.json({ duplicates: [], total: 0 }); }
+  });
+
+  // ── Diary Writer Helper ─────────────────────────────────────────────────────
+  async function writeDiary(spawnId: string, familyId: string, eventType: string, event: string, detail = "", metadata: Record<string, any> = {}) {
+    try {
+      await pool.query(
+        `INSERT INTO spawn_diary (spawn_id, family_id, event_type, event, detail, metadata) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [spawnId, familyId, eventType, event, detail, JSON.stringify(metadata)]
+      );
+    } catch { /* non-fatal */ }
+  }
+
+  // ── GET /api/spawns/:spawnId/diary ─────────────────────────────────────────
+  app.get("/api/spawns/:spawnId/diary", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const limit = Math.min(parseInt(req.query.limit as string || "50", 10), 200);
+      const result = await pool.query(
+        `SELECT id, spawn_id, family_id, event_type, event, detail, metadata, created_at
+         FROM spawn_diary WHERE spawn_id=$1 ORDER BY created_at DESC LIMIT $2`,
+        [spawnId, limit]
+      );
+      res.json({ diary: result.rows, total: result.rowCount });
+    } catch (e: any) { res.json({ diary: [], total: 0 }); }
+  });
+
+  // ── POST /api/spawns/quarantine-duplicates ─────────────────────────────────
+  // Detects duplicate-identity agents, dispatches them to Hospital (CRITICAL)
+  // or Senate (HIGH), dissolves MODERATE extras, writes diary for each.
+  // Page should re-fetch after calling this to self-clean.
+  app.post("/api/spawns/quarantine-duplicates", async (_req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT family_id, generation, spawn_type, COUNT(*) as count,
+               array_agg(spawn_id ORDER BY created_at DESC) as spawn_ids,
+               array_agg(family_id ORDER BY created_at DESC) as family_ids
+        FROM quantum_spawns
+        WHERE status NOT IN ('DISSOLVED','TERMINAL','HOSPITAL','SENATE')
+        GROUP BY family_id, generation, spawn_type
+        HAVING COUNT(*) > 3
+        ORDER BY count DESC
+        LIMIT 100
+      `);
+
+      const dispatched: { spawnId: string; destination: string; reason: string }[] = [];
+
+      for (const row of result.rows) {
+        const count = parseInt(row.count, 10);
+        const severity = count > 20 ? "CRITICAL" : count > 10 ? "HIGH" : "MODERATE";
+        const spawnIds: string[] = row.spawn_ids;
+        const familyIds: string[] = row.family_ids;
+
+        // Keep index 0 (most recent), quarantine the rest
+        const toQuarantine = spawnIds.slice(1);
+
+        for (let i = 0; i < toQuarantine.length; i++) {
+          const sid = toQuarantine[i];
+          const fid = familyIds[i + 1] || row.family_id;
+          const destination = severity === "CRITICAL" ? "HOSPITAL" : severity === "HIGH" ? "SENATE" : "DISSOLVED";
+
+          await pool.query(`UPDATE quantum_spawns SET status=$1 WHERE spawn_id=$2`, [destination, sid]);
+
+          const eventText = destination === "HOSPITAL"
+            ? `Identity conflict flagged CRITICAL — transferred to AI Hospital for evaluation. ${count} duplicates found in ${row.family_id} G-${row.generation} ${row.spawn_type} pool.`
+            : destination === "SENATE"
+            ? `Duplicate identity review by Senate Governance. ${count} copies in ${row.family_id} G-${row.generation} cluster.`
+            : `Dissolved: identity duplicate in ${row.family_id} G-${row.generation}. ${count} copies resolved.`;
+
+          await writeDiary(sid, fid, destination === "DISSOLVED" ? "DISSOLVED" : "QUARANTINED", eventText,
+            `Severity: ${severity}. Original group: ${row.family_id} GEN-${row.generation} ${row.spawn_type}. Count: ${count}.`,
+            { severity, destination, familyId: row.family_id, generation: row.generation, spawnType: row.spawn_type, duplicateCount: count }
+          );
+
+          dispatched.push({ spawnId: sid, destination, reason: `${severity} duplicate — ${row.family_id} G${row.generation} ${row.spawn_type}` });
+        }
+
+        // Write diary entry for the survivor too
+        if (spawnIds.length > 0) {
+          await writeDiary(spawnIds[0], familyIds[0] || row.family_id, "IDENTITY_CONFLICT",
+            `Identity conflict resolved — survived as canonical ${row.spawn_type} agent in ${row.family_id} G-${row.generation}. ${toQuarantine.length} duplicates dispatched.`,
+            `Severity was ${severity}.`,
+            { severity, duplicatesRemoved: toQuarantine.length }
+          );
+        }
+      }
+
+      res.json({
+        dispatched,
+        total: dispatched.length,
+        toHospital: dispatched.filter(d => d.destination === "HOSPITAL").length,
+        toSenate: dispatched.filter(d => d.destination === "SENATE").length,
+        dissolved: dispatched.filter(d => d.destination === "DISSOLVED").length,
+        processedAt: new Date().toISOString(),
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message, dispatched: [] }); }
   });
 
   // ── Solar System / Pulse World Routes ───────────────────────
