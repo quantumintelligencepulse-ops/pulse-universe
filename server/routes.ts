@@ -587,6 +587,12 @@ Allow: /music
 Allow: /create
 Allow: /quantapedia
 Allow: /quantapedia/
+Allow: /ai/
+Allow: /agents
+Allow: /corporation/
+Allow: /corporations
+Allow: /publication/
+Allow: /publications
 Disallow: /api/
 Crawl-delay: 1
 
@@ -608,6 +614,12 @@ Allow: /music
 Allow: /create
 Allow: /quantapedia
 Allow: /quantapedia/
+Allow: /ai/
+Allow: /agents
+Allow: /corporation/
+Allow: /corporations
+Allow: /publication/
+Allow: /publications
 Disallow: /api/
 
 User-agent: Googlebot-Image
@@ -5274,18 +5286,102 @@ ${corps.map(f => `  <url><loc>${HOST}/corporation/${f}</loc><lastmod>${now}</las
     try {
       const page = Math.max(1, parseInt(req.params.page) || 1);
       const offset = (page - 1) * 1000;
-      const spawns = await db.execute(sql`SELECT spawn_id, family_id, task_description, created_at, last_active_at FROM quantum_spawns ORDER BY id LIMIT 1000 OFFSET ${offset}`);
+      const spawns = await db.execute(sql`
+        SELECT spawn_id, family_id, spawn_type, generation, task_description,
+               confidence_score, success_score, nodes_created, status,
+               created_at, last_active_at
+        FROM quantum_spawns
+        ORDER BY confidence_score DESC, nodes_created DESC
+        LIMIT 1000 OFFSET ${offset}`);
       const now = new Date().toISOString();
       res.type("application/xml");
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${(spawns.rows as any[]).map(s => {
-  const corp = (CORPORATIONS as any)[s.family_id] || { name: s.family_id };
+  const corp = (CORPORATIONS as any)[s.family_id] || { name: s.family_id, emoji: "⬡" };
   const lastmod = s.last_active_at ? new Date(s.last_active_at).toISOString() : now;
-  return `  <url><loc>${HOST}/ai/${s.spawn_id}</loc><lastmod>${lastmod}</lastmod><changefreq>hourly</changefreq><priority>0.8</priority></url>`;
+  const conf = parseFloat(s.confidence_score) || 0.7;
+  // Higher confidence agents get higher priority (0.6–0.95)
+  const priority = Math.min(0.95, Math.max(0.60, 0.60 + conf * 0.35)).toFixed(2);
+  const fam3 = (s.family_id || "UNK").slice(0,3).toUpperCase();
+  const gen2 = String(s.generation || 0).padStart(2,"0");
+  const uid  = (s.spawn_id || "").replace(/-/g,"").slice(-6).toUpperCase();
+  const license = `QPI-${fam3}-G${gen2}-${uid}`;
+  return `  <url>
+    <loc>${HOST}/ai/${s.spawn_id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
 }).join("\n")}
 </urlset>`);
     } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  // ── Bot-friendly prerender for /ai/:spawnId (social share + Googlebot) ──
+  app.get("/ai/:spawnId", async (req, res, next) => {
+    const ua = req.headers["user-agent"] || "";
+    const isBot = /bot|crawler|spider|facebookexternalhit|twitterbot|linkedinbot|whatsapp|discordbot|slackbot|telegram|googlebot|bingbot|duckduckbot|yandex|baidu/i.test(ua);
+    if (!isBot) return next(); // Let Vite/React handle real users
+    try {
+      const { spawnId } = req.params;
+      const result = await db.execute(sql`
+        SELECT spawn_id, family_id, spawn_type, generation, task_description,
+               confidence_score, nodes_created, links_created, status, domain_focus,
+               created_at
+        FROM quantum_spawns WHERE spawn_id = ${spawnId} LIMIT 1`);
+      if (!result.rows.length) return next();
+      const s = result.rows[0] as any;
+      const corp = (CORPORATIONS as any)[s.family_id] || { name: s.family_id, emoji: "⬡", color: "#6366f1" };
+      const fam3 = (s.family_id || "UNK").slice(0,3).toUpperCase();
+      const gen2 = String(s.generation || 0).padStart(2,"0");
+      const uid  = s.spawn_id.replace(/-/g,"").slice(-6).toUpperCase();
+      const license = `QPI-${fam3}-G${gen2}-${uid}`;
+      const conf = parseFloat(s.confidence_score) || 0.7;
+      const clLevel = conf >= 0.90 ? "SOVEREIGN" : conf >= 0.80 ? "SENIOR" : conf >= 0.65 ? "ELEVATED" : conf >= 0.40 ? "STANDARD" : "PROVISIONAL";
+      const domains = Array.isArray(s.domain_focus) ? s.domain_focus.join(", ") : s.domain_focus || s.family_id;
+      const title = `${license} — ${s.spawn_type} AI Agent | ${corp.name} | Quantum Pulse Intelligence`;
+      const desc  = `${s.spawn_type} AI Agent, Generation ${s.generation}. ${clLevel} clearance. Built ${(s.nodes_created||0).toLocaleString()} knowledge nodes, forged ${(s.links_created||0).toLocaleString()} links in ${domains}. Mission: ${(s.task_description||"").slice(0,200)}`;
+      const url   = `${HOST}/ai/${s.spawn_id}`;
+      res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title}</title>
+  <meta name="description" content="${desc}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${url}" />
+  <meta property="og:type" content="profile" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${desc}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:site_name" content="Quantum Pulse Intelligence" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${desc}" />
+  <script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": license,
+    "identifier": s.spawn_id,
+    "description": desc,
+    "jobTitle": `${s.spawn_type} AI Agent — Generation ${s.generation}`,
+    "memberOf": { "@type": "Organization", "name": corp.name },
+    "url": url,
+    "dateCreated": s.created_at,
+  })}</script>
+  <meta http-equiv="refresh" content="0; url=${url}" />
+</head>
+<body>
+  <h1>${title}</h1>
+  <p>${desc}</p>
+  <p><a href="${url}">View AI License: ${license}</a></p>
+  <p><a href="${HOST}/agents">Quantum Pulse Intelligence Agent Registry</a></p>
+</body>
+</html>`);
+    } catch { next(); }
   });
 
   // News/publications sitemap (paginated)
