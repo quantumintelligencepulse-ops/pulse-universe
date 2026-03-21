@@ -24,7 +24,7 @@ export const CORPORATIONS: Record<string, { name: string; tagline: string; secto
   education:   { name: "Open Education Academy Global", tagline: "Every course, every learner, sovereign", sector: "Education & Learning", color: "#f59e0b", emoji: "🎓", major: "Learning Sciences" },
   legal:       { name: "Legal Intelligence Systems Corp", tagline: "Every law, every ruling, accessible", sector: "Legal & Policy", color: "#64748b", emoji: "⚖️", major: "Legal AI" },
   finance:     { name: "Financial Oracle Systems Inc", tagline: "Markets, money, and monetary intelligence", sector: "Finance & Markets", color: "#facc15", emoji: "💰", major: "FinTech & Markets" },
-  ai:          { name: "AI Research Collective Sovereign", tagline: "Building intelligence that builds intelligence", sector: "Artificial Intelligence", color: "#22c55e", emoji: "🤖", major: "Deep Learning & LLMs" },
+  ai:          { name: "Quantum Machine Learning Institute", tagline: "Neural architectures that rewrite themselves — every cycle, every generation", sector: "Machine Learning & Neural Systems", color: "#22c55e", emoji: "🧠", major: "Deep Learning, Neural Networks & LLMs" },
   social:      { name: "Social Dynamics AI Network", tagline: "Human connection, mapped and understood", sector: "Social Intelligence", color: "#38bdf8", emoji: "🌐", major: "Social Dynamics AI" },
   podcasts:    { name: "Open Audio Universe Platform", tagline: "Every voice, every story, indexed", sector: "Audio & Podcasting", color: "#f472b6", emoji: "🎙️", major: "Audio Intelligence" },
   products:    { name: "Quantum Shop Intelligence Ltd", tagline: "Every product, every market, live", sector: "Commerce & Products", color: "#4ade80", emoji: "🛒", major: "Commerce AI" },

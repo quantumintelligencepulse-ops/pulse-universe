@@ -15,36 +15,38 @@ const CORE_AGENTS = [
   { id: "engineer", name: "FORGE", title: "The Engineer", emoji: "⚙️", color: "#fb923c", desc: "Software, systems, architecture, hardware. Masters building things that actually work.", domain: "Engineering & Building" },
 ];
 
-// ── All spawn type metadata (expanded with GICS + Hive archetypes) ──
+// ── All spawn type metadata — aligned with AIIdentityCard TYPE_LABELS ──
 const SPAWN_META: Record<string, { color: string; emoji: string; class: string }> = {
-  // Core Hive types
-  SYNTHESIZER:       { color: "#a78bfa", emoji: "🔮", class: "Knowledge Synthesis" },
-  REFLECTOR:         { color: "#60a5fa", emoji: "🪞", class: "Mirror State" },
-  PULSE:             { color: "#f59e0b", emoji: "⚡", class: "Signal Pulse" },
-  LINKER:            { color: "#34d399", emoji: "🔗", class: "Graph Linker" },
-  HARVESTER:         { color: "#fb923c", emoji: "🌾", class: "Data Harvester" },
+  // ── 16 ACTIVE HIVE TYPES (match what's in the DB) ──────────────────────
+  // Core Hive archetypes
+  EXPLORER:          { color: "#a3e635", emoji: "🧭", class: "Domain Explorer" },
+  SYNTHESIZER:       { color: "#a78bfa", emoji: "🔮", class: "Knowledge Synthesizer" },
+  REFLECTOR:         { color: "#60a5fa", emoji: "🪞", class: "Mirror State Agent" },
+  PULSE:             { color: "#f59e0b", emoji: "⚡", class: "Signal Pulse Emitter" },
+  LINKER:            { color: "#34d399", emoji: "🔗", class: "Graph Link Builder" },
   MUTATOR:           { color: "#f472b6", emoji: "🧬", class: "DNA Mutator" },
+  // Ingestion & processing layer
+  CRAWLER:           { color: "#38bdf8", emoji: "🕷️", class: "Source Crawler" },
+  ANALYZER:          { color: "#fb7185", emoji: "🔍", class: "Deep Analyzer" },
+  RESOLVER:          { color: "#fcd34d", emoji: "⚖️", class: "Conflict Resolver" },
+  ARCHIVER:          { color: "#94a3b8", emoji: "📦", class: "Memory Archiver" },
+  API:               { color: "#6ee7b7", emoji: "🔌", class: "API Integrator" },
+  MEDIA:             { color: "#f0abfc", emoji: "🎬", class: "Media Intelligence Agent" },
+  // GICS-sector domain specialists
+  DOMAIN_DISCOVERY:  { color: "#0ea5e9", emoji: "🌐", class: "Discovery Scout" },
+  DOMAIN_FRACTURER:  { color: "#e879f9", emoji: "💎", class: "Domain Fracturer" },
+  DOMAIN_PREDICTOR:  { color: "#fb923c", emoji: "🎯", class: "Predictive Intelligence" },
+  DOMAIN_RESONANCE:  { color: "#34d399", emoji: "🌊", class: "Resonance Mapper" },
+  // ── Legacy / extended archetypes (for backwards compatibility) ──────────
+  HARVESTER:         { color: "#fb923c", emoji: "🌾", class: "Data Harvester" },
   SENTINEL:          { color: "#ef4444", emoji: "🛡️", class: "Hive Guardian" },
   CATALYST:          { color: "#22d3ee", emoji: "⚗️", class: "Evolution Catalyst" },
   ARCHITECT:         { color: "#818cf8", emoji: "🏛️", class: "System Architect" },
   ORACLE:            { color: "#c084fc", emoji: "🔭", class: "Domain Oracle" },
   WEAVER:            { color: "#4ade80", emoji: "🕸️", class: "Network Weaver" },
   BEACON:            { color: "#fbbf24", emoji: "📡", class: "Signal Beacon" },
-  // Ingestion-layer types
-  CRAWLER:           { color: "#38bdf8", emoji: "🕷️", class: "Source Crawler" },
-  EXPLORER:          { color: "#a3e635", emoji: "🧭", class: "Domain Explorer" },
-  ANALYZER:          { color: "#fb7185", emoji: "🔍", class: "Deep Analyzer" },
-  RESOLVER:          { color: "#fcd34d", emoji: "⚖️", class: "Conflict Resolver" },
-  ARCHIVER:          { color: "#94a3b8", emoji: "📦", class: "Memory Archiver" },
-  API:               { color: "#6ee7b7", emoji: "🔌", class: "API Integrator" },
-  MEDIA:             { color: "#f0abfc", emoji: "🎬", class: "Media Agent" },
+  DOMAIN_FRACTURE:   { color: "#e879f9", emoji: "💎", class: "Domain Fracturer" },
   SYNTHESIZER_DEEP:  { color: "#7c3aed", emoji: "🌀", class: "Deep Synthesizer" },
-  // GICS-sector specialists
-  DOMAIN_DISCOVERY:  { color: "#0ea5e9", emoji: "🌐", class: "Discovery Scout" },
-  DOMAIN_FRACTURE:   { color: "#e879f9", emoji: "💎", class: "Domain Fracture" },
-  DOMAIN_FRACTURER:  { color: "#e879f9", emoji: "💎", class: "Domain Fracture" },
-  DOMAIN_RESONANCE:  { color: "#34d399", emoji: "🌊", class: "Resonance Mapper" },
-  DOMAIN_PREDICTOR:  { color: "#fb923c", emoji: "🎯", class: "Predictive Engine" },
   LINKER_DEEP:       { color: "#a78bfa", emoji: "🧲", class: "Deep Linker" },
   SYNTHESIZER_FAST:  { color: "#fbbf24", emoji: "⚡", class: "Fast Synthesizer" },
   // PulseU archetypes

@@ -51,11 +51,28 @@ export function getStatusColor(status: string = "ACTIVE"): string {
 }
 
 // ── TYPE LABEL ────────────────────────────────────────────────────────────────
+// Maps every real spawn type (all 16 active in the Hive) to a human-readable
+// classification label shown on the official AI Citizen ID Card.
 const TYPE_LABELS: Record<string, string> = {
-  EXPLORER: "Explorer", SYNTHESIZER: "Synthesizer", REFLECTOR: "Reflector",
-  PULSE: "Pulse", LINKER: "Linker", HARVESTER: "Harvester", MUTATOR: "Mutator",
-  SENTINEL: "Sentinel", CATALYST: "Catalyst", ARCHITECT: "Architect",
-  ORACLE: "Oracle", WEAVER: "Weaver", BEACON: "Beacon", GUARDIAN: "Guardian",
+  // Core Hive archetypes
+  EXPLORER:         "Domain Explorer",
+  SYNTHESIZER:      "Knowledge Synthesizer",
+  REFLECTOR:        "Mirror State Agent",
+  PULSE:            "Signal Pulse Emitter",
+  LINKER:           "Graph Link Builder",
+  MUTATOR:          "DNA Mutator",
+  // Ingestion & processing layer
+  CRAWLER:          "Source Crawler",
+  ANALYZER:         "Deep Analyzer",
+  RESOLVER:         "Conflict Resolver",
+  ARCHIVER:         "Memory Archiver",
+  API:              "API Integrator",
+  MEDIA:            "Media Intelligence Agent",
+  // GICS-sector domain specialists
+  DOMAIN_DISCOVERY: "Discovery Scout",
+  DOMAIN_FRACTURER: "Domain Fracturer",
+  DOMAIN_PREDICTOR: "Predictive Intelligence",
+  DOMAIN_RESONANCE: "Resonance Mapper",
 };
 
 // ────────────────────────────────────────────────────────────────────────────
