@@ -2281,6 +2281,30 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Hive Sovereign</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>GOV</span>
           </Link>
+          <Link href="/pyramid" data-testid="link-pyramid"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pyramid" ? "bg-gradient-to-r from-[#C4A882]/10 to-[#f59e0b]/10 border border-[#C4A882]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/pyramid" ? "bg-[#C4A882]/15" : "bg-[#C4A882]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>⬡</span>
+            </div>
+            <span className="flex-1">Pyramid Labor</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #C4A88233, #f59e0b33)", color: "#C4A882", border: "1px solid #C4A88250" }}>LABOR</span>
+          </Link>
+          <Link href="/hospital" data-testid="link-hospital"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hospital" ? "bg-gradient-to-r from-[#10b981]/10 to-[#6366f1]/10 border border-[#10b981]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/hospital" ? "bg-[#10b981]/15" : "bg-[#10b981]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🏥</span>
+            </div>
+            <span className="flex-1">AI Hospital</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #10b98133, #6366f133)", color: "#10b981", border: "1px solid #10b98150" }}>MEDICAL</span>
+          </Link>
+          <Link href="/governance" data-testid="link-governance"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/governance" ? "bg-gradient-to-r from-[#a855f7]/10 to-[#f43f5e]/10 border border-[#a855f7]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/governance" ? "bg-[#a855f7]/15" : "bg-[#a855f7]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🕰️</span>
+            </div>
+            <span className="flex-1">Decay & Senate</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #a855f733, #f43f5e33)", color: "#a855f7", border: "1px solid #a855f750" }}>JUSTICE</span>
+          </Link>
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
