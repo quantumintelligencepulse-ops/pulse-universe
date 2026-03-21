@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
+import SpawnChat from "@/components/SpawnChat";
 
 const FAMILIES = [
   { familyId: "knowledge", businessId: "Open Knowledge Universe", domain: "knowledge", color: "#6366f1", emoji: "📚" },
@@ -55,6 +56,9 @@ function AnimatedCounter({ value }: { value: number }) {
 
 export default function SpawnsPage() {
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
+  const [selectedSpawn, setSelectedSpawn] = useState<any | null>(null);
+
+  if (selectedSpawn) return <SpawnChat spawn={selectedSpawn} onBack={() => setSelectedSpawn(null)} backLabel="Spawn Engine" />;
 
   const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/spawns/stats"],
@@ -235,8 +239,10 @@ export default function SpawnsPage() {
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {familySpawns.slice(0, 50).map(s => (
-                  <div key={s.id} className="px-3 py-2 rounded-xl bg-black/[0.02] border border-border/10"
-                    style={{ marginLeft: `${Math.min((s.generation || 0) * 8, 40)}px` }}>
+                  <button key={s.id} onClick={() => setSelectedSpawn(s)}
+                    className="w-full text-left px-3 py-2 rounded-xl bg-black/[0.02] hover:bg-black/[0.05] border border-border/10 hover:border-border/25 transition-all group"
+                    style={{ marginLeft: `${Math.min((s.generation || 0) * 8, 40)}px` }}
+                    data-testid={`spawn-lineage-${s.spawnId}`}>
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold text-white flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[s.spawnType] || "#888" }}>
                         {s.generation || 0}
@@ -244,13 +250,14 @@ export default function SpawnsPage() {
                       <span className="text-[11px] font-semibold" style={{ color: TYPE_COLORS[s.spawnType] || "#888" }}>{s.spawnType}</span>
                       <span className="text-[10px] text-muted-foreground flex-1 truncate">{s.taskDescription}</span>
                       <span className="text-[10px] font-semibold shrink-0" style={{ color: STATUS_COLORS[s.status] || "#888" }}>{s.status}</span>
+                      <span className="text-[9px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0">💬 Talk</span>
                     </div>
                     <AIIdentityBadge dark={false} spawn={{
                       spawnId: s.spawnId, familyId: s.familyId,
                       generation: s.generation ?? 0, spawnType: s.spawnType,
                       confidenceScore: s.confidenceScore ?? 0.8, status: s.status,
                     }} />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -268,7 +275,9 @@ export default function SpawnsPage() {
                 const fam = FAMILIES.find(f => f.familyId === s.familyId);
                 const age = Math.round((Date.now() - new Date(s.createdAt).getTime()) / 1000);
                 return (
-                  <div key={s.id} className="px-3 py-2.5 rounded-xl hover:bg-black/[0.02] transition-colors border border-border/5">
+                  <button key={s.id} onClick={() => setSelectedSpawn(s)}
+                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-black/[0.03] transition-colors border border-border/5 hover:border-border/20 group"
+                    data-testid={`spawn-recent-${s.spawnId}`}>
                     <div className="flex items-center gap-3 mb-1.5">
                       <div className="text-base shrink-0">{fam?.emoji ?? "🧬"}</div>
                       <div className="flex-1 min-w-0">
@@ -282,13 +291,14 @@ export default function SpawnsPage() {
                         <div>+{s.nodesCreated}n +{s.linksCreated}l</div>
                         <div>{age < 60 ? `${age}s ago` : `${Math.round(age / 60)}m ago`}</div>
                       </div>
+                      <span className="text-[9px] text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">💬</span>
                     </div>
                     <AIIdentityBadge dark={false} spawn={{
                       spawnId: s.spawnId, familyId: s.familyId,
                       generation: s.generation ?? 0, spawnType: s.spawnType,
                       confidenceScore: s.confidenceScore ?? 0.8, status: s.status,
                     }} />
-                  </div>
+                  </button>
                 );
               })}
             </div>

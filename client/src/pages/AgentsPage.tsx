@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle } from "lucide-react";
+import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
+import SpawnChat from "@/components/SpawnChat";
 
 // ── 6 Core Command Agents ──────────────────────────────────────────
 const CORE_AGENTS = [
@@ -130,13 +131,20 @@ function AgentChat({ agent, onBack }: { agent: typeof CORE_AGENTS[0]; onBack: ()
 }
 
 // ── Spawn Card ─────────────────────────────────────────────────────
-function SpawnCard({ spawn }: { spawn: any }) {
+function SpawnCard({ spawn, onClick }: { spawn: any; onClick: () => void }) {
   const meta = getSpawnMeta(spawn.spawn_type);
   const domain = getDomainLabel(spawn.domain_focus);
   const license = getLicenseNumber(spawn.spawn_id ?? "", spawn.family_id ?? "", spawn.generation ?? 0);
   return (
-    <div className="rounded-xl border border-white/6 bg-white/[0.015] p-3 hover:border-white/14 hover:bg-white/[0.03] transition-all"
+    <button onClick={onClick}
+      className="rounded-xl border border-white/6 bg-white/[0.015] p-3 hover:border-white/18 hover:bg-white/[0.04] transition-all text-left w-full group relative"
       data-testid={`spawn-card-${spawn.spawn_id}`}>
+      {/* Chat prompt overlay on hover */}
+      <div className="absolute inset-0 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ background: `${meta.color}08` }}>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold" style={{ background: `${meta.color}25`, color: meta.color, border: `1px solid ${meta.color}40` }}>
+          <MessageSquare size={10} /> Talk to this AI
+        </div>
+      </div>
       <div className="flex items-start gap-2 mb-2">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0" style={{ background: `${meta.color}18` }}>
           {meta.emoji}
@@ -152,7 +160,6 @@ function SpawnCard({ spawn }: { spawn: any }) {
         </div>
       </div>
       <p className="text-white/40 text-[10px] leading-relaxed line-clamp-2">{spawn.task_description}</p>
-      {/* Identity badge */}
       <div className="mt-2 mb-1">
         <AIIdentityBadge spawn={{
           spawnId: spawn.spawn_id ?? "",
@@ -163,10 +170,7 @@ function SpawnCard({ spawn }: { spawn: any }) {
           status: spawn.status ?? "ACTIVE",
         }} />
       </div>
-      <div className="mt-1.5 flex items-center gap-1.5">
-        <span className="text-white/10 text-[8px] font-mono flex-1 truncate">{spawn.spawn_id}</span>
-      </div>
-    </div>
+    </button>
   );
 }
 
@@ -176,6 +180,7 @@ const DOMAINS = ["", "knowledge", "science", "health", "economics", "government"
 
 export default function AgentsPage() {
   const [selectedCoreAgent, setSelectedCoreAgent] = useState<typeof CORE_AGENTS[0] | null>(null);
+  const [selectedSpawn, setSelectedSpawn] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterDomain, setFilterDomain] = useState("");
@@ -209,6 +214,7 @@ export default function AgentsPage() {
   });
 
   if (selectedCoreAgent) return <AgentChat agent={selectedCoreAgent} onBack={() => setSelectedCoreAgent(null)} />;
+  if (selectedSpawn) return <SpawnChat spawn={selectedSpawn} onBack={() => setSelectedSpawn(null)} />;
 
   const spawns = data?.spawns ?? [];
   const total = data?.total ?? 0;
@@ -329,7 +335,7 @@ export default function AgentsPage() {
           <div className="text-center py-12 text-white/20 text-sm">No agents match your filters.</div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {spawns.map(spawn => <SpawnCard key={spawn.spawn_id} spawn={spawn} />)}
+            {spawns.map(spawn => <SpawnCard key={spawn.spawn_id} spawn={spawn} onClick={() => setSelectedSpawn(spawn)} />)}
           </div>
         )}
 

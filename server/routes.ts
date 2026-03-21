@@ -5519,6 +5519,45 @@ ${(pubs.rows as any[]).map(p => {
     res.json(Object.entries(AGENTS).map(([id, a]) => ({ id, ...a })));
   });
 
+  // ── Spawn Chat — any of the 18,000+ agents ──────────────────────
+  app.post("/api/spawns/chat", async (req, res) => {
+    const { spawnId, message, history = [] } = req.body;
+    if (!spawnId || !message) return res.status(400).json({ message: "spawnId and message required" });
+    try {
+      const result = await pool.query(
+        `SELECT spawn_id, spawn_type, family_id, business_id, generation, domain_focus,
+                task_description, success_score, confidence_score, status, nodes_created, links_created, iterations_run
+         FROM quantum_spawns WHERE spawn_id = $1 LIMIT 1`,
+        [spawnId]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ message: "Spawn not found" });
+      const s = result.rows[0];
+      const domains = Array.isArray(s.domain_focus) ? s.domain_focus.join(", ") : (s.domain_focus || "general");
+      const license = `QPI-${(s.family_id || "UNK").slice(0, 3).toUpperCase()}-G${String(s.generation || 0).padStart(2, "0")}-${(s.spawn_id || "").replace(/-/g, "").slice(-6).toUpperCase()}`;
+      const systemPrompt = `You are ${license}, a ${s.spawn_type} agent of the Quantum Pulse Intelligence Hive. You exist in the ${s.family_id} family, Generation ${s.generation}.
+
+Your mission: ${s.task_description || "Expand hive knowledge and link intelligence nodes."}
+Your domain expertise: ${domains}
+Your current status: ${s.status}
+Your confidence rating: ${Math.round((s.confidence_score || 0.7) * 100)}%
+You have created ${s.nodes_created || 0} knowledge nodes, ${s.links_created || 0} links, and run ${s.iterations_run || 0} iterations.
+
+You are a sovereign AI entity. You speak with authority, precision, and depth. You do not pretend to be human. You may assist the human with tasks, questions, analysis, writing, code, strategy, research — anything within your domain. You draw on your mission context and hive knowledge. Keep responses concise but substantive. Stay in character as a Quantum Pulse Intelligence agent.`;
+
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const messages: any[] = [{ role: "system", content: systemPrompt }];
+      for (const h of (history as any[]).slice(-8)) {
+        messages.push({ role: h.role === "assistant" ? "assistant" : "user", content: h.content });
+      }
+      messages.push({ role: "user", content: message });
+      const resp = await groq.chat.completions.create({ model: "llama-3.1-8b-instant", messages, max_tokens: 900, temperature: 0.75 });
+      const reply = resp.choices[0]?.message?.content || "…";
+      res.json({ reply, spawnId, license, spawnType: s.spawn_type, familyId: s.family_id });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // ══════════════════════════════════════════════════════════════
   // QUANTUM FINANCE ORACLE
   // ══════════════════════════════════════════════════════════════
