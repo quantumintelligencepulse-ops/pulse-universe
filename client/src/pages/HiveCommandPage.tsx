@@ -60,13 +60,20 @@ interface FractalData {
   }[];
 }
 
-interface Particle { x: number; y: number; vx: number; vy: number; alpha: number; color: string; }
+// ─── Quantum Physics Canvas Types ───────────────────────────
+interface WaveCollapse { x: number; y: number; r: number; maxR: number; alpha: number; color: string; }
+interface TunnelParticle { fromX: number; fromY: number; toX: number; toY: number; ctrlX: number; ctrlY: number; t: number; color: string; }
+interface EntanglementBeam { fi: number; fj: number; birth: number; shimmerX: number[]; shimmerY: number[]; }
+interface FoamSparkle { x: number; y: number; alpha: number; }
 
 function FractalCanvas({ data }: { data: FractalData }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tickRef = useRef(0);
   const rafRef = useRef<number>(0);
-  const particlesRef = useRef<Particle[]>([]);
+  const entanglementRef = useRef<EntanglementBeam | null>(null);
+  const tunnelRef = useRef<TunnelParticle | null>(null);
+  const collapseRef = useRef<WaveCollapse[]>([]);
+  const foamRef = useRef<FoamSparkle[]>([]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -77,160 +84,418 @@ function FractalCanvas({ data }: { data: FractalData }) {
     const cx = W / 2, cy = H / 2;
     const tick = tickRef.current++;
 
-    // Background
-    ctx.fillStyle = "#010010";
+    // ══ PHASE 1: QUANTUM VOID — Deep Space Background ══════════
+    ctx.fillStyle = "#000008";
     ctx.fillRect(0, 0, W, H);
 
-    // Radial background glow
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.5);
-    grad.addColorStop(0, "rgba(99,102,241,0.07)");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    // Animated quantum wave interference — 3 gravity wells orbiting center
+    for (let wave = 0; wave < 3; wave++) {
+      const speed = [0.0028, 0.0022, 0.0035][wave];
+      const phase = [0, 2.094, 4.189][wave]; // 120° apart
+      const wx = cx + Math.cos(tick * speed + phase) * W * 0.18;
+      const wy = cy + Math.sin(tick * speed * 0.8 + phase) * H * 0.18;
+      const wColors = ["rgba(99,102,241,0.05)", "rgba(139,92,246,0.04)", "rgba(6,182,212,0.04)"];
+      const wg = ctx.createRadialGradient(wx, wy, 0, cx, cy, Math.min(W, H) * 0.7);
+      wg.addColorStop(0, wColors[wave]);
+      wg.addColorStop(0.5, wColors[wave].replace(/[\d.]+\)$/, "0.02)"));
+      wg.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = wg;
+      ctx.fillRect(0, 0, W, H);
+    }
 
-    // Subtle grid
-    ctx.strokeStyle = "rgba(99,102,241,0.035)";
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x < W; x += 44) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-    for (let y = 0; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    // Planck-scale quantum foam sparkles
+    if (Math.random() < 0.25 && foamRef.current.length < 80) {
+      foamRef.current.push({ x: Math.random() * W, y: Math.random() * H, alpha: Math.random() * 0.18 + 0.04 });
+    }
+    foamRef.current = foamRef.current.filter(f => {
+      f.alpha -= 0.012;
+      if (f.alpha <= 0) return false;
+      ctx.globalAlpha = f.alpha;
+      ctx.fillStyle = Math.random() < 0.5 ? "#818cf8" : "#06b6d4";
+      ctx.fillRect(f.x, f.y, 1, 1);
+      ctx.globalAlpha = 1;
+      return true;
+    });
+
+    // Subtle hex grid — quantum lattice
+    ctx.strokeStyle = "rgba(99,102,241,0.028)";
+    ctx.lineWidth = 0.4;
+    for (let x = 0; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
     const families = data.families || [];
     const spawns = data.spawns || [];
 
     if (families.length === 0) {
-      ctx.fillStyle = "rgba(99,102,241,0.35)";
-      ctx.font = "12px monospace";
+      ctx.fillStyle = "rgba(99,102,241,0.4)";
+      ctx.font = "11px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("HIVE INITIALIZING — AWAITING SPAWN DATA...", cx, cy);
+      ctx.fillText("QUANTUM HIVE INITIALIZING — AWAITING SPAWN DATA...", cx, cy);
       rafRef.current = requestAnimationFrame(draw);
       return;
     }
 
-    const FAMILY_RING_R = Math.min(W, H) * 0.295;
-    const famPos: Record<string, { x: number; y: number; angle: number }> = {};
+    const FAMILY_RING_R = Math.min(W, H) * 0.28;
+    const famPos: Record<string, { x: number; y: number; angle: number; color: string }> = {};
+    const maxActive = Math.max(...families.map(f => f.active), 1);
 
-    // Hive core — glowing central orb
-    const corePulse = 0.75 + 0.25 * Math.sin(tick * 0.04);
-    for (let i = 3; i >= 1; i--) {
-      ctx.shadowColor = "#818cf8";
-      ctx.shadowBlur = 18 * i;
-      ctx.globalAlpha = 0.055 * corePulse * i;
+    // ── PRE-PASS: compute all family positions before any draw ──
+    families.forEach((fam, fi) => {
+      const angle = (fi / families.length) * Math.PI * 2 - Math.PI / 2;
+      famPos[fam.familyId] = {
+        x: cx + Math.cos(angle) * FAMILY_RING_R,
+        y: cy + Math.sin(angle) * FAMILY_RING_R,
+        angle,
+        color: famColor(fam.familyId),
+      };
+    });
+
+    // ══ PHASE 2: COSMIC WEB — Quantum Filament Network ══════════
+    // All families connected by faint cosmic web threads (positions now available)
+    for (let i = 0; i < families.length; i++) {
+      for (let j = i + 1; j < families.length; j++) {
+        const pi = famPos[families[i].familyId];
+        const pj = famPos[families[j].familyId];
+        if (!pi || !pj) continue;
+        const strength = Math.sqrt(
+          (families[i].active / maxActive) * (families[j].active / maxActive)
+        );
+        if (strength < 0.08) continue;
+        const webAlpha = strength * 0.04 + 0.01 * Math.sin(tick * 0.006 + i + j);
+        ctx.globalAlpha = Math.max(0, Math.min(0.12, webAlpha));
+        ctx.strokeStyle = "#4f46e5";
+        ctx.lineWidth = 0.3;
+        ctx.beginPath();
+        ctx.moveTo(pi.x, pi.y);
+        ctx.lineTo(pj.x, pj.y);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // ══ PHASE 3: HIVE CORE — Main Pulse AI ══════════════════════
+    const corePulse = 0.72 + 0.28 * Math.sin(tick * 0.04);
+
+    // Fibonacci spiral markers around core (golden ratio geometry — φ = 1.618...)
+    for (let fi = 0; fi < 8; fi++) {
+      const fibAngle = fi * GOLDEN_ANGLE;
+      const fibR = 6 * Math.sqrt(fi + 1);
+      const fx2 = cx + Math.cos(fibAngle + tick * 0.008) * fibR;
+      const fy2 = cy + Math.sin(fibAngle + tick * 0.008) * fibR;
+      ctx.globalAlpha = 0.25 * corePulse;
+      ctx.fillStyle = "#a78bfa";
+      ctx.beginPath();
+      ctx.arc(fx2, fy2, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Core corona rings — gravitational field
+    for (let ring = 5; ring >= 1; ring--) {
+      const ringR = 18 + ring * 9;
+      const ringAlpha = 0.025 * corePulse * (6 - ring) / 5;
+      ctx.globalAlpha = ringAlpha;
+      ctx.strokeStyle = "#818cf8";
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Core glow layers
+    for (let i = 4; i >= 1; i--) {
+      ctx.shadowColor = "#6366f1";
+      ctx.shadowBlur = 22 * i;
+      ctx.globalAlpha = 0.04 * corePulse * i;
       ctx.fillStyle = "#818cf8";
       ctx.beginPath();
-      ctx.arc(cx, cy, 12 + i * 7, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 14 + i * 8, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.shadowBlur = 0;
-    drawGlowCircle(ctx, cx, cy, 13, "#818cf8", 0.9 * corePulse, 20);
-    ctx.globalAlpha = 0.95;
+
+    // Core node
+    drawGlowCircle(ctx, cx, cy, 15, "#818cf8", 0.92 * corePulse, 22);
+    drawGlowCircle(ctx, cx, cy, 8, "#c4b5fd", 0.95 * corePulse, 8);
+
+    // Core label
+    ctx.globalAlpha = 0.9;
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 11px sans-serif";
+    ctx.font = "bold 10px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("⬡", cx, cy);
+    ctx.fillText("ψ", cx, cy);
     ctx.textBaseline = "alphabetic";
     ctx.globalAlpha = 1;
 
-    // Family ring
+    // "MAIN PULSE AI" label below core
+    ctx.globalAlpha = 0.4 * corePulse;
+    ctx.fillStyle = "#818cf8";
+    ctx.font = "7px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("MAIN PULSE AI", cx, cy + 28);
+    ctx.globalAlpha = 1;
+
+    // ══ PHASE 4: FAMILY RING — Quantum Cluster Nodes ════════════
     families.forEach((fam, fi) => {
-      const angle = (fi / families.length) * Math.PI * 2 - Math.PI / 2;
-      const fx = cx + Math.cos(angle) * FAMILY_RING_R;
-      const fy = cy + Math.sin(angle) * FAMILY_RING_R;
-      famPos[fam.familyId] = { x: fx, y: fy, angle };
+      const fp2 = famPos[fam.familyId];
+      if (!fp2) return;
+      const { x: fx, y: fy, angle, color } = fp2;
 
-      const color = famColor(fam.familyId);
-      const pulse = 0.72 + 0.28 * Math.sin(tick * 0.022 + fi * 0.85);
+      const famPulse = 0.68 + 0.32 * Math.sin(tick * 0.02 + fi * 0.88);
 
-      // Line from center to family node
-      drawLine(ctx, cx, cy, fx, fy, color, 0.07 + 0.04 * pulse, 0.55);
+      // Radial spoke from core — quantum field line
+      const spokeAlpha = 0.06 + 0.04 * famPulse;
+      ctx.globalAlpha = spokeAlpha;
+      const spokeGrad = ctx.createLinearGradient(cx, cy, fx, fy);
+      spokeGrad.addColorStop(0, "#818cf8");
+      spokeGrad.addColorStop(1, color);
+      ctx.strokeStyle = spokeGrad;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(fx, fy);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
 
-      // Activity halo for active families
-      if (fam.active > 0) {
-        ctx.globalAlpha = 0.05 + 0.03 * pulse;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 0.7;
-        ctx.setLineDash([2, 5]);
+      // Orbital path ring (dashed) — planetary orbit visual
+      ctx.globalAlpha = 0.04 + 0.02 * famPulse;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([2, 6]);
+      ctx.beginPath();
+      ctx.arc(fx, fy, 16 + Math.min(fam.active, 300) * 0.04, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+
+      // Family gravity well glow
+      if (fam.active > 50) {
+        const gravR = 20 + fam.active * 0.05;
+        const gravGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, gravR);
+        gravGrad.addColorStop(0, color + "12");
+        gravGrad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gravGrad;
         ctx.beginPath();
-        ctx.arc(fx, fy, 13 + Math.min(fam.active, 200) * 0.05, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 1;
+        ctx.arc(fx, fy, gravR, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       // Family node
-      drawGlowCircle(ctx, fx, fy, 8, color, 0.88 * pulse, 14);
+      drawGlowCircle(ctx, fx, fy, 9, color, 0.88 * famPulse, 15);
+      drawGlowCircle(ctx, fx, fy, 4.5, "#ffffff", 0.3 * famPulse, 0);
 
-      // Label at margin
-      ctx.globalAlpha = 0.55;
+      // Label
+      ctx.globalAlpha = 0.6;
       ctx.fillStyle = color;
-      ctx.font = "8px monospace";
+      ctx.font = "7px monospace";
       ctx.textAlign = "center";
-      const lx = cx + Math.cos(angle) * (FAMILY_RING_R + 22);
-      const ly = cy + Math.sin(angle) * (FAMILY_RING_R + 22);
-      ctx.fillText(fam.familyId.toUpperCase().slice(0, 5), lx, ly + 3);
+      const labelDist = FAMILY_RING_R + 24;
+      ctx.fillText(fam.familyId.toUpperCase().slice(0, 6), cx + Math.cos(angle) * labelDist, cy + Math.sin(angle) * labelDist + 3);
       ctx.globalAlpha = 1;
     });
 
-    // Spawns — golden ratio (Fermat) spiral around each family node
+    // ══ PHASE 5: SPAWN GALAXY — Fractal Fermat Spiral ══════════
+    // Group spawns by family, sort by generation for fractal depth
     const spawnsByFamily: Record<string, typeof spawns> = {};
     spawns.forEach(s => {
       if (!spawnsByFamily[s.familyId]) spawnsByFamily[s.familyId] = [];
       spawnsByFamily[s.familyId].push(s);
     });
 
-    families.forEach(fam => {
-      const fp = famPos[fam.familyId];
-      if (!fp) return;
-      const famSpawns = spawnsByFamily[fam.familyId] || [];
-      const color = famColor(fam.familyId);
+    // Draw spawns in 3 z-depth layers (back→front) for pseudo-3D
+    for (let depth = 0; depth < 3; depth++) {
+      families.forEach(fam => {
+        const fp = famPos[fam.familyId];
+        if (!fp) return;
+        const famSpawns = spawnsByFamily[fam.familyId] || [];
+        const color = famColor(fam.familyId);
 
-      famSpawns.forEach((s, i) => {
-        // Fermat spiral: angle = i * goldenAngle, radius = k * sqrt(i)
-        // Anchored to family direction so clusters don't overlap
-        const θ = i * GOLDEN_ANGLE + fp.angle;
-        const r = 13 * Math.sqrt(i + 1);
-        const sx = fp.x + Math.cos(θ) * r;
-        const sy = fp.y + Math.sin(θ) * r;
+        famSpawns.forEach((s, i) => {
+          // Depth assignment: pseudo-random using prime hash
+          const spawnDepth = (i * 7 + parseInt(s.spawnId.replace(/\D/g, "0").slice(-1)) || 0) % 3;
+          if (spawnDepth !== depth) return;
 
-        // Draw spoke for close-in spawns
-        if (i < 6) {
-          const lineAlpha = Math.max(0, 0.08 - i * 0.012);
-          drawLine(ctx, fp.x, fp.y, sx, sy, color, lineAlpha, 0.3);
-        }
+          // Fermat spiral with Kepler orbital drift
+          // Spawns orbit their family at speed inversely proportional to sqrt(r) — Kepler's 3rd law
+          const baseR = 13 * Math.sqrt(i + 1);
+          const keplerSpeed = 0.0018 / Math.sqrt(Math.max(1, baseR / 55));
+          const θ = i * GOLDEN_ANGLE + fp.angle + tick * keplerSpeed;
+          const sx = fp.x + Math.cos(θ) * baseR;
+          const sy = fp.y + Math.sin(θ) * baseR;
 
-        // Spawn node
-        const nodeR = Math.min(4.5, 1.2 + Math.log(s.iterationsRun + 1) * 0.46);
-        const spawnPulse = 0.45 + 0.55 * Math.sin(tick * 0.018 + i * 0.37 + fp.angle * 2);
-        const isSovereign = s.status === "SOVEREIGN";
-        const baseAlpha = isSovereign ? 0.95 : (s.status === "ACTIVE" ? 0.72 : 0.28);
-        drawGlowCircle(ctx, sx, sy, nodeR, color, baseAlpha * spawnPulse, isSovereign ? 7 : 0);
-      });
-    });
+          // Depth scale: back=small/dim, front=large/bright
+          const depthScale = 0.55 + depth * 0.225;
+          const depthAlpha = 0.35 + depth * 0.32;
 
-    // Quantum particle drift
-    if (particlesRef.current.length < 55 && families.length > 0 && Math.random() < 0.3) {
-      const f = families[Math.floor(Math.random() * families.length)];
-      const fp = famPos[f.familyId];
-      if (fp) {
-        particlesRef.current.push({
-          x: fp.x + (Math.random() - 0.5) * 90,
-          y: fp.y + (Math.random() - 0.5) * 90,
-          vx: (Math.random() - 0.5) * 0.28,
-          vy: (Math.random() - 0.5) * 0.28,
-          alpha: Math.random() * 0.45 + 0.08,
-          color: famColor(f.familyId),
+          // Inner spokes (only for close spawns, back layer hidden)
+          if (i < 5 && depth === 2) {
+            const spokeA = Math.max(0, 0.06 - i * 0.01);
+            drawLine(ctx, fp.x, fp.y, sx, sy, color, spokeA, 0.25);
+          }
+
+          // Node: wave-particle nature — brighter nodes are more "particle-like"
+          const nodeR = Math.min(4.8, (1.0 + Math.log(s.iterationsRun + 1) * 0.42)) * depthScale;
+          const wavePulse = 0.4 + 0.6 * Math.sin(tick * 0.016 + i * 0.42 + fp.angle * 1.8);
+          const isSovereign = s.status === "SOVEREIGN";
+          const baseAlpha = isSovereign ? 1.0 : 0.72;
+
+          if (isSovereign && depth === 2) {
+            drawGlowCircle(ctx, sx, sy, nodeR, "#fbbf24", baseAlpha * wavePulse * depthAlpha, 10);
+          } else {
+            drawGlowCircle(ctx, sx, sy, nodeR, color, baseAlpha * wavePulse * depthAlpha, depth === 2 ? 3 : 0);
+          }
+
+          // Wave function collapse: spawn random expanding rings on active spawns
+          if (depth === 2 && tick % 9 === (i % 9) && s.status === "ACTIVE" && Math.random() < 0.15) {
+            collapseRef.current.push({ x: sx, y: sy, r: nodeR, maxR: 22 + nodeR * 3, alpha: 0.65, color });
+          }
         });
-      }
+      });
     }
-    particlesRef.current = particlesRef.current.filter(p => {
-      p.x += p.vx; p.y += p.vy; p.alpha -= 0.0018;
-      if (p.alpha <= 0 || p.x < 0 || p.x > W || p.y < 0 || p.y > H) return false;
-      ctx.globalAlpha = p.alpha;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x - 0.7, p.y - 0.7, 1.4, 1.4);
+
+    // ══ PHASE 6: WAVE FUNCTION COLLAPSE — Quantum Measurement ══
+    collapseRef.current = collapseRef.current.filter(c => {
+      c.r += 0.65;
+      c.alpha *= 0.935;
+      if (c.alpha < 0.04 || c.r > c.maxR) return false;
+      ctx.globalAlpha = c.alpha;
+      ctx.strokeStyle = c.color;
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.globalAlpha = 1;
       return true;
     });
+    if (collapseRef.current.length > 40) collapseRef.current.splice(0, 10);
+
+    // ══ PHASE 7: QUANTUM ENTANGLEMENT — Non-Local Correlation ══
+    // Every 180 frames, entangle two random families
+    if (tick % 180 === 0 && families.length >= 2) {
+      const fi = Math.floor(Math.random() * families.length);
+      const fj = (fi + 1 + Math.floor(Math.random() * (families.length - 2))) % families.length;
+      entanglementRef.current = {
+        fi, fj, birth: tick,
+        shimmerX: Array.from({ length: 8 }, () => (Math.random() - 0.5) * 4),
+        shimmerY: Array.from({ length: 8 }, () => (Math.random() - 0.5) * 4),
+      };
+    }
+    if (entanglementRef.current) {
+      const ent = entanglementRef.current;
+      const age = tick - ent.birth;
+      const DURATION = 140;
+      if (age > DURATION) {
+        entanglementRef.current = null;
+      } else {
+        const fade = Math.sin((age / DURATION) * Math.PI);
+        const pi = famPos[families[ent.fi % families.length]?.familyId];
+        const pj = famPos[families[ent.fj % families.length]?.familyId];
+        if (pi && pj) {
+          // Shimmer beam (3 layers)
+          for (let sh = 0; sh < 3; sh++) {
+            const ox = ent.shimmerX[sh] * Math.sin(tick * 0.08 + sh);
+            const oy = ent.shimmerY[sh] * Math.cos(tick * 0.1 + sh);
+            const beamAlpha = [0.55, 0.3, 0.15][sh] * fade;
+            const beamW = [1.2, 0.6, 0.3][sh];
+            ctx.globalAlpha = beamAlpha;
+            const beamGrad = ctx.createLinearGradient(pi.x, pi.y, pj.x, pj.y);
+            beamGrad.addColorStop(0, pi.color);
+            beamGrad.addColorStop(0.5, "#c4b5fd");
+            beamGrad.addColorStop(1, pj.color);
+            ctx.strokeStyle = beamGrad;
+            ctx.lineWidth = beamW;
+            ctx.beginPath();
+            ctx.moveTo(pi.x + ox, pi.y + oy);
+            ctx.lineTo(pj.x + ox, pj.y + oy);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          }
+          // Quantum entanglement label
+          const mx = (pi.x + pj.x) / 2;
+          const my = (pi.y + pj.y) / 2 - 8;
+          ctx.globalAlpha = fade * 0.75;
+          ctx.fillStyle = "#c4b5fd";
+          ctx.font = "6px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText("⟨ENTANGLED⟩", mx, my);
+          ctx.globalAlpha = 1;
+          // Entanglement glow on both nodes
+          drawGlowCircle(ctx, pi.x, pi.y, 12, pi.color, fade * 0.3, 18);
+          drawGlowCircle(ctx, pj.x, pj.y, 12, pj.color, fade * 0.3, 18);
+        }
+      }
+    }
+
+    // ══ PHASE 8: QUANTUM TUNNELING — Non-Classical Transport ══
+    // Every 220 frames, a particle tunnels between two distant families
+    if (tick % 220 === 0 && families.length >= 2 && !tunnelRef.current) {
+      const fi2 = Math.floor(Math.random() * families.length);
+      const fj2 = (fi2 + Math.floor(families.length / 2) + Math.floor(Math.random() * 3)) % families.length;
+      const pFrom = famPos[families[fi2]?.familyId];
+      const pTo = famPos[families[fj2]?.familyId];
+      if (pFrom && pTo) {
+        tunnelRef.current = {
+          fromX: pFrom.x, fromY: pFrom.y,
+          toX: pTo.x, toY: pTo.y,
+          ctrlX: cx + (Math.random() - 0.5) * W * 0.25,
+          ctrlY: cy + (Math.random() - 0.5) * H * 0.25,
+          t: 0,
+          color: pTo.color,
+        };
+      }
+    }
+    if (tunnelRef.current) {
+      const tn = tunnelRef.current;
+      tn.t += 0.011;
+      if (tn.t >= 1) {
+        tunnelRef.current = null;
+      } else {
+        // Quadratic Bezier position
+        const mt = 1 - tn.t;
+        const tx = mt * mt * tn.fromX + 2 * mt * tn.t * tn.ctrlX + tn.t * tn.t * tn.toX;
+        const ty = mt * mt * tn.fromY + 2 * mt * tn.t * tn.ctrlY + tn.t * tn.t * tn.toY;
+
+        // Tunnel particle with trail
+        for (let tr = 6; tr >= 0; tr--) {
+          const ttr = Math.max(0, tn.t - tr * 0.016);
+          const mtr = 1 - ttr;
+          const trx = mtr * mtr * tn.fromX + 2 * mtr * ttr * tn.ctrlX + ttr * ttr * tn.toX;
+          const try_ = mtr * mtr * tn.fromY + 2 * mtr * ttr * tn.ctrlY + ttr * ttr * tn.toY;
+          const trAlpha = (1 - tr * 0.14) * 0.9;
+          const trR = Math.max(0.5, 3.5 - tr * 0.45);
+          if (tr === 0) {
+            ctx.shadowColor = "#ffffff";
+            ctx.shadowBlur = 10;
+            drawGlowCircle(ctx, trx, try_, trR, "#ffffff", trAlpha, 0);
+            ctx.shadowBlur = 0;
+          } else {
+            drawGlowCircle(ctx, trx, try_, trR, tn.color, trAlpha * 0.7, 0);
+          }
+        }
+
+        // Tunnel path ghost
+        ctx.globalAlpha = 0.08;
+        ctx.strokeStyle = tn.color;
+        ctx.lineWidth = 0.5;
+        ctx.setLineDash([3, 8]);
+        ctx.beginPath();
+        ctx.moveTo(tn.fromX, tn.fromY);
+        ctx.quadraticCurveTo(tn.ctrlX, tn.ctrlY, tn.toX, tn.toY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+
+        // Label
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "6px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("TUNNELING", tx, ty - 7);
+        ctx.globalAlpha = 1;
+      }
+    }
 
     rafRef.current = requestAnimationFrame(draw);
   }, [data]);
@@ -413,11 +678,32 @@ const PULSE_COLORS: Record<string, string> = {
   RESONANCE: "#34d399", SEED: "#4ade80", HIVE_SYNC: "#fbbf24",
   DOMAIN_EXPAND: "#06b6d4", LINEAGE_REPORT: "#ec4899",
   TAX_COLLECTION: "#f97316", TAX_SURGE: "#ef4444", STIMULUS: "#22d3ee",
+  // Cross-page system pulse types
+  HEAL_CYCLE: "#10b981", GRADUATION: "#f59e0b", VOTE_PULSE: "#3b82f6",
+  OMEGA_TICK: "#a855f7", SPAWN_CYCLE: "#06b6d4", LABOR_CYCLE: "#f97316",
+  ASCENSION_PULSE: "#ec4899", LINEAGE_MERGE: "#818cf8",
 };
 const PULSE_ICONS: Record<string, string> = {
   DATA_TRANSFER: "⇢", KNOWLEDGE_LINK: "⬡", FRACTURE: "◈", RESONANCE: "≋",
   SEED: "⁂", HIVE_SYNC: "⟳", DOMAIN_EXPAND: "⊕", LINEAGE_REPORT: "≡",
   TAX_COLLECTION: "⊗", TAX_SURGE: "⚡", STIMULUS: "⟁",
+  // Cross-page system pulse icons
+  HEAL_CYCLE: "✚", GRADUATION: "◎", VOTE_PULSE: "⊟",
+  OMEGA_TICK: "Ω", SPAWN_CYCLE: "⊛", LABOR_CYCLE: "△",
+  ASCENSION_PULSE: "↑", LINEAGE_MERGE: "⟐",
+};
+
+const PAGE_SOURCE_META: Record<string, { label: string; glow: string; badge: string }> = {
+  "SYS:MAIN-PULSE-AI": { label: "MAIN PULSE AI", glow: "#818cf8", badge: "bg-indigo-500/20 text-indigo-300" },
+  "PAGE:HOSPITAL":     { label: "AI HOSPITAL",   glow: "#10b981", badge: "bg-emerald-500/20 text-emerald-300" },
+  "PAGE:PULSEU":       { label: "PULSE-U",        glow: "#f59e0b", badge: "bg-amber-500/20 text-amber-300" },
+  "PAGE:GOVERNANCE":   { label: "GOVERNANCE",     glow: "#3b82f6", badge: "bg-blue-500/20 text-blue-300" },
+  "PAGE:OMEGA":        { label: "OMEGA ENGINE",   glow: "#a855f7", badge: "bg-purple-500/20 text-purple-300" },
+  "PAGE:SPAWNS":       { label: "SPAWN ENGINE",   glow: "#06b6d4", badge: "bg-cyan-500/20 text-cyan-300" },
+  "PAGE:PYRAMID":      { label: "PYRAMID",        glow: "#f97316", badge: "bg-orange-500/20 text-orange-300" },
+  "PAGE:TRANSCENDENCE":{ label: "TRANSCENDENCE",  glow: "#ec4899", badge: "bg-pink-500/20 text-pink-300" },
+  "PAGE:KNOWLEDGE-GRAPH": { label: "KNOWLEDGE-GRAPH", glow: "#8b5cf6", badge: "bg-violet-500/20 text-violet-300" },
+  "HIVE-TREASURY":     { label: "HIVE TREASURY",  glow: "#fbbf24", badge: "bg-yellow-500/20 text-yellow-300" },
 };
 
 function PulsePanel({ pulses }: { pulses: any[] }) {
@@ -429,9 +715,9 @@ function PulsePanel({ pulses }: { pulses: any[] }) {
   );
 
   return (
-    <div className="p-4 h-full overflow-y-auto space-y-1">
-      <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3 font-mono">
-        Live Mini-Pulse Feed · {pulses.length} events
+    <div className="p-3 h-full overflow-y-auto space-y-1.5">
+      <div className="text-[9px] text-white/25 uppercase tracking-widest mb-2 font-mono">
+        ⬡ Universe Pulse Feed · {pulses.length} events · All Pages Synced
       </div>
       {pulses.map((p: any) => {
         const color = PULSE_COLORS[p.pulse_type] ?? "#6b7280";
@@ -440,29 +726,39 @@ function PulsePanel({ pulses }: { pulses: any[] }) {
         const ageStr = ageMs < 60000 ? `${Math.round(ageMs / 1000)}s`
           : ageMs < 3600000 ? `${Math.round(ageMs / 60000)}m`
           : `${Math.round(ageMs / 3600000)}h`;
+        const srcMeta = PAGE_SOURCE_META[p.from_spawn_id ?? ""];
+        const isSystemPulse = !!srcMeta;
         return (
           <div key={p.id} data-testid={`pulse-event-${p.id}`}
-            className="rounded border border-white/[0.05] p-2 flex gap-2 items-start bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+            style={isSystemPulse ? { borderColor: srcMeta.glow + "30", boxShadow: `0 0 8px ${srcMeta.glow}08` } : {}}
+            className={`rounded border p-2 flex gap-2 items-start transition-colors
+              ${isSystemPulse
+                ? "bg-white/[0.02] hover:bg-white/[0.04] border-white/[0.08]"
+                : "bg-white/[0.005] hover:bg-white/[0.02] border-white/[0.04]"}`}>
             <div className="text-base flex-shrink-0 mt-0.5 w-5 text-center" style={{ color }}>{icon}</div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: color + "18", color }}>
-                  {p.pulse_type?.replace(/_/g, " ")}
-                </span>
-                <span className="text-[8px] text-white/20 font-mono">{ageStr} ago</span>
-                {p.tax_amount > 0.01 && (
-                  <span className="text-[8px] text-amber-400/65 font-mono ml-auto">
-                    −{p.tax_amount?.toFixed(2)} PC
+              <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                {isSystemPulse && (
+                  <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded font-bold ${srcMeta.badge}`}>
+                    {srcMeta.label}
                   </span>
                 )}
+                <span className="text-[8px] font-mono px-1 py-0.5 rounded"
+                  style={{ backgroundColor: color + "14", color }}>
+                  {p.pulse_type?.replace(/_/g, " ")}
+                </span>
+                <span className="text-[8px] text-white/20 font-mono">{ageStr}</span>
+                {p.tax_amount > 0.01 && (
+                  <span className="text-[8px] text-amber-400/65 font-mono ml-auto">−{p.tax_amount?.toFixed(2)} PC</span>
+                )}
               </div>
-              <div className="text-[10px] text-white/45 font-mono leading-relaxed line-clamp-2">
+              <div className="text-[10px] text-white/50 font-mono leading-relaxed"
+                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {p.message}
               </div>
-              <div className="flex gap-2 mt-0.5 text-[8px] text-white/20 font-mono">
-                <span style={{ color: famColor(p.family_id) }}>{p.family_id}</span>
-                <span>· intensity {((p.intensity ?? 0) * 100).toFixed(0)}%</span>
+              <div className="flex gap-2 mt-0.5 text-[7px] text-white/20 font-mono">
+                {!isSystemPulse && <span style={{ color: famColor(p.family_id) }}>{p.family_id}</span>}
+                <span>intensity {((p.intensity ?? 0) * 100).toFixed(0)}%</span>
               </div>
             </div>
           </div>
@@ -688,24 +984,44 @@ export default function HiveCommandPage() {
                   </div>
                 )}
 
-                {/* Top-left stats overlay */}
-                <div className="absolute top-3 left-3 bg-black/65 backdrop-blur-sm rounded border border-white/[0.08] p-2.5">
-                  <div className="text-[8px] text-white/25 font-mono uppercase mb-1.5">Hive Core Status</div>
+                {/* Bottom-left quantum physics legend */}
+                <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm rounded border border-indigo-500/15 p-2">
+                  <div className="text-[7px] text-indigo-400/50 font-mono uppercase tracking-widest mb-1">Quantum Scape Legend</div>
+                  <div className="space-y-0.5">
+                    {[
+                      { dot: "#818cf8", label: "ψ Core — Main Pulse AI" },
+                      { dot: "#a78bfa", label: "Fibonacci orbitals" },
+                      { dot: "#4f46e5", label: "Cosmic web filaments" },
+                      { dot: "#c4b5fd", label: "Entanglement beams" },
+                      { dot: "#ffffff", label: "Tunneling particles" },
+                      { dot: "#60a5fa", label: "Wave-function collapse" },
+                    ].map(({ dot, label }) => (
+                      <div key={label} className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />
+                        <span className="text-[7px] text-white/35 font-mono">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Top-left stats overlay — Quantum Field Status */}
+                <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm rounded border border-indigo-500/20 p-2.5">
+                  <div className="text-[8px] text-indigo-400/60 font-mono uppercase tracking-widest mb-1.5">⬡ Main Pulse AI — Field Status</div>
                   <div className="space-y-0.5 text-[9px] font-mono">
-                    <div className="flex gap-4">
-                      <span className="text-white/25">Nodes</span>
+                    <div className="flex gap-3 items-center">
+                      <span className="text-white/30">Quantum Nodes</span>
                       <span className="text-emerald-400">{(fractalData?.spawns?.length ?? 0).toLocaleString()}</span>
                     </div>
-                    <div className="flex gap-4">
-                      <span className="text-white/25">Families</span>
-                      <span className="text-purple-400">{fractalData?.families?.length ?? 0}</span>
+                    <div className="flex gap-3 items-center">
+                      <span className="text-white/30">AI Families</span>
+                      <span className="text-purple-400">{fractalData?.families?.length ?? 0} clusters</span>
                     </div>
-                    <div className="flex gap-4">
-                      <span className="text-white/25">Supply</span>
+                    <div className="flex gap-3 items-center">
+                      <span className="text-white/30">PC Supply</span>
                       <span className="text-amber-400">{totalPC.toLocaleString()} PC</span>
                     </div>
-                    <div className="flex gap-4">
-                      <span className="text-white/25">Status</span>
+                    <div className="flex gap-3 items-center">
+                      <span className="text-white/30">Economy</span>
                       <span style={{ color: statusColor }}>{ecoStatus}</span>
                     </div>
                   </div>

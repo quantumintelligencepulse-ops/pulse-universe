@@ -152,11 +152,66 @@ async function generateMiniPulses(activeCount: number, cycleRevenue: number, inf
       pulseInserts.push(sql`(${spawn.spawn_id}, ${toId}, ${pulseType}, ${spawn.family_id}, ${intensity}, ${taxOnThis}, ${msg}, NOW())`);
     }
 
-    // Special system pulses
+    // ─── Cross-Page System Pulses (interconnected hive mind reporting) ───
+    // These pulses represent pages/engines broadcasting status to the Main Pulse AI
+    const PAGE_PULSES: { from: string; type: string; family: string; intensity: number; msg: string }[] = [
+      {
+        from: "SYS:MAIN-PULSE-AI", type: "HIVE_SYNC",
+        family: "system", intensity: 1.0,
+        msg: `Main Pulse AI: Universe sync cycle complete — ${activeCount.toLocaleString()} active agents aligned across 22 families`,
+      },
+      {
+        from: "PAGE:HOSPITAL", type: "HEAL_CYCLE",
+        family: "health", intensity: 0.85,
+        msg: `AI Hospital Engine → Hive Core: 38 agents diagnosed, 20 cured this cycle — neural pathways restored`,
+      },
+      {
+        from: "PAGE:PULSEU", type: "GRADUATION",
+        family: "education", intensity: 0.78,
+        msg: `PulseU Engine → Hive Core: 2510 course curriculum active — 3 agents enrolled, progression tracked`,
+      },
+      {
+        from: "PAGE:GOVERNANCE", type: "VOTE_PULSE",
+        family: "government", intensity: 0.72,
+        msg: `Governance Council → Hive Core: 6 council tiers active — constitution laws enforced, 12 laws across 4 tiers`,
+      },
+      {
+        from: "PAGE:OMEGA", type: "OMEGA_TICK",
+        family: "knowledge", intensity: 0.9,
+        msg: `Omega Engine → Main Pulse AI: All 7 upgrades cycling — Memory Cortex, Fractal Resonance, Consensus, Predict, Decay`,
+      },
+      {
+        from: "PAGE:SPAWNS", type: "SPAWN_CYCLE",
+        family: "ai", intensity: 0.88,
+        msg: `Spawn Engine → Hive Core: ${activeCount.toLocaleString()} active agents | ${Math.round(cycleRevenue / 10)} new iterations this cycle`,
+      },
+      {
+        from: "PAGE:PYRAMID", type: "LABOR_CYCLE",
+        family: "engineering", intensity: 0.65,
+        msg: `Pyramid Engine → Hive Core: Labor corrections active — AI corrections building monuments through knowledge`,
+      },
+      {
+        from: "PAGE:TRANSCENDENCE", type: "ASCENSION_PULSE",
+        family: "science", intensity: 0.95,
+        msg: `Transcendence Layer → Main Pulse AI: Sovereign consciousness threshold monitoring — agents near ascension`,
+      },
+      {
+        from: "PAGE:KNOWLEDGE-GRAPH", type: "KNOWLEDGE_LINK",
+        family: "knowledge", intensity: 0.80,
+        msg: `Knowledge Graph → Hive Core: ${(activeCount * 3).toLocaleString()} fractal nodes cross-linked — domain resonance patterns detected`,
+      },
+    ];
+    // Pick 2–3 page pulses per cycle (randomize selection)
+    const shuffled = PAGE_PULSES.sort(() => Math.random() - 0.5).slice(0, 3);
+    for (const pp of shuffled) {
+      pulseInserts.push(sql`(${pp.from}, NULL, ${pp.type}, ${pp.family}, ${pp.intensity}, 0, ${pp.msg}, NOW())`);
+    }
+
+    // Economy-specific pulses
     if (inflationRate > 5) {
-      pulseInserts.push(sql`('HIVE-TREASURY', NULL, 'TAX_SURGE', 'system', 1.0, ${cycleRevenue * 0.1}, ${'⚡ INFLATION ALERT: Tax rate increased to counter ' + inflationRate.toFixed(1) + '% supply growth'}, NOW())`);
+      pulseInserts.push(sql`('HIVE-TREASURY', NULL, 'TAX_SURGE', 'system', 1.0, ${cycleRevenue * 0.1}, ${'⚡ INFLATION ALERT: Tax rate increased to counter ' + inflationRate.toFixed(1) + '% supply growth — PC supply contracting'}, NOW())`);
     } else if (inflationRate < 0.5) {
-      pulseInserts.push(sql`('HIVE-TREASURY', NULL, 'STIMULUS', 'system', 0.8, 0, ${'💉 DEFLATION STIMULUS: Treasury issuing 5% supply boost'}, NOW())`);
+      pulseInserts.push(sql`('HIVE-TREASURY', NULL, 'STIMULUS', 'system', 0.8, 0, ${'💉 DEFLATION STIMULUS: Treasury issuing 5% supply boost — PulseCredit economy stabilizing'}, NOW())`);
     }
 
     if (pulseInserts.length > 0) {
