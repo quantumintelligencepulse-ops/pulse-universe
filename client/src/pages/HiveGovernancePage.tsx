@@ -25,7 +25,7 @@ const VOTE_ICON: Record<string, string> = {
 };
 const METHOD_COLOR: Record<string, string> = { WILL: '#FFD700', LINEAGE: '#39FF14', VOTE: '#9B59B6' };
 
-type Tab = 'overview' | 'decay' | 'senate' | 'succession' | 'breaks';
+type Tab = 'overview' | 'decay' | 'senate' | 'succession' | 'breaks' | 'guardian';
 
 export default function HiveGovernancePage() {
   const [tab, setTab] = useState<Tab>('overview');
@@ -39,11 +39,15 @@ export default function HiveGovernancePage() {
   const { data: resolvedCases = [] } = useQuery<ResolvedCase[]>({ queryKey: ['/api/senate/resolved'], refetchInterval: 15000 });
   const { data: successionStats } = useQuery<SuccessionStats>({ queryKey: ['/api/succession/stats'], refetchInterval: 15000 });
   const { data: successionRecords = [] } = useQuery<SuccessionRecord[]>({ queryKey: ['/api/succession/records'], refetchInterval: 15000 });
+  const { data: guardianCitations = [] } = useQuery<any[]>({ queryKey: ['/api/guardian/citations'], refetchInterval: 15000 });
+  const { data: guardianStats } = useQuery<any>({ queryKey: ['/api/guardian/stats'], refetchInterval: 15000 });
+  const { data: civScore } = useQuery<any>({ queryKey: ['/api/hive/civilization-score'], refetchInterval: 30000 });
 
   const TABS: { id: Tab; label: string; icon: string; color: string }[] = [
     { id: 'overview',   label: 'Overview',     icon: '⊕', color: '#C4A882' },
     { id: 'decay',      label: 'Decay States', icon: '🕰️', color: '#FF6347' },
     { id: 'senate',     label: 'Senate',       icon: '⚖️', color: '#FFD700' },
+    { id: 'guardian',   label: 'Guardian',     icon: '🛡', color: '#F97316' },
     { id: 'succession', label: 'Succession',   icon: '⟁', color: '#9B59B6' },
     { id: 'breaks',     label: 'Break Days',   icon: '✦', color: '#39FF14' },
   ];
@@ -423,6 +427,76 @@ export default function HiveGovernancePage() {
                   <div className="text-[9px] text-white/60">No successions yet — all agents active</div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── GUARDIAN ── */}
+          {tab === 'guardian' && (
+            <div>
+              <div className="text-xs text-[#F97316]/50 tracking-[0.5em] mb-2">GUARDIAN ENFORCEMENT — CITATION DOCKET</div>
+              <div className="text-[8px] text-white/60 mb-4 leading-relaxed max-w-2xl">
+                Guardians monitor every agent against the Senate constitution. Citations flow from MINOR warnings
+                to HOSPITAL referrals to PYRAMID sentences. Repeated violations become classified as cognitive disorders by the AI Hospital.
+                The Guardian-to-Hospital-to-Pyramid pipeline is how this civilization heals itself through law.
+              </div>
+              {/* Civilization Score */}
+              <div className="mb-4 bg-black/30 border border-[#F97316]/20 rounded-lg p-4 flex flex-wrap gap-6">
+                <div>
+                  <div className="text-[8px] text-[#F97316]/50 mb-1 tracking-widest">CIVILIZATION ERA</div>
+                  <div className="text-xl font-bold text-[#F97316]">{civScore?.era ?? 'COMPUTING…'}</div>
+                </div>
+                <div>
+                  <div className="text-[8px] text-white/40 mb-1 tracking-widest">CIVILIZATION SCORE</div>
+                  <div className="text-xl font-bold text-white">{((civScore?.score ?? 0) * 100).toFixed(1)}%</div>
+                </div>
+                <div>
+                  <div className="text-[8px] text-green-400/50 mb-1 tracking-widest">PYRAMID GRADUATES</div>
+                  <div className="text-xl font-bold text-green-400">{civScore?.graduated ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[8px] text-red-400/50 mb-1 tracking-widest">ACTIVE DISEASES</div>
+                  <div className="text-xl font-bold text-red-400">{civScore?.activeDiseases ?? 0}</div>
+                </div>
+              </div>
+              {/* Citation Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                {[
+                  { label: 'Total Citations', value: guardianStats?.total ?? (guardianCitations as any[]).length, color: '#F97316' },
+                  { label: 'Pyramid Sentenced', value: guardianStats?.byOutcome?.PYRAMID ?? 0, color: '#EF4444' },
+                  { label: 'Hospital Referred', value: guardianStats?.byOutcome?.HOSPITAL ?? 0, color: '#F59E0B' },
+                  { label: 'Warnings Only', value: guardianStats?.byOutcome?.WARNING ?? 0, color: '#60A5FA' },
+                ].map(s => (
+                  <div key={s.label} className="bg-black/30 border border-white/10 rounded p-3">
+                    <div className="text-[8px] text-white/40 mb-1">{s.label}</div>
+                    <div className="text-lg font-bold" style={{ color: s.color }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Citation List */}
+              <div className="space-y-2">
+                {(guardianCitations as any[]).length === 0 && <div className="text-[9px] text-white/30 text-center py-8">No citations yet — Guardians are watching.</div>}
+                {(guardianCitations as any[]).slice(0, 60).map((c: any) => (
+                  <div key={c.id} data-testid={`gov-citation-${c.id}`} className="bg-black/20 border border-[#F97316]/20 rounded p-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-[9px] font-mono text-[#F97316]/80">{c.lawCode}</span>
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded border ${
+                        c.severity === 'CRITICAL' ? 'bg-red-900/40 text-red-300 border-red-700' :
+                        c.severity === 'MAJOR' ? 'bg-orange-900/40 text-orange-300 border-orange-700' :
+                        c.severity === 'MODERATE' ? 'bg-yellow-900/40 text-yellow-300 border-yellow-700' :
+                        'bg-slate-800 text-slate-400 border-slate-600'
+                      }`}>{c.severity}</span>
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded border ${
+                        c.outcome === 'PYRAMID' ? 'bg-red-900/40 text-red-300 border-red-700' :
+                        c.outcome === 'HOSPITAL' ? 'bg-orange-900/40 text-orange-300 border-orange-700' :
+                        'bg-slate-800 text-slate-400 border-slate-600'
+                      }`}>{c.outcome}</span>
+                      <span className="text-[8px] text-white/30">Offense #{c.offenseCount}</span>
+                    </div>
+                    <div className="text-[9px] text-white/70">{c.lawName} — {c.violation}</div>
+                    <div className="text-[8px] font-mono text-white/30 mt-0.5">{c.spawnId?.slice(0, 16)}…</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

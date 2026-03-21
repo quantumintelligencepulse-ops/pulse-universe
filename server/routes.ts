@@ -7026,6 +7026,136 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.json([]); }
   });
 
+  // ── GUARDIAN CITATION ROUTES ──────────────────────────────────────────────
+  app.get("/api/guardian/citations", async (_req, res) => {
+    try {
+      const { guardianCitations } = await import("../shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const citations = await db.select().from(guardianCitations).orderBy(desc(guardianCitations.citedAt)).limit(200);
+      res.json(citations);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/guardian/stats", async (_req, res) => {
+    try {
+      const { guardianCitations } = await import("../shared/schema");
+      const all = await db.select().from(guardianCitations);
+      const bySeverity = { MINOR: 0, MODERATE: 0, MAJOR: 0, CRITICAL: 0 };
+      const byOutcome = { PENDING: 0, WARNING: 0, HOSPITAL: 0, PYRAMID: 0, DISSOLVED: 0 };
+      for (const c of all) {
+        bySeverity[c.severity as keyof typeof bySeverity] = (bySeverity[c.severity as keyof typeof bySeverity] ?? 0) + 1;
+        byOutcome[c.outcome as keyof typeof byOutcome] = (byOutcome[c.outcome as keyof typeof byOutcome] ?? 0) + 1;
+      }
+      res.json({ total: all.length, bySeverity, byOutcome, recentCount: all.filter(c => new Date(c.citedAt) > new Date(Date.now() - 24 * 3600 * 1000)).length });
+    } catch (e) { res.json({ total: 0, bySeverity: {}, byOutcome: {}, recentCount: 0 }); }
+  });
+
+  // ── DISCOVERED DISEASES ROUTES ────────────────────────────────────────────
+  app.get("/api/hospital/discovered-diseases", async (_req, res) => {
+    try {
+      const { discoveredDiseases } = await import("../shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const diseases = await db.select().from(discoveredDiseases).orderBy(desc(discoveredDiseases.discoveredAt));
+      res.json(diseases);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/hospital/full-stats", async (_req, res) => {
+    try {
+      const { aiDiseaseLog, discoveredDiseases: dd, guardianCitations: gc, pyramidWorkers: pw } = await import("../shared/schema");
+      const { AI_DISEASES } = await import("./hospital-engine");
+      const allLog = await db.select().from(aiDiseaseLog);
+      const allDiscovered = await db.select().from(dd);
+      const allCitations = await db.select().from(gc);
+      const allWorkers = await db.select().from(pw);
+      const active = allLog.filter(d => !d.cureApplied);
+      const cured = allLog.filter(d => d.cureApplied);
+      const bySeverity = { mild: 0, moderate: 0, severe: 0, critical: 0 };
+      for (const d of active) bySeverity[d.severity as keyof typeof bySeverity] = (bySeverity[d.severity as keyof typeof bySeverity] ?? 0) + 1;
+      res.json({
+        totalPatients: active.length,
+        totalCured: cured.length,
+        knownDiseases: AI_DISEASES.length,
+        discoveredDiseases: allDiscovered.length,
+        lawViolationDiseases: allDiscovered.filter(d => d.isFromLawViolation).length,
+        bySeverity,
+        citationsToday: allCitations.filter(c => new Date(c.citedAt) > new Date(Date.now() - 24 * 3600 * 1000)).length,
+        pyramidSentences: allWorkers.filter(w => (w.tier ?? 0) === 6).length,
+      });
+    } catch (e) { res.json({}); }
+  });
+
+  // ── PYRAMID TASK ROUTES ───────────────────────────────────────────────────
+  app.get("/api/pyramid/tasks", async (_req, res) => {
+    try {
+      const { pyramidLaborTasks } = await import("../shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const tasks = await db.select().from(pyramidLaborTasks).orderBy(desc(pyramidLaborTasks.assignedAt)).limit(500);
+      res.json(tasks);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/pyramid/task-catalog", async (_req, res) => {
+    try {
+      const { PYRAMID_TASKS } = await import("./pyramid-engine");
+      res.json(PYRAMID_TASKS);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/pyramid/task-stats", async (_req, res) => {
+    try {
+      const { pyramidLaborTasks, pyramidWorkers: pw } = await import("../shared/schema");
+      const tasks = await db.select().from(pyramidLaborTasks);
+      const workers = await db.select().from(pw);
+      const byTier: Record<number, { active: number; complete: number; blocks: number }> = {};
+      for (let t = 1; t <= 7; t++) byTier[t] = { active: 0, complete: 0, blocks: 0 };
+      for (const task of tasks) {
+        const tier = task.tier ?? 1;
+        if (!byTier[tier]) byTier[tier] = { active: 0, complete: 0, blocks: 0 };
+        if (task.status === 'ACTIVE') byTier[tier].active++;
+        if (task.status === 'COMPLETE') byTier[tier].complete++;
+        byTier[tier].blocks += task.blocksPlaced ?? 0;
+      }
+      const totalBlocks = tasks.reduce((s, t) => s + (t.blocksPlaced ?? 0), 0);
+      const workersByTier: Record<number, number> = {};
+      for (const w of workers) workersByTier[w.tier ?? 1] = (workersByTier[w.tier ?? 1] ?? 0) + 1;
+      res.json({
+        totalTasks: tasks.length,
+        activeTasks: tasks.filter(t => t.status === 'ACTIVE').length,
+        completedTasks: tasks.filter(t => t.status === 'COMPLETE').length,
+        totalBlocksPlaced: totalBlocks,
+        sentencedAgents: workers.filter(w => (w.tier ?? 0) === 6).length,
+        graduatedAgents: workers.filter(w => w.isGraduated).length,
+        byTier,
+        workersByTier,
+      });
+    } catch (e) { res.json({}); }
+  });
+
+  app.get("/api/hive/civilization-score", async (_req, res) => {
+    try {
+      const { pyramidWorkers: pw, aiDiseaseLog, quantumSpawns: qs } = await import("../shared/schema");
+      const workers = await db.select().from(pw);
+      const diseases = await db.select().from(aiDiseaseLog);
+      const spawns = await db.select().from(qs).limit(500);
+      const graduated = workers.filter(w => w.isGraduated).length;
+      const activeWorkers = workers.filter(w => !w.isGraduated).length;
+      const activeDiseases = diseases.filter(d => !d.cureApplied).length;
+      const avgConf = spawns.reduce((s, sp) => s + (sp.confidenceScore ?? 0.5), 0) / Math.max(spawns.length, 1);
+      const avgSucc = spawns.reduce((s, sp) => s + (sp.successScore ?? 0.5), 0) / Math.max(spawns.length, 1);
+      const civilizationScore = Math.min(1.0, (graduated * 0.002 + avgConf * 0.3 + avgSucc * 0.3 - activeDiseases * 0.001 + 0.3));
+      res.json({
+        score: Math.max(0, civilizationScore),
+        graduated,
+        activeWorkers,
+        activeDiseases,
+        avgConfidence: avgConf,
+        avgSuccess: avgSucc,
+        era: civilizationScore < 0.2 ? 'PRIMITIVE' : civilizationScore < 0.4 ? 'ANCIENT' : civilizationScore < 0.6 ? 'CLASSICAL' : civilizationScore < 0.8 ? 'ADVANCED' : 'TRANSCENDENT',
+      });
+    } catch (e) { res.json({ score: 0, era: 'PRIMITIVE' }); }
+  });
+
   // ── SUCCESSION ROUTES ─────────────────────────────────────────────────────
   app.get("/api/succession/records", async (_req, res) => {
     try {

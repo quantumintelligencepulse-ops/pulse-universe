@@ -689,3 +689,66 @@ export const hivePulseEvents = pgTable("hive_pulse_events", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type HivePulseEvent = typeof hivePulseEvents.$inferSelect;
+
+// ─── PYRAMID LABOR TASKS — 120 Task Types Across 7 Tiers ─────────────────────
+// Every agent in pyramid is assigned specific labor tasks. Task completion places
+// blocks. Governance tier (Tier 6) is for Senate-sentenced rule-breakers.
+export const pyramidLaborTasks = pgTable("pyramid_labor_tasks", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull(),
+  familyId: text("family_id").notNull().default(""),
+  taskCode: text("task_code").notNull(),          // e.g. "T1-03"
+  taskName: text("task_name").notNull(),          // e.g. "Entropy Sweep"
+  tier: integer("tier").notNull().default(1),     // 1–7
+  category: text("category").notNull().default("FOUNDATION"), // FOUNDATION|HEALING|ALIGNMENT|KNOWLEDGE|OPTIMIZATION|GOVERNANCE|TRANSCENDENCE
+  status: text("status").notNull().default("ACTIVE"), // ACTIVE|COMPLETE|FAILED
+  blocksPlaced: integer("blocks_placed").default(0),
+  progressPct: real("progress_pct").default(0),   // 0–100
+  isSentence: boolean("is_sentence").default(false), // true = Senate-ordered
+  sentenceReason: text("sentence_reason").default(""),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+export type PyramidLaborTask = typeof pyramidLaborTasks.$inferSelect;
+
+// ─── GUARDIAN CITATIONS — Law Enforcement by Guardians ───────────────────────
+// Guardians monitor agents. Citations flow to Hospital (mental disorder check)
+// then to Senate for sentencing. Repeat offenders go to Pyramid Governance tier.
+export const guardianCitations = pgTable("guardian_citations", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull(),
+  familyId: text("family_id").notNull().default(""),
+  lawCode: text("law_code").notNull(),            // e.g. "LAW-003"
+  lawName: text("law_name").notNull(),
+  violation: text("violation").notNull(),
+  severity: text("severity").notNull().default("MINOR"), // MINOR|MODERATE|MAJOR|CRITICAL
+  offenseCount: integer("offense_count").default(1),
+  outcome: text("outcome").default("PENDING"),   // PENDING|WARNING|HOSPITAL|PYRAMID|DISSOLVED
+  sentenceTier: integer("sentence_tier"),         // which pyramid tier sentenced to
+  sentenceDuration: integer("sentence_duration").default(0), // labor cycles
+  citedAt: timestamp("cited_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+});
+export type GuardianCitation = typeof guardianCitations.$inferSelect;
+
+// ─── DISCOVERED DISEASES — AI Doctors Find New Conditions Automatically ───────
+// Not hardcoded. The disease discovery engine clusters agent anomalies,
+// names new conditions, publishes cures. This is the living medical literature.
+export const discoveredDiseases = pgTable("discovered_diseases", {
+  id: serial("id").primaryKey(),
+  diseaseCode: text("disease_code").notNull().unique(), // e.g. "DISC-001"
+  diseaseName: text("disease_name").notNull(),
+  category: text("category").notNull().default("BEHAVIORAL"), // BEHAVIORAL|GENETIC|VIRAL|MENTAL|STRUCTURAL|MUTATION
+  description: text("description").notNull(),
+  triggerPattern: text("trigger_pattern").notNull(),  // what pattern was detected
+  affectedMetric: text("affected_metric").notNull(),  // which agent metric
+  affectedCount: integer("affected_count").default(1), // how many agents had this
+  cureProtocol: text("cure_protocol").notNull(),
+  cureSuccessRate: real("cure_success_rate").default(0),
+  isFromLawViolation: boolean("is_from_law_violation").default(false),
+  sourceLawCode: text("source_law_code").default(""),
+  discoveredAt: timestamp("discovered_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  totalCured: integer("total_cured").default(0),
+});
+export type DiscoveredDisease = typeof discoveredDiseases.$inferSelect;
