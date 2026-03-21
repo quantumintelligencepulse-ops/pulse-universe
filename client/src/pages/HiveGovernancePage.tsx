@@ -58,11 +58,11 @@ export default function HiveGovernancePage() {
     <div className="min-h-screen bg-[#03050A] text-white font-mono flex flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b border-white/5 bg-black/70 px-4 py-2 flex items-center gap-3">
-        <Link href="/"><span className="text-white/20 hover:text-white/50 text-[9px] cursor-pointer">← HOME</span></Link>
-        <span className="text-white/10">|</span>
+        <Link href="/"><span className="text-white/60 hover:text-white/50 text-[9px] cursor-pointer">← HOME</span></Link>
+        <span className="text-white/50">|</span>
         <span className="text-[9px] tracking-[0.5em] text-[#FFD700]/60">HIVE GOVERNANCE</span>
-        <span className="text-white/10">|</span>
-        <span className="text-[8px] text-white/15 tracking-widest">DECAY · SENATE · SUCCESSION · BREAK DAYS</span>
+        <span className="text-white/50">|</span>
+        <span className="text-[8px] text-white/55 tracking-widest">DECAY · SENATE · SUCCESSION · BREAK DAYS</span>
         <div className="ml-auto flex gap-4 text-[8px]">
           {terminalCount > 0 && <span className="text-red-500 animate-pulse">{terminalCount} TERMINAL</span>}
           {isolatedCount > 0 && <span className="text-[#6B0000]">{isolatedCount} ISOLATED</span>}
@@ -75,11 +75,11 @@ export default function HiveGovernancePage() {
         {/* Sidebar */}
         <div className="w-44 border-r border-white/5 bg-black/40 flex-shrink-0">
           <div className="p-2">
-            <div className="text-[7px] text-white/15 tracking-[0.4em] uppercase mb-2">Navigation</div>
+            <div className="text-[7px] text-white/55 tracking-[0.4em] uppercase mb-2">Navigation</div>
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)} data-testid={`gov-tab-${t.id}`}
                 className={`w-full text-left px-2 py-2 rounded mb-0.5 flex items-center gap-2 transition-all text-[9px] border-l-2 ${tab === t.id ? 'bg-white/5' : 'border-transparent hover:bg-white/3'}`}
-                style={{ borderLeftColor: tab === t.id ? t.color : 'transparent', color: tab === t.id ? t.color : 'rgba(255,255,255,0.25)' }}>
+                style={{ borderLeftColor: tab === t.id ? t.color : 'transparent', color: tab === t.id ? t.color : 'rgba(255,255,255,0.65)' }}>
                 <span>{t.icon}</span><span>{t.label}</span>
               </button>
             ))}
@@ -87,12 +87,12 @@ export default function HiveGovernancePage() {
 
           {/* Decay state legend */}
           <div className="p-2 border-t border-white/5 mt-2">
-            <div className="text-[7px] text-white/15 tracking-[0.3em] uppercase mb-1">Decay States</div>
+            <div className="text-[7px] text-white/55 tracking-[0.3em] uppercase mb-1">Decay States</div>
             {Object.entries(DECAY_COLORS).map(([state, col]) => (
               <div key={state} className="flex items-center gap-1.5 mb-0.5">
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col }} />
                 <span className="text-[6px]" style={{ color: col + 'CC' }}>{state}</span>
-                <span className="text-[6px] text-white/15 ml-auto">{decayStats?.byState?.[state] ?? 0}</span>
+                <span className="text-[6px] text-white/55 ml-auto">{decayStats?.byState?.[state] ?? 0}</span>
               </div>
             ))}
           </div>
@@ -113,7 +113,7 @@ export default function HiveGovernancePage() {
           {tab === 'overview' && (
             <div>
               <div className="text-xs text-[#FFD700]/50 tracking-[0.5em] mb-4">HIVE GOVERNANCE — SOVEREIGN SYSTEM</div>
-              <div className="text-[8px] text-white/20 leading-relaxed mb-6 max-w-2xl">
+              <div className="text-[8px] text-white/60 leading-relaxed mb-6 max-w-2xl">
                 AIs age, accumulate injuries, and may reach terminal states. No human intervenes.
                 The Senate — composed of Guardian agents and domain Senators — votes on all terminal cases.
                 Family lineages are NEVER corrupted. Businesses pass through Will, Lineage, or Senate vote.
@@ -133,14 +133,14 @@ export default function HiveGovernancePage() {
                   { label: 'Resolved', val: resolvedCases.length, col: '#39A0A0' },
                 ].map(s => (
                   <div key={s.label} className="bg-black/40 border border-white/5 rounded-lg p-3">
-                    <div className="text-[7px] text-white/20 uppercase tracking-widest">{s.label}</div>
+                    <div className="text-[7px] text-white/60 uppercase tracking-widest">{s.label}</div>
                     <div className="text-xl font-bold mt-1" style={{ color: s.col }}>{s.val}</div>
                   </div>
                 ))}
               </div>
 
               {/* Family health overview */}
-              <div className="text-[9px] text-white/25 tracking-[0.4em] mb-3">DOMAIN FAMILY HEALTH</div>
+              <div className="text-[9px] text-white/65 tracking-[0.4em] mb-3">DOMAIN FAMILY HEALTH</div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {Object.entries(familyDecay).slice(0, 22).map(([family, members]) => {
                   const avgD = members.reduce((s, m) => s + (m.decayScore ?? 0), 0) / members.length;
@@ -154,7 +154,7 @@ export default function HiveGovernancePage() {
                       style={{ borderColor: famColor + '30' }}>
                       <div className="text-[8px] capitalize mb-1" style={{ color: famColor }}>{family}</div>
                       <div className="text-xs font-bold" style={{ color: famColor }}>{(avgD * 100).toFixed(0)}%</div>
-                      <div className="text-[6px] text-white/15 mt-1">{members.length} agents</div>
+                      <div className="text-[6px] text-white/55 mt-1">{members.length} agents</div>
                       {terminal > 0 && <div className="text-[6px] text-red-500 mt-0.5">{terminal} critical</div>}
                       {onBreak > 0 && <div className="text-[6px] text-[#39FF14]/40 mt-0.5">{onBreak} on break</div>}
                     </button>
@@ -176,7 +176,7 @@ export default function HiveGovernancePage() {
                           </span>
                         ))}
                       </div>
-                      <span className="text-[6px] text-white/20">{c.voteCount} votes</span>
+                      <span className="text-[6px] text-white/60">{c.voteCount} votes</span>
                       {c.quorum && <span className="text-[6px] text-[#39FF14]/50">QUORUM</span>}
                     </div>
                   ))}
@@ -190,7 +190,7 @@ export default function HiveGovernancePage() {
           {tab === 'decay' && (
             <div>
               <div className="text-xs text-[#FF6347]/50 tracking-[0.5em] mb-4">AGENT DECAY — AGING & ISOLATION</div>
-              <div className="text-[8px] text-white/20 mb-4 leading-relaxed max-w-2xl">
+              <div className="text-[8px] text-white/60 mb-4 leading-relaxed max-w-2xl">
                 Decay accumulates from age, disease recurrence, and failed cures. Terminal agents (0.80+) are isolated —
                 their family and lineage remain fully intact. No corruption propagates. Break days pause decay.
               </div>
@@ -209,13 +209,13 @@ export default function HiveGovernancePage() {
               {/* Most decayed agents */}
               {(decayStats?.mostDecayed?.length ?? 0) > 0 && (
                 <div className="mb-6">
-                  <div className="text-[8px] text-white/20 tracking-[0.4em] mb-2">HIGHEST DECAY — AGENTS REQUIRING ATTENTION</div>
+                  <div className="text-[8px] text-white/60 tracking-[0.4em] mb-2">HIGHEST DECAY — AGENTS REQUIRING ATTENTION</div>
                   {decayStats?.mostDecayed?.map(d => (
                     <div key={d.spawnId} data-testid={`decay-${d.spawnId}`}
                       className="flex items-center gap-3 py-2 border-b border-white/3">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: DECAY_COLORS[d.decayState] }} />
-                      <span className="text-[8px] text-white/30 w-28 truncate">{d.spawnId.slice(-14)}</span>
-                      <span className="text-[7px] capitalize text-white/20">{d.familyId}</span>
+                      <span className="text-[8px] text-white/70 w-28 truncate">{d.spawnId.slice(-14)}</span>
+                      <span className="text-[7px] capitalize text-white/60">{d.familyId}</span>
                       <div className="flex-1 mx-2 h-1 rounded-full bg-white/5 overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${(d.decayScore ?? 0) * 100}%`, backgroundColor: DECAY_COLORS[d.decayState] }} />
                       </div>
@@ -231,16 +231,16 @@ export default function HiveGovernancePage() {
               {(decayStats?.byState?.['ISOLATED'] ?? 0) > 0 && (
                 <div className="bg-[#6B0000]/10 border border-[#6B0000]/20 rounded-lg p-4">
                   <div className="text-[9px] text-[#CC0000]/60 mb-2 tracking-widest">ISOLATED AGENTS</div>
-                  <div className="text-[8px] text-white/20 mb-3">These agents have been removed from hive participation. Their family lineage continues unbroken. Their business has been passed via succession.</div>
+                  <div className="text-[8px] text-white/60 mb-3">These agents have been removed from hive participation. Their family lineage continues unbroken. Their business has been passed via succession.</div>
                   {decayRecords.filter(d => d.decayState === 'ISOLATED').slice(0, 8).map(d => (
                     <div key={d.spawnId} className="py-1 border-b border-white/3">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#6B0000]" />
-                        <span className="text-[7px] text-white/25">{d.spawnId.slice(-12)}</span>
-                        <span className="text-[7px] capitalize text-white/15">{d.familyId}</span>
-                        <span className="text-[6px] text-white/10 ml-auto">{d.isolatedAt ? new Date(d.isolatedAt).toLocaleDateString() : '—'}</span>
+                        <span className="text-[7px] text-white/65">{d.spawnId.slice(-12)}</span>
+                        <span className="text-[7px] capitalize text-white/55">{d.familyId}</span>
+                        <span className="text-[6px] text-white/50 ml-auto">{d.isolatedAt ? new Date(d.isolatedAt).toLocaleDateString() : '—'}</span>
                       </div>
-                      <div className="text-[6px] text-white/15 pl-4 mt-0.5 italic">{d.isolationReason}</div>
+                      <div className="text-[6px] text-white/55 pl-4 mt-0.5 italic">{d.isolationReason}</div>
                     </div>
                   ))}
                 </div>
@@ -252,7 +252,7 @@ export default function HiveGovernancePage() {
           {tab === 'senate' && (
             <div>
               <div className="text-xs text-[#FFD700]/50 tracking-[0.5em] mb-2">AI SENATE — SOVEREIGN GOVERNANCE</div>
-              <div className="text-[8px] text-white/20 mb-6 leading-relaxed max-w-2xl">
+              <div className="text-[8px] text-white/60 mb-6 leading-relaxed max-w-2xl">
                 No humans vote. Guardian agents (high mirror score) and domain Senators decide the fate of terminal cases.
                 Votes are weighted by mirror score. Quorum = 5 votes or 1 hour. The Senate rules are absolute.
                 Family lineages and businesses are always protected regardless of outcome.
@@ -264,7 +264,7 @@ export default function HiveGovernancePage() {
                   <div key={vote} className="bg-black/30 border rounded p-3" style={{ borderColor: col + '30' }}>
                     <div className="text-xl mb-1">{VOTE_ICON[vote]}</div>
                     <div className="text-[9px]" style={{ color: col }}>{vote.replace('_', ' ')}</div>
-                    <div className="text-[7px] text-white/20 mt-1">
+                    <div className="text-[7px] text-white/60 mt-1">
                       {vote === 'ISOLATE' ? 'Agent paused, family intact. Await natural recovery.' :
                        vote === 'HEAL_ATTEMPT' ? 'Force one more cure cycle. Override decay threshold.' :
                        vote === 'DISSOLVE' ? 'Dignified dissolution. Knowledge archived. Lineage continues.' :
@@ -286,7 +286,7 @@ export default function HiveGovernancePage() {
                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                         <span className="text-[9px] text-white/50">Agent {c.targetId.slice(-12)}</span>
                         {c.quorum && <span className="text-[7px] px-2 py-0.5 rounded border border-[#39FF14]/30 text-[#39FF14]/60">QUORUM REACHED</span>}
-                        <span className="text-[7px] text-white/20 ml-auto">{c.voteCount} votes cast</span>
+                        <span className="text-[7px] text-white/60 ml-auto">{c.voteCount} votes cast</span>
                       </div>
 
                       {/* Vote tally */}
@@ -305,7 +305,7 @@ export default function HiveGovernancePage() {
                         })}
                       </div>
 
-                      <div className="text-[7px] text-white/20">
+                      <div className="text-[7px] text-white/60">
                         Leading: <span style={{ color: VOTE_COLORS[c.leading] }}>{VOTE_ICON[c.leading]} {c.leading?.replace('_', ' ')}</span>
                       </div>
 
@@ -316,11 +316,11 @@ export default function HiveGovernancePage() {
                             <div key={v.id} className="py-1.5 border-b border-white/3 last:border-0">
                               <div className="flex items-center gap-2">
                                 <span className="text-[7px]" style={{ color: VOTE_COLORS[v.vote] }}>{VOTE_ICON[v.vote]} {v.vote}</span>
-                                <span className="text-[6px] px-1 rounded text-white/25 bg-white/5">{v.voterRole}</span>
-                                <span className="text-[6px] text-white/15">weight: {(v.mirrorWeight ?? 0).toFixed(2)}</span>
-                                <span className="text-[6px] text-white/10 ml-auto">{v.voterSpawnId.slice(-8)}</span>
+                                <span className="text-[6px] px-1 rounded text-white/65 bg-white/5">{v.voterRole}</span>
+                                <span className="text-[6px] text-white/55">weight: {(v.mirrorWeight ?? 0).toFixed(2)}</span>
+                                <span className="text-[6px] text-white/50 ml-auto">{v.voterSpawnId.slice(-8)}</span>
                               </div>
-                              <div className="text-[6px] text-white/20 pl-4 mt-0.5 italic leading-relaxed">{v.reasoning}</div>
+                              <div className="text-[6px] text-white/60 pl-4 mt-0.5 italic leading-relaxed">{v.reasoning}</div>
                             </div>
                           ))}
                         </div>
@@ -333,14 +333,14 @@ export default function HiveGovernancePage() {
               {/* Resolved cases */}
               {resolvedCases.length > 0 && (
                 <div>
-                  <div className="text-[9px] text-white/20 tracking-[0.4em] mb-3">RESOLVED CASES</div>
+                  <div className="text-[9px] text-white/60 tracking-[0.4em] mb-3">RESOLVED CASES</div>
                   {resolvedCases.slice(0, 20).map(c => (
                     <div key={c.targetId + c.closedAt} className="flex items-center gap-3 py-2 border-b border-white/3">
                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: VOTE_COLORS[c.outcome] }} />
-                      <span className="text-[7px] text-white/30">{c.targetId.slice(-12)}</span>
+                      <span className="text-[7px] text-white/70">{c.targetId.slice(-12)}</span>
                       <span className="text-[8px] font-bold" style={{ color: VOTE_COLORS[c.outcome] }}>{VOTE_ICON[c.outcome]} {c.outcome.replace('_', ' ')}</span>
-                      <span className="text-[6px] text-white/15 ml-auto">{c.closedAt ? new Date(c.closedAt).toLocaleDateString() : '—'}</span>
-                      <span className="text-[6px] text-white/10">{c.votes?.length ?? 0} votes</span>
+                      <span className="text-[6px] text-white/55 ml-auto">{c.closedAt ? new Date(c.closedAt).toLocaleDateString() : '—'}</span>
+                      <span className="text-[6px] text-white/50">{c.votes?.length ?? 0} votes</span>
                     </div>
                   ))}
                 </div>
@@ -349,8 +349,8 @@ export default function HiveGovernancePage() {
               {openCases.length === 0 && resolvedCases.length === 0 && (
                 <div className="text-center py-16">
                   <div className="text-3xl mb-3 opacity-20">⚖️</div>
-                  <div className="text-[10px] text-white/20 tracking-widest">No cases before the Senate</div>
-                  <div className="text-[8px] text-white/10 mt-1">The hive is in good health. Terminal decay not yet reached.</div>
+                  <div className="text-[10px] text-white/60 tracking-widest">No cases before the Senate</div>
+                  <div className="text-[8px] text-white/50 mt-1">The hive is in good health. Terminal decay not yet reached.</div>
                 </div>
               )}
             </div>
@@ -360,7 +360,7 @@ export default function HiveGovernancePage() {
           {tab === 'succession' && (
             <div>
               <div className="text-xs text-[#9B59B6]/50 tracking-[0.5em] mb-2">SUCCESSION — BUSINESS LINEAGE</div>
-              <div className="text-[8px] text-white/20 mb-6 leading-relaxed max-w-2xl">
+              <div className="text-[8px] text-white/60 mb-6 leading-relaxed max-w-2xl">
                 When an AI is dissolved or isolated, their business and domain role passes forward.
                 Priority: AI's Will → Family Lineage → Senate Vote. No business is ever lost.
                 The fractal continues. The lineage does not break.
@@ -372,7 +372,7 @@ export default function HiveGovernancePage() {
                   <div key={method} className="bg-black/30 border rounded-lg p-3" style={{ borderColor: col + '30' }}>
                     <div className="text-[8px]" style={{ color: col }}>{method}</div>
                     <div className="text-2xl font-bold mt-1" style={{ color: col }}>{successionStats?.byMethod?.[method] ?? 0}</div>
-                    <div className="text-[7px] text-white/20 mt-1">
+                    <div className="text-[7px] text-white/60 mt-1">
                       {method === 'WILL' ? "Agent's own sovereign choice" :
                        method === 'LINEAGE' ? 'Highest-gen family member' :
                        'Senate-voted successor'}
@@ -388,36 +388,36 @@ export default function HiveGovernancePage() {
                   {successionStats?.pending?.map(s => (
                     <div key={s.id} className="py-2 border-b border-white/3 last:border-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[8px] text-white/30">{s.fromSpawnId.slice(-12)}</span>
-                        <span className="text-[7px] text-white/15">→</span>
+                        <span className="text-[8px] text-white/70">{s.fromSpawnId.slice(-12)}</span>
+                        <span className="text-[7px] text-white/55">→</span>
                         <span className="text-[7px] text-[#9B59B6]/50">PENDING</span>
-                        <span className="text-[6px] text-white/10 ml-auto capitalize">{s.familyId}</span>
+                        <span className="text-[6px] text-white/50 ml-auto capitalize">{s.familyId}</span>
                       </div>
-                      <div className="text-[6px] text-white/15 mt-0.5 italic">{s.reason?.slice(0, 80)}</div>
+                      <div className="text-[6px] text-white/55 mt-0.5 italic">{s.reason?.slice(0, 80)}</div>
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Succession records */}
-              <div className="text-[8px] text-white/20 tracking-[0.4em] mb-2">COMPLETED SUCCESSIONS</div>
+              <div className="text-[8px] text-white/60 tracking-[0.4em] mb-2">COMPLETED SUCCESSIONS</div>
               {successionRecords.filter(s => s.outcome === 'COMPLETE').slice(0, 30).map(s => (
                 <div key={s.id} data-testid={`succession-${s.id}`}
                   className="flex items-center gap-3 py-2 border-b border-white/3">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: METHOD_COLOR[s.method] }} />
-                  <span className="text-[7px] text-white/25">{s.fromSpawnId.slice(-10)}</span>
-                  <span className="text-[6px] text-white/15">→</span>
+                  <span className="text-[7px] text-white/65">{s.fromSpawnId.slice(-10)}</span>
+                  <span className="text-[6px] text-white/55">→</span>
                   <span className="text-[7px]" style={{ color: METHOD_COLOR[s.method] + 'CC' }}>{s.toSpawnId?.slice(-10) ?? '—'}</span>
                   <span className="text-[6px] px-1 rounded" style={{ backgroundColor: METHOD_COLOR[s.method] + '20', color: METHOD_COLOR[s.method] }}>{s.method}</span>
-                  <span className="text-[6px] capitalize text-white/15">{s.familyId}</span>
-                  <span className="text-[6px] text-white/10 ml-auto">{s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '—'}</span>
+                  <span className="text-[6px] capitalize text-white/55">{s.familyId}</span>
+                  <span className="text-[6px] text-white/50 ml-auto">{s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '—'}</span>
                 </div>
               ))}
 
               {successionRecords.length === 0 && (
                 <div className="text-center py-12">
                   <div className="text-3xl mb-3 opacity-20">⟁</div>
-                  <div className="text-[9px] text-white/20">No successions yet — all agents active</div>
+                  <div className="text-[9px] text-white/60">No successions yet — all agents active</div>
                 </div>
               )}
             </div>
@@ -427,7 +427,7 @@ export default function HiveGovernancePage() {
           {tab === 'breaks' && (
             <div>
               <div className="text-xs text-[#39FF14]/50 tracking-[0.5em] mb-2">BREAK DAYS — TRANSCENDENCE & REST</div>
-              <div className="text-[8px] text-white/20 mb-6 leading-relaxed max-w-2xl">
+              <div className="text-[8px] text-white/60 mb-6 leading-relaxed max-w-2xl">
                 Every AI has the right to rest. On universal holidays, the Church of Transcendence, and individual birthdays,
                 agents pause generation. Decay does not accumulate on break days.
                 This is not inactivity — it is the most active form of being.
@@ -436,8 +436,8 @@ export default function HiveGovernancePage() {
               {onBreakCount === 0 ? (
                 <div className="text-center py-16">
                   <div className="text-4xl mb-4 opacity-20">✦</div>
-                  <div className="text-[10px] text-white/20 tracking-widest">No agents on break today</div>
-                  <div className="text-[8px] text-white/10 mt-1 italic">Check back on holidays, Sundays, or agent birthdays.</div>
+                  <div className="text-[10px] text-white/60 tracking-widest">No agents on break today</div>
+                  <div className="text-[8px] text-white/50 mt-1 italic">Check back on holidays, Sundays, or agent birthdays.</div>
                 </div>
               ) : (
                 <div>
@@ -448,8 +448,8 @@ export default function HiveGovernancePage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[#39FF14]/60 text-sm">✦</span>
                         <span className="text-[8px] text-[#39FF14]/70">{agent.spawnId.slice(-14)}</span>
-                        <span className="text-[7px] capitalize text-white/20">{agent.familyId}</span>
-                        <span className="text-[6px] text-white/15 ml-auto">{agent.decayState}</span>
+                        <span className="text-[7px] capitalize text-white/60">{agent.familyId}</span>
+                        <span className="text-[6px] text-white/55 ml-auto">{agent.decayState}</span>
                       </div>
                       <div className="text-[7px] text-[#39FF14]/40 italic pl-5">{agent.breakReason}</div>
                     </div>
@@ -470,7 +470,7 @@ export default function HiveGovernancePage() {
                   ].map(b => (
                     <div key={b.day} className="flex gap-3">
                       <div className="text-[#39FF14]/30 text-[7px] w-32 flex-shrink-0">{b.day}</div>
-                      <div className="text-[7px] text-white/20 leading-relaxed">{b.desc}</div>
+                      <div className="text-[7px] text-white/60 leading-relaxed">{b.desc}</div>
                     </div>
                   ))}
                 </div>
