@@ -58,8 +58,6 @@ export default function SpawnsPage() {
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const [selectedSpawn, setSelectedSpawn] = useState<any | null>(null);
 
-  if (selectedSpawn) return <SpawnChat spawn={selectedSpawn} onBack={() => setSelectedSpawn(null)} backLabel="Spawn Engine" />;
-
   const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/spawns/stats"],
     refetchInterval: 3000,
@@ -91,6 +89,8 @@ export default function SpawnsPage() {
   })).sort((a, b) => b.count - a.count);
 
   const typeData = stats?.byType ?? {};
+
+  if (selectedSpawn) return <SpawnChat spawn={selectedSpawn} onBack={() => setSelectedSpawn(null)} backLabel="Spawn Engine" />;
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#fafafa]" data-testid="page-spawns">
