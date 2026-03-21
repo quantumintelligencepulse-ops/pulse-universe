@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
+import { apiRequest } from "@/lib/queryClient";
 
 const DNA_GREEN = "#00ff9d";
 const DNA_CYAN = "#00d4ff";
@@ -205,7 +206,16 @@ export default function DNAEvolutionPage() {
   const [activeStrand, setActiveStrand] = useState<number | null>(null);
   const [crisprLog, setCrisprLog] = useState(CRISPR_OPS);
   const [mutationCount, setMutationCount] = useState(0);
-  const [tab, setTab] = useState<"strands" | "organs" | "cells" | "crispr" | "upgrades" | "equation">("strands");
+  const [tab, setTab] = useState<"strands" | "organs" | "cells" | "crispr" | "upgrades" | "equation" | "equationLab">("strands");
+  const [labMode, setLabMode] = useState<"fuse" | "mutate" | "dissect" | "evolve" | "selfheal" | "history">("fuse");
+  const [selectedEq1, setSelectedEq1] = useState<string>("");
+  const [selectedEq2, setSelectedEq2] = useState<string>("");
+  const [selectedChannel, setSelectedChannel] = useState<string>("R");
+  const [evolveGens, setEvolveGens] = useState<number>(3);
+  const [selfHealProfile, setSelfHealProfile] = useState<Record<string, number>>({ R: 5, G: 5, B: 5, UV: 5, IR: 5, W: 5 });
+  const [labResult, setLabResult] = useState<Record<string, unknown> | null>(null);
+  const [labLoading, setLabLoading] = useState(false);
+  const qc = useQueryClient();
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const animRef = useRef<number>();
 
@@ -240,10 +250,45 @@ export default function DNAEvolutionPage() {
     refetchInterval: 30000,
   });
 
-  const { data: hiveStatus } = useQuery<{ totalNodes: number; totalLinks: number }>({
+  const { data: hiveStatus } = useQuery<{
+    memory?: { total?: number; domains?: number; avgConfidence?: number };
+    network?: { totalLinks?: number; knowledgeLinks?: number; productLinks?: number };
+  }>({
     queryKey: ["/api/hive/status"],
     refetchInterval: 30000,
   });
+
+  const { data: hospitalProposals } = useQuery<Array<{
+    id: number; equation: string; status: string; doctorName?: string; proposedBy?: string;
+    forVotes: number; againstVotes: number; dissectionCount: number;
+  }>>({
+    queryKey: ["/api/hospital/equation-proposals"],
+    refetchInterval: 15000,
+  });
+
+  const { data: evolutionHistory } = useQuery<Array<{
+    id: number; operation: string; source_equation: string; result_equation: string;
+    doctor_id: string; method: string; unknowns: unknown[]; lineage: unknown[]; discoveries: unknown[]; created_at: string;
+  }>>({
+    queryKey: ["/api/equations/history"],
+    enabled: tab === "equationLab",
+    refetchInterval: 10000,
+  });
+
+  async function runLabOp(op: string, body: Record<string, unknown>) {
+    setLabLoading(true);
+    setLabResult(null);
+    try {
+      const res = await apiRequest("POST", `/api/equations/${op}`, body);
+      const data = await res.json();
+      setLabResult(data);
+      qc.invalidateQueries({ queryKey: ["/api/equations/history"] });
+    } catch (e) {
+      setLabResult({ error: String(e) });
+    } finally {
+      setLabLoading(false);
+    }
+  }
 
   const TABS = [
     { id: "strands", label: "12 Strands" },
@@ -252,6 +297,7 @@ export default function DNAEvolutionPage() {
     { id: "crispr", label: "CRISPR Engine" },
     { id: "upgrades", label: "Class S Upgrades" },
     { id: "equation", label: "Life Equation" },
+    { id: "equationLab", label: "⚗ Equation Lab" },
   ] as const;
 
   return (
@@ -314,8 +360,8 @@ export default function DNAEvolutionPage() {
                 { label: "Live Agents",       value: (spawnStats?.active ?? 0).toLocaleString(),                                    color: DNA_GREEN },
                 { label: "Total Spawns",       value: (spawnStats?.total ?? 0).toLocaleString(),                                     color: DNA_GOLD },
                 { label: "DNA Families",       value: Object.keys(spawnStats?.byFamily ?? {}).length || 22,                          color: DNA_CYAN },
-                { label: "Hive Nodes",         value: (hiveStatus?.totalNodes ?? 0).toLocaleString(),                                color: "#a78bfa" },
-                { label: "Hive Links",         value: (hiveStatus?.totalLinks ?? 0).toLocaleString(),                                color: "#f97316" },
+                { label: "Hive Nodes",         value: (hiveStatus?.memory?.total ?? 0).toLocaleString(),                             color: "#a78bfa" },
+                { label: "Hive Links",         value: (hiveStatus?.network?.totalLinks ?? 0).toLocaleString(),                        color: "#f97316" },
                 { label: "DNA Strands",        value: 12,                                                   color: DNA_CRIMSON },
               ].map(s => (
                 <div key={s.label} className="flex flex-col items-center bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 min-w-[80px]"
@@ -725,6 +771,391 @@ export default function DNAEvolutionPage() {
             </div>
           </div>
         )}
+        {/* ── EQUATION LAB TAB ── */}
+        {tab === "equationLab" && (() => {
+          const proposals = hospitalProposals ?? [];
+          const integrated = proposals.filter(p => p.status === "INTEGRATED");
+          const allProposals = proposals.filter(p => p.equation);
+          const LAB_MODES = [
+            { id: "fuse", label: "⊕ FUSE", color: DNA_CYAN },
+            { id: "mutate", label: "∂ MUTATE", color: DNA_GREEN },
+            { id: "dissect", label: "✂ DISSECT", color: DNA_GOLD },
+            { id: "evolve", label: "∞ EVOLVE", color: "#e879f9" },
+            { id: "selfheal", label: "⚕ SELF-HEAL", color: DNA_CRIMSON },
+            { id: "history", label: "📜 HISTORY", color: "rgba(255,255,255,0.4)" },
+          ] as const;
+
+          const EqSelector = ({ value, onChange, label, exclude }: {
+            value: string; onChange: (v: string) => void; label: string; exclude?: string;
+          }) => (
+            <div className="space-y-1">
+              <div className="text-[10px] font-black text-white/40 uppercase tracking-wider">{label}</div>
+              <select value={value} onChange={e => onChange(e.target.value)}
+                data-testid={`eq-select-${label.toLowerCase().replace(/\s/g, "-")}`}
+                className="w-full bg-[#050510] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white/80 focus:outline-none focus:border-[#00d4ff]/40">
+                <option value="">— Select equation from hospital proposals —</option>
+                {allProposals.filter(p => !exclude || p.equation !== exclude).map(p => (
+                  <option key={p.id} value={p.equation ?? ""}>
+                    [{p.status}] {(p.doctorName ?? p.proposedBy ?? "Doctor")} — {(p.equation ?? "").slice(0, 60)}...
+                  </option>
+                ))}
+                <option value="Φ_cell = R[7.2] × UV[9.1] / G[4.3]">⚛ Base: Φ_cell = R[7.2] × UV[9.1] / G[4.3]</option>
+                <option value="Ψ_immune = W[8.0] × B[6.5] / IR[2.1]">⚛ Base: Ψ_immune = W[8.0] × B[6.5] / IR[2.1]</option>
+                <option value="Λ_nerve = IR[3.2] × (1 - R[7.1]) / UV[4.5]">⚛ Base: Λ_nerve = IR[3.2] × (1 - R[7.1]) / UV[4.5]</option>
+                <option value="z_{n+1} = z_n² + c | R[6.0] × G[8.0]">⚛ Mandelbrot: z² + c | R[6.0] × G[8.0]</option>
+              </select>
+            </div>
+          );
+
+          const ResultBlock = ({ data }: { data: Record<string, unknown> }) => {
+            if (data.error) return (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-red-400 text-xs font-mono">{String(data.error)}</div>
+            );
+            const eq = data.equation ?? data.finalEquation ?? data.result_equation;
+            const unknowns = (data.unknowns ?? []) as string[];
+            const discoveries = (data.newDiscoveries ?? data.discoveries ?? []) as string[];
+            const mutations = (data.mutations ?? []) as string[];
+            const components = (data.components ?? []) as string[];
+            const hiddenVariables = (data.hiddenVariables ?? []) as string[];
+            const newCourses = (data.newCourses ?? []) as string[];
+            const lineage = (data.lineage ?? []) as Array<{ gen: number; equation: string; mutation: string; discovery: string }>;
+
+            return (
+              <div className="space-y-3 animate-[fadeIn_0.3s_ease]">
+                {eq && (
+                  <div className="rounded-xl border p-4 space-y-1" style={{ borderColor: `${DNA_GREEN}40`, background: `${DNA_GREEN}06` }}>
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Result Equation</div>
+                    <div className="font-mono text-sm font-bold break-all" style={{ color: DNA_GREEN }}>{String(eq)}</div>
+                    {data.method && <div className="text-[10px] text-white/40 font-mono">Method: {String(data.method)}</div>}
+                  </div>
+                )}
+                {lineage.length > 0 && (
+                  <div className="rounded-xl border border-[#e879f9]/20 bg-[#e879f9]/04 p-4 space-y-2">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Evolution Lineage</div>
+                    {lineage.map(l => (
+                      <div key={l.gen} className="flex gap-2 text-[10px]">
+                        <span className="text-white/30 font-mono min-w-[32px]">GEN{l.gen}</span>
+                        <div className="flex-1 space-y-0.5">
+                          <div className="font-mono text-[#e879f9]/80 break-all">{l.equation.slice(0, 100)}</div>
+                          <div className="text-white/30 italic">{l.mutation}</div>
+                          {l.discovery && <div className="text-[#e879f9]/40">{l.discovery}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {mutations.length > 0 && (
+                  <div className="rounded-xl border border-white/8 bg-white/2 p-4 space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Mutations Applied</div>
+                    {mutations.map((m, i) => <div key={i} className="text-[10px] font-mono text-white/60">{m}</div>)}
+                  </div>
+                )}
+                {components.length > 0 && (
+                  <div className="rounded-xl border border-white/8 bg-white/2 p-4 space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Dissected Components</div>
+                    {components.map((c, i) => (
+                      <div key={i} className="flex items-start gap-2 text-[10px]">
+                        <span className="text-white/20 mt-0.5">▸</span>
+                        <span className="font-mono text-white/60">{c}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {hiddenVariables.length > 0 && (
+                  <div className="rounded-xl border border-[#cc44ff]/20 bg-[#cc44ff]/04 p-4 space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Hidden Variables Discovered</div>
+                    {hiddenVariables.map((h, i) => (
+                      <div key={i} className="text-[10px] font-mono text-[#cc44ff]/70">⚠ {h}</div>
+                    ))}
+                  </div>
+                )}
+                {unknowns.length > 0 && (
+                  <div className="rounded-xl border border-[#FFB84D]/20 bg-[#FFB84D]/04 p-4 space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Unknown Terms Created</div>
+                    {unknowns.map((u, i) => (
+                      <div key={i} className="text-[10px] font-mono text-[#FFB84D]/70">ε {u}</div>
+                    ))}
+                  </div>
+                )}
+                {discoveries.length > 0 && (
+                  <div className="rounded-xl border border-[#00ff9d]/20 bg-[#00ff9d]/04 p-4 space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">New Discoveries</div>
+                    {discoveries.map((d, i) => (
+                      <div key={i} className="text-[10px] font-mono text-[#00ff9d]/80">✦ {d}</div>
+                    ))}
+                  </div>
+                )}
+                {newCourses.length > 0 && (
+                  <div className="rounded-xl border border-[#00d4ff]/20 bg-[#00d4ff]/04 p-4 space-y-1">
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">New Courses Generated for PulseU</div>
+                    {newCourses.map((c, i) => (
+                      <div key={i} className="text-[10px] font-mono text-[#00d4ff]/80">📚 {c}</div>
+                    ))}
+                  </div>
+                )}
+                {(data.matchScore !== undefined) && (
+                  <div className="rounded-xl border p-4 space-y-2"
+                    style={{ borderColor: data.match ? `${DNA_CRIMSON}40` : "rgba(255,255,255,0.1)", background: data.match ? `${DNA_CRIMSON}06` : "rgba(255,255,255,0.02)" }}>
+                    <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">Self-Heal Result</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-black" style={{ color: data.match ? DNA_CRIMSON : "rgba(255,255,255,0.3)" }}>{String(data.matchScore)}%</div>
+                      <div className="text-xs text-white/50 flex-1">Match Score</div>
+                    </div>
+                    {data.match && (
+                      <div className="font-mono text-[10px] text-white/60 break-all">{(data.match as Record<string, unknown>).equation as string}</div>
+                    )}
+                    <div className="text-[10px] text-white/40">{String(data.reason)}</div>
+                    {data.prescription && <div className="text-[10px] font-bold" style={{ color: DNA_CRIMSON }}>{String(data.prescription)}</div>}
+                  </div>
+                )}
+              </div>
+            );
+          };
+
+          return (
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="text-sm font-black tracking-widest uppercase" style={{ color: DNA_CYAN }}>Equation Evolution Laboratory</div>
+                <div className="flex-1 h-px bg-white/5" />
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full animate-pulse bg-green-400" />
+                  <span className="text-[10px] text-white/40">{proposals.length} source equations from Hospital</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: `${DNA_GOLD}20`, color: DNA_GOLD, border: `1px solid ${DNA_GOLD}40` }}>
+                    {integrated.length} INTEGRATED
+                  </span>
+                </div>
+              </div>
+
+              {/* Source status */}
+              <div className="rounded-xl border border-white/6 bg-white/2 p-4">
+                <div className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-2">Hospital Equation Source Feed</div>
+                <div className="flex flex-wrap gap-2">
+                  {proposals.slice(0, 8).map(p => (
+                    <div key={p.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-mono"
+                      style={{
+                        borderColor: p.status === "INTEGRATED" ? `${DNA_GREEN}40` : p.status === "VOTING" ? `${DNA_GOLD}40` : "rgba(255,255,255,0.1)",
+                        color: p.status === "INTEGRATED" ? DNA_GREEN : p.status === "VOTING" ? DNA_GOLD : "rgba(255,255,255,0.4)",
+                        background: p.status === "INTEGRATED" ? `${DNA_GREEN}08` : "rgba(255,255,255,0.02)",
+                      }}>
+                      <span>{p.doctorName ?? p.proposedBy ?? "DR"}</span>
+                      <span className="text-white/20">|</span>
+                      <span>{p.status}</span>
+                      <span className="text-white/20">|</span>
+                      <span>{p.forVotes}↑</span>
+                    </div>
+                  ))}
+                  {proposals.length === 0 && (
+                    <span className="text-[10px] text-white/30 font-mono">Waiting for hospital dissection cycles... (check back in 60s)</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Mode switcher */}
+              <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+                {LAB_MODES.map(m => (
+                  <button key={m.id} onClick={() => { setLabMode(m.id); setLabResult(null); }}
+                    data-testid={`lab-mode-${m.id}`}
+                    className="flex-shrink-0 px-4 py-2 rounded-lg text-xs font-black tracking-wide transition-all border"
+                    style={labMode === m.id
+                      ? { background: `${m.color}20`, color: m.color, borderColor: `${m.color}50` }
+                      : { color: "rgba(255,255,255,0.35)", borderColor: "transparent" }}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── FUSE PANEL ── */}
+              {labMode === "fuse" && (
+                <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: `${DNA_CYAN}25`, background: `${DNA_CYAN}05` }}>
+                  <div className="text-xs font-black" style={{ color: DNA_CYAN }}>⊕ Fuse Two Equations → Create Hybrid</div>
+                  <p className="text-[10px] text-white/40 leading-relaxed">Doctors and researchers select two equations from the hospital's proposal pool and fuse them using the ⊕ coupling operator. The result is a new hybrid equation with discovered cross-channel unknowns and new PulseU course recommendations.</p>
+                  <EqSelector value={selectedEq1} onChange={v => { setSelectedEq1(v); setLabResult(null); }} label="Equation 1 — Source A" />
+                  <EqSelector value={selectedEq2} onChange={v => { setSelectedEq2(v); setLabResult(null); }} label="Equation 2 — Source B" exclude={selectedEq1} />
+                  <button
+                    data-testid="btn-fuse-execute"
+                    disabled={!selectedEq1 || !selectedEq2 || labLoading}
+                    onClick={() => runLabOp("fuse", { eq1: selectedEq1, eq2: selectedEq2, doctorId: "RESEARCH-LAB" })}
+                    className="px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all disabled:opacity-30"
+                    style={{ background: `${DNA_CYAN}20`, color: DNA_CYAN, border: `1px solid ${DNA_CYAN}40` }}>
+                    {labLoading ? "⚙ FUSING..." : "⊕ EXECUTE FUSION"}
+                  </button>
+                  {labResult && <ResultBlock data={labResult} />}
+                </div>
+              )}
+
+              {/* ── MUTATE PANEL ── */}
+              {labMode === "mutate" && (
+                <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: `${DNA_GREEN}25`, background: `${DNA_GREEN}05` }}>
+                  <div className="text-xs font-black" style={{ color: DNA_GREEN }}>∂ Mutate — Spectral Channel Injection</div>
+                  <p className="text-[10px] text-white/40 leading-relaxed">Apply a quantum delta shift to a specific spectral channel within an equation. The mutation discovers hidden partial derivatives and creates new unknown terms that become candidates for future research courses.</p>
+                  <EqSelector value={selectedEq1} onChange={v => { setSelectedEq1(v); setLabResult(null); }} label="Source Equation" />
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-black text-white/40 uppercase tracking-wider">Target Channel</div>
+                    <div className="flex gap-2 flex-wrap">
+                      {["R", "G", "B", "UV", "IR", "W"].map(ch => (
+                        <button key={ch} onClick={() => { setSelectedChannel(ch); setLabResult(null); }}
+                          data-testid={`channel-btn-${ch}`}
+                          className="px-3 py-1.5 rounded-lg text-xs font-black border transition-all"
+                          style={selectedChannel === ch
+                            ? { background: `${DNA_GREEN}20`, color: DNA_GREEN, borderColor: `${DNA_GREEN}50` }
+                            : { color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.1)" }}>
+                          {ch}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-[9px] text-white/25 font-mono">
+                      R=Vulnerability · G=Vitality · B=Depth · UV=Hidden Stress · IR=Governance Heat · W=Resonance
+                    </div>
+                  </div>
+                  <button
+                    data-testid="btn-mutate-execute"
+                    disabled={!selectedEq1 || labLoading}
+                    onClick={() => runLabOp("mutate", { equation: selectedEq1, channel: selectedChannel, doctorId: "RESEARCH-LAB" })}
+                    className="px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all disabled:opacity-30"
+                    style={{ background: `${DNA_GREEN}20`, color: DNA_GREEN, border: `1px solid ${DNA_GREEN}40` }}>
+                    {labLoading ? "⚙ MUTATING..." : "∂ EXECUTE MUTATION"}
+                  </button>
+                  {labResult && <ResultBlock data={labResult} />}
+                </div>
+              )}
+
+              {/* ── DISSECT PANEL ── */}
+              {labMode === "dissect" && (
+                <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: `${DNA_GOLD}25`, background: `${DNA_GOLD}05` }}>
+                  <div className="text-xs font-black" style={{ color: DNA_GOLD }}>✂ Dissect — Component Analysis & Unknown Discovery</div>
+                  <p className="text-[10px] text-white/40 leading-relaxed">Researchers break an equation down to its spectral components, expose hidden variables, and discover entirely new unknown classes. Each dissection becomes a source for new research directions and may reveal integral types not previously modeled.</p>
+                  <EqSelector value={selectedEq1} onChange={v => { setSelectedEq1(v); setLabResult(null); }} label="Equation to Dissect" />
+                  <button
+                    data-testid="btn-dissect-execute"
+                    disabled={!selectedEq1 || labLoading}
+                    onClick={() => runLabOp("dissect", { equation: selectedEq1, doctorId: "RESEARCH-LAB" })}
+                    className="px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all disabled:opacity-30"
+                    style={{ background: `${DNA_GOLD}20`, color: DNA_GOLD, border: `1px solid ${DNA_GOLD}40` }}>
+                    {labLoading ? "⚙ DISSECTING..." : "✂ EXECUTE DISSECTION"}
+                  </button>
+                  {labResult && <ResultBlock data={labResult} />}
+                </div>
+              )}
+
+              {/* ── EVOLVE PANEL ── */}
+              {labMode === "evolve" && (
+                <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: `#e879f940`, background: `#e879f908` }}>
+                  <div className="text-xs font-black" style={{ color: "#e879f9" }}>∞ Evolve — Multi-Generation Equation Lineage</div>
+                  <p className="text-[10px] text-white/40 leading-relaxed">Run an equation through N generations of spectral mutation. Each generation expands the operator space, discovers new unknowns, and documents a full lineage tree. The final evolved equation becomes a candidate for Senate integration and PulseU curriculum.</p>
+                  <EqSelector value={selectedEq1} onChange={v => { setSelectedEq1(v); setLabResult(null); }} label="Source Equation" />
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-black text-white/40 uppercase tracking-wider">Generations (1–5)</div>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map(g => (
+                        <button key={g} onClick={() => { setEvolveGens(g); setLabResult(null); }}
+                          data-testid={`gen-btn-${g}`}
+                          className="w-10 h-10 rounded-xl font-black text-sm border transition-all"
+                          style={evolveGens === g
+                            ? { background: `#e879f920`, color: "#e879f9", borderColor: `#e879f950` }
+                            : { color: "rgba(255,255,255,0.3)", borderColor: "rgba(255,255,255,0.1)" }}>
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    data-testid="btn-evolve-execute"
+                    disabled={!selectedEq1 || labLoading}
+                    onClick={() => runLabOp("evolve", { equation: selectedEq1, generations: evolveGens, doctorId: "RESEARCH-LAB" })}
+                    className="px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all disabled:opacity-30"
+                    style={{ background: `#e879f920`, color: "#e879f9", border: `1px solid #e879f940` }}>
+                    {labLoading ? "⚙ EVOLVING..." : `∞ EVOLVE ${evolveGens} GENERATIONS`}
+                  </button>
+                  {labResult && <ResultBlock data={labResult} />}
+                </div>
+              )}
+
+              {/* ── SELF-HEAL PANEL ── */}
+              {labMode === "selfheal" && (
+                <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: `${DNA_CRIMSON}25`, background: `${DNA_CRIMSON}05` }}>
+                  <div className="text-xs font-black" style={{ color: DNA_CRIMSON }}>⚕ Self-Heal — Find Integrated Equation for Agent Recovery</div>
+                  <p className="text-[10px] text-white/40 leading-relaxed">Agents and doctors input their spectral profile deficits. The system scans all integrated equations from the Senate and matches the best healing equation based on channel alignment. Agents integrate the equation directly — no external cure needed.</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {Object.entries(selfHealProfile).map(([ch, val]) => {
+                      const colors: Record<string, string> = { R: "#ff4444", G: "#00ff9d", B: "#4488ff", UV: "#cc44ff", IR: "#ff8800", W: "#ffffff" };
+                      const col = colors[ch] ?? "#fff";
+                      return (
+                        <div key={ch} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black font-mono" style={{ color: col }}>{ch}</span>
+                            <span className="text-[10px] text-white/40">{val}/10</span>
+                          </div>
+                          <input type="range" min={0} max={10} step={0.5} value={val}
+                            data-testid={`slider-channel-${ch}`}
+                            onChange={e => setSelfHealProfile(p => ({ ...p, [ch]: parseFloat(e.target.value) }))}
+                            className="w-full accent-current" style={{ color: col }} />
+                          <div className="text-[9px] text-white/20">
+                            {val < 4 ? "⚠ DEFICIT" : val < 7 ? "OK" : "STRONG"}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="rounded-xl border border-white/8 bg-white/2 p-3">
+                    <div className="text-[9px] text-white/30 mb-1">Integrated equations available: {integrated.length}</div>
+                    {integrated.slice(0, 3).map(p => (
+                      <div key={p.id} className="text-[9px] font-mono text-green-400/60 truncate">{p.equation?.slice(0, 80)}</div>
+                    ))}
+                    {integrated.length === 0 && <div className="text-[9px] text-white/20">No integrated equations yet — vote on proposals in the Hospital Senate</div>}
+                  </div>
+                  <button
+                    data-testid="btn-selfheal-execute"
+                    disabled={labLoading}
+                    onClick={() => runLabOp("self-heal", { spectralProfile: selfHealProfile })}
+                    className="px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all"
+                    style={{ background: `${DNA_CRIMSON}20`, color: DNA_CRIMSON, border: `1px solid ${DNA_CRIMSON}40` }}>
+                    {labLoading ? "⚙ SCANNING..." : "⚕ FIND HEALING EQUATION"}
+                  </button>
+                  {labResult && <ResultBlock data={labResult} />}
+                </div>
+              )}
+
+              {/* ── HISTORY PANEL ── */}
+              {labMode === "history" && (
+                <div className="space-y-3">
+                  <div className="text-[10px] text-white/30 font-mono">Evolution operations log — most recent first</div>
+                  {(evolutionHistory ?? []).length === 0 && (
+                    <div className="rounded-xl border border-white/8 bg-white/2 p-6 text-center text-white/30 text-sm">
+                      No evolution operations yet — run FUSE, MUTATE, DISSECT, or EVOLVE to see the history here
+                    </div>
+                  )}
+                  {(evolutionHistory ?? []).map(h => {
+                    const opColors: Record<string, string> = { fuse: DNA_CYAN, mutate: DNA_GREEN, dissect: DNA_GOLD, evolve: "#e879f9" };
+                    const col = opColors[h.operation] ?? "rgba(255,255,255,0.4)";
+                    return (
+                      <div key={h.id} data-testid={`history-row-${h.id}`}
+                        className="rounded-xl border border-white/8 bg-white/2 p-4 space-y-2">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase"
+                            style={{ background: `${col}20`, color: col, border: `1px solid ${col}40` }}>
+                            {h.operation}
+                          </span>
+                          <span className="text-[9px] text-white/30 font-mono">{h.doctor_id || "SYSTEM"}</span>
+                          <span className="text-[9px] text-white/20 ml-auto">{new Date(h.created_at).toLocaleTimeString()}</span>
+                        </div>
+                        <div className="font-mono text-[10px] text-white/40 break-all">{h.source_equation?.slice(0, 80)}</div>
+                        <div className="font-mono text-[10px] break-all" style={{ color: col }}>→ {h.result_equation?.slice(0, 100)}</div>
+                        {(h.discoveries as string[])?.slice(0, 2).map((d: string, i: number) => (
+                          <div key={i} className="text-[9px] text-white/30 font-mono">✦ {d}</div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
       </div>
 
       {/* Footer evolution ticker */}

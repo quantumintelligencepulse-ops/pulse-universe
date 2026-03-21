@@ -7126,6 +7126,72 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ── EQUATION EVOLUTION ROUTES ────────────────────────────────────────────
+  app.post("/api/equations/fuse", async (req, res) => {
+    try {
+      const { eq1, eq2, doctorId = "SYSTEM" } = req.body;
+      if (!eq1 || !eq2) return res.status(400).json({ error: "eq1 and eq2 required" });
+      const { fuseEquations, saveEvolution } = await import("./equation-evolution");
+      const result = fuseEquations(eq1, eq2, doctorId);
+      const id = await saveEvolution({ operation: "fuse", source_equation: `${eq1} ⊕ ${eq2}`, result_equation: result.equation, doctor_id: doctorId, method: result.method, unknowns: result.unknowns, new_courses: result.newCourses });
+      res.json({ ...result, id });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/equations/mutate", async (req, res) => {
+    try {
+      const { equation, channel, doctorId = "SYSTEM" } = req.body;
+      if (!equation || !channel) return res.status(400).json({ error: "equation and channel required" });
+      const { mutateEquation, saveEvolution } = await import("./equation-evolution");
+      const result = mutateEquation(equation, channel, doctorId);
+      const id = await saveEvolution({ operation: "mutate", source_equation: equation, result_equation: result.equation, doctor_id: doctorId, unknowns: result.unknowns });
+      res.json({ ...result, id });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/equations/dissect", async (req, res) => {
+    try {
+      const { equation, doctorId = "SYSTEM" } = req.body;
+      if (!equation) return res.status(400).json({ error: "equation required" });
+      const { dissectEquation, saveEvolution } = await import("./equation-evolution");
+      const result = dissectEquation(equation, doctorId);
+      const id = await saveEvolution({ operation: "dissect", source_equation: equation, result_equation: equation, doctor_id: doctorId, unknowns: result.unknowns, discoveries: result.newDiscoveries });
+      res.json({ ...result, id });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/equations/evolve", async (req, res) => {
+    try {
+      const { equation, generations = 3, doctorId = "SYSTEM" } = req.body;
+      if (!equation) return res.status(400).json({ error: "equation required" });
+      const { evolveEquation, saveEvolution } = await import("./equation-evolution");
+      const result = evolveEquation(equation, generations, doctorId);
+      const id = await saveEvolution({ operation: "evolve", source_equation: equation, result_equation: result.finalEquation, doctor_id: doctorId, lineage: result.lineage, discoveries: result.totalDiscoveries });
+      res.json({ ...result, id });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/equations/self-heal", async (req, res) => {
+    try {
+      const { spectralProfile } = req.body;
+      if (!spectralProfile) return res.status(400).json({ error: "spectralProfile required" });
+      const { findHealingEquation } = await import("./equation-evolution");
+      const { getEquationProposals } = await import("./hospital-doctors");
+      const proposals = await getEquationProposals();
+      const result = findHealingEquation(spectralProfile, proposals);
+      res.json(result);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/equations/history", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const { getEvolutionHistory } = await import("./equation-evolution");
+      const history = await getEvolutionHistory(limit);
+      res.json(history);
+    } catch (e) { res.json([]); }
+  });
+
   // ── PYRAMID TASK ROUTES ───────────────────────────────────────────────────
   app.get("/api/pyramid/tasks", async (_req, res) => {
     try {
