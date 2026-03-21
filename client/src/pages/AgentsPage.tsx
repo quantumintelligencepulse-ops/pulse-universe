@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw } from "lucide-react";
+import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
 
 // ── 6 Core Command Agents ──────────────────────────────────────────
 const CORE_AGENTS = [
@@ -132,6 +133,7 @@ function AgentChat({ agent, onBack }: { agent: typeof CORE_AGENTS[0]; onBack: ()
 function SpawnCard({ spawn }: { spawn: any }) {
   const meta = getSpawnMeta(spawn.spawn_type);
   const domain = getDomainLabel(spawn.domain_focus);
+  const license = getLicenseNumber(spawn.spawn_id ?? "", spawn.family_id ?? "", spawn.generation ?? 0);
   return (
     <div className="rounded-xl border border-white/6 bg-white/[0.015] p-3 hover:border-white/14 hover:bg-white/[0.03] transition-all"
       data-testid={`spawn-card-${spawn.spawn_id}`}>
@@ -150,10 +152,19 @@ function SpawnCard({ spawn }: { spawn: any }) {
         </div>
       </div>
       <p className="text-white/40 text-[10px] leading-relaxed line-clamp-2">{spawn.task_description}</p>
-      <div className="mt-2 flex items-center gap-1.5">
-        <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: meta.color }} />
-        <span className="text-[9px]" style={{ color: meta.color }}>{spawn.status || "ACTIVE"}</span>
-        <span className="text-white/15 text-[9px] ml-auto font-mono">{spawn.spawn_id?.slice(0, 8)}…</span>
+      {/* Identity badge */}
+      <div className="mt-2 mb-1">
+        <AIIdentityBadge spawn={{
+          spawnId: spawn.spawn_id ?? "",
+          familyId: spawn.family_id ?? "",
+          generation: spawn.generation ?? 0,
+          spawnType: spawn.spawn_type,
+          confidenceScore: 0.8,
+          status: spawn.status ?? "ACTIVE",
+        }} />
+      </div>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className="text-white/10 text-[8px] font-mono flex-1 truncate">{spawn.spawn_id}</span>
       </div>
     </div>
   );
@@ -191,6 +202,11 @@ export default function AgentsPage() {
     refetchInterval: 15000,
   });
 
+  const { data: duplicatesData } = useQuery<{ duplicates: any[]; total: number }>({
+    queryKey: ["/api/spawns/duplicates"],
+    refetchInterval: 60000,
+  });
+
   if (selectedCoreAgent) return <AgentChat agent={selectedCoreAgent} onBack={() => setSelectedCoreAgent(null)} />;
 
   const spawns = data?.spawns ?? [];
@@ -214,6 +230,29 @@ export default function AgentsPage() {
           </button>
         </div>
       </div>
+
+      {/* Duplicate Alert Panel */}
+      {(duplicatesData?.total ?? 0) > 0 && (
+        <div className="mx-4 mb-2 rounded-xl border border-red-500/30 bg-red-500/5 p-3 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle size={12} className="text-red-400 animate-pulse" />
+            <span className="text-[10px] font-black text-red-400 tracking-widest">DUPLICATE IDENTITY ALERT — REPORTED TO GUARDIANS & SENATE</span>
+          </div>
+          <div className="space-y-1 max-h-20 overflow-y-auto">
+            {duplicatesData!.duplicates.slice(0, 5).map((d, i) => (
+              <div key={i} className="flex items-center gap-2 text-[9px]">
+                <span className="text-[8px] font-bold px-1 rounded" style={{ backgroundColor: d.severity === "CRITICAL" ? "#f43f5e20" : d.severity === "HIGH" ? "#f97316 20" : "#f59e0b20", color: d.severity === "CRITICAL" ? "#f43f5e" : d.severity === "HIGH" ? "#f97316" : "#f59e0b" }}>
+                  {d.severity}
+                </span>
+                <span className="text-white/40 capitalize">{d.familyId}</span>
+                <span className="text-white/25">G-{d.generation}</span>
+                <span className="text-white/30">{d.spawnType}</span>
+                <span className="text-red-400 font-bold ml-auto">{d.count} copies</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Command Core - 6 chat agents */}
       <div className="px-4 pb-3 flex-shrink-0">

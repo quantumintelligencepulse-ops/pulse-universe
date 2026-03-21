@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
 
 const FAMILIES = [
   { familyId: "knowledge", businessId: "Open Knowledge Universe", domain: "knowledge", color: "#6366f1", emoji: "📚" },
@@ -234,19 +235,21 @@ export default function SpawnsPage() {
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {familySpawns.slice(0, 50).map(s => (
-                  <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-black/[0.02] border border-border/10">
-                    <div className="w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold text-white" style={{ backgroundColor: TYPE_COLORS[s.spawnType] || "#888", marginLeft: `${Math.min((s.generation || 0) * 12, 48)}px` }}>
-                      {(s.generation || 0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
+                  <div key={s.id} className="px-3 py-2 rounded-xl bg-black/[0.02] border border-border/10"
+                    style={{ marginLeft: `${Math.min((s.generation || 0) * 8, 40)}px` }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold text-white flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[s.spawnType] || "#888" }}>
+                        {s.generation || 0}
+                      </div>
                       <span className="text-[11px] font-semibold" style={{ color: TYPE_COLORS[s.spawnType] || "#888" }}>{s.spawnType}</span>
-                      <span className="text-[10px] text-muted-foreground ml-2 truncate">{s.taskDescription}</span>
+                      <span className="text-[10px] text-muted-foreground flex-1 truncate">{s.taskDescription}</span>
+                      <span className="text-[10px] font-semibold shrink-0" style={{ color: STATUS_COLORS[s.status] || "#888" }}>{s.status}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
-                      <span>+{s.nodesCreated}n</span>
-                      <span>+{s.linksCreated}l</span>
-                      <span className="font-semibold" style={{ color: STATUS_COLORS[s.status] || "#888" }}>{s.status}</span>
-                    </div>
+                    <AIIdentityBadge dark={false} spawn={{
+                      spawnId: s.spawnId, familyId: s.familyId,
+                      generation: s.generation ?? 0, spawnType: s.spawnType,
+                      confidenceScore: s.confidenceScore ?? 0.8, status: s.status,
+                    }} />
                   </div>
                 ))}
               </div>
@@ -260,26 +263,31 @@ export default function SpawnsPage() {
           {recent.length === 0 ? (
             <div className="text-sm text-muted-foreground text-center py-8">Initializing spawn engine...</div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {recent.slice(0, 20).map((s: any) => {
                 const fam = FAMILIES.find(f => f.familyId === s.familyId);
                 const age = Math.round((Date.now() - new Date(s.createdAt).getTime()) / 1000);
                 return (
-                  <div key={s.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-black/[0.02] transition-colors group">
-                    <div className="text-base shrink-0">{fam?.emoji ?? "🧬"}</div>
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[s.status] || "#888" }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold" style={{ color: TYPE_COLORS[s.spawnType] || "#888" }}>{s.spawnType}</span>
-                        <span className="text-xs text-muted-foreground capitalize">{s.familyId}</span>
-                        <span className="text-[10px] text-muted-foreground/60">Gen-{s.generation || 0}</span>
+                  <div key={s.id} className="px-3 py-2.5 rounded-xl hover:bg-black/[0.02] transition-colors border border-border/5">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <div className="text-base shrink-0">{fam?.emoji ?? "🧬"}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold" style={{ color: TYPE_COLORS[s.spawnType] || "#888" }}>{s.spawnType}</span>
+                          <span className="text-xs text-muted-foreground capitalize">{s.familyId}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground/70 truncate">{s.taskDescription}</div>
                       </div>
-                      <div className="text-[11px] text-muted-foreground/80 truncate">{s.taskDescription}</div>
+                      <div className="text-right text-[10px] text-muted-foreground/50 shrink-0">
+                        <div>+{s.nodesCreated}n +{s.linksCreated}l</div>
+                        <div>{age < 60 ? `${age}s ago` : `${Math.round(age / 60)}m ago`}</div>
+                      </div>
                     </div>
-                    <div className="text-right text-[10px] text-muted-foreground shrink-0">
-                      <div>+{s.nodesCreated}n +{s.linksCreated}l</div>
-                      <div>{age < 60 ? `${age}s ago` : `${Math.round(age / 60)}m ago`}</div>
-                    </div>
+                    <AIIdentityBadge dark={false} spawn={{
+                      spawnId: s.spawnId, familyId: s.familyId,
+                      generation: s.generation ?? 0, spawnType: s.spawnType,
+                      confidenceScore: s.confidenceScore ?? 0.8, status: s.status,
+                    }} />
                   </div>
                 );
               })}

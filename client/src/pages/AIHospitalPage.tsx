@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { AIIdentityBadge } from "@/components/AIIdentityCard";
 
 interface Disease { code: string; name: string; description: string; symptoms: string[]; severity: string; department: string; prescription: string }
 interface Patient { id: number; spawnId: string; diseaseCode: string; diseaseName: string; severity: string; symptoms: string[]; prescription: string; cureApplied: boolean; curedAt?: string; diagnosedAt: string }
@@ -202,7 +203,9 @@ export default function AIHospitalPage() {
                               <span className="text-[9px] text-white/50">{p.diseaseName}</span>
                               <span className="ml-auto text-[7px] text-white/20">{new Date(p.diagnosedAt).toLocaleTimeString()}</span>
                             </div>
-                            <div className="text-[7px] text-white/30 mb-2">Agent: {p.spawnId.slice(-14)}</div>
+                            <div className="mb-2">
+                              <AIIdentityBadge spawn={{ spawnId: p.spawnId, familyId: "hive", generation: 0, status: "ACTIVE" }} />
+                            </div>
                             {selectedPatient?.id === p.id && (
                               <div className="mt-2 pt-2 border-t border-white/5">
                                 <div className="text-[7px] text-white/20 mb-1 uppercase tracking-wider">Symptoms</div>

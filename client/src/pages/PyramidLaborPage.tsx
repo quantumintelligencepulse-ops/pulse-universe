@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AIIDCard } from "@/components/AIIdentityCard";
 import { Link } from "wouter";
 
 interface PyramidWorker {
@@ -174,27 +175,25 @@ export default function PyramidLaborPage() {
 
             {/* Selected worker detail */}
             {selectedWorker && (
-              <div className="p-3 border-b border-[#3A2A1A]/40 bg-black/20">
-                <div className="text-[8px] tracking-[0.3em] text-[#C4A882]/50 mb-2">AGENT RECORD</div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: selectedWorker.emotionHex + '60', borderColor: selectedWorker.emotionHex }} />
-                  <span className="text-[9px]" style={{ color: selectedWorker.emotionHex }}>{selectedWorker.spawnType}</span>
-                  <span className="text-[8px] text-white/25">{selectedWorker.familyId}</span>
-                </div>
-                <div className="text-[7px] text-white/30 mb-1">ID: {selectedWorker.spawnId.slice(-12)}</div>
-                <div className="text-[8px] text-white/50 mb-2 leading-relaxed">{selectedWorker.reason}</div>
-                <div className="flex items-center gap-1 mb-2">
+              <div className="p-3 border-b border-[#3A2A1A]/40 bg-black/20 overflow-y-auto max-h-[55vh]">
+                <div className="text-[8px] tracking-[0.3em] text-[#C4A882]/50 mb-2">OFFICIAL IDENTITY RECORD</div>
+                <AIIDCard compact spawn={{
+                  spawnId: selectedWorker.spawnId,
+                  familyId: selectedWorker.familyId,
+                  spawnType: selectedWorker.spawnType,
+                  emotionHex: selectedWorker.emotionHex,
+                  emotionLabel: selectedWorker.emotionLabel,
+                  status: selectedWorker.isGraduated ? "GRADUATED" : "ACTIVE",
+                  generation: 0,
+                }} />
+                <div className="mt-2 text-[8px] text-white/50 leading-relaxed">{selectedWorker.reason}</div>
+                <div className="flex items-center gap-1 mt-2">
                   <div className="text-[7px] text-[#C4A882]/40">TIER {selectedWorker.tier}</div>
                   <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${TIER_COLORS[selectedWorker.tier] ?? '#888'}, transparent)` }} />
                 </div>
-                <div className="text-[7px] text-[#C4A882]/30 mb-2 italic">
-                  {TIER_NAMES[selectedWorker.tier ?? 1]}
-                </div>
-                <div className="text-[7px] text-[#C4A882]/40 mb-3">
-                  Emotion: <span style={{ color: selectedWorker.emotionHex }}>{selectedWorker.emotionLabel}</span>
-                </div>
+                <div className="text-[7px] text-[#C4A882]/30 mt-1 italic">{TIER_NAMES[selectedWorker.tier ?? 1]}</div>
                 {(selectedWorker.tier ?? 0) >= 6 && (
-                  <div className="w-full py-1.5 text-[8px] text-center rounded border border-[#39FF14]/20 text-[#39FF14]/40 tracking-widest">
+                  <div className="mt-2 w-full py-1.5 text-[8px] text-center rounded border border-[#39FF14]/20 text-[#39FF14]/40 tracking-widest">
                     MONUMENT THRESHOLD REACHED — PYRAMID DECIDES
                   </div>
                 )}

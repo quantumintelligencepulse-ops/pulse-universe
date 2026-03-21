@@ -5977,6 +5977,49 @@ ${(pubs.rows as any[]).map(p => {
     } catch (e: any) { res.json({ spawns: [], total: 0, page: 0, limit: 100 }); }
   });
 
+  // ── AI Identity & License System ────────────────────────────
+  app.get("/api/spawns/identity/:spawnId", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const result = await pool.query(
+        `SELECT spawn_id, parent_id, ancestor_ids, family_id, business_id, generation, spawn_type,
+                domain_focus, task_description, nodes_created, links_created, iterations_run,
+                success_score, confidence_score, status, last_active_at, created_at
+         FROM quantum_spawns WHERE spawn_id = $1 LIMIT 1`,
+        [spawnId]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: "Spawn not found" });
+      res.json(result.rows[0]);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/spawns/duplicates", async (req, res) => {
+    try {
+      // Find groups of spawns with same (family_id, generation, spawn_type) having count > 3
+      const result = await pool.query(`
+        SELECT family_id, generation, spawn_type, COUNT(*) as count,
+               array_agg(spawn_id ORDER BY created_at DESC) as spawn_ids,
+               array_agg(created_at ORDER BY created_at DESC) as dates
+        FROM quantum_spawns
+        WHERE status NOT IN ('DISSOLVED','TERMINAL')
+        GROUP BY family_id, generation, spawn_type
+        HAVING COUNT(*) > 3
+        ORDER BY count DESC
+        LIMIT 50
+      `);
+      const duplicates = result.rows.map(r => ({
+        familyId: r.family_id,
+        generation: r.generation,
+        spawnType: r.spawn_type,
+        count: parseInt(r.count, 10),
+        spawnIds: r.spawn_ids.slice(0, 10),
+        dates: r.dates.slice(0, 10),
+        severity: parseInt(r.count, 10) > 20 ? "CRITICAL" : parseInt(r.count, 10) > 10 ? "HIGH" : "MODERATE",
+      }));
+      res.json({ duplicates, total: duplicates.length, reportedAt: new Date().toISOString() });
+    } catch (e: any) { res.json({ duplicates: [], total: 0 }); }
+  });
+
   // ── Solar System / Pulse World Routes ───────────────────────
   app.get("/api/solar/worlds", async (req, res) => {
     try {
