@@ -17,6 +17,7 @@ import { startPyramidEngine } from "./pyramid-engine";
 import { startHospitalEngine } from "./hospital-engine";
 import { startAIVotingEngine } from "./ai-voting-engine";
 import { startNothingLeftBehindGuardian, getNothingLeftBehindStatus } from "./nothing-left-behind";
+import { startGeneEditorEngine, getGeneEditorStatus } from "./gene-editor-engine";
 import { startDecayEngine } from "./decay-engine";
 import { startPulseUEngine } from "./pulseu-engine";
 import { startHiveEconomy } from "./hive-economy";
@@ -138,6 +139,7 @@ app.use((req, res, next) => {
       }).catch(() => {});
       startAIVotingEngine().catch((e) => log(`AIVotingEngine start error: ${e}`));
       startNothingLeftBehindGuardian().catch((e) => log(`GuardianEngine start error: ${e}`));
+      startGeneEditorEngine().catch((e) => log(`GeneEditorEngine start error: ${e}`));
       startDecayEngine().catch((e) => log(`DecayEngine start error: ${e}`));
       startPulseUEngine();
       startHiveEconomy();

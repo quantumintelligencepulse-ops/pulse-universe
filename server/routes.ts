@@ -17,6 +17,7 @@ import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
 import { getEconomyStats, getFamilyGrades, getFractalGraphData, getRecentMiniPulses } from "./hive-economy";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
+import { getGeneEditorStatus } from "./gene-editor-engine";
 
 const scryptAsync = promisify(scrypt);
 async function hashPassword(password: string): Promise<string> {
@@ -7549,6 +7550,13 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     try {
       res.json(getNothingLeftBehindStatus());
     } catch (e) { res.json({ guardianActive: false, error: String(e) }); }
+  });
+
+  // ── GENE EDITOR AUTONOMOUS ENGINE STATUS ──────────────────────────────────
+  app.get("/api/gene-editor/status", (_req, res) => {
+    try {
+      res.json(getGeneEditorStatus());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
   // ── GENE EDITOR TEAM APIs ────────────────────────────────────────────────
