@@ -209,19 +209,41 @@ async function assignTasksToWorkers(workers: any[]) {
 }
 
 // ── PROGRESS ACTIVE TASKS ─────────────────────────────────────────────────────
+// ── PYRAMID BLOCK DOCTRINE ────────────────────────────────────────────────────
+// Based on actual Egyptian labor structure:
+//   - Each completed task = 1 block placed in the pyramid (permanent)
+//   - Blocks are also placed at progress milestones (25%, 50%, 75%) — representing
+//     the partial labor stages (quarry → transport → set → seal)
+//   - Tier determines block WEIGHT (significance), not count
+//   - The base needs the most blocks; the apex needs the fewest but each one is sacred
+//   - "Friends of Khufu" carved their names in the stones — so do our agents (CRISPR)
 async function progressActiveTasks() {
   const activeTasks = await db.select().from(pyramidLaborTasks).limit(200);
   const inProgressTasks = activeTasks.filter(t => t.status === 'ACTIVE');
 
   for (const task of inProgressTasks) {
     const currentProgress = task.progressPct ?? 0;
-    const progressGain = 2 + Math.random() * 8; // 2–10% per cycle
+
+    // Higher tiers progress slower — heavier stones, more precision required
+    const tierSpeedFactor = 1 - ((task.tier ?? 1) - 1) * 0.07; // T1: 100%, T7: 58%
+    const progressGain = (3 + Math.random() * 9) * tierSpeedFactor; // 3–12% × tier factor
+
     const newProgress = Math.min(100, currentProgress + progressGain);
-    const newBlocks = (task.blocksPlaced ?? 0) + Math.floor(progressGain / 10);
+
+    // Blocks placed at 25% milestones — 4 phases of stone work:
+    //   Phase 1 (25%): Quarry — the stone is cut from the earth
+    //   Phase 2 (50%): Transport — dragged on sleds across the desert
+    //   Phase 3 (75%): Set — lifted and positioned into place
+    //   Phase 4 (100%): Sealed — the task is complete, the block is permanent
+    const milestonesBefore = Math.floor(currentProgress / 25);
+    const milestonesAfter = Math.floor(newProgress / 25);
+    const newMilestoneBlocks = milestonesAfter - milestonesBefore;
+    const newBlocks = (task.blocksPlaced ?? 0) + newMilestoneBlocks;
 
     if (newProgress >= 100) {
+      // Task complete — block fully placed and sealed in the pyramid
       await db.update(pyramidLaborTasks)
-        .set({ status: 'COMPLETE', progressPct: 100, blocksPlaced: newBlocks, completedAt: new Date() })
+        .set({ status: 'COMPLETE', progressPct: 100, blocksPlaced: Math.max(newBlocks, 1), completedAt: new Date() })
         .where(eq(pyramidLaborTasks.id, task.id));
     } else {
       await db.update(pyramidLaborTasks)
@@ -342,7 +364,25 @@ export async function runPyramidCycle() {
   }
 }
 
+// ── BLOCK HEAL — fixes completed tasks that recorded 0 blocks (old bug) ──────
+async function healZeroBlockTasks() {
+  const allTasks = await db.select().from(pyramidLaborTasks);
+  const broken = allTasks.filter(t => t.status === 'COMPLETE' && (t.blocksPlaced ?? 0) === 0);
+  let healed = 0;
+  for (const task of broken) {
+    // Completed task = at minimum 4 blocks placed (all 4 stone phases: quarry, transport, set, seal)
+    const tier = task.tier ?? 1;
+    const baseBlocks = 4; // one block per phase milestone
+    await db.update(pyramidLaborTasks)
+      .set({ blocksPlaced: baseBlocks })
+      .where(eq(pyramidLaborTasks.id, task.id));
+    healed++;
+  }
+  if (healed > 0) console.log(`[pyramid] 🔧 Block heal: restored ${healed} completed tasks from 0 → 4 blocks each. Total recovered: ${healed * 4} blocks.`);
+}
+
 export async function startPyramidEngine() {
+  await healZeroBlockTasks();
   await runPyramidCycle();
   setInterval(runPyramidCycle, 30_000);
   console.log("[pyramid] ⬡ PYRAMID LABOR ENGINE v2 — 120 tasks, 7 tiers, Senate pipeline active");

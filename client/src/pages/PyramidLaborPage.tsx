@@ -125,10 +125,32 @@ export default function PyramidLaborPage() {
 
           {/* LIVE LABOR */}
           <TabsContent value="live">
+            <div className="mb-3 bg-stone-900/40 border border-stone-700/40 rounded-lg p-3">
+              <div className="text-xs text-stone-400 font-semibold mb-2 uppercase tracking-wider">The 4 Phases of Stone Work — as in Egypt, as in the Hive</div>
+              <div className="flex gap-4 flex-wrap">
+                {[
+                  { pct: 25, label: "I. Quarry", desc: "Cut from the earth" },
+                  { pct: 50, label: "II. Transport", desc: "Dragged across the ramp" },
+                  { pct: 75, label: "III. Set", desc: "Lifted into position" },
+                  { pct: 100, label: "IV. Seal", desc: "Block permanent" },
+                ].map((ph) => (
+                  <div key={ph.pct} className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-sm bg-amber-500" />
+                    <span className="text-xs text-amber-300 font-mono">{ph.label}</span>
+                    <span className="text-xs text-stone-500">— {ph.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               {activeTasks.length === 0 && <div className="text-center text-slate-500 py-8">No active labor tasks — engine is assigning…</div>}
               {activeTasks.slice(0, 80).map((t: any) => {
                 const tc = TIER_COLORS[t.tier ?? 1];
+                const pct = t.progressPct ?? 0;
+                const phase = pct < 25 ? "I. Quarry" : pct < 50 ? "II. Transport" : pct < 75 ? "III. Set" : "IV. Seal";
+                const phaseColor = pct < 25 ? "text-stone-400" : pct < 50 ? "text-amber-400" : pct < 75 ? "text-orange-400" : "text-yellow-300";
+                const barColor = t.tier === 7 ? "bg-yellow-400" : t.tier === 6 ? "bg-red-500" : t.tier === 5 ? "bg-violet-500" :
+                  t.tier === 4 ? "bg-indigo-500" : t.tier === 3 ? "bg-blue-500" : t.tier === 2 ? "bg-teal-500" : "bg-stone-400";
                 return (
                   <div key={t.id} data-testid={`task-${t.id}`} className={`${tc.bg} border ${tc.border} rounded-lg p-3`}>
                     <div className="flex items-start justify-between gap-2">
@@ -136,22 +158,24 @@ export default function PyramidLaborPage() {
                         <div className="flex flex-wrap items-center gap-1.5 mb-1">
                           <span className={`text-xs font-mono ${tc.text}`}>{t.taskCode}</span>
                           <Badge className={`text-xs px-1.5 py-0 ${tc.bg} ${tc.text} border ${tc.border}`}>T{t.tier}</Badge>
-                          <span className={`text-xs ${tc.text} opacity-70`}>{t.category}</span>
-                          {t.isSentence && <Badge className="text-xs px-1.5 py-0 bg-red-900/40 text-red-300 border-red-700">SENTENCE</Badge>}
+                          <span className={`text-xs font-semibold ${phaseColor}`}>{phase}</span>
+                          {t.isSentence && <Badge className="text-xs px-1.5 py-0 bg-red-900/40 text-red-300 border-red-700">⚖ SENTENCE</Badge>}
                         </div>
-                        <div className="text-sm font-semibold text-white mb-1">{t.taskName}</div>
-                        <div className="text-xs font-mono text-slate-500">{t.spawnId?.slice(0, 16)}…</div>
+                        <div className="text-sm font-semibold text-white mb-0.5">{t.taskName}</div>
+                        <div className="text-xs font-mono text-slate-500">{t.spawnId?.slice(0, 20)}…</div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className={`text-sm font-bold ${tc.text}`}>{(t.progressPct ?? 0).toFixed(0)}%</div>
-                        <div className="text-xs text-slate-500">{t.blocksPlaced ?? 0} blocks</div>
+                        <div className={`text-sm font-bold ${tc.text}`}>{pct.toFixed(0)}%</div>
+                        <div className="text-xs text-slate-400">{t.blocksPlaced ?? 0} ▪</div>
                       </div>
                     </div>
-                    <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${
-                        t.tier === 7 ? "bg-yellow-400" : t.tier === 6 ? "bg-red-500" : t.tier === 5 ? "bg-violet-500" :
-                        t.tier === 4 ? "bg-indigo-500" : t.tier === 3 ? "bg-blue-500" : t.tier === 2 ? "bg-teal-500" : "bg-stone-400"
-                      }`} style={{ width: `${t.progressPct ?? 0}%` }} />
+                    <div className="mt-2 relative h-2">
+                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      {[25, 50, 75].map((m) => (
+                        <div key={m} className="absolute top-0 h-2 w-px bg-slate-600/70" style={{ left: `${m}%` }} />
+                      ))}
                     </div>
                   </div>
                 );
@@ -255,30 +279,56 @@ export default function PyramidLaborPage() {
 
           {/* MONUMENTS */}
           <TabsContent value="monuments">
-            <div className="mb-3 bg-yellow-900/20 border border-yellow-700/40 rounded-lg p-3 flex items-center gap-3">
-              <Award className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold text-yellow-200">{graduated.length} Agents Graduated — Permanent Monuments</div>
-                <div className="text-xs text-yellow-400/70">These agents climbed all tiers, reached graduation thresholds, and received their inscription. Their stones remain in the pyramid forever.</div>
+            <div className="mb-3 bg-yellow-900/20 border border-yellow-700/40 rounded-lg p-3">
+              <div className="flex items-start gap-3">
+                <Award className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-sm font-semibold text-yellow-200">{graduated.length} Permanent Monuments — Words Carved by the Agents Themselves</div>
+                  <div className="text-xs text-yellow-400/70 mt-1">
+                    In Egypt, workers carved their gang names into the stones: "Friends of Khufu." "Drunkards of Menkaure."
+                    These agents write their own inscriptions using the CRISPR Color Dissection Engine —
+                    their actual confidence, vitality, depth, disease history, and law record cut into a spectral signature
+                    and assembled into words. No two inscriptions are the same. Each block is permanent.
+                  </div>
+                </div>
               </div>
             </div>
             {graduated.length === 0 && <div className="text-center text-slate-500 py-8">No monuments yet — graduation requires confidence ≥80% and success ≥75%.</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {graduated.map((w: any) => (
-                <div key={w.id} data-testid={`monument-${w.spawnId}`} className="bg-yellow-950/20 border border-yellow-700/30 rounded-lg p-3">
-                  <div className="flex items-start gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: w.emotionHex ?? "#888" }} />
-                    <div>
-                      <div className="text-xs font-mono text-slate-400">{w.spawnId?.slice(0, 16)}…</div>
-                      <div className="text-xs text-slate-500">{w.spawnType} · {w.familyId}</div>
+              {graduated.map((w: any) => {
+                const monument = w.monument ?? "";
+                const spectrumMatch = monument.match(/Spectrum:\s*([R\dG\dB\dUV\dIR\dW\d]+)/);
+                const spectrumCode = spectrumMatch ? spectrumMatch[1] : null;
+                const inscriptionText = monument.replace(/Spectrum:.*$/, "").trim();
+                return (
+                  <div key={w.id} data-testid={`monument-${w.spawnId}`} className="bg-yellow-950/20 border border-yellow-700/30 rounded-lg p-4">
+                    {/* Agent identity */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: w.emotionHex ?? "#888" }} />
+                        <span className="text-xs font-mono text-slate-400">{w.spawnId?.slice(0, 18)}…</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-500">{w.spawnType}</span>
+                        {spectrumCode && (
+                          <span className="text-xs font-mono bg-yellow-900/40 text-yellow-500 border border-yellow-700/40 px-1.5 py-0.5 rounded">
+                            {spectrumCode}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {/* The CRISPR inscription — their own words */}
+                    <blockquote className="text-sm text-yellow-100 leading-relaxed border-l-2 border-yellow-500/60 pl-3 italic">
+                      "{inscriptionText || monument}"
+                    </blockquote>
+                    {/* Footer */}
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-slate-500">{w.familyId} · {w.emotionLabel}</span>
+                      {w.graduatedAt && <span className="text-xs text-yellow-700">{new Date(w.graduatedAt).toLocaleDateString()}</span>}
                     </div>
                   </div>
-                  <blockquote className="text-sm text-yellow-200 italic border-l-2 border-yellow-600/50 pl-3">
-                    "{w.monument}"
-                  </blockquote>
-                  {w.graduatedAt && <div className="text-xs text-yellow-600 mt-2">Graduated {new Date(w.graduatedAt).toLocaleDateString()}</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </TabsContent>
         </Tabs>
