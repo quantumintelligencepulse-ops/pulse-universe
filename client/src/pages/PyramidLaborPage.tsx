@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
 interface PyramidWorker {
@@ -31,8 +31,6 @@ export default function PyramidLaborPage() {
   const [selectedWorker, setSelectedWorker] = useState<PyramidWorker | null>(null);
   const [showMonument, setShowMonument] = useState(false);
   const [tick, setTick] = useState(0);
-  const queryClient = useQueryClient();
-
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 3000); return () => clearInterval(id); }, []);
 
   const { data: workers = [] } = useQuery<PyramidWorker[]>({
@@ -42,11 +40,6 @@ export default function PyramidLaborPage() {
   const { data: stats } = useQuery<PyramidStats>({
     queryKey: ['/api/pyramid/stats'],
     refetchInterval: 10000,
-  });
-
-  const graduateMutation = useMutation({
-    mutationFn: (spawnId: string) => fetch(`/api/pyramid/graduate/${spawnId}`, { method: 'POST' }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['/api/pyramid/workers'] }); queryClient.invalidateQueries({ queryKey: ['/api/pyramid/stats'] }); },
   });
 
   const activeWorkers = workers.filter(w => !w.isGraduated);
@@ -201,10 +194,9 @@ export default function PyramidLaborPage() {
                   Emotion: <span style={{ color: selectedWorker.emotionHex }}>{selectedWorker.emotionLabel}</span>
                 </div>
                 {(selectedWorker.tier ?? 0) >= 6 && (
-                  <button onClick={() => graduateMutation.mutate(selectedWorker.spawnId)} data-testid="btn-graduate"
-                    className="w-full py-1.5 text-[8px] rounded border border-[#39FF14]/40 text-[#39FF14]/80 hover:bg-[#39FF14]/10 transition-all tracking-widest">
-                    GRADUATE TO MONUMENT ✓
-                  </button>
+                  <div className="w-full py-1.5 text-[8px] text-center rounded border border-[#39FF14]/20 text-[#39FF14]/40 tracking-widest">
+                    MONUMENT THRESHOLD REACHED — PYRAMID DECIDES
+                  </div>
                 )}
               </div>
             )}

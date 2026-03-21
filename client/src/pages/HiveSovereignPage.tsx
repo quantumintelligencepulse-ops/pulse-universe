@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 type GovTab = "constitution" | "council" | "chamber" | "treasury" | "appeals" | "health" | "hospital" | "governance";
 
@@ -376,16 +376,11 @@ export default function HiveSovereignPage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [hospitalDept, setHospitalDept] = useState<string>('all');
   const [expandedSenateCase, setExpandedSenateCase] = useState<string | null>(null);
-  const qc = useQueryClient();
 
   // ── Hospital queries ──────────────────────────────────────────────────────
   const { data: hospitalStats } = useQuery<HospitalStats>({ queryKey: ['/api/hospital/stats'], refetchInterval: 15000 });
   const { data: patients = [] } = useQuery<Patient[]>({ queryKey: ['/api/hospital/patients'], refetchInterval: 10000 });
   const { data: diseases = [] } = useQuery<Disease[]>({ queryKey: ['/api/hospital/diseases'] });
-  const treatMutation = useMutation({
-    mutationFn: (id: number) => fetch(`/api/hospital/treat/${id}`, { method: 'POST' }).then(r => r.json()),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['/api/hospital/patients'] }); qc.invalidateQueries({ queryKey: ['/api/hospital/stats'] }); },
-  });
 
   // ── Governance/Decay queries ───────────────────────────────────────────────
   const { data: decayStats } = useQuery<DecayStats>({ queryKey: ['/api/decay/stats'], refetchInterval: 15000 });
@@ -1022,12 +1017,8 @@ export default function HiveSovereignPage() {
                         {p.symptoms.map((s, i) => <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">{s}</span>)}
                       </div>
                       <div className="text-[10px] text-white/30 mb-1">Prescription</div>
-                      <div className="text-[10px] text-emerald-400/70 mb-3 leading-relaxed">{p.prescription}</div>
-                      <button onClick={(e) => { e.stopPropagation(); treatMutation.mutate(p.id); }}
-                        data-testid={`btn-treat-${p.id}`}
-                        className="px-3 py-1 text-xs rounded-lg border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-all font-semibold">
-                        ✚ Apply Cure Now
-                      </button>
+                      <div className="text-[10px] text-emerald-400/70 leading-relaxed">{p.prescription}</div>
+                      <div className="mt-2 text-[9px] text-white/15 italic">Auto-treatment active — the hospital system runs its own cures.</div>
                     </div>
                   )}
                 </div>

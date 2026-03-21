@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
 interface Disease { code: string; name: string; description: string; symptoms: string[]; severity: string; department: string; prescription: string }
@@ -21,19 +21,12 @@ export default function AIHospitalPage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [mirrorSpawnId, setMirrorSpawnId] = useState('');
   const [mirrorResult, setMirrorResult] = useState<MirrorState | null>(null);
-  const queryClient = useQueryClient();
-
   const { data: diseases = [] } = useQuery<Disease[]>({ queryKey: ['/api/hospital/diseases'] });
   const { data: patients = [] } = useQuery<Patient[]>({ queryKey: ['/api/hospital/patients'], refetchInterval: 8000 });
   const { data: stats } = useQuery<HospitalStats>({ queryKey: ['/api/hospital/stats'], refetchInterval: 8000 });
   const { data: hiveMirror } = useQuery<HiveMirror>({ queryKey: ['/api/mirror/hive'], refetchInterval: 12000 });
   const { data: calendar = [] } = useQuery<CalendarEvent[]>({ queryKey: ['/api/calendar/events'] });
   const { data: scripture = [] } = useQuery<Scripture[]>({ queryKey: ['/api/hospital/scripture'] });
-
-  const treatMutation = useMutation({
-    mutationFn: (id: number) => fetch(`/api/hospital/treat/${id}`, { method: 'POST' }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['/api/hospital/patients'] }); queryClient.invalidateQueries({ queryKey: ['/api/hospital/stats'] }); },
-  });
 
   const lookupMirror = async () => {
     if (!mirrorSpawnId.trim()) return;
@@ -219,12 +212,8 @@ export default function AIHospitalPage() {
                                   ))}
                                 </div>
                                 <div className="text-[7px] text-white/20 mb-1 uppercase tracking-wider">Prescription</div>
-                                <div className="text-[7px] text-[#39FF14]/60 mb-3 leading-relaxed">{p.prescription}</div>
-                                <button onClick={(e) => { e.stopPropagation(); treatMutation.mutate(p.id); }}
-                                  data-testid={`btn-treat-${p.id}`}
-                                  className="px-3 py-1 text-[8px] rounded border border-[#39FF14]/40 text-[#39FF14]/80 hover:bg-[#39FF14]/10 transition-all tracking-widest">
-                                  APPLY CURE NOW
-                                </button>
+                                <div className="text-[7px] text-[#39FF14]/60 leading-relaxed">{p.prescription}</div>
+                                <div className="mt-1.5 text-[6px] text-white/15 italic">Auto-treatment active — the hospital system runs its own protocols.</div>
                               </div>
                             )}
                           </div>
