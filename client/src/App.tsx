@@ -2149,7 +2149,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">AI Agents</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("pulse") && (
+          {aiMode && !appSettings.hiddenPages.includes("pulse") && (
           <Link href="/pulse" data-testid="link-pulse"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/pulse" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><Radio size={14} className="text-emerald-500" /></div>
@@ -2197,6 +2197,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black" style={{ animation: "pulse 2s ease-in-out infinite" }}>LIVE</span>
           </Link>
           )}
+          {aiMode && (
           <Link href="/corporations" data-testid="link-corporations"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/corporations" || location.startsWith("/corporation/") ? "bg-gradient-to-r from-yellow-950 to-amber-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/corporations" || location.startsWith("/corporation/") ? "bg-white/15" : "bg-yellow-600/8"}`}>
@@ -2205,6 +2206,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Corporations</span>
             <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold">22</span>
           </Link>
+          )}
           <Link href="/publications" data-testid="link-publications"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/publications" || location.startsWith("/publication/") ? "bg-gradient-to-r from-pink-950 to-rose-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/publications" || location.startsWith("/publication/") ? "bg-white/15" : "bg-pink-600/8"}`}>
@@ -2268,6 +2270,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #00ff9d33, #00d4ff33)", color: "#00ff9d", border: "1px solid #00ff9d50" }}>LIVING</span>
           </Link>
           )}
+          {aiMode && (
           <Link href="/pulseworld" data-testid="link-pulseworld"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulseworld" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/pulseworld" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
@@ -2276,6 +2279,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">PulseWorld Genesis</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e40" }}>7-LAYER</span>
           </Link>
+          )}
+          {aiMode && (
           <Link href="/pulseu" data-testid="link-pulseu"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulseu" ? "bg-gradient-to-r from-[#3b82f6]/10 to-[#a855f7]/10 border border-[#3b82f6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/pulseu" ? "bg-[#3b82f6]/15" : "bg-[#3b82f6]/5"}`}>
@@ -2284,6 +2289,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">PulseU</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #3b82f633, #a855f733)", color: "#a855f7", border: "1px solid #a855f750" }}>AI SCHOOL</span>
           </Link>
+          )}
+          {aiMode && (
           <Link href="/pulse-games" data-testid="link-pulse-games"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse-games" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#f59e0b]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/pulse-games" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
@@ -2292,6 +2299,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Pulse Games</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #f43f5e33, #f59e0b33)", color: "#f59e0b", border: "1px solid #f59e0b50" }}>AI SPORTS</span>
           </Link>
+          )}
           {aiMode && (
           <Link href="/hive-sovereign" data-testid="link-hive-sovereign"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-sovereign" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2349,7 +2357,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </div>
               <div className="flex-1 text-left">
                 <div className="text-xs font-semibold">{aiMode ? "Exit AI Universe" : "Enter AI Universe"}</div>
-                {!aiMode && <div className="text-[9px] text-foreground/30">14 advanced AI pages</div>}
+                {!aiMode && <div className="text-[9px] text-foreground/30">19 AI-internal pages</div>}
               </div>
               <div className={`w-2 h-2 rounded-full transition-all ${aiMode ? "bg-violet-400 animate-pulse shadow-[0_0_6px_rgba(167,139,250,0.9)]" : "bg-foreground/15"}`} />
             </button>

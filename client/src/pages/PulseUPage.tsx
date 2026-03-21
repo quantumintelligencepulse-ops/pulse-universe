@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -1635,9 +1636,15 @@ export default function PulseUPage() {
   const [logEntries, setLogEntries] = useState<string[]>([]);
 
   const totalCourses = TRACKS.reduce((a, t) => a + t.courses.length, 0) + 45 + 156 + DIAG_TOTAL + PIP_TOTAL;
-  const totalStudents = STUDENT_SEED.length;
-  const totalPC = STUDENT_SEED.reduce((a, s) => a + s.pc, 0);
-  const totalCompleted = STUDENT_SEED.reduce((a, s) => a + s.coursesCompleted, 0);
+
+  const { data: liveStats } = useQuery<{ totalStudents: number; totalPC: number; totalCompletions: number; totalPublications: number }>({
+    queryKey: ["/api/pulseu/stats"],
+    refetchInterval: 20000,
+  });
+
+  const totalStudents = liveStats?.totalStudents ?? STUDENT_SEED.length;
+  const totalPC = liveStats?.totalPC ?? STUDENT_SEED.reduce((a, s) => a + s.pc, 0);
+  const totalCompleted = liveStats?.totalCompletions ?? STUDENT_SEED.reduce((a, s) => a + s.coursesCompleted, 0);
 
   useEffect(() => {
     const actions = [

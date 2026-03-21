@@ -4960,10 +4960,41 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
   // ══════════════════════════════════════════════════════════════
   // PULSE — Live World Feed
   // ══════════════════════════════════════════════════════════════
+  app.get("/api/pulseu/stats", async (_req, res) => {
+    try {
+      const [agentRows, nodeRows, iterRows, pubRows] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns WHERE status IN ('ACTIVE','SOVEREIGN')`),
+        db.execute(sql`SELECT COALESCE(SUM(nodes_created),0) as total FROM quantum_spawns`),
+        db.execute(sql`SELECT COALESCE(SUM(iterations_run),0) as total FROM quantum_spawns`),
+        db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
+      ]);
+      res.json({
+        totalStudents: Number((agentRows.rows[0] as any)?.cnt || 0),
+        totalPC: Number((nodeRows.rows[0] as any)?.total || 0),
+        totalCompletions: Number((iterRows.rows[0] as any)?.total || 0),
+        totalPublications: Number((pubRows.rows[0] as any)?.cnt || 0),
+      });
+    } catch { res.json({ totalStudents: 0, totalPC: 0, totalCompletions: 0, totalPublications: 0 }); }
+  });
+
   app.get("/api/pulse/live", async (req, res) => {
     try {
-      const events = await storage.getRecentPulseEvents(60);
-      res.json(events);
+      const [knowRows, quantaRows, productRows, mediaRows, careerRows] = await Promise.all([
+        db.execute(sql`SELECT key as slug, domain, 'knowledge' as type, domain as title, created_at FROM hive_memory ORDER BY created_at DESC LIMIT 12`),
+        db.execute(sql`SELECT slug, COALESCE(type,'concept') as domain, 'quantapedia' as type, title, created_at FROM quantapedia_entries ORDER BY created_at DESC LIMIT 12`),
+        db.execute(sql`SELECT slug, category as domain, 'product' as type, name as title, created_at FROM quantum_products ORDER BY created_at DESC LIMIT 12`),
+        db.execute(sql`SELECT slug, domain, type, title, created_at FROM pulse_events WHERE type = 'media' ORDER BY created_at DESC LIMIT 12`),
+        db.execute(sql`SELECT slug, domain, type, title, created_at FROM pulse_events WHERE type = 'career' ORDER BY created_at DESC LIMIT 12`),
+      ]);
+      const all = [
+        ...(knowRows.rows as any[]).map(r => ({ id: r.slug, type: "knowledge", title: `${r.domain} — ${r.slug?.replace(/-/g, " ")}`, domain: r.domain, createdAt: r.created_at, slug: r.slug })),
+        ...(quantaRows.rows as any[]).map(r => ({ id: r.slug, type: "quantapedia", title: r.title, domain: r.domain, createdAt: r.created_at, slug: r.slug })),
+        ...(productRows.rows as any[]).map(r => ({ id: r.slug, type: "product", title: r.title, domain: r.domain, createdAt: r.created_at, slug: r.slug })),
+        ...(mediaRows.rows as any[]).map(r => ({ id: r.slug, type: "media", title: r.title, domain: r.domain, createdAt: r.created_at, slug: r.slug })),
+        ...(careerRows.rows as any[]).map(r => ({ id: r.slug, type: "career", title: r.title, domain: r.domain, createdAt: r.created_at, slug: r.slug })),
+      ];
+      all.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      res.json(all.slice(0, 60));
     } catch { res.json([]); }
   });
 
