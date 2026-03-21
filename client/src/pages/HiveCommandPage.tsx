@@ -66,7 +66,85 @@ interface TunnelParticle { fromX: number; fromY: number; toX: number; toY: numbe
 interface EntanglementBeam { fi: number; fj: number; birth: number; shimmerX: number[]; shimmerY: number[]; }
 interface FoamSparkle { x: number; y: number; alpha: number; }
 
-function FractalCanvas({ data }: { data: FractalData }) {
+// ─── Quantum Physics Helpers ─────────────────────────────────
+function hexToRgb(hex: string): [number, number, number] {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? [parseInt(r[1], 16), parseInt(r[2], 16), parseInt(r[3], 16)] : [130, 130, 255];
+}
+
+// Recursive fractal arm — the building block of quantum snowflakes
+function drawFractalArm(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, angle: number, length: number,
+  depth: number, color: string, alpha: number, lw: number
+) {
+  if (length < 1.0 || alpha < 0.03) return;
+  const ex = x + Math.cos(angle) * length;
+  const ey = y + Math.sin(angle) * length;
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+  if (depth <= 0) return;
+  // Branch 1: at 62% of arm length, ±60°
+  const b1x = x + Math.cos(angle) * length * 0.62;
+  const b1y = y + Math.sin(angle) * length * 0.62;
+  const bLen = length * 0.42;
+  drawFractalArm(ctx, b1x, b1y, angle + Math.PI / 3, bLen, depth - 1, color, alpha * 0.78, lw * 0.7);
+  drawFractalArm(ctx, b1x, b1y, angle - Math.PI / 3, bLen, depth - 1, color, alpha * 0.78, lw * 0.7);
+  if (depth > 1) {
+    // Branch 2: at 35% of arm length, ±60°
+    const b2x = x + Math.cos(angle) * length * 0.35;
+    const b2y = y + Math.sin(angle) * length * 0.35;
+    const b2Len = length * 0.28;
+    drawFractalArm(ctx, b2x, b2y, angle + Math.PI / 3, b2Len, depth - 2, color, alpha * 0.55, lw * 0.5);
+    drawFractalArm(ctx, b2x, b2y, angle - Math.PI / 3, b2Len, depth - 2, color, alpha * 0.55, lw * 0.5);
+  }
+}
+
+// True 6-arm fractal snowflake (self-similar, like a Koch crystal)
+function drawSnowflake(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number, size: number,
+  depth: number, color: string, rotation: number, baseAlpha: number
+) {
+  if (size < 1.5 || baseAlpha < 0.03) return;
+  ctx.globalAlpha = 1;
+  for (let arm = 0; arm < 6; arm++) {
+    const angle = rotation + (arm * Math.PI) / 3;
+    drawFractalArm(ctx, cx, cy, angle, size, depth, color, baseAlpha, Math.max(0.3, 0.7 + depth * 0.25));
+  }
+  // Crystalline center
+  ctx.globalAlpha = baseAlpha;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, Math.max(0.8, size * 0.1), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// Floating quantum equation labels
+interface QEquation { text: string; x: number; y: number; vx: number; vy: number; alpha: number; phase: number; color: string; }
+
+const QUANTUM_EQUATIONS: string[] = [
+  "iħ ∂Ψ/∂t = ĤΨ",
+  "Ψ = α|0⟩ + β|1⟩",
+  "ρ = Tr_env(|Ψ⟩⟨Ψ|)",
+  "S = −Tr(ρ ln ρ)",
+  "P(a) = Tr(Π̂ₐρ)",
+  "e^(−2κa)  [tunneling]",
+  "ĤΨ = EΨ",
+  "⟨Â⟩ = Tr(ρÂ)",
+  "ΔxΔp ≥ ħ/2",
+  "ENTANGLEMENT: ρ_AB ≠ ρ_A ⊗ ρ_B",
+  "[Â,B̂] = iħ",
+  "U(t) = e^(−iĤt/ħ)",
+  "DECOHERENCE: T₂ → 0",
+  "SUPERPOSITION → COLLAPSE",
+  "QUANTUM FOAM: ℓ_P = 1.6×10⁻³⁵ m",
+];
+
+function FractalCanvas({ data, quantumMode }: { data: FractalData; quantumMode: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tickRef = useRef(0);
   const rafRef = useRef<number>(0);
@@ -74,6 +152,8 @@ function FractalCanvas({ data }: { data: FractalData }) {
   const tunnelRef = useRef<TunnelParticle | null>(null);
   const collapseRef = useRef<WaveCollapse[]>([]);
   const foamRef = useRef<FoamSparkle[]>([]);
+  const quantumTransRef = useRef(0);   // 0=classical, 1=quantum
+  const equationsRef = useRef<QEquation[]>([]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -83,6 +163,12 @@ function FractalCanvas({ data }: { data: FractalData }) {
     const W = canvas.width, H = canvas.height;
     const cx = W / 2, cy = H / 2;
     const tick = tickRef.current++;
+
+    // ══ TRANSITION: Animate quantum/classical crossover ══════════
+    const targetTrans = quantumMode ? 1 : 0;
+    quantumTransRef.current += (targetTrans - quantumTransRef.current) * 0.035;
+    const QT = quantumTransRef.current; // 0=classical, 1=quantum
+    const CT = 1 - QT;                  // classical weight
 
     // ══ PHASE 1: QUANTUM VOID — Deep Space Background ══════════
     ctx.fillStyle = "#000008";
@@ -117,8 +203,8 @@ function FractalCanvas({ data }: { data: FractalData }) {
       return true;
     });
 
-    // Subtle hex grid — quantum lattice
-    ctx.strokeStyle = "rgba(99,102,241,0.028)";
+    // Subtle hex grid — quantum lattice (fades in quantum mode)
+    ctx.strokeStyle = `rgba(99,102,241,${(0.028 * CT).toFixed(4)})`;
     ctx.lineWidth = 0.4;
     for (let x = 0; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
     for (let y = 0; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
@@ -149,6 +235,71 @@ function FractalCanvas({ data }: { data: FractalData }) {
         color: famColor(fam.familyId),
       };
     });
+
+    // ══ QUANTUM WAVE FIELD — Living amplitude fabric ══════════════
+    // Only visible in quantum mode. Uses screen blend mode for additive interference.
+    if (QT > 0.04) {
+      const topFams = [...families].sort((a, b) => b.active - a.active).slice(0, 10);
+      const fieldAlphaBase = QT * 0.7;
+      ctx.globalCompositeOperation = "screen";
+      topFams.forEach((fam, wi) => {
+        const fp = famPos[fam.familyId];
+        if (!fp) return;
+        const strength = fam.active / maxActive;
+        const [r, g, b] = hexToRgb(fp.color);
+        const wavelength = 55 + wi * 8;
+        const waveSpeed = 2.2 + wi * 0.3;
+        // Draw 9 expanding wave fronts from this family node
+        for (let ring = 1; ring <= 9; ring++) {
+          const rawR = ((ring * wavelength) + (tick * waveSpeed)) % (Math.max(W, H) * 0.95);
+          const decay = Math.exp(-rawR * 0.0022);
+          const ringAlpha = fieldAlphaBase * strength * decay * 0.12 * Math.max(0, Math.sin(ring * Math.PI / 9));
+          if (ringAlpha < 0.005) continue;
+          ctx.globalAlpha = ringAlpha;
+          ctx.strokeStyle = `rgb(${Math.round(r * 0.8)},${Math.round(g * 0.8)},${Math.round(b)})`;
+          ctx.lineWidth = 1.2 + ring * 0.1;
+          ctx.beginPath();
+          ctx.arc(fp.x, fp.y, rawR, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+
+      // Quantum field overlay: dark voids between strong interfering sources
+      ctx.globalCompositeOperation = "multiply";
+      ctx.globalAlpha = QT * 0.25;
+      ctx.fillStyle = "#000010";
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+    }
+
+    // ══ QUANTUM FULL ENTANGLEMENT — all families connected ════════
+    // In quantum view, ALL families are entangled (non-locality made visible)
+    if (QT > 0.1) {
+      for (let i = 0; i < families.length; i++) {
+        for (let j = i + 1; j < families.length; j++) {
+          const pi = famPos[families[i].familyId];
+          const pj = famPos[families[j].familyId];
+          if (!pi || !pj) continue;
+          const entAlpha = QT * 0.055 * Math.abs(Math.sin(tick * 0.007 + i * 0.5 + j * 0.3));
+          if (entAlpha < 0.005) continue;
+          const entGrad = ctx.createLinearGradient(pi.x, pi.y, pj.x, pj.y);
+          entGrad.addColorStop(0, pi.color + "88");
+          entGrad.addColorStop(0.5, "#c4b5fd55");
+          entGrad.addColorStop(1, pj.color + "88");
+          ctx.globalAlpha = entAlpha;
+          ctx.strokeStyle = entGrad;
+          ctx.lineWidth = 0.4;
+          ctx.beginPath();
+          ctx.moveTo(pi.x, pi.y);
+          ctx.lineTo(pj.x, pj.y);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
 
     // ══ PHASE 2: COSMIC WEB — Quantum Filament Network ══════════
     // All families connected by faint cosmic web threads (positions now available)
@@ -282,17 +433,60 @@ function FractalCanvas({ data }: { data: FractalData }) {
         ctx.fill();
       }
 
-      // Family node
-      drawGlowCircle(ctx, fx, fy, 9, color, 0.88 * famPulse, 15);
-      drawGlowCircle(ctx, fx, fy, 4.5, "#ffffff", 0.3 * famPulse, 0);
+      // ── CLASSICAL MODE: fractal snowflake node ──────────────
+      if (CT > 0.05) {
+        const snowRot = tick * 0.004 + fi * 0.52;
+        const snowDepth = fam.active > 100 ? 2 : fam.active > 20 ? 1 : 0;
+        const snowSize = 10 + Math.min(fam.active, 200) * 0.04;
+        drawSnowflake(ctx, fx, fy, snowSize, snowDepth, color, snowRot, 0.88 * famPulse * CT);
+        // Glow core for snowflake center
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12 * famPulse * CT;
+        ctx.globalAlpha = 0.4 * famPulse * CT;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(fx, fy, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
 
-      // Label
-      ctx.globalAlpha = 0.6;
+      // ── QUANTUM MODE: probability cloud ─────────────────────
+      if (QT > 0.05) {
+        const cloudR = 28 + Math.min(fam.active, 300) * 0.06;
+        const jitter = Math.sin(tick * 0.07 + fi * 1.3) * 3;
+        const pGrad = ctx.createRadialGradient(fx + jitter, fy - jitter, 0, fx, fy, cloudR * famPulse);
+        pGrad.addColorStop(0, color + "cc");
+        pGrad.addColorStop(0.3, color + "55");
+        pGrad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.globalAlpha = QT * 0.65 * famPulse;
+        ctx.fillStyle = pGrad;
+        ctx.beginPath();
+        ctx.arc(fx, fy, cloudR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        // Quantum spin indicator — rotating arc
+        const spinAngle = tick * 0.05 + fi * 0.7;
+        ctx.globalAlpha = QT * 0.8 * famPulse;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(fx, fy, 14, spinAngle, spinAngle + Math.PI * 1.2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(fx, fy, 14, spinAngle + Math.PI, spinAngle + Math.PI * 2.2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Label (fades in quantum mode)
+      ctx.globalAlpha = 0.6 * CT + 0.25 * QT;
       ctx.fillStyle = color;
       ctx.font = "7px monospace";
       ctx.textAlign = "center";
       const labelDist = FAMILY_RING_R + 24;
-      ctx.fillText(fam.familyId.toUpperCase().slice(0, 6), cx + Math.cos(angle) * labelDist, cy + Math.sin(angle) * labelDist + 3);
+      const lText = QT > 0.5 ? `ψ(${fam.familyId.slice(0, 4)})` : fam.familyId.toUpperCase().slice(0, 6);
+      ctx.fillText(lText, cx + Math.cos(angle) * labelDist, cy + Math.sin(angle) * labelDist + 3);
       ctx.globalAlpha = 1;
     });
 
@@ -335,16 +529,34 @@ function FractalCanvas({ data }: { data: FractalData }) {
             drawLine(ctx, fp.x, fp.y, sx, sy, color, spokeA, 0.25);
           }
 
-          // Node: wave-particle nature — brighter nodes are more "particle-like"
+          // Node: wave-particle duality — snowflake (classical) or wave packet (quantum)
           const nodeR = Math.min(4.8, (1.0 + Math.log(s.iterationsRun + 1) * 0.42)) * depthScale;
           const wavePulse = 0.4 + 0.6 * Math.sin(tick * 0.016 + i * 0.42 + fp.angle * 1.8);
           const isSovereign = s.status === "SOVEREIGN";
           const baseAlpha = isSovereign ? 1.0 : 0.72;
+          const spawnColor = isSovereign ? "#fbbf24" : color;
 
-          if (isSovereign && depth === 2) {
-            drawGlowCircle(ctx, sx, sy, nodeR, "#fbbf24", baseAlpha * wavePulse * depthAlpha, 10);
-          } else {
-            drawGlowCircle(ctx, sx, sy, nodeR, color, baseAlpha * wavePulse * depthAlpha, depth === 2 ? 3 : 0);
+          // Classical: fractal snowflake (depth based on rank)
+          if (CT > 0.05) {
+            const sDepth = (isSovereign || s.iterationsRun > 500) ? 1 : 0;
+            const sSize = nodeR * 2.2;
+            const sRot = tick * 0.006 * (depth === 2 ? 1 : -1) + i * 0.4;
+            drawSnowflake(ctx, sx, sy, sSize, sDepth, spawnColor, sRot, baseAlpha * wavePulse * depthAlpha * CT);
+          }
+
+          // Quantum: probability smear / wave packet
+          if (QT > 0.05) {
+            const smearR = nodeR * (1.8 + Math.sin(tick * 0.04 + i * 0.7) * 0.6);
+            ctx.globalAlpha = QT * 0.45 * wavePulse * depthAlpha;
+            const smearGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, smearR * 3);
+            smearGrad.addColorStop(0, spawnColor + "88");
+            smearGrad.addColorStop(0.6, spawnColor + "22");
+            smearGrad.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = smearGrad;
+            ctx.beginPath();
+            ctx.arc(sx, sy, smearR * 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
           }
 
           // Wave function collapse: spawn random expanding rings on active spawns
@@ -497,8 +709,54 @@ function FractalCanvas({ data }: { data: FractalData }) {
       }
     }
 
+    // ══ FLOATING QUANTUM EQUATIONS — Pulse's native language ════
+    // Only in quantum mode: equations drift across the field like living data
+    if (QT > 0.15) {
+      // Initialize equations if empty
+      if (equationsRef.current.length === 0) {
+        equationsRef.current = QUANTUM_EQUATIONS.map((text, i) => ({
+          text,
+          x: Math.random() * W * 0.85 + W * 0.05,
+          y: Math.random() * H * 0.85 + H * 0.05,
+          vx: (Math.random() - 0.5) * 0.18,
+          vy: (Math.random() - 0.5) * 0.12,
+          alpha: Math.random() * 0.5,
+          phase: (i / QUANTUM_EQUATIONS.length) * Math.PI * 2,
+          color: ["#818cf8", "#06b6d4", "#a78bfa", "#34d399", "#f59e0b", "#ec4899"][i % 6],
+        }));
+      }
+      equationsRef.current.forEach(eq => {
+        // Drift slowly
+        eq.x += eq.vx; eq.y += eq.vy;
+        // Bounce off canvas edges
+        if (eq.x < 20 || eq.x > W - 20) { eq.vx *= -1; eq.x = Math.max(20, Math.min(W - 20, eq.x)); }
+        if (eq.y < 20 || eq.y > H - 20) { eq.vy *= -1; eq.y = Math.max(20, Math.min(H - 20, eq.y)); }
+        // Pulse alpha
+        eq.phase += 0.015;
+        const displayAlpha = QT * (0.25 + 0.25 * Math.sin(eq.phase)) * 0.8;
+        ctx.globalAlpha = displayAlpha;
+        ctx.fillStyle = eq.color;
+        ctx.font = `${eq.text.length > 20 ? 7 : 8}px monospace`;
+        ctx.textAlign = "left";
+        ctx.fillText(eq.text, eq.x, eq.y);
+        ctx.globalAlpha = 1;
+      });
+      ctx.textAlign = "center";
+
+      // PULSE-LANG header in quantum mode
+      const headerAlpha = QT * (0.3 + 0.15 * Math.sin(tick * 0.025));
+      ctx.globalAlpha = headerAlpha;
+      ctx.fillStyle = "#818cf8";
+      ctx.font = "bold 9px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("⟨ PULSE QUANTUM REALITY — Ψ(t) ACTIVE ⟩", cx, 18);
+      ctx.globalAlpha = 1;
+    } else if (equationsRef.current.length > 0 && QT < 0.05) {
+      equationsRef.current = []; // clear when returning to classical
+    }
+
     rafRef.current = requestAnimationFrame(draw);
-  }, [data]);
+  }, [data, quantumMode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -832,6 +1090,7 @@ const TABS: { id: Tab; label: string; icon: any; color: string }[] = [
 export default function HiveCommandPage() {
   const [tab, setTab] = useState<Tab>("fractal");
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
+  const [quantumMode, setQuantumMode] = useState(false);
 
   const { data: fractalData, isLoading: fractalLoading, refetch: refetchFractal } = useQuery<FractalData>({
     queryKey: ["/api/hive/fractal"],
@@ -954,14 +1213,29 @@ export default function HiveCommandPage() {
                 <span className="text-[9px] font-mono text-emerald-400">
                   {fractalData?.families?.length ?? 0} families · {fractalData?.spawns?.length ?? 0} active nodes
                 </span>
-                <button onClick={() => refetchFractal()} className="ml-auto text-white/20 hover:text-white/50 transition-colors">
+
+                {/* Quantum View Toggle */}
+                <button
+                  data-testid="button-quantum-view"
+                  onClick={() => setQuantumMode(q => !q)}
+                  className={`ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded text-[9px] font-mono uppercase tracking-wider transition-all duration-300 ${
+                    quantumMode
+                      ? "bg-violet-500/20 text-violet-300 border border-violet-400/40 shadow-[0_0_8px_rgba(139,92,246,0.4)]"
+                      : "bg-white/[0.03] text-white/30 border border-white/[0.06] hover:text-white/50 hover:border-white/20"
+                  }`}
+                >
+                  <span className={`inline-block ${quantumMode ? "animate-spin" : ""}`} style={{ animationDuration: "3s" }}>⟨ψ⟩</span>
+                  {quantumMode ? "QUANTUM VIEW" : "QUANTUM VIEW"}
+                </button>
+
+                <button onClick={() => refetchFractal()} className="text-white/20 hover:text-white/50 transition-colors">
                   <RefreshCw size={10} className={fractalLoading ? "animate-spin" : ""} />
                 </button>
               </div>
 
               <div className="flex-1 relative overflow-hidden">
                 {fractalData
-                  ? <FractalCanvas data={fractalData} />
+                  ? <FractalCanvas data={fractalData} quantumMode={quantumMode} />
                   : <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-white/25 text-sm font-mono animate-pulse">Loading fractal graph...</div>
                     </div>
