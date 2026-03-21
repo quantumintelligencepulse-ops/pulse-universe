@@ -190,10 +190,11 @@ export default function AgentsPage() {
     debounceRef.current = setTimeout(() => { setDebouncedSearch(v); setPage(0); }, 350);
   }, []);
 
+  const PAGE_SIZE = 200;
   const { data, isLoading, refetch } = useQuery<{ spawns: any[]; total: number; page: number; limit: number }>({
     queryKey: ["/api/spawns/list", page, debouncedSearch, filterType, filterDomain],
     queryFn: () => {
-      const params = new URLSearchParams({ page: String(page), limit: "100" });
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (filterType) params.set("type", filterType);
       if (filterDomain) params.set("domain", filterDomain);
@@ -211,7 +212,9 @@ export default function AgentsPage() {
 
   const spawns = data?.spawns ?? [];
   const total = data?.total ?? 0;
-  const totalPages = Math.ceil(total / 100);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const from = page * PAGE_SIZE + 1;
+  const to = Math.min((page + 1) * PAGE_SIZE, total);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
@@ -273,13 +276,19 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      {/* Divider */}
+      {/* Registry header */}
       <div className="px-4 flex-shrink-0">
-        <div className="border-t border-white/6 pt-3 pb-2 flex items-center justify-between gap-3">
-          <div className="text-[9px] font-bold text-white/25 uppercase tracking-widest flex items-center gap-1.5">
-            <Brain size={8} /> All Hive Agents — {total.toLocaleString()} Total
+        <div className="border-t border-white/6 pt-3 pb-2 flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-1">
+            <Brain size={10} className="text-purple-400" />
+            <span className="text-xs font-black text-white">Full Spawn Registry</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #a855f730, #6366f130)", color: "#a855f7", border: "1px solid #a855f740" }}>
+              {total.toLocaleString()} AGENTS
+            </span>
           </div>
-          <div className="text-[9px] text-white/20">Page {page + 1} of {Math.max(1, totalPages)}</div>
+          <div className="text-[9px] text-white/30">
+            Showing <span className="text-white/60 font-bold">{from.toLocaleString()}–{to.toLocaleString()}</span> of <span className="text-white/60 font-bold">{total.toLocaleString()}</span> · Page {page + 1}/{totalPages}
+          </div>
         </div>
       </div>
 
@@ -326,26 +335,42 @@ export default function AgentsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-white/6">
-            <button onClick={() => setPage(0)} disabled={page === 0} data-testid="button-agents-first"
-              className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-30 text-xs transition-all">
-              ««
-            </button>
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} data-testid="button-agents-prev"
-              className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-30 text-xs transition-all">
-              ‹ Prev
-            </button>
-            <div className="px-4 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-bold">
-              {page + 1} / {totalPages}
+          <div className="mt-6 pt-4 border-t border-white/6">
+            <div className="text-center text-[10px] text-white/25 mb-3">
+              Showing <span className="text-white/50 font-bold">{from.toLocaleString()}–{to.toLocaleString()}</span> of <span className="text-purple-400 font-black">{total.toLocaleString()}</span> registered agents
             </div>
-            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} data-testid="button-agents-next"
-              className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-30 text-xs transition-all">
-              Next ›
-            </button>
-            <button onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1} data-testid="button-agents-last"
-              className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-30 text-xs transition-all">
-              »»
-            </button>
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <button onClick={() => setPage(0)} disabled={page === 0} data-testid="button-agents-first"
+                className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-20 text-xs transition-all font-bold">
+                ⟪ First
+              </button>
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} data-testid="button-agents-prev"
+                className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-20 text-xs transition-all">
+                ‹ Prev
+              </button>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-white/30">Page</span>
+                <input
+                  type="number" min={1} max={totalPages}
+                  value={page + 1}
+                  onChange={e => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v) && v >= 1 && v <= totalPages) setPage(v - 1);
+                  }}
+                  data-testid="input-agents-page-jump"
+                  className="w-14 bg-white/5 border border-purple-500/30 rounded px-2 py-1 text-purple-300 text-xs font-bold text-center focus:outline-none focus:border-purple-400"
+                />
+                <span className="text-[10px] text-white/30">of <span className="text-white/50 font-bold">{totalPages}</span></span>
+              </div>
+              <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} data-testid="button-agents-next"
+                className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-20 text-xs transition-all">
+                Next ›
+              </button>
+              <button onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1} data-testid="button-agents-last"
+                className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/3 text-white/40 hover:text-white disabled:opacity-20 text-xs transition-all font-bold">
+                Last ⟫
+              </button>
+            </div>
           </div>
         )}
       </div>
