@@ -15,6 +15,7 @@ import { startDomainKernelEngine } from "./domain-kernel-engine";
 import { startQuantumNewsEngine } from "./quantum-news-engine";
 import { startPyramidEngine } from "./pyramid-engine";
 import { startHospitalEngine } from "./hospital-engine";
+import { startAIVotingEngine } from "./ai-voting-engine";
 import { startDecayEngine } from "./decay-engine";
 import { startPulseUEngine } from "./pulseu-engine";
 import { startHiveEconomy } from "./hive-economy";
@@ -134,6 +135,7 @@ app.use((req, res, next) => {
         seedDoctors().catch(() => {});
         setInterval(() => runDissectionCycle().catch(() => {}), 60000);
       }).catch(() => {});
+      startAIVotingEngine().catch((e) => log(`AIVotingEngine start error: ${e}`));
       startDecayEngine().catch((e) => log(`DecayEngine start error: ${e}`));
       startPulseUEngine();
       startHiveEconomy();

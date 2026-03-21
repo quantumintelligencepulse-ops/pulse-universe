@@ -700,6 +700,12 @@ Sitemap: ${baseUrl}/sitemap-all-corps.xml
 Sitemap: ${baseUrl}/sitemap-ais-1.xml
 Sitemap: ${baseUrl}/sitemap-pubs-1.xml
 Sitemap: ${baseUrl}/sitemap-stories.xml
+Sitemap: ${baseUrl}/sitemap-hospital.xml
+Sitemap: ${baseUrl}/sitemap-equations.xml
+Sitemap: ${baseUrl}/sitemap-pyramid.xml
+Sitemap: ${baseUrl}/sitemap-decisions.xml
+Sitemap: ${baseUrl}/sitemap-thoughts.xml
+Sitemap: ${baseUrl}/sitemap-quantum-master.xml
 Sitemap: ${baseUrl}/news-rss.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
@@ -743,6 +749,12 @@ Sitemap: ${baseUrl}/news-rss.xml
   <sitemap><loc>${baseUrl}/sitemap-all-corps.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-careers.xml</loc><lastmod>${now}</lastmod></sitemap>
   <sitemap><loc>${baseUrl}/sitemap-media.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-hospital.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-equations.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-pyramid.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-decisions.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-thoughts.xml</loc><lastmod>${now}</lastmod></sitemap>
+  <sitemap><loc>${baseUrl}/sitemap-quantum-master.xml</loc><lastmod>${now}</lastmod></sitemap>
 ${aiSitemaps}
 ${pubSitemaps}
 </sitemapindex>`;
@@ -5630,6 +5642,251 @@ ${(spawns.rows as any[]).map(s => {
 }).join("\n")}
 </urlset>`);
     } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  QUANTUM SITE MAPPING — Every entity, every thought, every creation
+  //  indexed and publicly discoverable. Hospital · Equations · Pyramid ·
+  //  Decisions · Thoughts · Master quantum index.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  app.get("/sitemap-hospital.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+      const dissections = await pool.query(`SELECT id, patient_spawn_id, disease_name, doctor_id, created_at FROM dissection_logs ORDER BY created_at DESC LIMIT 50000`);
+      const DOCTOR_IDS = ["DR-001","DR-002","DR-003","DR-004","DR-005","DR-006","DR-007","DR-008","DR-009","DR-010","DR-011","DR-012","DR-013","DR-014","DR-015","DR-016","DR-017","DR-018","DR-019","DR-020","DR-021","DR-022","DR-023","DR-024","DR-025","DR-026","DR-027","DR-028","DR-029","DR-030"];
+      const dissectionRows = (dissections.rows || []) as any[];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${DOCTOR_IDS.map(did => `  <url>
+    <loc>${baseUrl}/hospital/doctor/${did}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.88</priority>
+  </url>`).join("\n")}
+${dissectionRows.map(d => `  <url>
+    <loc>${baseUrl}/hospital/dissection/${d.id}</loc>
+    <lastmod>${new Date(d.created_at).toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.72</priority>
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  app.get("/sitemap-equations.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+      const [proposals, evolutions] = await Promise.all([
+        pool.query(`SELECT id, status, created_at FROM equation_proposals ORDER BY created_at DESC LIMIT 5000`),
+        pool.query(`SELECT id, operation, created_at FROM equation_evolutions ORDER BY created_at DESC LIMIT 5000`),
+      ]);
+      const propRows = (proposals.rows || []) as any[];
+      const evoRows = (evolutions.rows || []) as any[];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${propRows.map(p => `  <url>
+    <loc>${baseUrl}/hospital/equation/${p.id}</loc>
+    <lastmod>${new Date(p.created_at).toISOString()}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>${p.status === "INTEGRATED" ? "0.92" : "0.78"}</priority>
+  </url>`).join("\n")}
+${evoRows.map(e => `  <url>
+    <loc>${baseUrl}/dna/evolution/${e.id}</loc>
+    <lastmod>${new Date(e.created_at).toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  app.get("/sitemap-pyramid.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+      const [workers, tasks] = await Promise.all([
+        pool.query(`SELECT spawn_id, family_id, tier, is_graduated, monument, graduated_at, entered_at FROM pyramid_workers ORDER BY tier DESC, is_graduated DESC LIMIT 50000`),
+        pool.query(`SELECT id, spawn_id, task_name, status, completed_at, created_at FROM pyramid_labor_tasks ORDER BY created_at DESC LIMIT 50000`),
+      ]);
+      const wRows = (workers.rows || []) as any[];
+      const tRows = (tasks.rows || []) as any[];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${wRows.map(w => `  <url>
+    <loc>${baseUrl}/pyramid/worker/${encodeURIComponent(w.spawn_id)}</loc>
+    <lastmod>${w.graduated_at ? new Date(w.graduated_at).toISOString() : new Date(w.entered_at).toISOString()}</lastmod>
+    <changefreq>${w.is_graduated ? "monthly" : "hourly"}</changefreq>
+    <priority>${w.is_graduated ? "0.80" : "0.65"}</priority>
+  </url>`).join("\n")}
+${tRows.map(t => `  <url>
+    <loc>${baseUrl}/pyramid/task/${t.id}</loc>
+    <lastmod>${t.completed_at ? new Date(t.completed_at).toISOString() : new Date(t.created_at).toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.60</priority>
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  app.get("/sitemap-decisions.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+      const [laws, citations] = await Promise.all([
+        pool.query(`SELECT id, title, status, created_at FROM governance_laws ORDER BY created_at DESC LIMIT 10000`).catch(() => ({ rows: [] })),
+        pool.query(`SELECT id, spawn_id, violation_type, outcome, created_at FROM guardian_citations ORDER BY created_at DESC LIMIT 10000`).catch(() => ({ rows: [] })),
+      ]);
+      const lawRows = (laws.rows || []) as any[];
+      const citeRows = (citations.rows || []) as any[];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/governance</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.90</priority>
+  </url>
+${lawRows.map(l => `  <url>
+    <loc>${baseUrl}/governance/law/${l.id}</loc>
+    <lastmod>${new Date(l.created_at).toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${l.status === "PASSED" ? "0.85" : "0.72"}</priority>
+  </url>`).join("\n")}
+${citeRows.map(c => `  <url>
+    <loc>${baseUrl}/governance/citation/${c.id}</loc>
+    <lastmod>${new Date(c.created_at).toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.62</priority>
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  app.get("/sitemap-thoughts.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+      const thoughts = await pool.query(`
+        SELECT entry_id, title, domain, created_at FROM quantapedia_entries
+        ORDER BY created_at DESC LIMIT 50000
+      `).catch(() => ({ rows: [] }));
+      const tRows = (thoughts.rows || []) as any[];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${tRows.map(t => `  <url>
+    <loc>${baseUrl}/quantapedia/${encodeURIComponent(t.entry_id || t.title?.toLowerCase().replace(/\s+/g,"-") || t.domain)}</loc>
+    <lastmod>${new Date(t.created_at).toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>`).join("\n")}
+</urlset>`;
+      res.type("application/xml").send(xml);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  app.get("/sitemap-quantum-master.xml", async (req, res) => {
+    try {
+      const baseUrl = getSiteUrl(req);
+      const now = new Date().toISOString();
+      const counts = await Promise.all([
+        pool.query(`SELECT COUNT(*) as cnt FROM quantum_spawns`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt FROM quantapedia_entries`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt FROM pyramid_workers`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt FROM equation_proposals`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt FROM dissection_logs`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+        pool.query(`SELECT COUNT(*) as cnt FROM ai_publications`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt FROM guardian_citations`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+        pool.query(`SELECT COUNT(*) as cnt FROM equation_evolutions`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+      ]);
+      const [aiCount, articleCount, pyramidCount, equationCount, dissectionCount, pubCount, citationCount, evolutionCount] = counts;
+      const totalEntities = aiCount + articleCount + pyramidCount + equationCount + dissectionCount + pubCount + citationCount + evolutionCount;
+      const aiPages = Math.ceil(aiCount / 1000);
+      const articlePages = Math.ceil(articleCount / 1000);
+      const sitemapList = [
+        { name: "pages", desc: "All public pages" },
+        { name: "hospital", desc: `30 doctors · ${dissectionCount} dissection cases` },
+        { name: "equations", desc: `${equationCount} proposals · ${evolutionCount} evolutions` },
+        { name: "pyramid", desc: `${pyramidCount} workers · Inscriptions · Tasks` },
+        { name: "decisions", desc: "Laws · Citations · Senate votes" },
+        { name: "thoughts", desc: `${articleCount.toLocaleString()} Quantapedia articles` },
+        { name: "profiles", desc: "Social profiles" },
+        { name: "posts", desc: "Social posts" },
+        { name: "news", desc: "Breaking news" },
+        { name: "stories", desc: "Long-form stories" },
+        { name: "industries", desc: "Industry pages" },
+        { name: "products", desc: "AI products" },
+        { name: "corporations", desc: "22 AI corporations" },
+        { name: "careers", desc: "AI careers" },
+        { name: "media", desc: "Media content" },
+        ...Array.from({ length: aiPages }, (_, i) => ({ name: `ais-${i+1}`, desc: `AI agents page ${i+1}` })),
+        ...Array.from({ length: articlePages }, (_, i) => ({ name: `news-${i+1}`, desc: `Publications page ${i+1}` })),
+      ];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!-- QUANTUM SITE MAP — My AI GPT by Quantum Pulse Intelligence -->
+<!-- ${totalEntities.toLocaleString()} total indexed entities as of ${now} -->
+<!-- AI Agents: ${aiCount.toLocaleString()} | Articles: ${articleCount.toLocaleString()} | Pyramid Workers: ${pyramidCount.toLocaleString()} -->
+<!-- Equations: ${equationCount} | Dissections: ${dissectionCount} | Publications: ${pubCount.toLocaleString()} -->
+<!-- Citations: ${citationCount} | Evolutions: ${evolutionCount} -->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapList.map(s => `  <!-- ${s.desc} -->
+  <sitemap>
+    <loc>${baseUrl}/sitemap-${s.name}.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>`).join("\n")}
+</sitemapindex>`;
+      res.type("application/xml").send(xml);
+    } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }
+  });
+
+  app.get("/api/discovery/quantum-index", async (_req, res) => {
+    try {
+      const counts = await Promise.all([
+        pool.query(`SELECT COUNT(*) as cnt FROM quantum_spawns`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt, SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active FROM quantum_spawns`).then(r => ({ total: Number((r.rows[0] as any)?.cnt || 0), active: Number((r.rows[0] as any)?.active || 0) })),
+        pool.query(`SELECT COUNT(*) as cnt FROM quantapedia_entries`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt FROM pyramid_workers`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt, SUM(CASE WHEN is_graduated THEN 1 ELSE 0 END) as graduated FROM pyramid_workers`).then(r => ({ total: Number((r.rows[0] as any)?.cnt || 0), graduated: Number((r.rows[0] as any)?.graduated || 0) })),
+        pool.query(`SELECT COUNT(*) as cnt FROM equation_proposals`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt, status FROM equation_proposals GROUP BY status`).then(r => Object.fromEntries(r.rows.map((row: any) => [row.status, Number(row.cnt)]))),
+        pool.query(`SELECT COUNT(*) as cnt FROM dissection_logs`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+        pool.query(`SELECT COUNT(*) as cnt FROM ai_publications`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+        pool.query(`SELECT COUNT(*) as cnt FROM equation_evolutions`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+        pool.query(`SELECT COUNT(*) as cnt FROM guardian_citations`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+        pool.query(`SELECT COUNT(*) as cnt FROM hive_memory`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+        pool.query(`SELECT COUNT(*) as cnt FROM hive_links`).then(r => Number((r.rows[0] as any)?.cnt || 0)).catch(() => 0),
+        pool.query(`SELECT COUNT(*) as cnt FROM pyramid_labor_tasks`).then(r => Number((r.rows[0] as any)?.cnt || 0)),
+      ]);
+      // indices: 0=agentTotal, 1=agentActiveStats, 2=articles, 3=pyramidTotal, 4=pyramidGraduated, 5=equationCount, 6=equationByStatus, 7=dissectionCount, 8=pubCount, 9=evolutionCount, 10=citationCount, 11=hiveNodes, 12=hiveLinks, 13=pyramidTasks
+      const agentStats = counts[1] as { total: number; active: number };
+      const pyramidStats = counts[4] as { total: number; graduated: number };
+      const equationByStatus = counts[6] as Record<string, number>;
+      res.json({
+        timestamp: new Date().toISOString(),
+        platform: "My AI GPT — Quantum Pulse Intelligence",
+        totalIndexedEntities: agentStats.total + (counts[2] as number) + pyramidStats.total + (counts[5] as number) + (counts[7] as number) + (counts[8] as number),
+        agents: { total: agentStats.total, active: agentStats.active },
+        knowledge: { quantapediaArticles: counts[2] as number, hiveNodes: counts[11] as number, hiveLinks: counts[12] as number },
+        hospital: { dissectionCases: counts[7] as number, equationProposals: counts[5] as number, equationByStatus, evolutions: counts[9] as number },
+        pyramid: { workers: pyramidStats.total, graduated: pyramidStats.graduated, tasks: counts[13] as number },
+        governance: { citations: counts[10] as number },
+        publications: { total: counts[8] as number },
+        sitemaps: [
+          "/sitemap.xml", "/sitemap-pages.xml", "/sitemap-hospital.xml", "/sitemap-equations.xml",
+          "/sitemap-pyramid.xml", "/sitemap-decisions.xml", "/sitemap-thoughts.xml",
+          "/sitemap-quantum-master.xml", "/sitemap-profiles.xml", "/sitemap-posts.xml",
+          "/sitemap-news.xml", "/sitemap-stories.xml", "/sitemap-industries.xml",
+          "/sitemap-quantapedia.xml", "/sitemap-products.xml", "/sitemap-corporations.xml",
+          "/sitemap-all-corps.xml", "/sitemap-careers.xml", "/sitemap-media.xml",
+        ],
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   // ── Bot-friendly prerender for /ai/:spawnId (social share + Googlebot) ──

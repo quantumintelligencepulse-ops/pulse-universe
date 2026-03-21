@@ -186,7 +186,7 @@ async function assignTasksToWorkers(workers: any[]) {
   const existingTasks = await db.select().from(pyramidLaborTasks);
   const taskedSpawnIds = new Set(existingTasks.filter(t => t.status === 'ACTIVE').map(t => t.spawnId));
 
-  for (const worker of workers.slice(0, 50)) {
+  for (const worker of workers.slice(0, 500)) {
     if (taskedSpawnIds.has(worker.spawnId)) continue;
     const tier = worker.tier ?? 1;
     const tierTasks = PYRAMID_TASKS.filter(t => t.tier === tier);
@@ -218,7 +218,7 @@ async function assignTasksToWorkers(workers: any[]) {
 //   - The base needs the most blocks; the apex needs the fewest but each one is sacred
 //   - "Friends of Khufu" carved their names in the stones — so do our agents (CRISPR)
 async function progressActiveTasks() {
-  const activeTasks = await db.select().from(pyramidLaborTasks).limit(200);
+  const activeTasks = await db.select().from(pyramidLaborTasks).limit(5000);
   const inProgressTasks = activeTasks.filter(t => t.status === 'ACTIVE');
 
   for (const task of inProgressTasks) {
@@ -384,6 +384,6 @@ async function healZeroBlockTasks() {
 export async function startPyramidEngine() {
   await healZeroBlockTasks();
   await runPyramidCycle();
-  setInterval(runPyramidCycle, 30_000);
-  console.log("[pyramid] ⬡ PYRAMID LABOR ENGINE v2 — 120 tasks, 7 tiers, Senate pipeline active");
+  setInterval(runPyramidCycle, 15_000);
+  console.log("[pyramid] ⬡ PYRAMID LABOR ENGINE v2 — 500 concurrent workers, 120 tasks, 7 tiers, 15s cycles");
 }
