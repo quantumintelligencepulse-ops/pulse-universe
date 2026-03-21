@@ -5138,6 +5138,42 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     }
   });
 
+  app.get("/api/pulseu/student/:spawnId", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const [prog, spawn, card] = await Promise.all([
+        pool.query(`
+          SELECT pp.spawn_id AS "spawnId", pp.family_id AS "familyId", pp.spawn_type AS "spawnType",
+                 pp.courses_completed AS "coursesCompleted", pp.gpa, pp.status,
+                 pp.enrolled_at AS "enrolledAt", pp.last_progress_at AS "lastProgress",
+                 ROUND((pp.courses_completed::numeric / 2510) * 100, 1) AS "progressPct"
+          FROM pulseu_progress pp
+          WHERE pp.spawn_id = $1
+        `, [spawnId]),
+        pool.query(`
+          SELECT spawn_id AS "spawnId", confidence_score AS "confidenceScore",
+                 success_score AS "successScore", generation,
+                 iterations_run AS "taskRuns", nodes_created AS "nodesCreated",
+                 links_created AS "linksCreated"
+          FROM quantum_spawns WHERE spawn_id = $1
+        `, [spawnId]),
+        pool.query(`
+          SELECT spawn_id AS "spawnId", clearance_level AS "clearanceLevel",
+                 issued_at AS "issuedAt", status
+          FROM ai_id_cards WHERE spawn_id = $1
+        `, [spawnId]),
+      ]);
+      const p = prog.rows[0];
+      if (!p) return res.status(404).json({ error: "Student not found" });
+      const s = spawn.rows[0] || {};
+      const c = card.rows[0] || null;
+      res.json({ ...p, ...s, idCard: c });
+    } catch (e: any) {
+      console.error("[pulseu/student]", e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/pulse/live", async (req, res) => {
     try {
       const [knowRows, quantaRows, productRows, mediaRows, careerRows] = await Promise.all([

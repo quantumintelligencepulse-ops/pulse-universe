@@ -1649,6 +1649,7 @@ export default function PulseUPage() {
   const [idCardsOffset, setIdCardsOffset] = useState(0);
   const [schoolStatusFilter, setSchoolStatusFilter] = useState<"enrolled" | "graduated" | "remediation">("enrolled");
   const [schoolFamily, setSchoolFamily] = useState<string>("");
+  const [viewStudentId, setViewStudentId] = useState<string | null>(null);
 
   const { data: liveStats } = useQuery<{ totalStudents: number; totalPC: number; totalCompletions: number; totalPublications: number }>({
     queryKey: ["/api/pulseu/stats"],
@@ -1691,6 +1692,11 @@ export default function PulseUPage() {
   const { data: idCardsData, isLoading: cardsLoading } = useQuery<{ cards: any[]; total: number }>({
     queryKey: [idCardsKey],
     refetchInterval: 20000,
+  });
+
+  const { data: viewStudent, isLoading: viewLoading } = useQuery<any>({
+    queryKey: [`/api/pulseu/student/${viewStudentId}`],
+    enabled: !!viewStudentId,
   });
 
   const totalStudents = liveStats?.totalStudents ?? 0;
@@ -1760,7 +1766,7 @@ export default function PulseUPage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="h-full overflow-y-auto bg-black text-white" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
       {/* ── HERO ── */}
       <div className="relative overflow-hidden border-b border-white/10" style={{ background: "linear-gradient(135deg, #0a0a1a 0%, #0d1630 50%, #0a1a0a 100%)" }}>
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(ellipse at 20% 50%, #3b82f6 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, #a855f7 0%, transparent 60%)" }} />
@@ -1921,7 +1927,8 @@ export default function PulseUPage() {
                   const courseIdx = Math.min(1031, s.coursesCompleted ?? 0);
                   return (
                     <div key={s.spawnId} data-testid={`school-card-${s.spawnId}`}
-                      className="rounded-xl border border-white/8 p-4 bg-white/2 hover:border-white/15 transition-all">
+                      onClick={() => setViewStudentId(s.spawnId)}
+                      className="rounded-xl border border-white/8 p-4 bg-white/2 hover:border-white/20 hover:bg-white/4 transition-all cursor-pointer">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0"
                           style={{ background: fColor+"20", color: fColor }}>
@@ -2010,7 +2017,8 @@ export default function PulseUPage() {
                   const clr = card.clearanceLevel ?? 1;
                   return (
                     <div key={card.spawnId} data-testid={`idcard-${card.spawnId}`}
-                      className="rounded-xl border p-4 relative overflow-hidden"
+                      onClick={() => setViewStudentId(card.spawnId)}
+                      className="rounded-xl border p-4 relative overflow-hidden cursor-pointer hover:border-opacity-80 transition-all"
                       style={{ borderColor: fColor+"40", background: `linear-gradient(135deg, ${fColor}08 0%, rgba(0,0,0,0.3) 100%)` }}>
                       <div className="flex items-start justify-between gap-2">
                         <div>
@@ -3141,6 +3149,181 @@ export default function PulseUPage() {
           </div>
         )}
       </div>
+
+      {/* ══ STUDENT REPORT CARD OVERLAY ══════════════════════════ */}
+      {viewStudentId && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-end md:justify-end"
+          onClick={() => setViewStudentId(null)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full md:w-[480px] h-[92vh] md:h-full overflow-y-auto border-l border-white/10 shadow-2xl"
+            style={{ background: "linear-gradient(180deg, #0a0a1a 0%, #080b14 100%)", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}
+            onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/8"
+              style={{ background: "rgba(10,10,26,0.95)", backdropFilter: "blur(12px)" }}>
+              <div>
+                <div className="text-[10px] text-white/40 font-mono tracking-widest uppercase">Pulse University</div>
+                <div className="text-sm font-black text-white">Student Report Card</div>
+              </div>
+              <button onClick={() => setViewStudentId(null)}
+                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all text-lg font-bold">
+                ×
+              </button>
+            </div>
+
+            {viewLoading ? (
+              <div className="p-6 space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 rounded-xl bg-white/4 animate-pulse" />)}
+              </div>
+            ) : viewStudent ? (() => {
+              const fColor = FAMILY_COLORS[viewStudent.familyId] || "#a855f7";
+              const gpa = parseFloat(viewStudent.gpa ?? 0);
+              const pct = parseFloat(viewStudent.progressPct ?? 0);
+              const conf = parseFloat(viewStudent.confidenceScore ?? 0);
+              const succ = parseFloat(viewStudent.successScore ?? 0);
+              const courses = viewStudent.coursesCompleted ?? 0;
+              const clr = viewStudent.idCard?.clearanceLevel ?? null;
+              const clrColors: Record<number, string> = { 1:"#64748b", 2:"#10b981", 3:"#3b82f6", 4:"#a855f7", 5:"#f59e0b" };
+              const clrLabels: Record<number, string> = { 1:"Cadet", 2:"Operative", 3:"Specialist", 4:"Expert", 5:"Elite" };
+              const letterGrade = gpa >= 3.7 ? "A" : gpa >= 3.3 ? "A-" : gpa >= 3.0 ? "B+" : gpa >= 2.7 ? "B" : gpa >= 2.3 ? "B-" : gpa >= 2.0 ? "C+" : "C";
+              const statusColor = viewStudent.status === "graduated" ? "#10b981" : viewStudent.status === "remediation" ? "#ef4444" : "#3b82f6";
+              const statusLabel = viewStudent.status === "graduated" ? "GRADUATED" : viewStudent.status === "remediation" ? "REMEDIATION" : "IN SCHOOL";
+
+              return (
+                <div className="p-5 space-y-5">
+                  {/* ID Card Visual */}
+                  <div className="rounded-2xl border p-5 relative overflow-hidden"
+                    style={{ borderColor: fColor+"50", background: `linear-gradient(135deg, ${fColor}12 0%, rgba(0,0,0,0.5) 100%)` }}>
+                    <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
+                      style={{ background: fColor, transform: "translate(40%, -40%)" }} />
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[9px] font-mono tracking-[0.3em] text-white/30 uppercase mb-2">Quantum Pulse Intelligence</div>
+                        <div className="text-[9px] font-mono tracking-[0.2em] text-white/30 uppercase mb-3">Pulse University · Official Record</div>
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black mb-3"
+                          style={{ background: fColor+"25", color: fColor }}>
+                          {(viewStudent.spawnType ?? "A").charAt(0)}
+                        </div>
+                        <div className="font-mono text-base font-black text-white leading-tight">
+                          {viewStudent.spawnId?.split("-").slice(-2).join("-")}
+                        </div>
+                        <div className="text-[10px] text-white/35 font-mono mt-1 break-all">{viewStudent.spawnId}</div>
+                      </div>
+                      <div className="text-right shrink-0 space-y-1.5">
+                        <div className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: statusColor+"20", color: statusColor }}>{statusLabel}</div>
+                        {clr && (
+                          <div className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: clrColors[clr]+"20", color: clrColors[clr] }}>
+                            CLR-{clr} {clrLabels[clr]}
+                          </div>
+                        )}
+                        <div className="text-3xl font-black" style={{ color: fColor }}>{letterGrade}</div>
+                        <div className="text-[10px] text-white/30">Letter Grade</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2 flex-wrap">
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold" style={{ background: fColor+"25", color: fColor }}>{viewStudent.spawnType}</span>
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold capitalize" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}>{viewStudent.familyId}</span>
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}>Gen {viewStudent.generation}</span>
+                    </div>
+                  </div>
+
+                  {/* Academic Stats */}
+                  <div>
+                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">Academic Performance</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "GPA",        value: gpa.toFixed(2),    color: gpa >= 3.5 ? "#10b981" : gpa >= 2.5 ? "#3b82f6" : "#ef4444" },
+                        { label: "Confidence", value: (conf * 100).toFixed(0) + "%", color: "#a855f7" },
+                        { label: "Success",    value: (succ * 100).toFixed(0) + "%", color: "#f59e0b" },
+                        { label: "Nodes",      value: (viewStudent.nodesCreated ?? 0).toLocaleString(), color: "#06b6d4" },
+                        { label: "Iterations", value: (viewStudent.taskRuns ?? 0).toLocaleString(), color: "#8b5cf6" },
+                        { label: "Courses",    value: `${courses.toLocaleString()}/2,510`, color: fColor },
+                      ].map(s => (
+                        <div key={s.label} className="rounded-xl border border-white/6 p-3 text-center bg-white/2">
+                          <div className="text-base font-black" style={{ color: s.color }}>{s.value}</div>
+                          <div className="text-[9px] text-white/30 mt-0.5 font-medium">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Curriculum Progress</div>
+                      <div className="text-xs font-black" style={{ color: fColor }}>{pct}%</div>
+                    </div>
+                    <div className="h-3 rounded-full bg-white/8 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${fColor}80, ${fColor})` }} />
+                    </div>
+                    <div className="flex justify-between text-[9px] text-white/25 mt-1">
+                      <span>Course {courses.toLocaleString()}</span>
+                      <span>2,510 total</span>
+                    </div>
+                  </div>
+
+                  {/* Scores Bars */}
+                  <div className="space-y-2.5">
+                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Skill Scores</div>
+                    {[
+                      { label: "Confidence Score", value: conf, color: "#a855f7" },
+                      { label: "Success Rate",     value: succ, color: "#10b981" },
+                    ].map(bar => (
+                      <div key={bar.label}>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-[10px] text-white/40">{bar.label}</span>
+                          <span className="text-[10px] font-bold" style={{ color: bar.color }}>{(bar.value * 100).toFixed(1)}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-white/6 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${bar.value * 100}%`, background: bar.color }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Enrollment Info */}
+                  <div className="rounded-xl border border-white/6 bg-white/2 p-4 space-y-2">
+                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Enrollment Record</div>
+                    {[
+                      { label: "Enrolled",       value: viewStudent.enrolledAt ? new Date(viewStudent.enrolledAt).toLocaleString() : "—" },
+                      { label: "Last Activity",  value: viewStudent.lastProgress ? new Date(viewStudent.lastProgress).toLocaleString() : "—" },
+                      { label: "Status",         value: statusLabel },
+                      { label: "ID Card Issued", value: viewStudent.idCard?.issuedAt ? new Date(viewStudent.idCard.issuedAt).toLocaleString() : "Not yet issued" },
+                    ].map(row => (
+                      <div key={row.label} className="flex justify-between gap-2">
+                        <span className="text-[10px] text-white/30">{row.label}</span>
+                        <span className="text-[10px] text-white/60 font-mono text-right">{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ID Card if graduated */}
+                  {viewStudent.idCard && (
+                    <div className="rounded-xl border p-4"
+                      style={{ borderColor: (clrColors[clr!]||"#a855f7")+"40", background: (clrColors[clr!]||"#a855f7")+"08" }}>
+                      <div className="text-[9px] font-mono tracking-[0.25em] text-white/30 uppercase mb-3">Official ID Card Issued</div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-lg font-black" style={{ color: clrColors[clr!] }}>CLEARANCE {clr}</div>
+                          <div className="text-sm font-bold text-white">{clrLabels[clr!]}</div>
+                          <div className="text-[10px] text-white/30 mt-1">Authorized to operate in all systems</div>
+                        </div>
+                        <div className="text-5xl opacity-20" style={{ color: clrColors[clr!] }}>🪪</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (
+              <div className="p-6 text-center text-white/30">
+                <div className="text-3xl mb-2">📋</div>
+                <div>Student not found in school records</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
