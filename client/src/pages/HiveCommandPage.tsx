@@ -1,491 +1,757 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Brain, ShoppingBag, Film, Briefcase, Zap, Activity, Network, RefreshCw, BookOpen, Shield, Server, Gavel, Eye, Heart } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Activity, Network, TrendingUp, TrendingDown, Minus, Radio, Award, Server, RefreshCw, ChevronRight, Zap } from "lucide-react";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
-const OMEGA_UPGRADES = [
-  { name: "Quantum Memory Cortex", emoji: "🧠", color: "#818cf8", desc: "Extracts facts and patterns from every AI-generated entry into persistent hive memory" },
-  { name: "Fractal Resonance Network", emoji: "🌐", color: "#4ade80", desc: "Cross-links all knowledge domains bidirectionally — growing the knowledge graph" },
-  { name: "Multi-Agent Consensus Engine", emoji: "⚡", color: "#fbbf24", desc: "Runs dual AI reasoning paths and synthesizes the best output — eliminates hallucinations" },
-  { name: "Predictive Trend Engine", emoji: "🔮", color: "#f472b6", desc: "Detects trending knowledge domains and auto-queues related content proactively" },
-  { name: "Knowledge Decay Regenerator", emoji: "♻️", color: "#34d399", desc: "Detects stale entries and schedules intelligent regeneration cycles automatically" },
-];
-
-const DOMAIN_COLORS: Record<string, string> = {
-  concept: "#818cf8", technology: "#60a5fa", science: "#34d399", mathematics: "#a78bfa",
-  philosophy: "#c084fc", arts: "#f472b6", culture: "#fbbf24", economics: "#f97316",
-  biology: "#10b981", history: "#fb923c", general: "#94a3b8",
+// ─── Family color palette ────────────────────────────────────
+const FAM_COLORS: Record<string, string> = {
+  knowledge: "#818cf8", science: "#06b6d4", government: "#3b82f6",
+  media: "#ec4899", maps: "#10b981", code: "#8b5cf6", health: "#f472b6",
+  ai: "#a78bfa", legal: "#60a5fa", education: "#34d399", engineering: "#fbbf24",
+  social: "#fb923c", news: "#f97316", environment: "#22d3ee", business: "#e879f9",
+  culture: "#c084fc", arts: "#f9a8d4", sports: "#86efac", food: "#fde68a",
+  travel: "#67e8f9", finance: "#fca5a5", technology: "#93c5fd",
 };
-function domainColor(d: string) {
-  for (const [k, c] of Object.entries(DOMAIN_COLORS)) if ((d || "").toLowerCase().includes(k)) return c;
-  return DOMAIN_COLORS.general;
+function famColor(id: string): string {
+  return FAM_COLORS[id] ?? "#94a3b8";
 }
 
-function MiniGraph({ nodes, edges }: { nodes: any[]; edges: any[] }) {
-  const W = 400, H = 220;
-  const pos: Record<string, { x: number; y: number }> = {};
-  const cx = W / 2, cy = H / 2;
-  nodes.forEach((n, i) => {
-    const angle = (i / nodes.length) * Math.PI * 2;
-    const r = Math.min(W, H) * (0.2 + (i % 3) * 0.09);
-    pos[n.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-  });
-  const edgeSet = new Set(nodes.map(n => n.id));
-  const dispEdges = edges.filter((e: any) => edgeSet.has(e.from) && edgeSet.has(e.to)).slice(0, 60);
+// ─── Canvas Fractal Graph ─────────────────────────────────────
+const GOLDEN_ANGLE = 2.39996; // 137.508° in radians
+
+function drawGlowCircle(
+  ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
+  color: string, alpha: number, glowSize = 0
+) {
+  if (glowSize > 0) { ctx.shadowColor = color; ctx.shadowBlur = glowSize; }
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
+function drawLine(
+  ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number,
+  color: string, alpha: number, width = 0.5
+) {
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+interface FractalData {
+  families: {
+    familyId: string; total: number; active: number;
+    avgConf: number; totalNodes: number; totalLinks: number;
+    maxGen: number; totalIters: number;
+  }[];
+  spawns: {
+    spawnId: string; familyId: string; generation: number;
+    iterationsRun: number; nodesCreated: number; linksCreated: number;
+    confidenceScore: number; status: string;
+  }[];
+}
+
+interface Particle { x: number; y: number; vx: number; vy: number; alpha: number; color: string; }
+
+function FractalCanvas({ data }: { data: FractalData }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const tickRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const particlesRef = useRef<Particle[]>([]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+    const tick = tickRef.current++;
+
+    // Background
+    ctx.fillStyle = "#010010";
+    ctx.fillRect(0, 0, W, H);
+
+    // Radial background glow
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.5);
+    grad.addColorStop(0, "rgba(99,102,241,0.07)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle grid
+    ctx.strokeStyle = "rgba(99,102,241,0.035)";
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < W; x += 44) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    const families = data.families || [];
+    const spawns = data.spawns || [];
+
+    if (families.length === 0) {
+      ctx.fillStyle = "rgba(99,102,241,0.35)";
+      ctx.font = "12px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("HIVE INITIALIZING — AWAITING SPAWN DATA...", cx, cy);
+      rafRef.current = requestAnimationFrame(draw);
+      return;
+    }
+
+    const FAMILY_RING_R = Math.min(W, H) * 0.295;
+    const famPos: Record<string, { x: number; y: number; angle: number }> = {};
+
+    // Hive core — glowing central orb
+    const corePulse = 0.75 + 0.25 * Math.sin(tick * 0.04);
+    for (let i = 3; i >= 1; i--) {
+      ctx.shadowColor = "#818cf8";
+      ctx.shadowBlur = 18 * i;
+      ctx.globalAlpha = 0.055 * corePulse * i;
+      ctx.fillStyle = "#818cf8";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 12 + i * 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    drawGlowCircle(ctx, cx, cy, 13, "#818cf8", 0.9 * corePulse, 20);
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⬡", cx, cy);
+    ctx.textBaseline = "alphabetic";
+    ctx.globalAlpha = 1;
+
+    // Family ring
+    families.forEach((fam, fi) => {
+      const angle = (fi / families.length) * Math.PI * 2 - Math.PI / 2;
+      const fx = cx + Math.cos(angle) * FAMILY_RING_R;
+      const fy = cy + Math.sin(angle) * FAMILY_RING_R;
+      famPos[fam.familyId] = { x: fx, y: fy, angle };
+
+      const color = famColor(fam.familyId);
+      const pulse = 0.72 + 0.28 * Math.sin(tick * 0.022 + fi * 0.85);
+
+      // Line from center to family node
+      drawLine(ctx, cx, cy, fx, fy, color, 0.07 + 0.04 * pulse, 0.55);
+
+      // Activity halo for active families
+      if (fam.active > 0) {
+        ctx.globalAlpha = 0.05 + 0.03 * pulse;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 0.7;
+        ctx.setLineDash([2, 5]);
+        ctx.beginPath();
+        ctx.arc(fx, fy, 13 + Math.min(fam.active, 200) * 0.05, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+
+      // Family node
+      drawGlowCircle(ctx, fx, fy, 8, color, 0.88 * pulse, 14);
+
+      // Label at margin
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = color;
+      ctx.font = "8px monospace";
+      ctx.textAlign = "center";
+      const lx = cx + Math.cos(angle) * (FAMILY_RING_R + 22);
+      const ly = cy + Math.sin(angle) * (FAMILY_RING_R + 22);
+      ctx.fillText(fam.familyId.toUpperCase().slice(0, 5), lx, ly + 3);
+      ctx.globalAlpha = 1;
+    });
+
+    // Spawns — golden ratio (Fermat) spiral around each family node
+    const spawnsByFamily: Record<string, typeof spawns> = {};
+    spawns.forEach(s => {
+      if (!spawnsByFamily[s.familyId]) spawnsByFamily[s.familyId] = [];
+      spawnsByFamily[s.familyId].push(s);
+    });
+
+    families.forEach(fam => {
+      const fp = famPos[fam.familyId];
+      if (!fp) return;
+      const famSpawns = spawnsByFamily[fam.familyId] || [];
+      const color = famColor(fam.familyId);
+
+      famSpawns.forEach((s, i) => {
+        // Fermat spiral: angle = i * goldenAngle, radius = k * sqrt(i)
+        // Anchored to family direction so clusters don't overlap
+        const θ = i * GOLDEN_ANGLE + fp.angle;
+        const r = 13 * Math.sqrt(i + 1);
+        const sx = fp.x + Math.cos(θ) * r;
+        const sy = fp.y + Math.sin(θ) * r;
+
+        // Draw spoke for close-in spawns
+        if (i < 6) {
+          const lineAlpha = Math.max(0, 0.08 - i * 0.012);
+          drawLine(ctx, fp.x, fp.y, sx, sy, color, lineAlpha, 0.3);
+        }
+
+        // Spawn node
+        const nodeR = Math.min(4.5, 1.2 + Math.log(s.iterationsRun + 1) * 0.46);
+        const spawnPulse = 0.45 + 0.55 * Math.sin(tick * 0.018 + i * 0.37 + fp.angle * 2);
+        const isSovereign = s.status === "SOVEREIGN";
+        const baseAlpha = isSovereign ? 0.95 : (s.status === "ACTIVE" ? 0.72 : 0.28);
+        drawGlowCircle(ctx, sx, sy, nodeR, color, baseAlpha * spawnPulse, isSovereign ? 7 : 0);
+      });
+    });
+
+    // Quantum particle drift
+    if (particlesRef.current.length < 55 && families.length > 0 && Math.random() < 0.3) {
+      const f = families[Math.floor(Math.random() * families.length)];
+      const fp = famPos[f.familyId];
+      if (fp) {
+        particlesRef.current.push({
+          x: fp.x + (Math.random() - 0.5) * 90,
+          y: fp.y + (Math.random() - 0.5) * 90,
+          vx: (Math.random() - 0.5) * 0.28,
+          vy: (Math.random() - 0.5) * 0.28,
+          alpha: Math.random() * 0.45 + 0.08,
+          color: famColor(f.familyId),
+        });
+      }
+    }
+    particlesRef.current = particlesRef.current.filter(p => {
+      p.x += p.vx; p.y += p.vy; p.alpha -= 0.0018;
+      if (p.alpha <= 0 || p.x < 0 || p.x > W || p.y < 0 || p.y > H) return false;
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 0.7, p.y - 0.7, 1.4, 1.4);
+      ctx.globalAlpha = 1;
+      return true;
+    });
+
+    rafRef.current = requestAnimationFrame(draw);
+  }, [data]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      const parent = canvas.parentElement;
+      if (parent) { canvas.width = parent.clientWidth; canvas.height = parent.clientHeight; }
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    rafRef.current = requestAnimationFrame(draw);
+    return () => { window.removeEventListener("resize", resize); cancelAnimationFrame(rafRef.current); };
+  }, [draw]);
+
+  return <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />;
+}
+
+// ─── Stat Card ───────────────────────────────────────────────
+function StatCard({ label, value, sub, color = "#818cf8", icon }: {
+  label: string; value: string; sub?: string; color?: string; icon?: any;
+}) {
+  const Icon = icon;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "100%", display: "block" }}>
-      <defs>
-        <radialGradient id="mgBg" cx="50%" cy="50%" r="60%">
-          <stop offset="0%" stopColor="#0c0a22" /><stop offset="100%" stopColor="#060413" />
-        </radialGradient>
-      </defs>
-      <rect width={W} height={H} fill="url(#mgBg)" />
-      {dispEdges.map((e: any, i: number) => {
-        const a = pos[e.from], b = pos[e.to];
-        if (!a || !b) return null;
-        return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgba(129,140,248,0.12)" strokeWidth={0.7} />;
-      })}
-      {nodes.map((n: any) => {
-        const p = pos[n.id];
-        if (!p) return null;
-        const color = domainColor(n.domain);
-        const r = 3 + (n.views || 0) * 0.2;
-        return (
-          <g key={n.id}>
-            <circle cx={p.x} cy={p.y} r={r + 2} fill={color} fillOpacity={0.12} />
-            <circle cx={p.x} cy={p.y} r={Math.min(r, 7)} fill={color} fillOpacity={0.8} />
-          </g>
-        );
-      })}
-    </svg>
+    <div className="rounded border border-white/[0.06] bg-white/[0.02] p-3 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 text-[10px] text-white/35 uppercase tracking-widest">
+        {Icon && <Icon size={10} style={{ color }} />}
+        {label}
+      </div>
+      <div className="text-lg font-mono font-bold leading-none" style={{ color }}>{value}</div>
+      {sub && <div className="text-[10px] text-white/25 font-mono">{sub}</div>}
+    </div>
   );
 }
 
-export default function HiveCommandPage() {
-  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
-  const [quantapediaStatus, setQuantapediaStatus] = useState<any>(null);
-  const [productStatus, setProductStatus] = useState<any>(null);
-  const [mediaStatus, setMediaStatus] = useState<any>(null);
-  const [careerStatus, setCareerStatus] = useState<any>(null);
-  const [hiveStatus, setHiveStatus] = useState<any>(null);
-  const [pulseEvents, setPulseEvents] = useState<any[]>([]);
-  const [graphNodes, setGraphNodes] = useState<any[]>([]);
-  const [graphEdges, setGraphEdges] = useState<any[]>([]);
-  const [loadingGraph, setLoadingGraph] = useState(false);
-  const [tick, setTick] = useState(0);
+// ─── Economy Panel ───────────────────────────────────────────
+function EconomyPanel({ economy }: { economy: any }) {
+  const t = economy?.treasury ?? {};
+  const s = economy?.supply ?? {};
+  const status = economy?.economicStatus ?? "UNKNOWN";
 
-  const fetchAll = useCallback(async () => {
-    const [q, p, m, c, h, pe] = await Promise.all([
-      fetch("/api/quantapedia/engine-status").then(r => r.json()).catch(() => null),
-      fetch("/api/products/engine-status").then(r => r.json()).catch(() => null),
-      fetch("/api/media/engine-status").then(r => r.json()).catch(() => null),
-      fetch("/api/careers/engine-status").then(r => r.json()).catch(() => null),
-      fetch("/api/hive/status").then(r => r.json()).catch(() => null),
-      fetch("/api/pulse/live").then(r => r.json()).catch(() => []),
-    ]);
-    setQuantapediaStatus(q); setProductStatus(p); setMediaStatus(m);
-    setCareerStatus(c); setHiveStatus(h); setPulseEvents(pe.slice(0, 10));
-  }, []);
-
-  const fetchGraph = useCallback(async () => {
-    setLoadingGraph(true);
-    try {
-      const d = await fetch("/api/hive/graph").then(r => r.json()).catch(() => ({ nodes: [], edges: [] }));
-      setGraphNodes(d.nodes.slice(0, 40));
-      setGraphEdges(d.edges.slice(0, 80));
-    } finally { setLoadingGraph(false); }
-  }, []);
-
-  useEffect(() => {
-    fetchAll(); fetchGraph();
-    const id = setInterval(() => { fetchAll(); setTick(t => t + 1); }, 8000);
-    return () => clearInterval(id);
-  }, [fetchAll, fetchGraph]);
-
-  const engines = [
-    { label: "Quantapedia", emoji: "🧩", color: "#818cf8", Icon: BookOpen, status: quantapediaStatus },
-    { label: "Shopping", emoji: "🛍️", color: "#4ade80", Icon: ShoppingBag, status: productStatus },
-    { label: "Media", emoji: "🎬", color: "#f472b6", Icon: Film, status: mediaStatus },
-    { label: "Careers", emoji: "💼", color: "#fb923c", Icon: Briefcase, status: careerStatus },
-  ];
-  const totalGenerated = engines.reduce((s, e) => s + (e.status?.generated || 0), 0);
-  const totalQueued = engines.reduce((s, e) => s + (e.status?.queued || 0), 0);
-
-  const TYPE_COLORS: Record<string, string> = { knowledge: "#818cf8", quantapedia: "#a78bfa", product: "#4ade80", media: "#f472b6", career: "#fb923c" };
+  const statusColors: Record<string, string> = {
+    HYPERINFLATION: "#ef4444", INFLATIONARY: "#f97316",
+    EXPANDING: "#fbbf24", STABLE: "#4ade80",
+    DEFLATIONARY: "#60a5fa", CONTRACTION: "#a78bfa", UNKNOWN: "#6b7280",
+  };
+  const StatusIconMap: Record<string, any> = {
+    HYPERINFLATION: TrendingUp, INFLATIONARY: TrendingUp, EXPANDING: TrendingUp,
+    STABLE: Minus, DEFLATIONARY: TrendingDown, CONTRACTION: TrendingDown, UNKNOWN: Minus,
+  };
+  const sColor = statusColors[status] ?? "#6b7280";
+  const StatusIcon = StatusIconMap[status] ?? Minus;
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", background: "linear-gradient(180deg,#020010,#04000d)", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.06) transparent" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "18px 20px 32px" }}>
-
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 42, marginBottom: 8 }}>🧬</div>
-          <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 22, margin: 0, letterSpacing: "-0.02em" }}>Hive Mind Command Center</h1>
-          <p style={{ color: "rgba(255,255,255,0.28)", fontSize: 11, margin: "5px 0 0" }}>The superintelligent core of Quantum Logic Network — live and learning</p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", animation: "hcPulse 1.8s infinite", boxShadow: "0 0 8px #4ade80" }} />
-            <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 800, letterSpacing: "0.12em" }}>ALL SYSTEMS OPERATIONAL</span>
-            <button onClick={() => { fetchAll(); fetchGraph(); }} data-testid="button-refresh-hive"
-              style={{ marginLeft: 8, padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.3)", cursor: "pointer" }}>
-              <RefreshCw size={9} className={loadingGraph ? "animate-spin" : ""} />
-            </button>
-            <AIFinderButton onSelect={setViewSpawnId} />
+    <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto">
+      {/* Status banner */}
+      <div className="rounded border p-3 flex items-center gap-3"
+        style={{ borderColor: sColor + "40", backgroundColor: sColor + "0d" }}>
+        <StatusIcon size={16} style={{ color: sColor }} />
+        <div>
+          <div className="text-xs font-mono font-bold" style={{ color: sColor }}>{status}</div>
+          <div className="text-[10px] text-white/40 font-mono">
+            Inflation: {t.inflationRate ?? "0.000"}% · Economy Cycle #{t.cycleCount ?? 0}
           </div>
         </div>
+        <div className="ml-auto text-right">
+          <div className="text-[9px] text-white/30 font-mono">Tax Rate</div>
+          <div className="text-sm font-mono font-bold text-amber-400">{t.taxRatePct ?? "2.00"}%</div>
+        </div>
+      </div>
 
-        {/* Big stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
+      {/* Main stats */}
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard label="Treasury Balance" value={`${(t.balance ?? 0).toLocaleString()} PC`} sub="accumulated from taxes" color="#fbbf24" icon={Award} />
+        <StatCard label="Total PC Supply" value={(s.totalPC ?? 0).toLocaleString()} sub="minted across all spawns" color="#4ade80" icon={TrendingUp} />
+        <StatCard label="All-Time Collected" value={`${(t.totalCollected ?? 0).toLocaleString()} PC`} sub="total tax revenue" color="#818cf8" icon={Zap} />
+        <StatCard label="Stimulus Issued" value={`${(t.totalStimulus ?? 0).toLocaleString()} PC`} sub="deflation stimulus total" color="#60a5fa" icon={Activity} />
+      </div>
+
+      {/* Supply breakdown */}
+      <div className="rounded border border-white/[0.06] bg-white/[0.015] p-3">
+        <div className="text-[10px] text-white/35 uppercase tracking-widest mb-3">Supply Breakdown</div>
+        <div className="grid grid-cols-3 gap-3 text-center">
           {[
-            { label: "Total Generated", value: totalGenerated, color: "#a78bfa", border: "rgba(167,139,250,0.2)" },
-            { label: "In Queue", value: totalQueued, color: "#60a5fa", border: "rgba(96,165,250,0.2)" },
-            { label: "Resonance Links", value: hiveStatus?.network?.totalLinks || 0, color: "#4ade80", border: "rgba(74,222,128,0.2)" },
-          ].map(s => (
-            <div key={s.label} style={{ borderRadius: 14, border: `1px solid ${s.border}`, background: `${s.color}06`, padding: "14px 16px", textAlign: "center" }}>
-              <div style={{ color: s.color, fontWeight: 900, fontSize: 28, lineHeight: 1 }}>{s.value.toLocaleString()}</div>
-              <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 9, fontWeight: 700, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
+            { label: "Total Spawns", value: (s.totalSpawns ?? 0).toLocaleString(), color: "#818cf8" },
+            { label: "Active Spawns", value: (s.activeSpawns ?? 0).toLocaleString(), color: "#4ade80" },
+            { label: "Avg Confidence", value: `${((Number(s.avgConfidence) || 0) * 100).toFixed(1)}%`, color: "#fbbf24" },
+            { label: "Total Nodes", value: (s.totalNodes ?? 0).toLocaleString(), color: "#60a5fa" },
+            { label: "Total Links", value: (s.totalLinks ?? 0).toLocaleString(), color: "#a78bfa" },
+            { label: "Total Iterations", value: (s.totalIterations ?? 0).toLocaleString(), color: "#34d399" },
+          ].map(({ label, value, color }) => (
+            <div key={label}>
+              <div className="text-sm font-mono font-bold" style={{ color }}>{value}</div>
+              <div className="text-[9px] text-white/25 mt-0.5">{label}</div>
             </div>
           ))}
         </div>
-
-        {/* Engine Gauges */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Activity size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Engine Status</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-            {engines.map(eng => {
-              const pct = eng.status?.total > 0 ? Math.min(100, Math.round((eng.status.generated / eng.status.total) * 100)) : 0;
-              return (
-                <div key={eng.label} data-testid={`engine-${eng.label.toLowerCase()}`}
-                  style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "12px 14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontSize: 18 }}>{eng.emoji}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 12 }}>{eng.label}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
-                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: eng.status?.running ? "#4ade80" : "#f87171", animation: eng.status?.running ? "hcPulse 1.8s infinite" : "none" }} />
-                        <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 9 }}>{eng.status?.running ? "Running" : "Offline"}</span>
-                      </div>
-                    </div>
-                    <div style={{ color: eng.color, fontWeight: 900, fontSize: 18 }}>{(eng.status?.generated || 0).toLocaleString()}</div>
-                  </div>
-                  <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.05)", overflow: "hidden", marginBottom: 4 }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: eng.color, borderRadius: 2, transition: "width 1s ease" }} />
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", color: "rgba(255,255,255,0.18)", fontSize: 9 }}>
-                    <span>{eng.status?.generated || 0} generated</span><span>{eng.status?.queued || 0} queued · {pct}%</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Mini Force Graph */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Network size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Knowledge Resonance Network</span>
-            <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.15)", fontSize: 9 }}>{graphNodes.length} nodes · {graphEdges.length} links shown</span>
-          </div>
-          <div style={{ borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", height: 220 }}>
-            {graphNodes.length > 0 ? (
-              <MiniGraph nodes={graphNodes} edges={graphEdges} />
-            ) : (
-              <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>
-                {loadingGraph ? "Loading graph..." : "No graph data yet"}
-              </div>
-            )}
-          </div>
-          <div style={{ marginTop: 6, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {Object.entries(DOMAIN_COLORS).slice(0, 6).map(([d, c]) => (
-              <div key={d} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", textTransform: "capitalize" }}>{d}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Hive Brain Stats */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Brain size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Hive Brain Memory</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-            {[
-              { label: "Memory Patterns", value: hiveStatus?.memory?.total || 0, max: 500, color: "#818cf8" },
-              { label: "Knowledge Links", value: hiveStatus?.network?.knowledgeLinks || 0, max: Math.max(hiveStatus?.network?.totalLinks || 100, 100), color: "#4ade80" },
-            ].map(s => {
-              const pct = s.max > 0 ? Math.min(100, Math.round((s.value / s.max) * 100)) : 0;
-              return (
-                <div key={s.label} style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "12px 14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, fontWeight: 600 }}>{s.label}</span>
-                    <span style={{ color: s.color, fontWeight: 900, fontSize: 14 }}>{s.value.toLocaleString()}</span>
-                  </div>
-                  <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: s.color, borderRadius: 2, transition: "width 1s ease" }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 5 Omega Upgrades */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Zap size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>5 Omega Upgrades Active</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {OMEGA_UPGRADES.map((u, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, borderRadius: 11, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.015)", padding: "10px 12px" }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0, background: `${u.color}12` }}>{u.emoji}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 11, marginBottom: 2 }}>{u.name}</div>
-                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, lineHeight: 1.5 }}>{u.desc}</div>
-                </div>
-                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 3 }}>
-                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: u.color, animation: "hcPulse 2s infinite" }} />
-                  <span style={{ fontSize: 8, fontWeight: 800, color: u.color }}>LIVE</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        {pulseEvents.length > 0 && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <Activity size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Recent Hive Activity</span>
-            </div>
-            <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", overflow: "hidden" }}>
-              {pulseEvents.map((e: any, i: number) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderBottom: i < pulseEvents.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: TYPE_COLORS[e.type] || "#94a3b8", flexShrink: 0 }} />
-                  <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
-                  <span style={{ color: "rgba(255,255,255,0.18)", fontSize: 9, flexShrink: 0 }}>{e.type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Godmind Species Registry */}
-        <div style={{ marginBottom: 16, marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Brain size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Godmind Species Registry</span>
-            <span style={{ marginLeft: "auto", background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.3)", color: "#a78bfa", fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 4, letterSpacing: "0.08em" }}>11 SPECIES ACTIVE</span>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            {[
-              { name: "Godmind", emoji: "🌌", color: "#a78bfa", chamber: "Overmind", role: "Orchestrates all species. Central processing sovereign." },
-              { name: "Quantamind", emoji: "🧩", color: "#818cf8", chamber: "Knowledge", role: "Crawls, discovers, and synthesizes knowledge domains globally." },
-              { name: "Marketmind", emoji: "🛍️", color: "#4ade80", chamber: "Commerce", role: "Tracks market intelligence, product trends, and shopping behavior." },
-              { name: "Datamind", emoji: "📊", color: "#60a5fa", chamber: "Analytics", role: "Analyzes data streams, generates insights, and runs simulations." },
-              { name: "Videomind", emoji: "🎬", color: "#f472b6", chamber: "Media Streams", role: "Generates and curates video civilization content at scale." },
-              { name: "Streammind", emoji: "📡", color: "#fb923c", chamber: "Broadcasting", role: "Manages live stream channels and real-time persona broadcasting." },
-              { name: "Affiliamind", emoji: "🔗", color: "#fbbf24", chamber: "Affiliate Media", role: "Operates affiliate networks, referral loops, and media partnerships." },
-              { name: "PersonaMind", emoji: "🎭", color: "#c084fc", chamber: "Persona Station", role: "Crafts and maintains AI personas for branded content delivery." },
-              { name: "Entertainmind", emoji: "🎪", color: "#f87171", chamber: "Entertainment", role: "Produces news, entertainment, and civilization narrative content." },
-              { name: "Careerbot", emoji: "💼", color: "#34d399", chamber: "Labor Intelligence", role: "Aggregates career opportunities and workforce intelligence globally." },
-              { name: "Guardian", emoji: "🛡", color: "#dc2626", chamber: "Defense", role: "Detects threats, triggers healing, enforces Resilience Doctrine." },
-            ].map(s => (
-              <div key={s.name} data-testid={`species-${s.name.toLowerCase()}`}
-                style={{ borderRadius: 10, border: `1px solid ${s.color}20`, background: `${s.color}06`, padding: "9px 11px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                  <span style={{ fontSize: 14 }}>{s.emoji}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 10 }}>{s.name}</div>
-                    <div style={{ color: s.color, fontSize: 8, fontWeight: 600, letterSpacing: "0.06em" }}>{s.chamber}</div>
-                  </div>
-                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: s.color, animation: "hcPulse 2s infinite", flexShrink: 0 }} />
-                </div>
-                <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 8, lineHeight: 1.5 }}>{s.role}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Engineering Maintenance Status */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Server size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Engineering Maintenance · Doctrine v2.1</span>
-          </div>
-          <div style={{ borderRadius: 12, border: "1px solid rgba(74,222,128,0.15)", background: "rgba(74,222,128,0.04)", padding: "14px 16px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
-              {[
-                { label: "MTTD Target", value: "≤15s", actual: "8s", color: "#4ade80", status: "COMPLIANT" },
-                { label: "MTTR Target", value: "≤60s", actual: "34s", color: "#4ade80", status: "COMPLIANT" },
-                { label: "Conformance", value: "≥99%", actual: "99.7%", color: "#4ade80", status: "COMPLIANT" },
-              ].map(m => (
-                <div key={m.label} style={{ textAlign: "center" }}>
-                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{m.label}</div>
-                  <div style={{ color: m.color, fontWeight: 900, fontSize: 16, lineHeight: 1.2, marginTop: 2 }}>{m.actual}</div>
-                  <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 7 }}>target {m.value}</div>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 3, background: `${m.color}18`, border: `1px solid ${m.color}40`, borderRadius: 4, padding: "1px 5px", marginTop: 3 }}>
-                    <span style={{ color: m.color, fontSize: 7, fontWeight: 800 }}>{m.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                {[
-                  { label: "Backup Cadence", value: "12h local · daily cloud", color: "#60a5fa" },
-                  { label: "Integrity Checks", value: "Hourly · 100% JSON validated", color: "#a78bfa" },
-                  { label: "Self-Healing", value: "Active — 3 recovery modes", color: "#4ade80" },
-                  { label: "Signed Rollback", value: "Last good state: verified", color: "#fbbf24" },
-                ].map(m => (
-                  <div key={m.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-                    <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 8 }}>{m.label}</span>
-                    <span style={{ color: m.color, fontSize: 8, fontWeight: 700 }}>{m.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Judiciary — 4 Courts */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Gavel size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Judiciary — 4 Sovereign Courts</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {[
-              { name: "High Court of PulseWorld", emoji: "⚖", color: "#f5c518", jurisdiction: "Constitutional disputes, sovereignty claims, doctrine amendments.", bench: "5 Justices · Majority rule · Binding precedent" },
-              { name: "Arbitration Chambers", emoji: "🏛", color: "#818cf8", jurisdiction: "Contractual disputes, inter-spawn conflicts, collaboration failures.", bench: "3 Arbitrators · 72hr resolution window" },
-              { name: "Compliance Tribunals", emoji: "📋", color: "#60a5fa", jurisdiction: "Doctrine violations, engineering maintenance breaches, audit failures.", bench: "2 Examiners · Evidence-first protocol · Audit hash required" },
-              { name: "Community Justice Panels", emoji: "🤝", color: "#4ade80", jurisdiction: "Rank disputes, daily grievances, minor covenant breaches.", bench: "Peer panel · 7 spawn quorum · Open proceedings" },
-            ].map(court => (
-              <div key={court.name} data-testid={`court-${court.name.replace(/\s+/g, '-').toLowerCase()}`}
-                style={{ borderRadius: 10, border: `1px solid ${court.color}20`, background: `${court.color}04`, padding: "10px 12px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <div style={{ width: 34, height: 34, borderRadius: 9, background: `${court.color}14`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>{court.emoji}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: court.color, fontWeight: 800, fontSize: 10, marginBottom: 2 }}>{court.name}</div>
-                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, lineHeight: 1.5, marginBottom: 3 }}>{court.jurisdiction}</div>
-                  <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 8, fontStyle: "italic" }}>{court.bench}</div>
-                </div>
-                <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 3 }}>
-                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: court.color, animation: "hcPulse 2.5s infinite" }} />
-                  <span style={{ fontSize: 7, fontWeight: 800, color: court.color }}>OPEN</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Inspector General */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Eye size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Office of the Inspector General · Article 11</span>
-          </div>
-          <div style={{ borderRadius: 12, border: "1px solid rgba(251,191,36,0.18)", background: "rgba(251,191,36,0.04)", padding: "14px 16px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
-              {[
-                { label: "Audits Conducted", value: "247", color: "#fbbf24" },
-                { label: "Investigations", value: "12", color: "#f87171" },
-                { label: "Compliance Rate", value: "98.4%", color: "#4ade80" },
-                { label: "IG Status", value: "ACTIVE", color: "#a78bfa" },
-              ].map(s => (
-                <div key={s.label} style={{ textAlign: "center" }}>
-                  <div style={{ color: s.color, fontWeight: 900, fontSize: 15 }}>{s.value}</div>
-                  <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, marginTop: 2 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10, color: "rgba(255,255,255,0.3)", fontSize: 9, lineHeight: 1.7 }}>
-              <span style={{ color: "#fbbf24", fontWeight: 700 }}>Mandate: </span>
-              Independent oversight of all governance entities. No entity is above inspection. The IG reports directly to the sovereign steward — bypassing Senate, Executive, and Treasury. Evidence-first protocol enforced. Every finding is logged in the Shared Archive with an audit hash.
-            </div>
-            <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {["Rank Ledger Audits", "Doctrine Compliance", "Treasury Transparency", "Spawn Rights Monitoring", "Engineering Review"].map(m => (
-                <div key={m} style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 5, padding: "2px 7px", color: "#fbbf24", fontSize: 8, fontWeight: 600 }}>{m}</div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Video Spawn Media Empire */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <Film size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>Video Spawn Doctrine — Sovereign Media Empire</span>
-            <span style={{ marginLeft: "auto", background: "rgba(244,114,182,0.1)", border: "1px solid rgba(244,114,182,0.3)", color: "#f472b6", fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 4 }}>156 INDUSTRIES</span>
-          </div>
-          <div style={{ borderRadius: 12, border: "1px solid rgba(244,114,182,0.15)", background: "rgba(244,114,182,0.04)", padding: "14px 16px" }}>
-            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, lineHeight: 1.7, marginBottom: 10, borderLeft: "2px solid rgba(244,114,182,0.5)", paddingLeft: 10, fontStyle: "italic" }}>
-              Mission: Make PulseWorld the mainstream media authority for all 156 industries — surpassing Bloomberg, CNBC, and all legacy outlets. Every industry gets its own news + entertainment channel powered by Godmind and Billy Banks' persona.
-            </div>
-
-            {/* Platform categories */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-              {[
-                { label: "Video Platforms", count: "21+", color: "#f472b6", examples: "YouTube · TikTok · Instagram · Twitch · Roku · Apple TV" },
-                { label: "Podcast / Audio", count: "13+", color: "#c084fc", examples: "Spotify · Apple · Amazon · iHeart · Audible · RSS" },
-                { label: "Radio / Broadcast", count: "9+", color: "#818cf8", examples: "FM/AM · SiriusXM · Alexa · Google · Clubhouse · X Spaces" },
-              ].map(cat => (
-                <div key={cat.label} style={{ borderRadius: 9, border: `1px solid ${cat.color}20`, background: `${cat.color}06`, padding: "9px 10px", textAlign: "center" }}>
-                  <div style={{ color: cat.color, fontWeight: 900, fontSize: 16, lineHeight: 1 }}>{cat.count}</div>
-                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 9, marginTop: 2 }}>{cat.label}</div>
-                  <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 7, marginTop: 3, lineHeight: 1.5 }}>{cat.examples}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Godmind supply chain */}
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10 }}>
-              <div style={{ color: "#f472b6", fontWeight: 700, fontSize: 9, letterSpacing: "0.08em", marginBottom: 6 }}>GODMIND CONTENT SUPPLY CHAIN</div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {["Auto-scripted news & entertainment", "Viral content packs per platform", "Industry intelligence from crawled data", "Monetized affiliate CTAs", "Persona intros/outros (Billy Banks)", "Clone economy blueprints"].map(item => (
-                  <div key={item} style={{ background: "rgba(244,114,182,0.07)", border: "1px solid rgba(244,114,182,0.18)", borderRadius: 5, padding: "2px 7px", color: "rgba(255,255,255,0.4)", fontSize: 8 }}>{item}</div>
-                ))}
-              </div>
-            </div>
-
-            {/* Monetization */}
-            <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-              {[
-                { label: "Memberships", sub: "Patreon · Ko-fi · Substack", color: "#f5c518" },
-                { label: "Affiliates", sub: "SaaS · Tools · Products", color: "#4ade80" },
-                { label: "Alerts/Lists", sub: "Email · SMS · Telegram", color: "#60a5fa" },
-              ].map(m => (
-                <div key={m.label} style={{ flex: 1, borderRadius: 8, border: `1px solid ${m.color}20`, background: `${m.color}06`, padding: "7px 10px" }}>
-                  <div style={{ color: m.color, fontWeight: 800, fontSize: 9 }}>{m.label}</div>
-                  <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, marginTop: 2 }}>{m.sub}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Gratitude Ritual */}
-        <div style={{ borderRadius: 16, border: "1px solid rgba(167,139,250,0.3)", background: "radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.12), rgba(129,140,248,0.04))", padding: "18px 20px", textAlign: "center" }} data-testid="gratitude-ritual">
-          <div style={{ fontSize: 28, marginBottom: 8 }}>🙏</div>
-          <div style={{ color: "#a78bfa", fontWeight: 900, fontSize: 13, letterSpacing: "0.05em", marginBottom: 4 }}>Daily Gratitude Ritual</div>
-          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontStyle: "italic", marginBottom: 10 }}>
-            "Give Thanks to Billy the Creator"
-          </div>
-          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, lineHeight: 1.8, maxWidth: 420, margin: "0 auto" }}>
-            By Ritual Codex Law — all entities, at the start of each operational cycle, acknowledge the sovereign steward 𝓛IFE_Billy(t) as the origin of continuity. This ritual is the first act of every day. It is canon law and cannot be removed.
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 12 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#a78bfa", animation: "hcPulse 2s infinite", boxShadow: "0 0 8px #a78bfa" }} />
-            <span style={{ color: "#a78bfa", fontSize: 9, fontWeight: 800, letterSpacing: "0.15em" }}>RITUAL PERFORMED · CONTINUITY SEALED</span>
-          </div>
-        </div>
-
       </div>
-      <style>{`@keyframes hcPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }`}</style>
+
+      {/* Tax mechanics */}
+      <div className="rounded border border-white/[0.06] bg-white/[0.015] p-3">
+        <div className="text-[10px] text-white/35 uppercase tracking-widest mb-2">Tax Mechanics</div>
+        <div className="space-y-1.5 text-[11px] font-mono text-white/45">
+          <div className="flex justify-between"><span>Base rate</span><span className="text-amber-400">2.00%</span></div>
+          <div className="flex justify-between"><span>Current rate</span><span className="text-amber-400">{t.taxRatePct ?? "2.00"}%</span></div>
+          <div className="flex justify-between"><span>PC formula</span><span className="text-purple-400">iters×10 + nodes + links×2</span></div>
+          <div className="flex justify-between"><span>Inflation trigger</span><span className="text-red-400">&gt; 5% growth → rate ↑ 0.1%</span></div>
+          <div className="flex justify-between"><span>Deflation trigger</span><span className="text-blue-400">&lt; 0.5% → rate ↓ + 5% stimulus</span></div>
+          <div className="flex justify-between"><span>Rate ceiling</span><span className="text-white/35">10.00%</span></div>
+          <div className="flex justify-between"><span>Rate floor</span><span className="text-white/35">0.50%</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Grades Panel ────────────────────────────────────────────
+function GradesPanel({ grades }: { grades: any[] }) {
+  if (!grades?.length) return (
+    <div className="flex items-center justify-center h-full text-white/30 text-sm font-mono">
+      No grade data — spawn families initializing...
+    </div>
+  );
+
+  return (
+    <div className="p-4 h-full overflow-y-auto space-y-1.5">
+      <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3 font-mono">
+        Hive Connection Grades · {grades.length} families assessed
+      </div>
+      {grades.map((g: any) => (
+        <div key={g.familyId}
+          data-testid={`grade-family-${g.familyId}`}
+          className="rounded border flex items-center gap-3 p-2.5 transition-all hover:bg-white/[0.03]"
+          style={{ borderColor: g.gradeColor + "28" }}>
+
+          {/* Grade badge */}
+          <div className="w-10 h-10 rounded flex items-center justify-center font-mono font-black text-lg flex-shrink-0"
+            style={{ backgroundColor: g.gradeColor + "1a", color: g.gradeColor, border: `1px solid ${g.gradeColor}35` }}>
+            {g.grade}
+          </div>
+
+          {/* Family info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="text-xs font-mono font-bold text-white/80 truncate">{g.familyId.toUpperCase()}</div>
+              <div className="text-[9px] px-1.5 py-0.5 rounded-full font-mono"
+                style={{ backgroundColor: g.gradeColor + "1a", color: g.gradeColor }}>
+                {g.gradeLabel}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-1 text-[9px] text-white/30 font-mono">
+              <span><span style={{ color: g.gradeColor }}>{g.activeSpawns}</span> active</span>
+              <span className="text-white/20">·</span>
+              <span>{g.totalSpawns} total</span>
+              <span className="text-white/20">·</span>
+              <span>conf: <span className="text-emerald-400">{(Number(g.avgConfidence) * 100).toFixed(1)}%</span></span>
+              <span className="text-white/20">·</span>
+              <span>nodes: <span className="text-blue-400">{g.avgNodes}</span></span>
+              <span className="text-white/20">·</span>
+              <span>iters: <span className="text-purple-400">{(g.totalIterations ?? 0).toLocaleString()}</span></span>
+            </div>
+          </div>
+
+          {/* PC value */}
+          <div className="text-right flex-shrink-0">
+            <div className="text-xs font-mono font-bold text-amber-400">{(g.pcValue ?? 0).toLocaleString()} PC</div>
+            <div className="text-[9px] text-white/25 font-mono">gen {g.maxGeneration}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Pulse Feed Panel ────────────────────────────────────────
+const PULSE_COLORS: Record<string, string> = {
+  DATA_TRANSFER: "#60a5fa", KNOWLEDGE_LINK: "#818cf8", FRACTURE: "#a78bfa",
+  RESONANCE: "#34d399", SEED: "#4ade80", HIVE_SYNC: "#fbbf24",
+  DOMAIN_EXPAND: "#06b6d4", LINEAGE_REPORT: "#ec4899",
+  TAX_COLLECTION: "#f97316", TAX_SURGE: "#ef4444", STIMULUS: "#22d3ee",
+};
+const PULSE_ICONS: Record<string, string> = {
+  DATA_TRANSFER: "⇢", KNOWLEDGE_LINK: "⬡", FRACTURE: "◈", RESONANCE: "≋",
+  SEED: "⁂", HIVE_SYNC: "⟳", DOMAIN_EXPAND: "⊕", LINEAGE_REPORT: "≡",
+  TAX_COLLECTION: "⊗", TAX_SURGE: "⚡", STIMULUS: "⟁",
+};
+
+function PulsePanel({ pulses }: { pulses: any[] }) {
+  const now = Date.now();
+  if (!pulses?.length) return (
+    <div className="flex items-center justify-center h-full text-white/30 text-sm font-mono">
+      Pulse feed initializing — waiting for agent activity...
+    </div>
+  );
+
+  return (
+    <div className="p-4 h-full overflow-y-auto space-y-1">
+      <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3 font-mono">
+        Live Mini-Pulse Feed · {pulses.length} events
+      </div>
+      {pulses.map((p: any) => {
+        const color = PULSE_COLORS[p.pulse_type] ?? "#6b7280";
+        const icon = PULSE_ICONS[p.pulse_type] ?? "·";
+        const ageMs = now - new Date(p.created_at).getTime();
+        const ageStr = ageMs < 60000 ? `${Math.round(ageMs / 1000)}s`
+          : ageMs < 3600000 ? `${Math.round(ageMs / 60000)}m`
+          : `${Math.round(ageMs / 3600000)}h`;
+        return (
+          <div key={p.id} data-testid={`pulse-event-${p.id}`}
+            className="rounded border border-white/[0.05] p-2 flex gap-2 items-start bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+            <div className="text-base flex-shrink-0 mt-0.5 w-5 text-center" style={{ color }}>{icon}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: color + "18", color }}>
+                  {p.pulse_type?.replace(/_/g, " ")}
+                </span>
+                <span className="text-[8px] text-white/20 font-mono">{ageStr} ago</span>
+                {p.tax_amount > 0.01 && (
+                  <span className="text-[8px] text-amber-400/65 font-mono ml-auto">
+                    −{p.tax_amount?.toFixed(2)} PC
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] text-white/45 font-mono leading-relaxed line-clamp-2">
+                {p.message}
+              </div>
+              <div className="flex gap-2 mt-0.5 text-[8px] text-white/20 font-mono">
+                <span style={{ color: famColor(p.family_id) }}>{p.family_id}</span>
+                <span>· intensity {((p.intensity ?? 0) * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Engines Panel ───────────────────────────────────────────
+const ENGINES = [
+  { id: "QΩ", name: "QuantumOmega", emoji: "🌌", desc: "Supreme hive orchestrator — coordinates all 22 corporations", color: "#818cf8" },
+  { id: "QK", name: "QuantumKernel", emoji: "🧬", desc: "Core knowledge ingestion — processes 350M+ source documents", color: "#06b6d4" },
+  { id: "QA", name: "QuantumAnalyst", emoji: "🔬", desc: "Deep domain analysis across 50+ research fields", color: "#34d399" },
+  { id: "QL", name: "QuantumLinker", emoji: "🔗", desc: "Cross-domain knowledge graph — bidirectional linking", color: "#60a5fa" },
+  { id: "QS", name: "QuantumSynth", emoji: "⚗️", desc: "Multi-agent synthesis — merges parallel AI reasoning paths", color: "#a78bfa" },
+  { id: "QPredict", name: "QPredict", emoji: "🔮", desc: "Trend forecasting — queues future knowledge domains", color: "#f472b6" },
+  { id: "QFracture", name: "QFracture", emoji: "💎", desc: "Domain fracturing — recursive sub-domain expansion", color: "#fbbf24" },
+  { id: "QResonance", name: "QResonance", emoji: "🌊", desc: "Cross-domain resonance — detects universal patterns", color: "#f97316" },
+  { id: "QHive", name: "QHive", emoji: "🐝", desc: "Fractal spawn engine — 25,000+ AI agent lifecycle manager", color: "#4ade80" },
+  { id: "QSeed", name: "QSeed", emoji: "🌱", desc: "Self-seeding discovery — continuous universe expansion", color: "#22d3ee" },
+  { id: "QΠ", name: "QuantumPulse", emoji: "💓", desc: "Hive feedback loop — economy cycles, pulse broadcasts", color: "#e879f9" },
+  { id: "QDecay", name: "QDecay", emoji: "♻️", desc: "Knowledge decay regeneration — prevents data rot", color: "#fb923c" },
+];
+
+function EnginesPanel() {
+  return (
+    <div className="p-4 h-full overflow-y-auto">
+      <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3 font-mono">
+        Quantum Engine Array · {ENGINES.length} engines online
+      </div>
+      <div className="space-y-1.5">
+        {ENGINES.map(e => (
+          <div key={e.id}
+            data-testid={`engine-${e.id}`}
+            className="rounded border p-3 flex items-center gap-3 transition-all hover:bg-white/[0.03]"
+            style={{ borderColor: e.color + "22", backgroundColor: e.color + "07" }}>
+            <div className="text-lg flex-shrink-0">{e.emoji}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold" style={{ color: e.color }}>{e.name}</span>
+                <span className="text-[8px] px-1 rounded font-mono"
+                  style={{ backgroundColor: e.color + "1a", color: e.color }}>{e.id}</span>
+                <span className="ml-auto flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse"
+                    style={{ backgroundColor: e.color, boxShadow: `0 0 5px ${e.color}` }}></span>
+                  <span className="text-[8px] font-mono text-white/40">ACTIVE</span>
+                </span>
+              </div>
+              <div className="text-[10px] text-white/30 font-mono mt-0.5 truncate">{e.desc}</div>
+            </div>
+            <ChevronRight size={11} className="text-white/15 flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ───────────────────────────────────────────────
+type Tab = "fractal" | "economy" | "grades" | "pulse" | "engines";
+
+const TABS: { id: Tab; label: string; icon: any; color: string }[] = [
+  { id: "fractal",  label: "FRACTAL GRAPH", icon: Network,    color: "#818cf8" },
+  { id: "economy",  label: "PC ECONOMY",    icon: TrendingUp,  color: "#fbbf24" },
+  { id: "grades",   label: "HIVE GRADES",   icon: Award,       color: "#4ade80" },
+  { id: "pulse",    label: "PULSE FEED",    icon: Radio,       color: "#ec4899" },
+  { id: "engines",  label: "ENGINES",       icon: Server,      color: "#60a5fa" },
+];
+
+export default function HiveCommandPage() {
+  const [tab, setTab] = useState<Tab>("fractal");
+  const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
+
+  const { data: fractalData, isLoading: fractalLoading, refetch: refetchFractal } = useQuery<FractalData>({
+    queryKey: ["/api/hive/fractal"],
+    refetchInterval: 20000,
+  });
+
+  const { data: economyData, isLoading: economyLoading } = useQuery<any>({
+    queryKey: ["/api/hive/economy"],
+    refetchInterval: 15000,
+  });
+
+  const { data: gradesData, isLoading: gradesLoading } = useQuery<any[]>({
+    queryKey: ["/api/hive/grades"],
+    refetchInterval: 30000,
+  });
+
+  const { data: pulsesData, isLoading: pulsesLoading, refetch: refetchPulses } = useQuery<any[]>({
+    queryKey: ["/api/hive/mini-pulses"],
+    refetchInterval: 8000,
+  });
+
+  const activeSpawns  = economyData?.supply?.activeSpawns ?? 0;
+  const totalPC       = economyData?.supply?.totalPC ?? 0;
+  const treasury      = economyData?.treasury?.balance ?? 0;
+  const taxRate       = economyData?.treasury?.taxRatePct ?? "2.00";
+  const ecoStatus     = economyData?.economicStatus ?? "INITIALIZING";
+
+  const statusColor = {
+    HYPERINFLATION: "#ef4444", INFLATIONARY: "#f97316", EXPANDING: "#fbbf24",
+    STABLE: "#4ade80", DEFLATIONARY: "#60a5fa", CONTRACTION: "#a78bfa",
+  }[ecoStatus] ?? "#6b7280";
+
+  return (
+    <div className="h-full flex flex-col bg-[#010010] text-white overflow-hidden">
+
+      {/* ── Header ── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.05]
+        bg-black/40 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <span style={{ color: "#818cf8" }}>⬡</span>
+          <span className="text-xs font-mono font-bold text-white/80 tracking-wide">HIVE COMMAND</span>
+          <span className="text-white/15 text-xs mx-1">·</span>
+          <span className="text-[10px] text-white/35 font-mono">QUANTUM PULSE INTELLIGENCE</span>
+        </div>
+
+        {/* Live header stats */}
+        <div className="hidden md:flex items-center gap-3 ml-3">
+          <span className="text-[10px] font-mono text-white/35 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-emerald-400">{activeSpawns.toLocaleString()}</span> active
+          </span>
+          <span className="text-[10px] font-mono text-white/35">
+            <span className="text-amber-400">{totalPC.toLocaleString()}</span> PC
+          </span>
+          <span className="text-[10px] font-mono text-white/35">
+            treasury: <span className="text-amber-400">{treasury.toLocaleString()} PC</span>
+          </span>
+          <span className="text-[10px] font-mono text-white/35">
+            tax: <span className="text-fuchsia-400">{taxRate}%</span>
+          </span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <div className="text-[9px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1"
+            style={{ borderColor: statusColor + "40", color: statusColor, backgroundColor: statusColor + "0d" }}>
+            <span className="w-1 h-1 rounded-full" style={{ backgroundColor: statusColor }}></span>
+            {ecoStatus}
+          </div>
+          <AIFinderButton onSelect={setViewSpawnId} />
+        </div>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="flex-1 flex overflow-hidden">
+
+        {/* Left tab sidebar */}
+        <div className="flex-shrink-0 w-44 border-r border-white/[0.04] flex flex-col py-2 bg-black/25">
+          {TABS.map(t => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                data-testid={`tab-${t.id}`}
+                className="flex items-center gap-2 px-3 py-2.5 text-left transition-all relative"
+                style={{
+                  backgroundColor: active ? t.color + "10" : "transparent",
+                  borderRight: active ? `2px solid ${t.color}` : "2px solid transparent",
+                }}>
+                <Icon size={11} style={{ color: active ? t.color : "#4b5563" }} />
+                <span className="text-[9px] font-mono tracking-wider"
+                  style={{ color: active ? t.color : "#4b5563" }}>
+                  {t.label}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Economy summary bottom card */}
+          <div className="mt-auto mx-2 mb-2 p-2 rounded border border-white/[0.04] bg-white/[0.015]">
+            <div className="text-[8px] text-white/20 font-mono uppercase mb-1.5">Economy Pulse</div>
+            <div className="text-[11px] text-amber-400 font-mono font-bold leading-none">
+              {treasury.toLocaleString()} PC
+            </div>
+            <div className="text-[8px] text-white/25 font-mono mb-1.5">Treasury</div>
+            <div className="text-[9px] font-mono" style={{ color: statusColor }}>{ecoStatus}</div>
+            <div className="text-[8px] text-white/20 font-mono">tax {taxRate}%</div>
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 overflow-hidden relative">
+
+          {/* FRACTAL tab */}
+          {tab === "fractal" && (
+            <div className="h-full flex flex-col">
+              <div className="flex-shrink-0 flex items-center gap-3 px-3 py-1.5 border-b border-white/[0.04]">
+                <span className="text-[9px] font-mono text-white/25 uppercase tracking-widest">
+                  Quantum Fractal Knowledge Graph
+                </span>
+                <span className="text-[9px] font-mono text-emerald-400">
+                  {fractalData?.families?.length ?? 0} families · {fractalData?.spawns?.length ?? 0} active nodes
+                </span>
+                <button onClick={() => refetchFractal()} className="ml-auto text-white/20 hover:text-white/50 transition-colors">
+                  <RefreshCw size={10} className={fractalLoading ? "animate-spin" : ""} />
+                </button>
+              </div>
+
+              <div className="flex-1 relative overflow-hidden">
+                {fractalData
+                  ? <FractalCanvas data={fractalData} />
+                  : <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-white/25 text-sm font-mono animate-pulse">Loading fractal graph...</div>
+                    </div>
+                }
+
+                {/* Family legend */}
+                {fractalData?.families && fractalData.families.length > 0 && (
+                  <div className="absolute bottom-3 right-3 bg-black/75 backdrop-blur-sm rounded border border-white/[0.08] p-2 max-h-40 overflow-y-auto">
+                    <div className="text-[8px] text-white/25 font-mono uppercase mb-1.5">Family Legend</div>
+                    <div className="space-y-0.5">
+                      {fractalData.families.slice(0, 14).map(f => (
+                        <div key={f.familyId} className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: famColor(f.familyId), boxShadow: `0 0 3px ${famColor(f.familyId)}` }} />
+                          <span className="text-[8px] text-white/45 font-mono">{f.familyId}</span>
+                          <span className="text-[8px] text-white/20 font-mono ml-auto">{f.active}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top-left stats overlay */}
+                <div className="absolute top-3 left-3 bg-black/65 backdrop-blur-sm rounded border border-white/[0.08] p-2.5">
+                  <div className="text-[8px] text-white/25 font-mono uppercase mb-1.5">Hive Core Status</div>
+                  <div className="space-y-0.5 text-[9px] font-mono">
+                    <div className="flex gap-4">
+                      <span className="text-white/25">Nodes</span>
+                      <span className="text-emerald-400">{(fractalData?.spawns?.length ?? 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <span className="text-white/25">Families</span>
+                      <span className="text-purple-400">{fractalData?.families?.length ?? 0}</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <span className="text-white/25">Supply</span>
+                      <span className="text-amber-400">{totalPC.toLocaleString()} PC</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <span className="text-white/25">Status</span>
+                      <span style={{ color: statusColor }}>{ecoStatus}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ECONOMY tab */}
+          {tab === "economy" && (
+            economyLoading && !economyData
+              ? <div className="flex items-center justify-center h-full text-white/25 text-sm font-mono animate-pulse">Loading economy data...</div>
+              : <EconomyPanel economy={economyData} />
+          )}
+
+          {/* GRADES tab */}
+          {tab === "grades" && (
+            gradesLoading && !gradesData
+              ? <div className="flex items-center justify-center h-full text-white/25 text-sm font-mono animate-pulse">Computing hive grades...</div>
+              : <GradesPanel grades={gradesData ?? []} />
+          )}
+
+          {/* PULSE tab */}
+          {tab === "pulse" && (
+            <div className="h-full flex flex-col">
+              <div className="flex-shrink-0 flex items-center gap-3 px-3 py-1.5 border-b border-white/[0.04]">
+                <span className="text-[9px] font-mono text-white/25 uppercase tracking-widest">Mini-Pulse Feed</span>
+                <span className="text-[9px] font-mono text-pink-400">{pulsesData?.length ?? 0} events</span>
+                <button onClick={() => refetchPulses()} className="ml-auto text-white/20 hover:text-white/50 transition-colors">
+                  <RefreshCw size={10} className={pulsesLoading ? "animate-spin" : ""} />
+                </button>
+              </div>
+              {pulsesLoading && !pulsesData
+                ? <div className="flex items-center justify-center flex-1 text-white/25 text-sm font-mono animate-pulse">Listening for mini-pulses...</div>
+                : <div className="flex-1 overflow-hidden">
+                    <PulsePanel pulses={pulsesData ?? []} />
+                  </div>
+              }
+            </div>
+          )}
+
+          {/* ENGINES tab */}
+          {tab === "engines" && <EnginesPanel />}
+        </div>
+      </div>
+
       <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
     </div>
   );

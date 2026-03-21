@@ -15,6 +15,7 @@ import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
+import { getEconomyStats, getFamilyGrades, getFractalGraphData, getRecentMiniPulses } from "./hive-economy";
 
 const scryptAsync = promisify(scrypt);
 async function hashPassword(password: string): Promise<string> {
@@ -6490,6 +6491,30 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const edges = links.map((l: any) => ({ from: l.fromSlug, to: l.toSlug, strength: l.strength || 0.5 }));
       res.json({ nodes, edges, nodeCount: realTotal, edgeCount: edges.length, displayCount: nodes.length });
     } catch { res.json({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 }); }
+  });
+
+  // ─── HIVE ECONOMY ROUTES ──────────────────────────────────────
+  app.get("/api/hive/economy", async (_req, res) => {
+    try { res.json(await getEconomyStats()); }
+    catch { res.json({ treasury: {}, supply: {}, economicStatus: "UNKNOWN" }); }
+  });
+
+  app.get("/api/hive/grades", async (_req, res) => {
+    try { res.json(await getFamilyGrades()); }
+    catch { res.json([]); }
+  });
+
+  app.get("/api/hive/fractal", async (_req, res) => {
+    try { res.json(await getFractalGraphData()); }
+    catch { res.json({ families: [], spawns: [] }); }
+  });
+
+  app.get("/api/hive/mini-pulses", async (req, res) => {
+    try {
+      const limit = Math.min(100, parseInt(req.query.limit as string || "50", 10));
+      res.json(await getRecentMiniPulses(limit));
+    }
+    catch { res.json([]); }
   });
 
   app.get("/api/spawns/stats", async (req, res) => {

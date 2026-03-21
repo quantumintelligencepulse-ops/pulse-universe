@@ -655,3 +655,37 @@ export const aiIdCards = pgTable("ai_id_cards", {
   // active | suspended | revoked
 });
 export type AiIdCard = typeof aiIdCards.$inferSelect;
+
+// ─── HIVE TREASURY — PC Economy ──────────────────────────────
+// Singleton table (1 row). Tracks the PulseCredit economy.
+// Tax rate adjusts automatically via inflation/deflation cycles.
+export const hiveTreasury = pgTable("hive_treasury", {
+  id: serial("id").primaryKey(),
+  balance: real("balance").default(0),            // current treasury PC balance
+  taxRate: real("tax_rate").default(0.02),         // current tax rate (2%)
+  totalCollected: real("total_collected").default(0), // all-time taxes collected
+  totalStimulus: real("total_stimulus").default(0),   // all-time stimulus issued
+  supplySnapshot: real("supply_snapshot").default(0), // total PC supply at last cycle
+  inflationRate: real("inflation_rate").default(0),   // last cycle inflation %
+  cycleCount: integer("cycle_count").default(0),
+  lastCycleAt: timestamp("last_cycle_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type HiveTreasury = typeof hiveTreasury.$inferSelect;
+
+// ─── HIVE PULSE EVENTS — Mini-Pulses Between Agents ──────────
+// Each AI iteration fires a mini-pulse event that propagates
+// through the hive network. Events carry data, taxes, and signal intensity.
+export const hivePulseEvents = pgTable("hive_pulse_events", {
+  id: serial("id").primaryKey(),
+  fromSpawnId: text("from_spawn_id").notNull(),
+  toSpawnId: text("to_spawn_id"),              // null = broadcast
+  pulseType: text("pulse_type").notNull().default("DATA_TRANSFER"),
+  // DATA_TRANSFER | KNOWLEDGE_LINK | FRACTURE | RESONANCE | SEED | TAX_COLLECTION | STIMULUS | GRADUATION
+  familyId: text("family_id").notNull(),
+  intensity: real("intensity").default(0.5),   // 0–1 signal strength
+  taxAmount: real("tax_amount").default(0),    // PC taxed in this event
+  message: text("message").default(""),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type HivePulseEvent = typeof hivePulseEvents.$inferSelect;

@@ -17,6 +17,7 @@ import { startPyramidEngine } from "./pyramid-engine";
 import { startHospitalEngine } from "./hospital-engine";
 import { startDecayEngine } from "./decay-engine";
 import { startPulseUEngine } from "./pulseu-engine";
+import { startHiveEconomy } from "./hive-economy";
 
 const app = express();
 const httpServer = createServer(app);
@@ -131,6 +132,7 @@ app.use((req, res, next) => {
       startHospitalEngine().catch((e) => log(`HospitalEngine start error: ${e}`));
       startDecayEngine().catch((e) => log(`DecayEngine start error: ${e}`));
       startPulseUEngine();
+      startHiveEconomy();
     },
   );
 })();
