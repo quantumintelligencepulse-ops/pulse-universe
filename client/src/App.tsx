@@ -11675,9 +11675,7 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
     const aiPrompt=isFinancial
       ?`You are QuantapediaAI — the world's most comprehensive financial and corporate knowledge engine. Generate a complete, accurate structured knowledge entry for the financial entity: "${q}"${ticker?` (ticker: $${ticker})`:''}${companyHint&&companyHint!==ticker?` — company name hint: "${companyHint}"`:''}.
 
-This may be a stock, company, ETF, index, cryptocurrency, or financial concept — including DELISTED, bankrupt, or obscure entities. If the exact entity is unknown, generate the best available knowledge based on all available context.
-
-CRITICAL: For $BHAT — this is Blue Hat Interactive Entertainment Technology (蓝帽互娱), a Chinese company that was listed on NASDAQ under the ticker BHAT before being delisted. They make interactive children's toys with AR/VR technology. Based in Xiamen, China. Founded around 2010. Delisted from NASDAQ in 2022 due to failure to maintain minimum bid price requirements (price fell below $1.00).
+This may be a stock, company, ETF, index, cryptocurrency, or financial concept — including DELISTED, bankrupt, obscure, foreign-listed, OTC, or micro-cap entities. Use all available knowledge about this entity. If listing status is unknown, research context clues from the name/ticker to determine the most likely exchange, industry, and status.
 
 Return ONLY a valid JSON object with this exact schema:
 {
