@@ -876,7 +876,7 @@ ${posts.map(p => `  <url>
         const pubDate = new Date(s.createdAt);
         const isRecent = (Date.now() - pubDate.getTime()) < 24 * 60 * 60 * 1000;
         return `  <url>
-    <loc>${baseUrl}/story/${s.articleId}</loc>
+    <loc>${baseUrl}/story/${s.slug || s.articleId}</loc>
     <lastmod>${pubDate.toISOString()}</lastmod>
     <changefreq>${isRecent ? "daily" : "weekly"}</changefreq>
     <priority>${isRecent ? "0.90" : "0.80"}</priority>${s.heroImage ? `
@@ -919,7 +919,7 @@ ${stories.map(s => {
   const pubDate = new Date(s.createdAt);
   const isRecent = (Date.now() - pubDate.getTime()) < 24 * 60 * 60 * 1000;
   return `  <url>
-    <loc>${baseUrl}/story/${s.articleId}</loc>
+    <loc>${baseUrl}/story/${s.slug || s.articleId}</loc>
     <lastmod>${pubDate.toISOString()}</lastmod>
     <changefreq>${isRecent ? "daily" : "weekly"}</changefreq>
     <priority>${isRecent ? "0.90" : "0.80"}</priority>
@@ -3433,8 +3433,8 @@ ${entries}
       // Fetch recent stories for cross-linking
       const recentForLinks = await storage.getRecentAiStories(8);
       const crossLinkBlock = recentForLinks.length > 0
-        ? `\n\nCROSS-REFERENCE THESE RELATED My Ai Gpt STORIES (use as inline links where topically relevant, format: [Story Title](/story/articleId)):\n` +
-          recentForLinks.slice(0, 5).map(s => `- "${s.seoTitle || s.title}" → /story/${s.articleId} [${s.category}]`).join("\n")
+        ? `\n\nCROSS-REFERENCE THESE RELATED My Ai Gpt STORIES (use as inline links where topically relevant, format: [Story Title](/story/slug)):\n` +
+          recentForLinks.slice(0, 5).map(s => `- "${s.seoTitle || s.title}" → /story/${s.slug || s.articleId} [${s.category}]`).join("\n")
         : "";
 
       const wordCount = title.split(" ").length + (description || "").split(" ").length;
@@ -3574,9 +3574,11 @@ Generate ONLY the markdown article. No preamble, no explanation, no meta-comment
   app.get("/api/news/story/:articleId", async (req, res) => {
     try {
       const { articleId } = req.params;
-      const story = await storage.getAiStory(articleId);
+      // Try articleId first, then try as a slug
+      let story = await storage.getAiStory(articleId);
+      if (!story) story = await storage.getAiStoryBySlug(articleId);
       if (!story) return res.status(404).json({ error: "Story not found" });
-      await storage.incrementStoryViews(articleId);
+      await storage.incrementStoryViews(story.articleId);
       res.json({ story });
     } catch (e: any) {
       res.status(500).json({ error: "Failed to fetch story" });
@@ -5395,13 +5397,15 @@ ${(spawns.rows as any[]).map(s => {
     if (!isBot) return next();
     try {
       const { articleId } = req.params;
-      const story = await storage.getAiStory(articleId).catch(() => undefined);
+      let story = await storage.getAiStory(articleId).catch(() => undefined);
+      if (!story) story = await storage.getAiStoryBySlug(articleId).catch(() => undefined);
       if (!story) return next();
       const rawTitle = story.seoTitle || story.title || "AI News Story";
       const title    = escapeXml(rawTitle);
       const pageTitle = rawTitle.includes("Quantum Pulse") ? rawTitle : `${rawTitle} | Quantum Pulse Intelligence`;
       const desc     = escapeXml(story.summary || (story.body || "").slice(0, 200));
-      const url      = `${HOST}/story/${articleId}`;
+      const canonicalId = story.slug || articleId;
+      const url      = `${HOST}/story/${canonicalId}`;
       const keywords = (story.keywords || []).join(", ") || story.category || "AI News, Quantum Pulse Intelligence";
       res.type("text/html").send(`<!DOCTYPE html>
 <html lang="en">

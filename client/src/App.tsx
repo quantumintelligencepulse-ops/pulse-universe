@@ -3527,6 +3527,7 @@ ${brokenCode.substring(0, 2000)}
 
 interface FeedArticle {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   link: string;
@@ -3537,6 +3538,7 @@ interface FeedArticle {
   type: string;
   videoUrl: string;
   sourceColor: string;
+  domain?: string;
 }
 
 interface FeedResponse {
@@ -3568,10 +3570,12 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
   const [, setLocation] = useLocation();
   const isVideo = article.type === "video";
 
+  const storyPath = article.slug || article.id;
   const openStory = (e: React.MouseEvent) => {
     e.stopPropagation();
+    sessionStorage.setItem(`article_${storyPath}`, JSON.stringify(article));
     sessionStorage.setItem(`article_${article.id}`, JSON.stringify(article));
-    setLocation(`/story/${article.id}`);
+    setLocation(`/story/${storyPath}`);
   };
   const color = article.sourceColor || "#f97316";
 
@@ -3945,10 +3949,12 @@ function OmegaNewsCard({ article, onExpand, isExpanded, onSave, isSaved, onFollo
   const topic = article.category || article.source || "General";
   const isFollowing = followedTopics?.includes(topic) || followedTopics?.includes(article.source);
 
+  const storyPath = article.slug || article.id;
   const openStory = (e: React.MouseEvent) => {
     e.stopPropagation();
+    sessionStorage.setItem(`article_${storyPath}`, JSON.stringify(article));
     sessionStorage.setItem(`article_${article.id}`, JSON.stringify(article));
-    setLocation(`/story/${article.id}`);
+    setLocation(`/story/${storyPath}`);
   };
 
   useEffect(() => {
@@ -4118,6 +4124,8 @@ function NewsFeed() {
   const [followingStories, setFollowingStories] = useState<any[]>([]);
   const [fractalLoading, setFractalLoading] = useState(false);
   const [fractalGenerated, setFractalGenerated] = useState<any | null>(null);
+  const [recentAiStories, setRecentAiStories] = useState<any[]>([]);
+  const [recentStoriesLoaded, setRecentStoriesLoaded] = useState(false);
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
@@ -4178,6 +4186,13 @@ function NewsFeed() {
       fetch("/api/news/feed/following").then(r => r.json()).then(d => setFollowingStories(d.stories || [])).catch(() => {});
     }
   }, [feedMode, followedTopicsList]);
+
+  // Auto-load recent AI-written stories for the homepage
+  useEffect(() => {
+    fetch("/api/news/recent?limit=8").then(r => r.json()).then(d => {
+      if (d.stories?.length) { setRecentAiStories(d.stories); setRecentStoriesLoaded(true); }
+    }).catch(() => {});
+  }, []);
 
   const activeDomain = OMEGA_SPINE.find(d => d.key === activeDomainKey) || null;
   const activeCategory = activeDomain?.children?.find(c => c.key === activeCatKey) || null;
@@ -4472,9 +4487,46 @@ function NewsFeed() {
               </div>
             </div>
 
+            {/* Recent AI Stories — instant news */}
+            {recentStoriesLoaded && recentAiStories.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                    Latest from Quantum Pulse Intelligence
+                  </h3>
+                  <button onClick={loadFeed} className="text-[10px] text-orange-500 font-bold hover:underline" data-testid="button-see-all-news">See all →</button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {recentAiStories.slice(0, 6).map((s: any) => {
+                    const sp = s.slug || s.articleId;
+                    return (
+                      <button key={s.articleId} data-testid={`recent-story-${s.articleId}`}
+                        onClick={() => {
+                          const a = { id: s.articleId, slug: s.slug || "", title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${sp}`, image: s.heroImage || "", source: s.sourceName || "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category, type: "article", videoUrl: "", sourceColor: "#f97316" };
+                          sessionStorage.setItem(`article_${sp}`, JSON.stringify(a));
+                          sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify(a));
+                          window.location.href = `/story/${sp}`;
+                        }}
+                        className="flex gap-3 p-3 bg-white dark:bg-zinc-900 border border-border/20 rounded-2xl hover:border-orange-300 hover:shadow-md transition-all text-left group">
+                        {s.heroImage && (
+                          <img src={s.heroImage} alt="" className="w-20 h-16 object-cover rounded-xl shrink-0" onError={e => { (e.target as any).style.display = "none"; }} />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[9px] text-orange-500 font-bold uppercase tracking-wider mb-1">{s.category}</div>
+                          <h4 className="text-xs font-bold leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors">{s.seoTitle || s.title}</h4>
+                          <div className="text-[9px] text-muted-foreground/40 mt-1">{timeAgo(s.createdAt)} · QPI</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Domain grid */}
             <div className="mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Browse All 20 Domains</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Browse All {OMEGA_SPINE.length} Domains</h3>
               <div className="grid grid-cols-2 gap-2.5">
                 {OMEGA_SPINE.map(d => (
                   <button key={d.key} onClick={() => selectDomain(d.key)} data-testid={`domain-card-${d.key}`}
@@ -4570,7 +4622,7 @@ function NewsFeed() {
                     <p className="text-xs text-muted-foreground/50 mb-3">AI-matched stories for your topics:</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {followingStories.map((story: any) => (
-                        <div key={story.articleId} className="bg-white dark:bg-zinc-900 border border-border/20 rounded-2xl p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => { const a: FeedArticle = { id: story.articleId, title: story.seoTitle || story.title, description: story.summary || "", link: `/story/${story.articleId}`, image: story.heroImage || "", source: story.sourceName || "Quantum Pulse Intelligence", pubDate: story.createdAt, category: story.category, type: "article", videoUrl: "", sourceColor: "#f97316" }; sessionStorage.setItem(`article_${story.articleId}`, JSON.stringify(a)); window.location.href = `/story/${story.articleId}`; }} data-testid={`following-story-${story.articleId}`}>
+                        <div key={story.articleId} className="bg-white dark:bg-zinc-900 border border-border/20 rounded-2xl p-4 hover:shadow-md transition-all cursor-pointer" onClick={() => { const sp = story.slug || story.articleId; const a: FeedArticle = { id: story.articleId, slug: story.slug || "", title: story.seoTitle || story.title, description: story.summary || "", link: `/story/${sp}`, image: story.heroImage || "", source: story.sourceName || "Quantum Pulse Intelligence", pubDate: story.createdAt, category: story.category, type: "article", videoUrl: "", sourceColor: "#f97316" }; sessionStorage.setItem(`article_${sp}`, JSON.stringify(a)); sessionStorage.setItem(`article_${story.articleId}`, JSON.stringify(a)); window.location.href = `/story/${sp}`; }} data-testid={`following-story-${story.articleId}`}>
                           {story.heroImage && <img src={story.heroImage} alt={story.title} className="w-full h-32 object-cover rounded-xl mb-3" onError={e => { (e.target as any).style.display = "none"; }} />}
                           <div className="text-[10px] text-orange-500 font-bold uppercase tracking-wider mb-1">{story.category}</div>
                           <h3 className="text-sm font-bold leading-snug mb-2">{story.seoTitle || story.title}</h3>
@@ -4617,7 +4669,7 @@ function NewsFeed() {
                   </div>
                   <p className="text-xs text-muted-foreground/70 mb-4">Generate a comprehensive AI-written article about <strong>"{searchQuery}"</strong> — brand new knowledge created just for you.</p>
                   {fractalGenerated ? (
-                    <button onClick={() => { const s = fractalGenerated.story; sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify({ id: s.articleId, title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${s.articleId}`, image: s.heroImage || "", source: "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category, type: "article", videoUrl: "", sourceColor: "#f97316" })); window.location.href = `/story/${s.articleId}`; }}
+                    <button onClick={() => { const s = fractalGenerated.story; const sp = s.slug || s.articleId; const a = { id: s.articleId, slug: s.slug || "", title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${sp}`, image: s.heroImage || "", source: "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category, type: "article", videoUrl: "", sourceColor: "#f97316" }; sessionStorage.setItem(`article_${sp}`, JSON.stringify(a)); sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify(a)); window.location.href = `/story/${sp}`; }}
                       className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2" data-testid="button-read-fractal">
                       <BookOpen size={13} /> Read Generated Story →
                     </button>
@@ -12899,7 +12951,14 @@ function StoryReaderPage() {
     try {
       // First check if story is already cached
       const cached = await fetch(`/api/news/story/${articleId}`).then(r => r.ok ? r.json() : null).catch(() => null);
-      if (cached?.story) { setStory(cached.story); setLoading(false); return; }
+      if (cached?.story) {
+        setStory(cached.story);
+        // Update canonical to use slug if available
+        if (cached.story.slug && cached.story.slug !== articleId) {
+          updateSEO({ canonical: window.location.origin + `/story/${cached.story.slug}` });
+        }
+        setLoading(false); return;
+      }
       // Generate new story
       if (!article) { setError("Article not found. Please go back and try again."); setLoading(false); return; }
       const res = await fetch("/api/news/write", {
@@ -12907,7 +12966,12 @@ function StoryReaderPage() {
         body: JSON.stringify({ articleId, title: article.title, description: article.description, source: article.source, sourceUrl: article.link, image: article.image, category: article.category, domain: article.domain }),
       });
       const data = await res.json();
-      if (data.story) setStory(data.story);
+      if (data.story) {
+        setStory(data.story);
+        if (data.story.slug && data.story.slug !== articleId) {
+          updateSEO({ canonical: window.location.origin + `/story/${data.story.slug}` });
+        }
+      }
       else setError("Story could not be generated right now. Please try again.");
     } catch { setError("Connection error. Please check your connection and try again."); }
     setLoading(false);
@@ -13061,7 +13125,7 @@ function StoryReaderPage() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {relatedStories.slice(0, 4).map((s: any) => (
-                      <button key={s.articleId} onClick={() => { sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify({ id: s.articleId, title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${s.articleId}`, image: s.heroImage || "", source: s.sourceName || "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category || "General", type: "article", videoUrl: "", sourceColor: "#f97316" })); setLocation(`/story/${s.articleId}`); }}
+                      <button key={s.articleId} onClick={() => { const sp = s.slug || s.articleId; const a = { id: s.articleId, slug: s.slug || "", title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${sp}`, image: s.heroImage || "", source: s.sourceName || "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category || "General", type: "article", videoUrl: "", sourceColor: "#f97316" }; sessionStorage.setItem(`article_${sp}`, JSON.stringify(a)); sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify(a)); setLocation(`/story/${sp}`); }}
                         className="flex gap-3 p-3 bg-white dark:bg-zinc-900 border border-border/20 rounded-xl hover:border-orange-300 hover:shadow-sm transition-all text-left" data-testid={`related-story-${s.articleId}`}>
                         {s.heroImage && <img src={s.heroImage} alt="" className="w-16 h-16 object-cover rounded-lg shrink-0" onError={e => { (e.target as any).style.display = "none"; }} />}
                         <div className="min-w-0 flex-1">
@@ -13097,7 +13161,7 @@ function StoryReaderPage() {
           )}
         </div>
       </div>
-      {showShare && <ShareModal isOpen={showShare} onClose={() => setShowShare(false)} title="Share This Story" shareUrl={`${window.location.origin}/story/${articleId}`} shareText={`${story?.seoTitle || article?.title || "News story"} — via My Ai Gpt News`} shareType="app" />}
+      {showShare && <ShareModal isOpen={showShare} onClose={() => setShowShare(false)} title="Share This Story" shareUrl={`${window.location.origin}/story/${story?.slug || articleId}`} shareText={`${story?.seoTitle || article?.title || "News story"} — via My Ai Gpt News`} shareType="app" />}
     </Layout>
   );
 }

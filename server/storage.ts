@@ -150,6 +150,7 @@ export interface IStorage {
   debitEarnings(userId: number, amount: number): Promise<User | undefined>;
 
   getAiStory(articleId: string): Promise<AiStory | undefined>;
+  getAiStoryBySlug(slug: string): Promise<AiStory | undefined>;
   saveAiStory(story: InsertAiStory): Promise<AiStory>;
   incrementStoryViews(articleId: string): Promise<void>;
   getRecentAiStories(limit: number): Promise<AiStory[]>;
@@ -573,6 +574,11 @@ export class DatabaseStorage implements IStorage {
 
   async getAiStory(articleId: string): Promise<AiStory | undefined> {
     const [story] = await db.select().from(aiStories).where(eq(aiStories.articleId, articleId));
+    return story;
+  }
+
+  async getAiStoryBySlug(slug: string): Promise<AiStory | undefined> {
+    const [story] = await db.select().from(aiStories).where(eq(aiStories.slug, slug));
     return story;
   }
 
