@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
+import { setupSeoMiddleware } from "./seo";
 import { createServer } from "http";
 import { startQuantapediaEngine } from "./quantapedia-engine";
 import { startQuantumProductEngine } from "./quantum-product-engine";
@@ -87,6 +88,10 @@ app.use((req, res, next) => {
 
     return res.status(status).json({ message });
   });
+
+  // SEO meta injection — runs before the Vite/static catch-all so every
+  // page URL gets proper <title> and <meta> tags for Google/crawlers
+  setupSeoMiddleware(app);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
