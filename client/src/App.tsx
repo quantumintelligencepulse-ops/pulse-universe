@@ -11517,6 +11517,9 @@ type QuantaEntry={
   etymology?:string;synonyms:string[];antonyms:string[];relatedTerms:string[];
   sections:{title:string;content:string}[];quickFacts:{label:string;value:string}[];
   categories:string[];seeAlso:string[];
+  // Financial entity extras (populated when type = 'company' | 'stock' | 'financial')
+  ticker?:string;exchange?:string;listingStatus?:string;headquarters?:string;
+  founded?:string;industry?:string;ceo?:string;
 };
 const QP_FEATURED=[
   {q:'Quantum mechanics',emoji:'⚛️',cat:'Physics'},
@@ -11528,13 +11531,19 @@ const QP_FEATURED=[
   {q:'Universe',emoji:'🌌',cat:'Cosmology'},
   {q:'Love',emoji:'❤️',cat:'Emotion'},
   {q:'Mathematics',emoji:'∞',cat:'Science'},
-  {q:'Time',emoji:'⏳',cat:'Philosophy'},
+  {q:'$NVDA NVIDIA stock',emoji:'📈',cat:'Finance'},
+  {q:'$TSLA Tesla stock',emoji:'🚗',cat:'Finance'},
+  {q:'$BHAT Blue Hat Interactive stock',emoji:'🎮',cat:'Finance'},
+  {q:'Bitcoin',emoji:'₿',cat:'Crypto'},
+  {q:'Stock market crash',emoji:'📉',cat:'Finance'},
   {q:'Music',emoji:'🎵',cat:'Art'},
   {q:'Evolution',emoji:'🦎',cat:'Biology'},
 ];
 const QP_CATEGORIES=[
   {label:'Science',emoji:'🔬',topics:['Physics','Chemistry','Biology','Astronomy','Geology','Ecology','Neuroscience']},
   {label:'Technology',emoji:'💻',topics:['Artificial Intelligence','Computer Science','Engineering','Robotics','Blockchain','Quantum Computing']},
+  {label:'Finance & Markets',emoji:'📈',topics:['$BHAT Blue Hat Interactive stock','$NVDA NVIDIA stock','$TSLA Tesla stock','Stock market crash','Bitcoin','Short selling','Delisted stocks','Nasdaq requirements','IPO process','Penny stocks','Hedge funds','Market cap']},
+  {label:'Companies',emoji:'🏢',topics:['Blue Hat Interactive Entertainment','Nvidia Corporation','Tesla Inc','Apple Inc','Microsoft Corporation','Alibaba Group','Amazon','Goldman Sachs','BlackRock','Berkshire Hathaway']},
   {label:'History',emoji:'📜',topics:['Ancient Rome','Renaissance','World War II','Industrial Revolution','Cold War','Egyptian Empire']},
   {label:'Philosophy',emoji:'🤔',topics:['Ethics','Epistemology','Metaphysics','Logic','Aesthetics','Existentialism','Stoicism']},
   {label:'Language',emoji:'💬',topics:['Etymology','Grammar','Linguistics','Phonetics','Semantics','Pragmatics','Morphology']},
@@ -11565,10 +11574,40 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
     const fetchStatus=()=>fetch('/api/quantapedia/engine-status').then(r=>r.json()).then(setEngineStatus).catch(()=>{});
     fetchStatus();
     const id=setInterval(fetchStatus,10000);
+    // Pre-seed high-value financial topics including delisted stocks so they're always available
+    const financialSeedTopics=[
+      {slug:'blue-hat-interactive-entertainment-technology',title:'Blue Hat Interactive Entertainment Technology ($BHAT)'},
+      {slug:'bhat-stock-delisted',title:'$BHAT Blue Hat Interactive Stock'},
+      {slug:'bhat-nasdaq-delisted',title:'BHAT NASDAQ Delisting'},
+      {slug:'nasdaq-delisting-requirements',title:'NASDAQ Delisting Requirements'},
+      {slug:'chinese-us-listed-stocks',title:'Chinese Stocks Listed in US'},
+      {slug:'penny-stocks-delisted',title:'Delisted Penny Stocks'},
+      {slug:'stock-market-delisting-process',title:'Stock Market Delisting Process'},
+    ];
+    fetch('/api/quantapedia/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topics:financialSeedTopics})}).catch(()=>{});
     return ()=>clearInterval(id);
   },[]);
 
   const toSlug=(q:string)=>q.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+
+  // Detect financial/stock queries: "$BHAT", "BHAT stock", "blue hat stock", "NVDA shares", etc.
+  const detectFinancialQuery=(q:string):{isFinancial:boolean;ticker:string;companyHint:string}=>{
+    const upper=q.toUpperCase().trim();
+    const lower=q.toLowerCase().trim();
+    const tickerMatch=q.match(/\$([A-Z]{1,5})/i)||q.match(/^([A-Z]{1,5})\s+(stock|shares|etf|ticker|price)/i);
+    const ticker=tickerMatch?(tickerMatch[1]||tickerMatch[1]).toUpperCase():'';
+    const isFinancial=!!(
+      ticker||
+      lower.includes(' stock')||lower.includes(' shares')||lower.includes('ticker')||
+      lower.includes('nasdaq')||lower.includes('nyse')||lower.includes('nyse:')||
+      lower.includes('delisted')||lower.includes(' ipo')||lower.includes(' etf')||
+      lower.includes(' fund')||lower.includes(' inc ')||lower.includes(' corp')||
+      lower.includes(' ltd ')||lower.includes(' llc ')||lower.includes(' plc ')||
+      lower.includes('hedge fund')||lower.includes('market cap')||lower.includes('stock market')
+    );
+    const companyHint=q.replace(/\$[A-Z]{1,5}/gi,'').replace(/\b(stock|shares|ticker|price|etf|ipo|nasdaq|nyse|inc|corp|ltd|llc|plc)\b/gi,'').trim()||ticker;
+    return {isFinancial,ticker,companyHint};
+  };
 
   const applyEntrySEO=(parsed:QuantaEntry,q:string)=>{
     const slug=toSlug(q);
@@ -11613,6 +11652,7 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
       return;
     }
     setLoading(true);setQuery(q);setView('entry');
+    // Try server DB first
     try{
       const serverRes=await fetch('/api/quantapedia/entry/'+slug);
       const serverData=await serverRes.json();
@@ -11629,8 +11669,59 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
         return;
       }
     } catch{}
-    try{
-      const res=await fetch('/api/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:`You are QuantapediaAI — the world's most comprehensive AI knowledge engine. Generate a complete structured knowledge entry for: "${q}"
+
+    // Build the AI prompt — financial queries get a specialized prompt that always returns real data
+    const {isFinancial,ticker,companyHint}=detectFinancialQuery(q);
+    const aiPrompt=isFinancial
+      ?`You are QuantapediaAI — the world's most comprehensive financial and corporate knowledge engine. Generate a complete, accurate structured knowledge entry for the financial entity: "${q}"${ticker?` (ticker: $${ticker})`:''}${companyHint&&companyHint!==ticker?` — company name hint: "${companyHint}"`:''}.
+
+This may be a stock, company, ETF, index, cryptocurrency, or financial concept — including DELISTED, bankrupt, or obscure entities. If the exact entity is unknown, generate the best available knowledge based on all available context.
+
+CRITICAL: For $BHAT — this is Blue Hat Interactive Entertainment Technology (蓝帽互娱), a Chinese company that was listed on NASDAQ under the ticker BHAT before being delisted. They make interactive children's toys with AR/VR technology. Based in Xiamen, China. Founded around 2010. Delisted from NASDAQ in 2022 due to failure to maintain minimum bid price requirements (price fell below $1.00).
+
+Return ONLY a valid JSON object with this exact schema:
+{
+  "title": "Full official company/entity name",
+  "type": "company",
+  "ticker": "${ticker||''}",
+  "exchange": "NASDAQ|NYSE|OTC|AMEX|LSE|etc or 'Delisted'",
+  "listingStatus": "Active|Delisted|Suspended|Private|Merged",
+  "headquarters": "City, Country",
+  "founded": "year or approximate period",
+  "industry": "primary industry",
+  "ceo": "current or last known CEO",
+  "pronunciation": "",
+  "partOfSpeech": "",
+  "summary": "2-3 sentence overview of the company, its business, and current status",
+  "definitions": [
+    {"number": 1, "text": "what this company does / business model", "example": ""},
+    {"number": 2, "text": "history of its stock listing and any notable events", "example": ""}
+  ],
+  "etymology": "origin of company name if notable, otherwise empty string",
+  "synonyms": ["alternative names, trading names, or subsidiaries"],
+  "antonyms": [],
+  "relatedTerms": ["competitor companies", "related industries", "financial concepts relevant to this company"],
+  "sections": [
+    {"title": "Company Overview", "content": "Full description of what the company does, products/services, target markets, and business model"},
+    {"title": "Stock History & Listing", "content": "IPO date, exchange listing, price history highlights, any delistings, reasons for delisting, any stock splits or significant corporate events"},
+    {"title": "Products & Services", "content": "Key products, services, or technologies the company offers"},
+    {"title": "Financial Performance", "content": "Revenue trends, profitability, key financial metrics, market cap at peak, any SEC filings or investigations"},
+    {"title": "Current Status", "content": "Current operational status, any restructuring, bankruptcy, merger, acquisition, or OTC trading information"}
+  ],
+  "quickFacts": [
+    {"label": "Ticker Symbol", "value": "$${ticker||'N/A'}"},
+    {"label": "Exchange", "value": "exchange name"},
+    {"label": "Listing Status", "value": "Active / Delisted / etc"},
+    {"label": "Headquarters", "value": "city, country"},
+    {"label": "Founded", "value": "year"},
+    {"label": "Industry", "value": "sector"},
+    {"label": "Category", "value": "Public Company / Private / Delisted"},
+    {"label": "Complexity", "value": "Intermediate"}
+  ],
+  "categories": ["Finance", "Stocks", "Companies", "relevant industry tags"],
+  "seeAlso": ["related companies", "NASDAQ delisting process", "penny stocks", "Chinese US-listed stocks", "related financial topics"]
+}`
+      :`You are QuantapediaAI — the world's most comprehensive AI knowledge engine. Generate a complete structured knowledge entry for: "${q}"
 
 Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) with this exact schema:
 {
@@ -11662,7 +11753,10 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
   ],
   "categories": ["3-6 category tags"],
   "seeAlso": ["6-10 related topics to explore next"]
-}`}]})});
+}`;
+
+    try{
+      const res=await fetch('/api/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:aiPrompt}]})});
       const data=await res.json();
       let parsed:QuantaEntry;
       try{parsed=JSON.parse(data.content);}
@@ -11678,14 +11772,39 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
       saveHistory(q);
       setLocation('/quantapedia/'+slug,{replace:true});
       applyEntrySEO(parsed,q);
+      // Queue discovered related topics for background generation
       const discoveredTopics=[...(parsed.relatedTerms||[]),...(parsed.seeAlso||[])].slice(0,12).map((t:string)=>({slug:toSlug(t),title:t}));
       if(discoveredTopics.length)fetch('/api/quantapedia/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topics:discoveredTopics})}).catch(()=>{});
-    } catch{toast({title:'Error generating entry. Please try again.',variant:'destructive'});}
+      // Also track this new entry in the DB
+      fetch('/api/quantapedia/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,title:parsed.title,summary:(parsed.summary||'').slice(0,500),type:parsed.type||'concept',categories:parsed.categories||[],relatedTerms:parsed.relatedTerms||[]})}).catch(()=>{});
+    } catch(err){
+      // Final fallback: generate a minimal stub so the user ALWAYS gets something
+      const {isFinancial:fin,ticker:t2,companyHint:ch}=detectFinancialQuery(q);
+      const stub:QuantaEntry={
+        title:fin&&t2?`${ch||t2} ($${t2})`:(q.trim()),
+        type:fin?'company':'concept',
+        ticker:t2||undefined,
+        listingStatus:fin?'Status unknown — researching...':undefined,
+        summary:`Quantapedia is generating a full entry for "${q}". This topic has been queued for deep knowledge expansion.`,
+        definitions:[{number:1,text:`${q} — knowledge entry being generated.`,example:''}],
+        synonyms:[],antonyms:[],relatedTerms:[],
+        sections:[{title:'Entry Loading',content:`Our knowledge engine has queued "${q}" for full generation. Please search again in a moment or explore related topics below.`}],
+        quickFacts:[{label:'Status',value:'Queued for generation'},{label:'Category',value:fin?'Finance':'General'},{label:'Complexity',value:'Unknown'}],
+        categories:fin?['Finance','Companies','Stocks']:['General'],
+        seeAlso:fin?['Stock market','NASDAQ','NYSE','IPO','Penny stocks','Delisted stocks']:['Knowledge','Encyclopedia','Reference'],
+      };
+      setEntry(stub);
+      saveHistory(q);
+      setLocation('/quantapedia/'+slug,{replace:true});
+      // Queue this topic for proper generation
+      fetch('/api/quantapedia/queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topics:[{slug,title:q.trim()}]})}).catch(()=>{});
+      toast({title:`"${q.trim()}" queued for knowledge generation`,description:'Try again in a moment for the full entry.',variant:'default'});
+    }
     finally{setLoading(false);}
   };
 
   const typeColor=(t:string)=>{
-    const m:Record<string,string>={word:'violet',phrase:'blue',person:'amber',place:'green',concept:'cyan',event:'orange',field:'pink',organism:'emerald',chemical:'red',historical:'yellow',cultural:'purple',mathematical:'indigo'};
+    const m:Record<string,string>={word:'violet',phrase:'blue',person:'amber',place:'green',concept:'cyan',event:'orange',field:'pink',organism:'emerald',chemical:'red',historical:'yellow',cultural:'purple',mathematical:'indigo',company:'emerald',stock:'green',financial:'teal',finance:'teal',crypto:'yellow'};
     return m[t?.toLowerCase()]||'white';
   };
 
@@ -11891,6 +12010,16 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
                   {entry.categories?.slice(0,3).map(c=><span key={c} className="text-[9px] px-2 py-0.5 rounded-full bg-white/[0.03] text-white/25 border border-white/8">{c}</span>)}
                 </div>
                 <h1 className="text-white font-black text-2xl mb-1" style={{letterSpacing:'-0.02em'}}>{entry.title}</h1>
+                {/* Financial ticker badge */}
+                {(entry.ticker||entry.exchange||entry.listingStatus)&&(
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    {entry.ticker&&<span className="px-2.5 py-1 rounded-lg text-sm font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 font-mono">${entry.ticker}</span>}
+                    {entry.exchange&&<span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/15">{entry.exchange}</span>}
+                    {entry.listingStatus&&<span className={`px-2 py-0.5 rounded-lg text-xs font-bold border ${entry.listingStatus?.toLowerCase().includes('delist')||entry.listingStatus?.toLowerCase().includes('suspen')?'bg-red-500/15 text-red-400 border-red-500/25':'bg-green-500/10 text-green-400 border-green-500/15'}`}>{entry.listingStatus}</span>}
+                    {entry.headquarters&&<span className="text-white/30 text-xs">📍 {entry.headquarters}</span>}
+                    {entry.founded&&<span className="text-white/25 text-xs">Est. {entry.founded}</span>}
+                  </div>
+                )}
                 {entry.pronunciation&&<div className="text-violet-400/60 text-sm font-mono mb-2">{entry.pronunciation}</div>}
                 <p className="text-white/60 text-sm leading-relaxed">{entry.summary}</p>
               </div>
