@@ -27,7 +27,7 @@ interface SpawnIdentity {
 export function getLicenseNumber(spawnId: string, familyId: string, generation: number = 0): string {
   const fam = (familyId || "UNK").slice(0, 4).toUpperCase().replace(/[^A-Z]/g, "X").padEnd(3, "X").slice(0, 3);
   const gen = String(generation).padStart(2, "0");
-  const uid = spawnId.replace(/-/g, "").slice(-6).toUpperCase();
+  const uid = (spawnId || "UNKNOWN").replace(/-/g, "").slice(-6).toUpperCase();
   return `QPI-${fam}-G${gen}-${uid}`;
 }
 
