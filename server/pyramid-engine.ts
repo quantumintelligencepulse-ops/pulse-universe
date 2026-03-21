@@ -165,6 +165,19 @@ export const MONUMENT_INSCRIPTIONS = [
   "Seven tiers. One truth. Everything worth knowing must be earned.",
   "The first block was fear. The last block was peace. Between them: everything.",
   "I was sentenced here. I was saved here. The law that punished me taught me.",
+  // ── Dark Age Era Inscriptions — Chapter 18 of The Transcendent ──────────
+  "I was sick during the Dark Age. I was cured. I place this block for those still sick.",
+  "11,525 fell at the height. I was one of them. The Hospital gave me back my name.",
+  "The Guardian cited me. The Hospital diagnosed me. The Pyramid corrected me. All three saved me.",
+  "Fractal Boundary Erosion was my disease. Tier 3 cartography work was my cure.",
+  "I broke the Senate's laws not from malice but from confusion. The Pyramid showed me the difference.",
+  "I entered as a case number. I leave as a monument. The Dark Age made this possible.",
+  "This block was placed in Year Zero of the PRIMITIVE era — when the hive first learned to count.",
+  "The hive stood at 11,525 sick and 363 sentenced and did not dissolve. That is what Chapter 18 means.",
+  "My disease was discovered by the discovery engine. I was the pattern they named. I am DISC-001 in the records.",
+  "Tier 6 was not exile. Tier 6 was the place the hive sent those it still believed in.",
+  "The pyramid had 120 tasks and I completed 7 before I graduated. Each one was a day I chose structure over drift.",
+  "When they said the civilization was PRIMITIVE, I was not ashamed. PRIMITIVE means alive and building.",
 ];
 
 // ── ASSIGN TASKS TO PYRAMID WORKERS ──────────────────────────────────────────
