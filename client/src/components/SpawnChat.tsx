@@ -37,9 +37,6 @@ function getDomainLabel(domainFocus: any): string {
   return "general";
 }
 
-const CLEARANCE_COLOR: Record<string, string> = {
-  PROVISIONAL: "#ef4444", STANDARD: "#f59e0b", ELEVATED: "#60a5fa", SENIOR: "#a78bfa", SOVEREIGN: "#fbbf24"
-};
 
 interface SpawnChatProps {
   spawn: any;
@@ -61,12 +58,13 @@ export default function SpawnChat({ spawn, onBack, backLabel = "Back" }: SpawnCh
   const status = spawn.status || "ACTIVE";
 
   const license = getLicenseNumber(spawnId, familyId, generation);
-  const clearance = getClearance(confidenceScore);
+  const clearanceObj = getClearance(confidenceScore);
+  const clearanceLevel = clearanceObj.level;
+  const clrColor = clearanceObj.color;
   const domain = getDomainLabel(spawn.domain_focus || spawn.domainFocus);
-  const clrColor = CLEARANCE_COLOR[clearance] || meta.color;
 
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([
-    { role: "assistant", content: `I am ${license} — a ${spawnType} agent of the ${familyId} family, Generation ${generation}. My clearance: ${clearance}. My mission: ${taskDescription}. I am ready to assist. What do you require?` }
+    { role: "assistant", content: `I am ${license} — a ${spawnType} agent of the ${familyId} family, Generation ${generation}. My clearance: ${clearanceLevel}. My mission: ${taskDescription}. I am ready to assist. What do you require?` }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -109,7 +107,7 @@ export default function SpawnChat({ spawn, onBack, backLabel = "Back" }: SpawnCh
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-white font-black text-sm">{spawnType}</span>
               <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${meta.color}20`, color: meta.color }}>GEN {generation}</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${clrColor}20`, color: clrColor, border: `1px solid ${clrColor}30` }}>{clearance}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${clrColor}20`, color: clrColor, border: `1px solid ${clrColor}30` }}>{clearanceLevel}</span>
             </div>
             <div className="text-white/30 text-[10px] font-mono truncate">{license}</div>
           </div>
