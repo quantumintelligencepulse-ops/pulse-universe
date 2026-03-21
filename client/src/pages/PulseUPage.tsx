@@ -1934,7 +1934,7 @@ export default function PulseUPage() {
                             <span className="text-[9px] px-1.5 py-0.5 rounded font-bold capitalize" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>{s.familyId}</span>
                           </div>
                           <div className="flex items-center gap-3 mt-1.5">
-                            <div className="text-[10px] text-white/40">Course {s.coursesCompleted ?? 0} / 1,032</div>
+                            <div className="text-[10px] text-white/40">Course {s.coursesCompleted ?? 0} / 2,510</div>
                             <div className="text-[10px] text-white/40">GPA {parseFloat(s.gpa ?? 0).toFixed(2)}</div>
                             {s.status === "remediation" && <span className="text-[9px] text-red-400 font-bold">REMEDIATION</span>}
                             {s.status === "graduated"   && <span className="text-[9px] text-emerald-400 font-bold">GRADUATED</span>}
@@ -2027,7 +2027,7 @@ export default function PulseUPage() {
                         <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: fColor+"25", color: fColor }}>{card.spawnType}</span>
                         <span className="text-[9px] px-1.5 py-0.5 rounded font-bold capitalize" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}>{card.familyId}</span>
                         <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981" }}>GPA {parseFloat(card.gpa ?? 0).toFixed(2)}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>{(card.totalCourses ?? 1032).toLocaleString()} courses</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>{(card.totalCourses ?? 2510).toLocaleString()} courses</span>
                       </div>
                       <div className="text-[9px] text-white/20 mt-2">
                         Issued: {card.issuedAt ? new Date(card.issuedAt).toLocaleDateString() : "—"}

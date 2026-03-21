@@ -1033,4 +1033,4 @@ export const PULSEU_COURSE_LIST: string[] = [
   "IND-E-0500",
 ];
 
-export const PULSEU_TOTAL_COURSES = 1032;
+export const PULSEU_TOTAL_COURSES = 2510;

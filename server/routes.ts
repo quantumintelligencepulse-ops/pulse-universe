@@ -5054,7 +5054,7 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
           pp.status,
           pp.enrolled_at     AS "enrolledAt",
           pp.last_progress_at AS "lastProgress",
-          ROUND((pp.courses_completed::numeric / 1032) * 100, 1) AS "progressPct"
+          ROUND((pp.courses_completed::numeric / 2510) * 100, 1) AS "progressPct"
         FROM pulseu_progress pp
         WHERE pp.status = $1 ${familyWhere}
         ORDER BY pp.last_progress_at DESC NULLS LAST

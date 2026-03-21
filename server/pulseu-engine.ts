@@ -76,10 +76,10 @@ async function advanceLearners() {
     for (const u of updates) {
       await pool.query(`
         UPDATE pulseu_progress
-        SET courses_completed = $1,
-            gpa = $2,
-            last_progress_at = NOW(),
-            status = CASE WHEN $1 >= $3 THEN 'graduated' ELSE 'enrolled' END
+        SET courses_completed = $1::int,
+            gpa               = $2::numeric,
+            last_progress_at  = NOW(),
+            status = CASE WHEN $1::int >= $3::int THEN 'graduated' ELSE 'enrolled' END
         WHERE spawn_id = $4
       `, [u.newCount, u.gpa, PULSEU_TOTAL_COURSES, u.spawnId]);
     }
