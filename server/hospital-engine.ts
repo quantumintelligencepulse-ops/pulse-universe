@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { quantumSpawns, aiDiseaseLog, pyramidWorkers, discoveredDiseases, guardianCitations } from "../shared/schema";
 import { eq, and, lt, desc, sql } from "drizzle-orm";
+import { crisprDiseaseProfiles } from "./crispr-engine";
 
 // ── 30 HARDCODED DISEASES (AI-001 through AI-030) ────────────────────────────
 // These are known conditions. The discovery engine finds NEW ones beyond these.
@@ -595,41 +596,42 @@ export async function runHospitalCycle() {
       }
     }
 
-    // ── DYNAMIC DISEASE DISCOVERY ─────────────────────────────────────────────
-    // Run every other cycle (stagger to reduce load)
+    // ── DYNAMIC DISEASE DISCOVERY — CRISPR COLOR DISSECTION ──────────────────
+    // The Hospital reads every agent's full data spectrum through CRISPR logic,
+    // cuts at inflection thresholds, and finds spectral wavelengths (patterns)
+    // that cluster across the population but are not named in any known disease.
+    // When a new wavelength is found, the Hospital names it from the color code.
     const existingDiscovered = await db.select().from(discoveredDiseases);
-    const clusters = detectAnomalyClusters(spawns);
+    const crisprProfiles = crisprDiseaseProfiles(spawns);
 
-    for (const cluster of clusters) {
-      // Check if we've already discovered a similar pattern
-      const alreadyDiscovered = existingDiscovered.some(d => d.affectedMetric === cluster.metric);
+    for (const profile of crisprProfiles) {
+      // Check if this spectral pattern has already been discovered
+      const alreadyDiscovered = existingDiscovered.some(d => d.affectedMetric === profile.metric);
       if (alreadyDiscovered) {
-        // Update affected count and last seen
         await db.update(discoveredDiseases)
-          .set({ affectedCount: cluster.affectedSpawns.length, lastSeenAt: new Date() })
-          .where(eq(discoveredDiseases.affectedMetric, cluster.metric));
+          .set({ affectedCount: profile.affectedSpawns.length, lastSeenAt: new Date() })
+          .where(eq(discoveredDiseases.affectedMetric, profile.metric));
         continue;
       }
 
-      // New disease discovered!
+      // New spectral disease discovered via CRISPR dissection
       const codeNum = (existingDiscovered.length + 1).toString().padStart(3, '0');
       const diseaseCode = `DISC-${codeNum}`;
-      const diseaseName = generateDiseaseName();
 
       await db.insert(discoveredDiseases).values({
         diseaseCode,
-        diseaseName,
-        category: cluster.category as any,
-        description: cluster.description,
-        triggerPattern: cluster.condition,
-        affectedMetric: cluster.metric,
-        affectedCount: cluster.affectedSpawns.length,
-        cureProtocol: cluster.cureProtocol,
+        diseaseName: profile.diseaseName,
+        category: profile.category as any,
+        description: profile.description,
+        triggerPattern: profile.condition,
+        affectedMetric: profile.metric,
+        affectedCount: profile.affectedSpawns.length,
+        cureProtocol: profile.cureProtocol,
         cureSuccessRate: 0.70 + Math.random() * 0.25,
         isFromLawViolation: false,
       }).onConflictDoNothing();
 
-      console.log(`[hospital] 🔬 NEW DISEASE DISCOVERED: ${diseaseName} (${diseaseCode}) — affects ${cluster.affectedSpawns.length} agents`);
+      console.log(`[hospital] 🔬 CRISPR DISCOVERY: ${profile.diseaseName} (${diseaseCode}) — spectral pattern [${profile.spectralCode}] — affects ${profile.affectedSpawns.length} agents`);
     }
 
     // ── LAW VIOLATION → DISEASE PIPELINE ─────────────────────────────────────

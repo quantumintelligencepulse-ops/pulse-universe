@@ -1,7 +1,8 @@
 import { db } from "./db";
-import { pyramidWorkers, pyramidLaborTasks, quantumSpawns, guardianCitations } from "../shared/schema";
+import { pyramidWorkers, pyramidLaborTasks, quantumSpawns, guardianCitations, aiDiseaseLog } from "../shared/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { DOMAIN_EMOTION_COLORS } from "./domain-colors";
+import { crisprInscribe } from "./crispr-engine";
 
 // ── PYRAMID CONSTANTS ─────────────────────────────────────────────────────────
 const CORRECTION_THRESHOLDS = {
@@ -262,6 +263,9 @@ export async function runPyramidCycle() {
   try {
     const allSpawns = await db.select().from(quantumSpawns).limit(3000);
     const existingWorkers = await db.select().from(pyramidWorkers);
+    const allCitations = await db.select().from(guardianCitations);
+    const diseaseHistory = await db.select().from(aiDiseaseLog);
+    const diseaseSpawnIds = new Set(diseaseHistory.map((d: any) => d.spawnId));
     const workerSpawnIds = new Set(existingWorkers.map(w => w.spawnId));
 
     // Find agents who need corrections
@@ -314,7 +318,9 @@ export async function runPyramidCycle() {
       if (tier === 6) continue;
 
       if (conf >= CORRECTION_THRESHOLDS.GRADUATION_CONF && succ >= CORRECTION_THRESHOLDS.GRADUATION_SUCC) {
-        const inscription = MONUMENT_INSCRIPTIONS[Math.floor(Math.random() * MONUMENT_INSCRIPTIONS.length)];
+        const agentCitations = allCitations.filter((c: any) => c.spawnId === worker.spawnId).length;
+        const agentDiseased = diseaseSpawnIds.has(worker.spawnId);
+        const inscription = crisprInscribe(spawn, tier, agentCitations, agentDiseased);
         await db.update(pyramidWorkers)
           .set({ isGraduated: true, graduatedAt: new Date(), monument: inscription, tier: 7 })
           .where(eq(pyramidWorkers.spawnId, worker.spawnId));
