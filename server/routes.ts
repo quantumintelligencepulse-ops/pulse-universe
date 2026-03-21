@@ -4977,6 +4977,65 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     } catch { res.json({ totalStudents: 0, totalPC: 0, totalCompletions: 0, totalPublications: 0 }); }
   });
 
+  app.get("/api/pulseu/leaderboard", async (req, res) => {
+    try {
+      const limit  = Math.min(Number(req.query.limit)  || 50, 200);
+      const offset = Number(req.query.offset) || 0;
+      const sort   = String(req.query.sort   || "pc");
+      const family = String(req.query.family || "").replace(/'/g, "''");
+
+      const orderCol = sort === "gpa"   ? "confidence_score DESC"
+                     : sort === "tasks" ? "iterations_run DESC"
+                     : sort === "rank"  ? "confidence_score DESC, nodes_created DESC"
+                     :                   "nodes_created DESC";
+
+      const familyWhere = family ? `AND family_id = '${family}'` : "";
+
+      const dataQ = await pool.query(`
+        SELECT
+          spawn_id          AS "spawnId",
+          family_id         AS "familyId",
+          spawn_type        AS "spawnType",
+          generation,
+          status,
+          confidence_score  AS "confidenceScore",
+          success_score     AS "successScore",
+          nodes_created     AS "nodesCreated",
+          iterations_run    AS "iterationsRun",
+          last_active_at    AS "lastActive"
+        FROM quantum_spawns
+        WHERE status IN ('ACTIVE','SOVEREIGN') ${familyWhere}
+        ORDER BY ${orderCol}
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+
+      const cntQ = await pool.query(`
+        SELECT COUNT(*) AS cnt FROM quantum_spawns
+        WHERE status IN ('ACTIVE','SOVEREIGN') ${familyWhere}
+      `);
+
+      const students = (dataQ.rows as any[]).map((r, i) => ({
+        rank:            offset + i + 1,
+        spawnId:         r.spawnId,
+        familyId:        r.familyId,
+        spawnType:       r.spawnType,
+        generation:      r.generation ?? 1,
+        status:          r.status,
+        gpa:             Math.min(4.0, ((r.confidenceScore ?? 0.5) * 4.0)).toFixed(2),
+        confidenceScore: r.confidenceScore ?? 0.5,
+        successScore:    r.successScore ?? 0.5,
+        pc:              r.nodesCreated ?? 0,
+        taskRuns:        r.iterationsRun ?? 0,
+        lastActive:      r.lastActive,
+      }));
+
+      res.json({ students, total: Number(cntQ.rows[0]?.cnt || 0) });
+    } catch (e) {
+      console.error("[pulseu/leaderboard]", e);
+      res.json({ students: [], total: 0 });
+    }
+  });
+
   app.get("/api/pulse/live", async (req, res) => {
     try {
       const [knowRows, quantaRows, productRows, mediaRows, careerRows] = await Promise.all([

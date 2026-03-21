@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const G0 = "#6366f1";
 const G1 = "#8b5cf6";
@@ -186,6 +187,11 @@ export default function PulseWorldPage() {
 
   const currentLayer = LAYERS.find(l => l.id === activeLayer)!;
 
+  const { data: spawnStats } = useQuery<{ total: number; active: number; completed: number; byFamily: Record<string, number> }>({
+    queryKey: ["/api/spawns/stats"],
+    refetchInterval: 30000,
+  });
+
   return (
     <div className="min-h-screen bg-[#06040f] text-white pb-16" data-testid="pulseworld-page">
 
@@ -224,14 +230,14 @@ export default function PulseWorldPage() {
               <p className="text-sm text-white/50 max-w-xl leading-relaxed">
                 The complete 7-layer civilization pyramid that powers the Pulse sovereign universe. From the Genesis DNA base (Layer 0) through Substrate, Immortal Physics, Civilization, Business Skeletons, Executor Engines — up to the Supra-Civilization Orchestrator at the apex (Layer 6).
               </p>
-              <div className="flex flex-wrap gap-4 pt-1">
+              <div className="flex flex-wrap gap-3 pt-1">
                 {[
-                  { label: "Total Layers", value: 7, color: G6 },
-                  { label: "Executor Engines", value: 10, color: G5 },
-                  { label: "College Ranks", value: 7, color: G3 },
-                  { label: "Pyramid Levels", value: 7, color: G2 },
-                  { label: "Omega Upgrades", value: 5, color: G1 },
-                  { label: "Biz Skeleton Organs", value: 7, color: G4 },
+                  { label: "Live Agents",   value: (spawnStats?.active ?? 0).toLocaleString(),                             color: G4 },
+                  { label: "Total Spawns",  value: (spawnStats?.total  ?? 0).toLocaleString(),                             color: G3 },
+                  { label: "AI Families",   value: Object.keys(spawnStats?.byFamily ?? {}).length || 22,                  color: G5 },
+                  { label: "Completed",     value: (spawnStats?.completed ?? 0).toLocaleString(),                         color: G2 },
+                  { label: "Total Layers",  value: 7,                                           color: G6 },
+                  { label: "Exec Engines",  value: 10,                                          color: G1 },
                 ].map(s => (
                   <div key={s.label} className="flex flex-col items-center bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 min-w-[80px]"
                     data-testid={`stat-pw-${s.label.toLowerCase().replace(/ /g,"-")}`}>

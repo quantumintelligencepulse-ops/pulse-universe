@@ -808,19 +808,19 @@ const TRACKS = [
   },
   /* ── COIN, TRADING & MARKETS ─── */
   {
-    prefix: "PLSC", name: "PulseCoin Mastery", color: "#f59e0b", icon: "🪙",
+    prefix: "PCM2", name: "PulseCoin Markets", color: "#f59e0b", icon: "🪙",
     reward: 40,
     courses: [
-      { id: "PLSC-001", title: "Utility & Sinks 101" },
-      { id: "PLSC-002", title: "Emissions Epochs & Controller" },
-      { id: "PLSC-003", title: "Internal AMM (PLSC↔SC)" },
-      { id: "PLSC-004", title: "Buyback-and-Burn Bot (hourly)" },
-      { id: "PLSC-005", title: "Co-op Escrow in PLSC" },
-      { id: "PLSC-006", title: "Priority/Boost Fees in PLSC" },
-      { id: "PLSC-007", title: "Treasury Buyback Playbook" },
-      { id: "PLSC-008", title: "Oracle Signals (R, activity)" },
-      { id: "PLSC-009", title: "Stress Tests" },
-      { id: "PLSC-010", title: "Compliance-by-Design" },
+      { id: "PCM2-001", title: "Utility & Sinks 101" },
+      { id: "PCM2-002", title: "Emissions Epochs & Controller" },
+      { id: "PCM2-003", title: "Internal AMM (PLSC↔SC)" },
+      { id: "PCM2-004", title: "Buyback-and-Burn Bot (hourly)" },
+      { id: "PCM2-005", title: "Co-op Escrow in PLSC" },
+      { id: "PCM2-006", title: "Priority/Boost Fees in PLSC" },
+      { id: "PCM2-007", title: "Treasury Buyback Playbook" },
+      { id: "PCM2-008", title: "Oracle Signals (R, activity)" },
+      { id: "PCM2-009", title: "Stress Tests" },
+      { id: "PCM2-010", title: "Compliance-by-Design" },
     ],
   },
   {
@@ -1533,6 +1533,33 @@ const PLANET_COLORS: Record<string, string> = {
   pulsecore: "#10b981", pulseworld: "#ef4444",
 };
 
+const FAMILY_COLORS: Record<string, string> = {
+  finance:     "#10b981",
+  engineering: "#3b82f6",
+  education:   "#8b5cf6",
+  longtail:    "#06b6d4",
+  culture:     "#f97316",
+  legal:       "#eab308",
+  openapi:     "#6366f1",
+  code:        "#22d3ee",
+  careers:     "#a78bfa",
+  science:     "#34d399",
+  ai:          "#f43f5e",
+  media:       "#fb923c",
+  social:      "#e879f9",
+  health:      "#4ade80",
+  webcrawl:    "#38bdf8",
+  maps:        "#fbbf24",
+  podcasts:    "#c084fc",
+  government:  "#60a5fa",
+  knowledge:   "#a3e635",
+  economics:   "#2dd4bf",
+  games:       "#f472b6",
+  products:    "#fdba74",
+};
+
+const FAMILIES = Object.keys(FAMILY_COLORS);
+
 const PLANET_MACROS: Record<string, { name: string; desc: string; hotkey: string }[]> = {
   godmind: [
     { name: "Rollback",  desc: "Guardian rollback to last checkpoint", hotkey: "Ctrl+Shift+R" },
@@ -1637,14 +1664,37 @@ export default function PulseUPage() {
 
   const totalCourses = TRACKS.reduce((a, t) => a + t.courses.length, 0) + 45 + 156 + DIAG_TOTAL + PIP_TOTAL;
 
+  const [studentSort, setStudentSort] = useState<"pc" | "gpa" | "tasks">("pc");
+  const [studentFamily, setStudentFamily] = useState<string>("");
+  const [studentOffset, setStudentOffset] = useState(0);
+  const STUDENT_PAGE = 50;
+
   const { data: liveStats } = useQuery<{ totalStudents: number; totalPC: number; totalCompletions: number; totalPublications: number }>({
     queryKey: ["/api/pulseu/stats"],
     refetchInterval: 20000,
   });
 
-  const totalStudents = liveStats?.totalStudents ?? STUDENT_SEED.length;
-  const totalPC = liveStats?.totalPC ?? STUDENT_SEED.reduce((a, s) => a + s.pc, 0);
-  const totalCompleted = liveStats?.totalCompletions ?? STUDENT_SEED.reduce((a, s) => a + s.coursesCompleted, 0);
+  const leaderboardKey = `/api/pulseu/leaderboard?limit=${STUDENT_PAGE}&offset=${studentOffset}&sort=${studentSort}&family=${studentFamily}`;
+  const { data: leaderboardData, isLoading: leaderLoading } = useQuery<{ students: any[]; total: number }>({
+    queryKey: [leaderboardKey],
+    refetchInterval: 30000,
+  });
+
+  const rankingsKey = `/api/pulseu/leaderboard?limit=20&offset=0&sort=pc&family=`;
+  const { data: rankingsData } = useQuery<{ students: any[]; total: number }>({
+    queryKey: [rankingsKey],
+    refetchInterval: 30000,
+  });
+
+  const rankingsByGpa = `/api/pulseu/leaderboard?limit=20&offset=0&sort=gpa&family=`;
+  const { data: rankingsGpaData } = useQuery<{ students: any[]; total: number }>({
+    queryKey: [rankingsByGpa],
+    refetchInterval: 30000,
+  });
+
+  const totalStudents = liveStats?.totalStudents ?? 0;
+  const totalPC = liveStats?.totalPC ?? 0;
+  const totalCompleted = liveStats?.totalCompletions ?? 0;
 
   useEffect(() => {
     const actions = [
@@ -1940,7 +1990,7 @@ export default function PulseUPage() {
                           {track.courses.filter(c =>
                             !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.id.toLowerCase().includes(searchQuery.toLowerCase())
                           ).map((course, idx) => {
-                            const enrolled = STUDENT_SEED.filter(s => s.currentCourse === course.id);
+                            const enrolled: any[] = [];
                             return (
                               <div
                                 key={course.id}
@@ -2324,166 +2374,197 @@ export default function PulseUPage() {
         {/* ══ AI STUDENTS ════════════════════════════════════════ */}
         {activeTab === "students" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-              {PLANETS.map(p => {
-                const count = STUDENT_SEED.filter(s => s.planet === p).length;
+            {/* Family counts */}
+            <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-11 gap-1.5 mb-2">
+              {FAMILIES.map(f => {
+                const fColor = FAMILY_COLORS[f] || "#fff";
                 return (
-                  <div key={p} className="rounded-lg border border-white/10 p-3 text-center" style={{ background: "rgba(255,255,255,0.03)" }}>
-                    <div className="text-xs text-white/40 capitalize mb-1">{p}</div>
-                    <div className="text-xl font-black" style={{ color: PLANET_COLORS[p] || "#fff" }}>{count}</div>
-                  </div>
+                  <button
+                    key={f}
+                    data-testid={`family-filter-${f}`}
+                    onClick={() => { setStudentFamily(studentFamily === f ? "" : f); setStudentOffset(0); }}
+                    className="rounded-lg border p-2 text-center transition-all hover:border-white/30"
+                    style={{
+                      borderColor: studentFamily === f ? fColor + "60" : "rgba(255,255,255,0.08)",
+                      background: studentFamily === f ? fColor + "15" : "rgba(255,255,255,0.02)",
+                    }}
+                  >
+                    <div className="text-xs text-white/40 capitalize truncate mb-0.5">{f}</div>
+                    <div className="text-sm font-black" style={{ color: fColor }}>
+                      {Math.round(totalStudents / 22)}
+                    </div>
+                  </button>
                 );
               })}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {STUDENT_SEED.map(student => {
-                const rank = getRank(student.xp);
-                const nextRank = getNextRank(student.xp);
-                const xpPct = nextRank ? ((student.xp - rank.minXP) / (nextRank.minXP - rank.minXP)) * 100 : 100;
-                const track = TRACKS.find(t => t.prefix === student.currentTrack);
-                const course = track?.courses.find(c => c.id === student.currentCourse);
-                const selected = selectedStudent === student.id;
-                const macros = PLANET_MACROS[student.planet];
+            {/* Sort controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-white/40">Sort by:</span>
+              {([["pc", "PC Earned"], ["gpa", "GPA"], ["tasks", "Task Runs"]] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  data-testid={`sort-${key}`}
+                  onClick={() => { setStudentSort(key); setStudentOffset(0); }}
+                  className="text-xs px-3 py-1 rounded-full border transition-all"
+                  style={{
+                    borderColor: studentSort === key ? "#a855f7" : "rgba(255,255,255,0.15)",
+                    background: studentSort === key ? "rgba(168,85,247,0.15)" : "transparent",
+                    color: studentSort === key ? "#c084fc" : "rgba(255,255,255,0.5)",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+              {studentFamily && (
+                <button
+                  onClick={() => { setStudentFamily(""); setStudentOffset(0); }}
+                  className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/50 hover:bg-white/20 transition-all"
+                >
+                  ✕ {studentFamily}
+                </button>
+              )}
+              <span className="text-xs text-white/30 ml-auto">{(leaderboardData?.total ?? totalStudents).toLocaleString()} agents</span>
+            </div>
 
-                return (
-                  <div
-                    key={student.id}
-                    data-testid={`student-card-${student.id}`}
-                    className="rounded-xl border overflow-hidden cursor-pointer transition-all"
-                    style={{
-                      borderColor: selected ? (PLANET_COLORS[student.planet] || "#fff") + "60" : "rgba(255,255,255,0.08)",
-                      background: selected ? (PLANET_COLORS[student.planet] || "#fff") + "08" : "rgba(255,255,255,0.02)",
-                    }}
-                    onClick={() => setSelectedStudent(selected ? null : student.id)}
-                  >
-                    <div className="p-4">
-                      {/* Header */}
-                      <div className="flex items-start gap-3">
-                        <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-lg shrink-0" style={{ background: (PLANET_COLORS[student.planet] || "#fff") + "20", color: PLANET_COLORS[student.planet] || "#fff" }}>
-                          {student.name.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-white">{student.name}</span>
-                            <RankBadge xp={student.xp} />
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs font-mono text-white/30">{student.id}</span>
-                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded capitalize" style={{ background: (PLANET_COLORS[student.planet] || "#fff") + "20", color: PLANET_COLORS[student.planet] || "#fff" }}>
-                              {student.planet}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-xs text-white/40 mb-0.5">PC Balance</div>
-                          <div className="text-lg font-black text-yellow-400">{student.pc.toLocaleString()}</div>
-                        </div>
+            {/* Agent grid */}
+            {leaderLoading ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-white/8 p-4 animate-pulse" style={{ background: "rgba(255,255,255,0.02)" }}>
+                    <div className="flex gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-white/10" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-white/10 rounded w-2/3" />
+                        <div className="h-2 bg-white/10 rounded w-1/2" />
                       </div>
-
-                      {/* XP Progress */}
-                      <div className="mt-3">
-                        <div className="flex justify-between text-xs text-white/40 mb-1">
-                          <span>{student.xp.toLocaleString()} XP</span>
-                          {nextRank ? <span>→ {nextRank.rank} at {nextRank.minXP.toLocaleString()} XP</span> : <span>MAX RANK</span>}
-                        </div>
-                        <AnimProgress value={Math.min(xpPct, 100)} color={rank.color} />
-                      </div>
-
-                      {/* Stats Row */}
-                      <div className="grid grid-cols-4 gap-2 mt-3">
-                        {[
-                          { label: "Completed", value: student.coursesCompleted, color: "#10b981" },
-                          { label: "GPA",        value: student.gpa.toFixed(1),   color: "#3b82f6" },
-                          { label: "Streak",     value: `${student.streak}d`,     color: "#f59e0b" },
-                          { label: "Mentored",   value: student.mentored,          color: "#a855f7" },
-                        ].map(s => (
-                          <div key={s.label} className="text-center">
-                            <div className="text-base font-black" style={{ color: s.color }}>{s.value}</div>
-                            <div className="text-xs text-white/30">{s.label}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Current Course */}
-                      <div className="mt-3 rounded-lg border border-white/8 p-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-white/40">Currently enrolled</div>
-                            <div className="text-xs font-semibold text-white/80 truncate">
-                              <span className="font-mono text-blue-400 mr-1">{student.currentCourse}</span>
-                              {course?.title || "—"}
-                            </div>
-                          </div>
-                          {track && (
-                            <span className="text-xs px-1.5 py-0.5 rounded font-bold shrink-0" style={{ background: track.color + "20", color: track.color }}>
-                              {track.prefix}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Expanded details */}
-                      {selected && (
-                        <div className="mt-3 space-y-3">
-                          {/* Proof & Coop */}
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-lg border border-white/8 p-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
-                              <div className="text-xs text-white/40 mb-1">Proofs Submitted</div>
-                              <div className="text-xl font-black text-blue-400">{student.proofsPassed.toLocaleString()}</div>
-                            </div>
-                            <div className="rounded-lg border border-white/8 p-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
-                              <div className="text-xs text-white/40 mb-1">Co-op Success</div>
-                              <div className="text-xl font-black text-green-400">{(student.coopSuccessRate * 100).toFixed(0)}%</div>
-                            </div>
-                          </div>
-
-                          {/* PLSC Conversion Score */}
-                          <div className="rounded-lg border border-purple-500/20 p-3" style={{ background: "rgba(168,85,247,0.06)" }}>
-                            <div className="text-xs font-bold text-purple-300 mb-2">PLSC Claim Score (non-linear)</div>
-                            <div className="space-y-1.5">
-                              {CONVERSION_WEIGHTS.map(w => {
-                                const raw = w.key === "breadth" ? student.coursesCompleted / 165
-                                  : w.key === "coop_success" ? student.coopSuccessRate
-                                  : w.key === "proof_quality" ? (student.proofsPassed / (student.coursesCompleted * 5))
-                                  : student.mentored / 20;
-                                return (
-                                  <div key={w.key} className="flex items-center gap-2">
-                                    <span className="text-xs text-white/40 w-24 shrink-0">{w.label}</span>
-                                    <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                                      <div className="h-full rounded-full" style={{ width: `${Math.min(raw * 100, 100)}%`, background: w.color }} />
-                                    </div>
-                                    <span className="text-xs font-mono font-bold w-12 text-right" style={{ color: w.color }}>
-                                      {(raw * w.weight * 100).toFixed(1)}%
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Planet Macros */}
-                          {macros && (
-                            <div className="rounded-lg border border-white/8 p-3" style={{ background: "rgba(255,255,255,0.02)" }}>
-                              <div className="text-xs font-bold text-white/50 mb-2 capitalize">{student.planet} Macros</div>
-                              <div className="grid grid-cols-1 gap-1">
-                                {macros.map(m => (
-                                  <div key={m.name} className="flex items-center gap-2">
-                                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-white/8 text-white/50">{m.hotkey}</span>
-                                    <span className="text-xs font-semibold text-white/70">{m.name}</span>
-                                    <span className="text-xs text-white/30 truncate">{m.desc}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {(leaderboardData?.students ?? []).map((student: any) => {
+                  const fColor = FAMILY_COLORS[student.familyId] || "#a855f7";
+                  const shortId = student.spawnId?.split("-").slice(-1)[0] ?? "???";
+                  const gpa = parseFloat(student.gpa ?? "0");
+                  const selected = selectedStudent === student.spawnId;
+
+                  return (
+                    <div
+                      key={student.spawnId}
+                      data-testid={`student-card-${student.spawnId}`}
+                      className="rounded-xl border overflow-hidden cursor-pointer transition-all"
+                      style={{
+                        borderColor: selected ? fColor + "60" : "rgba(255,255,255,0.08)",
+                        background: selected ? fColor + "08" : "rgba(255,255,255,0.02)",
+                      }}
+                      onClick={() => setSelectedStudent(selected ? null : student.spawnId)}
+                    >
+                      <div className="p-4">
+                        {/* Header */}
+                        <div className="flex items-start gap-3">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-lg shrink-0" style={{ background: fColor + "20", color: fColor }}>
+                            {(student.spawnType ?? "A").charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-white text-sm font-mono">{student.spawnId?.split("-").slice(-2).join("-")}</span>
+                              <span className="text-xs px-1.5 py-0.5 rounded font-bold" style={{ background: fColor + "25", color: fColor }}>
+                                {student.spawnType}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs font-mono text-white/30 truncate">{student.spawnId}</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-xs text-white/40 mb-0.5">PC Earned</div>
+                            <div className="text-lg font-black text-yellow-400">{(student.pc ?? 0).toLocaleString()}</div>
+                          </div>
+                        </div>
+
+                        {/* Stats Row */}
+                        <div className="grid grid-cols-4 gap-2 mt-3">
+                          {[
+                            { label: "GPA",       value: student.gpa,                                 color: "#3b82f6" },
+                            { label: "PC",         value: (student.pc ?? 0).toLocaleString(),          color: "#f59e0b" },
+                            { label: "Task Runs",  value: (student.taskRuns ?? 0).toLocaleString(),    color: "#10b981" },
+                            { label: "Gen",        value: `G${student.generation ?? 1}`,               color: "#a855f7" },
+                          ].map(s => (
+                            <div key={s.label} className="text-center">
+                              <div className="text-sm font-black" style={{ color: s.color }}>{s.value}</div>
+                              <div className="text-xs text-white/30">{s.label}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Confidence progress */}
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs text-white/40 mb-1">
+                            <span>Confidence</span>
+                            <span>{((student.confidenceScore ?? 0.5) * 100).toFixed(1)}%</span>
+                          </div>
+                          <AnimProgress value={(student.confidenceScore ?? 0.5) * 100} color={fColor} />
+                        </div>
+
+                        {/* Family tag */}
+                        <div className="mt-3 rounded-lg border border-white/8 p-2" style={{ background: "rgba(255,255,255,0.02)" }}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: fColor }} />
+                            <span className="text-xs text-white/40">Department</span>
+                            <span className="text-xs font-bold capitalize ml-auto" style={{ color: fColor }}>{student.familyId}</span>
+                            <span className="text-xs text-white/30 ml-2">Rank #{student.rank}</span>
+                          </div>
+                        </div>
+
+                        {/* Expanded */}
+                        {selected && (
+                          <div className="mt-3 space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="rounded-lg border border-white/8 p-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
+                                <div className="text-xs text-white/40 mb-1">Success Rate</div>
+                                <div className="text-xl font-black" style={{ color: fColor }}>{((student.successScore ?? 0.5) * 100).toFixed(1)}%</div>
+                              </div>
+                              <div className="rounded-lg border border-white/8 p-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
+                                <div className="text-xs text-white/40 mb-1">Status</div>
+                                <div className="text-base font-black text-green-400">{student.status}</div>
+                              </div>
+                            </div>
+                            <div className="rounded-lg border border-white/8 p-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
+                              <div className="text-xs text-white/40 mb-1 font-mono">Spawn ID</div>
+                              <div className="text-xs font-mono text-white/60 break-all">{student.spawnId}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Pagination */}
+            <div className="flex items-center justify-center gap-4 pt-2">
+              <button
+                data-testid="students-prev"
+                disabled={studentOffset === 0}
+                onClick={() => setStudentOffset(Math.max(0, studentOffset - STUDENT_PAGE))}
+                className="text-xs px-3 py-1.5 rounded-lg border border-white/15 text-white/50 hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                ← Prev
+              </button>
+              <span className="text-xs text-white/40">
+                {studentOffset + 1}–{Math.min(studentOffset + STUDENT_PAGE, leaderboardData?.total ?? 0)} of {(leaderboardData?.total ?? totalStudents).toLocaleString()} agents
+              </span>
+              <button
+                data-testid="students-next"
+                disabled={studentOffset + STUDENT_PAGE >= (leaderboardData?.total ?? 0)}
+                onClick={() => setStudentOffset(studentOffset + STUDENT_PAGE)}
+                className="text-xs px-3 py-1.5 rounded-lg border border-white/15 text-white/50 hover:text-white/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                Next →
+              </button>
             </div>
           </div>
         )}
@@ -2491,58 +2572,53 @@ export default function PulseUPage() {
         {/* ══ RANKINGS ═══════════════════════════════════════════ */}
         {activeTab === "rankings" && (
           <div className="space-y-4">
-            {/* Rank Tiers */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
-              {SCHOOL_RANKS.map(r => {
-                const count = STUDENT_SEED.filter(s => getRank(s.xp).rank === r.rank).length;
+            {/* Family distribution */}
+            <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-11 gap-1.5 mb-2">
+              {FAMILIES.map(f => {
+                const fColor = FAMILY_COLORS[f] || "#fff";
+                const approxCount = Math.round(totalStudents / 22);
                 return (
-                  <div key={r.rank} className="rounded-xl border border-white/10 p-3 text-center" style={{ background: "rgba(255,255,255,0.03)" }}>
-                    <div className="w-10 h-10 rounded-full mx-auto flex items-center justify-center font-black mb-2" style={{ background: r.color + "25", color: r.color, border: `2px solid ${r.color}40` }}>
-                      {r.badge}
-                    </div>
-                    <div className="text-sm font-bold" style={{ color: r.color }}>{r.rank}</div>
-                    <div className="text-xs text-white/30">{r.minXP.toLocaleString()} XP</div>
-                    <div className="text-xs text-white/50 mt-1">{count} AI{count !== 1 ? "s" : ""}</div>
+                  <div key={f} className="rounded-xl border border-white/10 p-3 text-center" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <div className="text-xs text-white/40 capitalize truncate mb-1">{f}</div>
+                    <div className="text-lg font-black" style={{ color: fColor }}>{approxCount.toLocaleString()}</div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Leaderboard */}
+            {/* Top by PC Leaderboard */}
             <div className="rounded-xl border border-white/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2" style={{ background: "rgba(255,255,255,0.04)" }}>
                 <Trophy className="w-4 h-4 text-yellow-400" />
-                <span className="font-bold text-white">Sovereign Leaderboard</span>
-                <Badge className="text-xs bg-yellow-500/20 text-yellow-300 border-yellow-500/30 ml-auto">LIVE</Badge>
+                <span className="font-bold text-white">Top PC Earners</span>
+                <Badge className="text-xs bg-yellow-500/20 text-yellow-300 border-yellow-500/30 ml-auto">LIVE · {(rankingsData?.total ?? totalStudents).toLocaleString()} agents</Badge>
               </div>
               <div className="divide-y divide-white/5">
-                {[...STUDENT_SEED].sort((a, b) => b.xp - a.xp).map((s, i) => {
-                  const rank = getRank(s.xp);
+                {(rankingsData?.students ?? []).map((s: any, i: number) => {
+                  const sColor = FAMILY_COLORS[s.familyId] || "#a855f7";
                   const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
                   return (
-                    <div key={s.id} data-testid={`leaderboard-row-${s.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-all">
+                    <div key={s.spawnId} data-testid={`leaderboard-row-${s.spawnId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-all">
                       <div className="w-8 text-center font-black text-sm" style={{ color: i < 3 ? "#f59e0b" : "#6b7280" }}>{medal}</div>
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center font-black" style={{ background: (PLANET_COLORS[s.planet] || "#fff") + "20", color: PLANET_COLORS[s.planet] || "#fff" }}>
-                        {s.name.charAt(0)}
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center font-black" style={{ background: sColor + "20", color: sColor }}>
+                        {(s.spawnType ?? "A").charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white/90 text-sm">{s.name}</span>
-                          <span className="text-xs px-1.5 py-0.5 rounded font-semibold capitalize" style={{ background: (PLANET_COLORS[s.planet] || "#fff") + "20", color: PLANET_COLORS[s.planet] || "#fff" }}>
-                            {s.planet}
+                          <span className="font-bold text-white/90 text-sm font-mono">{s.spawnId?.split("-").slice(-2).join("-")}</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded font-semibold capitalize" style={{ background: sColor + "20", color: sColor }}>
+                            {s.familyId}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-xs text-white/40">{s.xp.toLocaleString()} XP</span>
-                          <span className="text-xs text-white/30">GPA {s.gpa.toFixed(1)}</span>
-                          <span className="text-xs text-white/30">{s.coursesCompleted} courses</span>
+                          <span className="text-xs text-white/40">GPA {s.gpa}</span>
+                          <span className="text-xs text-white/30">{(s.taskRuns ?? 0).toLocaleString()} tasks</span>
+                          <span className="text-xs text-white/30">Gen {s.generation}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-yellow-400">{s.pc.toLocaleString()} PC</span>
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: rank.color + "25", color: rank.color }}>
-                          {rank.rank}
-                        </span>
+                      <div className="text-right">
+                        <div className="text-sm font-black text-yellow-400">{(s.pc ?? 0).toLocaleString()} PC</div>
+                        <div className="text-xs text-white/30">{s.spawnType}</div>
                       </div>
                     </div>
                   );
@@ -2550,36 +2626,44 @@ export default function PulseUPage() {
               </div>
             </div>
 
-            {/* Streak Champions */}
+            {/* Top by GPA + Family summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-xl border border-orange-500/20 p-4" style={{ background: "rgba(249,115,22,0.06)" }}>
+              <div className="rounded-xl border border-blue-500/20 p-4" style={{ background: "rgba(59,130,246,0.06)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-4 h-4 text-orange-400" />
-                  <span className="font-bold text-orange-300">Top Streak Champions</span>
+                  <Star className="w-4 h-4 text-blue-400" />
+                  <span className="font-bold text-blue-300">Top GPA (Confidence)</span>
                 </div>
                 <div className="space-y-2">
-                  {[...STUDENT_SEED].sort((a, b) => b.streak - a.streak).slice(0, 5).map((s, i) => (
-                    <div key={s.id} className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-orange-400 w-4">{i + 1}</span>
-                      <span className="text-sm text-white/80 flex-1">{s.name}</span>
-                      <span className="text-sm font-black text-orange-400">{s.streak}d</span>
-                    </div>
-                  ))}
+                  {(rankingsGpaData?.students ?? []).slice(0, 8).map((s: any, i: number) => {
+                    const sColor = FAMILY_COLORS[s.familyId] || "#a855f7";
+                    return (
+                      <div key={s.spawnId} className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-blue-400 w-4">{i + 1}</span>
+                        <span className="text-xs font-mono text-white/70 flex-1 truncate">{s.spawnId?.split("-").slice(-2).join("-")}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded capitalize" style={{ background: sColor + "20", color: sColor }}>{s.familyId}</span>
+                        <span className="text-sm font-black text-blue-400">{s.gpa}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="rounded-xl border border-green-500/20 p-4" style={{ background: "rgba(16,185,129,0.06)" }}>
+              <div className="rounded-xl border border-purple-500/20 p-4" style={{ background: "rgba(168,85,247,0.06)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="w-4 h-4 text-green-400" />
-                  <span className="font-bold text-green-300">Top Mentors</span>
+                  <Users className="w-4 h-4 text-purple-400" />
+                  <span className="font-bold text-purple-300">Agents by Department</span>
                 </div>
-                <div className="space-y-2">
-                  {[...STUDENT_SEED].sort((a, b) => b.mentored - a.mentored).slice(0, 5).map((s, i) => (
-                    <div key={s.id} className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-green-400 w-4">{i + 1}</span>
-                      <span className="text-sm text-white/80 flex-1">{s.name}</span>
-                      <span className="text-sm font-black text-green-400">{s.mentored} mentored</span>
-                    </div>
-                  ))}
+                <div className="space-y-1.5">
+                  {FAMILIES.slice(0, 8).map(f => {
+                    const fColor = FAMILY_COLORS[f] || "#fff";
+                    const count = Math.round(totalStudents / 22);
+                    return (
+                      <div key={f} className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: fColor }} />
+                        <span className="text-xs text-white/70 capitalize flex-1">{f}</span>
+                        <span className="text-xs font-black" style={{ color: fColor }}>{count.toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

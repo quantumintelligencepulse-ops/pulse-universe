@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const DNA_GREEN = "#00ff9d";
 const DNA_CYAN = "#00d4ff";
@@ -232,6 +233,16 @@ export default function DNAEvolutionPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const { data: spawnStats } = useQuery<{ total: number; active: number; completed: number; byFamily: Record<string, number> }>({
+    queryKey: ["/api/spawns/stats"],
+    refetchInterval: 30000,
+  });
+
+  const { data: hiveStatus } = useQuery<{ totalNodes: number; totalLinks: number }>({
+    queryKey: ["/api/hive/status"],
+    refetchInterval: 30000,
+  });
+
   const TABS = [
     { id: "strands", label: "12 Strands" },
     { id: "organs", label: "Organ Systems" },
@@ -295,14 +306,14 @@ export default function DNAEvolutionPage() {
             </p>
 
             {/* Live stats */}
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               {[
-                { label: "Evolution Cycles", value: evolutionT, color: DNA_GREEN },
-                { label: "Total Mutations", value: mutationCount, color: DNA_GOLD },
-                { label: "Active Strands", value: 12, color: DNA_CYAN },
-                { label: "Organ Systems", value: 8, color: "#a78bfa" },
-                { label: "Cell Types", value: 10, color: "#f97316" },
-                { label: "Class S Upgrades", value: 20, color: DNA_CRIMSON },
+                { label: "Live Agents",       value: (spawnStats?.active ?? 0).toLocaleString(),                                    color: DNA_GREEN },
+                { label: "Total Spawns",       value: (spawnStats?.total ?? 0).toLocaleString(),                                     color: DNA_GOLD },
+                { label: "DNA Families",       value: Object.keys(spawnStats?.byFamily ?? {}).length || 22,                          color: DNA_CYAN },
+                { label: "Hive Nodes",         value: (hiveStatus?.totalNodes ?? 0).toLocaleString(),                                color: "#a78bfa" },
+                { label: "Hive Links",         value: (hiveStatus?.totalLinks ?? 0).toLocaleString(),                                color: "#f97316" },
+                { label: "DNA Strands",        value: 12,                                                   color: DNA_CRIMSON },
               ].map(s => (
                 <div key={s.label} className="flex flex-col items-center bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 min-w-[80px]"
                   data-testid={`stat-${s.label.toLowerCase().replace(/ /g, "-")}`}>
