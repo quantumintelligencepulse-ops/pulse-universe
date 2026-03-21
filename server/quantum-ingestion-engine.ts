@@ -59,6 +59,7 @@ class RotatingQueue<T extends string> {
 
 // ─── Query Pools ──────────────────────────────────────────────
 const KNOWLEDGE_QUERIES = [
+  // Core Science
   "quantum mechanics","neural networks","black holes","CRISPR gene editing",
   "blockchain technology","climate change","dark matter","artificial intelligence",
   "string theory","mitochondria","cognitive science","plate tectonics",
@@ -74,6 +75,40 @@ const KNOWLEDGE_QUERIES = [
   "abstract algebra","differential geometry","algebraic topology","group theory",
   "Bayesian inference","information entropy","complexity theory","network science",
   "evolutionary game theory","self-organization","dynamical systems","fractal geometry",
+  // History & Civilization
+  "Ancient Egypt","Roman Empire","Greek philosophy","Byzantine Empire","Silk Road",
+  "Industrial Revolution","Renaissance Italy","French Revolution","World War I","World War II",
+  "Cold War","Mongol Empire","Ottoman Empire","British Empire","American Revolution",
+  "Mesopotamia","Indus Valley Civilization","Maya civilization","Aztec Empire","Inca Empire",
+  "Islamic Golden Age","Medieval Europe","Viking Age","Age of Exploration","Enlightenment",
+  "Chinese dynasties","Japanese shogunate","African kingdoms","Colonialism","Decolonization",
+  // Philosophy & Ethics
+  "Plato philosophy","Aristotle logic","Stoicism","Epicureanism","Kantian ethics",
+  "Utilitarianism","Existentialism","Phenomenology","Analytic philosophy","Continental philosophy",
+  "Buddhist philosophy","Confucianism","Taoism","Hinduism metaphysics","Islamic philosophy",
+  "Philosophy of science","Free will determinism","Moral relativism","Political philosophy","Social contract",
+  // Arts, Culture & Literature
+  "Impressionism","Modernism literature","Shakespeare plays","Ancient Greek drama","Renaissance art",
+  "Baroque music","Jazz history","Rock and roll history","Hip hop culture","Classical music theory",
+  "Film theory","Photography history","Architecture history","Surrealism","Abstract expressionism",
+  "World mythology","Folklore traditions","Cultural anthropology","Semiotics","Narratology",
+  // Economics & Finance
+  "Supply and demand","Keynesian economics","Monetary policy","Fiscal policy","International trade",
+  "Behavioral economics","Market microstructure","Derivatives finance","Macroeconomics","Microeconomics",
+  "Austrian economics","Marxist economics","Development economics","Labor economics","Environmental economics",
+  // Medicine & Health
+  "Human anatomy","Immunology","Pharmacology","Neurology","Cardiology",
+  "Oncology","Genetics","Epidemiology","Surgery history","Public health",
+  "Mental health psychiatry","Nutrition science","Exercise physiology","Geriatrics","Pediatrics",
+  // Law & Governance
+  "Constitutional law","International law","Human rights","Democracy theory","Federalism",
+  "Criminal justice","Civil law","Legal philosophy","United Nations","Geopolitics",
+  // Mathematics
+  "Calculus history","Number theory","Probability theory","Linear algebra","Real analysis",
+  "Complex analysis","Topology","Combinatorics","Cryptography mathematics","Mathematical logic",
+  // Technology & Engineering
+  "Semiconductor technology","Robotics","Internet history","Space exploration","Aviation history",
+  "Nuclear technology","Renewable energy","Biotechnology","Nanotechnology","Telecommunications",
 ];
 
 const SCIENCE_QUERIES = [
@@ -144,6 +179,7 @@ const ARCHIVE_QUERIES = [
 ];
 
 const WIKI_TOPICS = [
+  // Core Theory
   "Quantum entanglement","Fermi paradox","Game theory","Bayesian inference",
   "Byzantine fault tolerance","Gödel's incompleteness theorems","Chaos theory",
   "Evolutionary game theory","Network science","Complex adaptive system",
@@ -152,6 +188,24 @@ const WIKI_TOPICS = [
   "Turing completeness","Lambda calculus","Church-Turing thesis","Halting problem",
   "Arrow's impossibility theorem","Nash equilibrium","Prisoner dilemma",
   "Tragedy of the commons","Dunbar number","Six degrees of separation",
+  // History
+  "Ancient Rome","Ancient Greece","Byzantine Empire","Islamic Golden Age",
+  "Renaissance","French Revolution","American Revolution","Industrial Revolution",
+  "World War I","World War II","Cold War","Silk Road","Mongol Empire",
+  "Ancient Egypt","Mesopotamia","Maya civilization","Aztec Empire","Inca Empire",
+  "British Empire","Ottoman Empire","Chinese dynasties","Feudal Japan",
+  // Philosophy
+  "Stoicism","Existentialism","Kantian ethics","Utilitarianism","Phenomenology",
+  "Buddhist philosophy","Confucianism","Taoism","Social contract","Free will",
+  "Philosophy of science","Analytic philosophy","Moral philosophy","Epistemology",
+  // Science
+  "Evolution","Natural selection","DNA","Photosynthesis","Plate tectonics",
+  "General relativity","Quantum mechanics","Thermodynamics","Electromagnetism",
+  "Periodic table","Nuclear fission","Superconductivity","Black hole",
+  // Culture & Arts
+  "Renaissance art","Impressionism","Baroque music","Jazz","Hip hop","Rock music",
+  "Ancient Greek drama","Shakespeare","Modern literature","Film history",
+  "World mythology","Greek mythology","Norse mythology","Hindu mythology",
 ];
 
 const SEC_COMPANIES = [

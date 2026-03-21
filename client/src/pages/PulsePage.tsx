@@ -127,7 +127,7 @@ export default function PulsePage() {
       <div ref={streamRef} style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.06) transparent" }}>
         {events.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(255,255,255,0.15)", fontSize: 12 }}>Waiting for Hive activity...</div>
-        ) : events.map((e: any, i: number) => <EventRow key={e.id || i} e={e} i={i} />)}
+        ) : events.map((e: any, i: number) => <EventRow key={`${e.id || e.slug || ''}-${i}`} e={e} i={i} />)}
       </div>
 
       <style>{`@keyframes hbPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }`}</style>

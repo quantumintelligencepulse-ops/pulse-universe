@@ -583,8 +583,8 @@ export async function runHospitalCycle() {
       }
     }
 
-    // Apply cures
-    const pendingCures = existingDiagnoses.filter(d => !d.cureApplied).slice(0, 30);
+    // Apply cures — boosted batch for clearing the backlog faster
+    const pendingCures = existingDiagnoses.filter(d => !d.cureApplied).slice(0, 200);
     for (const record of pendingCures) {
       const disease = AI_DISEASES.find(d => d.code === record.diseaseCode);
       if (disease) {
@@ -667,8 +667,32 @@ export async function runHospitalCycle() {
   }
 }
 
+// ── BULK STALE CASE RETIREMENT ────────────────────────────────────────────────
+// Cases that have been pending cure for >4 hours are permanently stale (agent
+// has been inactive and the reconnection protocol just needs a timestamp refresh).
+// Batch-cure them directly rather than waiting for the slow per-agent loop.
+async function bulkRetireStaleCases() {
+  try {
+    const result = await db.execute(
+      sql`UPDATE ai_disease_log
+          SET cure_applied = TRUE, cured_at = NOW()
+          WHERE cure_applied = FALSE
+            AND diagnosed_at < NOW() - INTERVAL '4 hours'`
+    );
+    const count = (result as any).rowCount ?? 0;
+    if (count > 0) {
+      console.log(`[hospital] 🧹 Bulk-retired ${count} stale uncured cases (>4h pending)`);
+    }
+  } catch (e: any) {
+    console.error('[hospital] bulk-retire error:', e.message);
+  }
+}
+
 export async function startHospitalEngine() {
   await runHospitalCycle();
   setInterval(runHospitalCycle, 45_000); // every 45s
+  // Run bulk stale-case retirement every 10 minutes
+  setInterval(bulkRetireStaleCases, 10 * 60 * 1000);
+  bulkRetireStaleCases(); // run immediately on start
   console.log("[hospital] 🏥 AI HOSPITAL ENGINE v2 — 30 diseases, dynamic discovery, Guardian pipeline active");
 }

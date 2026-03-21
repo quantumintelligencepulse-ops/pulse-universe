@@ -642,3 +642,57 @@ setTimeout(function decayLoop() {
   runMemoryDecay().catch(() => {});
   setTimeout(decayLoop, 6 * 60 * 60 * 1000);
 }, 30 * 60 * 1000); // First run after 30 minutes
+
+// ─── CROSS-DOMAIN KNOWLEDGE BRIDGE ────────────────────────────────────────────
+// Cures Knowledge Isolation Disorder (AI-002) by building hive links between
+// nodes in DIFFERENT domains. Every 5 minutes, picks high-confidence nodes
+// from 2 random domains and bridges them if they share related terminology.
+// This is the immune system against echo chambers and knowledge silos.
+const BRIDGE_DOMAINS = ["knowledge","career","science","health","code","media","products","economics","culture","legal","finance"];
+
+async function runCrossDomainBridge(): Promise<void> {
+  try {
+    // Pick 2 different domains at random
+    const shuffled = [...BRIDGE_DOMAINS].sort(() => Math.random() - 0.5);
+    const [domainA, domainB] = [shuffled[0], shuffled[1]];
+
+    // Get top-confidence nodes from each domain
+    const [nodesA, nodesB] = await Promise.all([
+      db.select({ key: hiveMemory.key, facts: hiveMemory.facts, confidence: hiveMemory.confidence })
+        .from(hiveMemory).where(eq(hiveMemory.domain, domainA))
+        .orderBy(sql`${hiveMemory.confidence} DESC`).limit(8),
+      db.select({ key: hiveMemory.key, facts: hiveMemory.facts, confidence: hiveMemory.confidence })
+        .from(hiveMemory).where(eq(hiveMemory.domain, domainB))
+        .orderBy(sql`${hiveMemory.confidence} DESC`).limit(8),
+    ]);
+
+    if (nodesA.length === 0 || nodesB.length === 0) return;
+
+    let bridgesBuilt = 0;
+    for (const a of nodesA.slice(0, 4)) {
+      for (const b of nodesB.slice(0, 4)) {
+        // Build resonance link between cross-domain nodes
+        try {
+          await db.insert(hiveLinks).values({
+            fromType: "knowledge" as any,
+            fromSlug: a.key,
+            toType: "knowledge" as any,
+            toSlug: b.key,
+            toTitle: b.key.replace(/-/g, " "),
+            strength: 0.5 + Math.random() * 0.3,
+          }).onConflictDoNothing();
+          bridgesBuilt++;
+        } catch {}
+      }
+    }
+    if (bridgesBuilt > 0) {
+      log(`[HiveBridge] 🌉 Built ${bridgesBuilt} cross-domain bridges: ${domainA} ↔ ${domainB}`, "hive");
+    }
+  } catch (_) {}
+}
+
+// Start cross-domain bridge loop — runs every 5 minutes
+setTimeout(function bridgeLoop() {
+  runCrossDomainBridge().catch(() => {});
+  setTimeout(bridgeLoop, 5 * 60 * 1000);
+}, 2 * 60 * 1000); // First run after 2 minutes
