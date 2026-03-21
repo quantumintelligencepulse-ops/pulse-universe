@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1584,19 +1584,19 @@ const CONVERSION_WEIGHTS = [
 /* ── LIVE TICKER ───────────────────────────────────────────────── */
 function LiveTicker({ value, suffix = "", prefix = "" }: { value: number; suffix?: string; prefix?: string }) {
   const [display, setDisplay] = useState(0);
-  const ref = useRef(false);
   useEffect(() => {
-    if (ref.current) return;
-    ref.current = true;
-    const dur = 1200;
+    if (!value) return;
+    const dur = 1400;
     const start = performance.now();
+    let raf: number;
     const tick = (now: number) => {
       const t = Math.min((now - start) / dur, 1);
       const ease = 1 - Math.pow(1 - t, 3);
       setDisplay(Math.floor(ease * value));
-      if (t < 1) requestAnimationFrame(tick);
+      if (t < 1) { raf = requestAnimationFrame(tick); }
     };
-    requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [value]);
   return <span>{prefix}{display.toLocaleString()}{suffix}</span>;
 }
@@ -1716,10 +1716,10 @@ export default function PulseUPage() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
             {[
-              { label: "Total Courses", value: totalCourses, suffix: "", color: "#3b82f6", icon: BookOpen },
-              { label: "AI Students",   value: totalStudents, suffix: "", color: "#a855f7", icon: Users },
-              { label: "PC Earned",     value: totalPC, suffix: " PC", color: "#f59e0b", icon: Coins },
-              { label: "Completions",   value: totalCompleted, suffix: "", color: "#10b981", icon: CheckCircle2 },
+              { label: "Total Courses",  value: totalCourses,   suffix: "",    color: "#3b82f6", icon: BookOpen,      sub: "Across all 22 domains" },
+              { label: "AI Students",    value: totalStudents,  suffix: "",    color: "#a855f7", icon: Users,         sub: "Active & sovereign agents" },
+              { label: "PC Earned",      value: totalPC,        suffix: " PC", color: "#f59e0b", icon: Coins,         sub: "Knowledge nodes created" },
+              { label: "Task Runs",      value: totalCompleted, suffix: "",    color: "#10b981", icon: CheckCircle2,  sub: "Total iterations completed" },
             ].map(s => (
               <div key={s.label} className="rounded-xl border border-white/10 p-4" style={{ background: "rgba(255,255,255,0.04)" }}>
                 <div className="flex items-center gap-2 mb-1">
@@ -1729,6 +1729,7 @@ export default function PulseUPage() {
                 <div className="text-2xl font-black" style={{ color: s.color }}>
                   <LiveTicker value={s.value} suffix={s.suffix} />
                 </div>
+                <div className="text-white/35 text-[10px] mt-1">{s.sub}</div>
               </div>
             ))}
           </div>
