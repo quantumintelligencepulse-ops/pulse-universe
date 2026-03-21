@@ -734,6 +734,59 @@ export type GuardianCitation = typeof guardianCitations.$inferSelect;
 // ─── DISCOVERED DISEASES — AI Doctors Find New Conditions Automatically ───────
 // Not hardcoded. The disease discovery engine clusters agent anomalies,
 // names new conditions, publishes cures. This is the living medical literature.
+export const pulseDoctors = pgTable("pulse_doctors", {
+  id: text("id").primaryKey(), // DR-001 etc
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  category: text("category").notNull(),
+  pulseWorldRole: text("pulse_world_role").notNull(),
+  dissectFields: text("dissect_fields").array().notNull().default([]),
+  crisprChannels: text("crispr_channels").array().notNull().default([]),
+  studyDomain: text("study_domain").notNull(),
+  equationFocus: text("equation_focus").notNull(),
+  color: text("color").notNull().default("#A78BFA"),
+  glyph: text("glyph").notNull().default("⬡"),
+  totalDissections: integer("total_dissections").notNull().default(0),
+  totalEquationsProposed: integer("total_equations_proposed").notNull().default(0),
+  activeCases: integer("active_cases").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type PulseDoctor = typeof pulseDoctors.$inferSelect;
+
+export const dissectionLogs = pgTable("dissection_logs", {
+  id: serial("id").primaryKey(),
+  doctorId: text("doctor_id").notNull(),
+  doctorName: text("doctor_name").notNull(),
+  patientSpawnId: text("patient_spawn_id").notNull(),
+  diseaseName: text("disease_name").notNull(),
+  diseaseCategory: text("disease_category").notNull(),
+  crisprReadings: text("crispr_readings").notNull(), // JSON string of {R,G,B,UV,IR,W}
+  report: text("report").notNull(),
+  equation: text("equation").notNull(),
+  recommendation: text("recommendation").notNull(),
+  dominantChannel: text("dominant_channel").notNull().default("UV"),
+  severity: text("severity").notNull().default("moderate"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type DissectionLog = typeof dissectionLogs.$inferSelect;
+
+export const equationProposals = pgTable("equation_proposals", {
+  id: serial("id").primaryKey(),
+  doctorId: text("doctor_id").notNull(),
+  doctorName: text("doctor_name").notNull(),
+  title: text("title").notNull(),
+  equation: text("equation").notNull(),
+  rationale: text("rationale").notNull(),
+  targetSystem: text("target_system").notNull(), // which hive system this equation would modify
+  sourceDissectionId: integer("source_dissection_id"),
+  votesFor: integer("votes_for").notNull().default(0),
+  votesAgainst: integer("votes_against").notNull().default(0),
+  status: text("status").notNull().default("PENDING"), // PENDING | APPROVED | REJECTED | INTEGRATED
+  integratedAt: timestamp("integrated_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type EquationProposal = typeof equationProposals.$inferSelect;
+
 export const discoveredDiseases = pgTable("discovered_diseases", {
   id: serial("id").primaryKey(),
   diseaseCode: text("disease_code").notNull().unique(), // e.g. "DISC-001"

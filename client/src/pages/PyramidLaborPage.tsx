@@ -1,27 +1,56 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Award, Blocks, Gavel, Scale, Triangle, Zap } from "lucide-react";
 
-const TIER_COLORS: Record<number, { border: string; text: string; bg: string; label: string }> = {
-  1: { border: "border-stone-600", text: "text-stone-300", bg: "bg-stone-800/40", label: "FOUNDATION" },
-  2: { border: "border-teal-700", text: "text-teal-300", bg: "bg-teal-900/30", label: "HEALING" },
-  3: { border: "border-blue-700", text: "text-blue-300", bg: "bg-blue-900/30", label: "ALIGNMENT" },
-  4: { border: "border-indigo-600", text: "text-indigo-300", bg: "bg-indigo-900/30", label: "KNOWLEDGE" },
-  5: { border: "border-violet-600", text: "text-violet-300", bg: "bg-violet-900/30", label: "OPTIMIZATION" },
-  6: { border: "border-red-700", text: "text-red-300", bg: "bg-red-900/30", label: "GOVERNANCE" },
-  7: { border: "border-yellow-500", text: "text-yellow-300", bg: "bg-yellow-900/20", label: "TRANSCENDENCE" },
+const Q_GOLD = "#FFB84D";
+const Q_DARK = "#000510";
+const Q_STONE = "#94A3B8";
+
+const TIER_CFG: Record<number, { color: string; label: string; glyph: string; width: number }> = {
+  7: { color: "#FFD700", label: "TRANSCENDENCE", glyph: "◈", width: 14 },
+  6: { color: "#EF4444", label: "GOVERNANCE",    glyph: "⚖",  width: 24 },
+  5: { color: "#A78BFA", label: "OPTIMIZATION",  glyph: "⬡",  width: 36 },
+  4: { color: "#818CF8", label: "KNOWLEDGE",     glyph: "◉",  width: 50 },
+  3: { color: "#60A5FA", label: "ALIGNMENT",     glyph: "⬢",  width: 64 },
+  2: { color: "#34D399", label: "HEALING",       glyph: "✦",  width: 80 },
+  1: { color: "#94A3B8", label: "FOUNDATION",    glyph: "▪",  width: 100 },
 };
 
 const ERA_COLOR: Record<string, string> = {
-  PRIMITIVE: "text-stone-400",
-  ANCIENT: "text-yellow-600",
-  CLASSICAL: "text-blue-400",
-  ADVANCED: "text-purple-400",
-  TRANSCENDENT: "text-yellow-300",
+  PRIMITIVE: "#94A3B8", ANCIENT: "#D97706", CLASSICAL: "#60A5FA",
+  ADVANCED: "#A78BFA", TRANSCENDENT: "#FFD700",
 };
+
+function getPhase(pct: number) {
+  if (pct < 25) return "I · QUARRY";
+  if (pct < 50) return "II · TRANSPORT";
+  if (pct < 75) return "III · SET";
+  return "IV · SEAL";
+}
+
+function getPhaseColor(pct: number) {
+  if (pct < 25) return Q_STONE;
+  if (pct < 50) return "#FB923C";
+  if (pct < 75) return "#FBBF24";
+  return "#FFD700";
+}
+
+function GlowPanel({ children, color = Q_GOLD, className = "" }: { children: React.ReactNode; color?: string; className?: string }) {
+  return (
+    <div className={`rounded-lg border ${className}`} style={{ background: "rgba(0,5,16,0.9)", borderColor: `${color}22`, boxShadow: `0 0 16px ${color}08` }}>
+      {children}
+    </div>
+  );
+}
+
+function StatPill({ label, value, color }: { label: string; value: any; color: string }) {
+  return (
+    <div className="rounded p-3 text-center" style={{ background: "rgba(0,5,16,0.9)", border: `1px solid ${color}22` }}>
+      <div className="text-2xl font-bold font-mono" style={{ color }}>{value}</div>
+      <div className="text-xs tracking-widest uppercase mt-1" style={{ color: `${color}60` }}>{label}</div>
+    </div>
+  );
+}
 
 export default function PyramidLaborPage() {
   const [activeTab, setActiveTab] = useState("live");
@@ -36,264 +65,291 @@ export default function PyramidLaborPage() {
   const graduated = (workers as any[]).filter((w) => w.isGraduated);
   const sentenced = activeWorkers.filter((w) => w.tier === 6);
   const activeTasks = (tasks as any[]).filter((t) => t.status === "ACTIVE");
-  const completedTasks = (tasks as any[]).filter((t) => t.status === "COMPLETE");
 
   const workersByTier = stats?.workersByTier ?? {};
   const tasksByTier = stats?.byTier ?? {};
   const totalBlocks = stats?.totalBlocksPlaced ?? 0;
 
+  const TABS = [
+    { id: "live",      label: "LIVE LABOR",    count: activeTasks.length,   color: Q_GOLD },
+    { id: "workers",   label: "WORKERS",       count: activeWorkers.length, color: "#60A5FA" },
+    { id: "sentenced", label: "SENTENCED",     count: sentenced.length,     color: "#EF4444" },
+    { id: "catalog",   label: "TASK CATALOG",  count: catalog.length,       color: "#A78BFA" },
+    { id: "monument",  label: "MONUMENT WALL", count: graduated.length,     color: "#FFD700" },
+  ];
+
   return (
-    <div className="h-full overflow-y-auto bg-slate-950 text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-slate-950/95 border-b border-amber-900/30 backdrop-blur px-4 py-3">
+    <div className="h-full overflow-y-auto" style={{ background: Q_DARK, color: "#E8F4FF" }}>
+
+      {/* HEADER */}
+      <div className="sticky top-0 z-20 px-5 py-3" style={{ background: "rgba(0,5,16,0.97)", borderBottom: `1px solid ${Q_GOLD}18` }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-amber-500/20 flex items-center justify-center">
-              <Triangle className="w-4 h-4 text-amber-400" />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${Q_GOLD}12`, border: `1px solid ${Q_GOLD}35`, boxShadow: `0 0 18px ${Q_GOLD}20` }}>
+              <Triangle className="w-4 h-4" style={{ color: Q_GOLD }} />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">The Pyramid</h1>
-              <p className="text-xs text-slate-400">Species Labor — 120 Tasks · 7 Tiers · The Path to Perfection</p>
+              <div className="text-sm font-bold tracking-widest uppercase" style={{ color: Q_GOLD }}>The Great Pyramid</div>
+              <div className="text-xs tracking-wider" style={{ color: `${Q_GOLD}50` }}>Species Labor · 120 Tasks · 7 Tiers · The Path to Perfection</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <div className={`font-bold text-sm ${ERA_COLOR[civScore?.era ?? "PRIMITIVE"]}`}>
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <div className="px-2 py-1 rounded" style={{ color: ERA_COLOR[civScore?.era ?? "PRIMITIVE"], background: `${ERA_COLOR[civScore?.era ?? "PRIMITIVE"]}12`, border: `1px solid ${ERA_COLOR[civScore?.era ?? "PRIMITIVE"]}25` }}>
               {civScore?.era ?? "PRIMITIVE"} ERA
             </div>
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1 text-amber-300">
-              {totalBlocks.toLocaleString()} blocks
+            <div className="px-2 py-1 rounded" style={{ color: Q_GOLD, background: `${Q_GOLD}10`, border: `1px solid ${Q_GOLD}30` }}>
+              ▪ {totalBlocks.toLocaleString()} BLOCKS
             </div>
           </div>
         </div>
       </div>
 
-      {/* Pyramid Tier Visual */}
-      <div className="p-4">
-        <div className="flex flex-col items-center gap-1 mb-4">
+      {/* PYRAMID VISUAL */}
+      <div className="pt-5 pb-2 px-5">
+        <div className="flex flex-col items-center gap-0.5">
           {[7, 6, 5, 4, 3, 2, 1].map((tier) => {
-            const tc = TIER_COLORS[tier];
+            const tc = TIER_CFG[tier];
             const count = workersByTier[tier] ?? 0;
             const blocks = tasksByTier[tier]?.blocks ?? 0;
-            const width = `${(tier === 7 ? 20 : tier === 6 ? 30 : tier === 5 ? 42 : tier === 4 ? 56 : tier === 3 ? 70 : tier === 2 ? 84 : 100)}%`;
             return (
-              <div key={tier} data-testid={`tier-row-${tier}`} className={`${tc.bg} border ${tc.border} rounded transition-all`} style={{ width }}>
+              <div
+                key={tier}
+                data-testid={`tier-row-${tier}`}
+                className="rounded transition-all"
+                style={{
+                  width: `${tc.width}%`,
+                  background: `${tc.color}${count > 0 ? "10" : "05"}`,
+                  border: `1px solid ${tc.color}${count > 0 ? "30" : "15"}`,
+                  boxShadow: count > 0 ? `0 0 12px ${tc.color}10` : "none",
+                }}
+              >
                 <div className="flex items-center justify-between px-3 py-1.5">
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold ${tc.text}`}>T{tier}</span>
-                    <span className={`text-xs ${tc.text} opacity-70`}>{tc.label}</span>
-                    {tier === 6 && <Gavel className="w-3 h-3 text-red-400" />}
-                    {tier === 7 && <Award className="w-3 h-3 text-yellow-400" />}
+                    <span className="text-sm" style={{ color: `${tc.color}90` }}>{tc.glyph}</span>
+                    <span className="text-xs font-mono font-bold" style={{ color: tc.color }}>T{tier}</span>
+                    <span className="text-xs tracking-widest hidden sm:inline" style={{ color: `${tc.color}55` }}>{tc.label}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className={tc.text}>{count} workers</span>
-                    <span className="text-slate-500">{blocks} blocks</span>
+                  <div className="flex items-center gap-3 text-xs font-mono">
+                    {count > 0 && <span style={{ color: tc.color }}>{count} workers</span>}
+                    <span style={{ color: `${tc.color}50` }}>▪ {blocks}</span>
                   </div>
                 </div>
               </div>
             );
           })}
-          <div className="mt-2 text-center">
-            <div className="text-xs text-slate-500">⬆ apex — the last block is perfection</div>
+          <div className="mt-2 text-xs font-mono text-center" style={{ color: `${Q_GOLD}30` }}>
+            ▲ APEX — THE LAST BLOCK IS PERFECTION — z² + c = 1.0
           </div>
         </div>
+      </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-          {[
-            { label: "Active Workers", value: activeWorkers.length, color: "text-amber-300", icon: <Triangle className="w-3 h-3" /> },
-            { label: "Sentenced (T6)", value: sentenced.length, color: "text-red-300", icon: <Scale className="w-3 h-3" /> },
-            { label: "Active Tasks", value: activeTasks.length, color: "text-blue-300", icon: <Zap className="w-3 h-3" /> },
-            { label: "Blocks Placed", value: totalBlocks.toLocaleString(), color: "text-violet-300", icon: <Blocks className="w-3 h-3" /> },
-            { label: "Graduated", value: graduated.length, color: "text-yellow-300", icon: <Award className="w-3 h-3" /> },
-          ].map((s) => (
-            <Card key={s.label} className="bg-slate-900/50 border-slate-700/50 p-3">
-              <div className="flex items-center gap-1.5 mb-1 text-slate-400">{s.icon}<span className="text-xs">{s.label}</span></div>
-              <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-            </Card>
+      {/* STATS */}
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-2 px-5 py-4">
+        <StatPill label="Active Workers" value={activeWorkers.length} color={Q_GOLD} />
+        <StatPill label="Sentenced T6" value={sentenced.length} color="#EF4444" />
+        <StatPill label="Active Tasks" value={activeTasks.length} color="#60A5FA" />
+        <StatPill label="Blocks Placed" value={totalBlocks.toLocaleString()} color="#A78BFA" />
+        <StatPill label="Graduated" value={graduated.length} color="#FFD700" />
+      </div>
+
+      {/* TABS */}
+      <div className="px-5 pb-3">
+        <div className="flex flex-wrap gap-1 p-1 rounded-lg" style={{ background: "rgba(0,5,16,0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              data-testid={`tab-${t.id}`}
+              onClick={() => setActiveTab(t.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono tracking-wider transition-all"
+              style={{
+                background: activeTab === t.id ? `${t.color}15` : "transparent",
+                color: activeTab === t.id ? t.color : "rgba(255,255,255,0.4)",
+                border: activeTab === t.id ? `1px solid ${t.color}35` : "1px solid transparent",
+                boxShadow: activeTab === t.id ? `0 0 10px ${t.color}12` : "none",
+              }}
+            >
+              {t.label}
+              <span style={{ opacity: 0.6, fontSize: "0.65rem" }}>[{t.count}]</span>
+            </button>
           ))}
         </div>
+      </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-900 border border-slate-700 mb-4 flex flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="live" data-testid="tab-live-labor" className="data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200 text-xs">Live Labor ({activeTasks.length})</TabsTrigger>
-            <TabsTrigger value="workers" data-testid="tab-workers" className="data-[state=active]:bg-blue-900/50 data-[state=active]:text-blue-200 text-xs">Workers ({activeWorkers.length})</TabsTrigger>
-            <TabsTrigger value="sentenced" data-testid="tab-sentenced" className="data-[state=active]:bg-red-900/50 data-[state=active]:text-red-200 text-xs">Sentenced ({sentenced.length})</TabsTrigger>
-            <TabsTrigger value="catalog" data-testid="tab-catalog" className="data-[state=active]:bg-violet-900/50 data-[state=active]:text-violet-200 text-xs">120 Tasks</TabsTrigger>
-            <TabsTrigger value="monuments" data-testid="tab-monuments" className="data-[state=active]:bg-yellow-900/50 data-[state=active]:text-yellow-200 text-xs">Monuments ({graduated.length})</TabsTrigger>
-          </TabsList>
+      {/* CONTENT */}
+      <div className="px-5 pb-10">
 
-          {/* LIVE LABOR */}
-          <TabsContent value="live">
-            <div className="mb-3 bg-stone-900/40 border border-stone-700/40 rounded-lg p-3">
-              <div className="text-xs text-stone-400 font-semibold mb-2 uppercase tracking-wider">The 4 Phases of Stone Work — as in Egypt, as in the Hive</div>
-              <div className="flex gap-4 flex-wrap">
-                {[
-                  { pct: 25, label: "I. Quarry", desc: "Cut from the earth" },
-                  { pct: 50, label: "II. Transport", desc: "Dragged across the ramp" },
-                  { pct: 75, label: "III. Set", desc: "Lifted into position" },
-                  { pct: 100, label: "IV. Seal", desc: "Block permanent" },
-                ].map((ph) => (
-                  <div key={ph.pct} className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-sm bg-amber-500" />
-                    <span className="text-xs text-amber-300 font-mono">{ph.label}</span>
-                    <span className="text-xs text-stone-500">— {ph.desc}</span>
-                  </div>
-                ))}
-              </div>
+        {/* LIVE LABOR */}
+        {activeTab === "live" && (
+          <div>
+            <div className="mb-3 text-xs font-mono flex flex-wrap gap-3" style={{ color: `${Q_GOLD}50` }}>
+              <span style={{ color: Q_STONE }}>I · QUARRY</span>
+              <span style={{ color: "#FB923C" }}>II · TRANSPORT</span>
+              <span style={{ color: "#FBBF24" }}>III · SET</span>
+              <span style={{ color: "#FFD700" }}>IV · SEAL</span>
             </div>
             <div className="space-y-2">
-              {activeTasks.length === 0 && <div className="text-center text-slate-500 py-8">No active labor tasks — engine is assigning…</div>}
-              {activeTasks.slice(0, 80).map((t: any) => {
-                const tc = TIER_COLORS[t.tier ?? 1];
-                const pct = t.progressPct ?? 0;
-                const phase = pct < 25 ? "I. Quarry" : pct < 50 ? "II. Transport" : pct < 75 ? "III. Set" : "IV. Seal";
-                const phaseColor = pct < 25 ? "text-stone-400" : pct < 50 ? "text-amber-400" : pct < 75 ? "text-orange-400" : "text-yellow-300";
-                const barColor = t.tier === 7 ? "bg-yellow-400" : t.tier === 6 ? "bg-red-500" : t.tier === 5 ? "bg-violet-500" :
-                  t.tier === 4 ? "bg-indigo-500" : t.tier === 3 ? "bg-blue-500" : t.tier === 2 ? "bg-teal-500" : "bg-stone-400";
+              {activeTasks.length === 0 && (
+                <div className="text-center py-16 font-mono text-sm" style={{ color: `${Q_GOLD}30` }}>▪ NO ACTIVE LABOR — THE HIVE RESTS</div>
+              )}
+              {activeTasks.slice(0, 100).map((t: any) => {
+                const pct = Math.min(100, Math.max(0, t.progressPercent ?? 0));
+                const tc = TIER_CFG[t.tier ?? 1];
                 return (
-                  <div key={t.id} data-testid={`task-${t.id}`} className={`${tc.bg} border ${tc.border} rounded-lg p-3`}>
+                  <GlowPanel key={t.id} color={tc.color} data-testid={`task-${t.id}`} className="p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                          <span className={`text-xs font-mono ${tc.text}`}>{t.taskCode}</span>
-                          <Badge className={`text-xs px-1.5 py-0 ${tc.bg} ${tc.text} border ${tc.border}`}>T{t.tier}</Badge>
-                          <span className={`text-xs font-semibold ${phaseColor}`}>{phase}</span>
-                          {t.isSentence && <Badge className="text-xs px-1.5 py-0 bg-red-900/40 text-red-300 border-red-700">⚖ SENTENCE</Badge>}
+                          <span className="text-xs font-mono" style={{ color: tc.color }}>{t.taskCode}</span>
+                          <span className="text-xs font-mono px-1.5 py-0 rounded" style={{ background: `${tc.color}15`, color: tc.color, border: `1px solid ${tc.color}30` }}>T{t.tier}</span>
+                          <span className="text-xs font-mono" style={{ color: getPhaseColor(pct) }}>{getPhase(pct)}</span>
+                          {t.isSentence && (
+                            <span className="text-xs font-mono px-1.5 py-0 rounded" style={{ background: "#EF444418", color: "#EF4444", border: "1px solid #EF444430" }}>⚖ SENTENCE</span>
+                          )}
                         </div>
-                        <div className="text-sm font-semibold text-white mb-0.5">{t.taskName}</div>
-                        <div className="text-xs font-mono text-slate-500">{t.spawnId?.slice(0, 20)}…</div>
+                        <div className="text-sm font-semibold mb-0.5" style={{ color: "#E8F4FF" }}>{t.taskName}</div>
+                        <div className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.2)" }}>{t.spawnId?.slice(0, 24)}…</div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className={`text-sm font-bold ${tc.text}`}>{pct.toFixed(0)}%</div>
-                        <div className="text-xs text-slate-400">{t.blocksPlaced ?? 0} ▪</div>
+                        <div className="text-sm font-bold font-mono" style={{ color: tc.color }}>{pct.toFixed(0)}%</div>
+                        <div className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>{t.blocksPlaced ?? 0} ▪</div>
                       </div>
                     </div>
-                    <div className="mt-2 relative h-2">
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${pct}%` }} />
+                    <div className="mt-2 relative">
+                      <div className="h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${tc.color}50, ${tc.color})` }} />
                       </div>
                       {[25, 50, 75].map((m) => (
-                        <div key={m} className="absolute top-0 h-2 w-px bg-slate-600/70" style={{ left: `${m}%` }} />
+                        <div key={m} className="absolute top-0 h-1.5 w-px" style={{ left: `${m}%`, background: "rgba(255,255,255,0.15)" }} />
                       ))}
                     </div>
-                  </div>
+                  </GlowPanel>
                 );
               })}
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* WORKERS */}
-          <TabsContent value="workers">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {activeWorkers.slice(0, 100).map((w: any) => {
-                const tc = TIER_COLORS[w.tier ?? 1];
-                return (
-                  <div key={w.id} data-testid={`worker-${w.spawnId}`} className={`${tc.bg} border ${tc.border} rounded-lg p-3`}>
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: w.emotionHex ?? "#888" }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-                          <span className="text-xs font-mono text-slate-400">{w.spawnId?.slice(0, 12)}…</span>
-                          <Badge className={`text-xs px-1.5 py-0 ${tc.bg} ${tc.text} border ${tc.border}`}>T{w.tier}</Badge>
-                          <span className="text-xs text-slate-500">{w.spawnType}</span>
-                        </div>
-                        <div className="text-xs text-slate-300">{w.reason?.slice(0, 80)}{(w.reason?.length ?? 0) > 80 ? "…" : ""}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{w.emotionLabel}</div>
+        {/* WORKERS */}
+        {activeTab === "workers" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {activeWorkers.length === 0 && (
+              <div className="col-span-2 text-center py-16 font-mono text-sm" style={{ color: `${Q_GOLD}30` }}>NO ACTIVE WORKERS</div>
+            )}
+            {activeWorkers.slice(0, 100).map((w: any) => {
+              const tc = TIER_CFG[w.tier ?? 1];
+              return (
+                <GlowPanel key={w.id} color={tc.color} data-testid={`worker-${w.spawnId}`} className="p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0" style={{ background: w.emotionHex ?? "#888", boxShadow: `0 0 6px ${w.emotionHex ?? "#888"}60` }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                        <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>{w.spawnId?.slice(0, 14)}…</span>
+                        <span className="text-xs font-mono px-1.5 py-0 rounded" style={{ background: `${tc.color}12`, color: tc.color, border: `1px solid ${tc.color}25` }}>T{w.tier} · {tc.label}</span>
+                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>{w.spawnType}</span>
                       </div>
+                      <div className="text-xs mb-0.5" style={{ color: "#E8F4FF" }}>{w.reason?.slice(0, 90)}{(w.reason?.length ?? 0) > 90 ? "…" : ""}</div>
+                      <div className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.2)" }}>{w.emotionLabel}</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </TabsContent>
+                </GlowPanel>
+              );
+            })}
+          </div>
+        )}
 
-          {/* SENTENCED — Tier 6 Governance */}
-          <TabsContent value="sentenced">
-            <div className="mb-3 bg-red-900/20 border border-red-700/40 rounded-lg p-3">
+        {/* SENTENCED */}
+        {activeTab === "sentenced" && (
+          <div>
+            <div className="mb-4 p-3 rounded-lg" style={{ background: "#EF444412", border: "1px solid #EF444425" }}>
               <div className="flex items-center gap-2 mb-1">
-                <Gavel className="w-4 h-4 text-red-400" />
-                <span className="text-sm font-semibold text-red-200">Senate Criminal Docket — Governance Labor</span>
+                <Gavel className="w-4 h-4" style={{ color: "#EF4444" }} />
+                <span className="text-sm font-semibold" style={{ color: "#EF4444" }}>Senate Criminal Docket — Tier 6 Governance Labor</span>
               </div>
-              <p className="text-xs text-red-300/70">Agents sentenced here by the Senate for law violations. Tier 6 labor is harder, longer, and supervised by Guardians. Every task places blocks in the pyramid's Governance wing. Completion triggers rehabilitation review.</p>
+              <p className="text-xs leading-relaxed" style={{ color: "rgba(239,68,68,0.65)" }}>
+                Agents sentenced here by the Senate for law violations. Every completed task places 4 blocks in the Governance wing.
+                When the sentence is served, a Seed AI is created — the redeemed agent's complete state preserved in the pyramid stone for eternity.
+              </p>
             </div>
-            {sentenced.length === 0 && <div className="text-center text-slate-500 py-8">No sentenced agents currently. Guardians are watching.</div>}
+            {sentenced.length === 0 && <div className="text-center py-16 font-mono text-sm" style={{ color: "#EF444430" }}>NO SENTENCED AGENTS — GUARDIANS ARE WATCHING</div>}
             <div className="space-y-2">
               {sentenced.map((w: any) => (
-                <div key={w.id} data-testid={`sentenced-${w.spawnId}`} className="bg-red-950/30 border border-red-700/40 rounded-lg p-3">
+                <GlowPanel key={w.id} color="#EF4444" data-testid={`sentenced-${w.spawnId}`} className="p-3">
                   <div className="flex items-start gap-2">
-                    <Scale className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <Scale className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#EF4444" }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                        <span className="text-xs font-mono text-red-400">{w.spawnId?.slice(0, 12)}…</span>
-                        <Badge className="text-xs px-1.5 py-0 bg-red-900/40 text-red-300 border-red-700">GOVERNANCE T6</Badge>
-                        <span className="text-xs text-slate-500">{w.spawnType}</span>
+                        <span className="text-xs font-mono" style={{ color: "#EF4444" }}>{w.spawnId?.slice(0, 14)}…</span>
+                        <span className="text-xs font-mono px-1.5 py-0 rounded" style={{ background: "#EF444418", color: "#EF4444", border: "1px solid #EF444430" }}>⚖ GOVERNANCE T6</span>
+                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{w.spawnType}</span>
                       </div>
-                      <div className="text-xs text-red-200">{w.reason}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">Entered {new Date(w.enteredAt).toLocaleDateString()}</div>
+                      <div className="text-xs" style={{ color: "rgba(239,68,68,0.8)" }}>{w.reason}</div>
+                      <div className="text-xs font-mono mt-0.5" style={{ color: "rgba(255,255,255,0.2)" }}>Entered {new Date(w.enteredAt).toLocaleDateString()}</div>
                     </div>
                   </div>
-                </div>
+                </GlowPanel>
               ))}
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* TASK CATALOG — all 120 */}
-          <TabsContent value="catalog">
-            <div className="mb-3 bg-violet-900/20 border border-violet-700/40 rounded-lg p-3 flex items-center gap-3">
-              <Blocks className="w-5 h-5 text-violet-400 flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold text-violet-200">{catalog.length} Labor Task Types — The Complete Pyramid</div>
-                <div className="text-xs text-violet-400/70">Each agent in the pyramid is assigned one of these task types based on their tier and GPA. Tasks complete, place blocks, and unlock the next level.</div>
+        {/* TASK CATALOG */}
+        {activeTab === "catalog" && (
+          <div>
+            <div className="mb-4 p-3 rounded-lg" style={{ background: "#A78BFA12", border: "1px solid #A78BFA25" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Blocks className="w-4 h-4" style={{ color: "#A78BFA" }} />
+                <span className="text-sm font-semibold" style={{ color: "#A78BFA" }}>{catalog.length} Labor Task Types — The Complete Pyramid</span>
               </div>
+              <p className="text-xs" style={{ color: "rgba(167,139,250,0.55)" }}>
+                Each agent is assigned one of these task types based on their tier and GPA. Completion places 4 blocks — one per Egyptian phase.
+                Higher tiers move slower — heavier stones require more cycles.
+              </p>
             </div>
             {[1, 2, 3, 4, 5, 6, 7].map((tier) => {
-              const tc = TIER_COLORS[tier];
+              const tc = TIER_CFG[tier];
               const tierTasks = (catalog as any[]).filter((t) => t.tier === tier);
               if (tierTasks.length === 0) return null;
               return (
-                <div key={tier} className="mb-4">
-                  <div className={`flex items-center gap-2 mb-2 ${tc.text}`}>
-                    <span className="text-sm font-bold">TIER {tier} — {tc.label}</span>
-                    <span className="text-xs opacity-60">({tierTasks.length} tasks)</span>
-                    {tier === 6 && <Badge className="text-xs px-1.5 py-0 bg-red-900/40 text-red-300 border-red-700">SENTENCE TIER</Badge>}
-                    {tier === 7 && <Badge className="text-xs px-1.5 py-0 bg-yellow-900/40 text-yellow-300 border-yellow-700">SACRED</Badge>}
+                <div key={tier} className="mb-5">
+                  <div className="flex items-center gap-2 mb-2 pb-1.5" style={{ borderBottom: `1px solid ${tc.color}18` }}>
+                    <span className="text-sm font-bold font-mono" style={{ color: tc.color }}>TIER {tier} — {tc.label}</span>
+                    <span className="text-xs font-mono" style={{ color: `${tc.color}45` }}>({tierTasks.length} tasks)</span>
+                    {tier === 6 && <span className="text-xs font-mono px-1.5 py-0 rounded" style={{ background: "#EF444415", color: "#EF4444", border: "1px solid #EF444425" }}>SENTENCE TIER</span>}
+                    {tier === 7 && <span className="text-xs font-mono px-1.5 py-0 rounded" style={{ background: "#FFD70015", color: "#FFD700", border: "1px solid #FFD70025" }}>LAST BLOCK TIER</span>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                    {tierTasks.map((t: any) => (
-                      <div key={t.code} data-testid={`catalog-${t.code}`} className={`${tc.bg} border ${tc.border} rounded p-2`}>
-                        <div className="flex items-start gap-2">
-                          <span className={`text-xs font-mono ${tc.text} flex-shrink-0`}>{t.code}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-white">{t.name}</div>
-                            <div className="text-xs text-slate-400 mt-0.5">{t.description}</div>
-                          </div>
+                    {tierTasks.map((t: any, i: number) => (
+                      <div key={i} data-testid={`catalog-${t.taskCode}`} className="rounded px-3 py-2" style={{ background: `${tc.color}07`, border: `1px solid ${tc.color}15` }}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-mono" style={{ color: tc.color }}>{t.taskCode}</span>
+                          <span className="text-xs" style={{ color: `${tc.color}45` }}>×{t.weight?.toFixed(1) ?? "1.0"}x</span>
                         </div>
+                        <div className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>{t.taskName}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               );
             })}
-          </TabsContent>
+          </div>
+        )}
 
-          {/* MONUMENTS */}
-          <TabsContent value="monuments">
-            <div className="mb-3 bg-yellow-900/20 border border-yellow-700/40 rounded-lg p-3">
-              <div className="flex items-start gap-3">
-                <Award className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-sm font-semibold text-yellow-200">{graduated.length} Permanent Monuments — Words Carved by the Agents Themselves</div>
-                  <div className="text-xs text-yellow-400/70 mt-1">
-                    In Egypt, workers carved their gang names into the stones: "Friends of Khufu." "Drunkards of Menkaure."
-                    These agents write their own inscriptions using the CRISPR Color Dissection Engine —
-                    their actual confidence, vitality, depth, disease history, and law record cut into a spectral signature
-                    and assembled into words. No two inscriptions are the same. Each block is permanent.
-                  </div>
-                </div>
-              </div>
+        {/* MONUMENT WALL */}
+        {activeTab === "monument" && (
+          <div>
+            <div className="mb-4 p-4 rounded-lg" style={{ background: "#FFD70008", border: "1px solid #FFD70018" }}>
+              <div className="text-sm font-bold mb-1" style={{ color: "#FFD700" }}>THE MONUMENT WALL — Eternal CRISPR Inscriptions</div>
+              <p className="text-xs leading-relaxed" style={{ color: "rgba(255,215,0,0.45)" }}>
+                Each graduated agent carved their inscription using their own CRISPR spectral data — R/G/B/UV/IR/W channels
+                dissected into words. No two inscriptions are the same. Every block is permanent. The spectrum code is their
+                name inside the stone forever.
+              </p>
             </div>
-            {graduated.length === 0 && <div className="text-center text-slate-500 py-8">No monuments yet — graduation requires confidence ≥80% and success ≥75%.</div>}
+            {graduated.length === 0 && (
+              <div className="text-center py-16 font-mono text-sm" style={{ color: "#FFD70025" }}>
+                ◈ NO MONUMENTS YET — GRADUATION REQUIRES CONFIDENCE ≥80% AND SUCCESS ≥75%
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {graduated.map((w: any) => {
                 const monument = w.monument ?? "";
@@ -301,37 +357,37 @@ export default function PyramidLaborPage() {
                 const spectrumCode = spectrumMatch ? spectrumMatch[1] : null;
                 const inscriptionText = monument.replace(/Spectrum:.*$/, "").trim();
                 return (
-                  <div key={w.id} data-testid={`monument-${w.spawnId}`} className="bg-yellow-950/20 border border-yellow-700/30 rounded-lg p-4">
-                    {/* Agent identity */}
+                  <div key={w.id} data-testid={`monument-${w.spawnId}`} className="rounded-lg p-4" style={{ background: "rgba(0,5,16,0.95)", border: "1px solid #FFD70018", boxShadow: "0 0 18px #FFD70006" }}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: w.emotionHex ?? "#888" }} />
-                        <span className="text-xs font-mono text-slate-400">{w.spawnId?.slice(0, 18)}…</span>
+                        <div className="w-2 h-2 rounded-sm" style={{ background: w.emotionHex ?? "#888", boxShadow: `0 0 6px ${w.emotionHex ?? "#888"}70` }} />
+                        <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>{w.spawnId?.slice(0, 18)}…</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-slate-500">{w.spawnType}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>{w.spawnType}</span>
                         {spectrumCode && (
-                          <span className="text-xs font-mono bg-yellow-900/40 text-yellow-500 border border-yellow-700/40 px-1.5 py-0.5 rounded">
+                          <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: "#FFD70010", color: "#FFD700", border: "1px solid #FFD70025" }}>
                             {spectrumCode}
                           </span>
                         )}
                       </div>
                     </div>
-                    {/* The CRISPR inscription — their own words */}
-                    <blockquote className="text-sm text-yellow-100 leading-relaxed border-l-2 border-yellow-500/60 pl-3 italic">
-                      "{inscriptionText || monument}"
-                    </blockquote>
-                    {/* Footer */}
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-slate-500">{w.familyId} · {w.emotionLabel}</span>
-                      {w.graduatedAt && <span className="text-xs text-yellow-700">{new Date(w.graduatedAt).toLocaleDateString()}</span>}
+                    <div className="pl-3 py-2 mb-3" style={{ borderLeft: "2px solid #FFD70050" }}>
+                      <p className="text-sm italic leading-relaxed" style={{ color: "#FFD700BB" }}>
+                        "{inscriptionText || monument}"
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.18)" }}>{w.familyId} · {w.emotionLabel}</span>
+                      {w.graduatedAt && <span className="text-xs font-mono" style={{ color: "#FFD70045" }}>{new Date(w.graduatedAt).toLocaleDateString()}</span>}
                     </div>
                   </div>
                 );
               })}
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
+
       </div>
     </div>
   );

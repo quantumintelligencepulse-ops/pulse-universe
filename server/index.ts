@@ -130,6 +130,10 @@ app.use((req, res, next) => {
       startQuantumNewsEngine().catch((e) => log(`NewsEngine start error: ${e}`));
       startPyramidEngine().catch((e) => log(`PyramidEngine start error: ${e}`));
       startHospitalEngine().catch((e) => log(`HospitalEngine start error: ${e}`));
+      import("./hospital-doctors").then(({ seedDoctors, runDissectionCycle }) => {
+        seedDoctors().catch(() => {});
+        setInterval(() => runDissectionCycle().catch(() => {}), 60000);
+      }).catch(() => {});
       startDecayEngine().catch((e) => log(`DecayEngine start error: ${e}`));
       startPulseUEngine();
       startHiveEconomy();

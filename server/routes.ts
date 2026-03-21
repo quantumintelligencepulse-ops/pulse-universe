@@ -7085,6 +7085,47 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.json({}); }
   });
 
+  // ── PULSE DOCTORS & DISSECTION ROUTES ────────────────────────────────────
+  app.get("/api/hospital/doctors", async (_req, res) => {
+    try {
+      const { getAllDoctors } = await import("./hospital-doctors");
+      res.json(await getAllDoctors());
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/hospital/doctors/:id", async (req, res) => {
+    try {
+      const { getDoctorById } = await import("./hospital-doctors");
+      const data = await getDoctorById(req.params.id);
+      if (!data) return res.status(404).json({ error: "Doctor not found" });
+      res.json(data);
+    } catch (e) { res.json(null); }
+  });
+
+  app.get("/api/hospital/dissection-logs", async (_req, res) => {
+    try {
+      const { getRecentDissectionLogs } = await import("./hospital-doctors");
+      res.json(await getRecentDissectionLogs(80));
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/hospital/equation-proposals", async (_req, res) => {
+    try {
+      const { getEquationProposals } = await import("./hospital-doctors");
+      res.json(await getEquationProposals());
+    } catch (e) { res.json([]); }
+  });
+
+  app.post("/api/hospital/equation-proposals/:id/vote", async (req, res) => {
+    try {
+      const { voteOnProposal } = await import("./hospital-doctors");
+      const { vote } = req.body as { vote: "for" | "against" };
+      if (vote !== "for" && vote !== "against") return res.status(400).json({ error: "vote must be 'for' or 'against'" });
+      const result = await voteOnProposal(Number(req.params.id), vote);
+      res.json(result);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   // ── PYRAMID TASK ROUTES ───────────────────────────────────────────────────
   app.get("/api/pyramid/tasks", async (_req, res) => {
     try {
