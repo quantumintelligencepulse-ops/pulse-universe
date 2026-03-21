@@ -205,6 +205,242 @@ export function createQuantumField(scene: THREE.Scene) {
   };
 }
 
+// ── BOX-MULLER GAUSSIAN RANDOM ───────────────────────────────────────────────
+function gaussRandom(): number {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+// ── QUANTUM REALITY LAYER — Full 3D system-wide quantum substrate ─────────────
+// This is the generative layer beneath the solar system.
+// Every planet becomes a probability cloud. Space becomes a living quantum field.
+// Entanglement threads connect all planets in real 3D. Wave shells expand outward.
+export function createQuantumRealityLayer(scene: THREE.Scene) {
+  const PLANET_NAMES = ['Sun','Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune'];
+  const PLANET_QCOLORS: Record<string, THREE.Color> = {
+    Sun:     new THREE.Color(0xffaa44),
+    Mercury: new THREE.Color(0x8899bb),
+    Venus:   new THREE.Color(0xddaa55),
+    Earth:   new THREE.Color(0x4499ff),
+    Mars:    new THREE.Color(0xff5533),
+    Jupiter: new THREE.Color(0xdd9944),
+    Saturn:  new THREE.Color(0xeedd77),
+    Uranus:  new THREE.Color(0x44ddcc),
+    Neptune: new THREE.Color(0x5566ff),
+  };
+  const CLOUD_RADII: Record<string, number> = {
+    Sun:3.5, Mercury:0.9, Venus:1.3, Earth:1.4, Mars:1.1,
+    Jupiter:2.8, Saturn:2.5, Uranus:2.0, Neptune:2.0,
+  };
+
+  let visible = false;
+  let tp = 0; // transition progress 0=off 1=on
+
+  // ── 1. QUANTUM FIELD FABRIC — 8000 pts filling the solar system volume ──────
+  const fabricN = 8000;
+  const fabricPos = new Float32Array(fabricN * 3);
+  const fabricCol = new Float32Array(fabricN * 3);
+  for (let i = 0; i < fabricN; i++) {
+    const r = 4 + Math.random() * 72;
+    const t = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
+    fabricPos[i*3]   = r * Math.sin(p) * Math.cos(t);
+    fabricPos[i*3+1] = r * Math.sin(p) * Math.sin(t) * 0.35; // flatten toward ecliptic
+    fabricPos[i*3+2] = r * Math.cos(p);
+    const hue = 0.60 + Math.random() * 0.14;
+    const c = new THREE.Color().setHSL(hue, 0.85, 0.28 + Math.random() * 0.42);
+    fabricCol[i*3] = c.r; fabricCol[i*3+1] = c.g; fabricCol[i*3+2] = c.b;
+  }
+  const fabricGeo = new THREE.BufferGeometry();
+  fabricGeo.setAttribute('position', new THREE.BufferAttribute(fabricPos, 3));
+  fabricGeo.setAttribute('color', new THREE.BufferAttribute(fabricCol, 3));
+  const fabricMat = new THREE.PointsMaterial({ size: 0.065, vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const fabricField = new THREE.Points(fabricGeo, fabricMat);
+  scene.add(fabricField);
+
+  // ── 2. PER-PLANET PROBABILITY CLOUDS — Gaussian blobs that follow each planet
+  // Each planet = a Group. Cloud particles pre-computed relative to center.
+  // Each frame: just update Group.position = planet.position (zero per-particle cost)
+  const cloudGroups: Record<string, THREE.Group> = {};
+  PLANET_NAMES.forEach(name => {
+    const group = new THREE.Group();
+    const n = name === 'Sun' ? 1400 : 700;
+    const sigma = CLOUD_RADII[name] ?? 1.2;
+    const pos = new Float32Array(n * 3);
+    const col = new Float32Array(n * 3);
+    const qColor = PLANET_QCOLORS[name] ?? new THREE.Color(0x8888ff);
+    for (let i = 0; i < n; i++) {
+      const r = Math.abs(gaussRandom() * sigma * 1.2 + gaussRandom() * sigma * 0.5);
+      const t = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+      pos[i*3]   = r * Math.sin(ph) * Math.cos(t);
+      pos[i*3+1] = r * Math.sin(ph) * Math.sin(t);
+      pos[i*3+2] = r * Math.cos(ph);
+      const prob = Math.exp(-r / (sigma * 2.8));
+      const c = qColor.clone().multiplyScalar(0.5 + prob * 0.9);
+      col[i*3] = Math.min(1, c.r); col[i*3+1] = Math.min(1, c.g); col[i*3+2] = Math.min(1, c.b);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({ size: 0.11, vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    const cloud = new THREE.Points(geo, mat);
+    group.add(cloud);
+    scene.add(group);
+    cloudGroups[name] = group;
+  });
+
+  // ── 3. ENTANGLEMENT NETWORK — all 36 planet pairs, live 3D threads ───────────
+  // Non-locality made visible: distance doesn't break the connection.
+  interface EntPair { line: THREE.Line; mat: THREE.LineBasicMaterial; nameA: string; nameB: string; phase: number; speed: number; }
+  const entPairs: EntPair[] = [];
+  for (let i = 0; i < PLANET_NAMES.length; i++) {
+    for (let j = i + 1; j < PLANET_NAMES.length; j++) {
+      const nameA = PLANET_NAMES[i], nameB = PLANET_NAMES[j];
+      const cA = PLANET_QCOLORS[nameA] ?? new THREE.Color(0x8888ff);
+      const cB = PLANET_QCOLORS[nameB] ?? new THREE.Color(0x8888ff);
+      const mixColor = new THREE.Color().lerpColors(cA, cB, 0.5);
+      // Pre-create geometry with 2 dummy points — positions updated each frame
+      const positions = new Float32Array([0,0,0, 1,0,0]);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.LineBasicMaterial({ color: mixColor, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      const line = new THREE.Line(geo, mat);
+      scene.add(line);
+      entPairs.push({ line, mat, nameA, nameB, phase: Math.random() * Math.PI * 2, speed: 0.4 + Math.random() * 1.2 });
+    }
+  }
+
+  // ── 4. WAVE SHELLS — expanding 3D spheres from each major planet ─────────────
+  // These are the wave fronts of the quantum field — visible probability shells.
+  // Where they overlap, interference nodes light up.
+  interface WaveShell { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; planet: string; r: number; maxR: number; speed: number; phase: number; }
+  const waveShells: WaveShell[] = [];
+  const WAVE_PLANETS = ['Sun', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Venus'];
+  WAVE_PLANETS.forEach((name, pi) => {
+    const qColor = PLANET_QCOLORS[name] ?? new THREE.Color(0x8888ff);
+    for (let si = 0; si < 4; si++) {
+      const geo = new THREE.SphereGeometry(1, 14, 10);
+      const mat = new THREE.MeshBasicMaterial({ color: qColor, transparent: true, opacity: 0, side: THREE.FrontSide, blending: THREE.AdditiveBlending, depthWrite: false });
+      const mesh = new THREE.Mesh(geo, mat);
+      scene.add(mesh);
+      waveShells.push({
+        mesh, mat, planet: name,
+        r: (si / 4) * 20 + Math.random() * 6,
+        maxR: 24 + Math.random() * 14,
+        speed: 0.06 + Math.random() * 0.05,
+        phase: si * Math.PI / 2 + pi * 0.7,
+      });
+    }
+  });
+
+  // ── 5. SUPERPOSITION INTERFERENCE NODES — bright points where wave shells cross
+  // Placed randomly between planet pairs — brighten as wave phases align
+  const interpN = 300;
+  const interpPos = new Float32Array(interpN * 3);
+  const interpPhases = new Float32Array(interpN);
+  const interpSpeeds = new Float32Array(interpN);
+  for (let i = 0; i < interpN; i++) {
+    const r = 8 + Math.random() * 50;
+    const t = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
+    interpPos[i*3]   = r * Math.sin(p) * Math.cos(t);
+    interpPos[i*3+1] = r * Math.sin(p) * Math.sin(t) * 0.4;
+    interpPos[i*3+2] = r * Math.cos(p);
+    interpPhases[i] = Math.random() * Math.PI * 2;
+    interpSpeeds[i] = 0.8 + Math.random() * 2.0;
+  }
+  const interpGeo = new THREE.BufferGeometry();
+  interpGeo.setAttribute('position', new THREE.BufferAttribute(interpPos, 3));
+  const interpMat = new THREE.PointsMaterial({ color: 0xccaaff, size: 0.18, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const interpField = new THREE.Points(interpGeo, interpMat);
+  scene.add(interpField);
+
+  // ── 6. DECOHERENCE BOUNDARY — faint tinted sphere at solar system edge ───────
+  // This is where the quantum layer dissolves into classical space.
+  const decoherenceMat = new THREE.MeshBasicMaterial({ color: 0x3311aa, transparent: true, opacity: 0, side: THREE.BackSide, depthWrite: false, blending: THREE.AdditiveBlending });
+  const decoherenceSphere = new THREE.Mesh(new THREE.SphereGeometry(78, 20, 16), decoherenceMat);
+  scene.add(decoherenceSphere);
+
+  // ── UPDATE (called every frame) ──────────────────────────────────────────────
+  return {
+    update(time: number, planetPos: Map<string, THREE.Vector3>) {
+      // Smooth transition in / out
+      tp += ((visible ? 1 : 0) - tp) * 0.038;
+      if (tp < 0.003 && !visible) return;
+
+      // 1. Fabric field — slow drift + global rotation
+      fabricMat.opacity = tp * 0.22;
+      fabricField.rotation.y = time * 0.012;
+      fabricField.rotation.x = Math.sin(time * 0.07) * 0.08;
+
+      // 2. Probability clouds — move with planets, breathe
+      PLANET_NAMES.forEach((name, ni) => {
+        const group = cloudGroups[name];
+        const pos = planetPos.get(name);
+        if (!group || !pos) return;
+        group.position.copy(pos);
+        const breath = 1.0 + 0.18 * Math.sin(time * 0.7 + ni * 0.9);
+        group.scale.setScalar(breath);
+        group.rotation.y = time * (0.05 + ni * 0.01);
+        const cloud = group.children[0] as THREE.Points;
+        if (cloud) {
+          const tAlpha = name === 'Sun' ? 0.60 : 0.48;
+          (cloud.material as THREE.PointsMaterial).opacity = tp * tAlpha;
+        }
+      });
+
+      // 3. Entanglement threads — update endpoints, pulse
+      entPairs.forEach(({ line, mat, nameA, nameB, phase, speed }) => {
+        const posA = planetPos.get(nameA);
+        const posB = planetPos.get(nameB);
+        if (!posA || !posB) return;
+        const arr = line.geometry.attributes.position.array as Float32Array;
+        arr[0] = posA.x; arr[1] = posA.y; arr[2] = posA.z;
+        arr[3] = posB.x; arr[4] = posB.y; arr[5] = posB.z;
+        line.geometry.attributes.position.needsUpdate = true;
+        const dist = posA.distanceTo(posB);
+        const distFactor = Math.exp(-dist * 0.014);
+        const pulse = 0.05 + 0.09 * Math.abs(Math.sin(time * speed + phase));
+        mat.opacity = tp * pulse * (0.35 + distFactor * 0.65);
+      });
+
+      // 4. Wave shells — expand, fade, reset
+      waveShells.forEach((shell) => {
+        const pos = planetPos.get(shell.planet);
+        if (!pos) return;
+        shell.r += shell.speed;
+        if (shell.r > shell.maxR) shell.r = 0;
+        shell.mesh.position.copy(pos);
+        shell.mesh.scale.setScalar(Math.max(0.01, shell.r));
+        shell.mesh.rotation.y = time * 0.08 + shell.phase;
+        shell.mesh.rotation.z = time * 0.05 + shell.phase * 0.7;
+        const t = shell.r / shell.maxR;
+        shell.mat.opacity = tp * 0.055 * Math.sin(t * Math.PI);
+      });
+
+      // 5. Interference nodes — brighten on constructive interference phases
+      const interphaseOpacity = tp * (0.04 + 0.06 * Math.abs(Math.sin(time * 1.1)));
+      interpMat.opacity = interphaseOpacity;
+      interpField.rotation.y = time * 0.022;
+
+      // 6. Decoherence boundary — slow pulse
+      decoherenceMat.opacity = tp * (0.028 + 0.012 * Math.sin(time * 0.28));
+    },
+
+    setVisible(v: boolean) { visible = v; },
+    isVisible: () => visible,
+
+    dispose() {
+      scene.remove(fabricField); fabricGeo.dispose(); fabricMat.dispose();
+      PLANET_NAMES.forEach(name => { const g = cloudGroups[name]; if (g) scene.remove(g); });
+      entPairs.forEach(({ line }) => { scene.remove(line); line.geometry.dispose(); (line.material as any).dispose(); });
+      waveShells.forEach(({ mesh }) => { scene.remove(mesh); mesh.geometry.dispose(); (mesh.material as any).dispose(); });
+      scene.remove(interpField); interpGeo.dispose(); interpMat.dispose();
+      scene.remove(decoherenceSphere); decoherenceMat.dispose();
+    },
+  };
+}
+
 // ── QUANTUM TUNNELING PARTICLES ───────────────────────────────────────────────
 export function createTunnelingParticles(scene: THREE.Scene) {
   const particles: any[] = [];

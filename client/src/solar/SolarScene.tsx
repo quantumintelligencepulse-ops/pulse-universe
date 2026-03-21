@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { PLANET_DATA, MOON_DATA, MAIN_PLANETS } from "./planetData";
 import { createSpaceEnvironment } from "./SpaceEnvironment";
-import { createQuantumField, createTunnelingParticles } from "./QuantumPhysics";
+import { createQuantumField, createTunnelingParticles, createQuantumRealityLayer } from "./QuantumPhysics";
 import { QuantumLiveEngine, type QLiveData } from "./QuantumLiveEngine";
 
 const TEX = 'https://www.solarsystemscope.com/textures/download';
@@ -165,6 +165,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     const spaceEnv = createSpaceEnvironment(scene);
     const quantumField = createQuantumField(scene);
     const tunnelingPtcls = createTunnelingParticles(scene);
+    const quantumReality = createQuantumRealityLayer(scene);
 
     const lensFlare = makeLensFlare();
     scene.add(lensFlare);
@@ -287,7 +288,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     if (planets._sunGlow) {
       liveEngine.setSunGlow(planets._sunGlow as THREE.Sprite, PLANET_DATA['Sun'].radius * 14);
     }
-    sceneRef.current = { cam, planets, moonObjects, quantumField, liveEngine };
+    sceneRef.current = { cam, planets, moonObjects, quantumField, quantumReality, liveEngine };
 
     // ── INPUT ────────────────────────────────────────────────────────────────
     const keys: Record<string, boolean> = {};
@@ -473,6 +474,13 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       quantumField.update(time);
       tunnelingPtcls.update(time, quantumRef.current);
 
+      // ── Quantum Reality Layer — collect live planet positions, pass to layer ──
+      const qPlanetPos = new Map<string, THREE.Vector3>();
+      ['Sun','Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune'].forEach(name => {
+        if (planets[name]?.group) qPlanetPos.set(name, planets[name].group.position);
+      });
+      quantumReality.update(time, qPlanetPos);
+
       // ── Sun effects ───────────────────────────────────────────────────────
       if (planets._sunCorona) planets._sunCorona.rotation.z = time * 0.05;
       if (planets['Sun']) planets['Sun'].mesh.rotation.y += 0.002 * ts;
@@ -538,6 +546,7 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
       renderer.dispose();
       liveEngine.dispose();
+      quantumReality.dispose();
     };
   }, []); // runs once — callbacks accessed via refs, never causes scene rebuild
 
@@ -552,14 +561,14 @@ export default function SolarScene({ onPlanetClick, selectedPlanet, onDeselect, 
     }
   }, [selectedPlanet]);
 
-  // Toggle quantum field when quantumMode prop changes
+  // Toggle quantum field + quantum reality layer when quantumMode prop changes
   useEffect(() => {
-    const { quantumField } = sceneRef.current;
-    if (!quantumField) return;
-    const isOn = quantumField.isVisible();
-    if (quantumMode !== isOn) {
-      quantumField.toggle();
+    const { quantumField, quantumReality } = sceneRef.current;
+    if (quantumField) {
+      const isOn = quantumField.isVisible();
+      if (quantumMode !== isOn) quantumField.toggle();
     }
+    if (quantumReality) quantumReality.setVisible(quantumMode);
   }, [quantumMode]);
 
   if (webglError) {

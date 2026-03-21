@@ -14,11 +14,90 @@ function domainColor(d: string) {
   return DOMAIN_COLORS.general;
 }
 
+// ── KOCH SNOWFLAKE — true iterative fractal ───────────────────────────────────
+// Returns all boundary vertices of a Koch snowflake polygon centered at (0,0).
+// depth=3 gives the classic 6-pointed spike snowflake (48 vertices per edge = 192 total).
+function kochPoints(depth: number, r: number): Array<[number, number]> {
+  const angle = (deg: number) => deg * Math.PI / 180;
+  // Start: equilateral triangle
+  let pts: Array<[number, number]> = [
+    [r * Math.cos(angle(-90)), r * Math.sin(angle(-90))],
+    [r * Math.cos(angle(150)), r * Math.sin(angle(150))],
+    [r * Math.cos(angle(30)),  r * Math.sin(angle(30))],
+  ];
+  for (let iter = 0; iter < depth; iter++) {
+    const next: Array<[number, number]> = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const p1: [number, number] = [a[0] + dx / 3, a[1] + dy / 3];
+      const p2: [number, number] = [a[0] + dx * 2 / 3, a[1] + dy * 2 / 3];
+      // Apex: rotate (p2-p1) by -60 degrees and add to p1
+      const ex = p2[0] - p1[0], ey = p2[1] - p1[1];
+      const c60 = Math.cos(-Math.PI / 3), s60 = Math.sin(-Math.PI / 3);
+      const peak: [number, number] = [p1[0] + ex * c60 - ey * s60, p1[1] + ex * s60 + ey * c60];
+      next.push(a, p1, peak, p2);
+    }
+    pts = next;
+  }
+  return pts;
+}
+
+// Convert point array to SVG path string (closed polygon)
+function kochPath(pts: Array<[number, number]>): string {
+  if (!pts.length) return "";
+  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+  for (let i = 1; i < pts.length; i++) d += ` L${pts[i][0].toFixed(2)},${pts[i][1].toFixed(2)}`;
+  return d + " Z";
+}
+
+// Pre-compute Koch paths at two depths for different node sizes
+const KOCH_PATH_SM = kochPath(kochPoints(3, 1)); // tiny (r=1), scaled by transform
+const KOCH_PATH_LG = kochPath(kochPoints(3, 1)); // same path, bigger transform scale
+
+// ── MANDELBROT BACKGROUND ─────────────────────────────────────────────────────
+// Rendered once to a low-res offscreen canvas, embedded as SVG image.
+// Deep purple/blue/indigo palette — makes the fractal nodes feel at home.
+function renderMandelbrotToDataURL(W: number, H: number): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  const img = ctx.createImageData(W, H);
+  const maxIter = 48;
+  const cx = -0.65, cy = 0.0, zoom = 2.8;
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      let zr = 0, zi = 0;
+      const cr = cx + (px / W - 0.5) * zoom * (W / H);
+      const ci = cy + (py / H - 0.5) * zoom;
+      let iter = 0;
+      while (zr * zr + zi * zi < 4 && iter < maxIter) {
+        const tmp = zr * zr - zi * zi + cr;
+        zi = 2 * zr * zi + ci; zr = tmp; iter++;
+      }
+      const idx = (py * W + px) * 4;
+      if (iter === maxIter) {
+        img.data[idx] = 2; img.data[idx+1] = 2; img.data[idx+2] = 12; img.data[idx+3] = 255;
+      } else {
+        const t = iter / maxIter;
+        // Purple → deep blue → indigo palette
+        const r = Math.floor(t < 0.5 ? t * 2 * 40 : (1 - t) * 2 * 35 + 5);
+        const g = Math.floor(t * t * 18);
+        const b = Math.floor(20 + t * 55 + Math.sin(t * Math.PI * 6) * 35);
+        img.data[idx] = r; img.data[idx+1] = g; img.data[idx+2] = b; img.data[idx+3] = 255;
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
+// ── LAYOUT ────────────────────────────────────────────────────────────────────
 function computeLayout(nodes: any[], edges: any[], W: number, H: number) {
   if (!nodes.length) return {};
   const pos: Record<string, { x: number; y: number }> = {};
   const cx = W / 2, cy = H / 2;
-  // Group by domain for radial cluster layout
   const groups: Record<string, string[]> = {};
   nodes.forEach(n => { const d = n.domain || "general"; (groups[d] = groups[d] || []).push(n.id); });
   const groupKeys = Object.keys(groups);
@@ -35,7 +114,6 @@ function computeLayout(nodes: any[], edges: any[], W: number, H: number) {
     const angle = groupAngle + (si / Math.max(siblings.length, 1) - 0.5) * spread;
     pos[n.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
   });
-  // Light spring relaxation
   for (let iter = 0; iter < 15; iter++) {
     const forces: Record<string, { x: number; y: number }> = {};
     nodes.forEach(n => { forces[n.id] = { x: 0, y: 0 }; });
@@ -70,6 +148,7 @@ function computeLayout(nodes: any[], edges: any[], W: number, H: number) {
   return pos;
 }
 
+// ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export default function GraphPage() {
   const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[]; nodeCount: number; edgeCount: number; displayCount: number }>({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -79,10 +158,17 @@ export default function GraphPage() {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [mandelbrotUrl, setMandelbrotUrl] = useState<string>("");
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [, setLocation] = useLocation();
   const W = 1000, H = 680;
+
+  // Render Mandelbrot background once
+  useEffect(() => {
+    const url = renderMandelbrotToDataURL(200, 136);
+    setMandelbrotUrl(url);
+  }, []);
 
   const loadGraph = useCallback(async () => {
     setLoading(true);
@@ -113,26 +199,22 @@ export default function GraphPage() {
     ev.preventDefault();
     setScale(s => Math.max(0.25, Math.min(4, s * (ev.deltaY < 0 ? 1.12 : 0.9))));
   }, []);
-
   const onMouseDown = useCallback((ev: React.MouseEvent) => {
     if ((ev.target as SVGElement).closest("g[data-node]")) return;
     setDragging(true);
     dragStart.current = { mx: ev.clientX, my: ev.clientY, px: pan.x, py: pan.y };
   }, [pan]);
-
   const onMouseMove = useCallback((ev: React.MouseEvent) => {
     if (!dragging || !dragStart.current) return;
     setPan({ x: dragStart.current.px + (ev.clientX - dragStart.current.mx), y: dragStart.current.py + (ev.clientY - dragStart.current.my) });
   }, [dragging]);
-
   const onMouseUp = useCallback(() => { setDragging(false); dragStart.current = null; }, []);
-
   const goToNode = (node: any) => setLocation(`/quantapedia/${node.id}`);
-
   const domainKeys = [...new Set(displayNodes.map(n => n.domain || "general"))].slice(0, 8);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "linear-gradient(180deg,#020010,#04000d)", overflow: "hidden", minHeight: 0 }}>
+      {/* Header */}
       <div style={{ padding: "12px 18px 8px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 18, margin: 0, letterSpacing: "-0.02em" }}>Knowledge Graph</h1>
@@ -174,17 +256,55 @@ export default function GraphPage() {
             viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
             onWheel={onWheel} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
             <defs>
+              <style>{`
+                @keyframes kochSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes kochPulse { 0%,100% { opacity:0.72; } 50% { opacity:1; } }
+                @keyframes kochGlow { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.6); } }
+                @keyframes snowFlicker { 0%,100%{opacity:0.5} 50%{opacity:0.85} }
+              `}</style>
               <radialGradient id="gBg" cx="50%" cy="50%" r="55%">
-                <stop offset="0%" stopColor="#0a0818" /><stop offset="100%" stopColor="#040412" />
+                <stop offset="0%" stopColor="#06041a" /><stop offset="100%" stopColor="#020010" />
               </radialGradient>
+              {/* Per-domain radial gradients for snowflake fill */}
               {Object.entries(DOMAIN_COLORS).map(([d, c]) => (
-                <radialGradient key={d} id={`ng-${d}`} cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor={c} stopOpacity={0.9} /><stop offset="100%" stopColor={c} stopOpacity={0.4} />
+                <radialGradient key={d} id={`ng-${d}`} cx="50%" cy="50%" r="60%">
+                  <stop offset="0%" stopColor={c} stopOpacity={0.95} />
+                  <stop offset="60%" stopColor={c} stopOpacity={0.55} />
+                  <stop offset="100%" stopColor={c} stopOpacity={0.15} />
                 </radialGradient>
               ))}
+              {/* Glow filter for hovered/selected nodes */}
+              <filter id="snowGlow" x="-80%" y="-80%" width="260%" height="260%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+              <filter id="snowGlowSm" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
             </defs>
+
+            {/* Background: flat dark fill */}
             <rect width={W} height={H} fill="url(#gBg)" />
+
+            {/* Mandelbrot-inspired fractal background — faint purple/blue wash */}
+            {mandelbrotUrl && (
+              <image href={mandelbrotUrl} x={0} y={0} width={W} height={H} opacity={0.14}
+                preserveAspectRatio="xMidYMid slice" />
+            )}
+
+            {/* Subtle grid lines for depth */}
+            {[...Array(14)].map((_, i) => (
+              <line key={`gx${i}`} x1={i * 77} y1={0} x2={i * 77} y2={H}
+                stroke="rgba(100,80,200,0.04)" strokeWidth={0.5} />
+            ))}
+            {[...Array(10)].map((_, i) => (
+              <line key={`gy${i}`} x1={0} y1={i * 76} x2={W} y2={i * 76}
+                stroke="rgba(100,80,200,0.04)" strokeWidth={0.5} />
+            ))}
+
             <g transform={`translate(${pan.x},${pan.y}) scale(${scale})`} style={{ transformOrigin: `${W/2}px ${H/2}px` }}>
+              {/* Edges — curved bezier lines */}
               {displayEdges.map((e: any, i: number) => {
                 const a = pos[e.from], b = pos[e.to];
                 if (!a || !b) return null;
@@ -193,31 +313,84 @@ export default function GraphPage() {
                 const my = (a.y + b.y) / 2 + (b.x - a.x) * 0.15;
                 return (
                   <path key={i} d={`M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`} fill="none"
-                    stroke={highlight ? "#818cf8" : "rgba(255,255,255,0.04)"}
-                    strokeWidth={highlight ? 1.2 : 0.5} strokeOpacity={highlight ? 0.7 : 1} />
+                    stroke={highlight ? "#818cf8" : "rgba(180,160,255,0.06)"}
+                    strokeWidth={highlight ? 1.3 : 0.6} strokeOpacity={highlight ? 0.75 : 1} />
                 );
               })}
+
+              {/* Nodes — Koch fractal snowflakes */}
               {displayNodes.map((n: any) => {
                 const p = pos[n.id];
                 if (!p) return null;
                 const color = domainColor(n.domain);
-                const r = Math.min(10, 4 + (n.views || 0) * 0.3);
+                const domKey = Object.entries(DOMAIN_COLORS).find(([,c]) => c === color)?.[0] ?? "general";
+
+                // Node size: base 5px + view bonus, capped at 14
+                const nodeR = Math.min(14, 5 + (n.views || 0) * 0.3);
                 const isHov = hovered === n.id;
                 const isSel = selected?.id === n.id;
-                const dim = hovered && !connectedSet?.has(n.id) && hovered !== n.id;
+                const dim = !!(hovered && !connectedSet?.has(n.id) && hovered !== n.id);
+
+                // Animation: each node gets a slightly different spin speed based on id hash
+                const charSum = n.id.split("").reduce((acc: number, c: string) => acc + c.charCodeAt(0), 0);
+                const spinDur = 8 + (charSum % 14); // 8–22 seconds
+                const pulseDur = 2.5 + (charSum % 4); // 2.5–6.5 seconds
+
                 return (
-                  <g key={n.id} data-node="1" style={{ cursor: "pointer" }}
-                    onClick={() => { if (!dragging) { setSelected(n); } }}
+                  <g key={n.id} data-node="1" data-testid={`node-${n.id}`} style={{ cursor: "pointer" }}
+                    transform={`translate(${p.x},${p.y})`}
+                    onClick={() => { if (!dragging) setSelected(n); }}
                     onDoubleClick={() => goToNode(n)}
                     onMouseEnter={() => setHovered(n.id)}
                     onMouseLeave={() => setHovered(null)}>
-                    {(isHov || isSel) && <circle cx={p.x} cy={p.y} r={r + 10} fill={color} fillOpacity={0.12} />}
-                    {(isHov || isSel) && <circle cx={p.x} cy={p.y} r={r + 5} fill={color} fillOpacity={0.08} />}
-                    <circle cx={p.x} cy={p.y} r={r} fill={color} fillOpacity={dim ? 0.12 : 0.85}
-                      stroke={isSel ? "#fff" : isHov ? color : "transparent"} strokeWidth={isSel ? 1.5 : 1} />
+
+                    {/* Transparent hit area — ensures click events land even between snowflake spikes */}
+                    <circle r={nodeR * 1.6} fill="transparent" stroke="none" />
+
+                    {/* Outer glow aura (only when hovered or selected) */}
+                    {(isHov || isSel) && (
+                      <circle r={nodeR * 2.8} fill={color} fillOpacity={0.08}
+                        style={{ animation: `kochPulse ${pulseDur}s ease-in-out infinite` }} />
+                    )}
+                    {(isHov || isSel) && (
+                      <circle r={nodeR * 1.9} fill={color} fillOpacity={0.12}
+                        style={{ animation: `kochPulse ${pulseDur * 0.7}s ease-in-out infinite` }} />
+                    )}
+
+                    {/* Koch snowflake — rotates continuously via CSS animation */}
+                    <g filter={isHov || isSel ? "url(#snowGlow)" : undefined}
+                      style={{
+                        animation: `kochSpin ${spinDur}s linear infinite`,
+                        transformOrigin: "0px 0px",
+                        opacity: dim ? 0.14 : isHov || isSel ? 1.0 : 0.82,
+                      }}>
+                      {/* Snowflake fill — KOCH_PATH_SM is at r=1, scaled to nodeR */}
+                      <path
+                        d={KOCH_PATH_SM}
+                        fill={`url(#ng-${domKey})`}
+                        stroke={isSel ? "#fff" : color}
+                        strokeWidth={isSel ? 0.06 : 0.04}
+                        strokeOpacity={isSel ? 0.9 : 0.55}
+                        transform={`scale(${nodeR})`}
+                        style={{ animation: `kochGlow ${pulseDur}s ease-in-out infinite` }}
+                      />
+                      {/* Inner smaller snowflake at 42% scale — nested fractal look */}
+                      <path
+                        d={KOCH_PATH_SM}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={0.06}
+                        strokeOpacity={isHov || isSel ? 0.55 : 0.22}
+                        transform={`scale(${nodeR * 0.42}) rotate(30)`}
+                      />
+                    </g>
+
+                    {/* Label — show on hover, select, or popular nodes */}
                     {(isHov || isSel || (n.views || 0) > 3) && (
-                      <text x={p.x} y={p.y + r + 9} textAnchor="middle" fontSize={7.5} fill="rgba(255,255,255,0.55)" fontFamily="monospace" style={{ pointerEvents: "none" }}>
-                        {(n.label || n.id).slice(0, 18)}
+                      <text y={nodeR + 10} textAnchor="middle"
+                        fontSize={7.5} fill={isHov || isSel ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)"}
+                        fontFamily="monospace" style={{ pointerEvents: "none" }}>
+                        {(n.label || n.id).slice(0, 20)}
                       </text>
                     )}
                   </g>
@@ -227,12 +400,15 @@ export default function GraphPage() {
           </svg>
         )}
 
-        {/* Domain legend */}
-        <div style={{ position: "absolute", top: 12, left: 14, display: "flex", flexDirection: "column", gap: 3 }}>
+        {/* Domain legend — with Koch snowflake icons instead of dots */}
+        <div style={{ position: "absolute", top: 12, left: 14, display: "flex", flexDirection: "column", gap: 4 }}>
           {domainKeys.map(d => (
-            <div key={d} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: domainColor(d), flexShrink: 0 }} />
-              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.28)", textTransform: "capitalize" }}>{d}</span>
+            <div key={d} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <svg width={10} height={10} viewBox="-1 -1 2 2" style={{ flexShrink: 0 }}>
+                <path d={KOCH_PATH_SM} fill={domainColor(d)} fillOpacity={0.85}
+                  stroke={domainColor(d)} strokeWidth={0.03} />
+              </svg>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "capitalize" }}>{d}</span>
             </div>
           ))}
         </div>
@@ -253,7 +429,7 @@ export default function GraphPage() {
 
         {/* Selected node tooltip */}
         {selected && (
-          <div style={{ position: "absolute", bottom: 14, left: 14, maxWidth: 260, borderRadius: 12, border: "1px solid rgba(255,255,255,0.14)", background: "rgba(4,4,20,0.92)", backdropFilter: "blur(12px)", padding: "13px 15px" }}>
+          <div data-testid="node-tooltip" style={{ position: "absolute", bottom: 14, left: 14, maxWidth: 260, borderRadius: 12, border: "1px solid rgba(255,255,255,0.14)", background: "rgba(4,4,20,0.92)", backdropFilter: "blur(12px)", padding: "13px 15px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3, flex: 1 }}>{selected.label || selected.id}</div>
               <button onClick={() => setSelected(null)} style={{ color: "rgba(255,255,255,0.3)", marginLeft: 8, background: "none", border: "none", cursor: "pointer", fontSize: 12 }}>✕</button>
