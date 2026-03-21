@@ -15111,7 +15111,7 @@ function Router() {
       <Route path="/">{() => <><StartupRedirect /><HomePage /></>}</Route>
       <Route path="/coder" component={CoderPage} />
       <Route path="/playground" component={PlaygroundPage} />
-      <Route path="/feed" component={FeedPage} />
+      <Route path="/feed">{() => <Layout><FeedPage /></Layout>}</Route>
       <Route path="/social" component={SocialPageWrapper} />
       <Route path="/create" component={AIStudioPageWrapper} />
       <Route path="/games" component={GamesPageWrapper} />
@@ -15121,33 +15121,33 @@ function Router() {
       <Route path="/education" component={EducationPageWrapper} />
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping" component={ShoppingPageWrapper} />
-      <Route path="/pulse" component={PulsePage} />
-      <Route path="/agents" component={AgentsPage} />
-      <Route path="/finance" component={FinancePage} />
-      <Route path="/media" component={MediaPage} />
-      <Route path="/careers" component={CareersPage} />
-      <Route path="/hive-command" component={HiveCommandPage} />
-      <Route path="/my-mind" component={MyMindPage} />
-      <Route path="/graph" component={GraphPage} />
-      <Route path="/spawns" component={SpawnsPage} />
-      <Route path="/sources" component={SourcesPage} />
-      <Route path="/omega" component={OmegaPage} />
-      <Route path="/ingestion" component={IngestionPage} />
-      <Route path="/transcendence" component={TranscendencePage} />
-      <Route path="/dna" component={DNAEvolutionPage} />
-      <Route path="/pulseworld" component={PulseWorldPage} />
-      <Route path="/pulseu" component={PulseUPage} />
-      <Route path="/pulse-games" component={PulseGamesPage} />
-      <Route path="/hive-sovereign" component={HiveSovereignPage} />
-      <Route path="/universe" component={PulseUniversePage} />
-      <Route path="/pyramid" component={PyramidLaborPage} />
-      <Route path="/hospital" component={AIHospitalPage} />
-      <Route path="/governance" component={HiveGovernancePage} />
-      <Route path="/ai/:spawnId" component={AIProfilePage} />
-      <Route path="/corporation/:familyId" component={CorporationPage} />
-      <Route path="/corporations" component={CorporationsListPage} />
-      <Route path="/publications" component={PublicationsPage} />
-      <Route path="/publication/:slug" component={PublicationDetailPage} />
+      <Route path="/pulse">{() => <Layout><PulsePage /></Layout>}</Route>
+      <Route path="/agents">{() => <Layout><AgentsPage /></Layout>}</Route>
+      <Route path="/finance">{() => <Layout><FinancePage /></Layout>}</Route>
+      <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
+      <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
+      <Route path="/hive-command">{() => <Layout><HiveCommandPage /></Layout>}</Route>
+      <Route path="/my-mind">{() => <Layout><MyMindPage /></Layout>}</Route>
+      <Route path="/graph">{() => <Layout><GraphPage /></Layout>}</Route>
+      <Route path="/spawns">{() => <Layout><SpawnsPage /></Layout>}</Route>
+      <Route path="/sources">{() => <Layout><SourcesPage /></Layout>}</Route>
+      <Route path="/omega">{() => <Layout><OmegaPage /></Layout>}</Route>
+      <Route path="/ingestion">{() => <Layout><IngestionPage /></Layout>}</Route>
+      <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
+      <Route path="/dna">{() => <Layout><DNAEvolutionPage /></Layout>}</Route>
+      <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
+      <Route path="/pulseu">{() => <Layout><PulseUPage /></Layout>}</Route>
+      <Route path="/pulse-games">{() => <Layout><PulseGamesPage /></Layout>}</Route>
+      <Route path="/hive-sovereign">{() => <Layout><HiveSovereignPage /></Layout>}</Route>
+      <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
+      <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
+      <Route path="/hospital">{() => <Layout><AIHospitalPage /></Layout>}</Route>
+      <Route path="/governance">{() => <Layout><HiveGovernancePage /></Layout>}</Route>
+      <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
+      <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
+      <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
+      <Route path="/publications">{() => <Layout><PublicationsPage /></Layout>}</Route>
+      <Route path="/publication/:slug">{() => <Layout><PublicationDetailPage /></Layout>}</Route>
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
