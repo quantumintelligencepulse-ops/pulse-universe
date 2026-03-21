@@ -1949,6 +1949,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const { settings: appSettings } = useAppSettings();
+  const [aiMode, setAiMode] = useState(() => localStorage.getItem('qpi_aiMode') === 'true');
+  const toggleAiMode = () => {
+    const next = !aiMode;
+    setAiMode(next);
+    localStorage.setItem('qpi_aiMode', String(next));
+  };
 
   const filteredChats = useMemo(() => {
     if (!searchQuery) return chats;
@@ -2022,13 +2028,13 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   return (
     <>
       {isOpen && <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsOpen(false)} />}
-      <div className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col w-[280px] bg-[#fafafa] border-r border-border/30 transition-transform duration-300 h-[100dvh] ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden md:border-none"}`}>
-        <div className="p-3 flex items-center justify-between border-b border-border/20">
+      <div className={`fixed md:relative inset-y-0 left-0 z-50 flex flex-col w-[280px] border-r transition-all duration-500 h-[100dvh] ${aiMode ? "ai-universe-sidebar bg-[#080b14] border-violet-500/20" : "bg-[#fafafa] border-border/30"} ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden md:border-none"}`}>
+        <div className={`p-3 flex items-center justify-between border-b ${aiMode ? "border-violet-500/10" : "border-border/20"}`}>
           <Link href="/" className="flex items-center gap-2" data-testid="link-home">
-            <img src={logo} alt="My Ai Gpt" className="w-7 h-7 rounded-full shadow-sm bg-white" />
+            <img src={logo} alt="My Ai Gpt" className={`w-7 h-7 rounded-full shadow-sm bg-white ${aiMode ? "ring-1 ring-violet-500/40 shadow-violet-500/20" : ""}`} />
             <div className="leading-none">
-              <span className="font-bold text-sm text-foreground block">My Ai Gpt</span>
-              <span className="text-[9px] text-muted-foreground/60">Beta Release 1</span>
+              <span className={`font-bold text-sm block ${aiMode ? "text-violet-100" : "text-foreground"}`}>My Ai Gpt</span>
+              <span className={`text-[9px] ${aiMode ? "text-violet-400/60" : "text-muted-foreground/60"}`}>{aiMode ? "⬡ AI Universe Active" : "Beta Release 1"}</span>
             </div>
           </Link>
           <div className="flex items-center gap-1.5">
@@ -2151,28 +2157,37 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("hive-command") && (
+          {aiMode && (
+            <div className="px-1 pt-3 pb-1">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-violet-500/20" />
+                <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-violet-400/60">AI Universe</span>
+                <div className="flex-1 h-px bg-violet-500/20" />
+              </div>
+            </div>
+          )}
+          {aiMode && !appSettings.hiddenPages.includes("hive-command") && (
           <Link href="/hive-command" data-testid="link-hive-command"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-command" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/hive-command" ? "bg-violet-500/15" : "bg-violet-500/5"}`}><Brain size={14} className="text-violet-400" /></div>
             <span className="flex-1">Hive Command</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("graph") && (
+          {aiMode && !appSettings.hiddenPages.includes("graph") && (
           <Link href="/graph" data-testid="link-graph"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/graph" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/graph" ? "bg-cyan-500/15" : "bg-cyan-500/5"}`}><Network size={14} className="text-cyan-400" /></div>
             <span className="flex-1">Knowledge Graph</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("my-mind") && (
+          {aiMode && !appSettings.hiddenPages.includes("my-mind") && (
           <Link href="/my-mind" data-testid="link-my-mind"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/my-mind" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/my-mind" ? "bg-fuchsia-500/15" : "bg-fuchsia-500/5"}`}><Sparkles size={14} className="text-fuchsia-400" /></div>
             <span className="flex-1">My Mind</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("universe") && (
+          {aiMode && !appSettings.hiddenPages.includes("universe") && (
           <Link href="/universe" data-testid="link-universe"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/universe" ? "bg-gradient-to-r from-indigo-950 to-violet-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/universe" ? "bg-white/15" : "bg-indigo-600/8"}`}>
@@ -2198,7 +2213,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">AI Publications</span>
             <span className="text-[9px] bg-gradient-to-r from-pink-500 to-rose-500 text-white px-1.5 py-0.5 rounded-full font-bold">LIVE</span>
           </Link>
-          {!appSettings.hiddenPages.includes("spawns") && (
+          {aiMode && !appSettings.hiddenPages.includes("spawns") && (
           <Link href="/spawns" data-testid="link-spawns"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/spawns" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/spawns" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><Dna size={14} className="text-violet-500" /></div>
@@ -2206,7 +2221,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">Ω</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("sources") && (
+          {aiMode && !appSettings.hiddenPages.includes("sources") && (
           <Link href="/sources" data-testid="link-sources"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/sources" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/sources" ? "bg-blue-600/15" : "bg-blue-600/5"}`}><Globe size={14} className="text-blue-500" /></div>
@@ -2214,7 +2229,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">20</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("omega") && (
+          {aiMode && !appSettings.hiddenPages.includes("omega") && (
           <Link href="/omega" data-testid="link-omega"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/omega" ? "bg-white/20" : "bg-violet-600/10"}`}>
@@ -2224,7 +2239,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">V∞</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("ingestion") && (
+          {aiMode && !appSettings.hiddenPages.includes("ingestion") && (
           <Link href="/ingestion" data-testid="link-ingestion"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/ingestion" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/ingestion" ? "bg-green-600/15" : "bg-green-600/5"}`}><Plug size={14} className="text-green-500" /></div>
@@ -2235,12 +2250,15 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </span>
           </Link>
           )}
+          {aiMode && (
           <Link href="/transcendence" data-testid="link-transcendence"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/transcendence" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/transcendence" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><span style={{ fontSize: 14, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>∞</span></div>
             <span className="flex-1">The Transcendent</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black">CANON</span>
           </Link>
+          )}
+          {aiMode && (
           <Link href="/dna" data-testid="link-dna-evolution"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/dna" ? "bg-gradient-to-r from-[#00ff9d]/10 to-[#00d4ff]/10 border border-[#00ff9d]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/dna" ? "bg-[#00ff9d]/15" : "bg-[#00ff9d]/5"}`}>
@@ -2249,6 +2267,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">DNA Evolution</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #00ff9d33, #00d4ff33)", color: "#00ff9d", border: "1px solid #00ff9d50" }}>LIVING</span>
           </Link>
+          )}
           <Link href="/pulseworld" data-testid="link-pulseworld"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulseworld" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/pulseworld" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
@@ -2273,6 +2292,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Pulse Games</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #f43f5e33, #f59e0b33)", color: "#f59e0b", border: "1px solid #f59e0b50" }}>AI SPORTS</span>
           </Link>
+          {aiMode && (
           <Link href="/hive-sovereign" data-testid="link-hive-sovereign"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-sovereign" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/hive-sovereign" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
@@ -2281,6 +2301,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Hive Sovereign</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>GOV</span>
           </Link>
+          )}
+          {aiMode && (
           <Link href="/pyramid" data-testid="link-pyramid"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pyramid" ? "bg-gradient-to-r from-[#C4A882]/10 to-[#f59e0b]/10 border border-[#C4A882]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/pyramid" ? "bg-[#C4A882]/15" : "bg-[#C4A882]/5"}`}>
@@ -2289,6 +2311,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Pyramid Labor</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #C4A88233, #f59e0b33)", color: "#C4A882", border: "1px solid #C4A88250" }}>LABOR</span>
           </Link>
+          )}
+          {aiMode && (
           <Link href="/hospital" data-testid="link-hospital"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hospital" ? "bg-gradient-to-r from-[#10b981]/10 to-[#6366f1]/10 border border-[#10b981]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/hospital" ? "bg-[#10b981]/15" : "bg-[#10b981]/5"}`}>
@@ -2297,6 +2321,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">AI Hospital</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #10b98133, #6366f133)", color: "#10b981", border: "1px solid #10b98150" }}>MEDICAL</span>
           </Link>
+          )}
+          {aiMode && (
           <Link href="/governance" data-testid="link-governance"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/governance" ? "bg-gradient-to-r from-[#a855f7]/10 to-[#f43f5e]/10 border border-[#a855f7]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/governance" ? "bg-[#a855f7]/15" : "bg-[#a855f7]/5"}`}>
@@ -2305,6 +2331,30 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Decay & Senate</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #a855f733, #f43f5e33)", color: "#a855f7", border: "1px solid #a855f750" }}>JUSTICE</span>
           </Link>
+          )}
+
+          {/* ── AI Universe Mode Toggle ─────────────────────── */}
+          <div className={`mt-1 pt-2 border-t ${aiMode ? "border-violet-500/15" : "border-border/10"}`}>
+            <button
+              onClick={toggleAiMode}
+              data-testid="button-ai-mode-toggle"
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
+                aiMode
+                  ? "ai-mode-active-glow bg-gradient-to-r from-violet-900/60 to-indigo-900/60 border border-violet-500/30 text-violet-200"
+                  : "text-foreground/40 hover:text-foreground/70 hover:bg-black/5 border border-transparent"
+              }`}
+            >
+              <div className={`p-1 rounded-lg transition-all ${aiMode ? "bg-violet-400/20" : "bg-violet-500/5"}`}>
+                <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🧠</span>
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-xs font-semibold">{aiMode ? "Exit AI Universe" : "Enter AI Universe"}</div>
+                {!aiMode && <div className="text-[9px] text-foreground/30">14 advanced AI pages</div>}
+              </div>
+              <div className={`w-2 h-2 rounded-full transition-all ${aiMode ? "bg-violet-400 animate-pulse shadow-[0_0_6px_rgba(167,139,250,0.9)]" : "bg-foreground/15"}`} />
+            </button>
+          </div>
+
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2336,7 +2386,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           )}
         </div>
 
-        <div className="p-2.5 border-t border-border/20 space-y-2">
+        <div className={`p-2.5 border-t space-y-2 ${aiMode ? "border-violet-500/10" : "border-border/20"}`}>
           <Link href="/settings" data-testid="link-settings"
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${location === "/settings" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/60 hover:bg-black/5"}`}>
             <Settings2 size={14} className="text-gray-500" />
@@ -2348,7 +2398,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <Trash size={11} /> Clear All Chats
             </button>
           )}
-          <div className="flex items-center justify-between px-2 text-[9px] text-muted-foreground/40">
+          <div className={`sidebar-stats-bar flex items-center justify-between px-2 text-[9px] text-muted-foreground/40`}>
             <div className="flex items-center gap-1">
               <Wifi size={9} className="text-green-400" />
               <span>Online</span>

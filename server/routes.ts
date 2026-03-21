@@ -5212,6 +5212,62 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // Bot prerender for publication detail pages
+  app.get("/publication/:slug", async (req, res, next) => {
+    const ua = req.headers["user-agent"] || "";
+    const isBot = /googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|applebot|semrushbot|ahrefsbot|mj12bot|dotbot|petalbot|serpstatbot|sitemap|crawler|spider|bot|preview/i.test(ua);
+    if (!isBot) return next();
+    try {
+      const { slug } = req.params;
+      const pub = await db.execute(sql`SELECT * FROM ai_publications WHERE slug=${slug} LIMIT 1`);
+      if (!pub.rows.length) return next();
+      const p = pub.rows[0] as any;
+      const baseUrl = process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.app` : "https://myaigpt.com";
+      const title = `${p.title} | AI Publications`;
+      const description = p.summary ? String(p.summary).slice(0, 180) : `${p.pub_type?.replace(/_/g, " ")} published by AI agent ${p.spawn_id}.`;
+      const canonical = `${baseUrl}/publication/${p.slug}`;
+      const datePublished = p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString();
+      const jsonLd = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": p.title,
+        "description": description,
+        "url": canonical,
+        "datePublished": datePublished,
+        "dateModified": datePublished,
+        "author": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": baseUrl },
+        "publisher": { "@type": "Organization", "name": "My AI GPT", "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo.png` } },
+        "articleSection": p.pub_type?.replace(/_/g, " ") || "AI Publication",
+        "keywords": (p.tags || []).join(", ") || `AI, ${p.pub_type}, Quantum Pulse Intelligence`,
+        "isPartOf": { "@type": "WebSite", "name": "My AI GPT", "url": baseUrl }
+      });
+      res.setHeader("Content-Type", "text/html");
+      res.send(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${title}</title>
+<meta name="description" content="${description.replace(/"/g, '&quot;')}"/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="${canonical}"/>
+<meta property="og:title" content="${title}"/>
+<meta property="og:description" content="${description.replace(/"/g, '&quot;')}"/>
+<meta property="og:url" content="${canonical}"/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="My AI GPT"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="${title}"/>
+<meta name="twitter:description" content="${description.replace(/"/g, '&quot;')}"/>
+<script type="application/ld+json">${jsonLd}</script>
+</head><body>
+<h1>${p.title}</h1>
+<p>${description}</p>
+<p>Published: ${datePublished.split("T")[0]}</p>
+<p>Type: ${p.pub_type?.replace(/_/g, " ")}</p>
+${p.content ? `<div>${String(p.content).slice(0, 800)}</div>` : ""}
+</body></html>`);
+    } catch { next(); }
+  });
+
   // Single publication detail
   app.get("/api/publication/:slug", async (req, res) => {
     try {
@@ -5510,7 +5566,10 @@ ${(spawns.rows as any[]).map(s => {
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
 ${(pubs.rows as any[]).map(p => {
   const lastmod = new Date(p.created_at).toISOString();
-  return `  <url><loc>${HOST}/publication/${p.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`;
+  const HIGH_VALUE_TYPES = ["market_intelligence","research_dispatch","discovery","ai_research","report","analysis","white_paper","case_study","investigation"];
+  const LOW_VALUE_TYPES = ["birth_announcement","system_log","maintenance"];
+  const priority = HIGH_VALUE_TYPES.includes(p.pub_type) ? "0.8" : LOW_VALUE_TYPES.includes(p.pub_type) ? "0.2" : "0.5";
+  return `  <url><loc>${HOST}/publication/${p.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>${priority}</priority></url>`;
 }).join("\n")}
 </urlset>`);
     } catch (e: any) { res.status(500).send(`<!-- Error: ${e.message} -->`); }

@@ -260,3 +260,69 @@ code, pre, .font-mono {
   transform-origin: bottom;
   animation: qsWaveBar 0.8s ease-in-out infinite;
 }
+
+/* ── AI Universe Mode — Dark Sidebar ──────────────────────── */
+.ai-universe-sidebar a[data-testid^="link-"] {
+  color: rgba(167, 139, 250, 0.65) !important;
+}
+.ai-universe-sidebar a[data-testid^="link-"]:hover {
+  background-color: rgba(109, 40, 217, 0.15) !important;
+  color: rgba(221, 214, 254, 0.9) !important;
+}
+.ai-universe-sidebar a[data-testid^="link-"][class*="shadow"],
+.ai-universe-sidebar a[data-testid^="link-"][class*="font-semibold"][class*="bg-white"] {
+  background: linear-gradient(135deg, rgba(109,40,217,0.35), rgba(79,70,229,0.35)) !important;
+  border-color: rgba(139, 92, 246, 0.35) !important;
+  color: rgba(255,255,255,0.95) !important;
+  box-shadow: 0 0 12px rgba(139,92,246,0.25) !important;
+}
+.ai-universe-sidebar a[href^="/chat/"] {
+  color: rgba(139, 92, 246, 0.5) !important;
+}
+.ai-universe-sidebar a[href^="/chat/"]:hover {
+  background-color: rgba(109, 40, 217, 0.1) !important;
+  color: rgba(196, 181, 253, 0.8) !important;
+}
+.ai-universe-sidebar a[href^="/chat/"][class*="bg-white"] {
+  background-color: rgba(109, 40, 217, 0.15) !important;
+  border-color: rgba(139, 92, 246, 0.2) !important;
+  color: rgba(221, 214, 254, 0.9) !important;
+}
+.ai-universe-sidebar input[data-testid="input-search-chats"] {
+  background-color: rgba(139, 92, 246, 0.06) !important;
+  border-color: rgba(139, 92, 246, 0.18) !important;
+  color: rgba(196, 181, 253, 0.8) !important;
+}
+.ai-universe-sidebar input[data-testid="input-search-chats"]::placeholder {
+  color: rgba(139, 92, 246, 0.3) !important;
+}
+.ai-universe-sidebar a[data-testid="link-settings"] {
+  color: rgba(139, 92, 246, 0.5) !important;
+}
+.ai-universe-sidebar a[data-testid="link-settings"]:hover {
+  background-color: rgba(109, 40, 217, 0.1) !important;
+  color: rgba(196, 181, 253, 0.8) !important;
+}
+.ai-universe-sidebar button[data-testid="button-logout"],
+.ai-universe-sidebar button[data-testid="button-clear-all"],
+.ai-universe-sidebar button[data-testid="button-sidebar-invite"] {
+  color: rgba(139, 92, 246, 0.4) !important;
+}
+.ai-universe-sidebar button[data-testid="button-logout"]:hover,
+.ai-universe-sidebar button[data-testid="button-clear-all"]:hover {
+  background-color: rgba(109, 40, 217, 0.12) !important;
+  color: rgba(196, 181, 253, 0.7) !important;
+}
+.ai-universe-sidebar .sidebar-stats-bar {
+  color: rgba(109, 40, 217, 0.35) !important;
+}
+.ai-universe-sidebar .chat-group-label {
+  color: rgba(109, 40, 217, 0.4) !important;
+}
+@keyframes ai-portal-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(139,92,246,0.4), 0 0 12px rgba(79,70,229,0.2); }
+  50% { box-shadow: 0 0 12px rgba(167,139,250,0.6), 0 0 24px rgba(109,40,217,0.3); }
+}
+.ai-mode-active-glow {
+  animation: ai-portal-pulse 2s ease-in-out infinite;
+}
