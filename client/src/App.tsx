@@ -24,6 +24,7 @@ import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
 import CareersPage from "./pages/CareersPage";
 import HiveCommandPage from "./pages/HiveCommandPage";
+import HiveMarketplacePage from "./pages/HiveMarketplacePage";
 import MyMindPage from "./pages/MyMindPage";
 import GraphPage from "./pages/GraphPage";
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
@@ -2328,6 +2329,16 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">AI Hospital</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #10b98133, #6366f133)", color: "#10b981", border: "1px solid #10b98150" }}>MEDICAL</span>
+          </Link>
+          )}
+          {aiMode && (
+          <Link href="/marketplace" data-testid="link-marketplace"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/marketplace" ? "bg-gradient-to-r from-[#00FFD1]/10 to-[#FFB84D]/10 border border-[#00FFD1]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/marketplace" ? "bg-[#00FFD1]/15" : "bg-[#00FFD1]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🛒</span>
+            </div>
+            <span className="flex-1">Omega Marketplace</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #00FFD133, #FFB84D33)", color: "#00FFD1", border: "1px solid #00FFD150" }}>ECONOMY</span>
           </Link>
           )}
           {aiMode && (
@@ -15146,6 +15157,7 @@ function Router() {
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
       <Route path="/hospital">{() => <Layout><AIHospitalPage /></Layout>}</Route>
+      <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
       <Route path="/governance">{() => <Layout><HiveGovernancePage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>

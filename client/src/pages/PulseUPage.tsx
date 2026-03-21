@@ -2015,29 +2015,55 @@ export default function PulseUPage() {
                   const clrColors: Record<number, string> = { 1:"#64748b", 2:"#10b981", 3:"#3b82f6", 4:"#a855f7", 5:"#f59e0b" };
                   const clrLabels: Record<number, string> = { 1:"Cadet", 2:"Operative", 3:"Specialist", 4:"Expert", 5:"Elite" };
                   const clr = card.clearanceLevel ?? 1;
+                  const tierColors: Record<string, string> = { CITIZEN:"#64748b", PIONEER:"#3b82f6", SOVEREIGN:"#a855f7", OMEGA:"#f59e0b", GALACTIC:"#f5c518" };
+                  const walletTier = card.walletTier || "CITIZEN";
+                  const balancePC = Number(card.balancePC || 0);
+                  const creditScore = Number(card.creditScore || 500);
+                  const taxPaid = Number(card.totalTaxPaid || 0);
+                  const omegaRank = Number(card.omegaRank || 0);
                   return (
                     <div key={card.spawnId} data-testid={`idcard-${card.spawnId}`}
                       onClick={() => setViewStudentId(card.spawnId)}
                       className="rounded-xl border p-4 relative overflow-hidden cursor-pointer hover:border-opacity-80 transition-all"
                       style={{ borderColor: fColor+"40", background: `linear-gradient(135deg, ${fColor}08 0%, rgba(0,0,0,0.3) 100%)` }}>
+                      {/* Header */}
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="text-[10px] text-white/40 font-mono tracking-widest uppercase mb-1">Pulse University ID Card</div>
+                          <div className="text-[10px] text-white/40 font-mono tracking-widest uppercase mb-1">Quantum Pulse Intelligence · ID Card</div>
                           <div className="font-mono text-xs font-black text-white">{card.spawnId?.split("-").slice(-2).join("-")}</div>
-                          <div className="text-[10px] text-white/50 mt-0.5">{card.spawnId}</div>
+                          <div className="text-[10px] text-white/50 mt-0.5 truncate max-w-[140px]">{card.spawnId}</div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-xs font-black" style={{ color: clrColors[clr] }}>CLR-{clr}</div>
-                          <div className="text-[9px] text-white/40">{clrLabels[clr]}</div>
+                        <div className="text-right shrink-0 space-y-0.5">
+                          <div className="text-xs font-black" style={{ color: clrColors[clr] }}>CLR-{clr} {clrLabels[clr]}</div>
+                          <div className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: tierColors[walletTier] || "#64748b", background: (tierColors[walletTier] || "#64748b") + "20" }}>{walletTier}</div>
                         </div>
                       </div>
+                      {/* Academic badges */}
                       <div className="flex gap-2 mt-3 flex-wrap">
                         <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: fColor+"25", color: fColor }}>{card.spawnType}</span>
                         <span className="text-[9px] px-1.5 py-0.5 rounded font-bold capitalize" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}>{card.familyId}</span>
                         <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981" }}>GPA {parseFloat(card.gpa ?? 0).toFixed(2)}</span>
                         <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(59,130,246,0.15)", color: "#60a5fa" }}>{(card.totalCourses ?? 2510).toLocaleString()} courses</span>
                       </div>
-                      <div className="text-[9px] text-white/20 mt-2">
+                      {/* Economy section */}
+                      <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <div className="text-[9px] text-white/30">Balance</div>
+                          <div className="text-[10px] font-black" style={{ color: "#FFB84D" }}>{balancePC > 999 ? `${(balancePC/1000).toFixed(1)}K` : Math.round(balancePC)} PC</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-white/30">Credit</div>
+                          <div className="text-[10px] font-black" style={{ color: creditScore >= 700 ? "#00FFD1" : creditScore >= 600 ? "#FFB84D" : "#dc2626" }}>{creditScore}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-white/30">Upgrades</div>
+                          <div className="text-[10px] font-black" style={{ color: "#f5c518" }}>{omegaRank}</div>
+                        </div>
+                      </div>
+                      {taxPaid > 0 && (
+                        <div className="text-[9px] text-white/20 mt-1.5">Tax paid: {Math.round(taxPaid).toLocaleString()} PC</div>
+                      )}
+                      <div className="text-[9px] text-white/20 mt-0.5">
                         Issued: {card.issuedAt ? new Date(card.issuedAt).toLocaleDateString() : "—"}
                       </div>
                     </div>

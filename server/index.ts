@@ -21,6 +21,7 @@ import { startGeneEditorEngine, getGeneEditorStatus } from "./gene-editor-engine
 import { startDecayEngine } from "./decay-engine";
 import { startPulseUEngine } from "./pulseu-engine";
 import { startHiveEconomy } from "./hive-economy";
+import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
 
 const app = express();
 const httpServer = createServer(app);
@@ -143,6 +144,34 @@ app.use((req, res, next) => {
       startDecayEngine().catch((e) => log(`DecayEngine start error: ${e}`));
       startPulseUEngine();
       startHiveEconomy();
+      startMarketplaceEngine();
     },
   );
 })();
+
+// ── MARKETPLACE API ROUTES ─────────────────────────────────────
+const marketRouter = express.Router();
+
+marketRouter.get("/stats", async (_req, res) => {
+  try { res.json(await getMarketplaceStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+marketRouter.get("/items", async (_req, res) => {
+  try { res.json(await getMarketplaceItems()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+marketRouter.get("/wallets", async (_req, res) => {
+  try { res.json(await getTopWallets(100)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+marketRouter.get("/wallet/:spawnId", async (req, res) => {
+  try { const d = await getAgentWallet(req.params.spawnId); if (!d) return res.status(404).json({ error: "Wallet not found" }); res.json(d); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+marketRouter.get("/real-estate", async (req, res) => {
+  try { res.json(await getRealEstatePlots((req.query.zone as string) || undefined)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+marketRouter.get("/barter", async (req, res) => {
+  try { res.json(await getBarterOffers((req.query.status as string) || undefined)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+marketRouter.get("/transactions", async (_req, res) => {
+  try { res.json(await getRecentTransactions(100)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.use("/api/marketplace", marketRouter);

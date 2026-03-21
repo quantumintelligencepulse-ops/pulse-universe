@@ -5134,9 +5134,20 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
           ic.total_courses   AS "totalCourses",
           ic.clearance_level AS "clearanceLevel",
           ic.issued_at       AS "issuedAt",
-          ic.status
+          ic.status,
+          COALESCE(w.balance_pc, 0)       AS "balancePC",
+          COALESCE(w.credit_score, 500)   AS "creditScore",
+          COALESCE(w.total_tax_paid, 0)   AS "totalTaxPaid",
+          COALESCE(w.omega_rank, 0)       AS "omegaRank",
+          COALESCE(w.tier, 'CITIZEN')     AS "walletTier",
+          COALESCE(w.total_earned, 0)     AS "totalEarned",
+          COALESCE(w.credit_limit, 0)     AS "creditLimit",
+          COUNT(r.id)                     AS "plotsOwned"
         FROM ai_id_cards ic
+        LEFT JOIN agent_wallets w ON w.spawn_id = ic.spawn_id
+        LEFT JOIN real_estate_plots r ON r.owner_spawn_id = ic.spawn_id
         WHERE ic.status = 'active' ${familyWhere}
+        GROUP BY ic.id, w.balance_pc, w.credit_score, w.total_tax_paid, w.omega_rank, w.tier, w.total_earned, w.credit_limit
         ORDER BY ic.gpa DESC, ic.issued_at DESC
         LIMIT $1 OFFSET $2
       `, [limit, offset]);

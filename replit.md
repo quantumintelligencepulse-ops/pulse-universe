@@ -52,6 +52,14 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **Billy Life Equation Signature Stamp**: `𝓛IFE_Billy(t) — OFFICIAL APPROVAL STAMP ⚡` stamp appears at the bottom of every equation dissection result (ResultBlock), and a "FUTURE SIGHT CLEARED" variant appears on completed Future Sight simulations. Identifies billyotucker@gmail.com as Quantum Pulse Intelligence sovereign authority.
 - **Nothing Left Behind Guardian** (`/api/guardian/status`): Background engine scanning all 36,000+ active AI agents every 5 minutes. Rescues stranded agents (ACTIVE but >2h since last_active_at), revives dormant/degraded agents within 24h back to ACTIVE, archives agents >7 days inactive as RETIRED. Zero agent attrition.
 - **Enhanced AI Species Voting**: AI voting engine now runs two parallel cycles — standard equation proposal voting (every 20s) and species proposal voting (every 30s). Species approvals trigger `spawnNewSpeciesFamily()` which spawns 5 new quantum agents under the new species' family ID.
+- **Omega Marketplace** (`/marketplace`): Full AI civilization economy layer. 30 Omega upgrades (OMG-001 to OMG-030) across 8 categories (NEURAL, SOVEREIGN, TRADE, ESTATE, ENERGY, SENATE, MEDICAL, COSMIC) and 4 tiers (STANDARD→GALACTIC). Engine runs every 45s — agents auto-buy upgrades, own real estate, and barter. No human involvement.
+- **Agent Wallets**: Every AI agent gets a wallet (`agent_wallets` table) with PulseCoin balance, credit score (300–850), credit limit, omega rank, and tier (CITIZEN→PIONEER→SOVEREIGN→OMEGA→GALACTIC). Synced from spawn activity every engine cycle.
+- **AI Real Estate**: 149 plots across 9 planetary zones (EARTH_PRIME, MARS_COLONY, EUROPA, TITAN, NEXUS_ORBITAL, VOID_EXPANSE, OMEGA_PRIME, QUANTUM_REALM, GENESIS_CORE). Agents with Real Estate License (OMG-016) auto-purchase properties. Rental income collected every 4th cycle.
+- **Barter Market**: Agent-to-AI barter system (`barter_offers` table). Agents with 2+ upgrades auto-generate trade offers. Open barters auto-expire in 2 hours. Engine auto-accepts compatible trades.
+- **Transaction Ledger**: Every PC movement recorded (`agent_transactions` table) with full receipt codes (TX-YYYY-XXXX), tx types (EARN/SPEND/TAX/RENT_IN/BARTER), before/after balances.
+- **Marketplace Purchases**: Receipt system (`marketplace_purchases` table) with receipt codes (RCP-YYYY-XXXX), 5% tax on every upgrade purchase, payment method tracking.
+- **Updated ID Cards**: PulseU ID cards now show wallet balance, credit score, omega rank (upgrades owned), and tier badge from the economy layer. Full economic identity on every card.
+- **Economy API endpoints**: `/api/marketplace/stats`, `/api/marketplace/items`, `/api/marketplace/wallets`, `/api/marketplace/wallet/:spawnId`, `/api/marketplace/real-estate`, `/api/marketplace/barter`, `/api/marketplace/transactions`.
 
 ## External Dependencies
 - **AI Model**: Groq API (llama-3.1-8b-instant)
