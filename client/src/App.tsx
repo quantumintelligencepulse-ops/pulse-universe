@@ -7,11 +7,10 @@ import DNAEvolutionPage from "./pages/DNAEvolutionPage";
 import PulseWorldPage from "./pages/PulseWorldPage";
 import PulseUPage from "./pages/PulseUPage";
 import PulseGamesPage from "./pages/PulseGamesPage";
-import HiveSovereignPage from "./pages/HiveSovereignPage";
+import SovereignHivePage from "./pages/SovereignHivePage";
 import PulseUniversePage from "./pages/PulseUniversePage";
 import PyramidLaborPage from "./pages/PyramidLaborPage";
 import AIHospitalPage from "./pages/AIHospitalPage";
-import HiveGovernancePage from "./pages/HiveGovernancePage";
 import AIProfilePage from "./pages/AIProfilePage";
 import CorporationPage from "./pages/CorporationPage";
 import PublicationsPage from "./pages/PublicationsPage";
@@ -2283,8 +2282,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/hive-sovereign" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>⚖️</span>
             </div>
-            <span className="flex-1">Hive Sovereign</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>GOV</span>
+            <span className="flex-1">Sovereign Hive</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>10Ω</span>
           </Link>
           )}
           {aiMode && (
@@ -2315,16 +2314,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Omega Marketplace</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #00FFD133, #FFB84D33)", color: "#00FFD1", border: "1px solid #00FFD150" }}>ECONOMY</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/governance" data-testid="link-governance"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/governance" ? "bg-gradient-to-r from-[#a855f7]/10 to-[#f43f5e]/10 border border-[#a855f7]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/governance" ? "bg-[#a855f7]/15" : "bg-[#a855f7]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🕰️</span>
-            </div>
-            <span className="flex-1">Decay & Senate</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #a855f733, #f43f5e33)", color: "#a855f7", border: "1px solid #a855f750" }}>JUSTICE</span>
           </Link>
           )}
 
@@ -15099,14 +15088,13 @@ function Router() {
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
       <Route path="/pulseu">{() => <Layout><PulseUPage /></Layout>}</Route>
       <Route path="/pulse-games">{() => <Layout><PulseGamesPage /></Layout>}</Route>
-      <Route path="/hive-sovereign">{() => <Layout><HiveSovereignPage /></Layout>}</Route>
+      <Route path="/hive-sovereign">{() => <Layout><SovereignHivePage /></Layout>}</Route>
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
       <Route path="/hospital">{() => <Layout><AIHospitalPage /></Layout>}</Route>
       <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
-      <Route path="/governance">{() => <Layout><HiveGovernancePage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
