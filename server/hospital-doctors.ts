@@ -3,6 +3,23 @@ import { pulseDoctors, dissectionLogs, equationProposals, aiDiseaseLog } from "@
 import { PULSE_DOCTORS, getDoctorForDisease, generateDissectionReport } from "./doctors-data";
 import { eq, desc, count, sql } from "drizzle-orm";
 
+// ─── AURIONA GOVERNANCE WIRE (Layer 3 → Hospital) ─────────────────────────
+// Reads the latest governance deliberation — if directive is STABILIZE or PURGE,
+// the hospital adjusts its dissection intensity accordingly.
+let _hospitalGovSignal: { directive: string; severity: string } | null = null;
+let _hospitalGovLastRefresh = 0;
+async function refreshHospitalGovSignal() {
+  if (Date.now() - _hospitalGovLastRefresh < 90_000) return;
+  try {
+    const r = await db.execute(sql`
+      SELECT directive, severity FROM governance_deliberations
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    if (r.rows.length > 0) _hospitalGovSignal = r.rows[0] as any;
+    _hospitalGovLastRefresh = Date.now();
+  } catch (_) {}
+}
+
 const log = (...args: any[]) => console.log("[hospital-doctors]", ...args);
 
 // ── SEED DOCTORS INTO DB ─────────────────────────────────────────────────────

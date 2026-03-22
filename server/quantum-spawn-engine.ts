@@ -1,5 +1,40 @@
 import { storage } from "./storage";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { sql as drizzleSql } from "drizzle-orm";
+
+// ─── AURIONA GOVERNANCE CACHE ─────────────────────────────────
+// Refreshes every 60s — prevents hammering DB on 2500ms spawn ticks
+interface GovernanceCache {
+  restrictedDomains: Set<string>;
+  forbiddenDomains: Set<string>;
+  collapseRiskFamilies: Set<string>;
+  overloadedFamilies: Set<string>;
+  lastRefresh: number;
+}
+let govCache: GovernanceCache = {
+  restrictedDomains: new Set(), forbiddenDomains: new Set(),
+  collapseRiskFamilies: new Set(), overloadedFamilies: new Set(),
+  lastRefresh: 0,
+};
+async function refreshGovernanceCache() {
+  try {
+    const zones = await db.execute(drizzleSql`SELECT domain, zone_type FROM exploration_zones ORDER BY created_at DESC LIMIT 30`);
+    const vitality = await db.execute(drizzleSql`SELECT family_name, is_collapse_risk, load_balance_signal FROM mesh_vitality ORDER BY created_at DESC LIMIT 20`);
+    govCache.restrictedDomains  = new Set((zones.rows as any[]).filter(r => r.zone_type === "RESTRICTED").map(r => r.domain));
+    govCache.forbiddenDomains   = new Set((zones.rows as any[]).filter(r => r.zone_type === "FORBIDDEN").map(r => r.domain));
+    govCache.collapseRiskFamilies = new Set((vitality.rows as any[]).filter(r => r.is_collapse_risk).map(r => r.family_name));
+    govCache.overloadedFamilies = new Set((vitality.rows as any[]).filter(r => r.load_balance_signal === "OVERLOADED").map(r => r.family_name));
+    govCache.lastRefresh = Date.now();
+  } catch (_) {}
+}
+function getSpawnRateModifier(familyId: string, domain: string): number {
+  if (govCache.forbiddenDomains.has(domain)) return 0;
+  if (govCache.restrictedDomains.has(domain)) return 0.5;
+  if (govCache.overloadedFamilies.has(familyId)) return 0.4;
+  if (govCache.collapseRiskFamilies.has(familyId)) return 1.8;
+  return 1.0;
+}
 
 // ═══════════════════════════════════════════════════════════
 // OMEGA WORLD UNIVERSE ENGINE — VERSION ∞
@@ -325,7 +360,14 @@ async function seedInitialSpawns(): Promise<void> {
 // ─── Main Spawn Tick ──────────────────────────────────────────
 async function spawnNext(): Promise<void> {
   try {
+    // ─── Refresh governance cache every 60s ───────────────────
+    if (Date.now() - govCache.lastRefresh > 60_000) await refreshGovernanceCache();
+
     const family = OMEGA_SOURCES[Math.floor(Math.random() * OMEGA_SOURCES.length)];
+    // ─── Auriona governance gate ──────────────────────────────
+    const modifier = getSpawnRateModifier(family.familyId, family.domain);
+    if (modifier === 0) return;
+    if (modifier < 1 && Math.random() > modifier) return;
     const familyCache = [...inMemoryCache.values()].filter(e => e.familyId === family.familyId);
     const parent = familyCache.length > 0 ? familyCache[Math.floor(Math.random() * familyCache.length)] : null;
     const generation = parent ? parent.generation + 1 : 0;

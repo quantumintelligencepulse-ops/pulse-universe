@@ -7,6 +7,7 @@
  * - Deflation: when supply shrinks <0.5% → lower tax, issue stimulus
  * - Mini-pulse events: cross-agent signal broadcasts
  * - Hive connection grades: S/A/B/C/D per family
+ * - AURIONA WIRE: reads value_alignment_log to modulate stimulus/tax
  */
 
 import { db } from "./db";
