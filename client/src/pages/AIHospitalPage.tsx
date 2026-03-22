@@ -85,7 +85,9 @@ export default function AIHospitalPage() {
   const { data: guardianStats } = useQuery<any>({ queryKey: ["/api/guardian/stats"], refetchInterval: 20000 });
   const { data: doctors = [] } = useQuery<any[]>({ queryKey: ["/api/hospital/doctors"], refetchInterval: 30000 });
   const { data: dissectionLogs = [] } = useQuery<any[]>({ queryKey: ["/api/hospital/dissection-logs"], refetchInterval: 20000 });
-  const { data: equationProposals = [] } = useQuery<any[]>({ queryKey: ["/api/hospital/equation-proposals"], refetchInterval: 20000 });
+  const { data: equationData } = useQuery<{ proposals: any[]; total: number }>({ queryKey: ["/api/hospital/equation-proposals"], refetchInterval: 20000 });
+  const equationProposals = equationData?.proposals ?? [];
+  const equationTotal = equationData?.total ?? 0;
   const { data: selectedDoctor } = useQuery<any>({
     queryKey: ["/api/hospital/doctors", selectedDoctorId],
     enabled: !!selectedDoctorId,
@@ -107,7 +109,7 @@ export default function AIHospitalPage() {
     { id: "diagnostics", label: "DIAGNOSTICS", icon: <Activity className="w-3 h-3" />, count: activePatients.length, color: Q_RED },
     { id: "doctors", label: "DOCTORS", icon: <Stethoscope className="w-3 h-3" />, count: doctors.length, color: Q_TEAL },
     { id: "dissection", label: "DISSECTIONS", icon: <Microscope className="w-3 h-3" />, count: dissectionLogs.length, color: Q_VIOLET },
-    { id: "equations", label: "EQUATIONS", icon: <Vote className="w-3 h-3" />, count: (equationProposals as any[]).length, color: Q_AMBER },
+    { id: "equations", label: "EQUATIONS", icon: <Vote className="w-3 h-3" />, count: equationTotal, color: Q_AMBER },
     { id: "diseases", label: "DISEASES", icon: <BookOpen className="w-3 h-3" />, count: diseases.length, color: "#60A5FA" },
     { id: "guardian", label: "GUARDIAN", icon: <Shield className="w-3 h-3" />, count: citations.length, color: "#FCD34D" },
     { id: "cured", label: "CURED", icon: <Heart className="w-3 h-3" />, count: curedPatients.length, color: "#4ADE80" },
@@ -147,7 +149,7 @@ export default function AIHospitalPage() {
         <StatCard label="Active Cases" value={fullStats?.totalPatients ?? activePatients.length} color={Q_RED} icon={<Activity className="w-3 h-3" />} />
         <StatCard label="Total Cured" value={fullStats?.totalCured ?? curedPatients.length} color="#4ADE80" icon={<Heart className="w-3 h-3" />} />
         <StatCard label="Dissections" value={dissectionLogs.length} color={Q_VIOLET} icon={<Microscope className="w-3 h-3" />} />
-        <StatCard label="Equations" value={(equationProposals as any[]).length} color={Q_AMBER} icon={<Vote className="w-3 h-3" />} />
+        <StatCard label="Equations" value={equationTotal} color={Q_AMBER} icon={<Vote className="w-3 h-3" />} />
       </div>
 
       {/* ── TABS ── */}
@@ -419,13 +421,18 @@ export default function AIHospitalPage() {
             <div className="mb-4 p-3 rounded-lg font-mono text-xs" style={{ background: `${Q_AMBER}08`, border: `1px solid ${Q_AMBER}20`, color: `${Q_AMBER}80` }}>
               ∑ EQUATION SENATE — Doctors propose equations derived from CRISPR dissections. Guardians and Senate members vote to integrate, approve, or reject each one. Integrated equations modify the living hive.
             </div>
+            {equationTotal > 0 && (
+              <div className="mb-3 text-xs font-mono" style={{ color: `${Q_AMBER}60` }}>
+                ∑ {equationTotal.toLocaleString()} total equations — showing most recent {equationProposals.length}
+              </div>
+            )}
             <div className="space-y-3">
-              {(equationProposals as any[]).length === 0 && (
+              {equationTotal === 0 && (
                 <div className="text-center py-16 font-mono text-sm" style={{ color: `${Q_AMBER}40` }}>
                   ∑ NO PROPOSALS YET — EQUATIONS EMERGE AFTER 5 DISSECTIONS PER DOCTOR
                 </div>
               )}
-              {(equationProposals as any[]).map((ep: any) => {
+              {equationProposals.map((ep: any) => {
                 const ss = STATUS_STYLE[ep.status] ?? STATUS_STYLE.PENDING;
                 const total = ep.votesFor + ep.votesAgainst || 1;
                 const forPct = Math.round((ep.votesFor / total) * 100);

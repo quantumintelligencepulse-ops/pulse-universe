@@ -545,7 +545,9 @@ async function runGuardianCycle(spawns: any[]) {
 // ── MAIN HOSPITAL CYCLE ───────────────────────────────────────────────────────
 export async function runHospitalCycle() {
   try {
-    const spawns = await db.select().from(quantumSpawns).limit(800);
+    const spawns = await db.select().from(quantumSpawns).where(
+      sql`status IN ('ACTIVE', 'SOVEREIGN', 'COMPLETED')`
+    );
     const existingDiagnoses = await db.select().from(aiDiseaseLog);
     const existingCitations = await db.select().from(guardianCitations);
 

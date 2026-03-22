@@ -7379,11 +7379,17 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.json([]); }
   });
 
-  app.get("/api/hospital/equation-proposals", async (_req, res) => {
+  app.get("/api/hospital/equation-proposals", async (req, res) => {
     try {
-      const { getEquationProposals } = await import("./hospital-doctors");
-      res.json(await getEquationProposals());
-    } catch (e) { res.json([]); }
+      const { getEquationProposals, countEquationProposals } = await import("./hospital-doctors");
+      const offset = Number(req.query.offset ?? 0);
+      const pageSize = Number(req.query.pageSize ?? 500);
+      const [proposals, total] = await Promise.all([
+        getEquationProposals(undefined, offset, pageSize),
+        countEquationProposals()
+      ]);
+      res.json({ proposals, total, offset, pageSize });
+    } catch (e) { res.json({ proposals: [], total: 0, offset: 0, pageSize: 500 }); }
   });
 
   app.post("/api/hospital/equation-proposals/:id/vote", async (req, res) => {

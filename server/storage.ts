@@ -950,7 +950,9 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(quantumSpawns).where(eq(quantumSpawns.familyId, familyId)).orderBy(quantumSpawns.generation, quantumSpawns.createdAt);
   }
   async getActiveSpawnsByFamily(): Promise<any[]> {
-    return await db.select().from(quantumSpawns).where(eq(quantumSpawns.status, 'ACTIVE')).orderBy(desc(quantumSpawns.createdAt)).limit(1000);
+    return await db.select().from(quantumSpawns).where(
+      sql`status IN ('ACTIVE', 'SOVEREIGN')`
+    ).orderBy(desc(quantumSpawns.createdAt));
   }
   async updateSpawnStatus(spawnId: string, status: string): Promise<void> {
     await db.update(quantumSpawns).set({ status, lastActiveAt: new Date() }).where(eq(quantumSpawns.spawnId, spawnId));
