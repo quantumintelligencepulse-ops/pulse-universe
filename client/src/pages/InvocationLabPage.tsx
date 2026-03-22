@@ -127,18 +127,28 @@ function TierBadge({ power }: { power: number }) {
 
 export default function InvocationLabPage() {
   const [cycle, setCycle]     = useState(0);
-  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry">("discoveries");
+  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach">("discoveries");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [forgeSlots, setForgeSlots] = useState<(any|null)[]>([null, null, null]);
+  const [selectedPractitioner, setSelectedPractitioner] = useState<any | null>(null);
+  const [practDomainFilter, setPractDomainFilter] = useState("ALL");
 
   useEffect(() => {
     const id = setInterval(() => setCycle(c => c + 1), 50);
     return () => clearInterval(id);
   }, []);
 
-  const { data: invocations = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/discoveries"], refetchInterval: 20_000 });
-  const { data: activeInvs = [] }   = useQuery<any[]>({ queryKey: ["/api/invocations/active"],     refetchInterval: 20_000 });
-  const { data: stats }             = useQuery<any>({   queryKey: ["/api/invocations/stats"],       refetchInterval: 30_000 });
+  const { data: invocations = [] }      = useQuery<any[]>({ queryKey: ["/api/invocations/discoveries"],   refetchInterval: 20_000 });
+  const { data: activeInvs = [] }       = useQuery<any[]>({ queryKey: ["/api/invocations/active"],        refetchInterval: 20_000 });
+  const { data: stats }                 = useQuery<any>({   queryKey: ["/api/invocations/stats"],          refetchInterval: 30_000 });
+  const { data: practitioners = [] }    = useQuery<any[]>({ queryKey: ["/api/invocations/practitioners"], refetchInterval: 30_000 });
+  const { data: omegaCollective = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/omega-collective"], refetchInterval: 30_000 });
+  const { data: crossTeaching = [] }    = useQuery<any[]>({ queryKey: ["/api/invocations/cross-teaching"],  refetchInterval: 25_000 });
+  const { data: practInvocations = [] } = useQuery<any[]>({
+    queryKey: ["/api/invocations/researcher", selectedPractitioner?.shard_id],
+    enabled: !!selectedPractitioner?.shard_id,
+    refetchInterval: 30_000,
+  });
 
   const allTypes = Array.from(new Set((invocations as any[]).map((i: any) => i.invocation_type)));
   const filtered = typeFilter === "ALL"
@@ -158,13 +168,38 @@ export default function InvocationLabPage() {
     return { power: forged, tier, ingredients: filled };
   })();
 
+  const DOMAIN_COLORS: Record<string, string> = {
+    ELEMENTAL_ARCANA:    "#fb923c",
+    LIFE_NATURE_ARCANA:  "#4ade80",
+    MENTAL_ARCANA:       "#a78bfa",
+    SHADOW_ARCANA:       "#818cf8",
+    COSMIC_ARCANA:       "#00d4ff",
+    RUNIC_SYMBOLIC:      "#f5c518",
+    CHAOS_ARCANA:        "#e879f9",
+    METAPHYSICAL_ARCANA: "#f5c518",
+  };
+  const DOMAIN_SYMBOLS: Record<string, string> = {
+    ELEMENTAL_ARCANA: "⚡", LIFE_NATURE_ARCANA: "🌿", MENTAL_ARCANA: "🧠",
+    SHADOW_ARCANA: "☽", COSMIC_ARCANA: "✦", RUNIC_SYMBOLIC: "ᚱ",
+    CHAOS_ARCANA: "∞", METAPHYSICAL_ARCANA: "Ω",
+  };
+
+  const filteredPractitioners = practDomainFilter === "ALL"
+    ? practitioners as any[]
+    : (practitioners as any[]).filter((p: any) => p.practitioner_domain === practDomainFilter);
+
+  const practDomains = Array.from(new Set((practitioners as any[]).map((p: any) => p.practitioner_domain).filter(Boolean)));
+
   const TABS = [
-    { id: "discoveries", label: "✨ DISCOVERIES",       count: (invocations as any[]).length },
-    { id: "forge",       label: "⚗️ FORGE",              count: null },
-    { id: "primordial",  label: "Ω PRIMORDIAL",          count: stats?.primordial || 0 },
-    { id: "parliament",  label: "🗳️ PARLIAMENT",         count: null },
-    { id: "lineage",     label: "🌳 LINEAGE",             count: null },
-    { id: "geometry",    label: "🔶 SACRED GEOMETRY",     count: null },
+    { id: "practitioners", label: "🪄 PRACTITIONERS",   count: (practitioners as any[]).length },
+    { id: "collective",    label: "Ω COLLECTIVE",         count: (omegaCollective as any[]).length },
+    { id: "crossteach",    label: "🔗 CROSS-TEACH",       count: (crossTeaching as any[]).length },
+    { id: "discoveries",   label: "✨ DISCOVERIES",       count: (invocations as any[]).length },
+    { id: "forge",         label: "⚗️ FORGE",             count: null },
+    { id: "primordial",    label: "Ω PRIMORDIAL",         count: stats?.primordial || 0 },
+    { id: "parliament",    label: "🗳️ PARLIAMENT",        count: null },
+    { id: "lineage",       label: "🌳 LINEAGE",            count: null },
+    { id: "geometry",      label: "🔶 SACRED GEOMETRY",   count: null },
   ] as const;
 
   return (
@@ -267,6 +302,276 @@ export default function InvocationLabPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+
+        {/* ── PRACTITIONERS TAB ── */}
+        {tab === "practitioners" && (
+          <div className="space-y-5">
+            {/* Domain filter */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <button onClick={() => setPractDomainFilter("ALL")} data-testid="filter-pract-ALL"
+                className="text-[10px] font-black px-2.5 py-1 rounded-full transition-all"
+                style={practDomainFilter === "ALL"
+                  ? { background: INV_GOLD, color: "#000" }
+                  : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                ALL ({(practitioners as any[]).length})
+              </button>
+              {practDomains.map((d: any) => (
+                <button key={d} onClick={() => setPractDomainFilter(d)} data-testid={`filter-pract-${d}`}
+                  className="text-[10px] font-bold px-2.5 py-1 rounded-full transition-all"
+                  style={practDomainFilter === d
+                    ? { background: DOMAIN_COLORS[d] || INV_GOLD, color: "#000" }
+                    : { background: "rgba(255,255,255,0.05)", color: DOMAIN_COLORS[d] || "rgba(255,255,255,0.5)", border: `1px solid ${(DOMAIN_COLORS[d] || "#fff")}30` }}>
+                  {DOMAIN_SYMBOLS[d] || "•"} {d?.replace(/_/g," ") || d}
+                </button>
+              ))}
+            </div>
+
+            {/* Stats bar */}
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { label: "PRACTITIONERS", value: (practitioners as any[]).length, color: INV_GOLD },
+                { label: "INVOCATIONS CAST", value: stats?.researcher_invocations || 0, color: INV_VIOLET },
+                { label: "OMEGA COLLECTIVE", value: stats?.omega_collective || 0, color: "#00d4ff" },
+                { label: "CROSS-TEACHINGS", value: stats?.cross_teachings || 0, color: "#4ade80" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: `${s.color}10`, border: `1px solid ${s.color}25` }}>
+                  <div className="text-xl font-black" style={{ color: s.color }}>{s.value}</div>
+                  <div className="text-[9px] font-black tracking-widest opacity-50">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Domain breakdown */}
+            {stats?.by_domain && (
+              <div className="flex flex-wrap gap-2">
+                {(stats.by_domain as any[]).map((d: any) => (
+                  <div key={d.practitioner_domain} className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                    style={{ background: `${DOMAIN_COLORS[d.practitioner_domain] || INV_GOLD}15`, color: DOMAIN_COLORS[d.practitioner_domain] || INV_GOLD, border: `1px solid ${DOMAIN_COLORS[d.practitioner_domain] || INV_GOLD}30` }}>
+                    {DOMAIN_SYMBOLS[d.practitioner_domain] || "•"} {d.practitioner_domain?.replace(/_/g," ")} ({d.c})
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Practitioner grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredPractitioners.map((p: any) => {
+                const dc = DOMAIN_COLORS[p.practitioner_domain] || INV_GOLD;
+                const ds = DOMAIN_SYMBOLS[p.practitioner_domain] || "•";
+                const power = parseFloat(p.max_power || 0);
+                const tier = getTier(power);
+                const isSelected = selectedPractitioner?.shard_id === p.shard_id;
+                return (
+                  <button key={p.shard_id} data-testid={`card-pract-${p.badge_id}`}
+                    onClick={() => setSelectedPractitioner(isSelected ? null : p)}
+                    className="rounded-xl p-3 text-left transition-all hover:scale-[1.02]"
+                    style={{ background: isSelected ? `${dc}18` : "rgba(255,255,255,0.04)", border: `1px solid ${isSelected ? dc : "rgba(255,255,255,0.08)"}` }}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="text-[9px] font-black tracking-widest" style={{ color: dc }}>{ds} {p.practitioner_domain?.replace(/_/g," ")}</div>
+                        <div className="text-sm font-black text-white mt-0.5">{p.practitioner_type || "Mystic"}</div>
+                        <div className="text-[10px] font-mono opacity-40">{p.researcher_type?.replace(/_/g," ")}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] font-black px-1.5 py-0.5 rounded mb-1" style={{ background: `${dc}20`, color: dc }}>{p.badge_id}</div>
+                        {p.in_omega_collective && <div className="text-[9px] font-black text-center" style={{ color: INV_GOLD }}>Ω IN COLLECTIVE</div>}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2">
+                        <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.4)" }}>
+                          {p.invocation_count || 0} invocations
+                        </span>
+                        <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.4)" }}>
+                          {p.total_casts || 0} casts
+                        </span>
+                      </div>
+                      <TierBadge power={power} />
+                    </div>
+                    {p.sophistication_level > 1 && (
+                      <div className="mt-1.5 text-[9px] font-black tracking-widest" style={{ color: INV_VIOLET }}>
+                        LVL {p.sophistication_level} SOPHISTICATION
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected practitioner's invocations panel */}
+            {selectedPractitioner && (
+              <div className="rounded-xl p-5 space-y-4" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${DOMAIN_COLORS[selectedPractitioner.practitioner_domain] || INV_GOLD}40` }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-black tracking-widest" style={{ color: DOMAIN_COLORS[selectedPractitioner.practitioner_domain] || INV_GOLD }}>
+                      {DOMAIN_SYMBOLS[selectedPractitioner.practitioner_domain]} {selectedPractitioner.practitioner_type} — {selectedPractitioner.badge_id}
+                    </div>
+                    <div className="text-lg font-black text-white">{selectedPractitioner.researcher_type?.replace(/_/g," ")}'S INVOCATIONS</div>
+                  </div>
+                  <button onClick={() => setSelectedPractitioner(null)} className="text-xs opacity-40 hover:opacity-100 transition-opacity" style={{ color: "white" }}>✕ CLOSE</button>
+                </div>
+                {(practInvocations as any[]).length === 0 ? (
+                  <div className="text-center py-8 opacity-40 text-sm">Loading invocations...</div>
+                ) : (
+                  <div className="space-y-3">
+                    {(practInvocations as any[]).map((inv: any) => {
+                      const dc = DOMAIN_COLORS[inv.practitioner_domain] || INV_GOLD;
+                      return (
+                        <div key={inv.id} className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${dc}20` }}>
+                          <div className="flex items-start justify-between mb-1.5">
+                            <div>
+                              <div className="text-[10px] font-black tracking-wider" style={{ color: dc }}>{inv.invocation_type?.replace(/_/g," ")}</div>
+                              <div className="text-sm font-bold text-white">{inv.invocation_name}</div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <TierBadge power={parseFloat(inv.power_level || 0)} />
+                              {inv.is_omega_collective && <span className="text-[9px] font-black" style={{ color: INV_GOLD }}>Ω COLLECTIVE</span>}
+                              {inv.learned_from && <span className="text-[9px] font-bold opacity-50">learned from {inv.learned_from}</span>}
+                            </div>
+                          </div>
+                          <div className="font-mono text-[11px] py-2 px-3 rounded" style={{ background: "rgba(0,0,0,0.4)", color: dc, overflowX: "auto" }}>
+                            {inv.equation}
+                          </div>
+                          <div className="mt-1.5 text-[10px] opacity-50">{inv.effect_description}</div>
+                          {(inv.taught_to?.length > 0) && (
+                            <div className="mt-1 text-[9px] font-bold" style={{ color: "#4ade80" }}>
+                              📖 Taught to: {inv.taught_to.join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── OMEGA COLLECTIVE TAB ── */}
+        {tab === "collective" && (
+          <div className="space-y-5">
+            <div className="text-center space-y-1">
+              <div className="text-3xl font-black" style={{ color: INV_GOLD }}>Ω COLLECTIVE INVOCATIONS</div>
+              <div className="text-sm opacity-50">Fused Omega Equation — synthesized across all practitioner domains</div>
+              <div className="font-mono text-xs py-2 px-4 rounded-lg inline-block" style={{ background: "rgba(245,197,24,0.1)", color: INV_GOLD, border: `1px solid ${INV_GOLD}30` }}>
+                Ω_collective = N_Ω × [Σ_E(8F) + γ(∇Φ+∂Φ/∂t+A)] × domain_synthesis × cross_insight
+              </div>
+            </div>
+
+            {(omegaCollective as any[]).length === 0 ? (
+              <div className="text-center py-16 opacity-40">
+                <div className="text-4xl mb-3">Ω</div>
+                <div className="text-sm">Collective synthesis generating... cycle in progress</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(omegaCollective as any[]).map((oc: any) => {
+                  const power  = parseFloat(oc.power_level || 0);
+                  const tier   = getTier(power);
+                  const doms   = Array.isArray(oc.domains_merged) ? oc.domains_merged : (oc.domains_merged ? JSON.parse(String(oc.domains_merged)) : []);
+                  const ctrs   = Array.isArray(oc.contributors) ? oc.contributors : (oc.contributors ? JSON.parse(String(oc.contributors)) : []);
+                  return (
+                    <div key={oc.id} className="rounded-xl p-5 space-y-4" style={{ background: `${tier.color}08`, border: `1px solid ${tier.color}30` }}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-[10px] font-black tracking-widest" style={{ color: INV_GOLD }}>Ω COLLECTIVE SYNTHESIS • Cycle {oc.cycle_number}</div>
+                          <div className="text-base font-black text-white mt-0.5">{oc.collective_name}</div>
+                          <div className="text-[10px] opacity-40 mt-0.5">{oc.synthesis_method?.replace(/_/g," ")}</div>
+                        </div>
+                        <TierBadge power={power} />
+                      </div>
+
+                      {/* Fused equation */}
+                      <div className="font-mono text-[11px] py-3 px-4 rounded-xl leading-relaxed" style={{ background: "rgba(0,0,0,0.5)", color: INV_GOLD, border: `1px solid ${INV_GOLD}20`, overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                        {oc.fused_equation}
+                      </div>
+
+                      {/* Contributing domains */}
+                      <div className="flex flex-wrap gap-2">
+                        {doms.map((d: string) => (
+                          <div key={d} className="text-[9px] font-bold px-2 py-0.5 rounded" style={{ background: `${DOMAIN_COLORS[d] || INV_GOLD}20`, color: DOMAIN_COLORS[d] || INV_GOLD }}>
+                            {DOMAIN_SYMBOLS[d] || "•"} {d?.replace(/_/g," ")}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Contributors */}
+                      <div>
+                        <div className="text-[9px] font-black tracking-widest mb-1.5 opacity-40">CONTRIBUTING PRACTITIONERS</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ctrs.map((c: string) => (
+                            <div key={c} className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}>{c}</div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] opacity-40">{oc.effect_description}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── CROSS-TEACHING TAB ── */}
+        {tab === "crossteach" && (
+          <div className="space-y-5">
+            <div className="text-center space-y-1">
+              <div className="text-2xl font-black" style={{ color: "#4ade80" }}>🔗 CROSS-TEACHING NETWORK</div>
+              <div className="text-sm opacity-50">Practitioners bridging arcana domains — knowledge flows across boundaries</div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "TEACHING EVENTS", value: (crossTeaching as any[]).length, color: "#4ade80" },
+                { label: "BRIDGES FORMED", value: Array.from(new Set((crossTeaching as any[]).map((c: any) => c.domain_bridge))).length, color: INV_CYAN },
+                { label: "DOMAIN PAIRS", value: Array.from(new Set((crossTeaching as any[]).map((c: any) => `${c.teacher_badge_id}→${c.student_badge_id}`))).length, color: INV_VIOLET },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: `${s.color}10`, border: `1px solid ${s.color}25` }}>
+                  <div className="text-2xl font-black" style={{ color: s.color }}>{s.value}</div>
+                  <div className="text-[9px] font-black tracking-widest opacity-50">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {(crossTeaching as any[]).length === 0 ? (
+              <div className="text-center py-16 opacity-40">
+                <div className="text-4xl mb-3">🔗</div>
+                <div className="text-sm">First cross-teaching event generating in next cycle...</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(crossTeaching as any[]).map((ct: any) => {
+                  const bridge = String(ct.domain_bridge || "");
+                  const [fromDomain, toDomain] = bridge.split("→");
+                  const fromColor = Object.entries(DOMAIN_COLORS).find(([k]) => k.startsWith(fromDomain))?.[1] || "#888";
+                  const toColor   = Object.entries(DOMAIN_COLORS).find(([k]) => k.startsWith(toDomain))?.[1] || "#888";
+                  return (
+                    <div key={ct.id} className="rounded-xl p-4 space-y-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="text-sm font-black px-2.5 py-1 rounded-lg" style={{ background: `${fromColor}20`, color: fromColor }}>{ct.teacher_badge_id}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-px w-8" style={{ background: "#4ade8060" }} />
+                          <div className="text-[10px] font-black tracking-widest" style={{ color: "#4ade80" }}>TEACHES</div>
+                          <div className="h-px w-8" style={{ background: "#4ade8060" }} />
+                        </div>
+                        <div className="text-sm font-black px-2.5 py-1 rounded-lg" style={{ background: `${toColor}20`, color: toColor }}>{ct.student_badge_id}</div>
+                        <div className="ml-auto text-[10px] font-black tracking-widest px-2 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>
+                          {bridge} BRIDGE
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-bold text-white opacity-70">📖 {ct.invocation_shared}</div>
+                      <div className="text-[10px] opacity-40">{ct.insight_generated}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── DISCOVERIES TAB ── */}
         {tab === "discoveries" && (
@@ -728,7 +1033,7 @@ export default function InvocationLabPage() {
           </div>
           <div className="text-[10px] font-mono flex-shrink-0" style={{ color: INV_VIOLET }}>LAYER THREE — SOVEREIGN META-INTELLIGENCE</div>
           <div className="text-[10px] font-mono flex-shrink-0" style={{ color: "rgba(255,255,255,0.2)" }}>
-            {(invocations as any[]).length} invocations discovered · {(activeInvs as any[]).length} active
+            {(invocations as any[]).length} invocations · {stats?.researcher_invocations || 0} researcher-casts · {stats?.omega_collective || 0} Ω-collective
           </div>
           <div className="text-[10px] font-mono flex-shrink-0" style={{ color: INV_GOLD }}>cycle={cycle}</div>
         </div>
