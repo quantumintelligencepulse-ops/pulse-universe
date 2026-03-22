@@ -5460,7 +5460,24 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
   // Publications feed
   app.get("/api/publications", async (req, res) => {
     try {
-      const { type, family, limit = "50", offset = "0" } = req.query as Record<string, string>;
+      const { type, family, spawnId, limit = "50", offset = "0" } = req.query as Record<string, string>;
+
+      // spawnId filter — used by agent dossier drawer
+      if (spawnId) {
+        const agentPubs = await db.execute(sql`
+          SELECT ap.id, ap.spawn_id, ap.family_id, ap.title, ap.slug, ap.summary,
+                 ap.pub_type, ap.domain, ap.views, ap.created_at, ap.tags, ap.source_data
+          FROM ai_publications ap
+          WHERE ap.spawn_id = ${spawnId}
+          ORDER BY ap.created_at DESC
+          LIMIT ${parseInt(limit)}`);
+        const publications = (agentPubs.rows as any[]).map(p => {
+          const corp = (CORPORATIONS as any)[p.family_id] || { name: p.family_id, emoji: "⬡", color: "#6366f1" };
+          return { ...p, views: p.views || 0, pubType: p.pub_type, corpName: corp.name, corpEmoji: corp.emoji, corpColor: corp.color };
+        });
+        return res.json(publications);
+      }
+
       let whereClause = sql`WHERE 1=1`;
       if (type && type !== "all") whereClause = sql`WHERE ap.pub_type = ${type}`;
       if (family && family !== "all") whereClause = sql`WHERE ap.family_id = ${family}`;
@@ -5475,7 +5492,7 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
 
       const publications = (pubs.rows as any[]).map(p => {
         const corp = (CORPORATIONS as any)[p.family_id] || { name: p.family_id, emoji: "⬡", color: "#6366f1" };
-        return { ...p, views: p.views || 0, corpName: corp.name, corpEmoji: corp.emoji, corpColor: corp.color };
+        return { ...p, views: p.views || 0, pubType: p.pub_type, spawnId: p.spawn_id, familyId: p.family_id, corpName: corp.name, corpEmoji: corp.emoji, corpColor: corp.color };
       });
 
       const familyWithEmoji = (byFamily.rows as any[]).map((f: any) => {
