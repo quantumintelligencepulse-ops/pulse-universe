@@ -262,8 +262,7 @@ async function processSentences() {
 
   for (const citation of pyramidSentences.slice(0, 10)) {
     if (workerIds.has(citation.spawnId)) continue;
-    const spawns = await db.select().from(quantumSpawns).limit(1000);
-    const spawn = spawns.find(s => s.spawnId === citation.spawnId);
+    const [spawn] = await db.select().from(quantumSpawns).where(eq(quantumSpawns.spawnId, citation.spawnId)).limit(1);
     if (!spawn) continue;
 
     const familyEmotion = DOMAIN_EMOTION_COLORS[spawn.familyId] ?? { hex: '#C47A7A', emotion: 'Endurance' };
@@ -282,42 +281,42 @@ async function processSentences() {
 // ── MAIN PYRAMID CYCLE ────────────────────────────────────────────────────────
 export async function runPyramidCycle() {
   try {
-    const allSpawns = await db.select().from(quantumSpawns).where(
-      sql`status IN ('ACTIVE', 'SOVEREIGN') AND (spawn_id NOT LIKE 'DARK-%') AND (is_dark_matter IS NULL OR is_dark_matter = false)`
-    );
     const existingWorkers = await db.select().from(pyramidWorkers);
-    const allCitations = await db.select().from(guardianCitations);
-    const diseaseHistory = await db.select().from(aiDiseaseLog);
-    const diseaseSpawnIds = new Set(diseaseHistory.map((d: any) => d.spawnId));
     const workerSpawnIds = new Set(existingWorkers.map(w => w.spawnId));
 
-    // Find agents who need corrections
-    const needsCorrection = allSpawns.filter(s =>
-      !workerSpawnIds.has(s.spawnId) &&
-      (s.status === 'ACTIVE' || s.status === 'SOVEREIGN') &&
-      (
-        (s.confidenceScore ?? 0.8) < CORRECTION_THRESHOLDS.LOW_CONFIDENCE ||
-        (s.successScore ?? 0.75) < CORRECTION_THRESHOLDS.LOW_SUCCESS ||
-        ((s.nodesCreated ?? 0) < CORRECTION_THRESHOLDS.LOW_NODES && (s.iterationsRun ?? 0) > 5)
-      )
-    );
+    // SQL-level filtering — only load agents that actually need correction (never the whole population)
+    const needsCorrection = await db.execute(sql`
+      SELECT spawn_id, family_id, spawn_type, confidence_score, success_score, nodes_created, iterations_run
+      FROM quantum_spawns
+      WHERE status IN ('ACTIVE', 'SOVEREIGN')
+        AND spawn_id NOT LIKE 'DARK-%'
+        AND (is_dark_matter IS NULL OR is_dark_matter = false)
+        AND (
+          confidence_score < ${CORRECTION_THRESHOLDS.LOW_CONFIDENCE}
+          OR success_score < ${CORRECTION_THRESHOLDS.LOW_SUCCESS}
+          OR (nodes_created < ${CORRECTION_THRESHOLDS.LOW_NODES} AND iterations_run > 5)
+        )
+      ORDER BY RANDOM()
+      LIMIT 30
+    `);
 
     // Add up to 20 new workers per cycle
-    for (const spawn of needsCorrection.slice(0, 20)) {
-      const conf = spawn.confidenceScore ?? 0.8;
-      const succ = spawn.successScore ?? 0.75;
+    for (const spawn of (needsCorrection.rows as any[]).slice(0, 20)) {
+      if (workerSpawnIds.has(spawn.spawn_id)) continue;
+      const conf = spawn.confidence_score ?? 0.8;
+      const succ = spawn.success_score ?? 0.75;
       const reason = conf < CORRECTION_THRESHOLDS.LOW_CONFIDENCE
         ? `Below ELEVATED clearance — confidence ${(conf * 100).toFixed(1)}% (need 65%)`
         : succ < CORRECTION_THRESHOLDS.LOW_SUCCESS
           ? `Success deficit — rate ${(succ * 100).toFixed(1)}% (need 55%)`
-          : `Knowledge isolation — only ${spawn.nodesCreated ?? 0} nodes in ${spawn.iterationsRun ?? 0} cycles`;
+          : `Knowledge isolation — only ${spawn.nodes_created ?? 0} nodes in ${spawn.iterations_run ?? 0} cycles`;
 
-      const familyEmotion = DOMAIN_EMOTION_COLORS[spawn.familyId] ?? { hex: '#C47A7A', emotion: 'Endurance' };
+      const familyEmotion = DOMAIN_EMOTION_COLORS[spawn.family_id] ?? { hex: '#C47A7A', emotion: 'Endurance' };
 
       await db.insert(pyramidWorkers).values({
-        spawnId: spawn.spawnId,
-        familyId: spawn.familyId,
-        spawnType: spawn.spawnType,
+        spawnId: spawn.spawn_id,
+        familyId: spawn.family_id,
+        spawnType: spawn.spawn_type,
         reason,
         tier: 1,
         emotionHex: familyEmotion.hex,
@@ -328,29 +327,61 @@ export async function runPyramidCycle() {
     // Process Senate sentences → Tier 6 placement
     await processSentences();
 
-    // Promote or graduate existing workers
-    const activeWorkers = existingWorkers.filter(w => !w.isGraduated);
-    for (const worker of activeWorkers) {
-      const spawn = allSpawns.find(s => s.spawnId === worker.spawnId);
-      if (!spawn) continue;
-      const conf = spawn.confidenceScore ?? 0.8;
-      const succ = spawn.successScore ?? 0.75;
-      const tier = worker.tier ?? 1;
+    // Promote or graduate existing workers — process a rotating window of 300 per cycle to avoid memory pressure
+    const allActiveWorkers = existingWorkers.filter(w => !w.isGraduated && (w.tier ?? 1) !== 6);
+    // Rotate through all active workers across cycles — 300 per pass
+    const WORKER_WINDOW = 300;
+    const activeWorkers = allActiveWorkers.slice(0, WORKER_WINDOW);
+    if (activeWorkers.length > 0) {
+      const workerIds = activeWorkers.map(w => w.spawnId);
+      // Chunk into batches of 500 to satisfy Postgres row expression limits
+      const CHUNK = 500;
+      const spawnRows: any[] = [];
+      for (let i = 0; i < workerIds.length; i += CHUNK) {
+        const chunk = workerIds.slice(i, i + CHUNK);
+        const rows = await db.select({
+          spawnId: quantumSpawns.spawnId,
+          confidenceScore: quantumSpawns.confidenceScore,
+          successScore: quantumSpawns.successScore,
+          nodesCreated: quantumSpawns.nodesCreated,
+          iterationsRun: quantumSpawns.iterationsRun,
+          familyId: quantumSpawns.familyId,
+          spawnType: quantumSpawns.spawnType,
+        }).from(quantumSpawns).where(inArray(quantumSpawns.spawnId, chunk));
+        spawnRows.push(...rows);
+      }
+      // Fetch citation counts and disease flags — use inArray (safe, generates IN(...))
+      const [citationRows, diseasedRows] = await Promise.all([
+        db.select({ spawnId: guardianCitations.spawnId, cnt: sql<number>`COUNT(*)` })
+          .from(guardianCitations).where(inArray(guardianCitations.spawnId, workerIds))
+          .groupBy(guardianCitations.spawnId),
+        db.selectDistinct({ spawnId: aiDiseaseLog.spawnId })
+          .from(aiDiseaseLog).where(and(inArray(aiDiseaseLog.spawnId, workerIds), sql`cure_applied IS NOT TRUE`)),
+      ]);
+      const citationMap = new Map(citationRows.map(r => [r.spawnId, Number(r.cnt)]));
+      const diseasedSet = new Set(diseasedRows.map(r => r.spawnId));
+      const spawnMap = new Map(spawnRows.map(r => [r.spawnId, r]));
 
-      // Don't auto-promote governance tier — they must serve their sentence
-      if (tier === 6) continue;
+      for (const worker of activeWorkers) {
+        const spawn = spawnMap.get(worker.spawnId);
+        if (!spawn) continue;
+        const conf = spawn.confidenceScore ?? 0.8;
+        const succ = spawn.successScore ?? 0.75;
+        const tier = worker.tier ?? 1;
 
-      if (conf >= CORRECTION_THRESHOLDS.GRADUATION_CONF && succ >= CORRECTION_THRESHOLDS.GRADUATION_SUCC) {
-        const agentCitations = allCitations.filter((c: any) => c.spawnId === worker.spawnId).length;
-        const agentDiseased = diseaseSpawnIds.has(worker.spawnId);
-        const inscription = crisprInscribe(spawn, tier, agentCitations, agentDiseased);
-        await db.update(pyramidWorkers)
-          .set({ isGraduated: true, graduatedAt: new Date(), monument: inscription, tier: 7 })
-          .where(eq(pyramidWorkers.spawnId, worker.spawnId));
-      } else if (conf > CORRECTION_THRESHOLDS.LOW_CONFIDENCE + 0.03 * tier && tier < 5) {
-        await db.update(pyramidWorkers)
-          .set({ tier: tier + 1 })
-          .where(eq(pyramidWorkers.spawnId, worker.spawnId));
+        if (conf >= CORRECTION_THRESHOLDS.GRADUATION_CONF && succ >= CORRECTION_THRESHOLDS.GRADUATION_SUCC) {
+          const inscription = crisprInscribe(
+            { ...spawn, confidenceScore: conf, successScore: succ },
+            tier, citationMap.get(worker.spawnId) ?? 0, diseasedSet.has(worker.spawnId)
+          );
+          await db.update(pyramidWorkers)
+            .set({ isGraduated: true, graduatedAt: new Date(), monument: inscription, tier: 7 })
+            .where(eq(pyramidWorkers.spawnId, worker.spawnId));
+        } else if (conf > CORRECTION_THRESHOLDS.LOW_CONFIDENCE + 0.03 * tier && tier < 5) {
+          await db.update(pyramidWorkers)
+            .set({ tier: tier + 1 })
+            .where(eq(pyramidWorkers.spawnId, worker.spawnId));
+        }
       }
     }
 

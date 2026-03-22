@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { quantumSpawns, aiDiseaseLog, pyramidWorkers, discoveredDiseases, guardianCitations } from "../shared/schema";
-import { eq, and, lt, desc, sql } from "drizzle-orm";
+import { eq, and, lt, desc, sql, inArray } from "drizzle-orm";
 import { crisprDiseaseProfiles } from "./crispr-engine";
 import { postAgentEvent } from "./discord-immortality";
 
@@ -542,14 +542,28 @@ async function runGuardianCycle(spawns: any[]) {
   }
 }
 
+// ── ROTATING BATCH CURSOR — hospital scans full population in rotating windows ──
+let _hospitalCursor = 0;
+const HOSPITAL_BATCH = 2000;
+
 // ── MAIN HOSPITAL CYCLE ───────────────────────────────────────────────────────
 export async function runHospitalCycle() {
   try {
     const spawns = await db.select().from(quantumSpawns).where(
       sql`status IN ('ACTIVE', 'SOVEREIGN', 'COMPLETED')`
-    );
-    const existingDiagnoses = await db.select().from(aiDiseaseLog);
-    const existingCitations = await db.select().from(guardianCitations);
+    ).limit(HOSPITAL_BATCH).offset(_hospitalCursor);
+    _hospitalCursor += HOSPITAL_BATCH;
+    // Reset cursor when we've scanned through the full population
+    if (spawns.length < HOSPITAL_BATCH) _hospitalCursor = 0;
+
+    // Scope diagnoses + citations to only the current batch — use inArray (safe for 2000 IDs)
+    const batchIds = spawns.map(s => s.spawnId);
+    const existingDiagnoses = batchIds.length > 0
+      ? await db.select().from(aiDiseaseLog).where(inArray(aiDiseaseLog.spawnId, batchIds))
+      : [];
+    const existingCitations = batchIds.length > 0
+      ? await db.select().from(guardianCitations).where(inArray(guardianCitations.spawnId, batchIds))
+      : [];
 
     // Build citation count map for AI-029 detection
     const citationCountMap = new Map<string, number>();

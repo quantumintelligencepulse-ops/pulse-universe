@@ -91,12 +91,12 @@ async function advanceLearners() {
             (spawn_id, family_id, spawn_type, gpa, total_courses, clearance_level, status)
           SELECT
             pp.spawn_id, pp.family_id, pp.spawn_type,
-            $1, $2,
+            $1::numeric, $2::int,
             CASE
-              WHEN $1 >= 3.8 THEN 5
-              WHEN $1 >= 3.5 THEN 4
-              WHEN $1 >= 3.0 THEN 3
-              WHEN $1 >= 2.5 THEN 2
+              WHEN $1::numeric >= 3.8 THEN 5
+              WHEN $1::numeric >= 3.5 THEN 4
+              WHEN $1::numeric >= 3.0 THEN 3
+              WHEN $1::numeric >= 2.5 THEN 2
               ELSE 1
             END,
             'active'
