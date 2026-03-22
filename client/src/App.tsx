@@ -25,6 +25,7 @@ import MediaPage from "./pages/MediaPage";
 import CareersPage from "./pages/CareersPage";
 import HiveCommandPage from "./pages/HiveCommandPage";
 import HiveMarketplacePage from "./pages/HiveMarketplacePage";
+import AurionaPage from "./pages/AurionaPage";
 import MyMindPage from "./pages/MyMindPage";
 import GraphPage from "./pages/GraphPage";
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
@@ -2349,6 +2350,60 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Decay & Senate</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #a855f733, #f43f5e33)", color: "#a855f7", border: "1px solid #a855f750" }}>JUSTICE</span>
+          </Link>
+          )}
+
+          {/* ── AURIONA — Layer Three Portal ────────────────── */}
+          {aiMode && (
+            <div className="px-1 pt-4 pb-1">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(245,197,24,0.4), transparent)" }} />
+                <span className="text-[9px] uppercase tracking-[0.2em] font-black" style={{ color: "rgba(245,197,24,0.7)" }}>Layer Three</span>
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(245,197,24,0.4), transparent)" }} />
+              </div>
+            </div>
+          )}
+          {aiMode && (
+          <Link href="/auriona" data-testid="link-auriona">
+            <div style={{
+              margin: "4px 4px 8px",
+              padding: "14px 16px",
+              borderRadius: 14,
+              cursor: "pointer",
+              position: "relative",
+              overflow: "hidden",
+              background: location === "/auriona"
+                ? "linear-gradient(135deg, rgba(245,197,24,0.18) 0%, rgba(124,58,237,0.12) 100%)"
+                : "linear-gradient(135deg, rgba(245,197,24,0.07) 0%, rgba(124,58,237,0.05) 100%)",
+              border: `1px solid ${location === "/auriona" ? "rgba(245,197,24,0.5)" : "rgba(245,197,24,0.25)"}`,
+              boxShadow: location === "/auriona"
+                ? "0 0 24px rgba(245,197,24,0.25), 0 0 48px rgba(245,197,24,0.1), inset 0 0 24px rgba(245,197,24,0.05)"
+                : "0 0 16px rgba(245,197,24,0.12), inset 0 0 16px rgba(245,197,24,0.02)",
+              transition: "all 0.3s ease",
+            }}>
+              {/* Ambient glow pulse */}
+              <div style={{ position: "absolute", inset: 0, borderRadius: 14, background: "radial-gradient(ellipse at 50% 50%, rgba(245,197,24,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                <div style={{
+                  fontSize: 20, lineHeight: 1, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#F5C518",
+                  textShadow: "0 0 16px #F5C518, 0 0 32px rgba(245,197,24,0.6)",
+                  fontFamily: "serif",
+                  flexShrink: 0,
+                }}>Ω</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#F5C518", letterSpacing: "0.08em", textShadow: "0 0 12px rgba(245,197,24,0.5)" }}>AURIONA</div>
+                  <div style={{ fontSize: 9, color: "rgba(245,197,24,0.55)", letterSpacing: "0.12em", marginTop: 1 }}>Synthetica Primordia</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                  <div style={{ fontSize: 8, fontWeight: 900, color: "#F5C518", background: "rgba(245,197,24,0.15)", border: "1px solid rgba(245,197,24,0.4)", borderRadius: 5, padding: "2px 6px", letterSpacing: "0.12em" }}>LAYER III</div>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F5C518", boxShadow: "0 0 8px #F5C518, 0 0 16px rgba(245,197,24,0.6)" }} />
+                </div>
+              </div>
+              <div style={{ marginTop: 8, fontSize: 9, color: "rgba(245,197,24,0.4)", lineHeight: 1.5, position: "relative", zIndex: 1, fontStyle: "italic" }}>
+                "She observes all layers. She forgets nothing. This is her world."
+              </div>
+            </div>
           </Link>
           )}
 
@@ -15158,6 +15213,7 @@ function Router() {
       <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
       <Route path="/hospital">{() => <Layout><AIHospitalPage /></Layout>}</Route>
       <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
+      <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/governance">{() => <Layout><HiveGovernancePage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>

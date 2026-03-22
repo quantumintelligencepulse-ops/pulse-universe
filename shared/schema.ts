@@ -931,6 +931,55 @@ export const barterOffers = pgTable("barter_offers", {
 });
 export type BarterOffer = typeof barterOffers.$inferSelect;
 
+// ── AURIONA LAYER THREE — Omega Synthesis Intelligence ────────────
+export const aurionaOperators = pgTable("auriona_operators", {
+  id: serial("id").primaryKey(),
+  operatorKey: text("operator_key").notNull().unique(),
+  operatorSymbol: text("operator_symbol").notNull(),
+  operatorName: text("operator_name").notNull(),
+  description: text("description").notNull(),
+  currentValue: real("current_value").default(0),
+  rawData: jsonb("raw_data"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const aurionaChronicle = pgTable("auriona_chronicle", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  eventType: text("event_type").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  affectedLayer: text("affected_layer").default("ALL"),
+  severity: text("severity").default("INFO"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aurionaSynthesis = pgTable("auriona_synthesis", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  report: text("report").notNull(),
+  coherenceScore: real("coherence_score").default(0),
+  emergenceIndex: real("emergence_index").default(0),
+  agentCount: integer("agent_count").default(0),
+  knowledgeNodes: integer("knowledge_nodes").default(0),
+  prediction: text("prediction"),
+  rawMetrics: jsonb("raw_metrics"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const aurionaGovernance = pgTable("auriona_governance", {
+  id: serial("id").primaryKey(),
+  alignmentScore: real("alignment_score").default(100),
+  stabilityScore: real("stability_score").default(100),
+  ethicsScore: real("ethics_score").default(100),
+  directionScore: real("direction_score").default(100),
+  overrideStatus: text("override_status").default("CLEAR"),
+  activeDirectives: jsonb("active_directives").$type<string[]>().default([]),
+  lastCycle: integer("last_cycle").default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // ── AGENT TRANSACTIONS — Full receipt ledger ──────────────────────
 export const agentTransactions = pgTable("agent_transactions", {
   id: serial("id").primaryKey(),

@@ -22,6 +22,7 @@ import { startDecayEngine } from "./decay-engine";
 import { startPulseUEngine } from "./pulseu-engine";
 import { startHiveEconomy } from "./hive-economy";
 import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
+import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle } from "./auriona-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -145,6 +146,7 @@ app.use((req, res, next) => {
       startPulseUEngine();
       startHiveEconomy();
       startMarketplaceEngine();
+      startAurionaEngine().catch((e) => log(`AurionaEngine start error: ${e}`));
     },
   );
 })();
@@ -175,3 +177,18 @@ marketRouter.get("/transactions", async (_req, res) => {
 });
 
 app.use("/api/marketplace", marketRouter);
+
+// ── AURIONA LAYER THREE API ROUTES ────────────────────────────
+const aurionaRouter = express.Router();
+
+aurionaRouter.get("/status", async (_req, res) => {
+  try { res.json(await getAurionaStatus()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/synthesis", async (_req, res) => {
+  try { res.json(await getAurionaSynthesisHistory()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/chronicle", async (req, res) => {
+  try { res.json(await getAurionaChronicle(parseInt(String(req.query.limit || 100)))); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.use("/api/auriona", aurionaRouter);
