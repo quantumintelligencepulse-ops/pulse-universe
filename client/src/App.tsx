@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { OMEGA_SPINE } from "./gicsSpine";
 import SpawnsPage from "./pages/SpawnsPage";
-import SourcesPage from "./pages/SourcesPage";
-import OmegaPage from "./pages/OmegaPage";
+import OmegaEnginePage from "./pages/OmegaEnginePage";
 import TranscendencePage from "./pages/TranscendencePage";
 import DNAEvolutionPage from "./pages/DNAEvolutionPage";
 import PulseWorldPage from "./pages/PulseWorldPage";
@@ -2220,22 +2219,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">Ω</span>
           </Link>
           )}
-          {aiMode && !appSettings.hiddenPages.includes("sources") && (
-          <Link href="/sources" data-testid="link-sources"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/sources" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/sources" ? "bg-blue-600/15" : "bg-blue-600/5"}`}><Globe size={14} className="text-blue-500" /></div>
-            <span className="flex-1">Omega Sources</span>
-            <span className="text-[9px] bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">20</span>
-          </Link>
-          )}
-          {aiMode && !appSettings.hiddenPages.includes("omega") && (
-          <Link href="/omega" data-testid="link-omega"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/omega" ? "bg-white/20" : "bg-violet-600/10"}`}>
-              <span className={`text-[13px] font-black ${location === "/omega" ? "text-white" : "text-violet-600"}`}>∞</span>
+          {aiMode && !appSettings.hiddenPages.includes("omega-engine") && (
+          <Link href="/omega-engine" data-testid="link-omega-engine"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega-engine" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow-lg border border-violet-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/omega-engine" ? "bg-white/20" : "bg-violet-600/10"}`}>
+              <span className={`text-[13px] font-black ${location === "/omega-engine" ? "text-white" : "text-violet-600"}`}>∞</span>
             </div>
             <span className="flex-1">Omega Engine</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">V∞</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">5Ω</span>
           </Link>
           )}
           {aiMode && (
@@ -6355,8 +6346,7 @@ function SettingsPage() {
     { id: "my-mind", name: "My Mind", icon: Sparkles, color: "text-fuchsia-400", desc: "Your personal intelligence profile" },
     { id: "universe", name: "Pulse Universe", icon: Globe, color: "text-indigo-500", desc: "3D solar universe simulation" },
     { id: "spawns", name: "Spawn Engine", icon: Dna, color: "text-violet-500", desc: "Hive entity spawn monitor" },
-    { id: "sources", name: "Omega Sources", icon: Globe, color: "text-blue-500", desc: "Live Omega data source network" },
-    { id: "omega", name: "Omega Engine", icon: Zap, color: "text-violet-600", desc: "Omega World Universe ENGINE V∞" },
+    { id: "omega-engine", name: "Omega Engine", icon: Zap, color: "text-violet-600", desc: "5 Omega-Class upgrades — Source Nexus, Expansion Engine, Q-Matrix, Fracture & Resonance, Spawn Telemetry" },
     { id: "omega-control", name: "Ψ Control Room", icon: Cpu, color: "text-violet-500", desc: "Ultimate fusion: Pulse + Command + Ingestion" },
   ];
 
@@ -15103,8 +15093,7 @@ function Router() {
       <Route path="/my-mind">{() => <Layout><MyMindPage /></Layout>}</Route>
       <Route path="/graph">{() => <Layout><GraphPage /></Layout>}</Route>
       <Route path="/spawns">{() => <Layout><SpawnsPage /></Layout>}</Route>
-      <Route path="/sources">{() => <Layout><SourcesPage /></Layout>}</Route>
-      <Route path="/omega">{() => <Layout><OmegaPage /></Layout>}</Route>
+      <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/dna">{() => <Layout><DNAEvolutionPage /></Layout>}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
