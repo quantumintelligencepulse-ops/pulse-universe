@@ -33,7 +33,27 @@ const DOMAIN_EMOJI: Record<string, string> = {
   government: "🏛️", code: "💻", legal: "⚖️", culture: "🎨",
   social: "👥", education: "🎓", media: "🎬", finance: "💰",
   ai: "🤖", engineering: "⚙️",
+  "gics-energy": "⚡", "gics-energy-equip": "🛢️", "gics-oil-gas": "🛢️",
+  "gics-materials": "⚗️", "gics-chemicals": "🧪", "gics-metals": "🪙",
+  "gics-industrials": "🏗️", "gics-consumer-disc": "🛍️", "gics-consumer-staples": "🛒",
+  "gics-financials": "💰", "gics-it": "💻", "gics-comms": "📡",
+  "gics-utilities": "🔌", "gics-real-estate": "🏢", "gics-healthcare": "🏥",
 };
+
+// GICS sector grouping for the family filter UI
+const GICS_SECTORS: { label: string; families: string[]; color: string }[] = [
+  { label: "⚡ Energy", families: ["gics-energy", "gics-oil-gas", "gics-energy-equip"], color: "#f59e0b" },
+  { label: "⚗️ Materials", families: ["gics-materials", "gics-chemicals", "gics-metals"], color: "#10b981" },
+  { label: "🏗️ Industrials", families: ["gics-industrials"], color: "#6366f1" },
+  { label: "🛍️ Cons. Disc.", families: ["gics-consumer-disc"], color: "#ec4899" },
+  { label: "🛒 Cons. Staples", families: ["gics-consumer-staples"], color: "#84cc16" },
+  { label: "🏥 Health Care", families: ["health", "gics-healthcare"], color: "#ef4444" },
+  { label: "💰 Financials", families: ["gics-financials", "finance"], color: "#facc15" },
+  { label: "💻 IT", families: ["gics-it", "code", "ai"], color: "#818cf8" },
+  { label: "📡 Comms", families: ["gics-comms", "media", "social"], color: "#38bdf8" },
+  { label: "🔌 Utilities", families: ["gics-utilities"], color: "#a3e635" },
+  { label: "🏢 Real Estate", families: ["gics-real-estate"], color: "#fb923c" },
+];
 
 function timeSince(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -106,17 +126,38 @@ export default function PublicationsPage() {
         })}
       </div>
 
-      {/* Corporation filter */}
+      {/* GICS Sector quick-filter buttons */}
+      <div className="px-4 pb-1 flex-shrink-0 flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        <button data-testid="filter-sector-all" onClick={() => handleFamilyChange("all")}
+          className={`flex-shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-black transition border ${filterFamily === "all" ? "bg-white/10 text-white border-white/20" : "text-white/30 border-white/5 hover:text-white/60"}`}>
+          ⬡ ALL SECTORS
+        </button>
+        {GICS_SECTORS.map(sec => {
+          const active = sec.families.includes(filterFamily);
+          return (
+            <button key={sec.label} data-testid={`filter-sector-${sec.label}`}
+              onClick={() => handleFamilyChange(sec.families[0])}
+              className="flex-shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-black transition border"
+              style={active
+                ? { background: `${sec.color}20`, color: sec.color, borderColor: `${sec.color}40` }
+                : { color: "rgba(255,255,255,0.25)", borderColor: "rgba(255,255,255,0.06)" }}>
+              {sec.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* All Corporation filters — full GICS-aware scrollable strip */}
       {(feed?.byFamily?.length ?? 0) > 0 && (
-        <div className="px-4 pb-2 flex-shrink-0 flex items-center gap-1 overflow-x-auto">
+        <div className="px-4 pb-2 flex-shrink-0 flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           <button data-testid="filter-family-all" onClick={() => handleFamilyChange("all")}
-            className={`flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-bold transition ${filterFamily === "all" ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/40" : "text-white/25 hover:text-white/50"}`}>
-            ⬡ All Corps
+            className={`flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-bold transition ${filterFamily === "all" ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/40" : "text-white/20 hover:text-white/50"}`}>
+            ⬡ All
           </button>
-          {(feed?.byFamily || []).slice(0, 12).map(f => (
+          {(feed?.byFamily || []).map(f => (
             <button key={f.family} data-testid={`filter-family-${f.family}`} onClick={() => handleFamilyChange(f.family)}
-              className={`flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-bold transition ${filterFamily === f.family ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/40" : "text-white/25 hover:text-white/50"}`}>
-              {f.emoji} {f.family}
+              className={`flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-bold transition whitespace-nowrap ${filterFamily === f.family ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/40" : "text-white/20 hover:text-white/50"}`}>
+              {f.emoji || DOMAIN_EMOJI[f.family] || "⬡"} {f.family} <span className="text-white/20">({f.count})</span>
             </button>
           ))}
         </div>

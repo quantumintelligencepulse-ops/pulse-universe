@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
+import { OMEGA_SPINE } from "./gicsSpine";
 import PulsePage from "./pages/PulsePage";
 import SpawnsPage from "./pages/SpawnsPage";
 import SourcesPage from "./pages/SourcesPage";
@@ -3911,162 +3912,6 @@ function FeedCard({ article, onExpand, isExpanded }: { article: FeedArticle; onE
   );
 }
 
-// ── OMEGA SPINE TAXONOMY ────────────────────────────────────────────────────
-const OMEGA_SPINE = [
-  { key: "top-stories",          label: "Top Stories",       emoji: "🔥", color: "#f97316", gradient: "from-orange-500 to-red-500",     search: "breaking news top stories",         children: [] },
-  { key: "ai-technology",        label: "AI & Technology",   emoji: "🤖", color: "#6366f1", gradient: "from-indigo-500 to-purple-600",  search: "artificial intelligence technology", children: [
-    { key: "ai",                label: "AI & Machine Learning", search: "artificial intelligence machine learning" },
-    { key: "computing",         label: "Computing & Software",  search: "computing software apps" },
-    { key: "cybersecurity",     label: "Cybersecurity",         search: "cybersecurity hacking data breach" },
-    { key: "future-tech",       label: "Future Tech",           search: "future technology innovation robotics" },
-    { key: "ai-agents",         label: "AI Agents",             search: "AI agents autonomous systems" },
-    { key: "semiconductors",    label: "Semiconductors & Chips", search: "semiconductor chips nvidia intel" },
-  ]},
-  { key: "financials",           label: "Finance & Markets", emoji: "💰", color: "#10b981", gradient: "from-emerald-500 to-teal-600",   search: "finance markets investing",          children: [
-    { key: "markets",           label: "Stock Markets",         search: "stock market equities S&P" },
-    { key: "crypto",            label: "Crypto & Web3",         search: "cryptocurrency bitcoin ethereum web3" },
-    { key: "trading",           label: "Trading & Investing",   search: "trading investing strategies" },
-    { key: "economics",         label: "Economics",             search: "economics GDP inflation interest rates" },
-    { key: "banking",           label: "Banking & FinTech",     search: "banking fintech payments" },
-    { key: "real-estate-market",label: "Real Estate Market",    search: "real estate housing market mortgage" },
-  ]},
-  { key: "sports",               label: "Sports",            emoji: "🏆", color: "#eab308", gradient: "from-yellow-500 to-orange-500", search: "sports news",                        children: [
-    { key: "team-sports",       label: "Team Sports",           search: "NFL NBA MLB soccer football" },
-    { key: "individual-sports", label: "Individual Sports",     search: "tennis golf track swimming" },
-    { key: "motorsports",       label: "Motorsports",           search: "Formula 1 NASCAR MotoGP motorsports" },
-    { key: "esports",           label: "Esports & Gaming",      search: "esports gaming tournaments" },
-    { key: "betting",           label: "Sports Betting & Odds", search: "sports betting odds lines" },
-    { key: "sports-media",      label: "Sports Media",          search: "sports media broadcasting ESPN" },
-  ]},
-  { key: "health-care",          label: "Health & Medicine", emoji: "🏥", color: "#ef4444", gradient: "from-red-500 to-rose-600",      search: "health medicine medical",            children: [
-    { key: "diseases",          label: "Diseases & Conditions", search: "disease health conditions pandemic" },
-    { key: "fitness",           label: "Fitness & Wellness",    search: "fitness wellness exercise diet" },
-    { key: "biotech",           label: "Biotech & Pharma",      search: "biotech pharmaceuticals drug clinical trial" },
-    { key: "anatomy",           label: "Anatomy & Biology",     search: "anatomy biology human body" },
-    { key: "mental-health",     label: "Mental Health",         search: "mental health psychology anxiety depression" },
-    { key: "nutrition",         label: "Nutrition & Diet",      search: "nutrition diet food health" },
-  ]},
-  { key: "science-mathematics",  label: "Science",           emoji: "🔬", color: "#3b82f6", gradient: "from-blue-500 to-cyan-600",    search: "science discovery research",         children: [
-    { key: "physics",           label: "Physics",               search: "physics quantum particles energy" },
-    { key: "space",             label: "Space & Astronomy",     search: "space NASA SpaceX astronomy cosmos" },
-    { key: "biology",           label: "Biology & Life Science", search: "biology genetics evolution life" },
-    { key: "chemistry",         label: "Chemistry",             search: "chemistry molecules materials lab" },
-    { key: "earth-science",     label: "Earth Science",         search: "geology earthquakes volcanoes oceanography" },
-    { key: "mathematics",       label: "Mathematics",           search: "mathematics theorem proof algorithm" },
-  ]},
-  { key: "government-law",       label: "Politics & Law",    emoji: "⚖️", color: "#64748b", gradient: "from-slate-500 to-gray-600",   search: "politics government law",            children: [
-    { key: "government",        label: "Government & Policy",   search: "government policy Congress White House" },
-    { key: "law",               label: "Law & Justice",         search: "law court justice legal ruling" },
-    { key: "military",          label: "Military & Defense",    search: "military defense army navy air force" },
-    { key: "global-orgs",       label: "Global Organizations",  search: "United Nations NATO G7 international" },
-    { key: "elections",         label: "Elections & Democracy", search: "elections voting democracy" },
-    { key: "geopolitics",       label: "Geopolitics",           search: "geopolitics international relations war" },
-  ]},
-  { key: "energy",               label: "Energy",            emoji: "⚡", color: "#f59e0b", gradient: "from-amber-500 to-yellow-600", search: "energy power oil gas",               children: [
-    { key: "renewables",        label: "Renewables & Solar",    search: "renewable energy solar wind power" },
-    { key: "oil-gas",           label: "Oil & Gas",             search: "oil gas petroleum OPEC" },
-    { key: "nuclear",           label: "Nuclear Energy",        search: "nuclear energy reactor power plant" },
-    { key: "climate",           label: "Climate & Environment", search: "climate change global warming emissions" },
-    { key: "ev-batteries",      label: "EVs & Batteries",       search: "electric vehicle battery EV Tesla" },
-    { key: "grid",              label: "Power Grid & Storage",  search: "power grid energy storage infrastructure" },
-  ]},
-  { key: "education-knowledge",  label: "Education",         emoji: "📚", color: "#06b6d4", gradient: "from-cyan-500 to-sky-600",    search: "education learning knowledge",       children: [
-    { key: "k-12",              label: "K-12 Education",        search: "K-12 school education children" },
-    { key: "higher-ed",         label: "Higher Education",      search: "university college higher education" },
-    { key: "research",          label: "Research & Academia",   search: "academic research study findings" },
-    { key: "online-learning",   label: "Online Learning",       search: "online learning edtech courses" },
-    { key: "stem",              label: "STEM Education",        search: "STEM science technology engineering math" },
-    { key: "information-theory",label: "Information Theory",    search: "information theory data systems" },
-  ]},
-  { key: "consumer-discretionary",label: "Lifestyle",        emoji: "🛍️", color: "#ec4899", gradient: "from-pink-500 to-rose-500",  search: "lifestyle consumer shopping",        children: [
-    { key: "autos-evs",         label: "Autos & EVs",           search: "cars automobiles electric vehicle" },
-    { key: "fashion-apparel",   label: "Fashion & Apparel",     search: "fashion clothing apparel style" },
-    { key: "travel",            label: "Travel & Tourism",      search: "travel tourism destinations hotels" },
-    { key: "food-cuisine",      label: "Food & Cuisine",        search: "food cuisine restaurants cooking recipes" },
-    { key: "luxury",            label: "Luxury & Watches",      search: "luxury watches brands designer" },
-    { key: "retail",            label: "Retail & E-commerce",   search: "retail e-commerce Amazon shopping" },
-  ]},
-  { key: "communication-services",label: "Media & Entertainment",emoji: "📡", color: "#a855f7", gradient: "from-purple-500 to-violet-600", search: "media entertainment streaming", children: [
-    { key: "entertainment",     label: "Entertainment",         search: "movies TV shows Netflix entertainment" },
-    { key: "gaming",            label: "Gaming",                search: "video games gaming console PS5 Xbox" },
-    { key: "music",             label: "Music",                 search: "music artists albums streaming Spotify" },
-    { key: "social-media",      label: "Social Media",          search: "social media Twitter Instagram TikTok" },
-    { key: "streaming",         label: "Streaming & OTT",       search: "streaming Netflix HBO Disney+ OTT" },
-    { key: "media-forms",       label: "Media & Journalism",    search: "journalism news media publishing" },
-  ]},
-  { key: "industrials",          label: "Industrials",       emoji: "🏗️", color: "#0ea5e9", gradient: "from-sky-500 to-blue-600",    search: "industrial manufacturing",           children: [
-    { key: "aerospace",         label: "Aerospace",             search: "aerospace Boeing Lockheed aircraft" },
-    { key: "manufacturing",     label: "Manufacturing",         search: "manufacturing production industry" },
-    { key: "transportation",    label: "Transportation",        search: "transportation shipping freight logistics" },
-    { key: "infrastructure",    label: "Infrastructure",        search: "infrastructure construction roads bridges" },
-    { key: "supply-chain",      label: "Supply Chain",          search: "supply chain logistics global trade" },
-    { key: "robotics",          label: "Robotics & Automation", search: "robotics automation factory" },
-  ]},
-  { key: "real-estate",          label: "Real Estate",       emoji: "🏠", color: "#f97316", gradient: "from-orange-400 to-amber-500", search: "real estate property housing",      children: [
-    { key: "housing",           label: "Housing Market",        search: "housing market home prices mortgage" },
-    { key: "commercial",        label: "Commercial RE",         search: "commercial real estate office retail" },
-    { key: "reits",             label: "REITs & Investment",    search: "REIT real estate investment trust" },
-    { key: "geography",         label: "Geography & Cities",    search: "cities urban geography population" },
-    { key: "construction",      label: "Construction",          search: "construction building development" },
-    { key: "space-exploration", label: "Space & Orbits",        search: "space exploration SpaceX NASA orbit" },
-  ]},
-  { key: "consumer-staples",     label: "Food & Agriculture",emoji: "🌾", color: "#84cc16", gradient: "from-lime-500 to-green-600",  search: "food agriculture farming",           children: [
-    { key: "agriculture",       label: "Agriculture",           search: "agriculture farming crops livestock" },
-    { key: "food-retail",       label: "Food & Beverages",      search: "food beverages grocery supermarket" },
-    { key: "sustainability",    label: "Sustainability",         search: "sustainability organic green farming" },
-    { key: "global-food",       label: "Global Food Supply",    search: "global food supply hunger nutrition" },
-    { key: "biotech-food",      label: "Food Technology",       search: "food technology lab grown meat GMO" },
-    { key: "water",             label: "Water & Resources",     search: "water resources environment" },
-  ]},
-  { key: "utilities",            label: "Environment",       emoji: "🌍", color: "#22c55e", gradient: "from-green-500 to-emerald-600", search: "environment ecology climate",      children: [
-    { key: "ecology",           label: "Ecology & Biodiversity", search: "ecology biodiversity wildlife species" },
-    { key: "climate-change",    label: "Climate Change",        search: "climate change global warming policy" },
-    { key: "pollution",         label: "Pollution & Waste",     search: "pollution plastic waste recycling" },
-    { key: "oceans",            label: "Oceans & Marine",       search: "ocean marine sea coral reef" },
-    { key: "forests",           label: "Forests & Land",        search: "forests deforestation land conservation" },
-    { key: "clean-energy",      label: "Clean Energy",          search: "clean energy green hydrogen" },
-  ]},
-  { key: "time-history",         label: "History & Culture", emoji: "⏳", color: "#d97706", gradient: "from-amber-600 to-orange-600", search: "history culture civilizations",    children: [
-    { key: "eras",              label: "Eras & Epochs",         search: "historical eras ancient medieval modern" },
-    { key: "civilizations",     label: "Civilizations",         search: "civilizations cultures ancient history" },
-    { key: "wars",              label: "Wars & Conflicts",      search: "wars military history battles conflicts" },
-    { key: "inventions",        label: "Inventions & Discovery", search: "inventions discoveries breakthroughs" },
-    { key: "world-culture",     label: "World Cultures",        search: "world cultures traditions customs" },
-    { key: "languages",         label: "Languages & Linguistics", search: "languages linguistics dialect" },
-  ]},
-  { key: "religion-culture",     label: "Religion & Society",emoji: "🌐", color: "#8b5cf6", gradient: "from-violet-500 to-purple-600", search: "religion society culture",        children: [
-    { key: "religions",         label: "Religions",             search: "religion faith Christianity Islam Buddhism" },
-    { key: "mythology",         label: "Mythology",             search: "mythology gods legends folklore" },
-    { key: "society",           label: "Society & Culture",     search: "society culture social trends" },
-    { key: "art",               label: "Arts & Design",         search: "art design museum gallery" },
-    { key: "philosophy",        label: "Philosophy",            search: "philosophy ethics morality" },
-    { key: "diversity",         label: "Diversity & Inclusion", search: "diversity inclusion equity" },
-  ]},
-  { key: "human-experience",     label: "Psychology & Mind", emoji: "🧠", color: "#f43f5e", gradient: "from-rose-500 to-pink-600",  search: "psychology mind behavior",           children: [
-    { key: "emotions",          label: "Emotions & Wellbeing",  search: "emotions wellbeing happiness stress" },
-    { key: "cognition",         label: "Cognition & Memory",    search: "cognition memory learning brain" },
-    { key: "personality",       label: "Personality & Behavior", search: "personality behavior psychology traits" },
-    { key: "social-systems",    label: "Social Systems",        search: "social systems society behavior" },
-    { key: "consciousness",     label: "Consciousness",         search: "consciousness awareness mind" },
-    { key: "life-stages",       label: "Life Stages",           search: "life stages development aging childhood" },
-  ]},
-  { key: "materials",            label: "Materials & Science",emoji: "⚗️", color: "#6b7280", gradient: "from-gray-500 to-slate-600", search: "materials chemistry physics",        children: [
-    { key: "nanotechnology",    label: "Nanotechnology",        search: "nanotechnology nanomaterials nano" },
-    { key: "metals-mining",     label: "Metals & Mining",       search: "metals mining gold silver copper" },
-    { key: "chemicals",         label: "Chemicals & Materials", search: "chemicals materials polymer composite" },
-    { key: "quantum",           label: "Quantum Computing",     search: "quantum computing qubit" },
-    { key: "biotech-materials", label: "Biotech & Genomics",    search: "genomics CRISPR gene editing biotech" },
-    { key: "new-materials",     label: "Advanced Materials",    search: "advanced materials graphene superconductor" },
-  ]},
-  { key: "deep-root-domains",    label: "Deep Knowledge",    emoji: "🌌", color: "#7c3aed", gradient: "from-violet-600 to-indigo-700", search: "philosophy systems theory deep", children: [
-    { key: "systems-theory",    label: "Systems Theory",        search: "systems theory complexity emergence" },
-    { key: "game-theory",       label: "Game Theory",           search: "game theory strategy decision making" },
-    { key: "ethics-ai",         label: "AI Ethics",             search: "AI ethics artificial intelligence safety" },
-    { key: "cosmology",         label: "Cosmology & Universe",  search: "cosmology universe dark matter big bang" },
-    { key: "evolution",         label: "Evolution & Life",      search: "evolution natural selection Darwin biology" },
-    { key: "mythic-structure",  label: "Mythic Structure",      search: "mythology narrative hero's journey archetype" },
-  ]},
-];
 
 function NewsSkeletonGrid({ count = 6 }: { count?: number }) {
   return (
@@ -4252,6 +4097,7 @@ type FeedMode = "all" | "news" | "videos" | "saved" | "following" | "publication
 function NewsFeed() {
   const [activeDomainKey, setActiveDomainKey] = useState<string | null>(null);
   const [activeCatKey, setActiveCatKey] = useState<string | null>(null);
+  const [activeSubKey, setActiveSubKey] = useState<string | null>(null);
   const [articles, setArticles] = useState<FeedArticle[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -4368,13 +4214,15 @@ function NewsFeed() {
 
   const activeDomain = OMEGA_SPINE.find(d => d.key === activeDomainKey) || null;
   const activeCategory = activeDomain?.children?.find(c => c.key === activeCatKey) || null;
+  const activeSubCategory = activeCategory?.children?.find(c => c.key === activeSubKey) || null;
 
   const currentSearchTerm = useMemo(() => {
     if (searchQuery) return searchQuery;
+    if (activeSubCategory) return activeSubCategory.search;
     if (activeCategory) return activeCategory.search;
     if (activeDomain) return activeDomain.search;
     return "";
-  }, [searchQuery, activeCategory, activeDomain]);
+  }, [searchQuery, activeSubCategory, activeCategory, activeDomain]);
 
   const fetchPage = useCallback(async (p: number, reset = false, term?: string) => {
     if (loadingRef.current) return;
@@ -4420,6 +4268,7 @@ function NewsFeed() {
   const selectDomain = useCallback((domainKey: string | null) => {
     setActiveDomainKey(domainKey);
     setActiveCatKey(null);
+    setActiveSubKey(null);
     setArticles([]);
     setPage(1);
     setHasMore(true);
@@ -4442,6 +4291,7 @@ function NewsFeed() {
   const selectCategory = useCallback((domainKey: string, catKey: string) => {
     setActiveDomainKey(domainKey);
     setActiveCatKey(catKey);
+    setActiveSubKey(null);
     setArticles([]);
     setPage(1);
     setHasMore(true);
@@ -4457,6 +4307,25 @@ function NewsFeed() {
       fetchPage(1, true, cat.search);
     }
   }, [fetchPage]);
+
+  const selectSubCategory = useCallback((subKey: string) => {
+    setActiveSubKey(subKey);
+    setArticles([]);
+    setPage(1);
+    setHasMore(true);
+    setExpandedId(null);
+    setSearchQuery("");
+    setSearchInput("");
+    const d = activeDomain;
+    const cat = activeCategory;
+    const sub = cat?.children?.find(c => c.key === subKey);
+    if (sub) {
+      setFeedLoaded(true);
+      setLoading(true);
+      loadingRef.current = false;
+      fetchPage(1, true, sub.search);
+    }
+  }, [fetchPage, activeDomain, activeCategory]);
 
   useEffect(() => {
     if (!feedLoaded || searchQuery || loading) return;
@@ -4492,7 +4361,7 @@ function NewsFeed() {
 
   const clearSearch = useCallback(() => {
     setSearchQuery(""); setSearchInput("");
-    setActiveDomainKey(null); setActiveCatKey(null);
+    setActiveDomainKey(null); setActiveCatKey(null); setActiveSubKey(null);
     setArticles([]); setPage(1); setHasMore(true);
     setFeedLoaded(false);
   }, []);
@@ -4576,7 +4445,7 @@ function NewsFeed() {
               { id: "saved", label: "Saved", emoji: "🔖", count: savedArticleIds.size },
               { id: "following", label: "Following", emoji: "👁", count: followedTopicsList.length },
             ] as const).map(m => (
-              <button key={m.id} onClick={() => { setFeedMode(m.id); setActiveDomainKey(null); setActiveCatKey(null); setSearchQuery(""); setSearchInput(""); setExpandedId(null); setFractalGenerated(null); if (m.id !== "saved" && m.id !== "following" && m.id !== "publications") { setFeedLoaded(false); } }} data-testid={`feed-mode-${m.id}`}
+              <button key={m.id} onClick={() => { setFeedMode(m.id); setActiveDomainKey(null); setActiveCatKey(null); setActiveSubKey(null); setSearchQuery(""); setSearchInput(""); setExpandedId(null); setFractalGenerated(null); if (m.id !== "saved" && m.id !== "following" && m.id !== "publications") { setFeedLoaded(false); } }} data-testid={`feed-mode-${m.id}`}
                 className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${feedMode === m.id ? "bg-white dark:bg-zinc-800 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 <span>{m.emoji}</span>
                 <span className="hidden sm:inline">{m.label}</span>
@@ -4586,19 +4455,51 @@ function NewsFeed() {
           </div>
 
 
-          {/* Category sub-tabs */}
+          {/* ── GICS Domain Pill Row (always visible, no search/domain active) ── */}
+          {!activeDomainKey && !searchQuery && (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 mt-1" data-testid="domain-pill-row">
+              {OMEGA_SPINE.map(d => (
+                <button key={d.key} onClick={() => selectDomain(d.key)} data-testid={`domain-pill-${d.key}`}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap shrink-0 transition-all hover:-translate-y-px hover:shadow-sm border border-transparent"
+                  style={{ background: `${d.color}18`, color: d.color, borderColor: `${d.color}30` }}>
+                  <span className="text-[11px]">{d.emoji}</span>
+                  <span>{d.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── Level 2: Category sub-tabs (domain selected) ── */}
           {activeDomain && !searchQuery && activeDomain.children.length > 0 && (
             <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 mt-1.5">
-              <button onClick={() => { setActiveCatKey(null); setArticles([]); setPage(1); setHasMore(true); loadingRef.current = false; fetchPage(1, true, activeDomain.search); }} data-testid="feed-cat-all"
-                className={`px-3 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${!activeCatKey ? "text-white border-transparent shadow-sm" : "bg-white border-border/30 text-muted-foreground hover:border-orange-200"}`}
+              <button onClick={() => { setActiveCatKey(null); setActiveSubKey(null); setArticles([]); setPage(1); setHasMore(true); loadingRef.current = false; fetchPage(1, true, activeDomain.search); }} data-testid="feed-cat-all"
+                className={`px-3 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${!activeCatKey ? "text-white border-transparent shadow-sm" : "bg-white/80 border-border/30 text-muted-foreground hover:border-orange-200"}`}
                 style={!activeCatKey ? { background: `linear-gradient(135deg, ${activeDomain.color}, ${activeDomain.color}cc)` } : {}}>
                 All {activeDomain.label}
               </button>
               {activeDomain.children.map(cat => (
                 <button key={cat.key} onClick={() => selectCategory(activeDomain.key, cat.key)} data-testid={`feed-cat-${cat.key}`}
-                  className={`px-3 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${activeCatKey === cat.key ? "text-white border-transparent shadow-sm" : "bg-white border-border/30 text-muted-foreground hover:border-orange-200"}`}
+                  className={`px-3 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${activeCatKey === cat.key ? "text-white border-transparent shadow-sm" : "bg-white/80 border-border/30 text-muted-foreground hover:border-orange-200"}`}
                   style={activeCatKey === cat.key ? { background: `linear-gradient(135deg, ${activeDomain.color}, ${activeDomain.color}cc)` } : {}}>
                   {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ── Level 3: Sub-category tabs (category selected with children) ── */}
+          {activeCategory && (activeCategory as any).children?.length > 0 && !searchQuery && (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 mt-1" data-testid="feed-sub-tabs">
+              <button onClick={() => { setActiveSubKey(null); setArticles([]); setPage(1); setHasMore(true); loadingRef.current = false; fetchPage(1, true, activeCategory.search); }} data-testid="feed-sub-all"
+                className={`px-2.5 py-0.5 text-[9px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${!activeSubKey ? "text-white border-transparent" : "bg-muted/20 border-border/20 text-muted-foreground/70 hover:bg-muted/40"}`}
+                style={!activeSubKey ? { background: activeDomain ? `${activeDomain.color}dd` : "#f97316" } : {}}>
+                All {activeCategory.label}
+              </button>
+              {((activeCategory as any).children as {key:string;label:string;search:string}[]).map(sub => (
+                <button key={sub.key} onClick={() => selectSubCategory(sub.key)} data-testid={`feed-sub-${sub.key}`}
+                  className={`px-2.5 py-0.5 text-[9px] font-semibold rounded-full whitespace-nowrap transition-all shrink-0 border ${activeSubKey === sub.key ? "text-white border-transparent" : "bg-muted/20 border-border/20 text-muted-foreground/70 hover:bg-muted/40"}`}
+                  style={activeSubKey === sub.key ? { background: activeDomain ? `${activeDomain.color}dd` : "#f97316" } : {}}>
+                  {sub.label}
                 </button>
               ))}
             </div>

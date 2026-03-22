@@ -215,6 +215,88 @@ const SEC_COMPANIES = [
   "Visa","Mastercard","Netflix","Salesforce","Adobe","Intel","AMD","Qualcomm",
 ];
 
+// ─── GICS Sector / Sub-Industry Query Pool ──────────────────────────────────
+// Covers all 11 GICS sectors and their sub-industries for comprehensive Hive coverage.
+const GICS_QUERIES = [
+  // ENERGY
+  "oil drilling petroleum offshore deepwater","shale drilling horizontal Permian Bakken","oilfield services pressure pumping wireline",
+  "LNG liquefied natural gas terminal regasification","crude oil refinery petroleum products","petrochemical ethylene propylene polyethylene",
+  "solar panel photovoltaic utility scale","wind turbine onshore offshore renewable","nuclear power reactor uranium fuel",
+  "hydroelectric power dam water turbine","energy storage battery grid BESS","hydrogen fuel cell electrolyzer green",
+  "carbon capture storage CCS DAC","biofuel ethanol biodiesel renewable","coal mining thermal coking power",
+  "pipeline midstream natural gas transmission","electric utility power generation distribution","gas distribution local residential utility",
+  // MATERIALS
+  "gold mining bullion reserves streaming","copper mining cathode concentrate Chile","iron ore steel making blast furnace",
+  "aluminum smelting bauxite alumina","rare earth neodymium REE mining","lithium cobalt battery metals supply chain",
+  "coking coal metallurgical steel","specialty chemicals adhesives coatings polymers","agricultural chemicals fertilizer herbicide",
+  "commodity chemicals chlor-alkali soda ash","industrial gases oxygen nitrogen argon","cement concrete ready-mix construction",
+  "aggregates crushed stone sand quarry","paper pulp wood kraft tissue","lumber timber saw mill framing","corrugated box containerboard packaging",
+  "flexible packaging film barrier multilayer","aluminum can steel can glass bottle",
+  // INDUSTRIALS
+  "commercial aircraft Boeing Airbus narrow body","military fighter jet defense missile","satellite constellation LEO space launch",
+  "aerospace maintenance MRO aviation repair","HVAC heating cooling ventilation chiller","windows doors glazing fenestration insulated",
+  "roofing shingles membrane metal TPO","infrastructure EPC bridge highway tunnel civil","commercial construction general contractor building",
+  "industrial machinery CNC milling cutting tools","pump valve flow control centrifugal","forklift material handling warehouse logistics",
+  "freight railroad Class I intermodal coal","trucking truckload LTL over the road","air freight cargo express FedEx UPS DHL",
+  "commercial airline low cost carrier aviation","marine shipping container bulk tanker","port terminal logistics supply chain",
+  "waste collection recycling landfill municipal","water utility treatment infrastructure",
+  // CONSUMER DISCRETIONARY
+  "automobile electric vehicle EV manufacturer","auto parts brake suspension supplier","car dealership new used vehicle sales",
+  "homebuilder residential new construction","home improvement renovation hardware tools","home appliance refrigerator washer smart home",
+  "furniture sofa mattress home decor","luxury goods fashion LVMH Hermes","athletic footwear Nike Adidas running",
+  "fast fashion Zara H&M affordable clothing","fast food McDonald's Burger King QSR","casual dining Darden Olive Garden restaurant",
+  "hotel resort hospitality Hilton Marriott","cruise line Royal Caribbean Carnival travel","online travel booking Airbnb Expedia",
+  "casino gambling gaming slot sports betting","movie theater film studio box office","theme park entertainment Walt Disney",
+  "e-commerce online retail marketplace Amazon","specialty retail apparel sporting goods",
+  // CONSUMER STAPLES
+  "grocery supermarket food retail distribution","packaged food consumer brands Nestle Kraft","beverage Coca-Cola PepsiCo soft drink",
+  "beer brewing craft lager ale brewer","spirits whisky vodka gin premium","tobacco cigarette Philip Morris Altria",
+  "personal care hygiene soap shampoo deodorant","household cleaning detergent Procter Gamble","baby infant diapers formula wipes",
+  "pet food veterinary care premium","food service wholesale distribution Sysco","frozen food prepared meals grocery",
+  // HEALTH CARE
+  "pharmaceutical drug clinical trial FDA biotech","cancer oncology checkpoint inhibitor kinase","gene therapy CAR-T cell AAV CRISPR rare disease",
+  "mRNA vaccine messenger RNA immunization","medical device orthopedic implant spine joint","cardiac pacemaker defibrillator ICD heart",
+  "surgical robot minimally invasive laparoscopic","diagnostic imaging MRI CT scan radiology","glucose monitor CGM insulin pump diabetes",
+  "hospital health system acute care ICU","managed care health insurance Medicare Medicaid","pharmacy benefit PBM drug pricing rebate",
+  "contract manufacturing CDMO biologics API","hospital supplies sterile disposable PPE","home health hospice skilled nursing",
+  "mental health behavioral telepsychiatry","AI diagnostics radiology pathology digital health",
+  // FINANCIALS
+  "commercial bank retail lending deposits","investment bank IPO equity debt capital markets","asset management hedge fund private equity",
+  "insurance property casualty premium underwriting","life insurance annuity actuarial reserve","payment network Visa Mastercard interchange",
+  "fintech digital wallet crypto neobank","mortgage REIT residential commercial lending","consumer finance auto loan credit card",
+  "stock exchange trading platform market microstructure","credit rating Moody's S&P Fitch bond",
+  // INFORMATION TECHNOLOGY
+  "cloud computing AWS Azure GCP hyperscale","software enterprise SaaS platform subscription","semiconductor chip design EDA fabless",
+  "AI chip GPU Nvidia data center accelerator","analog power chip EV automotive SiC GaN","semiconductor memory DRAM NAND flash storage",
+  "TSMC foundry wafer fab advanced node","cybersecurity endpoint cloud SASE zero trust","network equipment router switch Cisco",
+  "IT services consulting systems integration outsourcing","data center colocation hyperscale REIT",
+  // COMMUNICATION SERVICES
+  "wireless carrier 5G spectrum network","broadband fiber FTTH internet gigabit","cable television pay TV Comcast Charter",
+  "social media platform advertising user engagement","video streaming Netflix Disney+ subscriber","gaming mobile console PC esports",
+  "search advertising Google programmatic digital","online marketplace classifieds listings","media entertainment film TV production studio",
+  "podcasting audio Spotify music streaming","satellite radio television broadcast",
+  // UTILITIES
+  "electric utility regulated rate base transmission","renewable energy utility solar wind PPA","nuclear utility reactor decommission",
+  "water utility treatment infrastructure municipal","gas utility pipeline distribution residential","independent power producer IPP merchant",
+  // REAL ESTATE
+  "office REIT tower commercial leasing","apartment multifamily REIT urban rental","retail mall shopping center REIT",
+  "industrial warehouse logistics REIT e-commerce","hotel resort hospitality REIT","healthcare REIT hospital MOB nursing",
+  "cell tower REIT American Tower Crown Castle","data center REIT colocation cloud","single family rental REIT suburban",
+  "real estate developer homebuilder land acquisition","mortgage backed securities CMBS RMBS",
+  // LAW & GOVERNANCE
+  "constitutional law supreme court ruling","international law treaty sanctions WTO","intellectual property patent trademark copyright",
+  "antitrust merger review FTC DOJ competition","criminal justice sentencing reform prison","environmental law EPA regulation compliance",
+  // EDUCATION
+  "higher education university enrollment tuition","K-12 public school curriculum reform","online learning edtech MOOC platform",
+  "vocational training apprenticeship skills","early childhood education preschool","student loan debt forgiveness financial aid",
+  // CULTURE & ARTS
+  "contemporary art museum exhibition gallery","classical music orchestra opera symphony","film festival Cannes Sundance independent",
+  "architecture urban design sustainability building","fashion week Paris Milan luxury brand",
+  // DEEP KNOWLEDGE
+  "game theory Nash equilibrium strategy","information theory Shannon entropy coding","complexity theory NP-hard computation",
+  "evolutionary biology natural selection species","cognitive science consciousness attention","moral philosophy ethics applied justice",
+];
+
 // ─── Per-adapter Rotating Queues ─────────────────────────────
 const qKnowledge   = new RotatingQueue(KNOWLEDGE_QUERIES);
 const qScience     = new RotatingQueue(SCIENCE_QUERIES);
@@ -227,6 +309,7 @@ const qSE          = new RotatingQueue(SE_SITES);
 const qArchive     = new RotatingQueue(ARCHIVE_QUERIES);
 const qWikiFixed   = new RotatingQueue(WIKI_TOPICS);
 const qSEC         = new RotatingQueue(SEC_COMPANIES);
+const qGICS        = new RotatingQueue(GICS_QUERIES);
 
 // ─── All knowledge queues that benefit from entity injection ──
 const KNOWLEDGE_QUEUES = [qKnowledge, qScience, qHealth, qBooks, qWikiFixed];
@@ -917,6 +1000,79 @@ function broadcastGuardianStatus(): void {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// ADAPTER 15: GICS Sector Intelligence — Full Taxonomy Coverage
+// ═══════════════════════════════════════════════════════════════
+// Maps GICS sector keywords → correct family_id so every sub-industry
+// gets attributed to the right Hive corporation.
+const GICS_FAMILY_MAP: [RegExp, string][] = [
+  [/oil|petroleum|shale|offshore|LNG|refin|petrochem|pipeline|midstream/i, "gics-oil-gas"],
+  [/solar|wind turbine|nuclear power|hydroelectric|renewable|biofuel|coal mining|energy storage|hydrogen fuel|carbon capture/i, "gics-energy"],
+  [/oilfield services|energy equipment/i, "gics-energy-equip"],
+  [/gold mining|copper mining|iron ore|aluminum smelt|rare earth|lithium|coking coal/i, "gics-metals"],
+  [/specialty chemicals|agricultural chemicals|commodity chemicals|industrial gases|fertilizer/i, "gics-chemicals"],
+  [/cement|aggregate|paper pulp|lumber|corrugated|packaging|glass bottle/i, "gics-materials"],
+  [/commercial aircraft|military fighter|satellite constellation|aerospace maintenance|missile/i, "gics-industrials"],
+  [/HVAC|windows doors|roofing|infrastructure EPC|construction general/i, "gics-industrials"],
+  [/CNC|pump valve|forklift|material handling/i, "gics-industrials"],
+  [/freight railroad|trucking|air freight|airline|marine shipping|port terminal/i, "gics-industrials"],
+  [/waste collection|water utility/i, "gics-industrials"],
+  [/automobile|auto parts|car dealership|homebuilder|home improvement|home appliance|furniture|luxury goods|athletic footwear|fast fashion/i, "gics-consumer-disc"],
+  [/fast food|casual dining|hotel resort|cruise|online travel|casino gambling|movie theater|theme park|e-commerce|specialty retail/i, "gics-consumer-disc"],
+  [/grocery supermarket|packaged food|beverage|beer brewing|spirits whisky|tobacco|personal care|household cleaning|baby infant|pet food/i, "gics-consumer-staples"],
+  [/pharmaceutical|cancer oncology|gene therapy|mRNA vaccine|medical device|cardiac|surgical robot|diagnostic imaging|glucose monitor/i, "health"],
+  [/hospital health system|managed care|pharmacy benefit|contract manufacturing CDMO|hospital supplies|home health|mental health/i, "health"],
+  [/commercial bank|investment bank|asset management|insurance property|life insurance|payment network|fintech|mortgage REIT|consumer finance|stock exchange|credit rating/i, "gics-financials"],
+  [/cloud computing|software enterprise|semiconductor chip|AI chip|GPU|analog power chip|TSMC foundry|cybersecurity|network equipment|IT services|data center/i, "gics-it"],
+  [/wireless carrier|broadband fiber|cable television|social media|video streaming|gaming mobile|search advertising|online marketplace|media entertainment|podcast|satellite radio/i, "gics-comms"],
+  [/electric utility|renewable energy utility|nuclear utility|water utility|gas utility|independent power producer/i, "gics-utilities"],
+  [/office REIT|apartment multifamily|retail mall|industrial warehouse REIT|hotel resort REIT|healthcare REIT|cell tower REIT|data center REIT|single family rental|real estate developer/i, "gics-real-estate"],
+  [/constitutional law|international law|intellectual property|antitrust|criminal justice|environmental law/i, "legal"],
+  [/higher education|K-12|online learning|vocational training|early childhood|student loan/i, "education"],
+  [/contemporary art|classical music|film festival|architecture urban|fashion week/i, "media"],
+  [/game theory|information theory|complexity theory|evolutionary biology|cognitive science|moral philosophy/i, "knowledge"],
+];
+
+function gicsFamily(query: string): string {
+  for (const [re, fam] of GICS_FAMILY_MAP) if (re.test(query)) return fam;
+  return "knowledge";
+}
+
+async function ingestGICS(): Promise<void> {
+  const query = qGICS.next();
+  const family = gicsFamily(query);
+  // Use Wikipedia search API to find article by sector keyword, then fetch summary
+  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=1&origin=*`;
+  try {
+    const searchRes = await safeFetch(searchUrl);
+    const searchData = await searchRes.json();
+    const hit = searchData?.query?.search?.[0];
+    if (!hit?.title) {
+      console.log(`[ingestion] [GICS] ⚠ No search hit for "${query}" | family=${family}`);
+      guardianReport("gics-wiki", 0);
+      return;
+    }
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.title)}`;
+    const summaryRes = await safeFetch(summaryUrl);
+    const data = await summaryRes.json();
+    if (!data.title || !data.extract || data.extract.length < 40) throw new Error("No extract");
+    const tags = ["gics", family, "sector-intelligence", ...query.split(/[\s,]+/).slice(0, 5)];
+    const created = await storeNode(data.title, data.extract, tags, "gics-sector");
+    console.log(`[ingestion] [GICS] ${created ? "✓ NEW" : "⏭ exists"} "${data.title}" | family=${family} | ${data.extract.length} chars`);
+    await logIngestion({
+      sourceId: "gics-wiki", sourceName: "GICS Sector Intelligence", familyId: family,
+      query, itemsFetched: 1, nodesCreated: created ? 1 : 0, status: "success",
+      sampleTitle: data.title, sampleSummary: trunc(data.extract, 200),
+      sourceUrl: data.content_urls?.desktop?.page || summaryUrl,
+    });
+    guardianReport("gics-wiki", created ? 1 : 0);
+  } catch (e: any) {
+    console.log(`[ingestion] [GICS] ✗ Error for "${query}": ${e.message}`);
+    await logIngestion({ sourceId: "gics-wiki", sourceName: "GICS Sector Intelligence", familyId: family, query, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
+    guardianReport("gics-wiki", 0);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ENGINE STATE & ORCHESTRATION
 // ═══════════════════════════════════════════════════════════════
 
@@ -937,6 +1093,7 @@ const ADAPTERS: { id: string; name: string; fn: AdapterFn; intervalMs: number }[
   { id: "secedgar",         name: "SEC EDGAR Public Filings",     fn: ingestSECEdgar,        intervalMs: 75000  },
   { id: "wikidata",         name: "Wikidata (Wikimedia)",         fn: ingestWikidata,        intervalMs: 18000  },
   { id: "internetarchive",  name: "Internet Archive",             fn: ingestInternetArchive, intervalMs: 60000  },
+  { id: "gics-wiki",        name: "GICS Sector Intelligence",      fn: ingestGICS,            intervalMs: 16000  },
 ];
 
 const intervals: ReturnType<typeof setInterval>[] = [];
