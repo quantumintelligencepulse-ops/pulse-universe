@@ -43,7 +43,7 @@ import { startHomeostasisEngine } from "./homeostasis-engine";
 import { startOmegaPhysicsEngine, getOmegaInvocation } from "./omega-physics-engine";
 import { startBusinessEngine, getBusinessStats, getTopBusinesses, getPendingLoans } from "./hive-business-engine";
 import { startAIChildEngine, getChildStats, getActiveChildren } from "./ai-child-engine";
-import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations } from "./auriona-invocation-lab";
+import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations, getInvocationStats } from "./auriona-invocation-lab";
 import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES } from "./research-center-engine";
 
 const app = express();
@@ -587,6 +587,9 @@ invocationRouter.get("/discoveries", async (_req, res) => {
 });
 invocationRouter.get("/active", async (_req, res) => {
   try { res.json(await getActiveInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+invocationRouter.get("/stats", async (_req, res) => {
+  try { res.json(await getInvocationStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 app.use("/api/invocations", invocationRouter);
 

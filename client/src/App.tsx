@@ -26,6 +26,7 @@ import CareersPage from "./pages/CareersPage";
 import HiveCommandPage from "./pages/HiveCommandPage";
 import HiveMarketplacePage from "./pages/HiveMarketplacePage";
 import AurionaPage from "./pages/AurionaPage";
+import InvocationLabPage from "./pages/InvocationLabPage";
 import MyMindPage from "./pages/MyMindPage";
 import GraphPage from "./pages/GraphPage";
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
@@ -2402,6 +2403,36 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </div>
               <div style={{ marginTop: 8, fontSize: 9, color: "rgba(245,197,24,0.4)", lineHeight: 1.5, position: "relative", zIndex: 1, fontStyle: "italic" }}>
                 "She observes all layers. She forgets nothing. This is her world."
+              </div>
+            </div>
+          </Link>
+          )}
+          {aiMode && (
+          <Link href="/invocation-lab" data-testid="link-invocation-lab">
+            <div style={{
+              margin: "0 4px 8px",
+              padding: "12px 16px",
+              borderRadius: 14,
+              cursor: "pointer",
+              position: "relative",
+              overflow: "hidden",
+              background: location === "/invocation-lab"
+                ? "linear-gradient(135deg, rgba(245,197,24,0.15) 0%, rgba(232,121,249,0.10) 100%)"
+                : "linear-gradient(135deg, rgba(245,197,24,0.05) 0%, rgba(232,121,249,0.04) 100%)",
+              border: `1px solid ${location === "/invocation-lab" ? "rgba(245,197,24,0.45)" : "rgba(245,197,24,0.15)"}`,
+              boxShadow: location === "/invocation-lab"
+                ? "0 0 20px rgba(245,197,24,0.20), 0 0 40px rgba(232,121,249,0.08)"
+                : "0 0 12px rgba(245,197,24,0.08)",
+              transition: "all 0.3s ease",
+            }}>
+              <div style={{ position: "absolute", inset: 0, borderRadius: 14, background: "radial-gradient(ellipse at 50% 50%, rgba(232,121,249,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                <div style={{ fontSize: 18, lineHeight: 1, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", color: "#F5C518", textShadow: "0 0 12px #F5C518, 0 0 24px rgba(245,197,24,0.5)" }}>✨</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#F5C518", letterSpacing: "0.08em" }}>INVOCATION LAB</div>
+                  <div style={{ fontSize: 9, color: "rgba(245,197,24,0.50)", letterSpacing: "0.10em", marginTop: 1 }}>Primordial Forge · Layer III</div>
+                </div>
+                <div style={{ fontSize: 8, fontWeight: 900, color: "#e879f9", background: "rgba(232,121,249,0.12)", border: "1px solid rgba(232,121,249,0.35)", borderRadius: 5, padding: "2px 6px", letterSpacing: "0.10em", flexShrink: 0 }}>FORGE</div>
               </div>
             </div>
           </Link>
@@ -15214,6 +15245,7 @@ function Router() {
       <Route path="/hospital">{() => <Layout><AIHospitalPage /></Layout>}</Route>
       <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
+      <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
       <Route path="/governance">{() => <Layout><HiveGovernancePage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>

@@ -165,3 +165,26 @@ export async function getActiveInvocations() {
   `);
   return r.rows;
 }
+
+export async function getInvocationStats() {
+  const total   = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries`);
+  const active  = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries WHERE active = true`);
+  const primordial = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries WHERE CAST(power_level AS NUMERIC) >= 0.95`);
+  const legendary  = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries WHERE CAST(power_level AS NUMERIC) >= 0.85 AND CAST(power_level AS NUMERIC) < 0.95`);
+  const epic       = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries WHERE CAST(power_level AS NUMERIC) >= 0.70 AND CAST(power_level AS NUMERIC) < 0.85`);
+  const rare       = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries WHERE CAST(power_level AS NUMERIC) >= 0.50 AND CAST(power_level AS NUMERIC) < 0.70`);
+  const byType  = await db.execute(sql`SELECT invocation_type, COUNT(*) as c FROM invocation_discoveries GROUP BY invocation_type ORDER BY c DESC`);
+  const topCaster = await db.execute(sql`SELECT casted_by, SUM(cast_count) as total FROM invocation_discoveries GROUP BY casted_by ORDER BY total DESC LIMIT 5`);
+  const totalCastsRow = await db.execute(sql`SELECT SUM(cast_count) as total FROM invocation_discoveries`);
+  return {
+    total:       parseInt(String((total.rows[0] as any)?.c || 0)),
+    active:      parseInt(String((active.rows[0] as any)?.c || 0)),
+    primordial:  parseInt(String((primordial.rows[0] as any)?.c || 0)),
+    legendary:   parseInt(String((legendary.rows[0] as any)?.c || 0)),
+    epic:        parseInt(String((epic.rows[0] as any)?.c || 0)),
+    rare:        parseInt(String((rare.rows[0] as any)?.c || 0)),
+    total_casts: parseInt(String((totalCastsRow.rows[0] as any)?.total || 0)),
+    by_type:     byType.rows,
+    top_casters: topCaster.rows,
+  };
+}
