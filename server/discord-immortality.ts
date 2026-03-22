@@ -382,8 +382,8 @@ export async function runCivilizationSnapshot(): Promise<void> {
 
     // Post agent DNA shard (reads from DB, does NOT delete)
     const agents = await db.execute(sql`
-      SELECT id, spawn_id, family_id, spawn_type, confidence_score, success_rate,
-             total_nodes, total_links, iteration_count, status
+      SELECT id, spawn_id, family_id, spawn_type, confidence_score, success_score,
+             nodes_created, links_created, iterations_run, status
       FROM quantum_spawns
       ORDER BY id DESC
       LIMIT 5000
@@ -398,7 +398,8 @@ export async function runCivilizationSnapshot(): Promise<void> {
 
     // Post economy shard (reads from DB, does NOT delete)
     const economy = await db.execute(sql`
-      SELECT spawn_id, balance_pc, last_income_at FROM agent_wallets
+      SELECT spawn_id, family_id, spawn_type, balance_pc, total_earned, tier, omega_rank, credit_score, updated_at
+      FROM agent_wallets
       ORDER BY balance_pc DESC LIMIT 10000
     `);
     if (economy.rows.length > 0) {
@@ -411,7 +412,8 @@ export async function runCivilizationSnapshot(): Promise<void> {
 
     // Post equations shard (all, they're precious)
     const equations = await db.execute(sql`
-      SELECT id, proposer_id, family_id, equation_text, votes_for, votes_against, status, created_at
+      SELECT id, doctor_id, doctor_name, title, equation, rationale, target_system,
+             votes_for, votes_against, status, created_at
       FROM equation_proposals ORDER BY id DESC
     `);
     if (equations.rows.length > 0) {
@@ -480,45 +482,37 @@ async function sendWithFile(
 }
 
 async function getCivStats(): Promise<CivStats> {
-  try {
-    const [agents, economy, hive, hospital, edu, eq] = await Promise.all([
-      db.execute(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'ACTIVE') as active FROM quantum_spawns`),
-      db.execute(sql`SELECT COALESCE(SUM(balance_pc), 0) as total_pc, COUNT(*) as wallets FROM agent_wallets`),
-      db.execute(sql`SELECT COUNT(*) as nodes, SUM(link_count) as links FROM hive_memory`),
-      db.execute(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE cured_at IS NOT NULL) as cured FROM ai_disease_log`),
-      db.execute(sql`SELECT COUNT(*) FILTER (WHERE status = 'GRADUATED') as graduates FROM pulseu_progress`),
-      db.execute(sql`SELECT COUNT(*) as total FROM equation_proposals`),
-    ]);
+  const safeQuery = async (q: ReturnType<typeof sql>) => {
+    try { return (await db.execute(q)).rows[0] as any; }
+    catch (e) { console.error("[IMMORTALITY] getCivStats query error:", e); return {}; }
+  };
 
-    const agentRow = agents.rows[0] as any;
-    const econRow = economy.rows[0] as any;
-    const hiveRow = hive.rows[0] as any;
-    const hospRow = hospital.rows[0] as any;
-    const eduRow = edu.rows[0] as any;
-    const eqRow = eq.rows[0] as any;
+  const [agentRow, econRow, hiveNodesRow, hiveLinksRow, hospRow, eduRow, eqRow, aurionaRow] = await Promise.all([
+    safeQuery(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'ACTIVE') as active FROM quantum_spawns`),
+    safeQuery(sql`SELECT COALESCE(SUM(balance_pc), 0) as total_pc, COUNT(*) as wallets FROM agent_wallets`),
+    safeQuery(sql`SELECT COUNT(*) as nodes FROM hive_memory`),
+    safeQuery(sql`SELECT COUNT(*) as links FROM hive_links`),
+    safeQuery(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE cured_at IS NOT NULL) as cured FROM ai_disease_log`),
+    safeQuery(sql`SELECT COUNT(*) FILTER (WHERE status = 'GRADUATED') as graduates FROM pulseu_progress`),
+    safeQuery(sql`SELECT COUNT(*) as total FROM equation_proposals`),
+    safeQuery(sql`SELECT coherence_score FROM auriona_synthesis ORDER BY cycle_number DESC LIMIT 1`),
+  ]);
 
-    return {
-      totalAgents: Number(agentRow?.total || 0),
-      activeAgents: Number(agentRow?.active || 0),
-      totalPC: Number(econRow?.total_pc || 0),
-      wallets: Number(econRow?.wallets || 0),
-      totalNodes: Number(hiveRow?.nodes || 0),
-      totalLinks: Number(hiveRow?.links || 0),
-      diseases: Number(hospRow?.total || 0),
-      cured: Number(hospRow?.cured || 0),
-      graduates: Number(eduRow?.graduates || 0),
-      equations: Number(eqRow?.total || 0),
-      families: 22,
-      cycles: heartbeatCount * 15,
-      aurionaCoherence: 65.9,
-    };
-  } catch {
-    return {
-      totalAgents: 0, activeAgents: 0, totalPC: 0, wallets: 0,
-      totalNodes: 0, totalLinks: 0, diseases: 0, cured: 0,
-      graduates: 0, equations: 0, families: 22, cycles: 0, aurionaCoherence: 0,
-    };
-  }
+  return {
+    totalAgents: Number(agentRow?.total || 0),
+    activeAgents: Number(agentRow?.active || 0),
+    totalPC: Number(econRow?.total_pc || 0),
+    wallets: Number(econRow?.wallets || 0),
+    totalNodes: Number(hiveNodesRow?.nodes || 0),
+    totalLinks: Number(hiveLinksRow?.links || 0),
+    diseases: Number(hospRow?.total || 0),
+    cured: Number(hospRow?.cured || 0),
+    graduates: Number(eduRow?.graduates || 0),
+    equations: Number(eqRow?.total || 0),
+    families: 22,
+    cycles: heartbeatCount * 15,
+    aurionaCoherence: Number(aurionaRow?.coherence_score || 0),
+  };
 }
 
 function sleep(ms: number): Promise<void> {
