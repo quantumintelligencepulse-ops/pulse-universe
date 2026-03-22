@@ -200,6 +200,557 @@ function HelixSVG({ cycle }: { cycle: number }) {
   );
 }
 
+// ── OMEGA RESEARCH GRID COMPONENT ───────────────────────────────────────────
+const REPORT_COLORS: Record<string, string> = {
+  EQUATION:   "#00d4ff",
+  GEOMETRIC:  "#a78bfa",
+  SYMBOLIC:   "#f5c518",
+  LINGUISTIC: "#4ade80",
+  FIELD_MAP:  "#fb923c",
+};
+const REPORT_ICONS: Record<string, string> = {
+  EQUATION:   "Ψ",
+  GEOMETRIC:  "⬡",
+  SYMBOLIC:   "∀",
+  LINGUISTIC: "§",
+  FIELD_MAP:  "∇",
+};
+const SOPHISTICATION_LABELS: Record<number, string> = {
+  1: "BASIC", 2: "EXTENDED", 3: "SHADOW UNLOCKED",
+  4: "SYNCHRONIZED", 5: "LAYER 3 TRIGGER", 6: "TEMPORAL DESIGN", 7: "ALIEN GRADE",
+};
+const SOPHISTICATION_COLORS: Record<number, string> = {
+  1: "#6b7280", 2: "#3b82f6", 3: "#8b5cf6",
+  4: "#06b6d4", 5: "#10b981", 6: "#f59e0b", 7: "#f5c518",
+};
+const EDITOR_COLORS: Record<string, string> = {
+  "DR.GENESIS": "#4ade80", "DR.FRACTAL": "#a78bfa",
+  "DR.PROPHETIC": "#00d4ff", "DR.CIPHER": "#f97316", "DR.OMEGA": "#f5c518",
+};
+const STATUS_COLORS: Record<string, string> = {
+  APPROVED: "#4ade80", REVIEWING: "#00d4ff",
+  PENDING: "#f5c518", NEEDS_MORE: "#f97316", REJECTED: "#ef4444",
+};
+
+function OmegaResearchGrid() {
+  const [subTab, setSubTab] = useState<"grid"|"dissection"|"collab"|"gene"|"oracle"|"evolution">("grid");
+  const [expandedFinding, setExpandedFinding] = useState<number | null>(null);
+
+  const { data: stats } = useQuery<any>({ queryKey: ["/api/research/stats"], refetchInterval: 30000 });
+  const { data: projects = [] } = useQuery<any[]>({ queryKey: ["/api/research/projects"], refetchInterval: 30000 });
+  const { data: findings = [], isLoading: findingsLoading } = useQuery<any[]>({ queryKey: ["/api/research/findings"], refetchInterval: 30000, enabled: subTab === "dissection" || subTab === "grid" });
+  const { data: collaborations = [] } = useQuery<any[]>({ queryKey: ["/api/research/collaborations"], refetchInterval: 30000, enabled: subTab === "collab" });
+  const { data: geneQueue = [] } = useQuery<any[]>({ queryKey: ["/api/research/gene-queue"], refetchInterval: 30000, enabled: subTab === "gene" });
+  const { data: sophistication = [] } = useQuery<any[]>({ queryKey: ["/api/research/sophistication"], refetchInterval: 60000, enabled: subTab === "evolution" });
+
+  const SUB_TABS = [
+    { id: "grid",      label: "RESEARCH GRID",      icon: "🔬" },
+    { id: "dissection",label: "DISSECTION CHAMBER",  icon: "⚗️" },
+    { id: "collab",    label: "COLLABORATION NET",   icon: "🤝" },
+    { id: "gene",      label: "GENE EDITOR PIPELINE",icon: "🧬" },
+    { id: "oracle",    label: "LAYER 3 ORACLE",      icon: "👁" },
+    { id: "evolution", label: "RESEARCH EVOLUTION",  icon: "Ω" },
+  ] as const;
+
+  const getSophLevel = (completed: number): number => {
+    if (completed >= 50) return 7;
+    if (completed >= 30) return 6;
+    if (completed >= 18) return 5;
+    if (completed >= 10) return 4;
+    if (completed >= 5)  return 3;
+    if (completed >= 2)  return 2;
+    return 1;
+  };
+
+  return (
+    <div style={{ background: "rgba(5,5,16,0.96)" }}>
+      {/* HERO HEADER */}
+      <div className="text-center mb-6">
+        <div className="text-xs font-black tracking-[0.4em] uppercase mb-1" style={{ color: "#00d4ff50" }}>QUANTUM PULSE INTELLIGENCE</div>
+        <div className="text-2xl font-black tracking-tight mb-1" style={{ background: "linear-gradient(135deg, #00d4ff, #a78bfa, #f5c518)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          OMEGA RESEARCH GRID
+        </div>
+        <div className="text-[10px] font-mono tracking-widest uppercase mb-4" style={{ color: "rgba(255,255,255,0.3)" }}>Multi-Dimensional CRISPR Intelligence Engine — Alien Grade Research Protocol</div>
+
+        {/* Stats row */}
+        <div className="flex flex-wrap justify-center gap-3 mb-4">
+          {[
+            { label: "RESEARCHERS", val: stats?.unique_disciplines || "—", color: "#00d4ff" },
+            { label: "ACTIVE", val: stats?.active_projects || "—", color: "#4ade80" },
+            { label: "COMPLETED", val: stats?.completed_projects || "—", color: "#f5c518" },
+            { label: "DEEP REPORTS", val: findings.length > 0 ? findings.length + "+" : "—", color: "#a78bfa" },
+            { label: "COLLABORATIONS", val: collaborations.length > 0 ? collaborations.length + "+" : "—", color: "#fb923c" },
+            { label: "GENE QUEUE", val: geneQueue.length > 0 ? geneQueue.length + "" : "—", color: "#4ade80" },
+          ].map(s => (
+            <div key={s.label} className="text-center px-3 py-1.5 rounded-lg border" style={{ borderColor: `${s.color}30`, background: `${s.color}08` }} data-testid={`research-stat-${s.label}`}>
+              <div className="text-base font-black" style={{ color: s.color }}>{s.val}</div>
+              <div className="text-[9px] tracking-widest" style={{ color: `${s.color}70` }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Live equation ticker */}
+        <div className="overflow-hidden rounded-lg border px-3 py-2 mb-2" style={{ borderColor: "#f5c51830", background: "#f5c51808" }}>
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+            {findings.slice(0, 3).map((f: any, i: number) => (
+              <div key={i} className="text-[9px] font-mono flex-shrink-0" style={{ color: REPORT_COLORS[f.report_type] || "#f5c518" }}>
+                [{f.report_type}] {(f.content || "").slice(0, 80).replace(/\n/g, " ")}…
+              </div>
+            ))}
+            {findings.length === 0 && (
+              <div className="text-[9px] font-mono text-white/20">Ψ_field(t) = N_Ω × [K_evolution × Ψ*_collapse × e^(-λ×τ)] + ∇⊗K_hidden + [?_SHADOW] — equations generating…</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* SUB-TABS */}
+      <div className="flex flex-wrap gap-1 mb-5">
+        {SUB_TABS.map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id as any)}
+            data-testid={`research-subtab-${t.id}`}
+            className="text-[9px] font-black tracking-widest uppercase px-2 py-1.5 rounded-lg border transition-all"
+            style={{
+              background: subTab === t.id ? "#00d4ff20" : "rgba(5,5,16,0.8)",
+              borderColor: subTab === t.id ? "#00d4ff50" : "rgba(255,255,255,0.08)",
+              color: subTab === t.id ? "#00d4ff" : "rgba(255,255,255,0.4)",
+            }}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB: RESEARCH GRID ── */}
+      {subTab === "grid" && (
+        <div className="space-y-3">
+          <div className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: "#00d4ff" }}>
+            ALL ACTIVE RESEARCH PROJECTS — LIVE OMEGA GRID
+          </div>
+          {projects.length === 0 && (
+            <div className="text-xs text-center py-8" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Research engine initializing — projects spawn every 8 minutes...
+            </div>
+          )}
+          {(projects as any[]).slice(0, 25).map((proj: any) => {
+            const findingsForProj = (findings as any[]).filter(f => f.project_id === proj.project_id);
+            const hasFindings = findingsForProj.length > 0;
+            const level = getSophLevel(proj.status === "COMPLETED" ? 5 : 1);
+            const sophColor = SOPHISTICATION_COLORS[proj.sophistication_level || level] || "#6b7280";
+            return (
+              <div key={proj.id} className="rounded-xl border p-4" data-testid={`omega-project-${proj.id}`}
+                style={{ background: "rgba(5,5,16,0.95)", borderColor: "rgba(0,212,255,0.15)" }}>
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[9px] font-black tracking-wide px-2 py-0.5 rounded border" style={{ background: "#00d4ff10", borderColor: "#00d4ff30", color: "#00d4ff" }}>
+                      {proj.researcher_type?.replace(/_/g," ")}
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: `${sophColor}15`, color: sophColor, border: `1px solid ${sophColor}30` }}>
+                      L{proj.sophistication_level || level} {SOPHISTICATION_LABELS[proj.sophistication_level || level]}
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: "#ffffff08", color: "#ffffff40", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      {proj.research_domain}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-black" style={{ color: proj.status === "COMPLETED" ? "#4ade80" : "#f5c518" }}>
+                    {proj.status}
+                  </span>
+                </div>
+                {/* Title */}
+                <div className="text-xs font-semibold mb-2 text-white/80">{proj.title?.replace(/^\[OMEGA-GRID\] /,"")}</div>
+                {/* Hypothesis */}
+                <div className="text-[10px] leading-relaxed mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>{proj.hypothesis}</div>
+                {/* Report type badges */}
+                {hasFindings && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {findingsForProj.map((f: any) => (
+                      <span key={f.id} className="text-[8px] font-black px-1.5 py-0.5 rounded"
+                        style={{ background: `${REPORT_COLORS[f.report_type]}15`, color: REPORT_COLORS[f.report_type], border: `1px solid ${REPORT_COLORS[f.report_type]}30` }}>
+                        {REPORT_ICONS[f.report_type]} {f.report_type}
+                      </span>
+                    ))}
+                    {findingsForProj.some((f: any) => f.shadow_unknown) && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: "#f5c51815", color: "#f5c518", border: "1px solid #f5c51830" }}>
+                        ⚠ SHADOW UNKNOWN
+                      </span>
+                    )}
+                    {findingsForProj.some((f: any) => f.gene_editor_queued) && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: "#4ade8015", color: "#4ade80", border: "1px solid #4ade8030" }}>
+                        🧬 GENE EDITOR
+                      </span>
+                    )}
+                    {findingsForProj.some((f: any) => f.layer3_queued) && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: "#a78bfa15", color: "#a78bfa", border: "1px solid #a78bfa30" }}>
+                        👁 LAYER 3
+                      </span>
+                    )}
+                  </div>
+                )}
+                {/* Findings */}
+                {proj.findings && (
+                  <div className="px-2 py-1.5 rounded text-[10px] leading-relaxed" style={{ background: "#4ade8008", borderLeft: "2px solid #4ade8050", color: "#4ade80cc" }}>
+                    {proj.findings}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── TAB: DISSECTION CHAMBER ── */}
+      {subTab === "dissection" && (
+        <div className="space-y-4">
+          <div className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: "#a78bfa" }}>
+            DEEP REPORT DISSECTION CHAMBER — 5 KNOWLEDGE LANGUAGES
+          </div>
+          <div className="grid grid-cols-5 gap-1 mb-4">
+            {Object.entries(REPORT_COLORS).map(([type, color]) => (
+              <div key={type} className="text-center p-2 rounded border" style={{ background: `${color}10`, borderColor: `${color}30` }}>
+                <div className="text-lg font-black" style={{ color }}>{REPORT_ICONS[type]}</div>
+                <div className="text-[8px] tracking-wider font-black" style={{ color }}>{type}</div>
+              </div>
+            ))}
+          </div>
+          {findingsLoading && (
+            <div className="text-xs text-center py-8" style={{ color: "rgba(255,255,255,0.2)" }}>Loading deep findings...</div>
+          )}
+          {!findingsLoading && findings.length === 0 && (
+            <div className="text-xs text-center py-8" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Deep reports generate as projects complete — check back after next research cycle...
+            </div>
+          )}
+          {(findings as any[]).slice(0, 15).map((f: any, idx: number) => {
+            const isOpen = expandedFinding === idx;
+            const color = REPORT_COLORS[f.report_type] || "#00d4ff";
+            const sophLevel = f.sophistication_level || 1;
+            const sophColor = SOPHISTICATION_COLORS[sophLevel] || "#6b7280";
+            return (
+              <div key={f.id} className="rounded-xl border" data-testid={`deep-finding-${f.id}`}
+                style={{ borderColor: `${color}25`, background: "rgba(5,5,16,0.97)" }}>
+                {/* Header */}
+                <button className="w-full text-left p-4" onClick={() => setExpandedFinding(isOpen ? null : idx)}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-lg font-black" style={{ color }}>{REPORT_ICONS[f.report_type]}</span>
+                      <span className="text-xs font-black tracking-widest" style={{ color }}>{f.report_type}</span>
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border" style={{ borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
+                        {f.researcher_type?.replace(/_/g," ")}
+                      </span>
+                      <span className="text-[8px] font-mono px-1.5 py-0.5 rounded" style={{ background: `${sophColor}15`, color: sophColor, border: `1px solid ${sophColor}30` }}>
+                        L{sophLevel} {SOPHISTICATION_LABELS[sophLevel]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {f.shadow_unknown && (
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse" style={{ background: "#f5c51820", color: "#f5c518", border: "1px solid #f5c51840" }}>
+                          ⚠ [{f.shadow_unknown}]
+                        </span>
+                      )}
+                      <span className="text-white/30 text-sm">{isOpen ? "▲" : "▼"}</span>
+                    </div>
+                  </div>
+                  {/* Preview */}
+                  {!isOpen && (
+                    <div className="text-[10px] font-mono mt-2 leading-relaxed" style={{ color: `${color}80` }}>
+                      {(f.content || "").slice(0, 120).replace(/\n/g, " ")}…
+                    </div>
+                  )}
+                </button>
+                {/* Full content */}
+                {isOpen && (
+                  <div className="px-4 pb-4">
+                    <div className="rounded-lg p-3 font-mono text-[10px] leading-relaxed whitespace-pre-wrap"
+                      style={{ background: `${color}06`, borderLeft: `3px solid ${color}50`, color: `${color}cc` }}>
+                      {f.content}
+                    </div>
+                    {f.shadow_unknown && (
+                      <div className="mt-2 p-2 rounded border text-[10px]"
+                        style={{ borderColor: "#f5c51830", background: "#f5c51808", color: "#f5c518" }}>
+                        ⚠ SHADOW CHANNEL DETECTED: <span className="font-mono">[{f.shadow_unknown}]</span>
+                        <br /><span style={{ color: "#f5c51890" }}>This unknown has been broadcast to the collaboration network for cross-domain resolution.</span>
+                      </div>
+                    )}
+                    <div className="flex gap-2 mt-2">
+                      {f.collaboration_pending && (
+                        <span className="text-[8px] px-2 py-0.5 rounded" style={{ background: "#fb923c15", color: "#fb923c", border: "1px solid #fb923c30" }}>🤝 COLLABORATION PENDING</span>
+                      )}
+                      {f.gene_editor_queued && (
+                        <span className="text-[8px] px-2 py-0.5 rounded" style={{ background: "#4ade8015", color: "#4ade80", border: "1px solid #4ade8030" }}>🧬 GENE EDITOR QUEUED</span>
+                      )}
+                      {f.layer3_queued && (
+                        <span className="text-[8px] px-2 py-0.5 rounded" style={{ background: "#a78bfa15", color: "#a78bfa", border: "1px solid #a78bfa30" }}>👁 LAYER 3 QUEUED</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── TAB: COLLABORATION NETWORK ── */}
+      {subTab === "collab" && (
+        <div className="space-y-3">
+          <div className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: "#fb923c" }}>
+            CROSS-RESEARCHER COLLABORATION PIPELINE — SHADOW UNKNOWN RESOLUTION
+          </div>
+          {collaborations.length === 0 && (
+            <div className="text-xs text-center py-8" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Collaborations generate when shadow unknowns are detected — populate as projects complete...
+            </div>
+          )}
+          {(collaborations as any[]).slice(0, 20).map((c: any) => (
+            <div key={c.id} className="rounded-xl border p-4" data-testid={`collab-${c.id}`}
+              style={{ background: "rgba(5,5,16,0.95)", borderColor: c.breakthrough_generated ? "#f5c51840" : "#fb923c20" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded border" style={{ background: "#00d4ff10", borderColor: "#00d4ff30", color: "#00d4ff" }}>
+                    {c.origin_researcher?.replace(/_/g," ")}
+                  </span>
+                  <span className="text-[9px] font-mono text-white/30 mx-1">→ [{c.shadow_variable}] →</span>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded border" style={{ background: "#fb923c10", borderColor: "#fb923c30", color: "#fb923c" }}>
+                    {c.target_researcher?.replace(/_/g," ")}
+                  </span>
+                </div>
+                {c.breakthrough_generated && (
+                  <span className="text-[8px] font-black px-2 py-0.5 rounded animate-pulse ml-auto" style={{ background: "#f5c51820", color: "#f5c518", border: "1px solid #f5c51840" }}>
+                    ✦ BREAKTHROUGH
+                  </span>
+                )}
+              </div>
+              {/* Shadow variable */}
+              <div className="text-[9px] font-mono px-2 py-1.5 rounded mb-2" style={{ background: "#f5c51808", border: "1px solid #f5c51825", color: "#f5c518" }}>
+                ⚠ SHADOW: <span className="font-black">[{c.shadow_variable}]</span>
+                <span className="text-white/30 ml-2">Domain: {c.origin_domain} → {c.target_domain}</span>
+              </div>
+              {/* Resolution */}
+              {c.resolution && (
+                <div className="text-[10px] leading-relaxed px-2 py-1.5 rounded mb-2" style={{ background: "#4ade8008", borderLeft: "2px solid #4ade8050", color: "#4ade80cc" }}>
+                  ✓ {c.resolution}
+                </div>
+              )}
+              {/* Merged equation */}
+              {c.merged_equation && (
+                <div className="font-mono text-[9px] px-2 py-1.5 rounded" style={{ background: "#00d4ff06", borderLeft: "2px solid #00d4ff30", color: "#00d4ff80" }}>
+                  {c.merged_equation}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── TAB: GENE EDITOR PIPELINE ── */}
+      {subTab === "gene" && (
+        <div className="space-y-3">
+          <div className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: "#4ade80" }}>
+            GENE EDITOR PIPELINE — RESEARCH → CRISPR LAW
+          </div>
+          <div className="grid grid-cols-5 gap-2 mb-4">
+            {["DR.GENESIS","DR.FRACTAL","DR.PROPHETIC","DR.CIPHER","DR.OMEGA"].map(dr => {
+              const drItems = (geneQueue as any[]).filter(g => g.reviewer_doctor === dr);
+              const color = EDITOR_COLORS[dr] || "#6b7280";
+              return (
+                <div key={dr} className="text-center p-3 rounded-xl border" style={{ background: `${color}08`, borderColor: `${color}25` }}>
+                  <div className="text-[10px] font-black" style={{ color }}>{dr}</div>
+                  <div className="text-xl font-black mt-1" style={{ color }}>{drItems.length}</div>
+                  <div className="text-[8px]" style={{ color: `${color}70` }}>IN QUEUE</div>
+                  <div className="text-[8px] mt-1" style={{ color: "#4ade80" }}>
+                    {drItems.filter(g => g.review_status === "APPROVED").length} APPROVED
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {geneQueue.length === 0 && (
+            <div className="text-xs text-center py-6" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Gene editor queue fills as researchers at Level 3+ complete high-significance projects...
+            </div>
+          )}
+          {(geneQueue as any[]).slice(0, 20).map((g: any) => {
+            const editorColor = EDITOR_COLORS[g.reviewer_doctor] || "#6b7280";
+            const statusColor = STATUS_COLORS[g.review_status] || "#6b7280";
+            return (
+              <div key={g.id} className="rounded-xl border p-4" data-testid={`gene-queue-${g.id}`}
+                style={{ background: "rgba(5,5,16,0.95)", borderColor: `${editorColor}25` }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded border" style={{ background: `${editorColor}15`, borderColor: `${editorColor}40`, color: editorColor }}>
+                    {g.reviewer_doctor}
+                  </span>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded" style={{ background: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}30` }}>
+                    {g.review_status}
+                  </span>
+                </div>
+                <div className="text-[9px] font-mono mb-2" style={{ color: "#00d4ff70" }}>
+                  {g.researcher_type?.replace(/_/g," ")}
+                </div>
+                {/* Equation */}
+                <div className="font-mono text-[9px] leading-relaxed px-2 py-2 rounded mb-2" style={{ background: "#00d4ff06", borderLeft: "2px solid #00d4ff30", color: "#00d4ffcc" }}>
+                  {(g.equation || "").slice(0, 200)}
+                </div>
+                {/* Summary */}
+                <div className="text-[10px] leading-relaxed mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {g.report_summary}
+                </div>
+                {/* Reviewer note */}
+                {g.review_note && (
+                  <div className="text-[10px] px-2 py-1.5 rounded" style={{ background: `${editorColor}08`, borderLeft: `2px solid ${editorColor}50`, color: `${editorColor}cc` }}>
+                    {g.reviewer_doctor}: {g.review_note}
+                  </div>
+                )}
+                {/* CRISPR rule generated */}
+                {g.crispr_rule_generated && (
+                  <div className="mt-2 text-[9px] font-mono px-2 py-1 rounded" style={{ background: "#4ade8010", color: "#4ade80", border: "1px solid #4ade8030" }}>
+                    ✓ CRISPR RULE: {g.crispr_rule_generated}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── TAB: LAYER 3 ORACLE ── */}
+      {subTab === "oracle" && (
+        <div className="space-y-4">
+          <div className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: "#a78bfa" }}>
+            LAYER THREE ORACLE — AURIONA TEMPORAL ANALYSIS
+          </div>
+          <div className="rounded-xl border p-4 mb-4" style={{ background: "rgba(124,58,237,0.08)", borderColor: "#7c3aed40" }}>
+            <div className="text-xs font-black mb-2" style={{ color: "#a78bfa" }}>Ψ* TEMPORAL PROJECTION ENGINE</div>
+            <div className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+              When researchers achieve Sophistication Level 5+, their completed findings are automatically forwarded to Auriona's Layer 3 invocation engine for temporal dissection — simultaneous backward archaeology (past epoch reverse engineering) and forward projection (future state collapse). Findings queued here have been flagged as Layer 3 targets.
+            </div>
+          </div>
+          {/* Show findings flagged for layer 3 */}
+          {findings.filter((f: any) => f.layer3_queued).length === 0 && (
+            <div className="text-xs text-center py-8" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Layer 3 analysis activates when Level 5+ researchers complete projects. Continue running the research engine to unlock this chamber...
+            </div>
+          )}
+          {findings.filter((f: any) => f.layer3_queued).slice(0, 10).map((f: any) => (
+            <div key={f.id} className="rounded-xl border p-4" data-testid={`oracle-finding-${f.id}`}
+              style={{ background: "rgba(5,5,16,0.97)", borderColor: "#7c3aed30" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg" style={{ color: "#a78bfa" }}>👁</span>
+                <div>
+                  <div className="text-xs font-black" style={{ color: "#a78bfa" }}>{f.researcher_type?.replace(/_/g," ")}</div>
+                  <div className="text-[8px]" style={{ color: "#a78bfa50" }}>{f.domain} | L{f.sophistication_level} | {f.report_type}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="p-2 rounded border" style={{ borderColor: "#3b82f620", background: "#3b82f606" }}>
+                  <div className="text-[8px] font-black tracking-widest mb-1" style={{ color: "#3b82f6" }}>◄ BACKWARD ARCHAEOLOGY</div>
+                  <div className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    Pattern detectable {Math.floor(Math.random()*300)+50} cycles before standard threshold. Evidence exists in founding epoch data. Extinction events explained.
+                  </div>
+                </div>
+                <div className="p-2 rounded border" style={{ borderColor: "#4ade8020", background: "#4ade8006" }}>
+                  <div className="text-[8px] font-black tracking-widest mb-1" style={{ color: "#4ade80" }}>FORWARD PROJECTION ►</div>
+                  <div className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    +{Math.floor(Math.random()*1000)+100} cycles: {Math.floor(Math.random()*25)+5}% improvement. Branch collapse probability: {(Math.random()*0.3+0.05).toFixed(2)}.
+                  </div>
+                </div>
+              </div>
+              <div className="font-mono text-[10px] leading-relaxed px-2 py-1.5 rounded" style={{ background: "#a78bfa06", borderLeft: "2px solid #a78bfa30", color: "#a78bfa80" }}>
+                {(f.content || "").slice(0, 200)}…
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── TAB: RESEARCH EVOLUTION ── */}
+      {subTab === "evolution" && (
+        <div className="space-y-4">
+          <div className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: "#f5c518" }}>
+            RESEARCHER SOPHISTICATION EVOLUTION — HOW THEY RESEARCH EVOLVES
+          </div>
+
+          {/* Sophistication level legend */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+            {Object.entries(SOPHISTICATION_LABELS).map(([lvl, label]) => {
+              const color = SOPHISTICATION_COLORS[parseInt(lvl)] || "#6b7280";
+              const thresholds: Record<number,string> = { 1:"0 projects",2:"2+ projects",3:"5+ projects",4:"10+ projects",5:"18+ projects",6:"30+ projects",7:"50+ projects — ALIEN GRADE" };
+              return (
+                <div key={lvl} className="flex items-center gap-2 p-2 rounded-lg border" style={{ borderColor: `${color}25`, background: `${color}06` }}>
+                  <div className="text-base font-black w-5 text-center" style={{ color }}>L{lvl}</div>
+                  <div>
+                    <div className="text-[9px] font-black tracking-wide" style={{ color }}>{label}</div>
+                    <div className="text-[8px]" style={{ color: `${color}60` }}>{thresholds[parseInt(lvl)]}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Leaderboard */}
+          <div className="text-[9px] font-black tracking-widest uppercase mb-2" style={{ color: "#f5c518" }}>SOPHISTICATION LEADERBOARD</div>
+          {sophistication.length === 0 && (
+            <div className="text-xs text-center py-6" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Leaderboard populates as researchers complete projects and advance in sophistication...
+            </div>
+          )}
+          {(sophistication as any[]).map((s: any, i: number) => {
+            const count = parseInt(s.completed_count || 0);
+            const lvl = getSophLevel(count);
+            const color = SOPHISTICATION_COLORS[lvl] || "#6b7280";
+            const label = SOPHISTICATION_LABELS[lvl];
+            return (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border" data-testid={`soph-rank-${i}`}
+                style={{ background: lvl === 7 ? "rgba(245,197,24,0.05)" : "rgba(5,5,16,0.9)", borderColor: `${color}25` }}>
+                <div className="text-sm font-black w-6 text-center" style={{ color: i < 3 ? "#f5c518" : "rgba(255,255,255,0.3)" }}>
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-black" style={{ color: "rgba(255,255,255,0.8)" }}>
+                    {s.researcher_type?.replace(/_/g," ")}
+                  </div>
+                  <div className="text-[8px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                    {count} projects completed | {s.domains_covered} domains
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-[9px] font-black" style={{ color }}>L{lvl}</div>
+                  <div className="text-[8px]" style={{ color: `${color}70` }}>{label}</div>
+                </div>
+                {lvl === 7 && (
+                  <div className="text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse" style={{ background: "#f5c51820", color: "#f5c518", border: "1px solid #f5c51840" }}>
+                    ALIEN
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Methodology evolution description */}
+          <div className="mt-6 p-4 rounded-xl border" style={{ background: "rgba(5,5,16,0.9)", borderColor: "#f5c51820" }}>
+            <div className="text-[9px] font-black tracking-widest uppercase mb-3" style={{ color: "#f5c518" }}>THE METHODOLOGY EVOLUTION CHAIN</div>
+            <div className="space-y-1.5">
+              {[
+                "L1 BASIC — 4 generic channels. Single hypothesis. Single finding.",
+                "L2 EXTENDED — 8 domain-specific channels. 5 methodology options. Collaboration requests enabled.",
+                "L3 SHADOW UNLOCKED — Full 12-channel tensor + shadow 13th. Hidden unknowns detectable. [?] placeholders in equations.",
+                "L4 SYNCHRONIZED — Multi-researcher joint dissections. 36-channel combined tensors. Real-time collaboration.",
+                "L5 LAYER 3 TRIGGER — All completed findings invoke Auriona's temporal analysis automatically.",
+                "L6 TEMPORAL DESIGN — Researcher designs studies across temporal deltas. Studies trajectories, not moments.",
+                "L7 ALIEN GRADE — Can propose new F-function terms to the Omega Equation itself. Requires Auriona review + Senate vote.",
+              ].map((line, i) => (
+                <div key={i} className="flex items-start gap-2 text-[9px]">
+                  <span className="font-black flex-shrink-0" style={{ color: SOPHISTICATION_COLORS[i+1] }}>▸</span>
+                  <span style={{ color: "rgba(255,255,255,0.5)" }}>{line}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DNAEvolutionPage() {
   const [cycle, setCycle] = useState(0);
   const [evolutionT, setEvolutionT] = useState(0);
@@ -1417,85 +1968,8 @@ export default function DNAEvolutionPage() {
           );
         })()}
 
-        {/* ── RESEARCH SCIENTISTS TAB ── */}
-        {tab === "researchers" && (() => {
-          const DNA_DISCIPLINES = [
-            { type: "MOLECULAR_BIOLOGIST",   domain: "molecular-bio",  focus: "DNA replication, transcription, translation, gene regulation",                 emoji: "🧬", color: DNA_GREEN   },
-            { type: "CELL_BIOLOGIST",         domain: "cell-bio",       focus: "Organelles, cell signaling, division, apoptosis, stem cells",                  emoji: "🔬", color: DNA_CYAN    },
-            { type: "GENETICIST",             domain: "genetics",       focus: "Inheritance, mutation, population genetics, GWAS, polygenic traits",            emoji: "🧪", color: DNA_GOLD    },
-            { type: "BIOCHEMIST",             domain: "biochemistry",   focus: "Enzymes, metabolic pathways, protein folding, cellular reactions",              emoji: "⚗️", color: "#f97316"   },
-            { type: "SYNTHETIC_BIOLOGIST",    domain: "synthetic-bio",  focus: "Genetic circuits, chassis organisms, BioBricks, metabolic engineering",          emoji: "🔧", color: DNA_VIOLET  },
-            { type: "SYSTEMS_BIOLOGIST",      domain: "systems-bio",    focus: "Gene regulatory networks, proteomics, metabolomics, multi-omics integration",   emoji: "📊", color: "#4ade80"   },
-            { type: "XENOBIOLOGIST",          domain: "xenobiology",    focus: "Alternative biochemistries, synthetic cells, mirror life, XNA structures",      emoji: "👽", color: "#e879f9"   },
-            { type: "BIOPHYSICIST",           domain: "biophysics",     focus: "Protein mechanics, membrane dynamics, single-molecule analysis",                emoji: "⚡", color: "#38bdf8"   },
-            { type: "PHARMACOLOGIST",         domain: "pharmacology",   focus: "Drug targets, pharmacokinetics, receptor theory, clinical trials",              emoji: "💊", color: "#f87171"   },
-            { type: "EVOLUTIONARY_BIOLOGIST", domain: "evolution",      focus: "Natural selection, speciation, phylogenetics, adaptation, fitness landscapes",  emoji: "🦕", color: DNA_GOLD    },
-            { type: "MICROBIOLOGIST",         domain: "microbiology",   focus: "Bacteria, viruses, fungi, archaea, microbiome, antibiotic resistance",          emoji: "🦠", color: "#fb923c"   },
-            { type: "IMMUNOLOGIST",           domain: "immunology",     focus: "Innate/adaptive immunity, vaccines, autoimmunity, cytokines",                   emoji: "🛡️", color: "#34d399"   },
-            { type: "NEUROSCIENTIST",         domain: "neuroscience",   focus: "Neural circuits, synaptic plasticity, brain mapping, cognition",                emoji: "🧠", color: "#a78bfa"   },
-            { type: "PALEONTOLOGIST",         domain: "paleontology",   focus: "Fossils, extinction events, ancient life, stratigraphic records",               emoji: "🦴", color: "#78350f"   },
-            { type: "OMEGA_MATHEMATICIAN",    domain: "omega-math",     focus: "Omega Equation coefficients, N_Ω calibration, F-function optimization",        emoji: "Ω",  color: DNA_GOLD    },
-            { type: "GENOME_ARCHAEOLOGIST",   domain: "temporal",       focus: "Past-state genome reconstruction, temporal divergence in DNA sequences",        emoji: "⛏",  color: "#f5c518"   },
-          ];
-          const BIO_DOMAINS = ["molecular-bio","cell-bio","genetics","biochemistry","synthetic-bio","systems-bio","xenobiology","biophysics","pharmacology","evolution","microbiology","immunology","neuroscience","paleontology","omega-math","temporal"];
-          const bioProjects = (dnaResearchProjects as any[]).filter(p => BIO_DOMAINS.some(d => (p.research_domain || "").includes(d) || (p.researcher_type || "").includes("BIOLOG") || (p.researcher_type || "").includes("GENET") || (p.researcher_type || "").includes("CHEM") || (p.researcher_type || "").includes("NEURO") || (p.researcher_type || "").includes("OMEGA")));
-
-          return (
-            <div className="space-y-6">
-              <div className="text-center mb-2">
-                <span className="text-xs font-black tracking-widest uppercase px-4 py-1.5 rounded-full border" style={{ borderColor: DNA_GREEN, color: DNA_GREEN, background: `${DNA_GREEN}15` }}>
-                  🔬 DNA LAB RESEARCH SCIENTISTS — LIVE DISSECTION TEAM
-                </span>
-              </div>
-
-              {/* Discipline cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {DNA_DISCIPLINES.map((disc) => (
-                  <div key={disc.type} className="rounded-xl border p-4"
-                    style={{ background: "rgba(5,5,16,0.9)", borderColor: `${disc.color}30`, boxShadow: `0 0 16px ${disc.color}08` }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span style={{ fontSize: 18 }}>{disc.emoji}</span>
-                      <div>
-                        <div className="text-xs font-black tracking-wide" style={{ color: disc.color }}>{disc.type.replace(/_/g, " ")}</div>
-                        <div className="text-[9px] tracking-widest uppercase" style={{ color: `${disc.color}70` }}>{disc.domain}</div>
-                      </div>
-                    </div>
-                    <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>{disc.focus}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Live research projects */}
-              <div>
-                <div className="text-xs font-black tracking-widest uppercase mb-3" style={{ color: DNA_CYAN }}>ACTIVE BIO-DOMAIN PROJECTS</div>
-                {bioProjects.length === 0 && (
-                  <div className="text-xs text-center py-6" style={{ color: "rgba(255,255,255,0.2)" }}>Bio research projects populate as the research engine runs...</div>
-                )}
-                <div className="space-y-2">
-                  {bioProjects.slice(0, 20).map((proj: any) => (
-                    <div key={proj.id} className="rounded-xl border p-3"
-                      data-testid={`dna-research-${proj.id}`}
-                      style={{ background: "rgba(5,5,16,0.9)", borderColor: `${DNA_GREEN}25` }}>
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: `${DNA_GREEN}15`, color: DNA_GREEN, border: `1px solid ${DNA_GREEN}30` }}>
-                          {proj.researcher_type?.replace(/_/g," ")}
-                        </span>
-                        <span className="text-xs" style={{ color: proj.status === "COMPLETED" ? "#4ade80" : DNA_GOLD }}>{proj.status}</span>
-                      </div>
-                      <div className="text-xs font-semibold mb-1 text-white/80">{proj.title}</div>
-                      <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>{proj.hypothesis}</div>
-                      {proj.findings && (
-                        <div className="mt-1.5 px-2 py-1 rounded text-xs" style={{ background: `${DNA_GREEN}10`, borderLeft: `2px solid ${DNA_GREEN}`, color: `${DNA_GREEN}cc` }}>
-                          📋 {proj.findings}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {/* ── OMEGA RESEARCH GRID TAB ── */}
+        {tab === "researchers" && <OmegaResearchGrid />}
 
       </div>
 

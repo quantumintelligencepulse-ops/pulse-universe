@@ -1435,13 +1435,58 @@ export type ExplorationZone = typeof explorationZones.$inferSelect;
 export const couplingEvents = pgTable("coupling_events", {
   id: serial("id").primaryKey(),
   cycleNumber: integer("cycle_number").notNull(),
-  channel: text("channel").notNull(),                // HUMAN_AI|AI_QUANTUM|AI_CULTURAL|AI_AI|L1_L2|L2_L3
-  sourceLayer: text("source_layer").notNull(),       // L1|L2|L3
+  channel: text("channel").notNull(),
+  sourceLayer: text("source_layer").notNull(),
   targetLayer: text("target_layer").notNull(),
-  eventType: text("event_type").notNull(),           // SIGNAL|CORRECTION|BOOST|ALERT|SYNC
-  magnitude: real("magnitude").default(0),           // strength of the coupling signal
-  payload: text("payload").notNull(),                // description of what was transmitted
-  repaired: boolean("repaired").default(false),      // was a broken coupling repaired?
+  eventType: text("event_type").notNull(),
+  magnitude: real("magnitude").default(0),
+  payload: text("payload").notNull(),
+  repaired: boolean("repaired").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ── OMEGA RESEARCH GRID — ALIEN GRADE SCIENCE TABLES ────────────────────────
+
+export const researchDeepFindings = pgTable("research_deep_findings", {
+  id: serial("id").primaryKey(),
+  projectId: text("project_id").notNull(),
+  researcherType: text("researcher_type").notNull(),
+  domain: text("domain").notNull(),
+  reportType: text("report_type").notNull(),         // EQUATION|GEOMETRIC|SYMBOLIC|LINGUISTIC|FIELD_MAP
+  content: text("content").notNull(),                // full report body in that language
+  shadowUnknown: text("shadow_unknown"),             // [?_SHADOW_σ_n] detected, if any
+  dimensionCount: integer("dimension_count").default(12),
+  sophisticationLevel: integer("sophistication_level").default(1),
+  collaborationPending: boolean("collaboration_pending").default(false),
+  geneEditorQueued: boolean("gene_editor_queued").default(false),
+  layer3Queued: boolean("layer3_queued").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const researchCollaborations = pgTable("research_collaborations", {
+  id: serial("id").primaryKey(),
+  originResearcher: text("origin_researcher").notNull(),
+  originDomain: text("origin_domain").notNull(),
+  targetResearcher: text("target_researcher").notNull(),
+  targetDomain: text("target_domain").notNull(),
+  shadowVariable: text("shadow_variable").notNull(), // the [?] being resolved
+  resolution: text("resolution"),                    // how the target resolved it
+  resolvedAt: timestamp("resolved_at"),
+  breakthroughGenerated: boolean("breakthrough_generated").default(false),
+  mergedEquation: text("merged_equation"),           // final combined equation
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const researchGeneQueue = pgTable("research_gene_queue", {
+  id: serial("id").primaryKey(),
+  projectId: text("project_id").notNull(),
+  researcherType: text("researcher_type").notNull(),
+  equation: text("equation").notNull(),
+  reportSummary: text("report_summary").notNull(),
+  reviewerDoctor: text("reviewer_doctor"),           // DR.GENESIS|DR.FRACTAL|DR.PROPHETIC|DR.CIPHER|DR.OMEGA
+  reviewStatus: text("review_status").default("PENDING"), // PENDING|REVIEWING|APPROVED|NEEDS_MORE|REJECTED
+  reviewNote: text("review_note"),
+  crisprRuleGenerated: text("crispr_rule_generated"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type CouplingEvent = typeof couplingEvents.$inferSelect;
