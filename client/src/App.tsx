@@ -24,8 +24,7 @@ import OmegaControlRoom from "./pages/OmegaControlRoom";
 import HiveMarketplacePage from "./pages/HiveMarketplacePage";
 import AurionaPage from "./pages/AurionaPage";
 import InvocationLabPage from "./pages/InvocationLabPage";
-import MyMindPage from "./pages/MyMindPage";
-import GraphPage from "./pages/GraphPage";
+import MindGraphPage from "./pages/MindGraphPage";
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -2168,18 +2167,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </div>
             </div>
           )}
-          {aiMode && !appSettings.hiddenPages.includes("graph") && (
-          <Link href="/graph" data-testid="link-graph"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/graph" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/graph" ? "bg-cyan-500/15" : "bg-cyan-500/5"}`}><Network size={14} className="text-cyan-400" /></div>
-            <span className="flex-1">Knowledge Graph</span>
-          </Link>
-          )}
-          {aiMode && !appSettings.hiddenPages.includes("my-mind") && (
-          <Link href="/my-mind" data-testid="link-my-mind"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/my-mind" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/my-mind" ? "bg-fuchsia-500/15" : "bg-fuchsia-500/5"}`}><Sparkles size={14} className="text-fuchsia-400" /></div>
-            <span className="flex-1">My Mind</span>
+          {aiMode && (
+          <Link href="/mind-graph" data-testid="link-mind-graph"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/mind-graph" ? "bg-gradient-to-r from-[#818cf8]/10 to-[#06b6d4]/10 border border-[#818cf8]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/mind-graph" ? "bg-[#818cf8]/15" : "bg-[#818cf8]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🧠</span>
+            </div>
+            <span className="flex-1">Mind Graph</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #818cf833, #06b6d433)", color: "#818cf8", border: "1px solid #818cf850" }}>10Ω</span>
           </Link>
           )}
           {aiMode && !appSettings.hiddenPages.includes("universe") && (
@@ -15079,8 +15074,7 @@ function Router() {
       <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
       <Route path="/omega-control">{() => <Layout><OmegaControlRoom /></Layout>}</Route>
-      <Route path="/my-mind">{() => <Layout><MyMindPage /></Layout>}</Route>
-      <Route path="/graph">{() => <Layout><GraphPage /></Layout>}</Route>
+      <Route path="/mind-graph">{() => <Layout><MindGraphPage /></Layout>}</Route>
       <Route path="/spawns">{() => <Layout><SpawnsPage /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
