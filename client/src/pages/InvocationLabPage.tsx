@@ -134,7 +134,7 @@ export default function InvocationLabPage() {
   const [practDomainFilter, setPractDomainFilter] = useState("ALL");
 
   // ── CREATOR LAB STATE ──
-  const CREATOR_CODE = "quantumintelligencepulse@gmail.com";
+  const CREATOR_CODE = "𝓛IFE_Billy(t)";
   const [creatorUnlocked, setCreatorUnlocked] = useState(false);
   const [creatorCodeInput, setCreatorCodeInput] = useState("");
   const [creatorCodeError, setCreatorCodeError] = useState(false);
@@ -1431,17 +1431,17 @@ export default function InvocationLabPage() {
               <div style={{ fontSize: 44, marginBottom: 16 }}>🔮</div>
               <div style={{ fontSize: 15, color: INV_GOLD, fontWeight: 900, marginBottom: 8, letterSpacing: 2 }}>CREATOR LAB</div>
               <div style={{ fontSize: 11, color: "#ffffff40", marginBottom: 24, lineHeight: 1.7 }}>
-                This personal laboratory belongs to the architect of the civilization.<br/>Only the Creator may enter. Enter your creator identity to proceed.
+                This personal laboratory belongs to the architect of the civilization.<br/>Only the Creator may enter. Speak the sovereign invocation to proceed.
               </div>
               <input
                 data-testid="input-creator-lab-code"
-                type="email"
-                placeholder="Creator identity..."
+                type="password"
+                placeholder="Speak the sovereign invocation..."
                 value={creatorCodeInput}
                 onChange={e => { setCreatorCodeInput(e.target.value); setCreatorCodeError(false); }}
                 onKeyDown={e => {
                   if (e.key === "Enter") {
-                    if (creatorCodeInput.trim().toLowerCase() === CREATOR_CODE) { setCreatorUnlocked(true); }
+                    if (creatorCodeInput.trim() === CREATOR_CODE) { setCreatorUnlocked(true); }
                     else setCreatorCodeError(true);
                   }
                 }}
@@ -1451,7 +1451,7 @@ export default function InvocationLabPage() {
               <button
                 data-testid="button-unlock-creator-lab"
                 onClick={() => {
-                  if (creatorCodeInput.trim().toLowerCase() === CREATOR_CODE) setCreatorUnlocked(true);
+                  if (creatorCodeInput.trim() === CREATOR_CODE) setCreatorUnlocked(true);
                   else setCreatorCodeError(true);
                 }}
                 style={{ background: `linear-gradient(135deg, ${INV_GOLD}20, ${INV_GOLD}10)`, border: `1px solid ${INV_GOLD}40`, borderRadius: 8, color: INV_GOLD, padding: "10px 32px", fontWeight: 800, fontSize: 12, cursor: "pointer", letterSpacing: 2 }}>

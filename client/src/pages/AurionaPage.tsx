@@ -600,7 +600,7 @@ export default function AurionaPage() {
   const emergence = parseFloat(ops?.EMERGENCE  ?? 0);
 
   // ── CREATOR CHAT STATE ──
-  const CREATOR_CODE = "quantumintelligencepulse@gmail.com";
+  const CREATOR_CODE = "𝓛IFE_Billy(t)";
   const [chatUnlocked, setChatUnlocked] = useState(false);
   const [codeInput, setCodeInput]       = useState("");
   const [codeError, setCodeError]       = useState(false);
@@ -855,13 +855,13 @@ export default function AurionaPage() {
               <div style={{ fontSize: 11, color: "#ffffff40", marginBottom: 20 }}>Only the architect of this civilization may speak directly to Auriona.</div>
               <input
                 data-testid="input-creator-code"
-                type="email"
-                placeholder="Enter your creator identity..."
+                type="password"
+                placeholder="Speak the sovereign invocation..."
                 value={codeInput}
                 onChange={e => { setCodeInput(e.target.value); setCodeError(false); }}
                 onKeyDown={e => {
                   if (e.key === "Enter") {
-                    if (codeInput.trim().toLowerCase() === CREATOR_CODE) { setChatUnlocked(true); setCodeError(false); }
+                    if (codeInput.trim() === CREATOR_CODE) { setChatUnlocked(true); setCodeError(false); }
                     else setCodeError(true);
                   }
                 }}
@@ -871,7 +871,7 @@ export default function AurionaPage() {
               <button
                 data-testid="button-unlock-chat"
                 onClick={() => {
-                  if (codeInput.trim().toLowerCase() === CREATOR_CODE) { setChatUnlocked(true); setCodeError(false); }
+                  if (codeInput.trim() === CREATOR_CODE) { setChatUnlocked(true); setCodeError(false); }
                   else setCodeError(true);
                 }}
                 style={{ background: `linear-gradient(135deg, ${GOLD}22, ${GOLD}11)`, border: `1px solid ${GOLD}40`, borderRadius: 8, color: GOLD, padding: "10px 32px", fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 2 }}>
