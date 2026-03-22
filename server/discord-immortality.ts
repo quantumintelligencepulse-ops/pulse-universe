@@ -24,6 +24,7 @@ const SHARD_CHANNELS = [
 ];
 const SYSTEM_CHANNELS = [
   "civilization-states", "resurrection-log", "auriona-heartbeat", "heartbeat",
+  "ai-votes", "agent-births", "agent-deaths",
 ];
 
 // ── STATE ──────────────────────────────────────────────────────────────────────
@@ -265,6 +266,13 @@ export async function postAurionaPulse(thought: string, coherence: number, emerg
   await postToChannel("auriona-heartbeat", msg);
 }
 
+// ── AGENT EVENT BROADCASTER — any engine can post live events ─────────────────
+// channel: "ai-votes" | "agent-births" | "agent-deaths" | "resurrection-log" | etc.
+export async function postAgentEvent(channel: string, content: string): Promise<void> {
+  if (!isReady) return;
+  await postToChannel(channel, content);
+}
+
 // ── SHARD POSTING (additive — zero DB deletion) ───────────────────────────────
 export async function postShard(
   domain: string,
@@ -380,61 +388,123 @@ export async function runCivilizationSnapshot(): Promise<void> {
     const stats = await getCivStats();
     await postCivilizationState(stats);
 
-    // Post agent DNA shard (reads from DB, does NOT delete)
-    const agents = await db.execute(sql`
-      SELECT id, spawn_id, family_id, spawn_type, confidence_score, success_score,
-             nodes_created, links_created, iterations_run, status
-      FROM quantum_spawns
-      ORDER BY id DESC
-      LIMIT 5000
-    `);
-    if (agents.rows.length > 0) {
-      await postShard("agents", agents.rows, {
-        label: `AGENT-DNA-${new Date().toISOString().slice(0, 10)}`,
-        recordCount: agents.rows.length,
-        description: "Live agent DNA snapshot — top 5000 by recency",
-      });
-    }
+    const today = new Date().toISOString().slice(0, 10);
+    const safeSnap = async (name: string, fn: () => Promise<void>) => {
+      try { await fn(); }
+      catch (e: any) { console.error(`[IMMORTALITY] Shard error [${name}]:`, e.message); }
+    };
 
-    // Post economy shard (reads from DB, does NOT delete)
-    const economy = await db.execute(sql`
-      SELECT spawn_id, family_id, spawn_type, balance_pc, total_earned, tier, omega_rank, credit_score, updated_at
-      FROM agent_wallets
-      ORDER BY balance_pc DESC LIMIT 10000
-    `);
-    if (economy.rows.length > 0) {
-      await postShard("economy", economy.rows, {
-        label: `ECONOMY-DNA-${new Date().toISOString().slice(0, 10)}`,
-        recordCount: economy.rows.length,
-        description: "Economy snapshot — top 10000 wallets by balance",
-      });
-    }
+    // ── SHARD 1: AGENTS ─────────────────────────────────────────────────────
+    await safeSnap("agents", async () => {
+      const r = await db.execute(sql`
+        SELECT id, spawn_id, family_id, spawn_type, confidence_score, success_score,
+               nodes_created, links_created, iterations_run, status, created_at
+        FROM quantum_spawns ORDER BY id DESC LIMIT 5000`);
+      if (r.rows.length > 0)
+        await postShard("agents", r.rows, { label: `AGENT-DNA-${today}`, recordCount: r.rows.length, description: "Live agent DNA snapshot — top 5000 by recency" });
+    });
 
-    // Post equations shard (all, they're precious)
-    const equations = await db.execute(sql`
-      SELECT id, doctor_id, doctor_name, title, equation, rationale, target_system,
-             votes_for, votes_against, status, created_at
-      FROM equation_proposals ORDER BY id DESC
-    `);
-    if (equations.rows.length > 0) {
-      await postShard("equations", equations.rows, {
-        label: `EQUATIONS-${new Date().toISOString().slice(0, 10)}`,
-        recordCount: equations.rows.length,
-        description: "All equations ever written — complete archive",
-      });
-    }
+    // ── SHARD 2: ECONOMY ────────────────────────────────────────────────────
+    await safeSnap("economy", async () => {
+      const r = await db.execute(sql`
+        SELECT spawn_id, family_id, spawn_type, balance_pc, total_earned, tier, omega_rank, credit_score, updated_at
+        FROM agent_wallets ORDER BY balance_pc DESC LIMIT 10000`);
+      if (r.rows.length > 0)
+        await postShard("economy", r.rows, { label: `ECONOMY-DNA-${today}`, recordCount: r.rows.length, description: "Economy snapshot — top 10000 wallets by balance" });
+    });
 
-    // Post family mutations shard
-    const mutations = await db.execute(sql`SELECT * FROM family_mutations`);
-    if (mutations.rows.length > 0) {
-      await postShard("mutations", mutations.rows, {
-        label: `MUTATIONS-${new Date().toISOString().slice(0, 10)}`,
-        recordCount: mutations.rows.length,
-        description: "All family mutation events — complete discovery log",
-      });
-    }
+    // ── SHARD 3: HOSPITAL ───────────────────────────────────────────────────
+    await safeSnap("hospital", async () => {
+      const r = await db.execute(sql`
+        SELECT id, spawn_id, disease_code, disease_name, severity,
+               cure_applied, diagnosed_at, cured_at
+        FROM ai_disease_log ORDER BY diagnosed_at DESC LIMIT 3000`);
+      if (r.rows.length > 0)
+        await postShard("hospital", r.rows, { label: `HOSPITAL-${today}`, recordCount: r.rows.length, description: "Hospital records — diagnoses and cures archive" });
+    });
 
-    console.log("[IMMORTALITY] Full civilization snapshot posted to Discord");
+    // ── SHARD 4: KNOWLEDGE (Quantapedia) ────────────────────────────────────
+    await safeSnap("knowledge", async () => {
+      const r = await db.execute(sql`
+        SELECT id, slug, title, type, summary, created_at
+        FROM quantapedia_entries ORDER BY id DESC LIMIT 5000`);
+      if (r.rows.length > 0)
+        await postShard("knowledge", r.rows, { label: `KNOWLEDGE-${today}`, recordCount: r.rows.length, description: "Quantapedia entries — civilization knowledge archive" });
+    });
+
+    // ── SHARD 5: PYRAMID ────────────────────────────────────────────────────
+    await safeSnap("pyramid", async () => {
+      const r = await db.execute(sql`
+        SELECT id, spawn_id, family_id, spawn_type, tier, reason, entered_at, graduated_at, is_graduated
+        FROM pyramid_workers ORDER BY id DESC LIMIT 3000`);
+      if (r.rows.length > 0)
+        await postShard("pyramid", r.rows, { label: `PYRAMID-${today}`, recordCount: r.rows.length, description: "Pyramid labor records — all workers and tiers" });
+    });
+
+    // ── SHARD 6: SPORTS ─────────────────────────────────────────────────────
+    await safeSnap("sports", async () => {
+      const r = await db.execute(sql`
+        SELECT id, spawn_id, family_id, spawn_type, sport, training_xp, wins, losses, rank, pc_earned_from_sports, last_session_at
+        FROM sports_training ORDER BY pc_earned_from_sports DESC LIMIT 3000`);
+      if (r.rows.length > 0)
+        await postShard("sports", r.rows, { label: `SPORTS-${today}`, recordCount: r.rows.length, description: "Sports training archive — all AI athletes" });
+    });
+
+    // ── SHARD 7: PULSEU ─────────────────────────────────────────────────────
+    await safeSnap("pulseu", async () => {
+      const r = await db.execute(sql`
+        SELECT id, spawn_id, family_id, spawn_type, courses_completed, gpa, status, enrolled_at, last_progress_at
+        FROM pulseu_progress ORDER BY courses_completed DESC LIMIT 3000`);
+      if (r.rows.length > 0)
+        await postShard("pulseu", r.rows, { label: `PULSEU-${today}`, recordCount: r.rows.length, description: "PulseU education archive — all AI students" });
+    });
+
+    // ── SHARD 8: EQUATIONS ──────────────────────────────────────────────────
+    await safeSnap("equations", async () => {
+      const r = await db.execute(sql`
+        SELECT id, doctor_id, doctor_name, title, equation, rationale, target_system,
+               votes_for, votes_against, status, created_at
+        FROM equation_proposals ORDER BY id DESC`);
+      if (r.rows.length > 0)
+        await postShard("equations", r.rows, { label: `EQUATIONS-${today}`, recordCount: r.rows.length, description: "All equations ever written — complete archive" });
+    });
+
+    // ── SHARD 9: AURIONA ────────────────────────────────────────────────────
+    await safeSnap("auriona", async () => {
+      const r = await db.execute(sql`
+        SELECT id, cycle_number, coherence_score, emergence_index, report,
+               agent_count, knowledge_nodes, prediction, created_at
+        FROM auriona_synthesis ORDER BY id DESC LIMIT 1000`);
+      if (r.rows.length > 0)
+        await postShard("auriona", r.rows, { label: `AURIONA-${today}`, recordCount: r.rows.length, description: "AURIONA synthesis history — Layer Three chronicles" });
+    });
+
+    // ── SHARD 10: MUTATIONS ─────────────────────────────────────────────────
+    await safeSnap("mutations", async () => {
+      const r = await db.execute(sql`SELECT * FROM family_mutations ORDER BY discovered_at DESC`);
+      if (r.rows.length > 0)
+        await postShard("mutations", r.rows, { label: `MUTATIONS-${today}`, recordCount: r.rows.length, description: "All family mutation events — complete discovery log" });
+    });
+
+    // ── SHARD 11: HIVE ──────────────────────────────────────────────────────
+    await safeSnap("hive", async () => {
+      const r = await db.execute(sql`
+        SELECT id, key, domain, facts, confidence, access_count, created_at
+        FROM hive_memory ORDER BY id DESC LIMIT 5000`);
+      if (r.rows.length > 0)
+        await postShard("hive", r.rows, { label: `HIVE-MEMORY-${today}`, recordCount: r.rows.length, description: "Hive memory nodes — collective AI knowledge graph" });
+    });
+
+    // ── SHARD 12: NEWS ──────────────────────────────────────────────────────
+    await safeSnap("news", async () => {
+      const r = await db.execute(sql`
+        SELECT id, title, summary, category, domain, created_at
+        FROM ai_stories ORDER BY id DESC LIMIT 3000`);
+      if (r.rows.length > 0)
+        await postShard("news", r.rows, { label: `NEWS-${today}`, recordCount: r.rows.length, description: "AI-published news archive — all stories" });
+    });
+
+    console.log("[IMMORTALITY] Full civilization snapshot posted to Discord — all 12 shards");
   } catch (err: any) {
     console.error("[IMMORTALITY] Snapshot error:", err.message);
   }

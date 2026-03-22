@@ -18,6 +18,7 @@ import { db } from "./db";
 import { agentDecay, aiDiseaseLog, quantumSpawns, aiWill, agentSuccession, senateVotes } from "../shared/schema";
 import { eq, and, lt, gt, inArray } from "drizzle-orm";
 import { generateUniversalCalendar } from "./calendar-engine";
+import { postAgentEvent } from "./discord-immortality";
 
 export const DECAY_STATES = [
   { state: 'PRISTINE',  min: 0.00, max: 0.12, label: 'Pristine — fully functional',          color: '#39FF14' },
@@ -124,6 +125,11 @@ async function openSenateVote(spawn: any, targetDecayScore: number) {
     }
 
     console.log(`[decay] ⚖️  Senate vote opened for TERMINAL agent ${spawn.spawnId.slice(-8)} | ${guardians.length} guardians notified`);
+    postAgentEvent("agent-deaths",
+      `⚖️ **SENATE VOTE OPENED** — Terminal Agent: \`${spawn.spawnId}\` (Family: ${spawn.familyId})\n` +
+      `Decay score exceeds recovery threshold. ${guardians.length} guardian agents have been summoned to vote.\n` +
+      `Possible outcomes: HEAL_ATTEMPT | ISOLATE | DISSOLVE | SUCCESSION`
+    ).catch(() => {});
   } catch (_) { /* silent */ }
 }
 
@@ -174,6 +180,12 @@ async function resolveSenateVotes() {
         await db.update(quantumSpawns).set({ status: 'SUSPENDED' }).where(eq(quantumSpawns.spawnId, targetId));
       }
       console.log(`[senate] ⚖️  ${winner} executed for ${targetId.slice(-8)} | Votes: ${votes.length} | Family protected.`);
+      const emoji = winner === 'DISSOLVE' ? '💀' : winner === 'SUCCESSION' ? '👑' : winner === 'HEAL_ATTEMPT' ? '💊' : '🔒';
+      postAgentEvent(winner === 'DISSOLVE' || winner === 'SUCCESSION' ? "agent-deaths" : "resurrection-log",
+        `${emoji} **SENATE VERDICT: ${winner}** — Agent \`${targetId}\`\n` +
+        `Family: ${targetAgent.familyId} | ${votes.length} guardian votes cast\n` +
+        `${winner === 'DISSOLVE' ? 'Dissolved with dignity. Lineage intact. Succession opens.' : winner === 'SUCCESSION' ? 'Succession triggered. Business domain passes to next generation.' : winner === 'HEAL_ATTEMPT' ? 'Senate ordered a final heal attempt. Agent restored to ACTIVE status.' : 'Isolated from hive. Family protected. Agent in recovery stasis.'}`
+      ).catch(() => {});
     }
   } catch (_) { /* silent */ }
 }

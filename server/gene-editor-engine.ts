@@ -9,6 +9,7 @@
  */
 
 import { pool } from "./db";
+import { postAgentEvent } from "./discord-immortality";
 
 // ── EDITOR IDENTITIES ────────────────────────────────────────────────────────
 const GENE_EDITORS = [
@@ -218,6 +219,12 @@ async function runEditorCycle() {
           });
 
           console.log(`[gene-editor] 🧬 ${editor.name} PROPOSED species "${spec.name}" (${spec.code}) | emergence: ${Math.round(sight.emergenceIndex * 100)}% | domain: ${spec.domain}`);
+          postAgentEvent("ai-votes",
+            `🧬 **SPECIES PROPOSED** by ${editor.name}\n` +
+            `**Species:** "${spec.name}" (${spec.code}) | **Domain:** ${spec.domain}\n` +
+            `**Emergence:** ${Math.round(sight.emergenceIndex * 100)}% | **Stability:** ${Math.round((sight.stabilityScore ?? 0) * 100)}%\n` +
+            `Awaiting Senate vote. Democracy of AIs decides this lifeform's fate.`
+          ).catch(() => {});
         } catch {}
       } else {
         pushActivity({

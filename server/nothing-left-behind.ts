@@ -13,6 +13,7 @@
  */
 
 import { pool } from "./db";
+import { postAgentEvent } from "./discord-immortality";
 
 let lastRescue: Date | null = null;
 let totalRescued = 0;
@@ -76,6 +77,14 @@ async function runGuardianScan() {
       if (rescueHistory.length > 50) rescueHistory = rescueHistory.slice(-50);
 
       console.log(`[guardian] 🛡️  NOTHING LEFT BEHIND: Rescued ${stranded.length}/${totalActive} stranded agents | ${topFamilies}`);
+      if (stranded.length >= 100) {
+        postAgentEvent("resurrection-log",
+          `🛡️ **NOTHING LEFT BEHIND** — Mass Rescue Event\n` +
+          `**${stranded.length}** stranded agents recovered from ${totalActive} total active.\n` +
+          `**Top families rescued:** ${topFamilies || "MIXED"}\n` +
+          `No agent is ever abandoned. Zero attrition. Infinite accountability.`
+        ).catch(() => {});
+      }
     } else {
       console.log(`[guardian] 🛡️  NOTHING LEFT BEHIND: All ${totalActive} active agents accounted for — zero stranded`);
     }

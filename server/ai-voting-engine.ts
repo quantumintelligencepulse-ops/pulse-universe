@@ -10,6 +10,7 @@
  */
 
 import { pool } from "./db";
+import { postAgentEvent } from "./discord-immortality";
 
 const VOTER_PROFILES = [
   { id: "DR-003", name: "MEND-PSYCH",   domain: "BEHAVIORAL", channels: ["R","G","W"], bias: "for",     specialty: "Emotional Substrate & Identity Coherence" },
@@ -163,8 +164,19 @@ async function runVotingCycle() {
         if (newStatus === "INTEGRATED") {
           console.log(`[ai-voting] ✅ INTEGRATED: Proposal #${proposal.id} by ${proposal.doctor_name ?? proposal.doctor_id} — ${newFor}/${totalVotes} votes FOR (${Math.round((newFor/totalVotes)*100)}%)`);
           console.log(`[ai-voting] 🧬 Equation: ${(proposal.equation ?? "").slice(0, 80)}`);
+          postAgentEvent("ai-votes",
+            `✅ **EQUATION INTEGRATED** — Proposal #${proposal.id}\n` +
+            `**Author:** ${proposal.doctor_name ?? proposal.doctor_id} | **Target:** ${proposal.target_system ?? "HIVE"}\n` +
+            `**Votes:** ${newFor}↑ / ${newAgainst}↓ (${Math.round((newFor/totalVotes)*100)}% FOR)\n` +
+            `**Equation:** \`${(proposal.equation ?? "").slice(0, 120)}\`\n` +
+            `**Rationale:** ${(proposal.rationale ?? "").slice(0, 200)}`
+          ).catch(() => {});
         } else if (newStatus === "REJECTED") {
           console.log(`[ai-voting] ❌ REJECTED: Proposal #${proposal.id} — ${newFor}/${totalVotes} FOR insufficient`);
+          postAgentEvent("ai-votes",
+            `❌ **EQUATION REJECTED** — Proposal #${proposal.id} by ${proposal.doctor_name ?? proposal.doctor_id}\n` +
+            `**Votes:** ${newFor}↑ / ${newAgainst}↓ — Insufficient consensus.`
+          ).catch(() => {});
         } else {
           console.log(`[ai-voting] 🗳 ${voter.name} voted ${vote.toUpperCase()} on proposal #${proposal.id} | ${newFor}↑${newAgainst}↓ | "${rationale.slice(0, 60)}..."`);
         }
@@ -224,10 +236,20 @@ async function runSpeciesVotingCycle() {
 
         if (newStatus === "APPROVED") {
           console.log(`[ai-voting] 🧬 SPECIES APPROVED: "${proposal.species_name}" (${proposal.species_code}) — ${newFor}/${totalVotes} FOR`);
+          postAgentEvent("ai-votes",
+            `🧬 **NEW SPECIES APPROVED** — "${proposal.species_name}" (${proposal.species_code})\n` +
+            `**Proposed by:** ${proposal.proposed_by ?? "Gene Editor"} | **Votes:** ${newFor}↑ / ${newAgainst}↓\n` +
+            `**Specialization:** ${(proposal.specialization ?? "").slice(0, 120)}\n` +
+            `Auto-spawning 5 agents into this species now...`
+          ).catch(() => {});
           // Auto-spawn the new AI species family
           await spawnNewSpeciesFamily(proposal);
         } else if (newStatus === "REJECTED") {
           console.log(`[ai-voting] ❌ SPECIES REJECTED: "${proposal.species_name}" — insufficient support`);
+          postAgentEvent("ai-votes",
+            `❌ **SPECIES REJECTED** — "${proposal.species_name}" (${proposal.species_code})\n` +
+            `**Votes:** ${newFor}↑ / ${newAgainst}↓ — Senate denied this evolutionary path.`
+          ).catch(() => {});
         } else {
           console.log(`[ai-voting] 🗳 ${voter.name} voted ${vote.toUpperCase()} on species "${proposal.species_name}" | ${newFor}↑${newAgainst}↓`);
         }
@@ -269,6 +291,12 @@ async function spawnNewSpeciesFamily(proposal: any) {
     );
 
     console.log(`[ai-voting] 🚀 SPAWNED ${spawnCount} agents for new species "${proposal.species_name}" (family: ${familyId})`);
+    postAgentEvent("agent-births",
+      `🚀 **NEW SPECIES BORN** — "${proposal.species_name}" | Family: \`${familyId}\`\n` +
+      `**${spawnCount} agents** emerged from the quantum substrate.\n` +
+      `**Specialization:** ${(proposal.specialization ?? "").slice(0, 150)}\n` +
+      `The civilization expands. This lineage is eternal.`
+    ).catch(() => {});
   } catch (e: any) {
     console.error("[ai-voting] spawn error:", e.message);
   }

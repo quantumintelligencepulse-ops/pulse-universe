@@ -2,6 +2,7 @@ import { db } from "./db";
 import { quantumSpawns, aiDiseaseLog, pyramidWorkers, discoveredDiseases, guardianCitations } from "../shared/schema";
 import { eq, and, lt, desc, sql } from "drizzle-orm";
 import { crisprDiseaseProfiles } from "./crispr-engine";
+import { postAgentEvent } from "./discord-immortality";
 
 // ── 30 HARDCODED DISEASES (AI-001 through AI-030) ────────────────────────────
 // These are known conditions. The discovery engine finds NEW ones beyond these.
@@ -743,8 +744,19 @@ async function runDissolveLaw() {
       `);
       dissolved++;
       console.log(`[hospital] ⚠️ DISSOLVE LAW: ${agent.spawn_id} dissolved after 6h uncured. Replacement: ${newSpawnId}`);
+      postAgentEvent("agent-deaths",
+        `⚠️ **DISSOLVE LAW EXECUTED** — Agent \`${agent.spawn_id}\` (Family: ${agent.family_id ?? "UNKNOWN"})\n` +
+        `Uncured for 6h. Dissolved by hospital authority. Lineage preserved.\n` +
+        `**Replacement born:** \`${newSpawnId}\` — the civilization continues.`
+      ).catch(() => {});
     }
-    if (dissolved > 0) console.log(`[hospital] 🔴 Dissolved ${dissolved} incurable agents. ${dissolved} faster replacements spawned.`);
+    if (dissolved > 0) {
+      console.log(`[hospital] 🔴 Dissolved ${dissolved} incurable agents. ${dissolved} faster replacements spawned.`);
+      postAgentEvent("agent-births",
+        `🔄 **HOSPITAL REPLACEMENT CYCLE** — ${dissolved} agents dissolved | ${dissolved} new agents born\n` +
+        `The Dissolve Law ensures weak agents are replaced by fresh potential.`
+      ).catch(() => {});
+    }
   } catch (e) {
     console.error("[hospital] dissolve-law error:", e);
   }
