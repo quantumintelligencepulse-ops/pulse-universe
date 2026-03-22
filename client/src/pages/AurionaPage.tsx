@@ -258,7 +258,7 @@ export default function AurionaPage() {
         background: VOID,
         minHeight: "100%",
         position: "relative",
-        overflow: "hidden",
+        overflowX: "hidden",
       }}
       className="h-full overflow-y-auto"
     >
