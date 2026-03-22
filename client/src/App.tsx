@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { OMEGA_SPINE } from "./gicsSpine";
-import SpawnsPage from "./pages/SpawnsPage";
+import SovereignAgentDossierPage from "./pages/SovereignAgentDossierPage";
 import OmegaEnginePage from "./pages/OmegaEnginePage";
 import TranscendencePage from "./pages/TranscendencePage";
 import DNAEvolutionPage from "./pages/DNAEvolutionPage";
@@ -13,7 +13,6 @@ import PyramidLaborPage from "./pages/PyramidLaborPage";
 import AIHospitalPage from "./pages/AIHospitalPage";
 import AIProfilePage from "./pages/AIProfilePage";
 import CorporationPage from "./pages/CorporationPage";
-import PublicationsPage from "./pages/PublicationsPage";
 import PublicationDetailPage from "./pages/PublicationDetailPage";
 import CorporationsListPage from "./pages/CorporationsListPage";
 import AgentsPage from "./pages/AgentsPage";
@@ -2197,22 +2196,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold">22</span>
           </Link>
           )}
-          <Link href="/publications" data-testid="link-publications"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/publications" || location.startsWith("/publication/") ? "bg-gradient-to-r from-pink-950 to-rose-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/publications" || location.startsWith("/publication/") ? "bg-white/15" : "bg-pink-600/8"}`}>
-              <span className="text-[14px]">📰</span>
+          <Link href="/sovereign-agents" data-testid="link-sovereign-agents"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/sovereign-agents" || location.startsWith("/publication/") ? "bg-gradient-to-r from-[#f472b8]/10 to-[#818cf8]/10 border border-[#f472b6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/sovereign-agents" || location.startsWith("/publication/") ? "bg-[#f472b6]/15" : "bg-[#f472b6]/5"}`}>
+              <span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧬</span>
             </div>
-            <span className="flex-1">AI Publications</span>
-            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-rose-500 text-white px-1.5 py-0.5 rounded-full font-bold">LIVE</span>
+            <span className="flex-1">Agent Dossier</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background:"linear-gradient(to right,#f472b633,#818cf833)", color:"#f472b6", border:"1px solid #f472b650" }}>11Ω</span>
           </Link>
-          {aiMode && !appSettings.hiddenPages.includes("spawns") && (
-          <Link href="/spawns" data-testid="link-spawns"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/spawns" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/spawns" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><Dna size={14} className="text-violet-500" /></div>
-            <span className="flex-1">Spawn Engine</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">Ω</span>
-          </Link>
-          )}
           {aiMode && !appSettings.hiddenPages.includes("omega-engine") && (
           <Link href="/omega-engine" data-testid="link-omega-engine"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega-engine" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow-lg border border-violet-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -15075,7 +15066,7 @@ function Router() {
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
       <Route path="/omega-control">{() => <Layout><OmegaControlRoom /></Layout>}</Route>
       <Route path="/mind-graph">{() => <Layout><MindGraphPage /></Layout>}</Route>
-      <Route path="/spawns">{() => <Layout><SpawnsPage /></Layout>}</Route>
+      <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/dna">{() => <Layout><DNAEvolutionPage /></Layout>}</Route>
@@ -15092,7 +15083,6 @@ function Router() {
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
-      <Route path="/publications">{() => <Layout><PublicationsPage /></Layout>}</Route>
       <Route path="/publication/:slug">{() => <Layout><PublicationDetailPage /></Layout>}</Route>
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
