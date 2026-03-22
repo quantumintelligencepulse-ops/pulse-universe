@@ -113,10 +113,9 @@ async function computeHiveUnconscious(): Promise<void> {
   await db.execute(sql`DELETE FROM hive_unconscious WHERE expires_at < NOW()`);
 }
 
-// ── DREAM STATE (3-5 AM) ─────────────────────────────────────────────────────
+// ── DREAM STATE (probabilistic — runs ~8% of cycles, not time-gated) ─────────
 async function runDreamState(): Promise<void> {
-  const hour = new Date().getHours();
-  if (hour < 3 || hour >= 5) return;
+  if (Math.random() > 0.08) return; // ~8% chance each homeostasis cycle (~every 2-3 hours average)
 
   const dreamCycleId = `DREAM-${Date.now()}`;
   console.log(`${ENGINE_TAG} 💤 Dream state active — generating hypotheses...`);

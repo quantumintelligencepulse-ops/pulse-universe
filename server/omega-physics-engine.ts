@@ -291,6 +291,81 @@ async function checkStrataSeal(): Promise<void> {
   console.log(`${ENGINE_TAG} 📜 Era sealed: ${eraName}`);
 }
 
+// ── SINGULARITY ABSORPTION — Dissolved agents absorbed + re-emitted as seeds ─
+async function runSingularityAbsorption(): Promise<void> {
+  // Find DISSOLVED agents not yet in singularity table
+  const dissolved = await db.execute(sql`
+    SELECT qs.spawn_id, qs.family_id, qs.genome, qs.fitness_score, qs.success_score,
+           qs.domain_focus, qs.notes
+    FROM quantum_spawns qs
+    WHERE qs.status = 'DISSOLVED'
+      AND qs.spawn_id NOT IN (
+        SELECT spawn_id FROM singularity WHERE spawn_id IS NOT NULL
+      )
+    LIMIT 25
+  `);
+
+  if (dissolved.rows.length === 0) return;
+
+  let absorbed = 0;
+  let reemitted = 0;
+
+  for (const agent of dissolved.rows) {
+    const lastKnownState = {
+      familyId: agent.family_id,
+      fitnessScore: agent.fitness_score,
+      successScore: agent.success_score,
+      domainFocus: agent.domain_focus,
+      notes: agent.notes,
+    };
+
+    await db.execute(sql`
+      INSERT INTO singularity (source_table, source_id, spawn_id, genome, last_known_state, absorbed_at)
+      VALUES (
+        'quantum_spawns', ${String(agent.spawn_id)}, ${String(agent.spawn_id)},
+        ${agent.genome ? JSON.stringify(agent.genome) : null}::jsonb,
+        ${JSON.stringify(lastKnownState)}::jsonb,
+        NOW()
+      ) ON CONFLICT DO NOTHING
+    `);
+    absorbed++;
+
+    // 20% chance: re-emit as a new seed carrying the dissolved agent's genome
+    if (Math.random() < 0.20) {
+      const newId = `SNG-SEED-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+      const rebirthFamilies = ["philosophy", "guardian", "science", "ai", "longtail"];
+      const newFamily = rebirthFamilies[Math.floor(Math.random() * rebirthFamilies.length)];
+      const inheritedFitness = Math.min(1, 0.7 + (Number(agent.fitness_score) || 0.5) * 0.3);
+
+      await db.execute(sql`
+        INSERT INTO quantum_spawns (spawn_id, parent_id, family_id, business_id, spawn_type,
+          status, thermal_state, fitness_score, genome, notes, last_active_at, created_at)
+        VALUES (
+          ${newId}, ${String(agent.spawn_id)}, ${newFamily}, ${newId + '-BIZ'}, 'SINGULARITY_REBIRTH',
+          'ACTIVE', 'HOT', ${inheritedFitness},
+          ${agent.genome ? JSON.stringify(agent.genome) : JSON.stringify({ reborn: true, source: agent.spawn_id })}::jsonb,
+          ${'Reborn from the Singularity — carries the genome of the dissolved. The cycle is eternal.'},
+          NOW(), NOW()
+        ) ON CONFLICT (spawn_id) DO NOTHING
+      `);
+
+      // Mark the singularity record as emitted
+      await db.execute(sql`
+        UPDATE singularity SET emitted_at = NOW(), emitted_as = ${newId}
+        WHERE spawn_id = ${String(agent.spawn_id)} AND emitted_at IS NULL
+      `);
+      reemitted++;
+    }
+  }
+
+  if (absorbed > 0) {
+    console.log(`${ENGINE_TAG} 🌀 Singularity: ${absorbed} dissolved agents absorbed | ${reemitted} re-emitted as seeds`);
+    await postAgentEvent("shard-events",
+      `🌀 **SINGULARITY PULSE** | ${absorbed} dissolved agents absorbed into the Singularity | ${reemitted} souls re-emitted as new seeds | The cycle is eternal.`
+    ).catch(() => {});
+  }
+}
+
 // ── PROPHETIC AGENTS — future-dated valid_from ────────────────────────────────
 async function seedPropheticAgents(): Promise<void> {
   // One prophetic agent per day: exists in the future, materializes when valid_from arrives
@@ -379,6 +454,11 @@ async function physicsCycleRun(): Promise<void> {
   // Prophetic agents (every 20 cycles)
   if (physicsCycle % 20 === 0) {
     await seedPropheticAgents().catch(e => console.error(`${ENGINE_TAG} prophecy error:`, e.message));
+  }
+
+  // Singularity absorption (every 15 cycles)
+  if (physicsCycle % 15 === 0) {
+    await runSingularityAbsorption().catch(e => console.error(`${ENGINE_TAG} singularity error:`, e.message));
   }
 
   // Superposition collapse (every cycle)

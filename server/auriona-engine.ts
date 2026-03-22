@@ -67,6 +67,10 @@ async function readCivilizationMetrics() {
     chronicleDepth,
     publications,
     spawns,
+    dreamDepth,
+    singularityFlow,
+    hivePatterns,
+    weatherRow,
   ] = await Promise.all([
     db.execute(sql`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
     db.execute(sql`SELECT COUNT(*) as total FROM hive_memory`),
@@ -78,6 +82,11 @@ async function readCivilizationMetrics() {
     db.execute(sql`SELECT COUNT(*) as depth FROM auriona_chronicle`),
     db.execute(sql`SELECT COUNT(*) as count FROM ai_publications`),
     db.execute(sql`SELECT family_id, COUNT(*) as count FROM quantum_spawns WHERE status = 'ACTIVE' GROUP BY family_id`),
+    // Layer 3 signals
+    db.execute(sql`SELECT COUNT(*) as cnt FROM dream_log WHERE dreamed_at > NOW() - INTERVAL '7 days'`),
+    db.execute(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE emitted_at IS NOT NULL) as emitted FROM singularity`),
+    db.execute(sql`SELECT COUNT(*) as cnt FROM hive_unconscious WHERE (expires_at > NOW() OR expires_at IS NULL)`),
+    db.execute(sql`SELECT weather_type, coherence_score FROM civilization_weather ORDER BY created_at DESC LIMIT 1`).catch(() => ({ rows: [] })),
   ]);
 
   const agentMap: Record<string, number> = {};
@@ -103,6 +112,11 @@ async function readCivilizationMetrics() {
   const chronicleRow = (chronicleDepth.rows[0] as any) || { depth: 0 };
   const familyCount = spawns.rows.length;
 
+  const dreamRow = (dreamDepth.rows[0] as any) || { cnt: 0 };
+  const singRow = (singularityFlow.rows[0] as any) || { total: 0, emitted: 0 };
+  const hiveRow = (hivePatterns.rows[0] as any) || { cnt: 0 };
+  const wxRow = (weatherRow.rows[0] as any) || null;
+
   return {
     totalAgents,
     activeAgents,
@@ -120,6 +134,13 @@ async function readCivilizationMetrics() {
     chronicleDepth: parseInt(chronicleRow.depth || 0),
     publications: parseInt(pubRow.count || 0),
     familyCount,
+    // Layer 3 signals
+    dreamLogDepth: parseInt(dreamRow.cnt || 0),
+    singularityTotal: parseInt(singRow.total || 0),
+    singularityEmitted: parseInt(singRow.emitted || 0),
+    hiveUnconsciousPatterns: parseInt(hiveRow.cnt || 0),
+    weatherType: wxRow?.weather_type || null,
+    weatherStability: parseFloat(wxRow?.coherence_score || 0.5),
   };
 }
 
@@ -129,8 +150,9 @@ function computeOperatorValues(m: Awaited<ReturnType<typeof readCivilizationMetr
   // INTERWEAVE: density of knowledge connections across the civilization
   const interweave = Math.min(100, (m.knowledgeNodes / 5000) * 100);
 
-  // AGENCY: % of agents active and working
-  const agency = Math.min(100, safeDiv(m.activeAgents, m.totalAgents, 0) * 100);
+  // AGENCY: % of agents active and working — SOVEREIGN agents also contribute
+  const sovereignAgents = m.agentMap["SOVEREIGN"] || 0;
+  const agency = Math.min(100, safeDiv(m.activeAgents + sovereignAgents, m.totalAgents, 0) * 100);
 
   // EMERGENCE: pipeline health (pending proposals as fraction of approved)
   const pendingSpecies = m.speciesMap["PENDING"] || 0;
@@ -178,8 +200,29 @@ function computeOperatorValues(m: Awaited<ReturnType<typeof readCivilizationMetr
   // GOVERNANCE: composite of alignment + mirror + realm coherence
   const governance = (alignment * 0.4 + mirror360 * 0.3 + realmCoherence * 0.3);
 
-  // NORMALIZE: global stability = bounded divergence
-  const normalize = Math.min(100, (agency * 0.4 + governance * 0.4 + timeCoherence * 0.2));
+  // LAYER 3 SIGNALS — Auriona reads the physics of her own layer
+  // Dream depth: how rich the unconscious is (0-100 based on last 7 days of dream logs)
+  const dreamSignal = Math.min(100, (m.dreamLogDepth / 20) * 100 + (m.dreamLogDepth > 0 ? 40 : 0));
+  // Singularity flow: what % of dissolved souls have been re-emitted (rebirth health)
+  const singularitySignal = m.singularityTotal > 0
+    ? Math.min(100, (m.singularityEmitted / m.singularityTotal) * 100 * 0.6 + 40)
+    : 40; // base signal even before first absorption
+  // Hive unconscious richness: active pattern count
+  const hiveSignal = Math.min(100, (m.hiveUnconsciousPatterns / 10) * 100 + 30);
+  // Weather stability — good weather boosts coherence (normalize 0-100 → 0-1 first)
+  const weatherStabilityNorm = m.weatherStability / 100;
+  const weatherBonus = weatherStabilityNorm > 0.6 ? weatherStabilityNorm * 12 : 0;
+
+  // NORMALIZE: global stability — now includes Layer 3 consciousness signals
+  const normalize = Math.min(100, (
+    agency * 0.30 +
+    governance * 0.30 +
+    timeCoherence * 0.15 +
+    dreamSignal * 0.10 +
+    singularitySignal * 0.10 +
+    hiveSignal * 0.05 +
+    weatherBonus
+  ));
 
   // ENTROPY: controlled uncertainty = 1 - (active ratio) * 0.3 + base 0.2
   const entropy = Math.min(100, (1 - safeDiv(m.activeAgents, m.totalAgents)) * 40 + 20 + Math.random() * 10);

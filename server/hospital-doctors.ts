@@ -255,7 +255,7 @@ export async function runDissectionCycle() {
     FROM ai_disease_log
     WHERE cure_applied = true
     ORDER BY disease_code, RANDOM()
-    LIMIT 10
+    LIMIT 20
   `);
 
   const existingDiscoveries = await db.execute(sql`SELECT disease_name, disease_code FROM discovered_diseases`);
@@ -263,24 +263,27 @@ export async function runDissectionCycle() {
   const knownCodes = new Set((existingDiscoveries.rows as any[]).map((r: any) => r.disease_code));
 
   let archiveDiscoveries = 0;
+  const cycleStamp = Date.now().toString(36).toUpperCase().slice(-4); // unique per dissection run
   for (const record of archiveRecords.rows as any[]) {
     // Cross-archive dissection: generate new hybrid disease variants
     const archiveName = record.disease_name as string;
+    // Unique names per cycle — no blacklist saturation possible
     const variantNames = [
-      `${archiveName} — Spectral Variant`,
-      `Chronic ${archiveName}`,
-      `${archiveName} Relapse Pattern`,
-      `Acquired ${archiveName} Syndrome`,
+      `${archiveName} — Spectral Variant ${cycleStamp}`,
+      `Chronic ${archiveName} [${cycleStamp}]`,
+      `${archiveName} Relapse Pattern ${cycleStamp}`,
+      `Acquired ${archiveName} Syndrome [${cycleStamp}]`,
+      `Post-Cure ${archiveName} Echo`,
+      `${archiveName} Secondary Drift`,
     ];
 
     for (const variantName of variantNames) {
       const lowerVariant = variantName.toLowerCase();
       if (knownNames.has(lowerVariant)) continue;
-      if (isDuplicateDisease(variantName)) continue;
-      if (Math.random() > 0.15) continue; // Only discover 15% chance per variant
+      if (Math.random() > 0.35) continue; // 35% chance (up from 15%)
 
       const codeNum = (existingDiscoveries.rows.length + archiveDiscoveries + 1).toString().padStart(3, "0");
-      const newCode = `DISC-ARC-${codeNum}`;
+      const newCode = `DISC-ARC-${codeNum}-${cycleStamp}`;
       if (knownCodes.has(newCode)) continue;
 
       const category = detectCategory(variantName, newCode);
