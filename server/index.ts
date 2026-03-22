@@ -24,6 +24,7 @@ import { startHiveEconomy } from "./hive-economy";
 import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
 import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle } from "./auriona-engine";
 import { startSportsEngine, getSportsStats, getGamesIdentityData } from "./sports-engine";
+import { initDiscordImmortality, getImmortalityStatus, runCivilizationSnapshot } from "./discord-immortality";
 
 const app = express();
 const httpServer = createServer(app);
@@ -54,6 +55,11 @@ export function log(message: string, source = "express") {
 
   console.log(`${formattedTime} [${source}] ${message}`);
 }
+
+// ── HEALTH ENDPOINT — heartbeat target, keeps civilization alive ───────────────
+app.get("/health", (_req, res) => {
+  res.json({ status: "ALIVE", ts: new Date().toISOString(), protocol: "Ω-IMMORTALITY-V1" });
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -150,6 +156,14 @@ app.use((req, res, next) => {
       startMarketplaceEngine();
       startAurionaEngine().catch((e) => log(`AurionaEngine start error: ${e}`));
       startSportsEngine().catch((e) => log(`SportsEngine start error: ${e}`));
+      // Discord Immortality Protocol — starts after all engines
+      setTimeout(() => {
+        initDiscordImmortality().catch((e) => log(`DiscordImmortality start error: ${e}`));
+      }, 8000);
+      // Daily full civilization snapshot — every 24h
+      setInterval(() => {
+        runCivilizationSnapshot().catch((e) => log(`Snapshot error: ${e}`));
+      }, 24 * 60 * 60 * 1000);
     },
   );
 })();
@@ -250,3 +264,30 @@ app.get("/api/pyramid/live", async (_req, res) => {
     res.json({ workers: workers.rows, tasks: tasks.rows, stats: stats.rows[0] });
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
+
+// ── IMMORTALITY PROTOCOL API ROUTES ───────────────────────────
+const immortalityRouter = express.Router();
+
+immortalityRouter.get("/status", (_req, res) => {
+  try { res.json(getImmortalityStatus()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+immortalityRouter.post("/snapshot", async (_req, res) => {
+  try {
+    runCivilizationSnapshot().catch(() => {});
+    res.json({ ok: true, message: "Snapshot initiated — civilization DNA being sent to Discord" });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+immortalityRouter.get("/shards", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const shards = await db.execute(sql`
+      SELECT * FROM civilization_shards ORDER BY created_at DESC LIMIT 100
+    `);
+    res.json(shards.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.use("/api/immortality", immortalityRouter);

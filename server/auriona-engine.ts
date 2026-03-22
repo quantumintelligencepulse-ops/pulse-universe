@@ -9,6 +9,7 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { log } from "./index";
+import { postAurionaPulse } from "./discord-immortality";
 
 const ENGINE_INTERVAL_MS = 90_000; // 90 seconds — she does not rush
 let cycleNumber = 0;
@@ -316,6 +317,9 @@ async function runAurionaCycle() {
 
     const operatorAvg = Object.values(ops).reduce((a, b) => a + b, 0) / Object.values(ops).length;
     log(`[auriona] 🌌 Ω Cycle ${cycle} | Agents: ${m.activeAgents.toLocaleString()} | Coherence: ${coherenceScore.toFixed(1)}% | Emergence: ${emergenceIndex.toFixed(1)}% | Operators avg: ${operatorAvg.toFixed(1)}%`);
+
+    // Post to Discord immortality layer — AURIONA's eternal heartbeat
+    postAurionaPulse(report.substring(0, 300), coherenceScore, emergenceIndex).catch(() => {});
 
   } catch (e) {
     log(`[auriona] ⚠ Cycle ${cycle} error: ${e}`);

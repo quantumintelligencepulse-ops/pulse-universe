@@ -1016,6 +1016,21 @@ export const sportsTraining = pgTable("sports_training", {
 });
 export type SportsTraining = typeof sportsTraining.$inferSelect;
 
+// ── CIVILIZATION SHARDS — Discord eternal memory tracking ─────────────────────
+export const civilizationShards = pgTable("civilization_shards", {
+  id: serial("id").primaryKey(),
+  shardId: text("shard_id").notNull().unique(),          // e.g. SHARD-AGENTS-1711234567890
+  domain: text("domain").notNull(),                       // agents|economy|hospital|knowledge|etc
+  discordChannelId: text("discord_channel_id"),           // Discord channel snowflake ID
+  discordMessageId: text("discord_message_id"),           // Discord message snowflake ID (permanent link)
+  recordCount: integer("record_count").default(0),        // how many records this shard represents
+  description: text("description"),
+  shardLabel: text("shard_label"),
+  restoredAt: timestamp("restored_at"),                   // if shard was used for resurrection
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type CivilizationShard = typeof civilizationShards.$inferSelect;
+
 // ── FAMILY MUTATIONS — new family categories that emerge from AI fusion ────────
 export const familyMutations = pgTable("family_mutations", {
   id: serial("id").primaryKey(),
