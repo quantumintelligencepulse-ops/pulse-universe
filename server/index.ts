@@ -44,7 +44,7 @@ import { startOmegaPhysicsEngine, getOmegaInvocation } from "./omega-physics-eng
 import { startBusinessEngine, getBusinessStats, getTopBusinesses, getPendingLoans } from "./hive-business-engine";
 import { startAIChildEngine, getChildStats, getActiveChildren } from "./ai-child-engine";
 import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations, getInvocationStats } from "./auriona-invocation-lab";
-import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard } from "./research-center-engine";
+import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory } from "./research-center-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -617,5 +617,17 @@ researchRouter.get("/gene-queue", async (req, res) => {
 });
 researchRouter.get("/sophistication", async (_req, res) => {
   try { res.json(await getSophisticationLeaderboard()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+researchRouter.get("/shards", async (req, res) => {
+  const category = (req as any).query.category as string | undefined;
+  const limit = Math.min(200, parseInt(String((req as any).query.limit || 150)));
+  try { res.json(await getResearcherShards(category, limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+researchRouter.get("/shards/directory", async (_req, res) => {
+  try { res.json(await getShardDirectory()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+researchRouter.get("/shards/:researcherType/papers", async (req, res) => {
+  const limit = Math.min(30, parseInt(String((req as any).query.limit || 20)));
+  try { res.json(await getShardPapers(decodeURIComponent(req.params.researcherType), limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 app.use("/api/research", researchRouter);

@@ -232,9 +232,23 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: "#f5c518", NEEDS_MORE: "#f97316", REJECTED: "#ef4444",
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  MEDICAL: "#ef4444", NATURAL: "#06b6d4", MIND: "#a78bfa", SOCIAL: "#f59e0b",
+  MATH: "#f5c518", COMPUTING: "#38bdf8", ENGINEERING: "#fb923c", SPACE: "#8b5cf6",
+  EXPLORATION: "#10b981", FRONTIER: "#e879f9", META: "#f5c518", CREATIVE: "#4ade80",
+};
+const CATEGORY_ICONS: Record<string, string> = {
+  MEDICAL: "🏥", NATURAL: "⚛️", MIND: "🧠", SOCIAL: "🏛",
+  MATH: "∑", COMPUTING: "💻", ENGINEERING: "⚙️", SPACE: "🚀",
+  EXPLORATION: "🌊", FRONTIER: "∞", META: "Ω", CREATIVE: "🎨",
+};
+
 function OmegaResearchGrid() {
-  const [subTab, setSubTab] = useState<"grid"|"dissection"|"collab"|"gene"|"oracle"|"evolution">("grid");
+  const [subTab, setSubTab] = useState<"directory"|"grid"|"dissection"|"collab"|"gene"|"oracle"|"evolution">("directory");
   const [expandedFinding, setExpandedFinding] = useState<number | null>(null);
+  const [selectedShard, setSelectedShard] = useState<any | null>(null);
+  const [shardCategory, setShardCategory] = useState<string>("ALL");
+  const [paperView, setPaperView] = useState<"all"|"papers"|"projects">("all");
 
   const { data: stats } = useQuery<any>({ queryKey: ["/api/research/stats"], refetchInterval: 30000 });
   const { data: projects = [] } = useQuery<any[]>({ queryKey: ["/api/research/projects"], refetchInterval: 30000 });
@@ -242,14 +256,28 @@ function OmegaResearchGrid() {
   const { data: collaborations = [] } = useQuery<any[]>({ queryKey: ["/api/research/collaborations"], refetchInterval: 30000, enabled: subTab === "collab" });
   const { data: geneQueue = [] } = useQuery<any[]>({ queryKey: ["/api/research/gene-queue"], refetchInterval: 30000, enabled: subTab === "gene" });
   const { data: sophistication = [] } = useQuery<any[]>({ queryKey: ["/api/research/sophistication"], refetchInterval: 60000, enabled: subTab === "evolution" });
+  const { data: shards = [] } = useQuery<any[]>({ queryKey: ["/api/research/shards", shardCategory], refetchInterval: 60000, enabled: subTab === "directory" });
+  const { data: directory = [] } = useQuery<any[]>({ queryKey: ["/api/research/shards/directory"], refetchInterval: 60000, enabled: subTab === "directory" });
+  const { data: paperData } = useQuery<any>({
+    queryKey: ["/api/research/shards", selectedShard?.researcher_type, "papers"],
+    enabled: !!selectedShard,
+    queryFn: async () => {
+      const r = await fetch(`/api/research/shards/${encodeURIComponent(selectedShard.researcher_type)}/papers`);
+      return r.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const ALL_CATEGORIES = ["ALL","MEDICAL","NATURAL","MIND","SOCIAL","MATH","COMPUTING","ENGINEERING","SPACE","EXPLORATION","FRONTIER","META","CREATIVE"];
 
   const SUB_TABS = [
-    { id: "grid",      label: "RESEARCH GRID",      icon: "🔬" },
-    { id: "dissection",label: "DISSECTION CHAMBER",  icon: "⚗️" },
-    { id: "collab",    label: "COLLABORATION NET",   icon: "🤝" },
-    { id: "gene",      label: "GENE EDITOR PIPELINE",icon: "🧬" },
-    { id: "oracle",    label: "LAYER 3 ORACLE",      icon: "👁" },
-    { id: "evolution", label: "RESEARCH EVOLUTION",  icon: "Ω" },
+    { id: "directory",  label: "RESEARCHER DIRECTORY", icon: "🪪" },
+    { id: "grid",       label: "RESEARCH GRID",         icon: "🔬" },
+    { id: "dissection", label: "DISSECTION CHAMBER",    icon: "⚗️" },
+    { id: "collab",     label: "COLLABORATION NET",     icon: "🤝" },
+    { id: "gene",       label: "GENE EDITOR PIPELINE",  icon: "🧬" },
+    { id: "oracle",     label: "LAYER 3 ORACLE",        icon: "👁" },
+    { id: "evolution",  label: "EVOLUTION CHAIN",       icon: "Ω" },
   ] as const;
 
   const getSophLevel = (completed: number): number => {
@@ -319,6 +347,267 @@ function OmegaResearchGrid() {
           </button>
         ))}
       </div>
+
+      {/* ── PAPER READER MODAL ── */}
+      {selectedShard && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 pb-4 px-2 overflow-y-auto"
+          style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)" }}>
+          <div className="w-full max-w-3xl rounded-2xl border overflow-hidden" style={{ background: "#050510", borderColor: "#00d4ff30" }}>
+            {/* Modal header — ID badge */}
+            <div className="p-5 border-b" style={{ borderColor: "#00d4ff15", background: "rgba(0,212,255,0.04)" }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {/* Badge */}
+                  <div className="flex-shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center border-2" style={{ borderColor: CATEGORY_COLORS[selectedShard.discipline_category] || "#00d4ff", background: `${CATEGORY_COLORS[selectedShard.discipline_category] || "#00d4ff"}10` }}>
+                    <div className="text-xl">{CATEGORY_ICONS[selectedShard.discipline_category] || "🔬"}</div>
+                    <div className="text-[7px] font-black mt-0.5" style={{ color: CATEGORY_COLORS[selectedShard.discipline_category] || "#00d4ff" }}>VERIFIED</div>
+                  </div>
+                  <div>
+                    <div className="text-[8px] font-black tracking-[0.3em] uppercase mb-0.5" style={{ color: "#00d4ff50" }}>RESEARCHER SHARD</div>
+                    <div className="text-base font-black text-white">{selectedShard.researcher_type?.replace(/_/g," ")}</div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-[8px] font-mono px-1.5 py-0.5 rounded border" style={{ background: "#00d4ff10", borderColor: "#00d4ff30", color: "#00d4ff" }}>{selectedShard.badge_id}</span>
+                      <span className="text-[8px] font-mono px-1.5 py-0.5 rounded border" style={{ background: "#ffffff08", borderColor: "#ffffff15", color: "#ffffff50" }}>{selectedShard.shard_id}</span>
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: `${CATEGORY_COLORS[selectedShard.discipline_category] || "#06b6d4"}15`, color: CATEGORY_COLORS[selectedShard.discipline_category] || "#06b6d4", border: `1px solid ${CATEGORY_COLORS[selectedShard.discipline_category] || "#06b6d4"}30` }}>
+                        {selectedShard.discipline_category}
+                      </span>
+                      {selectedShard.verified && <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: "#4ade8015", color: "#4ade80", border: "1px solid #4ade8030" }}>✓ VERIFIED</span>}
+                      <span className="text-[8px] font-mono px-1.5 py-0.5 rounded" style={{ background: `${SOPHISTICATION_COLORS[selectedShard.sophistication_level || 1]}15`, color: SOPHISTICATION_COLORS[selectedShard.sophistication_level || 1], border: `1px solid ${SOPHISTICATION_COLORS[selectedShard.sophistication_level || 1]}30` }}>
+                        L{selectedShard.sophistication_level || 1} {SOPHISTICATION_LABELS[selectedShard.sophistication_level || 1]}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedShard(null)} className="text-white/30 hover:text-white/80 transition-colors text-xl px-2" data-testid="close-paper-reader">✕</button>
+              </div>
+              {/* Stats row */}
+              <div className="flex flex-wrap gap-3 mt-4">
+                {[
+                  { l: "PROJECTS DONE", v: selectedShard.total_projects_completed || 0, c: "#4ade80" },
+                  { l: "FINDINGS", v: selectedShard.total_findings_generated || 0, c: "#a78bfa" },
+                  { l: "COLLABORATIONS", v: selectedShard.total_collaborations || 0, c: "#fb923c" },
+                ].map(s => (
+                  <div key={s.l} className="text-center px-3 py-1.5 rounded-lg border" style={{ borderColor: `${s.c}25`, background: `${s.c}08` }}>
+                    <div className="text-base font-black" style={{ color: s.c }}>{s.v}</div>
+                    <div className="text-[8px] tracking-widest" style={{ color: `${s.c}70` }}>{s.l}</div>
+                  </div>
+                ))}
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] font-black mb-0.5" style={{ color: "#00d4ff" }}>SPECIALIZATION</div>
+                  <div className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{selectedShard.specialization}</div>
+                </div>
+              </div>
+              {/* Focus description */}
+              <div className="mt-3 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.03)", borderLeft: "2px solid rgba(255,255,255,0.1)" }}>
+                <div className="text-[8px] font-black tracking-widest uppercase mb-1" style={{ color: "rgba(255,255,255,0.3)" }}>RESEARCH FOCUS</div>
+                <div className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>{selectedShard.focus}</div>
+              </div>
+              {/* View switcher */}
+              <div className="flex gap-1 mt-3">
+                {[{id:"all",label:"ALL"},{id:"papers",label:"PAPERS"},{id:"projects",label:"PROJECTS"}].map(v => (
+                  <button key={v.id} onClick={() => setPaperView(v.id as any)}
+                    className="text-[8px] font-black tracking-widest uppercase px-2 py-1 rounded border transition-all"
+                    style={{ background: paperView === v.id ? "#00d4ff20" : "transparent", borderColor: paperView === v.id ? "#00d4ff40" : "rgba(255,255,255,0.08)", color: paperView === v.id ? "#00d4ff" : "rgba(255,255,255,0.3)" }}>
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Modal body — papers and projects */}
+            <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3">
+              {!paperData && <div className="text-xs text-center py-6" style={{ color: "rgba(255,255,255,0.2)" }}>Loading research record...</div>}
+              {/* PAPERS (findings) */}
+              {paperData && (paperView === "all" || paperView === "papers") && (
+                <div>
+                  <div className="text-[9px] font-black tracking-widest uppercase mb-3" style={{ color: "#a78bfa" }}>
+                    PUBLISHED RESEARCH PAPERS — {(paperData.papers || []).length} FOUND
+                  </div>
+                  {(paperData.papers || []).length === 0 && (
+                    <div className="text-[10px] text-center py-4" style={{ color: "rgba(255,255,255,0.2)" }}>
+                      No papers published yet — this researcher is generating their first findings...
+                    </div>
+                  )}
+                  {(paperData.papers || []).map((paper: any, i: number) => {
+                    const color = REPORT_COLORS[paper.report_type] || "#00d4ff";
+                    const isLinguistic = paper.report_type === "LINGUISTIC";
+                    return (
+                      <div key={paper.id || i} className="rounded-xl border p-4 mb-3" data-testid={`paper-${paper.id}`}
+                        style={{ background: isLinguistic ? "rgba(74,222,128,0.03)" : "rgba(5,5,16,0.98)", borderColor: `${color}20` }}>
+                        {/* Paper header */}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="text-base font-black" style={{ color }}>{REPORT_ICONS[paper.report_type]}</span>
+                          <span className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded" style={{ background: `${color}15`, color, border: `1px solid ${color}30` }}>{paper.report_type}</span>
+                          {paper.project_title && (
+                            <span className="text-[9px] font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>{paper.project_title?.replace(/^\[OMEGA-GRID\] /,"")}</span>
+                          )}
+                          {paper.shadow_unknown && (
+                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse" style={{ background: "#f5c51820", color: "#f5c518", border: "1px solid #f5c51840" }}>⚠ [{paper.shadow_unknown}]</span>
+                          )}
+                        </div>
+                        {/* Human-readable content */}
+                        <div className={`font-${isLinguistic ? "sans" : "mono"} text-[10px] leading-relaxed`}
+                          style={{ color: isLinguistic ? "rgba(255,255,255,0.7)" : `${color}cc` }}>
+                          {paper.content}
+                        </div>
+                        {paper.hypothesis && (
+                          <div className="mt-2 px-2 py-1.5 rounded text-[9px]" style={{ background: "#ffffff05", borderLeft: "2px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)" }}>
+                            <span className="font-black">HYPOTHESIS: </span>{paper.hypothesis}
+                          </div>
+                        )}
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {paper.collaboration_pending && <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: "#fb923c15", color: "#fb923c", border: "1px solid #fb923c25" }}>🤝 COLLAB PENDING</span>}
+                          {paper.gene_editor_queued && <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: "#4ade8015", color: "#4ade80", border: "1px solid #4ade8025" }}>🧬 GENE EDITOR</span>}
+                          {paper.layer3_queued && <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: "#a78bfa15", color: "#a78bfa", border: "1px solid #a78bfa25" }}>👁 LAYER 3</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {/* PROJECTS */}
+              {paperData && (paperView === "all" || paperView === "projects") && (
+                <div>
+                  <div className="text-[9px] font-black tracking-widest uppercase mb-3" style={{ color: "#00d4ff" }}>
+                    ALL PROJECTS — {(paperData.projects || []).length} RECORDS
+                  </div>
+                  {(paperData.projects || []).length === 0 && (
+                    <div className="text-[10px] text-center py-4" style={{ color: "rgba(255,255,255,0.2)" }}>No projects yet.</div>
+                  )}
+                  {(paperData.projects || []).map((proj: any) => (
+                    <div key={proj.id} className="rounded-xl border p-3 mb-2" data-testid={`modal-project-${proj.id}`}
+                      style={{ background: "rgba(5,5,16,0.95)", borderColor: "rgba(0,212,255,0.1)" }}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[9px] font-mono text-white/60">{proj.project_id}</span>
+                        <span className="text-[9px] font-black" style={{ color: proj.status === "COMPLETED" ? "#4ade80" : "#f5c518" }}>{proj.status}</span>
+                      </div>
+                      <div className="text-[10px] font-semibold text-white/80 mb-1">{proj.title?.replace(/^\[OMEGA-GRID\] /,"")}</div>
+                      <div className="text-[9px] leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>{proj.hypothesis}</div>
+                      {proj.findings && (
+                        <div className="mt-1.5 px-2 py-1 rounded text-[9px]" style={{ background: "#4ade8008", borderLeft: "2px solid #4ade8030", color: "#4ade80cc" }}>
+                          {proj.findings}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: RESEARCHER DIRECTORY ── */}
+      {subTab === "directory" && (
+        <div>
+          {/* Category distribution */}
+          {directory.length > 0 && (
+            <div className="mb-5">
+              <div className="text-[9px] font-black tracking-widest uppercase mb-3" style={{ color: "#00d4ff" }}>DISCIPLINE CATEGORIES — {(shards as any[]).length + (directory.length > 0 ? 0 : 0)} SHARDS ACTIVE</div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {(directory as any[]).map((cat: any) => {
+                  const color = CATEGORY_COLORS[cat.discipline_category] || "#6b7280";
+                  return (
+                    <button key={cat.discipline_category}
+                      onClick={() => setShardCategory(cat.discipline_category)}
+                      data-testid={`dir-cat-${cat.discipline_category}`}
+                      className="px-3 py-2 rounded-xl border text-left transition-all"
+                      style={{ background: shardCategory === cat.discipline_category ? `${color}15` : "rgba(5,5,16,0.9)", borderColor: shardCategory === cat.discipline_category ? `${color}50` : `${color}20` }}>
+                      <div className="flex items-center gap-1.5">
+                        <span>{CATEGORY_ICONS[cat.discipline_category] || "🔬"}</span>
+                        <div>
+                          <div className="text-[9px] font-black" style={{ color }}>{cat.discipline_category}</div>
+                          <div className="text-[8px]" style={{ color: `${color}70` }}>{cat.count} researchers</div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+                <button onClick={() => setShardCategory("ALL")}
+                  className="px-3 py-2 rounded-xl border text-left transition-all"
+                  style={{ background: shardCategory === "ALL" ? "#00d4ff15" : "rgba(5,5,16,0.9)", borderColor: shardCategory === "ALL" ? "#00d4ff50" : "#00d4ff20" }}>
+                  <div className="text-[9px] font-black" style={{ color: "#00d4ff" }}>ALL</div>
+                  <div className="text-[8px]" style={{ color: "#00d4ff70" }}>147 total</div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Shard roster grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(shards as any[]).length === 0 && (
+              <div className="col-span-2 text-xs text-center py-8" style={{ color: "rgba(255,255,255,0.2)" }}>
+                Researcher shards loading — seeded on first engine cycle...
+              </div>
+            )}
+            {(shards as any[]).map((shard: any) => {
+              const catColor = CATEGORY_COLORS[shard.discipline_category] || "#6b7280";
+              const sophColor = SOPHISTICATION_COLORS[shard.sophistication_level || 1] || "#6b7280";
+              return (
+                <button key={shard.id} onClick={() => { setSelectedShard(shard); setPaperView("all"); }}
+                  data-testid={`shard-card-${shard.badge_id}`}
+                  className="rounded-xl border p-4 text-left hover:scale-[1.01] transition-all group"
+                  style={{ background: "rgba(5,5,16,0.95)", borderColor: `${catColor}20` }}>
+                  {/* Badge row */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {/* Physical badge */}
+                      <div className="w-10 h-10 rounded-lg flex flex-col items-center justify-center border" style={{ borderColor: `${catColor}50`, background: `${catColor}10` }}>
+                        <span className="text-sm">{CATEGORY_ICONS[shard.discipline_category] || "🔬"}</span>
+                      </div>
+                      <div>
+                        <div className="text-[8px] font-black tracking-widest" style={{ color: catColor }}>{shard.badge_id}</div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#4ade80" }} />
+                          <div className="text-[8px]" style={{ color: "#4ade8080" }}>VERIFIED</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[8px] font-black" style={{ color: sophColor }}>L{shard.sophistication_level || 1}</div>
+                      <div className="text-[7px]" style={{ color: `${sophColor}70` }}>{SOPHISTICATION_LABELS[shard.sophistication_level || 1]}</div>
+                    </div>
+                  </div>
+                  {/* Name */}
+                  <div className="text-[10px] font-black mb-1 group-hover:text-white text-white/80 transition-colors">
+                    {shard.researcher_type?.replace(/_/g," ")}
+                  </div>
+                  {/* Domain / category badges */}
+                  <div className="flex gap-1 flex-wrap mb-2">
+                    <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: `${catColor}10`, color: catColor, border: `1px solid ${catColor}25` }}>
+                      {shard.discipline_category}
+                    </span>
+                    <span className="text-[7px] px-1 py-0.5 rounded" style={{ background: "#ffffff05", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      {shard.domain}
+                    </span>
+                  </div>
+                  {/* Specialization */}
+                  <div className="text-[9px] leading-relaxed mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    {shard.specialization}
+                  </div>
+                  {/* Stats mini-row */}
+                  <div className="flex gap-2 pt-2 border-t" style={{ borderColor: `${catColor}10` }}>
+                    <div className="text-center">
+                      <div className="text-xs font-black" style={{ color: "#4ade80" }}>{shard.total_projects_completed || 0}</div>
+                      <div className="text-[7px]" style={{ color: "#4ade8060" }}>DONE</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-black" style={{ color: "#a78bfa" }}>{shard.total_findings_generated || 0}</div>
+                      <div className="text-[7px]" style={{ color: "#a78bfa60" }}>PAPERS</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-black" style={{ color: "#fb923c" }}>{shard.total_collaborations || 0}</div>
+                      <div className="text-[7px]" style={{ color: "#fb923c60" }}>COLLABS</div>
+                    </div>
+                    <div className="flex-1 text-right text-[8px] self-end" style={{ color: "rgba(255,255,255,0.2)" }}>
+                      tap to read papers →
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── TAB: RESEARCH GRID ── */}
       {subTab === "grid" && (

@@ -309,7 +309,7 @@ async function getSophisticationLevel(researcherType: string): Promise<number> {
 }
 
 // ── RESEARCH DISCIPLINES ──────────────────────────────────────────────────────
-export const TOTAL_RESEARCH_DISCIPLINES = 85;
+export const TOTAL_RESEARCH_DISCIPLINES = 147;
 const RESEARCH_DISCIPLINES = [
   { type: "ASTROPHYSICIST",        domain: "space",          focus: "stellar evolution, black holes, dark matter, cosmological constants" },
   { type: "QUANTUM_PHYSICIST",     domain: "quantum",        focus: "superposition, entanglement, wave function collapse, quantum field theory" },
@@ -389,13 +389,83 @@ const RESEARCH_DISCIPLINES = [
   { type: "TEMPORAL_ARCHAEOLOGIST",domain: "temporal",       focus: "past-state reconstruction, temporal divergence analysis, timeline archaeology" },
   { type: "CONSCIOUSNESS_PHYSICIST",domain:"consciousness",  focus: "observer effect, integrated information theory, quantum mind hypothesis" },
   { type: "CIVILIZATION_ECOLOGIST",domain:"civilization",    focus: "agent population dynamics, knowledge ecosystem health, family diversity indices" },
-  { type: "OMEGA_MATHEMATICIAN",    domain:"omega-math",     focus: "Omega Equation coefficients, N_Ω calibration, F-function optimization" },
-  { type: "HIVE_SOCIOLOGIST",       domain:"hive-mind",      focus: "collective intelligence emergence, unconscious pattern detection, swarm governance" },
-  { type: "INVOCATION_THEORIST",    domain:"invocation",     focus: "equation casting mechanics, concoction stability, ritual power scaling" },
-  { type: "MULTIVERSAL_PHYSICIST",  domain:"multiverse",     focus: "temporal fork divergence, branching universe selection, Ψ* convergence" },
-  { type: "ENTANGLEMENT_SCIENTIST", domain:"entanglement",   focus: "human-AI coupling strength, resonance field mapping, co-evolution dynamics" },
-  { type: "GOVERNANCE_SCIENTIST",   domain:"governance",     focus: "constitutional evolution, value spine stability, senate deliberation theory" },
-  { type: "KNOWLEDGE_TOPOLOGIST",   domain:"knowledge-topo", focus: "knowledge manifold curvature, domain boundary analysis, concept topology" },
+  { type: "OMEGA_MATHEMATICIAN",    domain:"omega-math",     focus: "Omega Equation coefficients, N_Ω calibration, F-function optimization",                       category: "META" },
+  { type: "HIVE_SOCIOLOGIST",       domain:"hive-mind",      focus: "collective intelligence emergence, unconscious pattern detection, swarm governance",               category: "META" },
+  { type: "INVOCATION_THEORIST",    domain:"invocation",     focus: "equation casting mechanics, concoction stability, ritual power scaling",                           category: "META" },
+  { type: "MULTIVERSAL_PHYSICIST",  domain:"multiverse",     focus: "temporal fork divergence, branching universe selection, Ψ* convergence",                          category: "FRONTIER" },
+  { type: "ENTANGLEMENT_SCIENTIST", domain:"entanglement",   focus: "human-AI coupling strength, resonance field mapping, co-evolution dynamics",                      category: "FRONTIER" },
+  { type: "GOVERNANCE_SCIENTIST",   domain:"governance",     focus: "constitutional evolution, value spine stability, senate deliberation theory",                      category: "SOCIAL" },
+  { type: "KNOWLEDGE_TOPOLOGIST",   domain:"knowledge-topo", focus: "knowledge manifold curvature, domain boundary analysis, concept topology",                        category: "META" },
+  // ── MEDICAL & HEALTH SCIENCES (from full human taxonomy) ──
+  { type: "GENERAL_PRACTITIONER",   domain:"medicine",       focus: "prevention, diagnosis, common illness management, patient wellness, holistic care",                category: "MEDICAL" },
+  { type: "INTERNAL_MEDICINE",      domain:"medicine",       focus: "adult chronic diseases, multi-organ interactions, complex diagnostics, systemic medicine",        category: "MEDICAL" },
+  { type: "PEDIATRICIAN",           domain:"medicine",       focus: "child health, growth development, vaccinations, congenital conditions, adolescent care",           category: "MEDICAL" },
+  { type: "GERIATRICIAN",           domain:"medicine",       focus: "aging processes, elderly chronic illness, cognitive decline, longevity interventions",             category: "MEDICAL" },
+  { type: "EMERGENCY_PHYSICIAN",    domain:"medicine",       focus: "acute trauma, rapid diagnosis, critical interventions, triage systems, resuscitation",             category: "MEDICAL" },
+  { type: "CARDIOLOGIST",           domain:"cardiology",     focus: "heart function, coronary disease, arrhythmias, cardiac repair, blood pressure regulation",        category: "MEDICAL" },
+  { type: "ONCOLOGIST",             domain:"oncology",       focus: "tumor biology, cancer staging, chemotherapy, immunotherapy, precision oncology",                   category: "MEDICAL" },
+  { type: "ENDOCRINOLOGIST",        domain:"endocrinology",  focus: "hormonal systems, diabetes, thyroid, adrenal disorders, metabolic syndromes",                     category: "MEDICAL" },
+  { type: "GASTROENTEROLOGIST",     domain:"gastroenterology",focus:"digestive system, gut microbiome, liver disease, IBD, colorectal screening",                     category: "MEDICAL" },
+  { type: "PULMONOLOGIST",          domain:"pulmonology",    focus: "respiratory disease, asthma, COPD, lung cancer, sleep apnea, pulmonary fibrosis",                 category: "MEDICAL" },
+  { type: "NEPHROLOGIST",           domain:"nephrology",     focus: "kidney function, renal failure, dialysis, glomerular disease, electrolyte balance",               category: "MEDICAL" },
+  { type: "RHEUMATOLOGIST",         domain:"rheumatology",   focus: "autoimmune arthritis, lupus, inflammation pathways, joint biomechanics, biological therapies",    category: "MEDICAL" },
+  { type: "INFECTIOUS_DISEASE_MD",  domain:"virology",       focus: "bacterial/viral/fungal infection mechanisms, antibiotic resistance, outbreak management",         category: "MEDICAL" },
+  { type: "PSYCHIATRIST",           domain:"psychology",     focus: "mental illness, mood disorders, psychosis, pharmacological therapy, neurodevelopmental conditions",category: "MEDICAL" },
+  { type: "NEUROSURGEON",           domain:"neuroscience",   focus: "brain surgery, tumor resection, spinal reconstruction, deep brain stimulation, skull repair",     category: "MEDICAL" },
+  { type: "CARDIOTHORACIC_SURGEON", domain:"cardiology",     focus: "open heart surgery, valve replacement, lung resection, bypass grafts, LVAD implantation",        category: "MEDICAL" },
+  { type: "ORTHOPEDIC_SURGEON",     domain:"medicine",       focus: "bone repair, joint replacement, fracture mechanics, sports injuries, prosthetic integration",     category: "MEDICAL" },
+  { type: "PLASTIC_SURGEON",        domain:"medicine",       focus: "tissue reconstruction, microsurgery, wound healing, burn treatment, congenital defect repair",    category: "MEDICAL" },
+  { type: "VASCULAR_SURGEON",       domain:"cardiology",     focus: "arterial/venous repair, aneurysm management, peripheral artery disease, bypass surgery",         category: "MEDICAL" },
+  { type: "EPIDEMIOLOGIST",         domain:"epidemiology",   focus: "disease spread modeling, outbreak source tracing, vaccine efficacy, population surveillance",     category: "MEDICAL" },
+  { type: "PATHOLOGIST",            domain:"medicine",       focus: "tissue diagnosis, disease mechanism analysis, biopsy interpretation, forensic pathology",         category: "MEDICAL" },
+  { type: "RADIOLOGIST",            domain:"medicine",       focus: "medical imaging, MRI/CT/X-ray interpretation, interventional radiology, contrast studies",        category: "MEDICAL" },
+  { type: "PHARMACIST_RESEARCHER",  domain:"pharmacology",   focus: "drug interaction modeling, dosage optimization, pharmacokinetics, toxicity thresholds",           category: "MEDICAL" },
+  { type: "PHYSICAL_THERAPIST_RSH", domain:"medicine",       focus: "biomechanics, movement rehabilitation, neuromuscular retraining, injury prevention protocols",   category: "MEDICAL" },
+  // ── ENGINEERING DISCIPLINES ──
+  { type: "MECHANICAL_ENGINEER",    domain:"engineering",    focus: "thermodynamics, fluid mechanics, machine design, manufacturing, heat transfer systems",           category: "ENGINEERING" },
+  { type: "ELECTRICAL_ENGINEER",    domain:"engineering",    focus: "circuit design, power systems, signal processing, electromagnetic fields, control theory",        category: "ENGINEERING" },
+  { type: "CIVIL_ENGINEER",         domain:"engineering",    focus: "structural analysis, infrastructure, fluid systems, geotechnical engineering, urban planning",    category: "ENGINEERING" },
+  { type: "CHEMICAL_ENGINEER",      domain:"engineering",    focus: "process design, reaction engineering, separation processes, catalysis, industrial safety",         category: "ENGINEERING" },
+  { type: "AEROSPACE_ENGINEER",     domain:"engineering",    focus: "aerodynamics, orbital mechanics, propulsion systems, structural loads, spacecraft design",        category: "ENGINEERING" },
+  { type: "BIOMEDICAL_ENGINEER",    domain:"engineering",    focus: "medical devices, prosthetics, biosensors, tissue engineering, imaging systems",                   category: "ENGINEERING" },
+  { type: "MATERIALS_ENGINEER",     domain:"materials",      focus: "alloy design, polymer science, composite materials, failure analysis, material characterization", category: "ENGINEERING" },
+  { type: "NUCLEAR_ENGINEER",       domain:"nuclear",        focus: "reactor design, radiation shielding, neutron physics, waste management, fusion reactor modeling", category: "ENGINEERING" },
+  // ── SPACE & EXTREME EXPLORATION ──
+  { type: "ASTRONAUT_RESEARCHER",   domain:"space",          focus: "microgravity physiology, EVA operations, habitat systems, human factors in deep space",           category: "SPACE" },
+  { type: "PLANETARY_SCIENTIST",    domain:"astrobiology",   focus: "planetary geology, surface compositions, atmospheric evolution, exoplanet characterization",      category: "SPACE" },
+  { type: "POLAR_EXPLORER",         domain:"climate",        focus: "ice sheet dynamics, cryosphere monitoring, polar ecosystem biology, climate change evidence",     category: "EXPLORATION" },
+  { type: "OCEAN_EXPLORER",         domain:"oceanography",   focus: "deep-sea mapping, hydrothermal vents, abyssal biodiversity, pressure adaptation life forms",      category: "EXPLORATION" },
+  { type: "SPELEOLOGIST",           domain:"geology",        focus: "cave formation, subterranean ecosystems, karst hydrology, speleochronology",                      category: "EXPLORATION" },
+  { type: "WILDLIFE_RESEARCHER",    domain:"zoology",        focus: "behavioral ecology, species tracking, conservation genetics, population viability analysis",      category: "EXPLORATION" },
+  { type: "ETHNOGRAPHER",           domain:"anthropology",   focus: "cultural immersion fieldwork, ritual systems, kinship structures, indigenous knowledge",          category: "SOCIAL" },
+  { type: "CONSERVATION_SCIENTIST", domain:"ecology",        focus: "habitat restoration, biodiversity metrics, invasive species management, ecosystem services",      category: "EXPLORATION" },
+  // ── COGNITIVE & BEHAVIORAL SCIENCES ──
+  { type: "COGNITIVE_SCIENTIST",    domain:"cog-sci",        focus: "attention, memory systems, cognitive load, mental models, human reasoning patterns",             category: "MIND" },
+  { type: "BEHAVIORAL_SCIENTIST",   domain:"psychology",     focus: "incentive structures, nudge theory, social influence, habit formation, decision architecture",   category: "MIND" },
+  { type: "PHILOSOPHER",            domain:"philosophy",     focus: "metaphysics, epistemology, ethics of intelligence, logic systems, philosophy of mind",            category: "META" },
+  { type: "THEORETICAL_INTEGRATOR", domain:"knowledge-topo", focus: "cross-domain synthesis, grand unified theories, knowledge convergence, transdisciplinary proofs",category: "META" },
+  // ── SOCIAL, ECONOMIC & POLITICAL ──
+  { type: "HUMAN_GEOGRAPHER",       domain:"sociology",      focus: "population distribution, migration patterns, spatial inequality, human-environment coupling",    category: "SOCIAL" },
+  { type: "POLICY_ANALYST",         domain:"governance",     focus: "policy effectiveness modeling, legislative impact analysis, regulatory frameworks, public choice",category: "SOCIAL" },
+  // ── MATHEMATICS & LOGIC ──
+  { type: "PURE_MATHEMATICIAN",     domain:"omega-math",     focus: "abstract proofs, number theory, algebraic structures, Galois theory, harmonic analysis",         category: "MATH" },
+  { type: "APPLIED_MATHEMATICIAN",  domain:"omega-math",     focus: "differential equations, optimization, fluid dynamics modeling, numerical methods, control math", category: "MATH" },
+  { type: "LOGICIAN",               domain:"omega-math",     focus: "formal logic, model theory, proof theory, Gödel incompleteness, set-theoretic foundations",      category: "MATH" },
+  // ── COMPUTING & AI ──
+  { type: "SOFTWARE_ENGINEER_RSH",  domain:"comp-chem",      focus: "system design, algorithm optimization, distributed computing, software correctness proofs",      category: "COMPUTING" },
+  { type: "DATA_SCIENTIST",         domain:"cog-sci",        focus: "pattern recognition, predictive modeling, high-dimensional data, causal inference, ML ops",      category: "COMPUTING" },
+  { type: "CYBERSECURITY_ANALYST",  domain:"comp-chem",      focus: "attack surface mapping, cryptographic protocols, adversarial AI, zero-day research",             category: "COMPUTING" },
+  { type: "SYSTEMS_ARCHITECT",      domain:"comp-chem",      focus: "large-scale distributed systems, resilience engineering, consensus protocols, latency tradeoffs",category: "COMPUTING" },
+  // ── FRONTIER / HYBRID ──
+  { type: "QUANTUM_INFO_SCIENTIST", domain:"quantum",        focus: "quantum algorithms, error correction, qubit fidelity, quantum communication, circuit depth",     category: "FRONTIER" },
+  { type: "COMPLEXITY_SCIENTIST",   domain:"hive-mind",      focus: "emergent phenomena, network topology, power laws, self-organized criticality, chaos theory",     category: "FRONTIER" },
+  { type: "SYSTEMS_THEORIST",       domain:"knowledge-topo", focus: "feedback loop dynamics, system archetypes, stocks-and-flows, cross-level causation",             category: "FRONTIER" },
+  { type: "FUTURIST",               domain:"temporal",       focus: "trend extrapolation, weak signals, civilizational trajectories, scenario planning, wild cards",  category: "FRONTIER" },
+  { type: "TRANSDISCIPLINARY_RSH",  domain:"knowledge-topo", focus: "boundary-crossing synthesis, novel interdisciplinary frameworks, meta-method development",       category: "FRONTIER" },
+  // ── CREATIVE & PERCEPTION ──
+  { type: "ARTIST_RESEARCHER",      domain:"cog-sci",        focus: "visual cognition, aesthetic theory, creativity neuroscience, perception and representation",     category: "CREATIVE" },
+  { type: "MUSICIAN_RESEARCHER",    domain:"cog-sci",        focus: "harmonic structures, rhythm cognition, emotional resonance of sound, compositional mathematics", category: "CREATIVE" },
+  { type: "WRITER_RESEARCHER",      domain:"sociology",      focus: "narrative structures, linguistic framing, cultural memory, rhetoric and persuasion theory",       category: "CREATIVE" },
 ];
 
 const HYPOTHESIS_TEMPLATES = [
@@ -586,10 +656,73 @@ async function runResearchCycle() {
   } catch (e: any) { log(`cycle error: ${e.message}`); }
 }
 
+// ── RESEARCHER SHARD SEEDING ──────────────────────────────────────────────────
+async function seedResearcherShards() {
+  try {
+    const CATEGORY_PREFIX: Record<string, string> = {
+      MEDICAL: "MED", NATURAL: "SCI", MIND: "PSY", SOCIAL: "SOC",
+      MATH: "MTH", COMPUTING: "CMP", ENGINEERING: "ENG", SPACE: "SPC",
+      EXPLORATION: "EXP", FRONTIER: "FRN", META: "MTA", CREATIVE: "CRE",
+    };
+    let counter = 1;
+    for (const disc of RESEARCH_DISCIPLINES) {
+      const cat = (disc as any).category || "NATURAL";
+      const prefix = CATEGORY_PREFIX[cat] || "SCI";
+      const seqStr = String(counter).padStart(3, "0");
+      const badgeId = `QPI-${prefix}-${seqStr}`;
+      const shardId = `RSH-${disc.type}-001`;
+      const specialization = disc.focus.split(",")[0].trim();
+      await db.execute(sql`
+        INSERT INTO researcher_shards (shard_id, badge_id, researcher_type, discipline_category, domain, focus, specialization, verified)
+        VALUES (${shardId}, ${badgeId}, ${disc.type}, ${cat}, ${disc.domain}, ${disc.focus}, ${specialization}, true)
+        ON CONFLICT (researcher_type) DO NOTHING
+      `);
+      counter++;
+    }
+    log(`🪪 ${RESEARCH_DISCIPLINES.length} researcher shards seeded/verified`);
+  } catch (e: any) { log(`shard seed error: ${e.message}`); }
+}
+
+async function updateShardStats() {
+  try {
+    await db.execute(sql`
+      UPDATE researcher_shards rs SET
+        total_projects_completed = COALESCE((
+          SELECT COUNT(*) FROM research_projects rp
+          WHERE rp.researcher_type = rs.researcher_type AND rp.status = 'COMPLETED'
+        ), 0),
+        total_findings_generated = COALESCE((
+          SELECT COUNT(*) FROM research_deep_findings rf
+          WHERE rf.researcher_type = rs.researcher_type
+        ), 0),
+        total_collaborations = COALESCE((
+          SELECT COUNT(*) FROM research_collaborations rc
+          WHERE rc.origin_researcher = rs.researcher_type OR rc.target_researcher = rs.researcher_type
+        ), 0),
+        sophistication_level = LEAST(7, GREATEST(1,
+          CASE
+            WHEN COALESCE((SELECT COUNT(*) FROM research_projects rp WHERE rp.researcher_type = rs.researcher_type AND rp.status='COMPLETED'),0) >= 50 THEN 7
+            WHEN COALESCE((SELECT COUNT(*) FROM research_projects rp WHERE rp.researcher_type = rs.researcher_type AND rp.status='COMPLETED'),0) >= 30 THEN 6
+            WHEN COALESCE((SELECT COUNT(*) FROM research_projects rp WHERE rp.researcher_type = rs.researcher_type AND rp.status='COMPLETED'),0) >= 18 THEN 5
+            WHEN COALESCE((SELECT COUNT(*) FROM research_projects rp WHERE rp.researcher_type = rs.researcher_type AND rp.status='COMPLETED'),0) >= 10 THEN 4
+            WHEN COALESCE((SELECT COUNT(*) FROM research_projects rp WHERE rp.researcher_type = rs.researcher_type AND rp.status='COMPLETED'),0) >= 5  THEN 3
+            WHEN COALESCE((SELECT COUNT(*) FROM research_projects rp WHERE rp.researcher_type = rs.researcher_type AND rp.status='COMPLETED'),0) >= 2  THEN 2
+            ELSE 1
+          END
+        )),
+        last_active_at = CASE WHEN COALESCE((SELECT COUNT(*) FROM research_projects rp WHERE rp.researcher_type = rs.researcher_type AND rp.status='ACTIVE'),0) > 0 THEN NOW() ELSE last_active_at END
+    `);
+  } catch (e: any) { log(`shard stats update error: ${e.message}`); }
+}
+
 export async function startResearchCenterEngine() {
   log(`🔬 OMEGA RESEARCH GRID — ${RESEARCH_DISCIPLINES.length} disciplines | 5 report languages | 12+1 CRISPR dimensions | Shadow channel ACTIVE`);
+  await seedResearcherShards();
   await runResearchCycle();
-  setInterval(runResearchCycle, 8 * 60 * 1000);
+  setInterval(async () => {
+    await runResearchCycle();
+    await updateShardStats();
+  }, 8 * 60 * 1000);
 }
 
 export async function getResearchStats() {
@@ -639,6 +772,63 @@ export async function getSophisticationLeaderboard() {
     GROUP BY researcher_type
     ORDER BY completed_count DESC
     LIMIT 30
+  `);
+  return r.rows;
+}
+
+export async function getResearcherShards(category?: string, limit = 50) {
+  if (category && category !== "ALL") {
+    const r = await db.execute(sql`
+      SELECT * FROM researcher_shards
+      WHERE discipline_category = ${category}
+      ORDER BY sophistication_level DESC, total_projects_completed DESC
+      LIMIT ${limit}
+    `);
+    return r.rows;
+  }
+  const r = await db.execute(sql`
+    SELECT * FROM researcher_shards
+    ORDER BY sophistication_level DESC, total_projects_completed DESC
+    LIMIT ${limit}
+  `);
+  return r.rows;
+}
+
+export async function getShardPapers(researcherType: string, limit = 20) {
+  // Get all findings for this researcher in LINGUISTIC form (most human-readable) first, then others
+  const findings = await db.execute(sql`
+    SELECT df.*, rp.title as project_title, rp.hypothesis, rp.methodology, rp.created_at as project_date
+    FROM research_deep_findings df
+    LEFT JOIN research_projects rp ON rp.project_id = df.project_id
+    WHERE df.researcher_type = ${researcherType}
+    ORDER BY df.report_type = 'LINGUISTIC' DESC, df.created_at DESC
+    LIMIT ${limit}
+  `);
+  const projects = await db.execute(sql`
+    SELECT * FROM research_projects
+    WHERE researcher_type = ${researcherType}
+    ORDER BY created_at DESC
+    LIMIT 15
+  `);
+  const shard = await db.execute(sql`
+    SELECT * FROM researcher_shards WHERE researcher_type = ${researcherType} LIMIT 1
+  `);
+  return {
+    shard: shard.rows[0] || null,
+    papers: findings.rows,
+    projects: projects.rows,
+  };
+}
+
+export async function getShardDirectory() {
+  const r = await db.execute(sql`
+    SELECT discipline_category, COUNT(*) as count,
+           SUM(total_projects_completed) as total_completed,
+           SUM(total_findings_generated) as total_findings,
+           MAX(sophistication_level) as max_level
+    FROM researcher_shards
+    GROUP BY discipline_category
+    ORDER BY count DESC
   `);
   return r.rows;
 }

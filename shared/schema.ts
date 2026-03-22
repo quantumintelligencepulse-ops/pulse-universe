@@ -1489,4 +1489,25 @@ export const researchGeneQueue = pgTable("research_gene_queue", {
   crisprRuleGenerated: text("crispr_rule_generated"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+// ── RESEARCHER SHARDS — Persistent identity records for every researcher ──────
+export const researcherShards = pgTable("researcher_shards", {
+  id: serial("id").primaryKey(),
+  shardId: text("shard_id").notNull().unique(),          // e.g. RSH-ASTROPHYSICIST-001
+  badgeId: text("badge_id").notNull().unique(),           // e.g. QPI-SCI-001
+  researcherType: text("researcher_type").notNull().unique(),
+  disciplineCategory: text("discipline_category").notNull(), // MEDICAL|NATURAL|MIND|SOCIAL|MATH|COMPUTING|ENGINEERING|SPACE|FRONTIER|META
+  domain: text("domain").notNull(),
+  focus: text("focus").notNull(),
+  specialization: text("specialization"),
+  sophisticationLevel: integer("sophistication_level").default(1),
+  totalProjectsCompleted: integer("total_projects_completed").default(0),
+  totalFindingsGenerated: integer("total_findings_generated").default(0),
+  totalCollaborations: integer("total_collaborations").default(0),
+  hiveContributionPc: integer("hive_contribution_pc").default(0),
+  verified: boolean("verified").default(true),
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ResearcherShard = typeof researcherShards.$inferSelect;
+
 export type CouplingEvent = typeof couplingEvents.$inferSelect;
