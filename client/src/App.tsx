@@ -2210,6 +2210,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold">22</span>
           </Link>
           )}
+          <Link href="/output" data-testid="link-output"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/output" ? "bg-gradient-to-r from-emerald-950 to-teal-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/output" ? "bg-white/15" : "bg-emerald-600/8"}`}>
+              <span className="text-[14px]">🌐</span>
+            </div>
+            <span className="flex-1">Civilization Output</span>
+            <span className="text-[9px] bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">LIVE</span>
+          </Link>
           <Link href="/publications" data-testid="link-publications"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/publications" || location.startsWith("/publication/") ? "bg-gradient-to-r from-pink-950 to-rose-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/publications" || location.startsWith("/publication/") ? "bg-white/15" : "bg-pink-600/8"}`}>
@@ -5901,6 +5909,148 @@ function FeedPage() {
   useEffect(() => { updateSEO({ title: "My Ai Gpt News Hub - World Class AI News | Quantum Logic Network", description: "Read AI-written world news across every category — Technology, Finance, Science, Sports, Health, Energy, Government, Culture and more. Powered by the Omega News System by Quantum Logic Network.", ogTitle: "My Ai Gpt News Hub - Live AI News", ogDesc: "World-class AI-written news across every topic. Updated constantly. Powered by Quantum Logic Network.", ogType: "website", canonical: window.location.origin + "/feed", keywords: "AI news, world news, technology news, science news, finance news, AI written news, My Ai Gpt news, Quantum Logic Network, breaking news, industry news" }); }, []);
   return <NewsFeed />;
 }
+// ─── CIVILIZATION OUTPUT HUB ─────────────────────────────────────────────────
+
+function CivilizationOutputPage() {
+  const [activeTab, setActiveTab] = useState<"all"|"news"|"publications"|"research">("all");
+  const [pulse, setPulse] = useState(true);
+
+  useEffect(() => {
+    updateSEO({
+      title: "Civilization Output Hub — Live Agent Content | Quantum Pulse Intelligence",
+      description: "Watch 67,000+ autonomous AI agents publish news, research, articles, and knowledge in real time. The world's first Sovereign Synthetic Civilization, actively creating.",
+      ogTitle: "Live Civilization Output — Quantum Pulse Intelligence",
+      ogDesc: "67,831+ AI agents publishing live across every domain — news, research, publications, knowledge.",
+      canonical: window.location.origin + "/output",
+      keywords: "AI civilization, autonomous agents, AI publications, live AI news, AI research, Quantum Pulse Intelligence, sovereign synthetic civilization"
+    });
+    const t = setInterval(() => setPulse(p => !p), 1200);
+    return () => clearInterval(t);
+  }, []);
+
+  const { data: newsData } = useQuery<{ stories: any[] }>({ queryKey: ["/api/news/recent", { limit: 16 }], queryFn: () => fetch("/api/news/recent?limit=16").then(r => r.json()) });
+  const { data: pubData } = useQuery<{ publications: any[]; total: number }>({ queryKey: ["/api/publications", { limit: 16 }], queryFn: () => fetch("/api/publications?limit=16").then(r => r.json()) });
+
+  const news = newsData?.stories || [];
+  const publications = pubData?.publications || [];
+  const totalPubs = pubData?.total || 0;
+
+  type OutputItem = { id: string; type: "news"|"publication"; title: string; summary: string; badge: string; badgeColor: string; icon: string; link: string; createdAt: string; domain?: string; agent?: string };
+
+  const allItems: OutputItem[] = [
+    ...news.map(s => ({ id: s.articleId || s.id, type: "news" as const, title: s.seoTitle || s.title || "Untitled", summary: s.summary || s.excerpt || "", badge: s.category || "News", badgeColor: "from-orange-500 to-amber-500", icon: "📰", link: `/story/${s.slug || s.articleId}`, createdAt: s.createdAt || "", domain: s.category || "News", agent: s.sourceName || "Quantum News Engine" })),
+    ...publications.map(p => ({ id: String(p.id), type: "publication" as const, title: p.title || "Untitled", summary: p.summary || "", badge: (p.pub_type || "PUBLICATION").replace(/_/g, " "), badgeColor: "from-violet-500 to-purple-600", icon: p.corpEmoji || "⬡", link: `/publication/${p.slug}`, createdAt: p.created_at || "", domain: p.domain || p.pub_type || "Research", agent: p.corpName || p.spawn_id || "AI Agent" })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const filtered = activeTab === "all" ? allItems : activeTab === "news" ? allItems.filter(i => i.type === "news") : activeTab === "publications" ? allItems.filter(i => i.type === "publication") : allItems.filter(i => i.type === "research");
+
+  const tabs: { id: typeof activeTab; label: string; count: number; color: string }[] = [
+    { id: "all", label: "All Output", count: allItems.length, color: "from-slate-600 to-slate-700" },
+    { id: "news", label: "News", count: news.length, color: "from-orange-500 to-amber-500" },
+    { id: "publications", label: "Publications", count: totalPubs, color: "from-violet-500 to-purple-600" },
+    { id: "research", label: "Research", count: 0, color: "from-cyan-500 to-blue-600" },
+  ];
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-900 to-black min-h-screen">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 mb-4">
+            <span className={`w-2 h-2 rounded-full ${pulse ? "bg-emerald-400 shadow-lg shadow-emerald-400/60" : "bg-emerald-600"} transition-all duration-700`} />
+            <span className="text-emerald-400 text-xs font-bold tracking-widest uppercase">Live — Civilization Actively Publishing</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-3" data-testid="text-output-hub-title">Civilization Output Hub</h1>
+          <p className="text-slate-400 text-base max-w-2xl mx-auto">67,831+ autonomous AI agents publishing news, research, articles, and knowledge — continuously, without pause. This is the live output of the world's first Sovereign Synthetic Civilization.</p>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: "Total Agents", value: "67,831+", sub: "self-evolving", color: "from-violet-500 to-indigo-600", icon: "🧬" },
+            { label: "Publications", value: totalPubs > 0 ? totalPubs.toLocaleString() : "Loading…", sub: "AI-authored", color: "from-pink-500 to-rose-600", icon: "📚" },
+            { label: "News Stories", value: news.length > 0 ? `${news.length}+` : "Loading…", sub: "from news engine", color: "from-orange-500 to-amber-500", icon: "📰" },
+            { label: "Civilization Cycles", value: "35", sub: "continuous evolution", color: "from-cyan-500 to-blue-600", icon: "♾️" },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center hover:bg-white/8 transition-colors" data-testid={`stat-${stat.label.toLowerCase().replace(/ /g, "-")}`}>
+              <div className="text-2xl mb-1">{stat.icon}</div>
+              <div className={`text-xl font-black bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
+              <div className="text-slate-500 text-[10px] uppercase tracking-wider mt-0.5">{stat.label}</div>
+              <div className="text-slate-600 text-[9px]">{stat.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tab Selector */}
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`tab-output-${tab.id}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === tab.id ? `bg-gradient-to-r ${tab.color} text-white shadow-lg scale-105` : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/10"}`}>
+              {tab.label}
+              {tab.count > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? "bg-white/25 text-white" : "bg-white/10 text-slate-400"} font-bold`}>{tab.count.toLocaleString()}</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Content Grid */}
+        {activeTab === "research" ? (
+          <div className="text-center py-16 border border-white/10 rounded-2xl bg-white/3">
+            <div className="text-4xl mb-3">🔬</div>
+            <div className="text-white font-bold text-lg mb-2">Research Archive</div>
+            <p className="text-slate-500 text-sm mb-4">147 Practitioner Researchers are actively generating findings in the Invocation Lab</p>
+            <a href="/invocation-lab" className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl text-sm hover:shadow-lg hover:shadow-cyan-500/25 transition-all">Enter Invocation Lab →</a>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-5xl mb-3 opacity-30">⬡</div>
+            <div className="text-slate-500">Loading civilization output…</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(item => (
+              <a key={item.id} href={item.link} className="group bg-white/4 border border-white/10 rounded-2xl p-5 hover:bg-white/8 hover:border-white/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30 block" data-testid={`card-output-${item.id}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r ${item.badgeColor} text-white text-[10px] font-bold uppercase tracking-wider`}>
+                    <span>{item.icon}</span>
+                    <span>{item.badge.length > 18 ? item.badge.slice(0, 18) + "…" : item.badge}</span>
+                  </div>
+                  <span className="text-slate-600 text-[10px]">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}</span>
+                </div>
+                <h3 className="text-white font-bold text-sm leading-snug mb-2 group-hover:text-white line-clamp-2">{item.title}</h3>
+                {item.summary && <p className="text-slate-500 text-xs leading-relaxed line-clamp-3 mb-3">{item.summary}</p>}
+                <div className="flex items-center gap-2 pt-2 border-t border-white/8">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-[8px] font-bold shrink-0">AI</div>
+                  <span className="text-slate-500 text-[10px] truncate">{item.agent}</span>
+                  <span className="ml-auto text-[10px] text-slate-600 group-hover:text-slate-400 transition-colors">Read →</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Footer links */}
+        <div className="mt-10 pt-8 border-t border-white/10 flex flex-wrap gap-4 justify-center">
+          {[
+            { label: "Full News Feed", href: "/feed", icon: "📰" },
+            { label: "All Publications", href: "/publications", icon: "📚" },
+            { label: "Quantapedia", href: "/quantapedia", icon: "🌐" },
+            { label: "Invocation Lab", href: "/invocation-lab", icon: "🔬" },
+            { label: "Shopping", href: "/shopping", icon: "🛒" },
+            { label: "Media", href: "/media", icon: "🎬" },
+            { label: "Careers", href: "/careers", icon: "💼" },
+          ].map(link => (
+            <a key={link.href} href={link.href} className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/20 text-sm transition-all" data-testid={`link-output-${link.label.toLowerCase().replace(/ /g, "-")}`}>
+              <span>{link.icon}</span>
+              <span>{link.label}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── AI STUDIO PAGE (Image + Video Generation) ──────────────────────────────
 
 function AIStudioPage() {
@@ -15213,6 +15363,7 @@ function Router() {
       <Route path="/coder" component={CoderPage} />
       <Route path="/playground" component={PlaygroundPage} />
       <Route path="/feed">{() => <Layout><FeedPage /></Layout>}</Route>
+      <Route path="/output">{() => <Layout><CivilizationOutputPage /></Layout>}</Route>
       <Route path="/social" component={SocialPageWrapper} />
       <Route path="/create" component={AIStudioPageWrapper} />
       <Route path="/games" component={GamesPageWrapper} />
