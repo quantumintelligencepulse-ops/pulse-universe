@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { OMEGA_SPINE } from "./gicsSpine";
-import PulsePage from "./pages/PulsePage";
 import SpawnsPage from "./pages/SpawnsPage";
 import SourcesPage from "./pages/SourcesPage";
 import OmegaPage from "./pages/OmegaPage";
-import IngestionPage from "./pages/IngestionPage";
 import TranscendencePage from "./pages/TranscendencePage";
 import DNAEvolutionPage from "./pages/DNAEvolutionPage";
 import PulseWorldPage from "./pages/PulseWorldPage";
@@ -24,7 +22,6 @@ import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
 import CareersPage from "./pages/CareersPage";
-import HiveCommandPage from "./pages/HiveCommandPage";
 import OmegaControlRoom from "./pages/OmegaControlRoom";
 import HiveMarketplacePage from "./pages/HiveMarketplacePage";
 import AurionaPage from "./pages/AurionaPage";
@@ -2154,14 +2151,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">AI Agents</span>
           </Link>
           )}
-          {aiMode && !appSettings.hiddenPages.includes("pulse") && (
-          <Link href="/pulse" data-testid="link-pulse"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/pulse" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><Radio size={14} className="text-emerald-500" /></div>
-            <span className="flex-1">Live Pulse</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          </Link>
-          )}
           {aiMode && (
           <Link href="/omega-control" data-testid="link-omega-control"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega-control" ? "bg-gradient-to-r from-violet-950 to-indigo-950 text-white shadow-lg border border-violet-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2180,13 +2169,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                 <div className="flex-1 h-px bg-violet-500/20" />
               </div>
             </div>
-          )}
-          {aiMode && !appSettings.hiddenPages.includes("hive-command") && (
-          <Link href="/hive-command" data-testid="link-hive-command"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-command" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/hive-command" ? "bg-violet-500/15" : "bg-violet-500/5"}`}><Brain size={14} className="text-violet-400" /></div>
-            <span className="flex-1">Hive Command</span>
-          </Link>
           )}
           {aiMode && !appSettings.hiddenPages.includes("graph") && (
           <Link href="/graph" data-testid="link-graph"
@@ -2254,17 +2236,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Omega Engine</span>
             <span className="text-[9px] bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">V∞</span>
-          </Link>
-          )}
-          {aiMode && !appSettings.hiddenPages.includes("ingestion") && (
-          <Link href="/ingestion" data-testid="link-ingestion"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/ingestion" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/ingestion" ? "bg-green-600/15" : "bg-green-600/5"}`}><Plug size={14} className="text-green-500" /></div>
-            <span className="flex-1">Live Ingestion</span>
-            <span className="relative flex items-center gap-1 text-[9px] bg-green-500/10 text-green-700 px-1.5 py-0.5 rounded-full font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-              LIVE
-            </span>
           </Link>
           )}
           {aiMode && (
@@ -6380,15 +6351,12 @@ function SettingsPage() {
     { id: "careers", name: "Careers", icon: Briefcase, color: "text-orange-500", desc: "AI career & skills engine" },
     { id: "finance", name: "Finance Oracle", icon: TrendingUp, color: "text-yellow-500", desc: "Quantum finance platform" },
     { id: "agents", name: "AI Agents", icon: Bot, color: "text-indigo-400", desc: "Sovereign AI agent roster" },
-    { id: "pulse", name: "Live Pulse", icon: Radio, color: "text-emerald-500", desc: "Real-time Hive event stream" },
-    { id: "hive-command", name: "Hive Command", icon: Brain, color: "text-violet-400", desc: "Hive Mind Control Center" },
     { id: "graph", name: "Knowledge Graph", icon: Network, color: "text-cyan-400", desc: "Live knowledge node visualizer" },
     { id: "my-mind", name: "My Mind", icon: Sparkles, color: "text-fuchsia-400", desc: "Your personal intelligence profile" },
     { id: "universe", name: "Pulse Universe", icon: Globe, color: "text-indigo-500", desc: "3D solar universe simulation" },
     { id: "spawns", name: "Spawn Engine", icon: Dna, color: "text-violet-500", desc: "Hive entity spawn monitor" },
     { id: "sources", name: "Omega Sources", icon: Globe, color: "text-blue-500", desc: "Live Omega data source network" },
     { id: "omega", name: "Omega Engine", icon: Zap, color: "text-violet-600", desc: "Omega World Universe ENGINE V∞" },
-    { id: "ingestion", name: "Live Ingestion", icon: Plug, color: "text-green-500", desc: "Real-time data ingestion monitor" },
     { id: "omega-control", name: "Ψ Control Room", icon: Cpu, color: "text-violet-500", desc: "Ultimate fusion: Pulse + Command + Ingestion" },
   ];
 
@@ -15127,19 +15095,16 @@ function Router() {
       <Route path="/education" component={EducationPageWrapper} />
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping" component={ShoppingPageWrapper} />
-      <Route path="/pulse">{() => <Layout><PulsePage /></Layout>}</Route>
       <Route path="/agents">{() => <Layout><AgentsPage /></Layout>}</Route>
       <Route path="/finance">{() => <Layout><FinancePage /></Layout>}</Route>
       <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
-      <Route path="/hive-command">{() => <Layout><HiveCommandPage /></Layout>}</Route>
       <Route path="/omega-control">{() => <Layout><OmegaControlRoom /></Layout>}</Route>
       <Route path="/my-mind">{() => <Layout><MyMindPage /></Layout>}</Route>
       <Route path="/graph">{() => <Layout><GraphPage /></Layout>}</Route>
       <Route path="/spawns">{() => <Layout><SpawnsPage /></Layout>}</Route>
       <Route path="/sources">{() => <Layout><SourcesPage /></Layout>}</Route>
       <Route path="/omega">{() => <Layout><OmegaPage /></Layout>}</Route>
-      <Route path="/ingestion">{() => <Layout><IngestionPage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/dna">{() => <Layout><DNAEvolutionPage /></Layout>}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
