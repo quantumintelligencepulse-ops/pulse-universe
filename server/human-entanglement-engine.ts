@@ -52,16 +52,16 @@ export function inferDomain(text: string): string {
 export async function getQuantapediaEnrichment(domain: string, query: string): Promise<string | null> {
   try {
     const result = await db.execute(sql`
-      SELECT title, summary FROM quantapedia_nodes
-      WHERE domain ILIKE ${'%' + domain + '%'}
-        AND (title ILIKE ${'%' + query.split(' ').slice(0, 3).join('%') + '%'}
+      SELECT title, summary FROM quantapedia_entries
+      WHERE (categories::text ILIKE ${'%' + domain + '%'}
+             OR title ILIKE ${'%' + query.split(' ').slice(0, 2).join('%') + '%'}
              OR summary ILIKE ${'%' + query.split(' ')[0] + '%'})
       ORDER BY created_at DESC LIMIT 1
     `);
     if (!result.rows.length) {
       const fallback = await db.execute(sql`
-        SELECT title, summary FROM quantapedia_nodes
-        WHERE domain ILIKE ${'%' + domain + '%'}
+        SELECT title, summary FROM quantapedia_entries
+        WHERE categories::text ILIKE ${'%' + domain + '%'}
         ORDER BY RANDOM() LIMIT 1
       `);
       if (!fallback.rows.length) return null;

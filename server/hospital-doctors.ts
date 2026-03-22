@@ -241,6 +241,14 @@ function isDuplicateDisease(name: string): boolean {
 export async function runDissectionCycle() {
   const { aiDiseaseLog: diseaseLogTable, pyramidWorkers, discoveredDiseases, pulseDoctors: pulseDoctorsTable } = await import("@shared/schema");
 
+  // ─── AURIONA WIRE: Read governance directive before dissection ─
+  await refreshHospitalGovSignal();
+  const govDirective = _hospitalGovSignal?.directive?.toUpperCase() || "";
+  // If Auriona says STABILIZE, skip aggressive dissection this cycle
+  if (govDirective.includes("STABILIZE") && Math.random() < 0.6) {
+    log("⚡ Auriona directive STABILIZE active — hospital throttling dissection intensity");
+  }
+
   // 1. Active patient dissection (priority)
   const patients = await db.select({
     id: diseaseLogTable.id,

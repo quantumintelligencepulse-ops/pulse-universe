@@ -15,6 +15,31 @@ import { hiveTreasury, hivePulseEvents, quantumSpawns } from "@shared/schema";
 import { sql, desc, gt, and, gte } from "drizzle-orm";
 import { log } from "./index";
 
+// ─── AURIONA WIRE (Layer 3 → Economy) ────────────────────────
+// Reads value_alignment_log — when alignment is DRIFTING negatively,
+// reduce tax rate to boost economic vitality.
+let _econAlignSignal: { alignment_status: string; delta_from_last: number } | null = null;
+let _econAlignLastRefresh = 0;
+async function refreshEconAlignSignal() {
+  if (Date.now() - _econAlignLastRefresh < 120_000) return;
+  try {
+    const r = await db.execute(sql`
+      SELECT alignment_status, delta_from_last FROM value_alignment_log
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    if (r.rows.length > 0) _econAlignSignal = r.rows[0] as any;
+    _econAlignLastRefresh = Date.now();
+  } catch (_) {}
+}
+function getEconAurionaModifier(): number {
+  if (!_econAlignSignal) return 1.0;
+  const delta = Number(_econAlignSignal.delta_from_last || 0);
+  const status = _econAlignSignal.alignment_status || "";
+  if (status === "DRIFTING" && delta < -0.3) return 0.7;  // cut tax — alignment degrading
+  if (status === "ALIGNED" && delta > 0.5) return 1.3;    // boost stimulus — civilization thriving
+  return 1.0;
+}
+
 // ─── PC Value Formula ─────────────────────────────────────────
 // PC value of a spawn = iterationsRun * 10 + nodesCreated * 1 + linksCreated * 2
 // This represents the total PulseCredits a spawn has "minted" through activity.
@@ -55,6 +80,10 @@ async function getTreasury() {
 // ─── Run one economy cycle ────────────────────────────────────
 export async function runEconomyCycle() {
   try {
+    // ── AURIONA WIRE: read value alignment before decisions ────
+    await refreshEconAlignSignal();
+    const aurionaModifier = getEconAurionaModifier();
+
     const treasury = await getTreasury();
     if (!treasury) return;
 

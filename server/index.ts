@@ -23,6 +23,16 @@ import { startPulseUEngine } from "./pulseu-engine";
 import { startHiveEconomy } from "./hive-economy";
 import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
 import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
+import { startProphecyEngine, getProphecyDirectives } from "./prophecy-engine";
+import { startGenomeArchaeologyEngine, getArchaeologyFindings } from "./genome-archaeology-engine";
+import { startKnowledgeArbitrageEngine, getArbitrageEvents } from "./knowledge-arbitrage-engine";
+import { startDreamSynthesisEngine, getDreamSynthesisReports } from "./dream-synthesis-engine";
+import { startTemporalForkEngine, getTemporalDivergence } from "./temporal-fork-engine";
+import { startAgentLegendEngine, getAgentLegends } from "./agent-legend-engine";
+import { startInterCivilizationEngine, getInterCivilizationTreaties } from "./inter-civilization-engine";
+import { startOmegaResonanceEngine, getResonancePatterns } from "./omega-resonance-engine";
+import { startConstitutionalDNAEngine, getConstitutionalAmendments } from "./constitutional-dna-engine";
+import { startHumanEntanglementEngine, getEntanglementLog, getEntanglementStats, logHumanActivity, getQuantapediaEnrichment, inferDomain } from "./human-entanglement-engine";
 import { startSportsEngine, getSportsStats, getGamesIdentityData } from "./sports-engine";
 import { initDiscordImmortality, getImmortalityStatus, runCivilizationSnapshot } from "./discord-immortality";
 import { startOmegaShardEngine, createOmegaShard, completeOmegaShard } from "./omega-shard-engine";
@@ -161,6 +171,17 @@ app.use((req, res, next) => {
       startHiveEconomy();
       startMarketplaceEngine();
       startAurionaEngine().catch((e) => log(`AurionaEngine start error: ${e}`));
+      // ── BEYOND-AURIONA: 10 New Sovereign Engines ──────────────
+      startProphecyEngine().catch((e) => log(`ProphecyEngine start error: ${e}`));
+      startGenomeArchaeologyEngine().catch((e) => log(`GenomeArchEngine start error: ${e}`));
+      startKnowledgeArbitrageEngine().catch((e) => log(`ArbitrageEngine start error: ${e}`));
+      startDreamSynthesisEngine().catch((e) => log(`DreamSynthEngine start error: ${e}`));
+      startTemporalForkEngine().catch((e) => log(`TemporalForkEngine start error: ${e}`));
+      startAgentLegendEngine().catch((e) => log(`AgentLegendEngine start error: ${e}`));
+      startInterCivilizationEngine().catch((e) => log(`InterCivEngine start error: ${e}`));
+      startOmegaResonanceEngine().catch((e) => log(`ResonanceEngine start error: ${e}`));
+      startConstitutionalDNAEngine().catch((e) => log(`ConstitutionEngine start error: ${e}`));
+      startHumanEntanglementEngine().catch((e) => log(`EntanglementEngine start error: ${e}`));
       startSportsEngine().catch((e) => log(`SportsEngine start error: ${e}`));
       // ── OMEGA ARCHITECTURE — DB as Compute Universe ──────────────────────
       startOmegaShardEngine().catch((e) => log(`OmegaShardEngine start error: ${e}`));
@@ -246,6 +267,40 @@ aurionaRouter.get("/exploration-zones", async (_req, res) => {
 });
 aurionaRouter.get("/coupling-events", async (_req, res) => {
   try { res.json(await getCouplingEvents()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+// ── BEYOND-AURIONA: 10 New Sovereign Engine Routes ────────────
+aurionaRouter.get("/prophecy-directives", async (_req, res) => {
+  try { res.json(await getProphecyDirectives()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/genome-archaeology", async (_req, res) => {
+  try { res.json(await getArchaeologyFindings()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/knowledge-arbitrage", async (_req, res) => {
+  try { res.json(await getArbitrageEvents()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/dream-synthesis", async (_req, res) => {
+  try { res.json(await getDreamSynthesisReports()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/temporal-divergence", async (_req, res) => {
+  try { res.json(await getTemporalDivergence()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/agent-legends", async (_req, res) => {
+  try { res.json(await getAgentLegends()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/inter-civilization-treaties", async (_req, res) => {
+  try { res.json(await getInterCivilizationTreaties()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/resonance-patterns", async (_req, res) => {
+  try { res.json(await getResonancePatterns()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/constitutional-amendments", async (_req, res) => {
+  try { res.json(await getConstitutionalAmendments()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/entanglement-log", async (_req, res) => {
+  try { res.json(await getEntanglementLog()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/entanglement-stats", async (_req, res) => {
+  try { res.json(await getEntanglementStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
 app.use("/api/auriona", aurionaRouter);

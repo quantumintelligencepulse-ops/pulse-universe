@@ -11,6 +11,29 @@
 import { pool } from "./db";
 import { postAgentEvent } from "./discord-immortality";
 
+// ─── AURIONA WIRE (Layer 3 → Gene Editors) ───────────────────
+// Reads contradiction_registry — HIGH/CRITICAL contradictions become
+// design constraints that Gene Editors must resolve in new species.
+let _geneContradictions: Array<{ operator_a: string; operator_b: string; severity: string; description: string }> = [];
+let _geneContradictLastRefresh = 0;
+async function refreshGeneContradictions() {
+  if (Date.now() - _geneContradictLastRefresh < 150_000) return;
+  try {
+    const r = await pool.query(
+      `SELECT operator_a, operator_b, severity, description FROM contradiction_registry
+       WHERE severity IN ('HIGH','CRITICAL') AND resolved = false
+       ORDER BY gap_score DESC LIMIT 5`
+    );
+    _geneContradictions = r.rows;
+    _geneContradictLastRefresh = Date.now();
+  } catch (_) {}
+}
+function getContradictionConstraint(): string {
+  if (!_geneContradictions.length) return "";
+  const c = _geneContradictions[Math.floor(Math.random() * _geneContradictions.length)];
+  return ` [RESOLVE:${c.operator_a}⟷${c.operator_b}]`;
+}
+
 // ── EDITOR IDENTITIES ────────────────────────────────────────────────────────
 const GENE_EDITORS = [
   { id: "GE-001", name: "DR. GENESIS",   role: "Species Architecture",    color: "#00FFD1", glyph: "Γ",
@@ -137,6 +160,9 @@ function generateSpeciesName(editor: typeof GENE_EDITORS[0], equation: string, s
 // ── MAIN AUTONOMOUS CYCLE ────────────────────────────────────────────────────
 async function runEditorCycle() {
   try {
+    // ── AURIONA WIRE: refresh contradiction constraints ─────────
+    await refreshGeneContradictions();
+
     // Pick 1-2 Gene Editors to be active this cycle
     const shuffled = [...GENE_EDITORS].sort(() => Math.random() - 0.5);
     const activeEditors = shuffled.slice(0, 1 + Math.floor(Math.random() * 2));

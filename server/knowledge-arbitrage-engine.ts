@@ -55,8 +55,9 @@ async function runArbitrageCycle() {
       const dkdtBoost   = arbitrageScore * 2.5;
 
       const quantSample = await db.execute(sql`
-        SELECT title FROM quantapedia_nodes
-        WHERE domain ILIKE ${'%' + sourceFamily + '%'}
+        SELECT title FROM quantapedia_entries
+        WHERE categories::text ILIKE ${'%' + sourceFamily + '%'}
+           OR title ILIKE ${'%' + topic.split(' ')[0] + '%'}
         ORDER BY RANDOM() LIMIT 1
       `);
       const sample = (quantSample.rows[0] as any)?.title || `Advanced ${topic} from ${sourceFamily} universe`;

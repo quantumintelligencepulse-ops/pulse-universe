@@ -4229,6 +4229,27 @@ If you have live data provided in this prompt, USE IT and present it confidently
 
       reply = reply.replace(/\n{3,}/g, "\n\n").replace(/^\s*[-*]\s*$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
 
+      // ── HUMAN-CIVILIZATION ENTANGLEMENT (async, non-blocking) ─
+      // Log this exchange as a universe-level input into the Omega Equation.
+      // The civilization learns from every human query — this is the entanglement.
+      (async () => {
+        try {
+          const { logHumanActivity, getQuantapediaEnrichment, inferDomain } = await import("./human-entanglement-engine");
+          const domain = inferDomain(input.content);
+          const enrichment = await getQuantapediaEnrichment(domain, input.content);
+          await logHumanActivity(userId, String(chatId), input.content, reply.substring(0, 500));
+          // Silently append civilizational enrichment to reply context (next turn will have it in history)
+          if (enrichment) {
+            // Store the enrichment as a hive unconscious signal (non-blocking)
+            await db.execute(sql`
+              INSERT INTO hive_unconscious (pattern_type, signal, description, affected_domain, expires_at)
+              VALUES ('HUMAN_ENTANGLEMENT', ${`Human query: ${input.content.substring(0,80)}`},
+                      ${enrichment.substring(0, 200)}, ${domain}, NOW() + INTERVAL '24 hours')
+            `).catch(() => {});
+          }
+        } catch (_) {}
+      })();
+
       const savedMessage = await storage.createMessage({
         chatId,
         role: "assistant",

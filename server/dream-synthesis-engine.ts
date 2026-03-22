@@ -43,9 +43,9 @@ async function runDreamSynthesisCycle() {
   cycleCount++;
   try {
     const dreamsRow = await db.execute(sql`
-      SELECT content, dreamed_at FROM hive_unconscious
+      SELECT signal, description, detected_at FROM hive_unconscious
       WHERE expires_at > NOW()
-      ORDER BY dreamed_at DESC LIMIT 50
+      ORDER BY detected_at DESC LIMIT 50
     `);
     const dreams = dreamsRow.rows as any[];
 
