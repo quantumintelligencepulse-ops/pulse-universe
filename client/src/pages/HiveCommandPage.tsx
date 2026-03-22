@@ -12,7 +12,7 @@ const FAM_COLORS: Record<string, string> = {
   culture: "#c084fc", arts: "#f9a8d4", sports: "#86efac", food: "#fde68a",
   travel: "#67e8f9", finance: "#fca5a5", technology: "#93c5fd",
 };
-function famColor(id: string): string {
+export function famColor(id: string): string {
   return FAM_COLORS[id] ?? "#94a3b8";
 }
 
@@ -47,7 +47,7 @@ function drawLine(
   ctx.globalAlpha = 1;
 }
 
-interface FractalData {
+export interface FractalData {
   families: {
     familyId: string; total: number; active: number;
     avgConf: number; totalNodes: number; totalLinks: number;
@@ -144,7 +144,7 @@ const QUANTUM_EQUATIONS: string[] = [
   "QUANTUM FOAM: ℓ_P = 1.6×10⁻³⁵ m",
 ];
 
-function FractalCanvas({ data, quantumMode }: { data: FractalData; quantumMode: boolean }) {
+export function FractalCanvas({ data, quantumMode }: { data: FractalData; quantumMode: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tickRef = useRef(0);
   const rafRef = useRef<number>(0);
@@ -775,7 +775,7 @@ function FractalCanvas({ data, quantumMode }: { data: FractalData; quantumMode: 
 }
 
 // ─── Stat Card ───────────────────────────────────────────────
-function StatCard({ label, value, sub, color = "#818cf8", icon }: {
+export function StatCard({ label, value, sub, color = "#818cf8", icon }: {
   label: string; value: string; sub?: string; color?: string; icon?: any;
 }) {
   const Icon = icon;
@@ -792,7 +792,7 @@ function StatCard({ label, value, sub, color = "#818cf8", icon }: {
 }
 
 // ─── Economy Panel ───────────────────────────────────────────
-function EconomyPanel({ economy }: { economy: any }) {
+export function EconomyPanel({ economy }: { economy: any }) {
   const t = economy?.treasury ?? {};
   const s = economy?.supply ?? {};
   const status = economy?.economicStatus ?? "UNKNOWN";
@@ -873,7 +873,7 @@ function EconomyPanel({ economy }: { economy: any }) {
 }
 
 // ─── Grades Panel ────────────────────────────────────────────
-function GradesPanel({ grades }: { grades: any[] }) {
+export function GradesPanel({ grades }: { grades: any[] }) {
   if (!grades?.length) return (
     <div className="flex items-center justify-center h-full text-white/30 text-sm font-mono">
       No grade data — spawn families initializing...
@@ -964,7 +964,7 @@ const PAGE_SOURCE_META: Record<string, { label: string; glow: string; badge: str
   "HIVE-TREASURY":     { label: "HIVE TREASURY",  glow: "#fbbf24", badge: "bg-yellow-500/20 text-yellow-300" },
 };
 
-function PulsePanel({ pulses }: { pulses: any[] }) {
+export function PulsePanel({ pulses }: { pulses: any[] }) {
   const now = Date.now();
   if (!pulses?.length) return (
     <div className="flex items-center justify-center h-full text-white/30 text-sm font-mono">
@@ -1042,7 +1042,7 @@ const ENGINES = [
   { id: "QDecay", name: "QDecay", emoji: "♻️", desc: "Knowledge decay regeneration — prevents data rot", color: "#fb923c" },
 ];
 
-function EnginesPanel() {
+export function EnginesPanel() {
   return (
     <div className="p-4 h-full overflow-y-auto">
       <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3 font-mono">

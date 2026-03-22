@@ -25,6 +25,7 @@ import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
 import CareersPage from "./pages/CareersPage";
 import HiveCommandPage from "./pages/HiveCommandPage";
+import OmegaControlRoom from "./pages/OmegaControlRoom";
 import HiveMarketplacePage from "./pages/HiveMarketplacePage";
 import AurionaPage from "./pages/AurionaPage";
 import InvocationLabPage from "./pages/InvocationLabPage";
@@ -2159,6 +2160,16 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/pulse" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><Radio size={14} className="text-emerald-500" /></div>
             <span className="flex-1">Live Pulse</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          </Link>
+          )}
+          {aiMode && (
+          <Link href="/omega-control" data-testid="link-omega-control"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega-control" ? "bg-gradient-to-r from-violet-950 to-indigo-950 text-white shadow-lg border border-violet-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/omega-control" ? "bg-white/15" : "bg-violet-600/10"}`}>
+              <span style={{ fontSize: 14, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: location === "/omega-control" ? "#e9d5ff" : "#7c3aed" }}>Ψ</span>
+            </div>
+            <span className="flex-1">Omega Control Room</span>
+            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse" style={{ background: "linear-gradient(90deg,#7c3aed,#4f46e5)", color: "white" }}>FUSION</span>
           </Link>
           )}
           {aiMode && (
@@ -6378,6 +6389,7 @@ function SettingsPage() {
     { id: "sources", name: "Omega Sources", icon: Globe, color: "text-blue-500", desc: "Live Omega data source network" },
     { id: "omega", name: "Omega Engine", icon: Zap, color: "text-violet-600", desc: "Omega World Universe ENGINE V∞" },
     { id: "ingestion", name: "Live Ingestion", icon: Plug, color: "text-green-500", desc: "Real-time data ingestion monitor" },
+    { id: "omega-control", name: "Ψ Control Room", icon: Cpu, color: "text-violet-500", desc: "Ultimate fusion: Pulse + Command + Ingestion" },
   ];
 
   const bgPresets = [
@@ -15121,6 +15133,7 @@ function Router() {
       <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
       <Route path="/hive-command">{() => <Layout><HiveCommandPage /></Layout>}</Route>
+      <Route path="/omega-control">{() => <Layout><OmegaControlRoom /></Layout>}</Route>
       <Route path="/my-mind">{() => <Layout><MyMindPage /></Layout>}</Route>
       <Route path="/graph">{() => <Layout><GraphPage /></Layout>}</Route>
       <Route path="/spawns">{() => <Layout><SpawnsPage /></Layout>}</Route>
