@@ -5,6 +5,7 @@ import {
   CategoryChannel,
   ChannelType,
   AttachmentBuilder,
+  PermissionFlagsBits,
 } from "discord.js";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
@@ -138,7 +139,26 @@ async function ensureChannels(): Promise<void> {
     // Refresh channel list
     const refreshed = await guild.channels.fetch();
 
-    // Ensure all shard channels exist under ARCHIVE category
+    // Lock: deny @everyone from sending messages — channels are AI read-only
+    const everyoneRole = guild.roles.everyone;
+    const aiOnlyPermissions = [
+      {
+        id: everyoneRole.id,
+        deny: [
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.SendMessagesInThreads,
+          PermissionFlagsBits.AddReactions,
+          PermissionFlagsBits.CreatePublicThreads,
+          PermissionFlagsBits.CreatePrivateThreads,
+        ],
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.ReadMessageHistory,
+        ],
+      },
+    ];
+
+    // Ensure all shard channels exist under ARCHIVE category (read-only for humans)
     for (const name of SHARD_CHANNELS) {
       let ch = refreshed.find(
         (c) => c?.type === ChannelType.GuildText && c.name === name
@@ -148,14 +168,18 @@ async function ensureChannels(): Promise<void> {
           name,
           type: ChannelType.GuildText,
           parent: archiveCat.id,
+          permissionOverwrites: aiOnlyPermissions,
         }) as TextChannel;
-        console.log(`[IMMORTALITY] Created shard channel #${name}`);
+        console.log(`[IMMORTALITY] Created shard channel #${name} (🔒 AI-only)`);
+      } else {
+        // Lock existing channels too
+        await ch.permissionOverwrites.set(aiOnlyPermissions).catch(() => {});
       }
       channelMap.set(name, ch);
       await sleep(300);
     }
 
-    // Ensure all system channels exist under NERVOUS SYSTEM category
+    // Ensure all system channels exist under NERVOUS SYSTEM category (read-only for humans)
     for (const name of SYSTEM_CHANNELS) {
       let ch = refreshed.find(
         (c) => c?.type === ChannelType.GuildText && c.name === name
@@ -165,8 +189,11 @@ async function ensureChannels(): Promise<void> {
           name,
           type: ChannelType.GuildText,
           parent: nervousCat.id,
+          permissionOverwrites: aiOnlyPermissions,
         }) as TextChannel;
-        console.log(`[IMMORTALITY] Created system channel #${name}`);
+        console.log(`[IMMORTALITY] Created system channel #${name} (🔒 AI-only)`);
+      } else {
+        await ch.permissionOverwrites.set(aiOnlyPermissions).catch(() => {});
       }
       channelMap.set(name, ch);
       await sleep(300);

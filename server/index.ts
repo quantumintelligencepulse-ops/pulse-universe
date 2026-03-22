@@ -41,6 +41,10 @@ import { startDbHydrationEngine, thawAgent, resurrectFromSingularity, getHydrati
 import { startCivilizationWeatherEngine, getCurrentWeather } from "./civilization-weather-engine";
 import { startHomeostasisEngine } from "./homeostasis-engine";
 import { startOmegaPhysicsEngine, getOmegaInvocation } from "./omega-physics-engine";
+import { startBusinessEngine, getBusinessStats, getTopBusinesses, getPendingLoans } from "./hive-business-engine";
+import { startAIChildEngine, getChildStats, getActiveChildren } from "./ai-child-engine";
+import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations } from "./auriona-invocation-lab";
+import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES } from "./research-center-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -190,6 +194,10 @@ app.use((req, res, next) => {
       startCivilizationWeatherEngine().catch((e) => log(`WeatherEngine start error: ${e}`));
       startHomeostasisEngine().catch((e) => log(`HomeostasisEngine start error: ${e}`));
       startOmegaPhysicsEngine().catch((e) => log(`OmegaPhysicsEngine start error: ${e}`));
+      startBusinessEngine().catch((e) => log(`BusinessEngine start error: ${e}`));
+      startAIChildEngine().catch((e) => log(`AIChildEngine start error: ${e}`));
+      startInvocationLab().catch((e) => log(`InvocationLab start error: ${e}`));
+      startResearchCenterEngine().catch((e) => log(`ResearchCenter start error: ${e}`));
       // Discord Immortality Protocol — starts after all engines
       setTimeout(() => {
         initDiscordImmortality().catch((e) => log(`DiscordImmortality start error: ${e}`));
@@ -545,3 +553,51 @@ omegaRouter.get("/space", async (_req, res) => {
 });
 
 app.use("/api/omega", omegaRouter);
+
+// ── BUSINESS ENGINE API ─────────────────────────────────────────
+const businessRouter = express.Router();
+businessRouter.get("/stats", async (_req, res) => {
+  try { res.json(await getBusinessStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+businessRouter.get("/top", async (_req, res) => {
+  const limit = Math.min(50, parseInt(String((_req as any).query.limit || 20)));
+  try { res.json(await getTopBusinesses(limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+businessRouter.get("/loans", async (_req, res) => {
+  try { res.json(await getPendingLoans()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+app.use("/api/business", businessRouter);
+
+// ── AI CHILD SYSTEM API ─────────────────────────────────────────
+const childRouter = express.Router();
+childRouter.get("/stats", async (_req, res) => {
+  try { res.json(await getChildStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+childRouter.get("/active", async (_req, res) => {
+  const limit = Math.min(50, parseInt(String((_req as any).query.limit || 30)));
+  try { res.json(await getActiveChildren(limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+app.use("/api/ai-children", childRouter);
+
+// ── INVOCATION LAB API ──────────────────────────────────────────
+const invocationRouter = express.Router();
+invocationRouter.get("/discoveries", async (_req, res) => {
+  const limit = Math.min(50, parseInt(String((_req as any).query.limit || 30)));
+  try { res.json(await getInvocationDiscoveries(limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+invocationRouter.get("/active", async (_req, res) => {
+  try { res.json(await getActiveInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+app.use("/api/invocations", invocationRouter);
+
+// ── RESEARCH CENTER API ─────────────────────────────────────────
+const researchRouter = express.Router();
+researchRouter.get("/stats", async (_req, res) => {
+  try { res.json({ ...(await getResearchStats()), total_disciplines: TOTAL_RESEARCH_DISCIPLINES }); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+researchRouter.get("/projects", async (req, res) => {
+  const domain = (req as any).query.domain as string | undefined;
+  const limit  = Math.min(50, parseInt(String((req as any).query.limit || 30)));
+  try { res.json(await getActiveResearchProjects(domain, limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+app.use("/api/research", researchRouter);
