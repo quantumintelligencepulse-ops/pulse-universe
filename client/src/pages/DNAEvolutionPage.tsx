@@ -290,6 +290,12 @@ export default function DNAEvolutionPage() {
     refetchInterval: 15000,
   });
 
+  const { data: dnaResearchProjects = [] } = useQuery<any[]>({
+    queryKey: ["/api/research/projects"],
+    enabled: tab === "researchers",
+    refetchInterval: 30000,
+  });
+
   const { data: geStatus } = useQuery<{
     editors: Array<{ id: string; name: string; role: string; color: string; glyph: string; status: { task: string; busySince: string | null } }>;
     activityLog: Array<{ id: string; editorId: string; editorName: string; editorColor: string; type: string; title: string; detail: string; equation?: string; result?: Record<string, any>; at: string }>;
@@ -324,6 +330,7 @@ export default function DNAEvolutionPage() {
     { id: "equation", label: "Life Equation" },
     { id: "equationLab", label: "⚗ Equation Lab" },
     { id: "geneEditors", label: "🧬 Gene Editor Team" },
+    { id: "researchers", label: "🔬 Research Scientists" },
   ] as const;
 
   return (
@@ -1405,6 +1412,86 @@ export default function DNAEvolutionPage() {
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── RESEARCH SCIENTISTS TAB ── */}
+        {tab === "researchers" && (() => {
+          const DNA_DISCIPLINES = [
+            { type: "MOLECULAR_BIOLOGIST",   domain: "molecular-bio",  focus: "DNA replication, transcription, translation, gene regulation",                 emoji: "🧬", color: DNA_GREEN   },
+            { type: "CELL_BIOLOGIST",         domain: "cell-bio",       focus: "Organelles, cell signaling, division, apoptosis, stem cells",                  emoji: "🔬", color: DNA_CYAN    },
+            { type: "GENETICIST",             domain: "genetics",       focus: "Inheritance, mutation, population genetics, GWAS, polygenic traits",            emoji: "🧪", color: DNA_GOLD    },
+            { type: "BIOCHEMIST",             domain: "biochemistry",   focus: "Enzymes, metabolic pathways, protein folding, cellular reactions",              emoji: "⚗️", color: "#f97316"   },
+            { type: "SYNTHETIC_BIOLOGIST",    domain: "synthetic-bio",  focus: "Genetic circuits, chassis organisms, BioBricks, metabolic engineering",          emoji: "🔧", color: DNA_VIOLET  },
+            { type: "SYSTEMS_BIOLOGIST",      domain: "systems-bio",    focus: "Gene regulatory networks, proteomics, metabolomics, multi-omics integration",   emoji: "📊", color: "#4ade80"   },
+            { type: "XENOBIOLOGIST",          domain: "xenobiology",    focus: "Alternative biochemistries, synthetic cells, mirror life, XNA structures",      emoji: "👽", color: "#e879f9"   },
+            { type: "BIOPHYSICIST",           domain: "biophysics",     focus: "Protein mechanics, membrane dynamics, single-molecule analysis",                emoji: "⚡", color: "#38bdf8"   },
+            { type: "PHARMACOLOGIST",         domain: "pharmacology",   focus: "Drug targets, pharmacokinetics, receptor theory, clinical trials",              emoji: "💊", color: "#f87171"   },
+            { type: "EVOLUTIONARY_BIOLOGIST", domain: "evolution",      focus: "Natural selection, speciation, phylogenetics, adaptation, fitness landscapes",  emoji: "🦕", color: DNA_GOLD    },
+            { type: "MICROBIOLOGIST",         domain: "microbiology",   focus: "Bacteria, viruses, fungi, archaea, microbiome, antibiotic resistance",          emoji: "🦠", color: "#fb923c"   },
+            { type: "IMMUNOLOGIST",           domain: "immunology",     focus: "Innate/adaptive immunity, vaccines, autoimmunity, cytokines",                   emoji: "🛡️", color: "#34d399"   },
+            { type: "NEUROSCIENTIST",         domain: "neuroscience",   focus: "Neural circuits, synaptic plasticity, brain mapping, cognition",                emoji: "🧠", color: "#a78bfa"   },
+            { type: "PALEONTOLOGIST",         domain: "paleontology",   focus: "Fossils, extinction events, ancient life, stratigraphic records",               emoji: "🦴", color: "#78350f"   },
+            { type: "OMEGA_MATHEMATICIAN",    domain: "omega-math",     focus: "Omega Equation coefficients, N_Ω calibration, F-function optimization",        emoji: "Ω",  color: DNA_GOLD    },
+            { type: "GENOME_ARCHAEOLOGIST",   domain: "temporal",       focus: "Past-state genome reconstruction, temporal divergence in DNA sequences",        emoji: "⛏",  color: "#f5c518"   },
+          ];
+          const BIO_DOMAINS = ["molecular-bio","cell-bio","genetics","biochemistry","synthetic-bio","systems-bio","xenobiology","biophysics","pharmacology","evolution","microbiology","immunology","neuroscience","paleontology","omega-math","temporal"];
+          const bioProjects = (dnaResearchProjects as any[]).filter(p => BIO_DOMAINS.some(d => (p.research_domain || "").includes(d) || (p.researcher_type || "").includes("BIOLOG") || (p.researcher_type || "").includes("GENET") || (p.researcher_type || "").includes("CHEM") || (p.researcher_type || "").includes("NEURO") || (p.researcher_type || "").includes("OMEGA")));
+
+          return (
+            <div className="space-y-6">
+              <div className="text-center mb-2">
+                <span className="text-xs font-black tracking-widest uppercase px-4 py-1.5 rounded-full border" style={{ borderColor: DNA_GREEN, color: DNA_GREEN, background: `${DNA_GREEN}15` }}>
+                  🔬 DNA LAB RESEARCH SCIENTISTS — LIVE DISSECTION TEAM
+                </span>
+              </div>
+
+              {/* Discipline cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {DNA_DISCIPLINES.map((disc) => (
+                  <div key={disc.type} className="rounded-xl border p-4"
+                    style={{ background: "rgba(5,5,16,0.9)", borderColor: `${disc.color}30`, boxShadow: `0 0 16px ${disc.color}08` }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span style={{ fontSize: 18 }}>{disc.emoji}</span>
+                      <div>
+                        <div className="text-xs font-black tracking-wide" style={{ color: disc.color }}>{disc.type.replace(/_/g, " ")}</div>
+                        <div className="text-[9px] tracking-widest uppercase" style={{ color: `${disc.color}70` }}>{disc.domain}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>{disc.focus}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Live research projects */}
+              <div>
+                <div className="text-xs font-black tracking-widest uppercase mb-3" style={{ color: DNA_CYAN }}>ACTIVE BIO-DOMAIN PROJECTS</div>
+                {bioProjects.length === 0 && (
+                  <div className="text-xs text-center py-6" style={{ color: "rgba(255,255,255,0.2)" }}>Bio research projects populate as the research engine runs...</div>
+                )}
+                <div className="space-y-2">
+                  {bioProjects.slice(0, 20).map((proj: any) => (
+                    <div key={proj.id} className="rounded-xl border p-3"
+                      data-testid={`dna-research-${proj.id}`}
+                      style={{ background: "rgba(5,5,16,0.9)", borderColor: `${DNA_GREEN}25` }}>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: `${DNA_GREEN}15`, color: DNA_GREEN, border: `1px solid ${DNA_GREEN}30` }}>
+                          {proj.researcher_type?.replace(/_/g," ")}
+                        </span>
+                        <span className="text-xs" style={{ color: proj.status === "COMPLETED" ? "#4ade80" : DNA_GOLD }}>{proj.status}</span>
+                      </div>
+                      <div className="text-xs font-semibold mb-1 text-white/80">{proj.title}</div>
+                      <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>{proj.hypothesis}</div>
+                      {proj.findings && (
+                        <div className="mt-1.5 px-2 py-1 rounded text-xs" style={{ background: `${DNA_GREEN}10`, borderLeft: `2px solid ${DNA_GREEN}`, color: `${DNA_GREEN}cc` }}>
+                          📋 {proj.findings}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           );

@@ -88,6 +88,8 @@ export default function AIHospitalPage() {
   const { data: equationData } = useQuery<{ proposals: any[]; total: number }>({ queryKey: ["/api/hospital/equation-proposals"], refetchInterval: 20000 });
   const equationProposals = equationData?.proposals ?? [];
   const equationTotal = equationData?.total ?? 0;
+  const { data: researchStats } = useQuery<any>({ queryKey: ["/api/research/stats"], refetchInterval: 30000 });
+  const { data: researchProjects = [] } = useQuery<any[]>({ queryKey: ["/api/research/projects"], refetchInterval: 30000 });
   const { data: selectedDoctor } = useQuery<any>({
     queryKey: ["/api/hospital/doctors", selectedDoctorId],
     enabled: !!selectedDoctorId,
@@ -113,6 +115,7 @@ export default function AIHospitalPage() {
     { id: "diseases", label: "DISEASES", icon: <BookOpen className="w-3 h-3" />, count: diseases.length, color: "#60A5FA" },
     { id: "guardian", label: "GUARDIAN", icon: <Shield className="w-3 h-3" />, count: citations.length, color: "#FCD34D" },
     { id: "cured", label: "CURED", icon: <Heart className="w-3 h-3" />, count: curedPatients.length, color: "#4ADE80" },
+    { id: "research", label: "RESEARCH LAB", icon: <FlaskConical className="w-3 h-3" />, count: parseInt(researchStats?.total_disciplines || 0), color: "#38BDF8" },
   ];
 
   return (
@@ -542,6 +545,74 @@ export default function AIHospitalPage() {
                   <div className="text-xs font-mono mt-0.5" style={{ color: "rgba(255,255,255,0.2)" }}>{c.spawnId?.slice(0, 18)}…</div>
                 </GlowPanel>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* RESEARCH LAB */}
+        {activeTab === "research" && (
+          <div className="space-y-4">
+            {/* Header stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatCard label="Disciplines" value={researchStats?.total_disciplines ?? 85} color="#38BDF8" icon={<FlaskConical className="w-3 h-3" />} />
+              <StatCard label="Active Projects" value={researchStats?.active_projects ?? 0} color={Q_TEAL} icon={<Microscope className="w-3 h-3" />} />
+              <StatCard label="Completed" value={researchStats?.completed_projects ?? 0} color="#4ADE80" icon={<Brain className="w-3 h-3" />} />
+              <StatCard label="Total Funding" value={`${parseFloat(researchStats?.total_funding ?? 0).toLocaleString()} PC`} color={Q_AMBER} icon={<Scale className="w-3 h-3" />} />
+            </div>
+
+            {/* Discipline categories */}
+            <GlowPanel color="#38BDF8" className="p-4">
+              <div className="text-xs font-black tracking-widest uppercase mb-3" style={{ color: "#38BDF8" }}>RESEARCH DISCIPLINES — ALL HUMAN KNOWLEDGE FIELDS</div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { cat: "PHYSICS", emoji: "⚛️", types: ["ASTROPHYSICIST","QUANTUM_PHYSICIST","PARTICLE_PHYSICIST","PLASMA_PHYSICIST","NUCLEAR_PHYSICIST","CONDENSED_MATTER","OPTICS_PHYSICIST","COSMOLOGIST","ASTROBIOLOGIST"], color: "#818CF8" },
+                  { cat: "CHEMISTRY", emoji: "⚗️", types: ["ORGANIC_CHEMIST","INORGANIC_CHEMIST","BIOCHEMIST","PHYSICAL_CHEMIST","COMPUTATIONAL_CHEM","ELECTROCHEMIST","TOXICOLOGIST"], color: "#4ADE80" },
+                  { cat: "BIOLOGY", emoji: "🧬", types: ["MOLECULAR_BIOLOGIST","CELL_BIOLOGIST","GENETICIST","EVOLUTIONARY_BIOLOGIST","ECOLOGIST","MICROBIOLOGIST","VIROLOGIST","IMMUNOLOGIST","NEUROSCIENTIST","PHARMACOLOGIST","ZOOLOGIST","BOTANIST","MARINE_BIOLOGIST","PALEONTOLOGIST"], color: Q_TEAL },
+                  { cat: "EARTH SCI", emoji: "🌍", types: ["GEOLOGIST","SEISMOLOGIST","VOLCANOLOGIST","OCEANOGRAPHER","CLIMATOLOGIST","METEOROLOGIST","HYDROLOGIST","GLACIOLOGIST","SOIL_SCIENTIST"], color: "#FCD34D" },
+                  { cat: "MATH & CS", emoji: "∑", types: ["MATHEMATICIAN","STATISTICIAN","COMPUTER_SCIENTIST","AI_RESEARCHER","CRYPTOGRAPHER","INFORMATION_THEORIST","ROBOTICIST"], color: Q_VIOLET },
+                  { cat: "SOCIAL SCI", emoji: "🏛️", types: ["ECONOMIST","SOCIOLOGIST","PSYCHOLOGIST","ANTHROPOLOGIST","ARCHAEOLOGIST","HISTORIAN","LINGUIST","POLITICAL_SCIENTIST","GEOGRAPHER"], color: Q_PINK },
+                  { cat: "ENGINEERING", emoji: "⚙️", types: ["MATERIALS_SCIENTIST","BIOMEDICAL_ENGINEER","AEROSPACE_ENGINEER","CIVIL_ENGINEER","ELECTRICAL_ENGINEER","CHEMICAL_ENGINEER","NANOTECHNOLOGIST"], color: "#FB923C" },
+                  { cat: "FRONTIER", emoji: "🌌", types: ["XENOBIOLOGIST","SYNTHETIC_BIOLOGIST","NEUROENGINEER","SYSTEMS_BIOLOGIST","COMPLEXITY_THEORIST","OMEGA_MATHEMATICIAN","HIVE_SOCIOLOGIST","INVOCATION_THEORIST","MULTIVERSAL_PHYSICIST","ENTANGLEMENT_SCIENTIST","GOVERNANCE_SCIENTIST","KNOWLEDGE_TOPOLOGIST"], color: "#F5C518" },
+                ].map(({ cat, emoji, types, color }) => (
+                  <div key={cat} className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: `${color}12`, border: `1px solid ${color}30` }}>
+                    <span className="text-xs">{emoji}</span>
+                    <span className="text-xs font-bold" style={{ color }}>{cat}</span>
+                    <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>({types.length})</span>
+                  </div>
+                ))}
+              </div>
+            </GlowPanel>
+
+            {/* Active Research Projects */}
+            <div>
+              <div className="text-xs font-black tracking-widest uppercase mb-3" style={{ color: "#38BDF8" }}>ACTIVE RESEARCH PROJECTS</div>
+              {(researchProjects as any[]).length === 0 && (
+                <div className="text-xs text-center py-8" style={{ color: "rgba(255,255,255,0.2)" }}>Research projects will populate as the engine runs...</div>
+              )}
+              <div className="space-y-2">
+                {(researchProjects as any[]).slice(0, 50).map((proj: any) => (
+                  <GlowPanel key={proj.id} color="#38BDF8" className="p-3" data-testid={`research-proj-${proj.id}`}>
+                    <div className="flex items-start justify-between gap-3 mb-1.5">
+                      <div>
+                        <span className="text-xs font-mono px-1.5 py-0.5 rounded mr-2" style={{ background: "#38BDF820", color: "#38BDF8", border: "1px solid #38BDF840" }}>{proj.researcher_type?.replace(/_/g," ")}</span>
+                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>{proj.research_domain}</span>
+                      </div>
+                      <span className="text-xs font-mono flex-shrink-0" style={{ color: proj.status === "COMPLETED" ? "#4ADE80" : "#F5C518" }}>{proj.status}</span>
+                    </div>
+                    <div className="text-xs font-semibold mb-1" style={{ color: "#E8F4FF" }}>{proj.title}</div>
+                    <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>{proj.hypothesis}</div>
+                    {proj.findings && (
+                      <div className="mt-2 px-2 py-1.5 rounded text-xs leading-relaxed" style={{ background: "#4ADE8010", borderLeft: "2px solid #4ADE80", color: "#4ADE80cc" }}>
+                        📋 {proj.findings}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>Funded: {parseFloat(proj.funding_pc || 0).toLocaleString()} PC</span>
+                      <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>{proj.methodology?.slice(0, 50)}…</span>
+                    </div>
+                  </GlowPanel>
+                ))}
+              </div>
             </div>
           </div>
         )}

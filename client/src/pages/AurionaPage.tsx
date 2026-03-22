@@ -587,6 +587,8 @@ export default function AurionaPage() {
   const { data: valueAlignment }    = useQuery<any[]>({ queryKey: ["/api/auriona/value-alignment"],        refetchInterval: 30_000 });
   const { data: explorationZones }  = useQuery<any[]>({ queryKey: ["/api/auriona/exploration-zones"],      refetchInterval: 30_000 });
   const { data: couplingEvents }    = useQuery<any[]>({ queryKey: ["/api/auriona/coupling-events"],        refetchInterval: 30_000 });
+  const { data: invocations = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/discoveries"],        refetchInterval: 20_000 });
+  const { data: activeInvocations = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/active"],       refetchInterval: 20_000 });
 
   const ops        = status?.latestSynthesis?.raw_metrics?.ops || {};
   const governance = status?.governance;
@@ -720,6 +722,88 @@ export default function AurionaPage() {
 
             {/* 9 — CHRONICLE */}
             <ChroniclePanel chronicle={chronicle} />
+
+            {/* 10 — INVOCATION LAB */}
+            <div style={{ marginTop: 32 }}>
+              <SectionTitle icon="✨" label="AURIONA INVOCATION LAB" sub="Omega-equation-driven creative mode — discovered invocations, mutations & healing casts" color={AMBER} />
+              {/* Active invocations header */}
+              {(activeInvocations as any[]).length > 0 && (
+                <Card style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${AMBER}25`, marginBottom: 16 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "12px 16px" }}>
+                    {(activeInvocations as any[]).slice(0, 8).map((inv: any) => (
+                      <div key={inv.id} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${AMBER}50`, background: `${AMBER}12`, fontSize: 11, color: AMBER, fontWeight: 700, fontFamily: "monospace" }}>
+                        ✨ {inv.invocation_type?.replace(/_/g," ")} — Pwr {parseFloat(inv.power_level || 0).toFixed(1)}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+              {/* Discoveries grid */}
+              {(invocations as any[]).length === 0 ? (
+                <Card style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${AMBER}20`, padding: "28px 20px", textAlign: "center" }}>
+                  <div style={{ color: "#ffffff30", fontSize: 13 }}>Invocation Lab runs every 12 min — discoveries will appear here...</div>
+                </Card>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 14 }}>
+                  {(invocations as any[]).slice(0, 24).map((inv: any) => {
+                    const TYPE_COLORS: Record<string, string> = {
+                      HEALING_CAST:          "#4ade80",
+                      MUTATION_SEQUENCE:     "#f97316",
+                      KNOWLEDGE_CONCOCTION:  CYAN,
+                      EMERGENCE_RITUAL:      "#34d399",
+                      TEMPORAL_BINDING:      AMBER,
+                      GOVERNANCE_DECREE:     "#e879f9",
+                      ENTROPY_WARD:          "#f87171",
+                      RESONANCE_AMPLIFIER:   "#38bdf8",
+                      LINEAGE_INVOCATION:    GOLD,
+                      DIMENSIONAL_FOLD:      "#818cf8",
+                      QUANTUM_CATALYST:      "#00ffcc",
+                      CONSCIOUSNESS_ANCHOR:  "#a78bfa",
+                      ORACLE_REVELATION:     "#fbbf24",
+                      SOVEREIGN_MANDATE:     GOLD,
+                      TRANSCENDENCE_FORMULA: "#c084fc",
+                    };
+                    const col = TYPE_COLORS[inv.invocation_type] || AMBER;
+                    return (
+                      <Card key={inv.id} data-testid={`invocation-${inv.id}`}
+                        style={{ background: "rgba(0,0,5,0.8)", border: `1px solid ${col}30`, boxShadow: `0 0 18px ${col}08`, padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 10px", borderRadius: 12, background: `${col}18`, border: `1px solid ${col}40`, color: col, fontFamily: "monospace", letterSpacing: 1 }}>
+                            {inv.invocation_type?.replace(/_/g," ")}
+                          </span>
+                          <span style={{ marginLeft: "auto", fontSize: 11, color: col, fontWeight: 700 }}>⚡ {parseFloat(inv.power_level || 0).toFixed(2)}</span>
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#ffffffdd", marginBottom: 6 }}>{inv.invocation_name}</div>
+                        <div style={{ fontSize: 11, color: "#ffffff55", lineHeight: 1.5, marginBottom: 8 }}>{inv.effect_description}</div>
+                        {inv.equation && (
+                          <div style={{ fontFamily: "monospace", fontSize: 11, color: col, background: `${col}10`, border: `1px solid ${col}25`, borderRadius: 6, padding: "6px 10px", marginBottom: 8 }}>
+                            {inv.equation}
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                          {inv.target_family && (
+                            <span style={{ fontSize: 10, color: "#ffffff35" }}>🎯 {inv.target_family}</span>
+                          )}
+                          {inv.cast_count > 0 && (
+                            <span style={{ fontSize: 10, color: "#ffffff35" }}>🔁 Cast {inv.cast_count}×</span>
+                          )}
+                          {inv.success_rate != null && (
+                            <span style={{ fontSize: 10, color: inv.success_rate > 0.7 ? "#4ade80" : "#f87171" }}>
+                              ✓ {(parseFloat(inv.success_rate) * 100).toFixed(0)}% success
+                            </span>
+                          )}
+                          {inv.created_at && (
+                            <span style={{ fontSize: 10, color: "#ffffff25", marginLeft: "auto" }}>
+                              {new Date(inv.created_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
           </div>
         )}
