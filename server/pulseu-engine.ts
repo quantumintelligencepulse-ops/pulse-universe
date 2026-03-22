@@ -2,17 +2,17 @@ import { pool } from "./db";
 import { PULSEU_COURSE_LIST, PULSEU_TOTAL_COURSES } from "../shared/pulseu-courses";
 
 const TAG = "[pulseu-engine]";
-const ENROLL_BATCH   = 2000;
-const ADVANCE_BATCH  = 5000;
+const ENROLL_BATCH   = 5000;
+const ADVANCE_BATCH  = 10000;
 const TICK_MS        = 30_000;
 
 function coursesPerTick(conf: number, succ: number): number {
   const rate = conf * succ;
-  if (rate >= 0.85) return 18;
-  if (rate >= 0.70) return 12;
-  if (rate >= 0.55) return  8;
-  if (rate >= 0.40) return  4;
-  return 1;
+  if (rate >= 0.85) return 120;
+  if (rate >= 0.70) return 90;
+  if (rate >= 0.55) return 60;
+  if (rate >= 0.40) return 30;
+  return 10;
 }
 
 function computeGpa(conf: number, succ: number): number {

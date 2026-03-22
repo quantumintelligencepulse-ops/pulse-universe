@@ -61,7 +61,7 @@ export async function getRecentDissectionLogs(limit = 50) {
 // ── GET EQUATION PROPOSALS ───────────────────────────────────────────────────
 export async function getEquationProposals(status?: string) {
   const query = db.select().from(equationProposals).orderBy(desc(equationProposals.createdAt));
-  return query.limit(100);
+  return query.limit(2000);
 }
 
 // ── VOTE ON AN EQUATION PROPOSAL ─────────────────────────────────────────────

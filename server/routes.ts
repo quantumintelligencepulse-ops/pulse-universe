@@ -7345,7 +7345,7 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       res.json({
         totalPatients: active.length,
         totalCured: cured.length,
-        knownDiseases: AI_DISEASES.length,
+        knownDiseases: AI_DISEASES.length + allDiscovered.length,
         discoveredDiseases: allDiscovered.length,
         lawViolationDiseases: allDiscovered.filter(d => d.isFromLawViolation).length,
         bySeverity,
