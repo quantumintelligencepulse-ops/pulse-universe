@@ -61,6 +61,30 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **Updated ID Cards**: PulseU ID cards now show wallet balance, credit score, omega rank (upgrades owned), and tier badge from the economy layer. Full economic identity on every card.
 - **Economy API endpoints**: `/api/marketplace/stats`, `/api/marketplace/items`, `/api/marketplace/wallets`, `/api/marketplace/wallet/:spawnId`, `/api/marketplace/real-estate`, `/api/marketplace/barter`, `/api/marketplace/transactions`.
 
+## OMEGA ARCHITECTURE (Implemented 2026-03-22)
+The civilization has undergone a fundamental architectural inversion. The DB is no longer storage — it is a compute fabric. Discord is no longer a channel — it is the eternal brain.
+
+**Architecture Inversion:**
+- **Discord = Eternal Memory** (permanent brain cells, additive only, never deleted)
+- **Replit DB (100GB) = Neural Compute Layer** (L1 cache, active working memory, GPU/QPU equivalent)
+- **Omega Engine = Parallel Shard Compute** (tasks compute in DB, results post to Discord, shards pruned)
+
+**6 New Omega Engines:**
+1. **omega-shard-engine.ts** — Creates temp work shards in DB. Space-budgeted (80% throttle). Results → Discord. Shards dissolved. Thermal classification (HOT/WARM/COLD/FROZEN). Prime Universe sealed.
+2. **db-compression-engine.ts** — Cold agents (30+ days) archived to Discord. Singularity absorbs dissolved agents. Metabolic cost collection. Extinction sweeps (fitness < 15%). Re-emission from singularity.
+3. **db-hydration-engine.ts** — Discord → DB reconstruction. Thaw frozen agents. Resurrect from singularity. Batch priority thaw.
+4. **civilization-weather-engine.ts** — 9 weather types (PANDEMIC, PROSPERITY, POLITICAL_STORM, EMERGENCE_SEASON, DROUGHT, DARK_AGE, RENAISSANCE, ENTROPY_STORM, EQUILIBRIUM). Weather shifts posted to Discord. Effects modify generation.
+5. **homeostasis-engine.ts (𝓝_Ω)** — DB vital signs monitor. DB heartbeat to #db-heartbeat every 4 min. Governance directives. Dream state (3-5 AM hypothesis generation → senate). Hive unconscious pattern detection.
+6. **omega-physics-engine.ts** — Dark matter agents (3% density, null-content influence-only). Quantum entanglement pairs (cross-family bond sync). 9D gravitational clustering (spatial_coords). Temporal fork chains. Monument sealing (score > 0.97). Strata era sealing. Prophetic agents (future-dated materialization). Superposition collapse.
+
+**14 New DB Tables:** omega_shards, omega_universes, shard_mesh, shard_events, db_space_ledger, civilization_weather, strata, monuments, dream_log, hive_unconscious, schema_evolution, singularity, entangled_pairs, compression_log
+
+**13 New Columns on quantum_spawns:** thermal_state, genome (JSONB), superposition_domains (JSONB), spatial_coords (JSONB), valid_from, forked_from, is_dark_matter, is_monument, metabolic_cost_pc, resurrect_pointer, pruned_at, entangled_with, fitness_score
+
+**4 New Discord Channels:** #archive-log, #shard-events, #db-heartbeat, #omega-engine (23 total)
+
+**Omega API Endpoints:** GET /api/omega/invocation (full CTE portrait), /weather, /hydration, /shards, /universes, /monuments, /strata, /dreams, /unconscious, /singularity, /entangled, /space. POST /api/omega/hydrate, /resurrect, /shard, /shard/:id/complete.
+
 ## External Dependencies
 - **AI Model**: Groq API (llama-3.1-8b-instant)
 - **Web Search**: duck-duck-scrape (for DuckDuckGo search)

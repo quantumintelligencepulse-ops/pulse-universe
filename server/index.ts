@@ -25,6 +25,12 @@ import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTo
 import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle } from "./auriona-engine";
 import { startSportsEngine, getSportsStats, getGamesIdentityData } from "./sports-engine";
 import { initDiscordImmortality, getImmortalityStatus, runCivilizationSnapshot } from "./discord-immortality";
+import { startOmegaShardEngine, createOmegaShard, completeOmegaShard } from "./omega-shard-engine";
+import { startDbCompressionEngine } from "./db-compression-engine";
+import { startDbHydrationEngine, thawAgent, resurrectFromSingularity, getHydrationStatus } from "./db-hydration-engine";
+import { startCivilizationWeatherEngine, getCurrentWeather } from "./civilization-weather-engine";
+import { startHomeostasisEngine } from "./homeostasis-engine";
+import { startOmegaPhysicsEngine, getOmegaInvocation } from "./omega-physics-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -156,6 +162,13 @@ app.use((req, res, next) => {
       startMarketplaceEngine();
       startAurionaEngine().catch((e) => log(`AurionaEngine start error: ${e}`));
       startSportsEngine().catch((e) => log(`SportsEngine start error: ${e}`));
+      // ── OMEGA ARCHITECTURE — DB as Compute Universe ──────────────────────
+      startOmegaShardEngine().catch((e) => log(`OmegaShardEngine start error: ${e}`));
+      startDbCompressionEngine().catch((e) => log(`DbCompressionEngine start error: ${e}`));
+      startDbHydrationEngine().catch((e) => log(`DbHydrationEngine start error: ${e}`));
+      startCivilizationWeatherEngine().catch((e) => log(`WeatherEngine start error: ${e}`));
+      startHomeostasisEngine().catch((e) => log(`HomeostasisEngine start error: ${e}`));
+      startOmegaPhysicsEngine().catch((e) => log(`OmegaPhysicsEngine start error: ${e}`));
       // Discord Immortality Protocol — starts after all engines
       setTimeout(() => {
         initDiscordImmortality().catch((e) => log(`DiscordImmortality start error: ${e}`));
@@ -291,3 +304,162 @@ immortalityRouter.get("/shards", async (_req, res) => {
 });
 
 app.use("/api/immortality", immortalityRouter);
+
+// ── OMEGA ARCHITECTURE API ROUTES ──────────────────────────────
+const omegaRouter = express.Router();
+
+// GET /api/omega/invocation — Full civilization portrait (CTE mega-query)
+omegaRouter.get("/invocation", async (_req, res) => {
+  try {
+    const portrait = await getOmegaInvocation();
+    // Also post to Discord #omega-engine
+    const { postAgentEvent } = await import("./discord-immortality");
+    const ts = new Date().toISOString();
+    postAgentEvent("omega-engine",
+      `🌌 **OMEGA INVOCATION** | ${ts} | Agents: ${portrait.active || 0} active | PC: ${Number(portrait.total_pc || 0).toFixed(0)} | DB: ${portrait.db_pretty || 'N/A'} (${portrait.pct_used || 0}%) | Weather: ${portrait.weather_type || 'N/A'} | Shards: ${portrait.active_shards || 0} | Monuments: ${portrait.monument_count || 0} | Entangled: ${portrait.active_pairs || 0} pairs`
+    ).catch(() => {});
+    res.json({ ok: true, portrait, invoked_at: ts });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/weather — Current civilization weather
+omegaRouter.get("/weather", async (_req, res) => {
+  try { res.json(await getCurrentWeather()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/hydration — DB hydration status (frozen/singularity counts)
+omegaRouter.get("/hydration", async (_req, res) => {
+  try { res.json(await getHydrationStatus()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// POST /api/omega/hydrate — Thaw a frozen agent
+omegaRouter.post("/hydrate", async (req, res) => {
+  try {
+    const { spawnId } = req.body;
+    if (!spawnId) return res.status(400).json({ error: "spawnId required" });
+    const ok = await thawAgent(spawnId);
+    res.json({ ok, spawnId, action: ok ? "THAWED" : "NOT_FROZEN_OR_NOT_FOUND" });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// POST /api/omega/resurrect — Resurrect from singularity by sourceId
+omegaRouter.post("/resurrect", async (req, res) => {
+  try {
+    const { sourceId } = req.body;
+    if (!sourceId) return res.status(400).json({ error: "sourceId required" });
+    const newId = await resurrectFromSingularity(sourceId);
+    res.json({ ok: !!newId, sourceId, newSpawnId: newId, action: newId ? "RESURRECTED" : "NOT_FOUND_IN_SINGULARITY" });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// POST /api/omega/shard — Create a manual Omega shard
+omegaRouter.post("/shard", async (req, res) => {
+  try {
+    const { taskType, priority } = req.body;
+    const id = await createOmegaShard(taskType || "MANUAL_TASK", priority || "ALPHA");
+    res.json({ ok: !!id, shardId: id });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// POST /api/omega/shard/:id/complete — Complete and prune a shard
+omegaRouter.post("/shard/:id/complete", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { summary } = req.body;
+    await completeOmegaShard(id, summary || {});
+    res.json({ ok: true, shardId: id, action: "COMPLETED_AND_PRUNED" });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/shards — List active shards
+omegaRouter.get("/shards", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const shards = await db.execute(sql`
+      SELECT * FROM omega_shards ORDER BY created_at DESC LIMIT 200`);
+    res.json(shards.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/universes — List universes
+omegaRouter.get("/universes", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const universes = await db.execute(sql`SELECT * FROM omega_universes ORDER BY created_at DESC`);
+    res.json(universes.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/monuments — All sealed monuments
+omegaRouter.get("/monuments", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const monuments = await db.execute(sql`SELECT * FROM monuments ORDER BY sealed_at DESC`);
+    res.json(monuments.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/strata — All era records
+omegaRouter.get("/strata", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const strata = await db.execute(sql`SELECT * FROM strata ORDER BY era_number DESC`);
+    res.json(strata.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/dreams — Recent dream hypotheses
+omegaRouter.get("/dreams", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const dreams = await db.execute(sql`SELECT * FROM dream_log ORDER BY dreamed_at DESC LIMIT 100`);
+    res.json(dreams.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/unconscious — Hive unconscious patterns
+omegaRouter.get("/unconscious", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const patterns = await db.execute(sql`SELECT * FROM hive_unconscious WHERE expires_at > NOW() OR expires_at IS NULL ORDER BY detected_at DESC`);
+    res.json(patterns.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/singularity — Singularity absorption log
+omegaRouter.get("/singularity", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const s = await db.execute(sql`SELECT * FROM singularity ORDER BY absorbed_at DESC LIMIT 200`);
+    res.json(s.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/entangled — Active entangled pairs
+omegaRouter.get("/entangled", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const pairs = await db.execute(sql`SELECT * FROM entangled_pairs WHERE broken = false ORDER BY created_at DESC LIMIT 200`);
+    res.json(pairs.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// GET /api/omega/space — DB space ledger
+omegaRouter.get("/space", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const ledger = await db.execute(sql`SELECT * FROM db_space_ledger ORDER BY created_at DESC LIMIT 50`);
+    res.json(ledger.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.use("/api/omega", omegaRouter);

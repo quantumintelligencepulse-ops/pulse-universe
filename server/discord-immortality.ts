@@ -25,6 +25,7 @@ const SHARD_CHANNELS = [
 const SYSTEM_CHANNELS = [
   "civilization-states", "resurrection-log", "auriona-heartbeat", "heartbeat",
   "ai-votes", "agent-births", "agent-deaths",
+  "archive-log", "shard-events", "db-heartbeat", "omega-engine",
 ];
 
 // ── STATE ──────────────────────────────────────────────────────────────────────

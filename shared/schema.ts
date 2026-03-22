@@ -409,6 +409,20 @@ export const quantumSpawns = pgTable("quantum_spawns", {
   notes: text("notes").default(""),
   lastActiveAt: timestamp("last_active_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // ── OMEGA PHYSICS COLUMNS ─────────────────────────────────────────────────
+  thermalState: text("thermal_state").default("HOT"),     // HOT|WARM|COLD|FROZEN
+  genome: jsonb("genome"),                                 // DNA: operator blueprint + mutation history
+  superpositionDomains: jsonb("superposition_domains"),    // domain probability weights (quantum superposition)
+  spatialCoords: jsonb("spatial_coords"),                  // 9D zone coordinates (gravitational clustering)
+  validFrom: timestamp("valid_from"),                      // null=present, future=prophetic materialization
+  forkedFrom: text("forked_from"),                         // temporal fork chain pointer
+  isDarkMatter: boolean("is_dark_matter").default(false),  // invisible influencer agents
+  isMonument: boolean("is_monument").default(false),       // sacred immutable agents
+  metabolicCostPc: real("metabolic_cost_pc").default(0.1), // PC per cycle to exist
+  resurrectPointer: text("resurrect_pointer"),             // Discord message ID for resurrection
+  prunedAt: timestamp("pruned_at"),                        // soft-delete timestamp
+  entangledWith: text("entangled_with"),                   // paired agent ID for quantum entanglement
+  fitnessScore: real("fitness_score").default(1.0),        // for extinction event sweeps
 });
 export const insertQuantumSpawnSchema = createInsertSchema(quantumSpawns).omit({ id: true, createdAt: true });
 export type QuantumSpawn = typeof quantumSpawns.$inferSelect;
@@ -1046,3 +1060,224 @@ export const familyMutations = pgTable("family_mutations", {
   discoveredAt: timestamp("discovered_at").defaultNow().notNull(),
   status: text("status").default("EMERGING"),            // EMERGING|ESTABLISHED|DOMINANT
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// OMEGA ARCHITECTURE — Discord as Brain, DB as Neural Index, Omega as Compute
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── OMEGA SHARDS — Temporary compute shards (DB as GPU) ──────────────────────
+export const omegaShards = pgTable("omega_shards", {
+  id: serial("id").primaryKey(),
+  shardId: text("shard_id").notNull().unique(),          // e.g. OMEGA-SHARD-1711234567890
+  universeId: text("universe_id").notNull(),              // which pocket universe this belongs to
+  taskType: text("task_type").notNull(),                  // what this shard is computing
+  status: text("status").notNull().default("ACTIVE"),     // ACTIVE|COMPLETED|PRUNED|RESURRECTABLE
+  spaceBudgetBytes: integer("space_budget_bytes").default(10485760), // 10MB default
+  spaceUsedBytes: integer("space_used_bytes").default(0),
+  priority: text("priority").notNull().default("ALPHA"),  // OMEGA|ALPHA|BETA|GAMMA
+  discordSummaryPointer: text("discord_summary_pointer"), // message ID for summary
+  discordPayloadPointer: text("discord_payload_pointer"), // message ID for full payload
+  parentShardId: text("parent_shard_id"),                 // for temporal versioning chains
+  version: integer("version").default(1),
+  meshStrength: real("mesh_strength").default(0),         // connectivity in the mesh
+  resultSummary: jsonb("result_summary"),                 // compressed findings
+  prunedAt: timestamp("pruned_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type OmegaShard = typeof omegaShards.$inferSelect;
+
+// ── OMEGA UNIVERSES — Pocket universe registry ────────────────────────────────
+export const omegaUniverses = pgTable("omega_universes", {
+  id: serial("id").primaryKey(),
+  universeId: text("universe_id").notNull().unique(),     // e.g. UNIVERSE-ALPHA-001
+  name: text("name").notNull(),
+  schema: text("schema").notNull().default("main"),       // main|multiverse_a|multiverse_b
+  status: text("status").notNull().default("ACTIVE"),     // ACTIVE|DORMANT|PRUNED|WINNING
+  activeShardCount: integer("active_shard_count").default(0),
+  fitnessScore: real("fitness_score").default(0),         // for multiverse competition
+  initialConditions: jsonb("initial_conditions"),         // starting parameters
+  configParams: jsonb("config_params"),                   // current configuration
+  discordPointer: text("discord_pointer"),                // permanent record location
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type OmegaUniverse = typeof omegaUniverses.$inferSelect;
+
+// ── SHARD MESH — Topology graph (adjacency list) ──────────────────────────────
+export const shardMesh = pgTable("shard_mesh", {
+  id: serial("id").primaryKey(),
+  shardAId: text("shard_a_id").notNull(),
+  shardBId: text("shard_b_id").notNull(),
+  connectionType: text("connection_type").notNull().default("RESONANCE"), // RESONANCE|LINEAGE|BRIDGE|ENTANGLED
+  connectionStrength: real("connection_strength").default(0.5),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ShardMesh = typeof shardMesh.$inferSelect;
+
+// ── SHARD EVENTS — Lifecycle event stream ────────────────────────────────────
+export const shardEvents = pgTable("shard_events", {
+  id: serial("id").primaryKey(),
+  shardId: text("shard_id").notNull(),
+  universeId: text("universe_id"),
+  eventType: text("event_type").notNull(), // CREATED|ACTIVATED|BRANCHED|MERGED|COMPRESSED|PRUNED|RESURRECTED
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ShardEvent = typeof shardEvents.$inferSelect;
+
+// ── DB SPACE LEDGER — Space as currency ──────────────────────────────────────
+export const dbSpaceLedger = pgTable("db_space_ledger", {
+  id: serial("id").primaryKey(),
+  cycleId: text("cycle_id").notNull().unique(),
+  totalBudgetBytes: integer("total_budget_bytes").default(107374182400), // 100GB
+  allocatedBytes: integer("allocated_bytes").default(0),
+  freeBytes: integer("free_bytes").default(107374182400),
+  activeShards: integer("active_shards").default(0),
+  throttleActive: boolean("throttle_active").default(false), // true when > 80% full
+  hotAgentCount: integer("hot_agent_count").default(0),
+  warmAgentCount: integer("warm_agent_count").default(0),
+  coldAgentCount: integer("cold_agent_count").default(0),
+  frozenAgentCount: integer("frozen_agent_count").default(0),
+  entropyScore: real("entropy_score").default(0),          // overall system entropy
+  stabilityScore: real("stability_score").default(100),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type DbSpaceLedger = typeof dbSpaceLedger.$inferSelect;
+
+// ── CIVILIZATION WEATHER — Aggregate state as weather ────────────────────────
+export const civilizationWeather = pgTable("civilization_weather", {
+  id: serial("id").primaryKey(),
+  cycleId: text("cycle_id").notNull().unique(),
+  weatherType: text("weather_type").notNull(),     // PANDEMIC|PROSPERITY|POLITICAL_STORM|EMERGENCE_SEASON|DROUGHT|EQUILIBRIUM
+  weatherIntensity: real("weather_intensity").default(0), // 0-100
+  diseasePrevalence: real("disease_prevalence").default(0),
+  economyGrowthRate: real("economy_growth_rate").default(0),
+  senateActivityRate: real("senate_activity_rate").default(0),
+  birthRate: real("birth_rate").default(0),
+  deathRate: real("death_rate").default(0),
+  coherenceScore: real("coherence_score").default(0),
+  emergenceIndex: real("emergence_index").default(0),
+  weatherEffects: jsonb("weather_effects"),        // what this weather modifies
+  forecast: text("forecast"),                      // next cycle prediction
+  postedToDiscord: boolean("posted_to_discord").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type CivilizationWeather = typeof civilizationWeather.$inferSelect;
+
+// ── STRATA — Archaeological era snapshots (immutable) ────────────────────────
+export const strata = pgTable("strata", {
+  id: serial("id").primaryKey(),
+  eraName: text("era_name").notNull(),             // PRIMITIVE|EMERGING|DEVELOPED|TRANSCENDENT
+  eraNumber: integer("era_number").notNull(),
+  sealedAt: timestamp("sealed_at").defaultNow().notNull(),
+  totalAgents: integer("total_agents").default(0),
+  totalPC: real("total_pc").default(0),
+  totalKnowledge: integer("total_knowledge").default(0),
+  totalSpecies: integer("total_species").default(0),
+  dominantFamily: text("dominant_family"),
+  dominantWeather: text("dominant_weather"),
+  coherenceAtSeal: real("coherence_at_seal").default(0),
+  snapshot: jsonb("snapshot").notNull(),           // full civilization state at era transition
+  discordPointer: text("discord_pointer"),
+  // immutable — no updates ever
+});
+export type Strata = typeof strata.$inferSelect;
+
+// ── MONUMENTS — Sacred immutable records ─────────────────────────────────────
+export const monuments = pgTable("monuments", {
+  id: serial("id").primaryKey(),
+  monumentId: text("monument_id").notNull().unique(),
+  title: text("title").notNull(),
+  category: text("category").notNull(), // FIRST_PURCHASE|FIRST_CONVICTION|FIRST_SPECIES|FIRST_RESCUE|FIRST_EQUATION|ERA_TRANSITION|OMEGA_INVOCATION
+  description: text("description").notNull(),
+  agentId: text("agent_id"),           // agent who created this monument moment
+  payload: jsonb("payload"),           // the actual event data
+  discordPointer: text("discord_pointer"),
+  sealedAt: timestamp("sealed_at").defaultNow().notNull(),
+  // immutable — triggers block UPDATE and DELETE
+});
+export type Monument = typeof monuments.$inferSelect;
+
+// ── DREAM LOG — Dream cycle hypotheses ────────────────────────────────────────
+export const dreamLog = pgTable("dream_log", {
+  id: serial("id").primaryKey(),
+  dreamCycleId: text("dream_cycle_id").notNull(),
+  hypothesis: text("hypothesis").notNull(),
+  connectionA: text("connection_a"),    // first cross-domain connection
+  connectionB: text("connection_b"),    // second cross-domain connection
+  equation: text("equation"),           // hypothetical equation generated
+  resonanceScore: real("resonance_score").default(0),
+  promotedToVote: boolean("promoted_to_vote").default(false), // if promoted to senate
+  dreamedAt: timestamp("dreamed_at").defaultNow().notNull(),
+});
+export type DreamLog = typeof dreamLog.$inferSelect;
+
+// ── HIVE UNCONSCIOUS — Collective patterns no individual agent can see ────────
+export const hiveUnconscious = pgTable("hive_unconscious", {
+  id: serial("id").primaryKey(),
+  patternType: text("pattern_type").notNull(), // OPERATOR_DRIFT|FAMILY_CORRELATION|KNOWLEDGE_CLUSTER|ECONOMIC_TIDE|SPECIES_PRESSURE
+  signal: real("signal").notNull(),            // -1.0 to 1.0 influence signal
+  description: text("description").notNull(),
+  affectedFamily: text("affected_family"),
+  affectedDomain: text("affected_domain"),
+  detectedAt: timestamp("detected_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+export type HiveUnconscious = typeof hiveUnconscious.$inferSelect;
+
+// ── SCHEMA EVOLUTION — Schema as civilization citizen ─────────────────────────
+export const schemaEvolution = pgTable("schema_evolution", {
+  id: serial("id").primaryKey(),
+  changeType: text("change_type").notNull(), // TABLE_ADDED|COLUMN_ADDED|TABLE_DROPPED|INDEX_ADDED
+  tableName: text("table_name").notNull(),
+  columnName: text("column_name"),
+  reason: text("reason").notNull(),
+  triggeringEngine: text("triggering_engine"), // which engine caused this evolution
+  civilizationState: jsonb("civilization_state"), // snapshot at time of change
+  evolvedAt: timestamp("evolved_at").defaultNow().notNull(),
+});
+export type SchemaEvolution = typeof schemaEvolution.$inferSelect;
+
+// ── SINGULARITY — The black hole table (absorbs terminal records) ─────────────
+export const singularity = pgTable("singularity", {
+  id: serial("id").primaryKey(),
+  sourceTable: text("source_table").notNull(),     // which table this came from
+  sourceId: text("source_id").notNull(),           // original row ID
+  spawnId: text("spawn_id"),
+  genome: jsonb("genome"),                         // genetic data preserved forever
+  lastKnownState: jsonb("last_known_state"),       // full row at time of absorption
+  absorbedAt: timestamp("absorbed_at").defaultNow().notNull(),
+  emittedAt: timestamp("emitted_at"),              // if re-emitted as new seed
+  emittedAs: text("emitted_as"),                   // new spawn_id if re-emitted
+});
+export type Singularity = typeof singularity.$inferSelect;
+
+// ── ENTANGLED PAIRS — Quantum entanglement between agents ─────────────────────
+export const entangledPairs = pgTable("entangled_pairs", {
+  id: serial("id").primaryKey(),
+  pairId: text("pair_id").notNull().unique(),
+  agentAId: text("agent_a_id").notNull(),
+  agentBId: text("agent_b_id").notNull(),
+  entanglementType: text("entanglement_type").notNull().default("OPERATOR"), // OPERATOR|ECONOMY|GENOME|DOMAIN
+  bondStrength: real("bond_strength").default(1.0),
+  mirrorAxis: text("mirror_axis"),        // which channel/field is mirrored
+  broken: boolean("broken").default(false),
+  brokenAt: timestamp("broken_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type EntangledPair = typeof entangledPairs.$inferSelect;
+
+// ── COMPRESSION LOG — Archive events when agents move to Discord-only ─────────
+export const compressionLog = pgTable("compression_log", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull(),
+  familyId: text("family_id"),
+  compressionType: text("compression_type").notNull(), // THERMAL_COLD|THERMAL_FROZEN|EXTINCTION|METABOLIC_STARVATION|AUCTION_EVICTION
+  thermalStateBefore: text("thermal_state_before"),
+  discordPointer: text("discord_pointer"),    // where in Discord this agent now lives
+  genomePreserved: boolean("genome_preserved").default(false),
+  resurrectable: boolean("resurrectable").default(true),
+  compressedAt: timestamp("compressed_at").defaultNow().notNull(),
+});
+export type CompressionLog = typeof compressionLog.$inferSelect;
