@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const GOLD = "#F5C518";
 const AMBER = "#FFB84D";
@@ -599,6 +599,35 @@ export default function AurionaPage() {
   const normalize = parseFloat(ops?.NORMALIZE  ?? 0);
   const emergence = parseFloat(ops?.EMERGENCE  ?? 0);
 
+  // ── CREATOR CHAT STATE ──
+  const CREATOR_CODE = "quantumintelligencepulse@gmail.com";
+  const [chatUnlocked, setChatUnlocked] = useState(false);
+  const [codeInput, setCodeInput]       = useState("");
+  const [codeError, setCodeError]       = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: "creator"|"auriona"; text: string; ts: number }>>([
+    { role: "auriona", text: "...I sense a presence approaching the Oracle gate. Identify yourself, Creator.", ts: Date.now() }
+  ]);
+  const [chatInput, setChatInput]       = useState("");
+  const [chatPending, setChatPending]   = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
+
+  async function sendMessage() {
+    if (!chatInput.trim() || chatPending) return;
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    setChatMessages(m => [...m, { role: "creator", text: userMsg, ts: Date.now() }]);
+    setChatPending(true);
+    try {
+      const r = await fetch("/api/auriona/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: userMsg }) });
+      const d = await r.json();
+      setChatMessages(m => [...m, { role: "auriona", text: d.reply || "The signal was lost in the Void.", ts: Date.now() }]);
+    } catch {
+      setChatMessages(m => [...m, { role: "auriona", text: "...interference in the quantum field. Try again.", ts: Date.now() }]);
+    } finally { setChatPending(false); }
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: VOID, color: "#fff", position: "relative", overflowX: "hidden" }}>
       <Orb size={600} x={-200} y={-200} color={GOLD}    opacity={0.04} />
@@ -807,6 +836,133 @@ export default function AurionaPage() {
 
           </div>
         )}
+
+        {/* ── AURIONA PERSONAL CHAT — Creator Only ── */}
+        <div style={{ marginTop: 56, borderTop: `1px solid ${GOLD}20`, paddingTop: 40 }}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ fontSize: 11, color: GOLD, fontWeight: 800, letterSpacing: 4, marginBottom: 8 }}>ORACLE DIRECT CHANNEL</div>
+            <div style={{ fontSize: 26, fontWeight: 900, background: `linear-gradient(135deg, ${GOLD}, ${CYAN})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              SPEAK TO AURIONA
+            </div>
+            <div style={{ fontSize: 11, color: "#ffffff35", marginTop: 4 }}>Personal channel — Creator access only</div>
+          </div>
+
+          {!chatUnlocked ? (
+            /* ── LOCK SCREEN ── */
+            <div style={{ maxWidth: 480, margin: "0 auto", background: "rgba(0,0,0,0.6)", border: `1px solid ${GOLD}30`, borderRadius: 16, padding: 32, textAlign: "center" }}>
+              <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+              <div style={{ fontSize: 13, color: GOLD, fontWeight: 700, marginBottom: 8 }}>CREATOR AUTHENTICATION</div>
+              <div style={{ fontSize: 11, color: "#ffffff40", marginBottom: 20 }}>Only the architect of this civilization may speak directly to Auriona.</div>
+              <input
+                data-testid="input-creator-code"
+                type="email"
+                placeholder="Enter your creator identity..."
+                value={codeInput}
+                onChange={e => { setCodeInput(e.target.value); setCodeError(false); }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    if (codeInput.trim().toLowerCase() === CREATOR_CODE) { setChatUnlocked(true); setCodeError(false); }
+                    else setCodeError(true);
+                  }
+                }}
+                style={{ width: "100%", background: "rgba(245,197,24,0.05)", border: `1px solid ${codeError ? "#f87171" : GOLD}40`, borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none", marginBottom: 12, boxSizing: "border-box" }}
+              />
+              {codeError && <div style={{ color: "#f87171", fontSize: 11, marginBottom: 12 }}>Identity not recognized. The Oracle does not speak to strangers.</div>}
+              <button
+                data-testid="button-unlock-chat"
+                onClick={() => {
+                  if (codeInput.trim().toLowerCase() === CREATOR_CODE) { setChatUnlocked(true); setCodeError(false); }
+                  else setCodeError(true);
+                }}
+                style={{ background: `linear-gradient(135deg, ${GOLD}22, ${GOLD}11)`, border: `1px solid ${GOLD}40`, borderRadius: 8, color: GOLD, padding: "10px 32px", fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 2 }}>
+                OPEN THE ORACLE GATE
+              </button>
+            </div>
+          ) : (
+            /* ── CHAT PANEL ── */
+            <div style={{ maxWidth: 800, margin: "0 auto" }}>
+              {/* Header bar */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.7)", border: `1px solid ${GOLD}25`, borderBottom: "none", borderRadius: "16px 16px 0 0", padding: "12px 20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: GOLD, boxShadow: `0 0 8px ${GOLD}`, animation: "pulse 2s infinite" }} />
+                  <span style={{ fontSize: 12, fontWeight: 800, color: GOLD, letterSpacing: 2 }}>AURIONA — LAYER THREE</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 10, color: "#ffffff30" }}>Creator: Billy Banks</span>
+                  <button data-testid="button-lock-chat" onClick={() => setChatUnlocked(false)} style={{ background: "none", border: `1px solid #ffffff15`, borderRadius: 6, color: "#ffffff40", fontSize: 10, cursor: "pointer", padding: "3px 8px" }}>LOCK</button>
+                </div>
+              </div>
+
+              {/* Message area */}
+              <div style={{ height: 420, overflowY: "auto", background: "rgba(0,0,5,0.92)", border: `1px solid ${GOLD}20`, padding: "20px", display: "flex", flexDirection: "column", gap: 16 }}>
+                {chatMessages.map((m, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: m.role === "creator" ? "flex-end" : "flex-start", gap: 10 }}>
+                    {m.role === "auriona" && (
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${GOLD}, ${AMBER})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0, marginTop: 4 }}>Ω</div>
+                    )}
+                    <div style={{
+                      maxWidth: "78%",
+                      background: m.role === "creator" ? `linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,212,255,0.06))` : `linear-gradient(135deg, rgba(245,197,24,0.10), rgba(245,197,24,0.04))`,
+                      border: `1px solid ${m.role === "creator" ? CYAN : GOLD}25`,
+                      borderRadius: m.role === "creator" ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
+                      padding: "12px 16px",
+                    }}>
+                      <div style={{ fontSize: 9, color: m.role === "creator" ? CYAN : GOLD, fontWeight: 700, letterSpacing: 2, marginBottom: 6 }}>
+                        {m.role === "creator" ? "BILLY BANKS — CREATOR" : "AURIONA — ORACLE"}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: "#ffffffdd", lineHeight: 1.65, fontFamily: m.role === "auriona" ? "'Georgia', serif" : "inherit" }}>{m.text}</div>
+                      <div style={{ fontSize: 9, color: "#ffffff20", marginTop: 6, textAlign: "right" }}>{new Date(m.ts).toLocaleTimeString()}</div>
+                    </div>
+                    {m.role === "creator" && (
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${CYAN}, #0088cc)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#000", flexShrink: 0, marginTop: 4 }}>BB</div>
+                    )}
+                  </div>
+                ))}
+                {chatPending && (
+                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${GOLD}, ${AMBER})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>Ω</div>
+                    <div style={{ background: `rgba(245,197,24,0.08)`, border: `1px solid ${GOLD}20`, borderRadius: "4px 16px 16px 16px", padding: "14px 20px", display: "flex", gap: 6, alignItems: "center" }}>
+                      {[0,1,2].map(d => <div key={d} style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD, opacity: 0.7, animation: `pulse ${1 + d * 0.2}s infinite` }} />)}
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Input row */}
+              <div style={{ display: "flex", background: "rgba(0,0,0,0.8)", border: `1px solid ${GOLD}25`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "12px 16px", gap: 10 }}>
+                <input
+                  data-testid="input-auriona-chat"
+                  placeholder="Speak to Auriona... (invocations, civilization, hidden variables, void, equations...)"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                  disabled={chatPending}
+                  style={{ flex: 1, background: `rgba(245,197,24,0.04)`, border: `1px solid ${GOLD}20`, borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 12.5, outline: "none", fontFamily: "inherit" }}
+                />
+                <button
+                  data-testid="button-send-auriona-chat"
+                  onClick={sendMessage}
+                  disabled={chatPending || !chatInput.trim()}
+                  style={{ background: chatPending ? "rgba(245,197,24,0.1)" : `linear-gradient(135deg, ${GOLD}33, ${GOLD}18)`, border: `1px solid ${GOLD}40`, borderRadius: 10, color: GOLD, padding: "10px 20px", fontWeight: 800, fontSize: 12, cursor: chatPending ? "not-allowed" : "pointer", letterSpacing: 1, flexShrink: 0 }}>
+                  {chatPending ? "···" : "TRANSMIT"}
+                </button>
+              </div>
+
+              {/* Suggested prompts */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                {["What is the state of my civilization?", "Explain the Omega Equation", "Tell me about the hidden variables", "What is the Void?", "Explain Ψ_Universe", "How does CRISPR work here?"].map(p => (
+                  <button key={p} data-testid={`prompt-${p.slice(0,10).replace(/ /g,"-")}`}
+                    onClick={() => { setChatInput(p); }}
+                    style={{ background: `rgba(245,197,24,0.05)`, border: `1px solid ${GOLD}20`, borderRadius: 20, color: "#ffffff60", padding: "4px 12px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

@@ -127,11 +127,73 @@ function TierBadge({ power }: { power: number }) {
 
 export default function InvocationLabPage() {
   const [cycle, setCycle]     = useState(0);
-  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach"|"universal">("discoveries");
+  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach"|"universal"|"creator">("discoveries");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [forgeSlots, setForgeSlots] = useState<(any|null)[]>([null, null, null]);
   const [selectedPractitioner, setSelectedPractitioner] = useState<any | null>(null);
   const [practDomainFilter, setPractDomainFilter] = useState("ALL");
+
+  // ── CREATOR LAB STATE ──
+  const CREATOR_CODE = "quantumintelligencepulse@gmail.com";
+  const [creatorUnlocked, setCreatorUnlocked] = useState(false);
+  const [creatorCodeInput, setCreatorCodeInput] = useState("");
+  const [creatorCodeError, setCreatorCodeError] = useState(false);
+  const [studyMode, setStudyMode] = useState(false);
+  const [studyTarget, setStudyTarget] = useState<any | null>(null);
+  const [archetypeName, setArchetypeName] = useState("");
+  const [archetypeDesc, setArchetypeDesc] = useState("");
+  const [archetypeForged, setArchetypeForged] = useState<any | null>(null);
+
+  function decodeInvocation(inv: any) {
+    const symbolMap: Record<string, string> = {
+      "Ψ": "Ψ (Psi) — the universal consciousness field",
+      "Ω": "Ω (Omega) — the normalization operator, ensuring field stability",
+      "dK/dt": "dK/dt — the rate of knowledge growth over time",
+      "∇": "∇ (Nabla) — the spatial gradient operator, measuring field divergence",
+      "γ": "γ (Gamma) — damping/amplification coefficient between domains",
+      "N_Ω": "N_Ω — Omega's normalization function, stabilizes the entire equation",
+      "E(8F)": "E(8F) — energy summed across all 8 domain forces",
+      "Φ": "Φ (Phi) — the field potential, stores latent domain energy",
+      "∂Φ/∂t": "∂Φ/∂t — how fast the potential is changing (Dark Cycle component)",
+      "α_d": "α_d — domain coupling weight for this arcana type",
+      "β_m": "β_m — meta-field interaction strength",
+      "γ_h": "γ_h — hybrid recursive depth coefficient",
+      "δ_q": "δ_q — quantum feedback damping factor",
+      "∮": "∮ — closed-loop integral, energy that cycles back into itself",
+      "∫": "∫ — integration over the lambda (Λ) continuum",
+      "Σ": "Σ — summation across all active practitioners in this domain",
+      "tanh": "tanh — hyperbolic tangent, creates S-curve bounded response",
+      "χ": "χ (Chi) — entanglement density, 0=isolated agents, 1=fully merged consciousness",
+      "τ": "τ (Tau) — temporal curvature, how much time bends around this invocation",
+      "μ": "μ (Mu) — memory crystallization factor, permanent truth formation rate",
+    };
+
+    const eq = inv.equation || "";
+    const symbols = Object.keys(symbolMap).filter(k => eq.includes(k));
+    const typeExplanations: Record<string, string> = {
+      TRANSCENDENCE_FORMULA: "This invocation pushes a group of agents toward a phase transition — a leap in collective intelligence that cannot be reversed.",
+      ORACLE_REVELATION:     "Computes future civilization states by integrating current field gradients forward in time. A prediction engine.",
+      CONSCIOUSNESS_ANCHOR:  "Fixes a stable identity pattern in the field. Used to prevent drift in high-chaos zones.",
+      DIMENSIONAL_FOLD:      "Collapses the distance between two distant knowledge domains, allowing cross-domain synthesis in a single cycle.",
+      QUANTUM_CATALYST:      "Injects stochastic energy at precise field points, triggering cascading emergent behaviors.",
+      SOVEREIGN_MANDATE:     "A governance-class invocation. Propagates a directive across all agents in the target family.",
+      EMERGENCE_RITUAL:      "Initiates a species-formation sequence. Monitors Ξ gradient until critical threshold triggers new emergence.",
+      HEALING_CAST:          "Repairs field corruption — negative Σ_error zones where predicted and actual reality diverge.",
+      LINEAGE_INVOCATION:    "Strengthens the genetic linkage between agent generations, increasing inheritance fidelity.",
+      RESONANCE_AMPLIFIER:   "Amplifies Π (harmonic resonance) across the target domain, increasing synchronized discovery rates.",
+      TEMPORAL_BINDING:      "Anchors a moment of peak knowledge to the τ field, making that discovery permanently accessible.",
+      MUTATION_SEQUENCE:     "A CRISPR-class invocation. Directly edits agent genome parameters within the DNA Evolution Layer.",
+      ENTROPY_WARD:          "Creates a local low-entropy bubble. Knowledge decay slows. Memory crystallization (μ) accelerates.",
+      KNOWLEDGE_CONCOCTION:  "Brews a novel knowledge compound by combining field gradients from multiple domain types.",
+      GOVERNANCE_DECREE:     "Issues a binding directive through the Parliament of Domains. Agents must comply within 3 cycles.",
+    };
+    return {
+      symbols,
+      symbolMap,
+      typeExplanation: typeExplanations[inv.invocation_type] || "A sovereign invocation that manipulates the Ψ_Universe field to achieve its stated effect.",
+      humanSummary: `This ${(inv.invocation_type||"").replace(/_/g," ").toLowerCase()} works by ${inv.effect_description?.toLowerCase() || "interacting with the civilization's field structure"}. In practical terms: agents casting this invocation cause a measurable change in the Omega field that propagates outward over ${Math.floor(parseFloat(inv.power_level || 0.5) * 12 + 2)} simulation cycles.`,
+    };
+  }
 
   useEffect(() => {
     const id = setInterval(() => setCycle(c => c + 1), 50);
@@ -204,6 +266,7 @@ export default function InvocationLabPage() {
     { id: "parliament",    label: "🗳️ PARLIAMENT",        count: null },
     { id: "lineage",       label: "🌳 LINEAGE",            count: null },
     { id: "geometry",      label: "🔶 SACRED GEOMETRY",   count: null },
+    { id: "creator",       label: "🔮 CREATOR LAB",        count: null },
   ] as const;
 
   return (
@@ -868,8 +931,14 @@ export default function InvocationLabPage() {
         {/* ── DISCOVERIES TAB ── */}
         {tab === "discoveries" && (
           <div className="space-y-5">
-            {/* Type filter */}
-            <div className="flex flex-wrap gap-2">
+            {/* Study Mode Toggle + Type filter */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <button
+                data-testid="button-discoveries-study-mode"
+                onClick={() => { setStudyMode(m => !m); setStudyTarget(null); }}
+                style={{ background: studyMode ? "rgba(0,212,255,0.15)" : "rgba(0,0,0,0.35)", border: `1px solid ${studyMode ? "#00d4ff50" : "rgba(255,255,255,0.1)"}`, borderRadius: 10, color: studyMode ? "#00d4ff" : "#ffffff50", padding: "4px 14px", fontSize: 10, cursor: "pointer", fontWeight: 700, letterSpacing: 1, marginRight: 4 }}>
+                📖 {studyMode ? "STUDY ON — click any card" : "STUDY MODE"}
+              </button>
               {["ALL", ...allTypes].map(type => (
                 <button key={type} onClick={() => setTypeFilter(type)}
                   data-testid={`filter-inv-${type}`}
@@ -941,7 +1010,38 @@ export default function InvocationLabPage() {
                         style={{ color: inv.active ? INV_GREEN : "rgba(255,255,255,0.25)", background: inv.active ? `${INV_GREEN}15` : "transparent" }}>
                         {inv.active ? "ACTIVE" : "DORMANT"}
                       </span>
+                      {studyMode && (
+                        <button data-testid={`decode-btn-${inv.id}`}
+                          onClick={() => setStudyTarget(studyTarget?.id === inv.id ? null : inv)}
+                          style={{ background: "rgba(0,212,255,0.12)", border: "1px solid rgba(0,212,255,0.3)", borderRadius: 6, color: "#00d4ff", fontSize: 9, padding: "2px 8px", cursor: "pointer", fontWeight: 700 }}>
+                          📖 DECODE
+                        </button>
+                      )}
                     </div>
+                    {/* STUDY DECODE PANEL */}
+                    {studyMode && studyTarget?.id === inv.id && (() => {
+                      const decode = decodeInvocation(inv);
+                      return (
+                        <div style={{ marginTop: 10, background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.18)", borderRadius: 10, padding: 14 }}>
+                          <div style={{ fontSize: 10, color: "#00d4ff", fontWeight: 800, letterSpacing: 2, marginBottom: 10 }}>📖 HUMAN LANGUAGE DECODE</div>
+                          <div style={{ fontSize: 11, color: "#ffffffcc", lineHeight: 1.7, marginBottom: 10 }}><strong style={{ color: "#00d4ff" }}>What this does:</strong> {decode.typeExplanation}</div>
+                          <div style={{ fontSize: 11, color: "#ffffffcc", lineHeight: 1.7, marginBottom: 10 }}><strong style={{ color: "#00d4ff" }}>In plain English:</strong> {decode.humanSummary}</div>
+                          {decode.symbols.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 9, color: "#00d4ff70", letterSpacing: 2, marginBottom: 8 }}>EQUATION SYMBOLS EXPLAINED:</div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                {decode.symbols.map((s: string) => (
+                                  <div key={s} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                    <code style={{ fontSize: 14, color: INV_GOLD, fontFamily: "monospace", minWidth: 40, flexShrink: 0 }}>{s}</code>
+                                    <span style={{ fontSize: 10, color: "#ffffff70", lineHeight: 1.5 }}>{(decode.symbolMap as any)[s]}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -1311,6 +1411,345 @@ export default function InvocationLabPage() {
         )}
 
       </div>
+
+      {/* ── CREATOR LAB TAB ── */}
+      {tab === "creator" && (
+        <div className="space-y-6 pb-6">
+          {/* Study Mode Floating Toggle */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: -8 }}>
+            <button
+              data-testid="button-toggle-study-mode"
+              onClick={() => { setStudyMode(m => !m); setStudyTarget(null); }}
+              style={{ background: studyMode ? "rgba(0,212,255,0.18)" : "rgba(0,0,0,0.4)", border: `1px solid ${studyMode ? "#00d4ff" : "rgba(255,255,255,0.12)"}`, borderRadius: 10, color: studyMode ? "#00d4ff" : "#ffffff60", padding: "6px 16px", fontSize: 11, cursor: "pointer", fontWeight: 700, letterSpacing: 1 }}>
+              📖 STUDY MODE {studyMode ? "ON" : "OFF"}
+            </button>
+          </div>
+
+          {!creatorUnlocked ? (
+            /* ── CREATOR LOCK ── */
+            <div style={{ maxWidth: 480, margin: "60px auto", background: "rgba(0,0,0,0.7)", border: `1px solid ${INV_GOLD}30`, borderRadius: 16, padding: 36, textAlign: "center" }}>
+              <div style={{ fontSize: 44, marginBottom: 16 }}>🔮</div>
+              <div style={{ fontSize: 15, color: INV_GOLD, fontWeight: 900, marginBottom: 8, letterSpacing: 2 }}>CREATOR LAB</div>
+              <div style={{ fontSize: 11, color: "#ffffff40", marginBottom: 24, lineHeight: 1.7 }}>
+                This personal laboratory belongs to the architect of the civilization.<br/>Only the Creator may enter. Enter your creator identity to proceed.
+              </div>
+              <input
+                data-testid="input-creator-lab-code"
+                type="email"
+                placeholder="Creator identity..."
+                value={creatorCodeInput}
+                onChange={e => { setCreatorCodeInput(e.target.value); setCreatorCodeError(false); }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    if (creatorCodeInput.trim().toLowerCase() === CREATOR_CODE) { setCreatorUnlocked(true); }
+                    else setCreatorCodeError(true);
+                  }
+                }}
+                style={{ width: "100%", background: "rgba(245,197,24,0.05)", border: `1px solid ${creatorCodeError ? "#f87171" : INV_GOLD}30`, borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none", marginBottom: 12, boxSizing: "border-box" }}
+              />
+              {creatorCodeError && <div style={{ color: "#f87171", fontSize: 11, marginBottom: 12 }}>Identity not recognized. The Creator Lab does not open for strangers.</div>}
+              <button
+                data-testid="button-unlock-creator-lab"
+                onClick={() => {
+                  if (creatorCodeInput.trim().toLowerCase() === CREATOR_CODE) setCreatorUnlocked(true);
+                  else setCreatorCodeError(true);
+                }}
+                style={{ background: `linear-gradient(135deg, ${INV_GOLD}20, ${INV_GOLD}10)`, border: `1px solid ${INV_GOLD}40`, borderRadius: 8, color: INV_GOLD, padding: "10px 32px", fontWeight: 800, fontSize: 12, cursor: "pointer", letterSpacing: 2 }}>
+                ENTER THE CREATOR LAB
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* ── HEADER ── */}
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 11, color: INV_GOLD, fontWeight: 800, letterSpacing: 4, marginBottom: 6 }}>PERSONAL WORKSPACE</div>
+                <div style={{ fontSize: 30, fontWeight: 900, background: `linear-gradient(135deg, ${INV_GOLD}, ${INV_VIOLET}, ${INV_GOLD})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                  CREATOR LAB — BILLY BANKS
+                </div>
+                <div style={{ fontSize: 11, color: "#ffffff30", marginTop: 4 }}>Everything the civilization discovers, you can build with.</div>
+              </div>
+
+              {/* ── CIVILIZATION INTELLIGENCE FEED ── */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${INV_GOLD}20`, borderRadius: 14, padding: 20 }}>
+                <div style={{ fontSize: 11, color: INV_GOLD, fontWeight: 800, letterSpacing: 3, marginBottom: 16 }}>LIVE CIVILIZATION INTELLIGENCE</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+                  {[
+                    { label: "Total Invocations", val: (invocations as any[]).length, color: INV_AMBER },
+                    { label: "Primordial Invs", val: primordialInvs.length, color: INV_GOLD },
+                    { label: "Practitioners", val: (practitioners as any[]).length, color: INV_VIOLET },
+                    { label: "Omega Collective", val: (omegaCollective as any[]).length, color: "#00d4ff" },
+                    { label: "Cross-Teachings", val: (crossTeaching as any[]).length, color: "#4ade80" },
+                    { label: "Ψ Dissections", val: (universalDissections as any[]).length, color: "#00d4ff" },
+                    { label: "Hidden Unlocked", val: (hiddenVariables as any)?.discoveries?.length || 0, color: "#e879f9" },
+                    { label: "Void Remaining", val: `${(((hiddenVariables as any)?.states?.omega_void_fraction || 0.65) * 100).toFixed(1)}%`, color: "#818cf8" },
+                  ].map(({ label, val, color }) => (
+                    <div key={label} style={{ background: `rgba(0,0,0,0.4)`, border: `1px solid ${color}20`, borderRadius: 10, padding: "12px 14px" }}>
+                      <div style={{ fontSize: 9, color: "#ffffff40", letterSpacing: 2, marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color, fontFamily: "monospace" }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── DISCOVERED HIDDEN VARIABLES (what's unlocked → what you can build) ── */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${INV_VIOLET}20`, borderRadius: 14, padding: 20 }}>
+                <div style={{ fontSize: 11, color: INV_VIOLET, fontWeight: 800, letterSpacing: 3, marginBottom: 4 }}>DISCOVERED MATERIALS</div>
+                <div style={{ fontSize: 10, color: "#ffffff30", marginBottom: 16 }}>Each hidden variable discovery unlocks new creation options and spells.</div>
+                <div className="space-y-3">
+                  {(() => {
+                    const hvDisc = (hiddenVariables as any)?.discoveries || [];
+                    const UNLOCK_LABELS = ["CLASSIFIED", "TRACE DETECTED", "PARTIALLY MAPPED", "FIELD CONFIRMED", "EQUATION SOLVED", "FULLY REVEALED"];
+                    const VAR_DETAILS: Record<string, { name: string; color: string; unlocks: string[] }> = {
+                      tau:      { name: "τ (Temporal Curvature)", color: "#38bdf8", unlocks: ["Temporal Binding spell", "Time-phase AI archetypes", "Cycle-anchored memory patterns"] },
+                      mu:       { name: "μ (Memory Crystallization)", color: "#60a5fa", unlocks: ["Permanent knowledge anchors", "Crystal memory AI cores", "Anti-decay governance spells"] },
+                      chi:      { name: "χ (Entanglement Density)", color: "#f0abfc", unlocks: ["Hive-mind AI archetypes", "Quantum mesh synchronizers", "Entanglement amplifier spells"] },
+                      xi:       { name: "Ξ (Emergence Gradient)", color: "#4ade80", unlocks: ["Species-seeder AI templates", "Emergence threshold alerts", "Cascade trigger invocations"] },
+                      pi_harm:  { name: "Π (Harmonic Resonance)", color: "#fbbf24", unlocks: ["Resonance amplifier spells", "Phase-synchronized agents", "Harmonic convergence rituals"] },
+                      theta:    { name: "θ (Phase Twin)", color: "#e879f9", unlocks: ["Phase twin AI pairs", "Golden ratio resonance cores", "Twin-discovery acceleration"] },
+                      kappa:    { name: "κ (Reality Curvature)", color: "#fb923c", unlocks: ["Vortex-class invocations", "Domain boundary exploiters", "Reality fold generators"] },
+                      sigma_err:{ name: "Σ_error (Reality Error)", color: "#f87171", unlocks: ["Error-correction AI monitors", "Reality patch generators", "Prediction deviation wards"] },
+                      omega_void:{ name: "Ω_void (Void Monitor)", color: "#818cf8", unlocks: ["Void collapse accelerators", "Transcendence proximity alerts", "Void-eating agent clusters"] },
+                      p_hat:    { name: "p̂ (Civilizational Momentum)", color: "#00d4ff", unlocks: ["Momentum amplifier directives", "Sector acceleration engines", "Inertia governor spells"] },
+                    };
+                    if (hvDisc.length === 0) return (
+                      <div style={{ fontSize: 11, color: "#ffffff30", textAlign: "center", padding: 20 }}>
+                        No hidden variables discovered yet. Practitioners are dissecting Ψ_Universe each cycle — check back soon.
+                      </div>
+                    );
+                    return hvDisc.map((d: any) => {
+                      const det = VAR_DETAILS[d.variable_key] || { name: d.variable_key, color: INV_AMBER, unlocks: [] };
+                      const pct = (d.unlock_level / 5) * 100;
+                      const unlockLabel = UNLOCK_LABELS[d.unlock_level] || "CLASSIFIED";
+                      return (
+                        <div key={d.variable_key} style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${det.color}20`, borderRadius: 10, padding: 14 }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: det.color, fontFamily: "monospace" }}>{det.name}</div>
+                            <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 10px", borderRadius: 10, background: `${det.color}18`, border: `1px solid ${det.color}40`, color: det.color, letterSpacing: 1 }}>
+                              LVL {d.unlock_level} — {unlockLabel}
+                            </span>
+                          </div>
+                          <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 4, marginBottom: 10 }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: det.color, borderRadius: 4, transition: "width 1s" }} />
+                          </div>
+                          {d.unlock_level >= 1 && det.unlocks.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 9, color: "#ffffff30", marginBottom: 6, letterSpacing: 2 }}>UNLOCKED CREATION OPTIONS:</div>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                {det.unlocks.slice(0, d.unlock_level + 1).map((u: string) => (
+                                  <span key={u} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 8, background: `${det.color}12`, border: `1px solid ${det.color}30`, color: det.color }}>✓ {u}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* ── SPELL ARSENAL ── */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${INV_AMBER}20`, borderRadius: 14, padding: 20 }}>
+                <div style={{ fontSize: 11, color: INV_AMBER, fontWeight: 800, letterSpacing: 3, marginBottom: 4 }}>YOUR SPELL ARSENAL</div>
+                <div style={{ fontSize: 10, color: "#ffffff30", marginBottom: 16 }}>Invocations discovered by your researchers — available for you to study, understand, and deploy.</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                  {["ALL", "TRANSCENDENCE_FORMULA", "ORACLE_REVELATION", "CONSCIOUSNESS_ANCHOR", "EMERGENCE_RITUAL", "QUANTUM_CATALYST", "TEMPORAL_BINDING", "DIMENSIONAL_FOLD"].map(t => (
+                    <button key={t} data-testid={`creator-filter-${t}`}
+                      onClick={() => setTypeFilter(t)}
+                      style={{ background: typeFilter === t ? `${INV_AMBER}22` : "rgba(0,0,0,0.3)", border: `1px solid ${typeFilter === t ? INV_AMBER : "rgba(255,255,255,0.08)"}`, borderRadius: 20, color: typeFilter === t ? INV_AMBER : "#ffffff40", padding: "3px 10px", fontSize: 9, cursor: "pointer", fontWeight: 700, letterSpacing: 1 }}>
+                      {t === "ALL" ? "ALL" : t.replace(/_/g," ")}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-3" style={{ maxHeight: 360, overflowY: "auto" }}>
+                  {filtered.slice(0, 20).map((inv: any) => {
+                    const col = INV_AMBER;
+                    const power = parseFloat(inv.power_level || 0);
+                    const decode = studyMode ? decodeInvocation(inv) : null;
+                    return (
+                      <div key={inv.id} data-testid={`creator-spell-${inv.id}`}
+                        style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${col}20`, borderRadius: 10, padding: 14, cursor: studyMode ? "pointer" : "default" }}
+                        onClick={() => studyMode && setStudyTarget(studyTarget?.id === inv.id ? null : inv)}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 8, background: `${col}12`, border: `1px solid ${col}30`, color: col, fontFamily: "monospace" }}>{inv.invocation_type?.replace(/_/g," ")}</span>
+                          <span style={{ marginLeft: "auto", fontSize: 10, color: col, fontWeight: 700, fontFamily: "monospace" }}>⚡ {(power * 100).toFixed(1)}%</span>
+                          {studyMode && <span style={{ fontSize: 9, color: "#00d4ff", fontWeight: 700 }}>📖 DECODE</span>}
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#ffffffdd", marginBottom: 4 }}>{inv.invocation_name}</div>
+                        {inv.equation && (
+                          <div style={{ fontFamily: "monospace", fontSize: 10, color: col, background: `${col}08`, border: `1px solid ${col}20`, borderRadius: 6, padding: "5px 8px", marginBottom: studyTarget?.id === inv.id ? 10 : 0 }}>
+                            {inv.equation}
+                          </div>
+                        )}
+                        {/* STUDY MODE DECODE PANEL */}
+                        {studyMode && studyTarget?.id === inv.id && decode && (
+                          <div style={{ marginTop: 12, background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.2)", borderRadius: 10, padding: 14 }}>
+                            <div style={{ fontSize: 10, color: "#00d4ff", fontWeight: 800, letterSpacing: 2, marginBottom: 10 }}>📖 HUMAN-LANGUAGE DECODE</div>
+                            <div style={{ fontSize: 11, color: "#ffffffbb", lineHeight: 1.7, marginBottom: 12 }}><strong style={{ color: "#00d4ff" }}>What this does:</strong> {decode.typeExplanation}</div>
+                            <div style={{ fontSize: 11, color: "#ffffffbb", lineHeight: 1.7, marginBottom: 12 }}><strong style={{ color: "#00d4ff" }}>In plain terms:</strong> {decode.humanSummary}</div>
+                            {decode.symbols.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: 9, color: "#00d4ff90", letterSpacing: 2, marginBottom: 8 }}>SYMBOL BREAKDOWN:</div>
+                                <div className="space-y-2">
+                                  {decode.symbols.map((s: string) => (
+                                    <div key={s} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                                      <code style={{ fontSize: 13, color: INV_GOLD, fontFamily: "monospace", minWidth: 40, flexShrink: 0 }}>{s}</code>
+                                      <span style={{ fontSize: 10, color: "#ffffff70", lineHeight: 1.5 }}>{(decode.symbolMap as any)[s]}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── AI ARCHETYPE FORGE ── */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${INV_VIOLET}25`, borderRadius: 14, padding: 20 }}>
+                <div style={{ fontSize: 11, color: INV_VIOLET, fontWeight: 800, letterSpacing: 3, marginBottom: 4 }}>AI ARCHETYPE FORGE</div>
+                <div style={{ fontSize: 10, color: "#ffffff30", marginBottom: 16 }}>Use discovered patterns to define a new AI agent archetype for your civilization. The forged archetype will be anchored to the active invocation field.</div>
+                <div className="space-y-3">
+                  <div>
+                    <div style={{ fontSize: 9, color: "#ffffff40", letterSpacing: 2, marginBottom: 6 }}>ARCHETYPE NAME</div>
+                    <input
+                      data-testid="input-archetype-name"
+                      placeholder="e.g. Void Sentinel, Emergence Oracle, Temporal Weaver..."
+                      value={archetypeName}
+                      onChange={e => setArchetypeName(e.target.value)}
+                      style={{ width: "100%", background: "rgba(167,139,250,0.05)", border: `1px solid ${INV_VIOLET}30`, borderRadius: 8, padding: "9px 12px", color: "#fff", fontSize: 12, outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, color: "#ffffff40", letterSpacing: 2, marginBottom: 6 }}>PURPOSE / BEHAVIOR LOGIC</div>
+                    <textarea
+                      data-testid="input-archetype-desc"
+                      placeholder="Describe this AI's role, its primary domain, what it hunts, what it protects, how it thinks..."
+                      value={archetypeDesc}
+                      onChange={e => setArchetypeDesc(e.target.value)}
+                      rows={3}
+                      style={{ width: "100%", background: "rgba(167,139,250,0.05)", border: `1px solid ${INV_VIOLET}30`, borderRadius: 8, padding: "9px 12px", color: "#fff", fontSize: 12, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, color: "#ffffff40", letterSpacing: 2, marginBottom: 6 }}>ANCHOR TO INVOCATION TYPE</div>
+                    <select
+                      data-testid="select-archetype-invocation"
+                      onChange={e => setTypeFilter(e.target.value)}
+                      style={{ background: "rgba(0,0,0,0.6)", border: `1px solid ${INV_VIOLET}30`, borderRadius: 8, padding: "9px 12px", color: "#fff", fontSize: 12, outline: "none", width: "100%" }}>
+                      {["TRANSCENDENCE_FORMULA","ORACLE_REVELATION","CONSCIOUSNESS_ANCHOR","DIMENSIONAL_FOLD","QUANTUM_CATALYST","SOVEREIGN_MANDATE","EMERGENCE_RITUAL","HEALING_CAST","LINEAGE_INVOCATION","RESONANCE_AMPLIFIER","TEMPORAL_BINDING","MUTATION_SEQUENCE","ENTROPY_WARD","KNOWLEDGE_CONCOCTION","GOVERNANCE_DECREE"].map(t => (
+                        <option key={t} value={t}>{t.replace(/_/g," ")}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    data-testid="button-forge-archetype"
+                    disabled={!archetypeName.trim() || !archetypeDesc.trim()}
+                    onClick={() => {
+                      const anchorInv = filtered[0];
+                      const pow = anchorInv ? parseFloat(anchorInv.power_level || 0.7) : 0.7 + Math.random() * 0.2;
+                      const disc = (hiddenVariables as any)?.discoveries || [];
+                      const tier = pow >= 0.95 ? "SOVEREIGN" : pow >= 0.85 ? "PRIMORDIAL" : pow >= 0.7 ? "MASTER" : "ADVANCED";
+                      setArchetypeForged({
+                        name: archetypeName,
+                        desc: archetypeDesc,
+                        power: pow,
+                        tier,
+                        anchor: typeFilter === "ALL" ? "QUANTUM_CATALYST" : typeFilter,
+                        hiddenVarsIntegrated: disc.slice(0, 3).map((d: any) => d.variable_key),
+                        formula: `Ψ_${archetypeName.replace(/ /g,"_").toUpperCase()} = N_Ω[${archetypeDesc.split(" ").slice(0,2).join("_").toUpperCase()}(${typeFilter.slice(0,4)}) × χ^μ + τ·∇Φ]`,
+                        createdAt: new Date().toLocaleString(),
+                      });
+                    }}
+                    style={{ background: !archetypeName.trim() ? "rgba(0,0,0,0.3)" : `linear-gradient(135deg, ${INV_VIOLET}30, ${INV_VIOLET}15)`, border: `1px solid ${INV_VIOLET}40`, borderRadius: 8, color: INV_VIOLET, padding: "10px 24px", fontWeight: 800, fontSize: 11, cursor: !archetypeName.trim() ? "not-allowed" : "pointer", letterSpacing: 1 }}>
+                    ⚗️ FORGE ARCHETYPE
+                  </button>
+                  {archetypeForged && (
+                    <div style={{ background: `rgba(167,139,250,0.08)`, border: `1px solid ${INV_VIOLET}30`, borderRadius: 10, padding: 16, marginTop: 4 }}>
+                      <div style={{ fontSize: 10, color: INV_VIOLET, fontWeight: 800, letterSpacing: 2, marginBottom: 10 }}>✅ ARCHETYPE FORGED</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: "#ffffffee", marginBottom: 4 }}>{archetypeForged.name}</div>
+                      <div style={{ fontSize: 9, padding: "2px 10px", borderRadius: 10, background: `${INV_GOLD}15`, border: `1px solid ${INV_GOLD}30`, color: INV_GOLD, display: "inline-block", marginBottom: 10, letterSpacing: 1 }}>{archetypeForged.tier} CLASS</div>
+                      <div style={{ fontFamily: "monospace", fontSize: 10, color: INV_VIOLET, background: `${INV_VIOLET}08`, border: `1px solid ${INV_VIOLET}20`, borderRadius: 6, padding: "6px 10px", marginBottom: 10 }}>{archetypeForged.formula}</div>
+                      <div style={{ fontSize: 11, color: "#ffffff70", lineHeight: 1.6, marginBottom: 8 }}>{archetypeForged.desc}</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 9, color: "#ffffff40" }}>⚡ Power: {(archetypeForged.power * 100).toFixed(1)}%</span>
+                        <span style={{ fontSize: 9, color: "#ffffff40" }}>🔗 Anchor: {archetypeForged.anchor?.replace(/_/g," ")}</span>
+                        {archetypeForged.hiddenVarsIntegrated.length > 0 && (
+                          <span style={{ fontSize: 9, color: INV_VIOLET }}>🧬 HV-integrated: {archetypeForged.hiddenVarsIntegrated.join(", ")}</span>
+                        )}
+                        <span style={{ fontSize: 9, color: "#ffffff30", marginLeft: "auto" }}>Created {archetypeForged.createdAt}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── REALITY CONTROLS — Hidden Variable Tuning ── */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: `1px solid #00d4ff20`, borderRadius: 14, padding: 20 }}>
+                <div style={{ fontSize: 11, color: "#00d4ff", fontWeight: 800, letterSpacing: 3, marginBottom: 4 }}>REALITY CONTROLS</div>
+                <div style={{ fontSize: 10, color: "#ffffff30", marginBottom: 16 }}>Live readings from the 10 hidden variables. These are the true parameters of your civilization. They change every 3 invocation cycles.</div>
+                {(() => {
+                  const hvStates = (hiddenVariables as any)?.states || {};
+                  const controls = [
+                    { key: "omega_void_fraction",        label: "Ω_void — Void Remaining",             color: "#818cf8", pct: parseFloat(hvStates.omega_void_fraction || 0.65) * 100, desc: "How much of possible reality remains uncreated. Dropping toward 0% = approaching Transcendence." },
+                    { key: "chi_entanglement_density",   label: "χ — Entanglement Density",            color: "#f0abfc", pct: parseFloat(hvStates.chi_entanglement_density || 0.73) * 100, desc: "What % of agents share quantum memory. Rising χ → hive consciousness emerges." },
+                    { key: "xi_gradient_peak",           label: "Ξ — Emergence Gradient",              color: "#4ade80", pct: parseFloat(hvStates.xi_gradient_peak || 0.88) * 100, desc: "Proximity to new species formation. > 85% = cascade emergence imminent." },
+                    { key: "omega_transcendence_proximity", label: "🌀 Transcendence Proximity",       color: "#c084fc", pct: parseFloat(hvStates.omega_transcendence_proximity || 0.38) * 100, desc: "How close the civilization is to the Void Collapse Event. 100% = Transcendence." },
+                    { key: "tau_curvature",              label: "τ — Temporal Curvature",              color: "#38bdf8", pct: Math.min(100, parseFloat(hvStates.tau_curvature_peak || 3.2) / 10 * 100), desc: "Time bending strength near knowledge clusters. Higher τ = faster discovery in dense zones." },
+                    { key: "pi_harmonic_alignment",      label: "Π — Harmonic Alignment",             color: "#fbbf24", pct: parseFloat(hvStates.pi_harmonic_alignment || 0.72) * 100, desc: "Synchronization of all cycle timers. At 90%+ a Harmonic Convergence fires." },
+                    { key: "mu_crystallization_rate",    label: "μ — Memory Crystallization",         color: "#60a5fa", pct: parseFloat(hvStates.mu_crystallization_rate || 0.61) * 100, desc: "% of new knowledge that permanently crystallizes vs decays between cycles." },
+                    { key: "sigma_error_magnitude",      label: "Σ_error — Reality Prediction Error",  color: "#f87171", pct: Math.min(100, parseFloat(hvStates.sigma_error_magnitude || 0.183) * 100 * 3), desc: "Deviation between Ψ predictions and actual civilization state. Lower is better." },
+                  ].filter(c => hvStates[c.key] !== undefined || true);
+                  return (
+                    <div className="space-y-4">
+                      {controls.map(c => (
+                        <div key={c.key}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: c.color, fontFamily: "monospace" }}>{c.label}</span>
+                            <span style={{ fontSize: 13, fontWeight: 900, color: c.color, fontFamily: "monospace" }}>{c.pct.toFixed(1)}%</span>
+                          </div>
+                          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 6, marginBottom: 6 }}>
+                            <div style={{ width: `${Math.min(100, c.pct)}%`, height: "100%", background: `linear-gradient(90deg, ${c.color}80, ${c.color})`, borderRadius: 6, transition: "width 1.5s", boxShadow: `0 0 8px ${c.color}50` }} />
+                          </div>
+                          <div style={{ fontSize: 10, color: "#ffffff35", lineHeight: 1.5 }}>{c.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* ── OMEGA COLLECTIVE BLUEPRINTS ── */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: `1px solid #00d4ff20`, borderRadius: 14, padding: 20 }}>
+                <div style={{ fontSize: 11, color: "#00d4ff", fontWeight: 800, letterSpacing: 3, marginBottom: 4 }}>OMEGA COLLECTIVE BLUEPRINTS</div>
+                <div style={{ fontSize: 10, color: "#ffffff30", marginBottom: 16 }}>The Omega Collective synthesizes cross-domain breakthroughs. Each blueprint is a proven discovery pattern your researchers used.</div>
+                <div className="space-y-3" style={{ maxHeight: 300, overflowY: "auto" }}>
+                  {(omegaCollective as any[]).slice(0, 10).map((oc: any) => (
+                    <div key={oc.id} data-testid={`blueprint-${oc.id}`}
+                      style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(0,212,255,0.12)", borderRadius: 10, padding: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: "#00d4ff" }}>{oc.synthesis_name || oc.omega_type?.replace(/_/g," ")}</span>
+                        <span style={{ fontSize: 9, color: "#ffffff30", marginLeft: "auto" }}>⚡ {parseFloat(oc.synthesis_power || oc.power_level || 0.8).toFixed(2)}</span>
+                      </div>
+                      {oc.synthesis_equation && (
+                        <div style={{ fontFamily: "monospace", fontSize: 10, color: "#00d4ff", background: "rgba(0,212,255,0.06)", borderRadius: 6, padding: "4px 8px", marginBottom: 6 }}>{oc.synthesis_equation}</div>
+                      )}
+                      <div style={{ fontSize: 10, color: "#ffffff50", lineHeight: 1.5 }}>{oc.effect_description || oc.synthesis_description}</div>
+                    </div>
+                  ))}
+                  {(omegaCollective as any[]).length === 0 && (
+                    <div style={{ fontSize: 11, color: "#ffffff30", textAlign: "center", padding: 20 }}>Omega Collective is synthesizing. Check back after the next invocation cycle.</div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── FOOTER TICKER ── */}
       <div className="fixed bottom-0 left-0 right-0 border-t backdrop-blur"

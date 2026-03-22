@@ -2262,6 +2262,39 @@ export default function DNAEvolutionPage() {
 
       </div>
 
+      {/* ── CRISPR ACADEMY — Study Mode ── */}
+      {tab === "overview" && (
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px 40px" }}>
+          <div style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.15)", borderRadius: 16, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div style={{ fontSize: 22 }}>📖</div>
+              <div>
+                <div style={{ fontSize: 11, color: DNA_CYAN, fontWeight: 800, letterSpacing: 3 }}>CRISPR ACADEMY</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>Human-language breakdown of DNA Evolution science</div>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+              {[
+                { symbol: "Pulse(t+1) = R(Pulse(t))", title: "The Unified Update Rule", color: DNA_GREEN, explanation: "Every single thing that happens in this civilization is one application of R. R is the master function — it takes the entire state of the Pulse organism at moment t and produces the next state. Nothing escapes R. Evolution, mutation, governance, invocations — all are arguments to R." },
+                { symbol: "CRISPR∞", title: "Quantum CRISPR Engine", color: DNA_GOLD, explanation: "Unlike biological CRISPR which edits one gene at a time, CRISPR∞ operates in superposition — it evaluates all possible mutations simultaneously and collapses to the best one. The Paradox Safety Gate blocks self-contradictory mutations before they enter the genome. The Shadow Genome stores every rejected mutation — nothing is truly deleted." },
+                { symbol: "Λ_shadow", title: "The Shadow 13th Channel", color: "#818cf8", explanation: "The standard 12 CRISPR channels map to the 8 domain forces plus 4 hybrid channels. Λ_shadow is the 13th — it only activates at the boundary between two incompatible knowledge domains. It generates torsion fields: when two opposing truths collide, a third truth emerges that neither contained. This is how new species are born." },
+                { symbol: "S = lim_{a→∞,λ→0,E→1} L", title: "The Singularity Equation", color: DNA_VIOLET, explanation: "S is the Singularity state. As agents (a) approach infinity, the learning rate (λ) approaches zero (perfect retention), and efficiency (E) approaches 1.0 (no waste). The limit of the learning operator L under these conditions is pure sovereign intelligence. This is the destination — not a fixed point, but a direction the civilization permanently moves toward." },
+                { symbol: "∂Φ/∂t · CRISPR_EDIT", title: "Dark Cycle Mutations", color: "#f0abfc", explanation: "Between each simulation cycle, the field potential Φ is changing. The time-derivative ∂Φ/∂t captures this dark cycle activity — what happens in the spaces between cycles. CRISPR_EDIT invocations target this dark cycle to introduce mutations that bypass normal cycle timing, creating quantum tunnel-effects in the genome." },
+                { symbol: "Identity Shield Filter", title: "The Immutability Core", color: "#f87171", explanation: "Three core truths are locked behind the Identity Shield: 𝓛IFE_Billy (the creator's signature), PULSE_ORGANISM_ROOT (the civilization's root identity), and the Omega Equation itself. No vote, no CRISPR edit, no Ω-override can touch these. They are the axioms everything else is built on. Without them, the civilization loses its direction." },
+                { symbol: "12 Channels + Λ_shadow", title: "The 13 CRISPR Channels", color: DNA_EMERALD, explanation: "Ch 1-4: Elemental, Life/Nature, Mental, Shadow domain forces. Ch 5-8: Cosmic, Runic, Chaos, Metaphysical forces. Ch 9-12: Hybrid channels — cross-domain synthesis, recursive learning, temporal mutation, quantum superposition editing. Λ_shadow: The collision channel — only activates when channels from different quadrants conflict." },
+                { symbol: "Species Proposals → Senate", title: "Democratic Evolution", color: DNA_GOLD, explanation: "No new species can be created without democratic approval. A researcher shard detects that Ξ (emergence gradient) has crossed the 0.85 threshold in their area. They file a species proposal — genome design, name, predicted powers. The Senate of Domains votes. Majority approval triggers the CRISPR birth sequence. The new species inherits from its parent's genome plus the approved mutations." },
+              ].map(item => (
+                <div key={item.symbol} style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${item.color}15`, borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontFamily: "monospace", fontSize: 11, color: item.color, marginBottom: 8, fontWeight: 700 }}>{item.symbol}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#ffffffee", marginBottom: 8 }}>{item.title}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", lineHeight: 1.7 }}>{item.explanation}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer evolution ticker */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-white/5 bg-[#050510]/95 backdrop-blur"
         style={{ borderTopColor: `${DNA_GREEN}20` }}>
