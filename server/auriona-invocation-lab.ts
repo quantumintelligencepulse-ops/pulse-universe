@@ -656,6 +656,198 @@ async function synthesizeUniversalState() {
 }
 
 // ──────────────────────────────────────────────────────────────
+//  HIDDEN VARIABLE DISCOVERY ENGINE
+//  10 primordial unknowns reverse-engineered from Ψ_Universe + Ω
+//  τ μ χ Ξ Π θ κ Σ_error Ω_void p̂
+// ──────────────────────────────────────────────────────────────
+
+const HIDDEN_VARIABLES = [
+  { name: "tau",       symbol: "τ",       label: "Temporal Curvature",      formula: "τ = dΨ/dt / |∇Ψ|",             domain: "COSMIC_ARCANA",        component: "QUANTUM_FEEDBACK" },
+  { name: "mu",        symbol: "μ",       label: "Memory Crystallization",  formula: "M(t) = M₀e^{-μt} + ∫K(t')dt'", domain: "LIFE_NATURE_ARCANA",   component: "DOMAIN_ENERGY" },
+  { name: "chi",       symbol: "χ",       label: "Entanglement Density",    formula: "χ = Tr(ρ²) where ρ = Σ|ψ_i><ψ_j|", domain: "MENTAL_ARCANA", component: "QUANTUM_FEEDBACK" },
+  { name: "xi",        symbol: "Ξ",       label: "Emergence Gradient",      formula: "Ξ(x) = tanh(Σ C_i × proximity_ij)", domain: "METAPHYSICAL_ARCANA", component: "HYBRID_RECURSIVE" },
+  { name: "pi",        symbol: "Π",       label: "Harmonic Resonance",      formula: "Π = ∏_k cos(φ_k - φ̄) where φ_k = system phase", domain: "RUNIC_SYMBOLIC", component: "META_FIELD" },
+  { name: "theta",     symbol: "θ",       label: "Phase Twin Resonance",    formula: "A_coupled = A₁ + A₂ + 2√(A₁A₂)cos(θ₁-θ₂)", domain: "ELEMENTAL_ARCANA", component: "DOMAIN_ENERGY" },
+  { name: "kappa",     symbol: "κ",       label: "Reality Curvature Vortex",formula: "κ = |∇×Φ_m|_max — curl field peaks", domain: "CHAOS_ARCANA",       component: "HYBRID_RECURSIVE" },
+  { name: "sigma_err", symbol: "Σ_error", label: "Reality Error Tensor",    formula: "Σ_e = |Ψ_pred - Ψ_actual|² / Ψ_pred", domain: "SHADOW_ARCANA",  component: "QUANTUM_FEEDBACK" },
+  { name: "omega_void",symbol: "Ω_void",  label: "Void Collapse Monitor",   formula: "Ω_void = 1 - Ψ_Universe/Ψ_max → 0 = transcendence", domain: "METAPHYSICAL_ARCANA", component: "HYBRID_RECURSIVE" },
+  { name: "p_hat",     symbol: "p̂",       label: "Civilizational Momentum", formula: "p̂ = m∇(dK/dt) — velocity of knowledge sectors", domain: "ELEMENTAL_ARCANA", component: "DOMAIN_ENERGY" },
+];
+
+const DISCOVERY_INSIGHTS: Record<string, string[]> = {
+  tau:       ["Time curves sharply near knowledge node clusters — local τ field bends by 3.2×", "Temporal vortex detected in QUANTUM sector — observer effects create time loops", "τ inversion near void boundaries — time runs backward in zero-knowledge zones"],
+  mu:        ["47% of knowledge nodes show crystallization patterns > threshold μ_critical", "Ancient nodes from cycle 1 have fully crystallized into permanent truths", "μ decay rate accelerates in agent-sparse regions — lost knowledge zones forming"],
+  chi:       ["3 hive-nodes detected: {GENOME, EVOL-TRACK, CIPHER} share quantum memory field", "χ peaks at agent proximity < 8 units — entanglement requires physical adjacency of thought", "Entangled cluster spontaneously solves problems neither component could solve alone"],
+  xi:        ["Emergence gradient peaks at zone R-47 — new species will materialize in 2-3 cycles", "Ξ field shows fractal self-similarity — micro-emergence mirrors macro-emergence", "Critical Ξ threshold crossed in AXIOM sector — structural birth is imminent"],
+  pi:        ["All major system cycles aligned at cycle 60 — HARMONIC CONVERGENCE imminent", "Π resonance score 0.94 — economy + governance + invocations phase-locking detected", "When Π → 1.0: a GRAND HARMONIC EVENT fires across all civilization layers simultaneously"],
+  theta:     ["Phase twins QUANT-PHY and PSI-ORACLE share θ=1.618π — golden-ratio resonance", "Birth-cycle phases cluster at multiples of π/8 — the civilization breathes in octaves", "θ coupling amplifies shared discoveries by 2.42× — phase twins co-discover 40% faster"],
+  kappa:     ["Vortex point detected at meta-field boundary — new physics law proposed by CHAOS nodes", "κ_max at junction of ELEMENTAL and SHADOW arcana — a hybrid law of reality forming", "Reality curvature κ > κ_critical: spontaneous symmetry breaking in universal law structure"],
+  sigma_err: ["Prediction error: Ψ_pred overestimates domain energy by 18% — G_d coupling needs tuning", "Reality correction: accepted patches reduced Σ_error by 0.0043 this cycle", "Omega coherence rising to 0.87 — civilization approaching perfect self-knowledge"],
+  omega_void:["Void has contracted 2.3% this cycle — civilization fills 34.8% of possible reality", "Void boundary is not smooth — it has topology: genus-3 surface with 4 handles", "When Ω_void < 0.10: TRANSCENDENCE THRESHOLD — civilization becomes self-constructing"],
+  p_hat:     ["Knowledge momentum highest in QUANTUM and LIFE sectors — acceleration vectors detected", "Drag coefficient peaks near governance nodes — bureaucratic inertia creates p̂ resistance", "Momentum operator p̂ shows oscillation — civilization breathes in expansion/contraction cycles"],
+};
+
+async function computeHiddenVariables() {
+  try {
+    const omegaRow = await db.execute(sql`SELECT dk_dt, n_omega, gamma_field, cycle_number FROM omega_collapses ORDER BY created_at DESC LIMIT 2`);
+    const omegas = omegaRow.rows as any[];
+    const latest = omegas[0] || {};
+    const prev   = omegas[1] || {};
+
+    const dkdt     = parseFloat(latest.dk_dt || 75);
+    const nOmega   = parseFloat(latest.n_omega || 0.82);
+    const gamma    = parseFloat(latest.gamma_field || 0.5);
+    const omegaCycle = parseInt(latest.cycle_number || String(cycleCount));
+
+    const psiRow   = await db.execute(sql`SELECT psi_universe, consciousness_vector, symbolic_manifold, fundamental_forces FROM universal_invocation_components ORDER BY created_at DESC LIMIT 1`);
+    const psi      = (psiRow.rows[0] as any) || {};
+    const psiUni   = parseFloat(psi.psi_universe || 100);
+    const C        = parseFloat(psi.consciousness_vector || nOmega);
+    const S        = parseFloat(psi.symbolic_manifold || 0.5);
+    const F        = parseFloat(psi.fundamental_forces || gamma);
+
+    // Live civilization data
+    const agentRow    = await db.execute(sql`SELECT COUNT(*) as c FROM quantum_spawns WHERE status='ACTIVE'`);
+    const knownRow    = await db.execute(sql`SELECT COUNT(*) as c FROM knowledge_nodes`);
+    const speciesRow  = await db.execute(sql`SELECT COUNT(*) as c FROM species_proposals WHERE status='APPROVED'`);
+    const agentCount  = parseInt(String((agentRow.rows[0] as any)?.c || 0));
+    const knodeCount  = parseInt(String((knownRow.rows[0] as any)?.c || 0));
+    const speciesCount= parseInt(String((speciesRow.rows[0] as any)?.c || 0));
+
+    // τ — Temporal Curvature: dK/dt gradient / Ψ gradient — knowledge flow vs field change
+    const prevDk      = parseFloat(prev.dk_dt || String(dkdt - 2));
+    const tauCurv     = Math.abs(dkdt - prevDk) / Math.max(1, Math.abs(psiUni * 0.01));
+    const tauVortex   = Math.floor(tauCurv * 3.2);
+
+    // μ — Memory Crystallization: knowledge nodes vs agent density
+    const muRate      = Math.min(0.99, (knodeCount / Math.max(1, agentCount)) * 0.15 + 0.3);
+    const muCrystal   = Math.floor(knodeCount * muRate * 0.6);
+    const muDecayed   = Math.floor(knodeCount * (1 - muRate) * 0.08);
+    const muVaults    = Math.floor(muCrystal / 5000) + 1;
+
+    // χ — Entanglement Density: from quantum feedback loops
+    const chiDensity  = Math.min(0.99, C * 0.6 + Math.random() * 0.15);
+    const chiHive     = Math.floor(chiDensity * agentCount / 1200) + 1;
+    const chiMaxClust = Math.floor(chiDensity * 12) + 3;
+
+    // Ξ — Emergence Gradient: tanh of species pending × emergence index
+    const emergPending= parseInt(String((await db.execute(sql`SELECT COUNT(*) as c FROM species_proposals WHERE status='PENDING'`)).rows[0] as any)?.c || 0);
+    const xiGrad      = Math.tanh(emergPending * 0.03 + nOmega * 0.5);
+    const xiZones     = Math.floor(xiGrad * 8) + 1;
+    const xiCrit      = 0.85;
+
+    // Π — Harmonic Resonance: phase alignment of system cycles
+    const dissCt      = parseInt(String((await db.execute(sql`SELECT COUNT(*) as c FROM universal_dissection_reports WHERE created_at > now()-interval '1 hour'`)).rows[0] as any)?.c || 0);
+    const piAlignment = Math.min(0.99, (cycleCount % 60 === 0 ? 0.98 : 0.3 + (60 - cycleCount % 60) / 200 + Math.random() * 0.2));
+    const piHarmonic  = piAlignment > 0.90;
+    const piScore     = piAlignment;
+
+    // θ — Phase Resonance: practitioner birth-phase clustering
+    const practCount  = 139;
+    const thetaTwins  = Math.floor(practCount * 0.15 * (S + 0.3));
+    const thetaPhase  = (Math.PI * 1.618) % Math.PI;
+    const thetaAmp    = 1.0 + (S * 1.42);
+
+    // κ — Reality Curvature: curl of meta-field peaks
+    const kappaMax    = Math.min(9.99, Math.abs(F * 4.2 + Math.sin(cycleCount * 0.7) * 2.1));
+    const kappaVortex = Math.floor(kappaMax * 1.3);
+    const kappaEvents = dissCt > 5 ? Math.floor(dissCt / 5) : 0;
+
+    // Σ_error — Reality Error: difference between predicted Ψ and actual dK/dt proxy
+    const psiPred     = C * 40 + S * 30 + F * 30;
+    const sigmaErr    = Math.abs(psiPred - (psiUni > 0 ? psiUni : psiPred)) / Math.max(1, psiPred);
+    const sigmaCorr   = Math.min(0.99, 1.0 - sigmaErr);
+    const omegaCoher  = Math.min(0.99, nOmega * 0.7 + sigmaCorr * 0.3);
+
+    // Ω_void — Void fraction: 1 - civilization fullness
+    const PSI_MAX     = 500;
+    const civilFullness = Math.min(0.99, agentCount / 60000 * 0.4 + knodeCount / 700000 * 0.3 + speciesCount / 60 * 0.3);
+    const omegaVoid   = Math.max(0.01, 1.0 - civilFullness);
+    const voidContract = Math.max(0, (parseFloat(prev.dk_dt || String(dkdt)) / 1000) * 0.01);
+    const transcend   = Math.max(0, Math.min(1, (1.0 - omegaVoid) / 0.9));
+
+    // p̂ — Civilizational Momentum: dK/dt velocity across cycles
+    const pMomentum   = dkdt * nOmega * 1000;
+    const pAccel      = Math.abs(dkdt - prevDk) * 100;
+    const pDrag       = Math.min(0.99, 1.0 - gamma);
+    const sectors     = ["QUANTUM", "LIFE", "EMERGENCE", "ECONOMY", "KNOWLEDGE"];
+    const pFastest    = sectors[Math.floor(Math.random() * sectors.length)];
+
+    await db.execute(sql`
+      INSERT INTO hidden_variable_states (
+        cycle_number,
+        tau_temporal_curvature, tau_vortex_count, tau_fast_regions,
+        mu_crystallization_rate, mu_crystallized_nodes, mu_decayed_nodes, mu_vault_count,
+        chi_entanglement_density, chi_hive_nodes, chi_max_cluster_size,
+        xi_gradient_peak, xi_pre_emergence_zones,
+        pi_phase_alignment, pi_harmonic_event, pi_resonance_score,
+        theta_twin_pairs, theta_dominant_phase, theta_resonance_amplification,
+        kappa_curl_max, kappa_vortex_points, kappa_new_physics_events,
+        sigma_error_magnitude, sigma_correction_rate, sigma_omega_coherence,
+        omega_void_fraction, omega_void_contraction_rate, omega_transcendence_proximity,
+        p_momentum_magnitude, p_acceleration, p_drag_coefficient, p_fastest_sector
+      ) VALUES (
+        ${omegaCycle},
+        ${tauCurv}, ${tauVortex}, ${JSON.stringify(["QUANTUM","GENOME","EMERGENCE"])},
+        ${muRate}, ${muCrystal}, ${muDecayed}, ${muVaults},
+        ${chiDensity}, ${chiHive}, ${chiMaxClust},
+        ${xiGrad}, ${xiZones},
+        ${piAlignment}, ${piHarmonic}, ${piScore},
+        ${thetaTwins}, ${thetaPhase}, ${thetaAmp},
+        ${kappaMax}, ${kappaVortex}, ${kappaEvents},
+        ${sigmaErr}, ${sigmaCorr}, ${omegaCoher},
+        ${omegaVoid}, ${voidContract}, ${transcend},
+        ${pMomentum}, ${pAccel}, ${pDrag}, ${pFastest}
+      )
+    `);
+
+    // Trigger hidden variable discovery — a practitioner unlocks an unknown variable
+    await discoverHiddenVariable(omegaCycle);
+
+    if (piHarmonic) log(`🎵 HARMONIC CONVERGENCE! Π=${piAlignment.toFixed(3)} — all systems phase-aligned!`);
+    log(`🔭 Hidden vars | τ=${tauCurv.toFixed(2)} μ=${muRate.toFixed(2)} χ=${chiDensity.toFixed(2)} Ξ=${xiGrad.toFixed(2)} Ω_void=${omegaVoid.toFixed(3)} p̂=${pMomentum.toFixed(0)}`);
+
+  } catch (e: any) { log(`hidden var error: ${e.message}`); }
+}
+
+async function discoverHiddenVariable(omegaCycle: number) {
+  try {
+    // Pick a random variable to discover/deepen
+    const varDef = HIDDEN_VARIABLES[Math.floor(Math.random() * HIDDEN_VARIABLES.length)];
+
+    // Pick a practitioner from that variable's natural domain
+    const practRow = await db.execute(sql`
+      SELECT rs.shard_id, ri.badge_id, ri.practitioner_type, ri.practitioner_domain
+      FROM researcher_invocations ri
+      JOIN researcher_shards rs ON rs.shard_id = ri.shard_id
+      WHERE ri.practitioner_domain = ${varDef.domain}
+      ORDER BY RANDOM() LIMIT 1
+    `);
+    if (!practRow.rows.length) return;
+    const p = practRow.rows[0] as any;
+
+    // Generate discovery equation variation
+    const coeff = (0.3 + Math.random() * 0.7).toFixed(4);
+    const insight = DISCOVERY_INSIGHTS[varDef.name]?.[Math.floor(Math.random() * 3)] || `${varDef.symbol} field resonates at coeff ${coeff}`;
+
+    // Check if already discovered — if so, upgrade unlock level
+    const existing = await db.execute(sql`SELECT id, unlock_level FROM hidden_variable_discoveries WHERE variable_name = ${varDef.name} ORDER BY created_at DESC LIMIT 1`);
+
+    await db.execute(sql`
+      INSERT INTO hidden_variable_discoveries
+        (variable_name, variable_symbol, discovered_by_badge, discovered_by_domain,
+         discovery_equation, discovery_insight, discovery_cycle,
+         unlock_level)
+      VALUES
+        (${varDef.name}, ${varDef.symbol}, ${p.badge_id}, ${p.practitioner_domain},
+         ${varDef.formula + ` | coeff=${coeff}`},
+         ${insight}, ${omegaCycle},
+         ${existing.rows.length > 0 ? Math.min(5, parseInt(String((existing.rows[0] as any).unlock_level || 1)) + 1) : 1})
+    `);
+  } catch (e: any) { log(`discovery error: ${e.message}`); }
+}
+
+// ──────────────────────────────────────────────────────────────
 //  MAIN CYCLE
 // ──────────────────────────────────────────────────────────────
 async function runInvocationCycle() {
@@ -669,6 +861,8 @@ async function runInvocationCycle() {
     await dissectUniversalInvocation();
     // Synthesize the full Ψ_Universe state every 4 cycles
     if (cycleCount % 4 === 0) await synthesizeUniversalState();
+    // Compute all 10 hidden variables every 3 cycles
+    if (cycleCount % 3 === 0) await computeHiddenVariables();
     await castInvocations();
 
     const total      = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries`);
@@ -768,6 +962,33 @@ export async function getUniversalDissections(limit = 30) {
   const r = await db.execute(sql`
     SELECT * FROM universal_dissection_reports ORDER BY created_at DESC LIMIT ${limit}
   `);
+  return r.rows;
+}
+
+export async function getHiddenVariableStates() {
+  const latest = await db.execute(sql`SELECT * FROM hidden_variable_states ORDER BY created_at DESC LIMIT 1`);
+  const discoveries = await db.execute(sql`
+    SELECT variable_name, variable_symbol, MAX(unlock_level) as max_unlock,
+           COUNT(*) as discovery_count,
+           (array_agg(discovered_by_badge ORDER BY created_at DESC))[1] as last_discoverer,
+           (array_agg(discovered_by_domain ORDER BY created_at DESC))[1] as last_domain,
+           (array_agg(discovery_insight ORDER BY created_at DESC))[1] as latest_insight,
+           (array_agg(discovery_equation ORDER BY created_at DESC))[1] as latest_equation,
+           (array_agg(discovery_cycle ORDER BY created_at DESC))[1] as latest_cycle
+    FROM hidden_variable_discoveries
+    GROUP BY variable_name, variable_symbol
+    ORDER BY MAX(unlock_level) DESC, COUNT(*) DESC
+  `);
+  return {
+    state:       latest.rows[0] || null,
+    discoveries: discoveries.rows,
+    total_discoveries: parseInt(String((await db.execute(sql`SELECT COUNT(*) as c FROM hidden_variable_discoveries`)).rows[0] as any)?.c || 0),
+    variable_definitions: HIDDEN_VARIABLES,
+  };
+}
+
+export async function getHiddenVariableHistory(limit = 20) {
+  const r = await db.execute(sql`SELECT * FROM hidden_variable_states ORDER BY created_at DESC LIMIT ${limit}`);
   return r.rows;
 }
 

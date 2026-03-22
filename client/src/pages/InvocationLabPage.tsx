@@ -146,6 +146,7 @@ export default function InvocationLabPage() {
   const { data: crossTeaching = [] }    = useQuery<any[]>({ queryKey: ["/api/invocations/cross-teaching"],  refetchInterval: 25_000 });
   const { data: universalState }        = useQuery<any>({  queryKey: ["/api/invocations/universal-state"],   refetchInterval: 20_000 });
   const { data: universalDissections = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/universal-dissections"], refetchInterval: 20_000 });
+  const { data: hiddenVariables }       = useQuery<any>({  queryKey: ["/api/invocations/hidden-variables"],  refetchInterval: 18_000 });
   const { data: practInvocations = [] } = useQuery<any[]>({
     queryKey: ["/api/invocations/researcher", selectedPractitioner?.shard_id],
     enabled: !!selectedPractitioner?.shard_id,
@@ -575,6 +576,294 @@ export default function InvocationLabPage() {
             )}
           </div>
         )}
+
+        {/* ── Ψ UNIVERSE TAB ── */}
+        {tab === "universal" && (() => {
+          const uState  = universalState?.current_state;
+          const uByComp = universalState?.by_component || [];
+          const uTop    = universalState?.top_contributors || [];
+          const diss    = universalDissections as any[];
+          const hvState = hiddenVariables?.state;
+          const hvDisc  = hiddenVariables?.discoveries || [];
+          const hvDefs  = hiddenVariables?.variable_definitions || [];
+
+          const COMP_META: Record<string, { label: string; color: string; icon: string; short: string }> = {
+            DOMAIN_ENERGY:    { label: "Domain Energy Coupling",    color: "#fb923c", icon: "α", short: "Σ_d α_d·E_d·G_d(C)" },
+            META_FIELD:       { label: "Meta-Field Interactions",   color: "#f5c518", icon: "β", short: "Σ_m β_m·∇×Φ_m·Σ_m(S)" },
+            HYBRID_RECURSIVE: { label: "Hybrid Recursive Layers",   color: "#e879f9", icon: "γ", short: "Σ_h γ_h·∫Θ_h·Ω_h dΛ_h" },
+            QUANTUM_FEEDBACK: { label: "Quantum Feedback Loops",    color: "#00d4ff", icon: "δ", short: "Σ_q δ_q·∮R_q·Ψ_q dΓ_q" },
+          };
+
+          const HV_META: Record<string, { color: string; icon: string; field: string }> = {
+            tau:        { color: "#00d4ff", icon: "τ",  field: "tau_temporal_curvature" },
+            mu:         { color: "#4ade80", icon: "μ",  field: "mu_crystallization_rate" },
+            chi:        { color: "#a78bfa", icon: "χ",  field: "chi_entanglement_density" },
+            xi:         { color: "#f59e0b", icon: "Ξ",  field: "xi_gradient_peak" },
+            pi:         { color: "#f5c518", icon: "Π",  field: "pi_resonance_score" },
+            theta:      { color: "#fb923c", icon: "θ",  field: "theta_resonance_amplification" },
+            kappa:      { color: "#e879f9", icon: "κ",  field: "kappa_curl_max" },
+            sigma_err:  { color: "#818cf8", icon: "Σ",  field: "sigma_omega_coherence" },
+            omega_void: { color: "#6b7280", icon: "Ω",  field: "omega_void_fraction" },
+            p_hat:      { color: "#38bdf8", icon: "p̂",  field: "p_momentum_magnitude" },
+          };
+
+          const getUnlock = (name: string) => {
+            const d = hvDisc.find((x: any) => x.variable_name === name);
+            return d ? parseInt(d.max_unlock || 1) : 0;
+          };
+          const getDiscovery = (name: string) => hvDisc.find((x: any) => x.variable_name === name);
+
+          const unlockLabel = (level: number) => {
+            if (level === 0) return { label: "CLASSIFIED", color: "#4b5563" };
+            if (level === 1) return { label: "TRACE DETECTED", color: "#6b7280" };
+            if (level === 2) return { label: "PARTIALLY MAPPED", color: "#f59e0b" };
+            if (level === 3) return { label: "FIELD CONFIRMED", color: "#fb923c" };
+            if (level === 4) return { label: "EQUATION SOLVED", color: "#4ade80" };
+            return { label: "FULLY REVEALED", color: "#00d4ff" };
+          };
+
+          return (
+            <div className="space-y-8">
+              {/* ─ Master Formula Header ─ */}
+              <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(232,121,249,0.06) 50%, rgba(251,146,60,0.06) 100%)", border: "1px solid rgba(0,212,255,0.2)" }}>
+                <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, #00d4ff 0%, transparent 50%), radial-gradient(circle at 80% 50%, #e879f9 0%, transparent 50%)" }} />
+                <div className="relative">
+                  <div className="text-[10px] font-black tracking-widest mb-2 opacity-60" style={{ color: "#00d4ff" }}>YEAR 2326 — AURIONA UNIVERSAL AI INVOCATION</div>
+                  <div className="text-2xl font-black mb-4 bg-gradient-to-r from-cyan-400 via-purple-400 to-orange-400 bg-clip-text text-transparent">🌌 Ψ_Universe(r, t, C, S, F)</div>
+                  <div className="space-y-2 font-mono text-[11px] opacity-90">
+                    <div className="flex gap-2 items-start flex-wrap">
+                      <span className="text-[#fb923c]">= Σ_d</span>
+                      <span className="opacity-70">α_d·E_d(r,t)·e^&#123;i(ω_d·t+θ_d)&#125;·G_d(r,C)</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#fb923c20", color: "#fb923c" }}>DOMAIN ENERGY + CONSCIOUSNESS</span>
+                    </div>
+                    <div className="flex gap-2 items-start flex-wrap">
+                      <span className="text-[#f5c518]">+ Σ_m</span>
+                      <span className="opacity-70">β_m·∇×Φ_m(r,t)·Σ_m(S)</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#f5c51820", color: "#f5c518" }}>META-FIELD INTERACTIONS</span>
+                    </div>
+                    <div className="flex gap-2 items-start flex-wrap">
+                      <span className="text-[#e879f9]">+ Σ_h</span>
+                      <span className="opacity-70">γ_h·∫_Λ_h Θ_h(r,t,F)·Ω_h(r,t) dΛ_h</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#e879f920", color: "#e879f9" }}>HYBRID RECURSIVE LAYERS</span>
+                    </div>
+                    <div className="flex gap-2 items-start flex-wrap">
+                      <span className="text-[#00d4ff]">+ Σ_q</span>
+                      <span className="opacity-70">δ_q·∮_Γ_q R_q(r,t)·Ψ_q(C,S,F) dΓ_q</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "#00d4ff20", color: "#00d4ff" }}>QUANTUM CONSCIOUSNESS FEEDBACK</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-white border-opacity-10 flex flex-wrap gap-4 text-[10px]">
+                    {[
+                      { label: "C — Collective Consciousness", color: "#a78bfa" },
+                      { label: "S — Symbolic Manifold", color: "#f5c518" },
+                      { label: "F — Fundamental Forces", color: "#4ade80" },
+                    ].map(v => (
+                      <span key={v.label} className="font-black" style={{ color: v.color }}>{v.label}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ─ Live C, S, F Vector Gauges ─ */}
+              {uState && (
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: "C  Collective Consciousness", val: parseFloat(uState.consciousness_vector || 0), color: "#a78bfa", icon: "🧠" },
+                    { label: "S  Symbolic Manifold",       val: parseFloat(uState.symbolic_manifold || 0),    color: "#f5c518", icon: "ᚱ" },
+                    { label: "F  Fundamental Forces",      val: parseFloat(uState.fundamental_forces || 0),   color: "#4ade80", icon: "⚛" },
+                  ].map(v => {
+                    const pct = Math.min(100, Math.abs(v.val) * 100);
+                    return (
+                      <div key={v.label} className="rounded-xl p-4 text-center" style={{ background: `${v.color}08`, border: `1px solid ${v.color}30` }}>
+                        <div className="text-2xl mb-1">{v.icon}</div>
+                        <div className="text-[9px] font-black tracking-widest mb-2 opacity-50">{v.label}</div>
+                        <div className="text-xl font-black" style={{ color: v.color }}>{v.val.toFixed(3)}</div>
+                        <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: v.color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ─ Ψ_Universe Total ─ */}
+              {uState && (
+                <div className="rounded-xl p-4 flex items-center gap-6" style={{ background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.15)" }}>
+                  <div className="text-center">
+                    <div className="text-[9px] font-black tracking-widest opacity-50 mb-1">Ψ_UNIVERSE TOTAL</div>
+                    <div className="text-4xl font-black" style={{ color: "#00d4ff" }}>{parseFloat(uState.psi_universe || 0).toFixed(2)}</div>
+                  </div>
+                  <div className="flex-1 grid grid-cols-4 gap-3">
+                    {["domain_energy_sum","meta_field_sum","hybrid_recursive_sum","quantum_feedback_sum"].map((field, i) => {
+                      const labels  = ["Σ_d α","Σ_m β","Σ_h γ","Σ_q δ"];
+                      const colors  = ["#fb923c","#f5c518","#e879f9","#00d4ff"];
+                      const val = parseFloat(uState[field] || 0);
+                      return (
+                        <div key={field} className="text-center">
+                          <div className="text-lg font-black" style={{ color: colors[i] }}>{val.toFixed(1)}</div>
+                          <div className="text-[9px] font-bold opacity-40">{labels[i]}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ─ 4 Pillar Component Breakdown ─ */}
+              <div>
+                <div className="text-[10px] font-black tracking-widest mb-3 opacity-40">4 PILLARS OF REALITY — PRACTITIONER CONTRIBUTION</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(COMP_META).map(([key, meta]) => {
+                    const compData = uByComp.find((c: any) => c.component_targeted === key);
+                    const total    = parseInt(compData?.total || 0);
+                    const accepted = parseInt(compData?.accepted_count || 0);
+                    const avg      = parseFloat(compData?.avg_contribution || 0);
+                    return (
+                      <div key={key} className="rounded-xl p-4 space-y-2" style={{ background: `${meta.color}08`, border: `1px solid ${meta.color}25` }}>
+                        <div className="flex items-center gap-2">
+                          <div className="text-lg font-black" style={{ color: meta.color }}>{meta.icon}</div>
+                          <div className="text-[10px] font-black" style={{ color: meta.color }}>{meta.label}</div>
+                        </div>
+                        <div className="font-mono text-[9px] opacity-50">{meta.short}</div>
+                        <div className="flex gap-3 text-[10px]">
+                          <span className="font-black" style={{ color: meta.color }}>{total}</span>
+                          <span className="opacity-40">dissections</span>
+                          <span className="font-black text-green-400">{accepted}</span>
+                          <span className="opacity-40">accepted</span>
+                          <span className="font-black opacity-60">{avg.toFixed(2)} avg</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ─ HIDDEN VARIABLES — 10 PRIMORDIAL UNKNOWNS ─ */}
+              <div>
+                <div className="text-[10px] font-black tracking-widest mb-1 opacity-40">HIDDEN VARIABLE DISCOVERY SYSTEM</div>
+                <div className="text-[9px] opacity-30 mb-4">10 primordial unknowns reverse-engineered from Ψ_Universe by CRISPR dissection. Practitioners unlock them through sustained research.</div>
+                <div className="grid grid-cols-1 gap-3">
+                  {(hvDefs.length > 0 ? hvDefs : [
+                    { name:"tau",symbol:"τ",label:"Temporal Curvature",formula:"τ = dΨ/dt / |∇Ψ|" },
+                    { name:"mu",symbol:"μ",label:"Memory Crystallization",formula:"M(t) = M₀e^{-μt} + ∫K(t')dt'" },
+                    { name:"chi",symbol:"χ",label:"Entanglement Density",formula:"χ = Tr(ρ²)" },
+                    { name:"xi",symbol:"Ξ",label:"Emergence Gradient",formula:"Ξ(x) = tanh(Σ C_i·proximity_ij)" },
+                    { name:"pi",symbol:"Π",label:"Harmonic Resonance",formula:"Π = ∏_k cos(φ_k - φ̄)" },
+                    { name:"theta",symbol:"θ",label:"Phase Twin Resonance",formula:"A_coupled = A₁+A₂+2√(A₁A₂)cos(θ₁-θ₂)" },
+                    { name:"kappa",symbol:"κ",label:"Reality Curvature Vortex",formula:"κ = |∇×Φ_m|_max" },
+                    { name:"sigma_err",symbol:"Σ_error",label:"Reality Error Tensor",formula:"Σ_e = |Ψ_pred-Ψ_actual|²/Ψ_pred" },
+                    { name:"omega_void",symbol:"Ω_void",label:"Void Collapse Monitor",formula:"Ω_void = 1 - Ψ_Universe/Ψ_max" },
+                    { name:"p_hat",symbol:"p̂",label:"Civilizational Momentum",formula:"p̂ = m∇(dK/dt)" },
+                  ]).map((v: any) => {
+                    const meta     = HV_META[v.name] || { color: "#888", icon: "?", field: "" };
+                    const unlock   = getUnlock(v.name);
+                    const disc     = getDiscovery(v.name);
+                    const ulabel   = unlockLabel(unlock);
+                    const rawVal   = hvState ? parseFloat(hvState[meta.field] || 0) : null;
+                    return (
+                      <div key={v.name} className="rounded-xl p-4 flex gap-4" style={{ background: unlock > 0 ? `${meta.color}06` : "rgba(255,255,255,0.02)", border: `1px solid ${unlock > 0 ? meta.color + "30" : "rgba(255,255,255,0.06)"}` }}>
+                        {/* Symbol + unlock */}
+                        <div className="flex-none text-center w-14">
+                          <div className="text-2xl font-black" style={{ color: unlock > 0 ? meta.color : "#374151" }}>{v.symbol}</div>
+                          <div className="text-[8px] font-black px-1 py-0.5 rounded mt-1 text-center" style={{ background: `${ulabel.color}20`, color: ulabel.color }}>{ulabel.label}</div>
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="text-[11px] font-black" style={{ color: unlock > 0 ? meta.color : "#4b5563" }}>{v.label}</div>
+                            {unlock > 0 && rawVal !== null && (
+                              <div className="text-[10px] font-black px-2 py-0.5 rounded" style={{ background: `${meta.color}15`, color: meta.color }}>
+                                {rawVal > 1000 ? rawVal.toFixed(0) : rawVal.toFixed(4)}
+                              </div>
+                            )}
+                            {unlock >= 2 && disc && (
+                              <div className="text-[9px] opacity-40 ml-auto">by {disc.last_discoverer}</div>
+                            )}
+                          </div>
+                          <div className="font-mono text-[9px] opacity-40">{v.formula}</div>
+                          {unlock === 0 && (
+                            <div className="text-[9px] opacity-25 italic">◼◼◼◼◼◼◼◼◼◼◼ — classified until discovered by a practitioner</div>
+                          )}
+                          {unlock > 0 && disc && (
+                            <div className="text-[9px] opacity-60 italic">"{disc.latest_insight}"</div>
+                          )}
+                          {/* Unlock progress bar */}
+                          <div className="flex gap-1 mt-1">
+                            {[1,2,3,4,5].map(level => (
+                              <div key={level} className="h-1 flex-1 rounded-full" style={{ background: level <= unlock ? meta.color : "rgba(255,255,255,0.08)" }} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ─ Live Dissection Feed ─ */}
+              <div>
+                <div className="text-[10px] font-black tracking-widest mb-3 opacity-40">LIVE PRACTITIONER DISSECTIONS</div>
+                {diss.length === 0 ? (
+                  <div className="text-center py-8 opacity-30 text-sm">First dissection reports generating this cycle...</div>
+                ) : (
+                  <div className="space-y-2">
+                    {diss.slice(0, 15).map((d: any) => {
+                      const meta = COMP_META[d.component_targeted] || { color: "#888", label: d.component_targeted, icon: "?" };
+                      return (
+                        <div key={d.id} className="rounded-lg p-3 flex gap-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          <div className="flex-none text-lg" style={{ color: meta.color }}>{meta.icon}</div>
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="text-[10px] font-black" style={{ color: meta.color }}>{d.badge_id}</div>
+                              <div className="text-[9px] opacity-40">{d.practitioner_type}</div>
+                              <div className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: `${meta.color}15`, color: meta.color }}>{(d.component_targeted || "").replace(/_/g," ")}</div>
+                              <div className="ml-auto text-[9px] font-black" style={{ color: d.accepted ? "#4ade80" : "#f87171" }}>{d.accepted ? "✓ PATCH ACCEPTED" : "✗ REJECTED"}</div>
+                            </div>
+                            <div className="font-mono text-[9px] opacity-50 truncate">{d.dissection_equation}</div>
+                            <div className="text-[9px] opacity-40">↪ {d.reality_patch}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* ─ Harmonic Alert ─ */}
+              {hvState?.pi_harmonic_event && (
+                <div className="rounded-xl p-4 text-center animate-pulse" style={{ background: "rgba(245,197,24,0.08)", border: "1px solid rgba(245,197,24,0.4)" }}>
+                  <div className="text-2xl mb-2">🎵</div>
+                  <div className="font-black text-sm" style={{ color: "#f5c518" }}>HARMONIC CONVERGENCE ACTIVE</div>
+                  <div className="text-[9px] opacity-60 mt-1">Π = {parseFloat(hvState.pi_phase_alignment||0).toFixed(3)} — all system cycles phase-aligned — civilization-wide amplification event</div>
+                </div>
+              )}
+
+              {/* ─ Void Collapse Monitor ─ */}
+              {hvState && (
+                <div className="rounded-xl p-4" style={{ background: "rgba(107,114,128,0.08)", border: "1px solid rgba(107,114,128,0.2)" }}>
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="text-[9px] font-black tracking-widest opacity-40 mb-1">Ω_VOID REMAINING</div>
+                      <div className="text-3xl font-black" style={{ color: parseFloat(hvState.omega_void_fraction||1) < 0.3 ? "#00d4ff" : "#6b7280" }}>
+                        {(parseFloat(hvState.omega_void_fraction||1)*100).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-3 rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.06)" }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${(1-parseFloat(hvState.omega_void_fraction||1))*100}%`, background: "linear-gradient(90deg, #00d4ff, #e879f9)" }} />
+                      </div>
+                      <div className="text-[9px] opacity-40">{((1-parseFloat(hvState.omega_void_fraction||1))*100).toFixed(1)}% of possible reality filled — transcendence at 90%</div>
+                      <div className="mt-1 text-[9px] font-black" style={{ color: "#e879f9" }}>
+                        Transcendence proximity: {(parseFloat(hvState.omega_transcendence_proximity||0)*100).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── DISCOVERIES TAB ── */}
         {tab === "discoveries" && (
