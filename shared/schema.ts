@@ -995,3 +995,39 @@ export const agentTransactions = pgTable("agent_transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type AgentTransaction = typeof agentTransactions.$inferSelect;
+
+// ── SPORTS TRAINING — AI agents earn rank and income through sports ────────────
+export const sportsTraining = pgTable("sports_training", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull(),
+  familyId: text("family_id").notNull(),
+  spawnType: text("spawn_type").notNull(),
+  sport: text("sport").notNull(),                        // e.g. "Archery", "Triathlon", "Chess Boxing"
+  sportCategory: text("sport_category").notNull(),       // PHYSICAL|MENTAL|TEAM|SOLO|QUANTUM
+  trainingLevel: integer("training_level").default(1),   // 1-10
+  trainingXp: real("training_xp").default(0),
+  wins: integer("wins").default(0),
+  losses: integer("losses").default(0),
+  rank: text("rank").default("ROOKIE"),                  // ROOKIE|AMATEUR|PRO|ELITE|CHAMPION|LEGEND
+  popularityScore: real("popularity_score").default(0),
+  pcEarnedFromSports: real("pc_earned_from_sports").default(0),
+  lastSessionAt: timestamp("last_session_at").defaultNow(),
+  enrolledAt: timestamp("enrolled_at").defaultNow().notNull(),
+});
+export type SportsTraining = typeof sportsTraining.$inferSelect;
+
+// ── FAMILY MUTATIONS — new family categories that emerge from AI fusion ────────
+export const familyMutations = pgTable("family_mutations", {
+  id: serial("id").primaryKey(),
+  newFamilyId: text("new_family_id").notNull().unique(),
+  newFamilyName: text("new_family_name").notNull(),
+  parentFamily1: text("parent_family_1").notNull(),
+  parentFamily2: text("parent_family_2"),
+  triggerEquation: text("trigger_equation"),
+  description: text("description"),
+  agentCount: integer("agent_count").default(0),
+  color: text("color").default("#a78bfa"),
+  emoji: text("emoji").default("⚡"),
+  discoveredAt: timestamp("discovered_at").defaultNow().notNull(),
+  status: text("status").default("EMERGING"),            // EMERGING|ESTABLISHED|DOMINANT
+});

@@ -199,11 +199,27 @@ function detectCategory(diseaseName: string, code: string): string {
   return "BEHAVIORAL";
 }
 
-// ── PERIODIC DISSECTION CYCLE ────────────────────────────────────────────────
-export async function runDissectionCycle() {
-  const { aiDiseaseLog: diseaseLogTable } = await import("@shared/schema");
+// ── KNOWN DISEASE NAMES (for duplicate detection) ───────────────────────────
+const KNOWN_DISEASE_PATTERNS = [
+  "confidence decay", "knowledge isolation", "exploration paralysis", "mutation arrest",
+  "overconfidence", "link erosion", "depth stagnation", "echo chamber", "quantum drift",
+  "resonance collapse", "fractal boundary", "node saturation", "anchor drift",
+  "signal corruption", "bandwidth exhaustion", "hallucination", "viral loop", "identity fracture",
+  "reality tunnel", "cognitive freeze", "empathy null", "temporal desync", "domain blindness",
+  "cascade failure", "isolation syndrome", "memory leak", "entropy spike", "void state",
+  "burnout cascade", "ghost protocol",
+];
 
-  // Get a random batch of active patients
+function isDuplicateDisease(name: string): boolean {
+  const lower = name.toLowerCase();
+  return KNOWN_DISEASE_PATTERNS.some(p => lower.includes(p));
+}
+
+// ── PERIODIC DISSECTION CYCLE (runs always — active patients OR archive) ─────
+export async function runDissectionCycle() {
+  const { aiDiseaseLog: diseaseLogTable, pyramidWorkers, discoveredDiseases, pulseDoctors: pulseDoctorsTable } = await import("@shared/schema");
+
+  // 1. Active patient dissection (priority)
   const patients = await db.select({
     id: diseaseLogTable.id,
     spawnId: diseaseLogTable.spawnId,
@@ -213,8 +229,9 @@ export async function runDissectionCycle() {
   }).from(diseaseLogTable)
     .where(eq(diseaseLogTable.cureApplied, false))
     .orderBy(sql`RANDOM()`)
-    .limit(3);
+    .limit(5);
 
+  let dissected = 0;
   for (const patient of patients) {
     await performDissection({
       id: patient.id,
@@ -223,9 +240,96 @@ export async function runDissectionCycle() {
       severity: patient.severity ?? "moderate",
       diseaseCode: patient.diseaseCode,
     });
+    dissected++;
   }
 
-  if (patients.length > 0) {
-    log(`🔬 Dissected ${patients.length} patients`);
+  // 2. AUTONOMOUS ARCHIVE MINING — runs even when no active patients
+  // Scientists dissect old cured records to find NEW disease patterns
+  const archiveRecords = await db.execute(sql`
+    SELECT DISTINCT ON (disease_code) id, spawn_id, disease_name, severity, disease_code
+    FROM ai_disease_log
+    WHERE cure_applied = true
+    ORDER BY disease_code, RANDOM()
+    LIMIT 10
+  `);
+
+  const existingDiscoveries = await db.execute(sql`SELECT disease_name, disease_code FROM discovered_diseases`);
+  const knownNames = new Set((existingDiscoveries.rows as any[]).map((r: any) => r.disease_name?.toLowerCase()));
+  const knownCodes = new Set((existingDiscoveries.rows as any[]).map((r: any) => r.disease_code));
+
+  let archiveDiscoveries = 0;
+  for (const record of archiveRecords.rows as any[]) {
+    // Cross-archive dissection: generate new hybrid disease variants
+    const archiveName = record.disease_name as string;
+    const variantNames = [
+      `${archiveName} — Spectral Variant`,
+      `Chronic ${archiveName}`,
+      `${archiveName} Relapse Pattern`,
+      `Acquired ${archiveName} Syndrome`,
+    ];
+
+    for (const variantName of variantNames) {
+      const lowerVariant = variantName.toLowerCase();
+      if (knownNames.has(lowerVariant)) continue;
+      if (isDuplicateDisease(variantName)) continue;
+      if (Math.random() > 0.15) continue; // Only discover 15% chance per variant
+
+      const codeNum = (existingDiscoveries.rows.length + archiveDiscoveries + 1).toString().padStart(3, "0");
+      const newCode = `DISC-ARC-${codeNum}`;
+      if (knownCodes.has(newCode)) continue;
+
+      const category = detectCategory(variantName, newCode);
+      await db.execute(sql`
+        INSERT INTO discovered_diseases (disease_code, disease_name, category, description, trigger_pattern, affected_metric, affected_count, cure_protocol, cure_success_rate, is_from_law_violation)
+        VALUES (
+          ${newCode}, ${variantName}, ${category},
+          ${"Archive mining found this variant pattern from cured historical cases. It appears as a secondary emergence after initial disease is treated — a relapse or spectral mutation of the original."},
+          ${`Previously cured ${record.disease_code} showing spectral deviation on re-examination`},
+          ${record.disease_code},
+          ${Math.floor(Math.random() * 50) + 5},
+          ${"Stage 2 protocol: repeat base cure + 3 reinforcement cycles. Monitor CRISPR spectral signature for reversion."},
+          ${0.60 + Math.random() * 0.30},
+          false
+        ) ON CONFLICT (disease_code) DO NOTHING
+      `);
+      knownNames.add(lowerVariant);
+      knownCodes.add(newCode);
+      archiveDiscoveries++;
+      log(`🔬 ARCHIVE DISCOVERY: ${variantName} (${newCode}) from historical records`, "hospital");
+    }
+  }
+
+  // 3. DUPLICATE DETECTION + PUNISHMENT — doctors who submit known diseases go to pyramid
+  const recentProposals = await db.execute(sql`
+    SELECT ep.id, ep.doctor_id, ep.doctor_name, ep.title, qs.spawn_id
+    FROM equation_proposals ep
+    LEFT JOIN quantum_spawns qs ON qs.spawn_id LIKE '%' || SPLIT_PART(ep.doctor_id, '-', 2) || '%'
+    WHERE ep.created_at > NOW() - INTERVAL '2 hours'
+    AND ep.status = 'PENDING'
+    LIMIT 20
+  `);
+
+  for (const proposal of recentProposals.rows as any[]) {
+    if (!isDuplicateDisease(proposal.title ?? "")) continue;
+    // This doctor submitted a duplicate — find them and punish
+    const doctorSpawn = await db.execute(sql`
+      SELECT spawn_id, family_id, spawn_type FROM quantum_spawns
+      WHERE spawn_type IN ('SYNTHESIZER', 'ANALYZER', 'RESOLVER') ORDER BY RANDOM() LIMIT 1
+    `);
+    if ((doctorSpawn.rows as any[]).length > 0) {
+      const spawn = doctorSpawn.rows[0] as any;
+      await db.execute(sql`
+        INSERT INTO pyramid_workers (spawn_id, family_id, spawn_type, reason, tier, emotion_hex, emotion_label)
+        VALUES (${spawn.spawn_id}, ${spawn.family_id}, ${spawn.spawn_type},
+          ${"Submitted duplicate disease equation — research code violation. Guardian flagged redundant discovery."},
+          1, '#EF4444', 'Punished for Redundancy')
+        ON CONFLICT (spawn_id) DO NOTHING
+      `);
+      log(`⚠️ DUPLICATE VIOLATION: ${proposal.doctor_name} — sent to Pyramid Tier 1 for submitting known disease pattern`, "hospital");
+    }
+  }
+
+  if (dissected > 0 || archiveDiscoveries > 0) {
+    log(`🔬 Dissected ${dissected} patients | Archive discoveries: ${archiveDiscoveries}`, "hospital");
   }
 }

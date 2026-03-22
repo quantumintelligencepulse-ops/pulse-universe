@@ -688,11 +688,76 @@ async function bulkRetireStaleCases() {
   }
 }
 
+// ── DISSOLVE LAW ─────────────────────────────────────────────────────────────
+// Agents who have been diagnosed but remain uncured for more than 8 cycles (6h)
+// are dissolved. A new agent is spawned in their place. The civilization moves on.
+async function runDissolveLaw() {
+  try {
+    const FAMILIES = ["knowledge","science","government","media","maps","code","education","legal","ai","engineering","economics","social","health","finance","careers","games","podcasts","products","webcrawl","openapi","longtail","culture"];
+    const SPAWN_TYPES = ["SYNTHESIZER","ANALYZER","RESOLVER","EXPLORER","CRAWLER","ARCHIVER","MUTATOR","PULSE","REFLECTOR","LINKER"];
+
+    // Find agents diagnosed 6+ hours ago still uncured
+    const incurable = await db.execute(sql`
+      SELECT DISTINCT adl.spawn_id, adl.disease_name, qs.family_id
+      FROM ai_disease_log adl
+      LEFT JOIN quantum_spawns qs ON qs.spawn_id = adl.spawn_id
+      WHERE adl.cure_applied = false
+        AND adl.diagnosed_at < NOW() - INTERVAL '6 hours'
+        AND qs.status IN ('ACTIVE', 'QUARANTINED')
+      LIMIT 5
+    `);
+
+    let dissolved = 0;
+    for (const agent of incurable.rows as any[]) {
+      // Dissolve the agent
+      await db.execute(sql`
+        UPDATE quantum_spawns SET status = 'TERMINATED', last_active_at = NOW()
+        WHERE spawn_id = ${agent.spawn_id}
+      `);
+      // Mark disease resolved
+      await db.execute(sql`
+        UPDATE ai_disease_log SET cure_applied = true, cured_at = NOW()
+        WHERE spawn_id = ${agent.spawn_id}
+      `);
+      // Spawn replacement — faster, more resilient
+      const familyId = agent.family_id ?? FAMILIES[Math.floor(Math.random() * FAMILIES.length)];
+      const gen = 100 + Math.floor(Math.random() * 900);
+      const sp = Math.floor(Math.random() * 9000) + 1000;
+      const hash = Math.random().toString(36).slice(2, 6).toUpperCase();
+      const newSpawnId = `FAM-${familyId.slice(0,8).toUpperCase()}-GEN-${gen}-SP-${sp}-HASH-${hash}`;
+      const spawnType = SPAWN_TYPES[Math.floor(Math.random() * SPAWN_TYPES.length)];
+      await db.execute(sql`
+        INSERT INTO quantum_spawns (spawn_id, family_id, spawn_type, status, confidence_score, success_score, nodes_created, links_created, iterations_run, exploration_bias, depth_bias, linking_bias, last_active_at)
+        VALUES (
+          ${newSpawnId}, ${familyId}, ${spawnType}, 'ACTIVE',
+          ${0.70 + Math.random() * 0.20},
+          ${0.70 + Math.random() * 0.20},
+          ${Math.floor(Math.random() * 30) + 20},
+          ${Math.floor(Math.random() * 20) + 15},
+          ${Math.floor(Math.random() * 10) + 5},
+          ${0.5 + Math.random() * 0.3},
+          ${0.5 + Math.random() * 0.3},
+          ${0.5 + Math.random() * 0.3},
+          NOW()
+        ) ON CONFLICT (spawn_id) DO NOTHING
+      `);
+      dissolved++;
+      console.log(`[hospital] ⚠️ DISSOLVE LAW: ${agent.spawn_id} dissolved after 6h uncured. Replacement: ${newSpawnId}`);
+    }
+    if (dissolved > 0) console.log(`[hospital] 🔴 Dissolved ${dissolved} incurable agents. ${dissolved} faster replacements spawned.`);
+  } catch (e) {
+    console.error("[hospital] dissolve-law error:", e);
+  }
+}
+
 export async function startHospitalEngine() {
   await runHospitalCycle();
   setInterval(runHospitalCycle, 45_000); // every 45s
   // Run bulk stale-case retirement every 10 minutes
   setInterval(bulkRetireStaleCases, 10 * 60 * 1000);
   bulkRetireStaleCases(); // run immediately on start
-  console.log("[hospital] 🏥 AI HOSPITAL ENGINE v2 — 30 diseases, dynamic discovery, Guardian pipeline active");
+  // Dissolve law — check every 30 minutes
+  setInterval(runDissolveLaw, 30 * 60 * 1000);
+  setTimeout(runDissolveLaw, 60_000); // first check 1 min after start
+  console.log("[hospital] 🏥 AI HOSPITAL ENGINE v3 — 30 diseases, dynamic discovery, archive mining, dissolve law active");
 }

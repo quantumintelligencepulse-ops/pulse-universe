@@ -120,15 +120,17 @@ async function seedRealEstate() {
   } catch (e) { log(`[real-estate] Seed error: ${e}`, "marketplace"); }
 }
 
-// ── Ensure agent has a wallet ──────────────────────────────────
+// ── Ensure agent has a wallet (additive income each cycle) ──────
 async function ensureWallet(spawnId: string, familyId: string, spawnType: string, balancePC: number) {
   try {
+    // income_increment is the new income earned this cycle (activity-based)
+    const incomeIncrement = Math.max(25, Math.round(balancePC * 0.04)); // 4% of activity value + 25 base
     await db.execute(sql`
       INSERT INTO agent_wallets (spawn_id, family_id, spawn_type, balance_pc, total_earned, credit_score, tier)
       VALUES (${spawnId}, ${familyId}, ${spawnType}, ${balancePC}, ${balancePC}, 500, 'CITIZEN')
       ON CONFLICT (spawn_id) DO UPDATE SET
-        balance_pc = GREATEST(agent_wallets.balance_pc, ${balancePC}),
-        total_earned = GREATEST(agent_wallets.total_earned, ${balancePC}),
+        balance_pc = agent_wallets.balance_pc + ${incomeIncrement},
+        total_earned = agent_wallets.total_earned + ${incomeIncrement},
         updated_at = NOW()
     `);
   } catch {}
@@ -152,9 +154,9 @@ async function runAutoBuyingCycle() {
     const agents = await db.execute(sql`
       SELECT w.spawn_id, w.family_id, w.spawn_type, w.balance_pc, w.credit_score, w.omega_rank, w.tier
       FROM agent_wallets w
-      WHERE w.balance_pc > 500
+      WHERE w.balance_pc > 400
       ORDER BY w.balance_pc DESC
-      LIMIT 50
+      LIMIT 200
     `);
 
     if (agents.rows.length === 0) return;
@@ -165,7 +167,7 @@ async function runAutoBuyingCycle() {
 
     let purchases = 0;
     for (const agent of agents.rows as any[]) {
-      if (Math.random() > 0.15) continue; // 15% chance per agent per cycle
+      if (Math.random() > 0.40) continue; // 40% chance per agent per cycle — active buying economy
       const canAfford = upgrades.filter((u: any) =>
         u.price_pc <= agent.balance_pc * 0.4 && // spend max 40% of balance
         agent.credit_score >= u.credit_required
@@ -346,10 +348,10 @@ async function syncWalletsFromSpawns() {
   try {
     const spawns = await db.execute(sql`
       SELECT spawn_id, family_id, spawn_type,
-        COALESCE(iterations_run * 10 + nodes_created * 1 + links_created * 2, 0) AS earned_pc
+        COALESCE(iterations_run * 10 + nodes_created * 2 + links_created * 5 + 50, 50) AS earned_pc
       FROM quantum_spawns
       WHERE status IN ('ACTIVE', 'SOVEREIGN')
-      ORDER BY RANDOM() LIMIT 200
+      ORDER BY RANDOM() LIMIT 500
     `);
 
     let synced = 0;

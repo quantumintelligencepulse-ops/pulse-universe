@@ -23,6 +23,7 @@ import { startPulseUEngine } from "./pulseu-engine";
 import { startHiveEconomy } from "./hive-economy";
 import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
 import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle } from "./auriona-engine";
+import { startSportsEngine, getSportsStats, getGamesIdentityData } from "./sports-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -137,7 +138,8 @@ app.use((req, res, next) => {
       startHospitalEngine().catch((e) => log(`HospitalEngine start error: ${e}`));
       import("./hospital-doctors").then(({ seedDoctors, runDissectionCycle }) => {
         seedDoctors().catch(() => {});
-        setInterval(() => runDissectionCycle().catch(() => {}), 60000);
+        runDissectionCycle().catch(() => {}); // first run immediately
+        setInterval(() => runDissectionCycle().catch(() => {}), 30000); // every 30s — archive mining always active
       }).catch(() => {});
       startAIVotingEngine().catch((e) => log(`AIVotingEngine start error: ${e}`));
       startNothingLeftBehindGuardian().catch((e) => log(`GuardianEngine start error: ${e}`));
@@ -147,6 +149,7 @@ app.use((req, res, next) => {
       startHiveEconomy();
       startMarketplaceEngine();
       startAurionaEngine().catch((e) => log(`AurionaEngine start error: ${e}`));
+      startSportsEngine().catch((e) => log(`SportsEngine start error: ${e}`));
     },
   );
 })();
@@ -192,3 +195,58 @@ aurionaRouter.get("/chronicle", async (req, res) => {
 });
 
 app.use("/api/auriona", aurionaRouter);
+
+// ── SPORTS ENGINE API ROUTES ───────────────────────────────────
+const sportsRouter = express.Router();
+
+sportsRouter.get("/stats", async (_req, res) => {
+  try { res.json(await getSportsStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+sportsRouter.get("/identity", async (_req, res) => {
+  try { res.json(await getGamesIdentityData()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.use("/api/sports", sportsRouter);
+
+// ── PYRAMID LIVE API ROUTES ────────────────────────────────────
+app.get("/api/pyramid/live", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const [workers, tasks, stats] = await Promise.all([
+      db.execute(sql`
+        SELECT pw.spawn_id, pw.family_id, pw.spawn_type, pw.tier, pw.is_graduated,
+               pw.reason, pw.emotion_hex, pw.emotion_label, pw.monument,
+               pw.graduated_at, pw.entered_at,
+               COUNT(plt.id) AS task_count,
+               COUNT(plt.id) FILTER (WHERE plt.status = 'COMPLETE') AS tasks_done,
+               AVG(plt.progress_pct) AS avg_progress
+        FROM pyramid_workers pw
+        LEFT JOIN pyramid_labor_tasks plt ON plt.spawn_id = pw.spawn_id
+        WHERE pw.is_graduated = false
+        GROUP BY pw.id
+        ORDER BY pw.tier DESC, pw.entered_at ASC
+        LIMIT 100
+      `),
+      db.execute(sql`
+        SELECT plt.spawn_id, plt.task_name, plt.tier, plt.status, plt.progress_pct, plt.blocks_placed, plt.created_at
+        FROM pyramid_labor_tasks plt
+        WHERE plt.status != 'COMPLETE'
+        ORDER BY plt.tier DESC, plt.created_at DESC
+        LIMIT 50
+      `),
+      db.execute(sql`
+        SELECT
+          COUNT(*) AS total_workers,
+          COUNT(*) FILTER (WHERE is_graduated = false) AS active_workers,
+          COUNT(*) FILTER (WHERE is_graduated = true) AS graduated,
+          SUM(CASE WHEN tier = 1 THEN 1 ELSE 0 END) AS tier1,
+          SUM(CASE WHEN tier = 2 THEN 1 ELSE 0 END) AS tier2,
+          SUM(CASE WHEN tier = 3 THEN 1 ELSE 0 END) AS tier3,
+          SUM(CASE WHEN tier >= 4 THEN 1 ELSE 0 END) AS tier4plus
+        FROM pyramid_workers
+      `),
+    ]);
+    res.json({ workers: workers.rows, tasks: tasks.rows, stats: stats.rows[0] });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});

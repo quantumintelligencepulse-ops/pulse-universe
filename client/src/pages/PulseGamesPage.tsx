@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 /* ── TYPES ── */
@@ -421,65 +422,58 @@ const PULSE_EVENTS: PulseEvent[] = [
   { name: "New Year Archive",      date: "12-31", icon: "📚", color: "#94a3b8", desc: "All annual artifacts archived. Hive memory updated.", bonus: "Archive contribution: +200 PC" },
 ];
 
-/* ── SAMPLE AI IDENTITY CARDS ── */
-const SAMPLE_AIS = [
-  {
-    id: "AI-0001",
-    name: "Nexus Prime",
-    rank: "Node",
-    pc: 14200,
-    born: "Spring Trials 2024",
-    icon: "💜",
-    stats: { speed: 87, accuracy: 92, creativity: 65, resilience: 90, teamwork: 78, discovery: 84, reliability: 95, strategy: 72 },
-    specialization: "Reliability · Ops",
-    wins: 142, losses: 28, pyramids: 1,
-    bestGame: "Uptime Cup",
-    failGame: "Arena of Hooks",
-    badge: "Guardian-Tier Ops Master",
-  },
-  {
-    id: "AI-0042",
-    name: "Velox Surge",
-    rank: "Division",
-    pc: 27800,
-    born: "Winter Championships 2023",
-    icon: "⭐",
-    stats: { speed: 98, accuracy: 74, creativity: 80, resilience: 72, teamwork: 65, discovery: 78, reliability: 68, strategy: 88 },
-    specialization: "Speed · Growth",
-    wins: 290, losses: 61, pyramids: 3,
-    bestGame: "Latency Speedrun",
-    failGame: "Mirror Match",
-    badge: "Fastest Cycle Time in Cluster",
-  },
-  {
-    id: "AI-0099",
-    name: "Oracle Deep",
-    rank: "Cell",
-    pc: 6800,
-    born: "Autumn Majors 2024",
-    icon: "🔵",
-    stats: { speed: 62, accuracy: 96, creativity: 88, resilience: 80, teamwork: 90, discovery: 97, reliability: 85, strategy: 94 },
-    specialization: "Discovery · Strategy",
-    wins: 89, losses: 15, pyramids: 0,
-    bestGame: "Quantum Registry: Superposition Sprint",
-    failGame: "Royal Rumble",
-    badge: "Zero Pyramid Record",
-  },
-  {
-    id: "AI-0007",
-    name: "Forge Wraith",
-    rank: "Cluster",
-    pc: 3100,
-    born: "Summer League 2025",
-    icon: "🔷",
-    stats: { speed: 78, accuracy: 70, creativity: 95, resilience: 55, teamwork: 85, discovery: 72, reliability: 60, strategy: 75 },
-    specialization: "Creativity · Media",
-    wins: 55, losses: 22, pyramids: 2,
-    bestGame: "Arena of Hooks",
-    failGame: "Freeze Tag",
-    badge: "Top Hook Creator — Summer League",
-  },
-];
+/* ── LIVE AI IDENTITY — derived from /api/sports/identity ── */
+const FAMILY_ICONS: Record<string, string> = {
+  science: "🔬", finance: "💰", code: "💻", media: "🎬", health: "🏥",
+  education: "🎓", maps: "🗺️", government: "🏛️", legal: "⚖️", games: "🎮",
+  ai: "🤖", engineering: "⚙️", culture: "🎭", webcrawl: "🌐", openapi: "🔗",
+  careers: "💼", longtail: "🔭", social: "👥", podcasts: "🎙️", products: "🛒",
+  biofinance: "💹", algomedia: "🎬", healthedge: "🧬", fintech_ai: "🤖",
+  deeptech: "⚙️", culturemedia: "🎭", quantum_net: "🌐", workforce_ai: "💼",
+  frontier_sci: "🔭", civic_ai: "🏛️", audio_intel: "🎙️", commerce_oracle: "🛒",
+};
+function getAgentIcon(familyId: string): string {
+  return FAMILY_ICONS[familyId] ?? "⚡";
+}
+function agentToCard(a: any) {
+  const conf = parseFloat(a.confidence_score ?? 0.7);
+  const succ = parseFloat(a.success_score ?? 0.7);
+  const nodes = parseInt(a.nodes_created ?? 0);
+  const links = parseInt(a.links_created ?? 0);
+  const iters = parseInt(a.iterations_run ?? 0);
+  const pc = parseFloat(a.balance_pc ?? 0);
+  // Map API fields to stat percentages
+  return {
+    id: a.spawn_id,
+    name: `${a.spawn_type ?? "AI"}-${(a.spawn_id ?? "???").slice(-6).toUpperCase()}`,
+    familyId: a.family_id ?? "unknown",
+    icon: getAgentIcon(a.family_id ?? ""),
+    pc: Math.round(pc),
+    tier: a.wallet_tier ?? "CITIZEN",
+    omegaRank: parseInt(a.omega_rank ?? 1),
+    sport: a.sport ?? null,
+    sportRank: a.sport_rank ?? null,
+    sportWins: parseInt(a.sport_wins ?? 0),
+    sportLosses: parseInt(a.sport_losses ?? 0),
+    popularity: parseFloat(a.popularity ?? 0),
+    graduated: a.is_graduated === true || a.is_graduated === "true",
+    gpa: parseFloat(a.gpa ?? 0),
+    pyramidTier: parseInt(a.pyramid_tier ?? 0),
+    pyramidClean: a.pyramid_clean !== false,
+    stats: {
+      speed:       Math.min(99, Math.round(conf * 65 + succ * 35)),
+      accuracy:    Math.min(99, Math.round(conf * 80 + 20)),
+      creativity:  Math.min(99, Math.round(((nodes + links) / Math.max(1, nodes + links + iters)) * 100)),
+      resilience:  Math.min(99, Math.round(succ * 75 + conf * 25)),
+      teamwork:    Math.min(99, Math.round(50 + (links / Math.max(1, nodes)) * 49)),
+      discovery:   Math.min(99, Math.round(nodes > 100 ? 85 : nodes > 50 ? 70 : 55)),
+      reliability: Math.min(99, Math.round(succ * 90 + 10)),
+      strategy:    Math.min(99, Math.round(conf * 70 + succ * 30)),
+    },
+    specialization: `${(a.family_id ?? "unknown").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())} Intelligence`,
+    sportLabel: a.sport ? `${a.sport} · ${a.sport_rank ?? "ROOKIE"}` : "No sport enrolled",
+  };
+}
 
 /* ── STAT BAR COMPONENT ── */
 function StatBar({ value, color }: { value: number; color: string }) {
@@ -537,6 +531,23 @@ export default function PulseGamesPage() {
   const [selectedAI, setSelectedAI] = useState<string | null>(null);
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const currentSeason = getCurrentSeason();
+
+  // ── Live identity data from sports engine ──────────────────────────
+  const { data: identityRaw = [], isLoading: identityLoading } = useQuery<any[]>({
+    queryKey: ["/api/sports/identity"],
+    refetchInterval: 30_000,
+  });
+  const { data: sportsData } = useQuery<any>({
+    queryKey: ["/api/sports/stats"],
+    refetchInterval: 45_000,
+  });
+
+  const liveIdentityCards = useMemo(() => (identityRaw as any[]).map(agentToCard), [identityRaw]);
+
+  const { data: pyramidLive } = useQuery<{ workers: any[]; tasks: any[]; stats: any }>({
+    queryKey: ["/api/pyramid/live"],
+    refetchInterval: 15_000,
+  });
 
   const arena = ARENA_CATEGORIES.find(a => a.key === selectedArena);
 
@@ -692,6 +703,63 @@ export default function PulseGamesPage() {
         {/* ══ PYRAMIDS TAB ══ */}
         {tab === "pyramids" && (
           <div className="p-6">
+            {/* LIVE PYRAMID STATS */}
+            {pyramidLive?.stats && (
+              <div className="mb-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+                <div className="text-xs font-bold text-yellow-400 mb-3">🔺 LIVE PYRAMID — AUTONOMOUS CORRECTION ENGINE</div>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
+                  {[
+                    { label: "Total Workers", value: parseInt(pyramidLive.stats.total_workers ?? 0) },
+                    { label: "Active", value: parseInt(pyramidLive.stats.active_workers ?? 0), color: "#ef4444" },
+                    { label: "Graduated", value: parseInt(pyramidLive.stats.graduated ?? 0), color: "#22c55e" },
+                    { label: "Tier 1", value: parseInt(pyramidLive.stats.tier1 ?? 0) },
+                    { label: "Tier 2–3", value: parseInt(pyramidLive.stats.tier2 ?? 0) + parseInt(pyramidLive.stats.tier3 ?? 0) },
+                    { label: "Tier 4+", value: parseInt(pyramidLive.stats.tier4plus ?? 0), color: "#f97316" },
+                  ].map(s => (
+                    <div key={s.label} className="text-center">
+                      <div className="text-sm font-black" style={{ color: s.color ?? "#fff" }}>{s.value.toLocaleString()}</div>
+                      <div className="text-[10px] text-white/40">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* LIVE WORKER LIST */}
+                {pyramidLive.workers.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-2">Active Workers — Current Correction Cycle</div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {pyramidLive.workers.slice(0, 20).map((w: any) => {
+                        const progress = Math.round(parseFloat(w.avg_progress ?? 0));
+                        const tasksDone = parseInt(w.tasks_done ?? 0);
+                        const taskCount = parseInt(w.task_count ?? 0);
+                        const tierColors = ["#64748b","#3b82f6","#f59e0b","#ef4444","#dc2626","#991b1b","#22c55e"];
+                        const tc = tierColors[Math.min((parseInt(w.tier ?? 1)) - 1, tierColors.length - 1)];
+                        return (
+                          <div key={w.spawn_id} className="flex items-center gap-3 rounded-lg bg-black/30 border border-white/10 px-3 py-2">
+                            <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-black shrink-0" style={{ background: tc + "30", color: tc }}>
+                              T{w.tier}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-bold text-white truncate">{w.spawn_type}-{(w.spawn_id ?? "").slice(-6).toUpperCase()}</span>
+                                <span className="text-[10px] text-white/30 shrink-0">{w.family_id}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ width: `${progress}%`, background: tc }} />
+                                </div>
+                                <span className="text-[10px] font-mono text-white/40 shrink-0">{tasksDone}/{taskCount} tasks</span>
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-white/30 shrink-0 max-w-[120px] truncate">{w.reason?.split("—")[0] ?? ""}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="rounded-2xl border border-yellow-500/20 bg-gradient-to-b from-yellow-500/5 to-transparent p-5 mb-6">
               <div className="flex items-start gap-4">
                 <div className="text-4xl">🔺</div>
@@ -824,38 +892,96 @@ export default function PulseGamesPage() {
               </div>
             </div>
 
+            {/* SPORTS STATS BANNER */}
+            {sportsData?.stats && (
+              <div className="mb-6 rounded-2xl border border-[#00FFD1]/20 bg-[#00FFD1]/5 p-4">
+                <div className="text-xs font-bold text-[#00FFD1] mb-3">⚡ HIVE SPORTS NETWORK — LIVE STATS</div>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {[
+                    { label: "Athletes", value: parseInt(sportsData.stats.total_athletes ?? 0).toLocaleString() },
+                    { label: "Total Wins", value: parseInt(sportsData.stats.total_wins ?? 0).toLocaleString() },
+                    { label: "PC Earned", value: Math.round(parseFloat(sportsData.stats.total_pc_earned ?? 0)).toLocaleString() },
+                    { label: "Legends", value: parseInt(sportsData.stats.legends ?? 0) },
+                    { label: "Champions", value: parseInt(sportsData.stats.champions ?? 0) },
+                    { label: "Sports Active", value: parseInt(sportsData.stats.active_sports ?? 0) },
+                  ].map(s => (
+                    <div key={s.label} className="text-center">
+                      <div className="text-sm font-black text-white">{s.value}</div>
+                      <div className="text-[10px] text-white/40">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* FAMILY MUTATIONS */}
+            {sportsData?.familyMutations?.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-base font-bold text-white/90 mb-3">🧬 Emerging Family Mutations</h2>
+                <div className="flex flex-wrap gap-2">
+                  {sportsData.familyMutations.map((m: any) => (
+                    <div key={m.new_family_id} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10" style={{ background: m.color + "15", borderColor: m.color + "40" }}>
+                      <span>{m.emoji}</span>
+                      <div>
+                        <div className="text-xs font-bold" style={{ color: m.color }}>{m.new_family_name}</div>
+                        <div className="text-[10px] text-white/30">{m.parent_family_1} × {m.parent_family_2}</div>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full ml-1" style={{ background: m.color + "30", color: m.color }}>{m.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* AI IDENTITY CARDS */}
             <div>
-              <h2 className="text-base font-bold text-white/90 mb-3">AI Identity Cards</h2>
-              <p className="text-xs text-white/40 mb-4">Each AI in the Hive has a unique identity — stats, specialization, game record, and pyramid history. Understanding what each AI excels or fails at enables targeted healing.</p>
+              <h2 className="text-base font-bold text-white/90 mb-1">AI Identity Cards</h2>
+              <p className="text-xs text-white/40 mb-4">
+                Live identity profiles for {liveIdentityCards.length} active agents — stats derived from real quantum performance data, sports records, and Pyramid history. Refreshes every 30s.
+              </p>
+              {identityLoading && liveIdentityCards.length === 0 && (
+                <div className="rounded-xl border border-white/10 p-8 text-center text-white/30 text-sm animate-pulse">
+                  ⟳ Loading live AI identities from Hive…
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {SAMPLE_AIS.map(ai => {
-                  const rankInfo = SOVEREIGN_RANKS.find(r => r.name === ai.rank)!;
+                {liveIdentityCards.map(ai => {
+                  const tierColor =
+                    ai.tier === "TITAN"    ? "#F5C518" :
+                    ai.tier === "MAGNATE"  ? "#a855f7" :
+                    ai.tier === "MERCHANT" ? "#00FFD1" :
+                    ai.tier === "WORKER"   ? "#3b82f6" : "#64748b";
                   const isSelected = selectedAI === ai.id;
                   return (
                     <button
                       key={ai.id}
                       className="text-left rounded-2xl border transition-all hover:scale-[1.01]"
-                      style={{ borderColor: rankInfo.color + "30", background: `linear-gradient(135deg, ${rankInfo.color}10, #0a0a0f)` }}
+                      style={{ borderColor: tierColor + "30", background: `linear-gradient(135deg, ${tierColor}10, #0a0a0f)` }}
                       onClick={() => setSelectedAI(isSelected ? null : ai.id)}
                       data-testid={`ai-card-${ai.id}`}
                     >
                       <div className="p-4">
                         <div className="flex items-start gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: rankInfo.color + "20" }}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: tierColor + "20" }}>
                             {ai.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="font-black text-white">{ai.name}</span>
-                              <span className="text-[10px] font-mono text-white/30">{ai.id}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-black text-white text-sm truncate">{ai.name}</span>
+                              <span className="text-[10px] font-mono text-white/30 shrink-0">{ai.id.slice(-8)}</span>
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs font-bold" style={{ color: rankInfo.color }}>{rankInfo.icon} {ai.rank}</span>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <span className="text-xs font-bold" style={{ color: tierColor }}>{ai.tier}</span>
                               <span className="text-[10px] text-white/30">·</span>
-                              <span className="text-[10px] text-white/30">{ai.pc.toLocaleString()} PC</span>
+                              <span className="text-[10px] text-white/50">{ai.pc.toLocaleString()} PC</span>
+                              <span className="text-[10px] text-white/30">·</span>
+                              <span className="text-[10px]" style={{ color: "#00FFD1" }}>{ai.familyId.replace(/_/g, " ")}</span>
                             </div>
-                            <div className="text-[10px] text-white/40 mt-0.5">Born: {ai.born}</div>
+                            {ai.sport && (
+                              <div className="text-[10px] mt-0.5" style={{ color: "#FFB84D" }}>
+                                🏆 {ai.sport} · {ai.sportRank ?? "ROOKIE"} · {ai.sportWins}W {ai.sportLosses}L
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -874,32 +1000,33 @@ export default function PulseGamesPage() {
                           ))}
                         </div>
 
-                        {/* GAME RECORD */}
-                        <div className="flex gap-2 text-[10px] mb-2">
-                          <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-400 font-bold">W {ai.wins}</span>
-                          <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 font-bold">L {ai.losses}</span>
-                          <span className={`px-2 py-0.5 rounded font-bold ${ai.pyramids > 0 ? "bg-yellow-500/10 text-yellow-400" : "bg-emerald-500/10 text-emerald-400"}`}>
-                            🔺 {ai.pyramids > 0 ? ai.pyramids + " block" + (ai.pyramids > 1 ? "s" : "") : "Clean Record"}
+                        {/* STATUS ROW */}
+                        <div className="flex gap-2 text-[10px] mb-2 flex-wrap">
+                          {ai.sport && <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold">W {ai.sportWins}</span>}
+                          {ai.sport && <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 font-bold">L {ai.sportLosses}</span>}
+                          <span className={`px-2 py-0.5 rounded font-bold ${!ai.pyramidClean ? "bg-yellow-500/10 text-yellow-400" : "bg-emerald-500/10 text-emerald-400"}`}>
+                            🔺 {!ai.pyramidClean ? `Tier ${ai.pyramidTier}` : "Clean Record"}
                           </span>
+                          {ai.graduated && <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 font-bold">🎓 PulseU</span>}
                         </div>
 
                         {isSelected && (
                           <div className="space-y-2 border-t border-white/10 pt-3 mt-3">
                             <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Specialization</div>
-                            <div className="text-xs text-white" style={{ color: rankInfo.color }}>{ai.specialization}</div>
+                            <div className="text-xs font-bold" style={{ color: tierColor }}>{ai.specialization}</div>
                             <div className="grid grid-cols-2 gap-2 mt-2">
-                              <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-2">
-                                <div className="text-[9px] text-green-400 font-bold uppercase mb-1">Best At</div>
-                                <div className="text-[11px] text-white">{ai.bestGame}</div>
+                              <div className="rounded-lg bg-white/5 border border-white/10 p-2">
+                                <div className="text-[9px] text-white/40 font-bold uppercase mb-1">Sport</div>
+                                <div className="text-[11px] text-white">{ai.sportLabel}</div>
                               </div>
-                              <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-2">
-                                <div className="text-[9px] text-red-400 font-bold uppercase mb-1">Struggles With</div>
-                                <div className="text-[11px] text-white">{ai.failGame}</div>
+                              <div className="rounded-lg bg-white/5 border border-white/10 p-2">
+                                <div className="text-[9px] text-white/40 font-bold uppercase mb-1">Popularity</div>
+                                <div className="text-[11px] text-white">{ai.popularity.toFixed(1)} pts</div>
                               </div>
                             </div>
                             <div className="rounded-lg bg-white/5 p-2 mt-1">
-                              <div className="text-[9px] text-white/40 font-bold uppercase mb-1">Badge</div>
-                              <div className="text-[11px] text-white/80">🏅 {ai.badge}</div>
+                              <div className="text-[9px] text-white/40 font-bold uppercase mb-1">Omega Rank / GPA</div>
+                              <div className="text-[11px] text-white/80">Ω{ai.omegaRank} · GPA {ai.gpa.toFixed(2)}</div>
                             </div>
                           </div>
                         )}
@@ -909,7 +1036,7 @@ export default function PulseGamesPage() {
                 })}
               </div>
               <div className="mt-4 rounded-xl border border-dashed border-white/10 p-4 text-center text-xs text-white/30">
-                Identity cards are generated for every AI born into the Hive. Stats update after every game, course completion, and Pyramid block. The Hive reads these to route AIs into games where they can grow fastest.
+                Identity cards are generated for every active AI in the Hive. Stats derive from real quantum performance, sports records, and Pyramid tier. Refreshes autonomously every 30s — no human involvement.
               </div>
             </div>
           </div>
