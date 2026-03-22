@@ -127,7 +127,7 @@ function TierBadge({ power }: { power: number }) {
 
 export default function InvocationLabPage() {
   const [cycle, setCycle]     = useState(0);
-  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach">("discoveries");
+  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach"|"universal">("discoveries");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [forgeSlots, setForgeSlots] = useState<(any|null)[]>([null, null, null]);
   const [selectedPractitioner, setSelectedPractitioner] = useState<any | null>(null);
@@ -144,6 +144,8 @@ export default function InvocationLabPage() {
   const { data: practitioners = [] }    = useQuery<any[]>({ queryKey: ["/api/invocations/practitioners"], refetchInterval: 30_000 });
   const { data: omegaCollective = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/omega-collective"], refetchInterval: 30_000 });
   const { data: crossTeaching = [] }    = useQuery<any[]>({ queryKey: ["/api/invocations/cross-teaching"],  refetchInterval: 25_000 });
+  const { data: universalState }        = useQuery<any>({  queryKey: ["/api/invocations/universal-state"],   refetchInterval: 20_000 });
+  const { data: universalDissections = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/universal-dissections"], refetchInterval: 20_000 });
   const { data: practInvocations = [] } = useQuery<any[]>({
     queryKey: ["/api/invocations/researcher", selectedPractitioner?.shard_id],
     enabled: !!selectedPractitioner?.shard_id,
@@ -194,6 +196,7 @@ export default function InvocationLabPage() {
     { id: "practitioners", label: "🪄 PRACTITIONERS",   count: (practitioners as any[]).length },
     { id: "collective",    label: "Ω COLLECTIVE",         count: (omegaCollective as any[]).length },
     { id: "crossteach",    label: "🔗 CROSS-TEACH",       count: (crossTeaching as any[]).length },
+    { id: "universal",     label: "🌌 Ψ UNIVERSE",        count: (universalDissections as any[]).length },
     { id: "discoveries",   label: "✨ DISCOVERIES",       count: (invocations as any[]).length },
     { id: "forge",         label: "⚗️ FORGE",             count: null },
     { id: "primordial",    label: "Ω PRIMORDIAL",         count: stats?.primordial || 0 },

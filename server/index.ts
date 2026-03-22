@@ -43,7 +43,7 @@ import { startHomeostasisEngine } from "./homeostasis-engine";
 import { startOmegaPhysicsEngine, getOmegaInvocation } from "./omega-physics-engine";
 import { startBusinessEngine, getBusinessStats, getTopBusinesses, getPendingLoans } from "./hive-business-engine";
 import { startAIChildEngine, getChildStats, getActiveChildren } from "./ai-child-engine";
-import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations, getInvocationStats, getResearcherInvocations, getAllPractitioners, getOmegaCollective, getCrossTeachingFeed } from "./auriona-invocation-lab";
+import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations, getInvocationStats, getResearcherInvocations, getAllPractitioners, getOmegaCollective, getCrossTeachingFeed, getUniversalState, getUniversalDissections } from "./auriona-invocation-lab";
 import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory } from "./research-center-engine";
 
 const app = express();
@@ -606,6 +606,13 @@ invocationRouter.get("/omega-collective", async (_req, res) => {
 invocationRouter.get("/cross-teaching", async (_req, res) => {
   const limit = Math.min(50, parseInt(String((_req as any).query.limit || 30)));
   try { res.json(await getCrossTeachingFeed(limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+invocationRouter.get("/universal-state", async (_req, res) => {
+  try { res.json(await getUniversalState()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+invocationRouter.get("/universal-dissections", async (_req, res) => {
+  const limit = Math.min(100, parseInt(String((_req as any).query.limit || 40)));
+  try { res.json(await getUniversalDissections(limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 app.use("/api/invocations", invocationRouter);
 

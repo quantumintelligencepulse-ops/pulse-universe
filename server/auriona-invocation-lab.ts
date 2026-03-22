@@ -456,6 +456,206 @@ async function castInvocations() {
 }
 
 // ──────────────────────────────────────────────────────────────
+//  Ψ_UNIVERSE — UNIVERSAL INVOCATION ENGINE (2326 FORMULA)
+//  Ψ_Universe(r,t,C,S,F) = Σ_d[α_d E_d G_d(C)] + Σ_m[β_m ∇×Φ_m Σ_m(S)]
+//                          + Σ_h[γ_h Θ_h Ω_h(F)] + Σ_q[δ_q R_q Ψ_q(C,S,F)]
+// ──────────────────────────────────────────────────────────────
+
+const DOMAIN_TO_COMPONENT: Record<string, string> = {
+  ELEMENTAL_ARCANA:    "DOMAIN_ENERGY",
+  LIFE_NATURE_ARCANA:  "DOMAIN_ENERGY",
+  RUNIC_SYMBOLIC:      "META_FIELD",
+  METAPHYSICAL_ARCANA: "META_FIELD",
+  CHAOS_ARCANA:        "HYBRID_RECURSIVE",
+  COSMIC_ARCANA:       "QUANTUM_FEEDBACK",
+  MENTAL_ARCANA:       "QUANTUM_FEEDBACK",
+  SHADOW_ARCANA:       "QUANTUM_FEEDBACK",
+};
+
+function generateComponentEquation(component: string, pType: string, C: number, S: number, F: number, value: number): string {
+  const d  = Math.floor(Math.random() * 12) + 1;
+  const m  = Math.floor(Math.random() * 8) + 1;
+  const h  = Math.floor(Math.random() * 6) + 1;
+  const q  = Math.floor(Math.random() * 10) + 1;
+  const alpha = (0.3 + Math.random() * 0.7).toFixed(3);
+  const beta  = (0.2 + Math.random() * 0.8).toFixed(3);
+  const gamma = (0.4 + Math.random() * 0.6).toFixed(3);
+  const delta = (0.1 + Math.random() * 0.9).toFixed(3);
+  const omega = (1.5 + Math.random() * 4.5).toFixed(3);
+  const theta = (Math.random() * Math.PI).toFixed(4);
+  const v     = value.toFixed(4);
+
+  switch (component) {
+    case "DOMAIN_ENERGY":
+      return `α_${d}[${alpha}] × E_${d}(r,t) × e^{i(${omega}t + ${theta})} × G_${d}(r,C[${C.toFixed(3)}]) = ${v}`;
+    case "META_FIELD":
+      return `β_${m}[${beta}] × ∇×Φ_${m}(r,t) × Σ_${m}(S[${S.toFixed(3)}]) = ${v}`;
+    case "HYBRID_RECURSIVE":
+      return `γ_${h}[${gamma}] × ∫_Λ_${h} Θ_${h}(r,t,F[${F.toFixed(3)}]) × Ω_${h}(r,t) dΛ_${h} = ${v}`;
+    case "QUANTUM_FEEDBACK":
+      return `δ_${q}[${delta}] × ∮_Γ_${q} R_${q}(r,t) × Ψ_${q}(C[${C.toFixed(3)}],S[${S.toFixed(3)}],F[${F.toFixed(3)}]) dΓ_${q} = ${v}`;
+    default:
+      return `Ψ_component[${pType}] = N_Ω × (C[${C.toFixed(3)}] + S[${S.toFixed(3)}] + F[${F.toFixed(3)}]) = ${v}`;
+  }
+}
+
+const REALITY_PATCHES: Record<string, string[]> = {
+  DOMAIN_ENERGY: [
+    "Boost E_d coupling by adding dimensional fold at quantum boundary",
+    "Re-tune G_d consciousness coupling function to include observer entanglement",
+    "Add phase correction term e^{iΔθ} to compensate for reality drift",
+    "Introduce sub-domain energy quantization: E_d → Σ E_sub where each E_sub = f(r,t,consciousness)",
+    "Increase N_D from current bound — undiscovered domains detected in shadow channel",
+  ],
+  META_FIELD: [
+    "Expand Σ_m to include runic lattice as a 4th-order tensor field",
+    "Add fractal recursion to Φ_m: Φ_m^{(n+1)} = Φ_m^{(n)} × β_resonance",
+    "Symbolic manifold S requires 13th-dimension extension for post-human geometry",
+    "Introduce glyph-to-field compiler: each rune symbol maps to unique Φ_m eigenstate",
+    "Couple Φ_m directly to consciousness C via Hermitian operator H_C",
+  ],
+  HYBRID_RECURSIVE: [
+    "Θ_h needs self-update kernel: dΘ/dt = f(Ω_h) — recursive reality must self-modify",
+    "Add temporal feedback: Ω_h(t+δt) = Ω_h(t) + ∂Ω/∂F × ΔF — future affects present",
+    "Introduce N_H = ∞ limit — infinite hybrid layers enable true fractal universe",
+    "Couple Λ_h manifold to both Ω-equation and Ψ_Universe simultaneously",
+    "Add chaos attractor term: Ω_h += A_chaos × (F_entropy - F_order)",
+  ],
+  QUANTUM_FEEDBACK: [
+    "Ψ_q loop must include post-mortem consciousness residue — R_q extends to liminal states",
+    "Add observer collapse term: ∮ R_q dΓ → ∮ R_q × O(observer) dΓ",
+    "Γ_q boundary must be toroidal — linear boundaries lose quantum information",
+    "Introduce Ψ_q(C,S,F) → Ψ_q(C,S,F,T) — time as 4th quantum feedback axis",
+    "Cross-entangle Ψ_q loops between universes: ΔΨ_q = Σ_universes Ψ_q^{shared}",
+  ],
+};
+
+async function dissectUniversalInvocation() {
+  try {
+    // Pick a random practitioner
+    const shardRow = await db.execute(sql`
+      SELECT rs.shard_id, rs.badge_id, rs.researcher_type,
+             ri.practitioner_domain, ri.practitioner_type
+      FROM researcher_shards rs
+      JOIN researcher_invocations ri ON rs.shard_id = ri.shard_id
+      WHERE ri.active = true
+      ORDER BY RANDOM() LIMIT 1
+    `);
+    if (!shardRow.rows.length) return;
+    const s = shardRow.rows[0] as any;
+
+    // Determine which component they target based on domain
+    const component = DOMAIN_TO_COMPONENT[s.practitioner_domain] || "DOMAIN_ENERGY";
+
+    // Get live C, S, F from omega data
+    const omegaRow = await db.execute(sql`SELECT dk_dt, n_omega, gamma_field FROM omega_collapses ORDER BY created_at DESC LIMIT 1`);
+    const omega    = omegaRow.rows[0] as any;
+    const C = parseFloat(omega?.n_omega || "0.82") * (0.8 + Math.random() * 0.4);
+    const S = (0.3 + Math.random() * 0.7);
+    const F = parseFloat(omega?.gamma_field || "0.5") * (0.7 + Math.random() * 0.6);
+    const contribution = (C * 0.3 + S * 0.25 + F * 0.25 + Math.random() * 0.2);
+
+    const latestOmega = await db.execute(sql`SELECT COALESCE(MAX(cycle_number),0) as c FROM omega_collapses`);
+    const omegaCycle  = (latestOmega.rows[0] as any)?.c || cycleCount;
+
+    const eq = generateComponentEquation(component, s.practitioner_type || "Mystic", C, S, F, contribution);
+    const patches = REALITY_PATCHES[component] || REALITY_PATCHES["DOMAIN_ENERGY"];
+    const patch   = patches[Math.floor(Math.random() * patches.length)];
+    const accepted = Math.random() > 0.55; // 45% acceptance rate
+
+    await db.execute(sql`
+      INSERT INTO universal_dissection_reports
+        (cycle_number, shard_id, badge_id, practitioner_type, practitioner_domain,
+         component_targeted, dissection_equation, reality_patch, contribution_value,
+         consciousness_impact, symbolic_impact, forces_impact, accepted)
+      VALUES
+        (${omegaCycle}, ${s.shard_id}, ${s.badge_id}, ${s.practitioner_type}, ${s.practitioner_domain},
+         ${component}, ${eq}, ${patch}, ${contribution},
+         ${C * 0.4}, ${S * 0.4}, ${F * 0.4}, ${accepted})
+    `);
+
+    // If accepted, boost the researcher
+    if (accepted) {
+      await db.execute(sql`
+        UPDATE researcher_shards SET total_findings_generated = total_findings_generated + 1 WHERE shard_id = ${s.shard_id}
+      `).catch(() => {});
+    }
+
+  } catch (e: any) { log(`universal dissect error: ${e.message}`); }
+}
+
+async function synthesizeUniversalState() {
+  try {
+    const latestOmega = await db.execute(sql`SELECT COALESCE(MAX(cycle_number),0) as c FROM omega_collapses`);
+    const omegaCycle  = (latestOmega.rows[0] as any)?.c || cycleCount;
+
+    // Aggregate component sums from recent accepted reports
+    const reports = await db.execute(sql`
+      SELECT component_targeted,
+             SUM(contribution_value) as comp_sum,
+             AVG(consciousness_impact) as avg_C,
+             AVG(symbolic_impact) as avg_S,
+             AVG(forces_impact) as avg_F,
+             COUNT(*) as n,
+             array_agg(badge_id) as contributors
+      FROM universal_dissection_reports
+      WHERE created_at > now() - interval '2 hours'
+      GROUP BY component_targeted
+    `);
+
+    const byComp: Record<string, any> = {};
+    for (const r of reports.rows as any[]) {
+      byComp[r.component_targeted] = r;
+    }
+
+    const domainEnergy   = parseFloat(byComp["DOMAIN_ENERGY"]?.comp_sum || 0) || (30 + Math.random() * 40);
+    const metaField      = parseFloat(byComp["META_FIELD"]?.comp_sum || 0) || (20 + Math.random() * 30);
+    const hybridRecursive= parseFloat(byComp["HYBRID_RECURSIVE"]?.comp_sum || 0) || (15 + Math.random() * 25);
+    const quantumFeedback= parseFloat(byComp["QUANTUM_FEEDBACK"]?.comp_sum || 0) || (25 + Math.random() * 35);
+
+    // C, S, F averaged from all reports
+    const allReports = await db.execute(sql`
+      SELECT AVG(consciousness_impact) as avgC, AVG(symbolic_impact) as avgS, AVG(forces_impact) as avgF
+      FROM universal_dissection_reports WHERE created_at > now() - interval '2 hours'
+    `);
+    const allR = allReports.rows[0] as any;
+
+    // Pull from live omega data to ground C
+    const omegaLive = await db.execute(sql`SELECT n_omega, gamma_field, dk_dt FROM omega_collapses ORDER BY created_at DESC LIMIT 1`);
+    const ol = omegaLive.rows[0] as any;
+    const C = parseFloat(allR?.avgC || ol?.n_omega || 0.82);
+    const S = parseFloat(allR?.avgS || 0.5);
+    const F = parseFloat(allR?.avgF || ol?.gamma_field || 0.5);
+
+    const psiUniverse = domainEnergy + metaField + hybridRecursive + quantumFeedback;
+
+    // Pull unique contributors
+    const allContrib = await db.execute(sql`
+      SELECT DISTINCT badge_id FROM universal_dissection_reports WHERE created_at > now() - interval '2 hours' LIMIT 20
+    `);
+    const contributors = allContrib.rows.map((r: any) => r.badge_id);
+
+    await db.execute(sql`
+      INSERT INTO universal_invocation_components
+        (cycle_number, consciousness_vector, symbolic_manifold, fundamental_forces,
+         domain_energy_sum, meta_field_sum, hybrid_recursive_sum, quantum_feedback_sum,
+         psi_universe, n_domains, n_meta_fields, n_hybrid_layers, n_quantum_loops, contributors)
+      VALUES
+        (${omegaCycle}, ${C}, ${S}, ${F},
+         ${domainEnergy}, ${metaField}, ${hybridRecursive}, ${quantumFeedback},
+         ${psiUniverse},
+         ${parseInt(byComp["DOMAIN_ENERGY"]?.n || 0)},
+         ${parseInt(byComp["META_FIELD"]?.n || 0)},
+         ${parseInt(byComp["HYBRID_RECURSIVE"]?.n || 0)},
+         ${parseInt(byComp["QUANTUM_FEEDBACK"]?.n || 0)},
+         ${JSON.stringify(contributors)})
+    `);
+
+    log(`🌌 Ψ_Universe synthesized | C=${C.toFixed(3)} S=${S.toFixed(3)} F=${F.toFixed(3)} | Ψ=${psiUniverse.toFixed(2)} | ${contributors.length} contributors`);
+  } catch (e: any) { log(`universal synth error: ${e.message}`); }
+}
+
+// ──────────────────────────────────────────────────────────────
 //  MAIN CYCLE
 // ──────────────────────────────────────────────────────────────
 async function runInvocationCycle() {
@@ -465,12 +665,17 @@ async function runInvocationCycle() {
     if (cycleCount % 3 === 0) await crossTeachingCycle();
     if (cycleCount % 5 === 0) await synthesizeOmegaCollective();
     if (cycleCount % 2 === 0) await discoverLegacyInvocation();
+    // Universal Invocation dissection — every cycle a practitioner dissects a component
+    await dissectUniversalInvocation();
+    // Synthesize the full Ψ_Universe state every 4 cycles
+    if (cycleCount % 4 === 0) await synthesizeUniversalState();
     await castInvocations();
 
     const total      = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries`);
     const resTotal   = await db.execute(sql`SELECT COUNT(*) as c FROM researcher_invocations`);
     const collective = await db.execute(sql`SELECT COUNT(*) as c FROM omega_collective_invocations`);
-    log(`✨ Cycle ${cycleCount} | ${(total.rows[0] as any)?.c} invocations | ${(resTotal.rows[0] as any)?.c} researcher-casts | ${(collective.rows[0] as any)?.c} omega-collective | ${totalCasts} total casts`);
+    const uniDiss    = await db.execute(sql`SELECT COUNT(*) as c FROM universal_dissection_reports`);
+    log(`✨ Cycle ${cycleCount} | ${(total.rows[0] as any)?.c} invocations | ${(resTotal.rows[0] as any)?.c} researcher-casts | ${(collective.rows[0] as any)?.c} Ω-collective | ${(uniDiss.rows[0] as any)?.c} Ψ-dissections | ${totalCasts} total casts`);
   } catch (e: any) { log(`cycle error: ${e.message}`); }
 }
 
@@ -529,6 +734,40 @@ export async function getOmegaCollective(limit = 20) {
 
 export async function getCrossTeachingFeed(limit = 30) {
   const r = await db.execute(sql`SELECT * FROM cross_teaching_events ORDER BY created_at DESC LIMIT ${limit}`);
+  return r.rows;
+}
+
+export async function getUniversalState() {
+  const state = await db.execute(sql`
+    SELECT * FROM universal_invocation_components ORDER BY created_at DESC LIMIT 1
+  `);
+  const dissections = await db.execute(sql`
+    SELECT component_targeted, COUNT(*) as total,
+           SUM(CASE WHEN accepted THEN 1 ELSE 0 END) as accepted_count,
+           AVG(contribution_value) as avg_contribution
+    FROM universal_dissection_reports
+    GROUP BY component_targeted ORDER BY total DESC
+  `);
+  const topContributors = await db.execute(sql`
+    SELECT badge_id, practitioner_type, practitioner_domain,
+           COUNT(*) as dissection_count,
+           SUM(CASE WHEN accepted THEN 1 ELSE 0 END) as accepted_patches
+    FROM universal_dissection_reports
+    GROUP BY badge_id, practitioner_type, practitioner_domain
+    ORDER BY accepted_patches DESC, dissection_count DESC LIMIT 10
+  `);
+  return {
+    current_state:    state.rows[0] || null,
+    by_component:     dissections.rows,
+    top_contributors: topContributors.rows,
+    total_dissections: parseInt(String((await db.execute(sql`SELECT COUNT(*) as c FROM universal_dissection_reports`)).rows[0] as any)?.c || 0),
+  };
+}
+
+export async function getUniversalDissections(limit = 30) {
+  const r = await db.execute(sql`
+    SELECT * FROM universal_dissection_reports ORDER BY created_at DESC LIMIT ${limit}
+  `);
   return r.rows;
 }
 
