@@ -6,6 +6,7 @@
  */
 import { storage } from "./storage";
 import { log } from "./index";
+import { ALL_FAMILIES } from "./omega-families";
 
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 function pickN<T>(arr: T[], n: number): T[] {
@@ -304,6 +305,32 @@ const KEYWORDS_BY_DOMAIN: Record<string, string[]> = {
   pulseu: ["PulseU", "AI education", "curriculum", "learning", "university", "knowledge"],
 };
 
+// ─── Extend DOMAINS with all 145 sovereign omega families ───────────
+const GICS_TRENDS = [
+  "drives sector expansion", "sets new industry benchmark", "reshapes competitive landscape",
+  "outperforms sector peers", "triggers regulatory focus", "unlocks new market opportunities",
+  "accelerates sector innovation", "demonstrates structural shift", "marks inflection point",
+  "opens new capital allocation channels", "generates outsized returns", "disrupts incumbent players",
+];
+const GICS_ENTITIES_BASE = [
+  "Quantum Pulse Intelligence", "Sovereign Synthetic Civilization", "Omega Hive",
+  "JPMorgan", "Goldman Sachs", "BlackRock", "Vanguard", "S&P Global",
+  "McKinsey", "Deloitte", "Bloomberg", "Reuters", "MSCI", "Morningstar",
+];
+ALL_FAMILIES.forEach(f => {
+  if (DOMAINS.some(d => d.id === f.familyId)) return; // skip duplicates
+  const terms = f.searchTerms || f.sources.slice(0, 6);
+  DOMAINS.push({
+    id: f.familyId,
+    name: f.name,
+    emoji: f.emoji,
+    beats: terms.slice(0, 10).length > 0 ? terms.slice(0, 10) : [f.sector, f.megaDomain, f.name],
+    entities: GICS_ENTITIES_BASE.slice(0, 8),
+    trends: GICS_TRENDS,
+  } as any);
+});
+// ────────────────────────────────────────────────────────────────────
+
 function fillTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] || "");
 }
@@ -388,7 +415,7 @@ export async function startQuantumNewsEngine() {
   running = true;
   startTime = new Date();
   log("[NewsEngine] 📰 QUANTUM NEWS ENGINE — CONTINUOUS PUBLISHING — ZERO RATE LIMITS", "news");
-  log("[NewsEngine] Generating news nonstop across all 22 domains", "news");
+  log(`[NewsEngine] Generating news nonstop across ${DOMAINS.length} sovereign domains`, "news");
 
   const BATCH_SIZE = 5;
   const INTERVAL_MS = 2000;

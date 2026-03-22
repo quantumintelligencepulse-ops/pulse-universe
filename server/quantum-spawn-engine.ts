@@ -2,6 +2,7 @@ import { storage } from "./storage";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { sql as drizzleSql } from "drizzle-orm";
+import { OMEGA_SOURCES_FROM_FAMILIES, ALL_FAMILY_IDS, getFamily } from "./omega-families";
 
 // ─── AURIONA GOVERNANCE CACHE ─────────────────────────────────
 // Refreshes every 60s — prevents hammering DB on 2500ms spawn ticks
@@ -50,12 +51,10 @@ const SUMMARIZATION_STYLES = [
   "technical","narrative","bullet","academic","simplified","balanced","deep-analytical","cross-domain",
 ] as const;
 
-// ─── OMEGA SOURCES: 20 Mega-Domains ─────────────────────────
-export const OMEGA_SOURCES: {
-  familyId: string; businessId: string; domain: string; description: string;
-  color: string; emoji: string; megaDomain: string; sources: string[];
-  nodeCount: number; priority: number;
-}[] = [
+// ─── OMEGA SOURCES: 220+ Sovereign Families (from omega-families.ts) ─────────
+export const OMEGA_SOURCES = OMEGA_SOURCES_FROM_FAMILIES;
+// Legacy shim — keeps backward compat with any code referencing OMEGA_SOURCES[0].etc
+const _OMEGA_LEGACY_STUB = [
   { familyId:"knowledge", businessId:"Open Knowledge Universe", domain:"knowledge", color:"#6366f1", emoji:"📚", megaDomain:"Open Knowledge & Encyclopedias", description:"Wikipedia, Wikidata, DBpedia — the backbone of all structured human knowledge", sources:["Wikipedia Full Dumps","Wikidata","Wiktionary","Wikiquote","Wikibooks","Wikisource","Wikiversity","Wikivoyage","Wikinews","DBpedia","OpenLibrary","Stanford Encyclopedia of Philosophy","Internet Encyclopedia of Philosophy","Scholarpedia","OpenStax"], nodeCount:65000000, priority:10 },
   { familyId:"science", businessId:"Open Science Foundation", domain:"science", color:"#06b6d4", emoji:"🔬", megaDomain:"Open Scientific Research", description:"arXiv, PubMed OA, bioRxiv, CORE, Semantic Scholar — all open scientific research", sources:["arXiv","bioRxiv","medRxiv","PubMed Central OA","Semantic Scholar Open Research Corpus","CORE.ac.uk","DOAJ","PLOS","OpenAIRE","CERN Open Data Portal","NASA ADS","NIH Open Access"], nodeCount:50000000, priority:9 },
   { familyId:"government", businessId:"Open Government Intelligence", domain:"government", color:"#3b82f6", emoji:"🏛️", megaDomain:"Open Government Data", description:"data.gov, UN Data, World Bank, Census — the full open government data universe", sources:["data.gov (USA)","data.europa.eu (EU)","data.gov.uk (UK)","UN Data","World Bank Open Data","IMF Data","OECD Data","US Census Data","NOAA Climate Data","NASA Open Data","USGS Geology & Maps","Library of Congress Digital Collections"], nodeCount:30000000, priority:8 },

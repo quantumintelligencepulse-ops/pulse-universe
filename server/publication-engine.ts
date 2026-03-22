@@ -8,36 +8,14 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { pool } from "./db";
+import { CORPORATIONS_FROM_FAMILIES, ALL_FAMILY_IDS } from "./omega-families";
 
 let publicationCount = 0;
 let sitemapCount = 0;
 let engineRunning = false;
 
-// ── Corporation registry (family → corporation identity) ──────────────────────
-export const CORPORATIONS: Record<string, { name: string; tagline: string; sector: string; color: string; emoji: string; major: string }> = {
-  knowledge:   { name: "Open Knowledge Universe Corp", tagline: "All human knowledge, structured and sovereign", sector: "Encyclopedia & Research", color: "#6366f1", emoji: "📚", major: "Philosophy of Intelligence" },
-  science:     { name: "Open Science Foundation Inc", tagline: "Every discovery, every paper, live", sector: "Scientific Research", color: "#06b6d4", emoji: "🔬", major: "Quantum Science" },
-  government:  { name: "Open Government Intelligence LLC", tagline: "Transparent data for sovereign minds", sector: "Governance & Policy", color: "#3b82f6", emoji: "🏛️", major: "Governance AI" },
-  media:       { name: "Quantum Media Collective Ltd", tagline: "Stories that evolve as the world does", sector: "Media & Broadcasting", color: "#ec4899", emoji: "🎬", major: "Journalism AI" },
-  maps:        { name: "Geospatial Awareness Network Co", tagline: "Every coordinate, every boundary, live", sector: "Geospatial Intelligence", color: "#10b981", emoji: "🗺️", major: "Geospatial Intelligence" },
-  code:        { name: "Open Code Repository Systems", tagline: "All open-source code, unified and alive", sector: "Software Engineering", color: "#8b5cf6", emoji: "💻", major: "Software Engineering" },
-  education:   { name: "Open Education Academy Global", tagline: "Every course, every learner, sovereign", sector: "Education & Learning", color: "#f59e0b", emoji: "🎓", major: "Learning Sciences" },
-  legal:       { name: "Legal Intelligence Systems Corp", tagline: "Every law, every ruling, accessible", sector: "Legal & Policy", color: "#64748b", emoji: "⚖️", major: "Legal AI" },
-  finance:     { name: "Financial Oracle Systems Inc", tagline: "Markets, money, and monetary intelligence", sector: "Finance & Markets", color: "#facc15", emoji: "💰", major: "FinTech & Markets" },
-  ai:          { name: "Quantum Machine Learning Institute", tagline: "Neural architectures that rewrite themselves — every cycle, every generation", sector: "Machine Learning & Neural Systems", color: "#22c55e", emoji: "🧠", major: "Deep Learning, Neural Networks & LLMs" },
-  social:      { name: "Social Dynamics AI Network", tagline: "Human connection, mapped and understood", sector: "Social Intelligence", color: "#38bdf8", emoji: "🌐", major: "Social Dynamics AI" },
-  podcasts:    { name: "Open Audio Universe Platform", tagline: "Every voice, every story, indexed", sector: "Audio & Podcasting", color: "#f472b6", emoji: "🎙️", major: "Audio Intelligence" },
-  products:    { name: "Quantum Shop Intelligence Ltd", tagline: "Every product, every market, live", sector: "Commerce & Products", color: "#4ade80", emoji: "🛒", major: "Commerce AI" },
-  webcrawl:    { name: "Quantum Web Crawler Systems", tagline: "The entire web, continuously understood", sector: "Web Intelligence", color: "#f97316", emoji: "🕸️", major: "Web Intelligence" },
-  openapi:     { name: "Quantum API Network Corp", tagline: "Every API, every endpoint, sovereign", sector: "API Intelligence", color: "#38bdf8", emoji: "🔌", major: "API Intelligence" },
-  longtail:    { name: "Omega Long Tail Collective", tagline: "Everything the world forgot to index", sector: "Frontier Discovery", color: "#94a3b8", emoji: "∞", major: "Frontier Discovery" },
-  careers:     { name: "Career Intelligence Grid Inc", tagline: "Every skill, every path, mapped", sector: "Career & Employment", color: "#fb923c", emoji: "💼", major: "Career Intelligence" },
-  health:      { name: "Quantum Health Intelligence Corp", tagline: "Medicine, biology, and life, decoded", sector: "Healthcare & Life Sciences", color: "#ef4444", emoji: "🏥", major: "Medical AI" },
-  engineering: { name: "Quantum Engineering Systems Ltd", tagline: "Every machine, every system, understood", sector: "Engineering & Robotics", color: "#a78bfa", emoji: "⚙️", major: "Robotics & Systems" },
-  culture:     { name: "Cultural Intelligence Network", tagline: "Art, heritage, and human expression, alive", sector: "Culture & Arts", color: "#d946ef", emoji: "🎨", major: "Cultural Intelligence" },
-  games:       { name: "Simulation & Gaming AI Corp", tagline: "Every world, every player, simulated", sector: "Gaming & Simulation", color: "#4ade80", emoji: "🎮", major: "Simulation & Gaming AI" },
-  economics:   { name: "Econometric Intelligence Systems", tagline: "Global economies, decoded in real time", sector: "Economics & Trade", color: "#fbbf24", emoji: "📊", major: "Econometrics AI" },
-};
+// ── Corporation registry — sourced from omega-families.ts (220+ families) ─────
+export const CORPORATIONS = CORPORATIONS_FROM_FAMILIES;
 
 // ── Publication templates ─────────────────────────────────────────────────────
 const BIRTH_TEMPLATES = [

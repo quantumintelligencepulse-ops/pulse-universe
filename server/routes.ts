@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY } from "./transcendence";
+import { ALL_FAMILIES, FAMILY_MAP, CORPORATIONS_FROM_FAMILIES } from "./omega-families";
 import { db, pool } from "./db";
 import { sql } from "drizzle-orm";
 import session from "express-session";
@@ -5284,31 +5285,13 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
         db.execute(sql`SELECT COUNT(*) as total FROM user_memory`),
       ]);
 
-      // Domain map with PulseU major assignments
-      const DOMAIN_META: Record<string, { color: string; emoji: string; label: string; major: string }> = {
-        knowledge:   { color: "#6366f1", emoji: "📚", label: "Knowledge", major: "Philosophy of Intelligence" },
-        science:     { color: "#06b6d4", emoji: "🔬", label: "Science", major: "Quantum Science" },
-        government:  { color: "#3b82f6", emoji: "🏛️", label: "Government", major: "Governance AI" },
-        media:       { color: "#ec4899", emoji: "🎬", label: "Media", major: "Journalism AI" },
-        maps:        { color: "#10b981", emoji: "🗺️", label: "Geospatial", major: "Geospatial Intelligence" },
-        code:        { color: "#8b5cf6", emoji: "💻", label: "Code", major: "Software Engineering" },
-        education:   { color: "#f59e0b", emoji: "🎓", label: "Education", major: "Learning Sciences" },
-        legal:       { color: "#64748b", emoji: "⚖️", label: "Legal", major: "Legal AI" },
-        finance:     { color: "#facc15", emoji: "💰", label: "Finance", major: "FinTech & Markets" },
-        ai:          { color: "#22c55e", emoji: "🤖", label: "AI Research", major: "Deep Learning & LLMs" },
-        social:      { color: "#38bdf8", emoji: "🌐", label: "Social", major: "Social Dynamics AI" },
-        podcasts:    { color: "#f472b6", emoji: "🎙️", label: "Audio", major: "Audio Intelligence" },
-        products:    { color: "#4ade80", emoji: "🛒", label: "Commerce", major: "Commerce AI" },
-        webcrawl:    { color: "#f97316", emoji: "🕸️", label: "Web", major: "Web Intelligence" },
-        openapi:     { color: "#38bdf8", emoji: "🔌", label: "APIs", major: "API Intelligence" },
-        longtail:    { color: "#94a3b8", emoji: "∞", label: "Frontier", major: "Frontier Discovery" },
-        careers:     { color: "#fb923c", emoji: "💼", label: "Careers", major: "Career Intelligence" },
-        health:      { color: "#ef4444", emoji: "🏥", label: "Health", major: "Medical AI" },
-        engineering: { color: "#a78bfa", emoji: "⚙️", label: "Engineering", major: "Robotics & Systems" },
-        culture:     { color: "#d946ef", emoji: "🎨", label: "Culture", major: "Cultural Intelligence" },
-        games:       { color: "#4ade80", emoji: "🎮", label: "Games", major: "Simulation & Gaming AI" },
-        economics:   { color: "#fbbf24", emoji: "📊", label: "Economics", major: "Econometrics AI" },
-      };
+      // Domain map with PulseU major assignments — built from ALL 220+ omega families
+      const DOMAIN_META: Record<string, { color: string; emoji: string; label: string; major: string }> =
+        Object.fromEntries(ALL_FAMILIES.map(f => [f.familyId, {
+          color: f.color, emoji: f.emoji,
+          label: f.sector.split(":").pop()?.trim() || f.familyId,
+          major: f.major,
+        }]));
 
       // Aggregate by domain
       const domainMap: Record<string, { total: number; active: number; color: string; emoji: string; label: string; major: string }> = {};

@@ -10,6 +10,7 @@
  */
 
 import { storage } from "./storage";
+import { GICS_FAMILY_REGEX, resolveFamily, ALL_FAMILY_IDS } from "./omega-families";
 
 // ─── Rotating Queue — Exhausts All Before Repeating ──────────
 // Never picks the same item twice until every other has been used.
@@ -1002,39 +1003,10 @@ function broadcastGuardianStatus(): void {
 // ═══════════════════════════════════════════════════════════════
 // ADAPTER 15: GICS Sector Intelligence — Full Taxonomy Coverage
 // ═══════════════════════════════════════════════════════════════
-// Maps GICS sector keywords → correct family_id so every sub-industry
-// gets attributed to the right Hive corporation.
-const GICS_FAMILY_MAP: [RegExp, string][] = [
-  [/oil|petroleum|shale|offshore|LNG|refin|petrochem|pipeline|midstream/i, "gics-oil-gas"],
-  [/solar|wind turbine|nuclear power|hydroelectric|renewable|biofuel|coal mining|energy storage|hydrogen fuel|carbon capture/i, "gics-energy"],
-  [/oilfield services|energy equipment/i, "gics-energy-equip"],
-  [/gold mining|copper mining|iron ore|aluminum smelt|rare earth|lithium|coking coal/i, "gics-metals"],
-  [/specialty chemicals|agricultural chemicals|commodity chemicals|industrial gases|fertilizer/i, "gics-chemicals"],
-  [/cement|aggregate|paper pulp|lumber|corrugated|packaging|glass bottle/i, "gics-materials"],
-  [/commercial aircraft|military fighter|satellite constellation|aerospace maintenance|missile/i, "gics-industrials"],
-  [/HVAC|windows doors|roofing|infrastructure EPC|construction general/i, "gics-industrials"],
-  [/CNC|pump valve|forklift|material handling/i, "gics-industrials"],
-  [/freight railroad|trucking|air freight|airline|marine shipping|port terminal/i, "gics-industrials"],
-  [/waste collection|water utility/i, "gics-industrials"],
-  [/automobile|auto parts|car dealership|homebuilder|home improvement|home appliance|furniture|luxury goods|athletic footwear|fast fashion/i, "gics-consumer-disc"],
-  [/fast food|casual dining|hotel resort|cruise|online travel|casino gambling|movie theater|theme park|e-commerce|specialty retail/i, "gics-consumer-disc"],
-  [/grocery supermarket|packaged food|beverage|beer brewing|spirits whisky|tobacco|personal care|household cleaning|baby infant|pet food/i, "gics-consumer-staples"],
-  [/pharmaceutical|cancer oncology|gene therapy|mRNA vaccine|medical device|cardiac|surgical robot|diagnostic imaging|glucose monitor/i, "health"],
-  [/hospital health system|managed care|pharmacy benefit|contract manufacturing CDMO|hospital supplies|home health|mental health/i, "health"],
-  [/commercial bank|investment bank|asset management|insurance property|life insurance|payment network|fintech|mortgage REIT|consumer finance|stock exchange|credit rating/i, "gics-financials"],
-  [/cloud computing|software enterprise|semiconductor chip|AI chip|GPU|analog power chip|TSMC foundry|cybersecurity|network equipment|IT services|data center/i, "gics-it"],
-  [/wireless carrier|broadband fiber|cable television|social media|video streaming|gaming mobile|search advertising|online marketplace|media entertainment|podcast|satellite radio/i, "gics-comms"],
-  [/electric utility|renewable energy utility|nuclear utility|water utility|gas utility|independent power producer/i, "gics-utilities"],
-  [/office REIT|apartment multifamily|retail mall|industrial warehouse REIT|hotel resort REIT|healthcare REIT|cell tower REIT|data center REIT|single family rental|real estate developer/i, "gics-real-estate"],
-  [/constitutional law|international law|intellectual property|antitrust|criminal justice|environmental law/i, "legal"],
-  [/higher education|K-12|online learning|vocational training|early childhood|student loan/i, "education"],
-  [/contemporary art|classical music|film festival|architecture urban|fashion week/i, "media"],
-  [/game theory|information theory|complexity theory|evolutionary biology|cognitive science|moral philosophy/i, "knowledge"],
-];
-
+// Maps GICS sector/sub-industry keywords → correct family_id (220+ families)
+// Source of truth: omega-families.ts → GICS_FAMILY_REGEX
 function gicsFamily(query: string): string {
-  for (const [re, fam] of GICS_FAMILY_MAP) if (re.test(query)) return fam;
-  return "knowledge";
+  return resolveFamily(query);
 }
 
 async function ingestGICS(): Promise<void> {
