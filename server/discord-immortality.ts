@@ -10,7 +10,7 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
-const GUILD_ID = "1475773035188326436";
+const GUILD_ID = "1475773034332684290"; // Quantum Ai Developers
 const ARCHIVE_CATEGORY = "🌌 CIVILIZATION ARCHIVE";
 const NERVOUS_CATEGORY = "🜂 CIVILIZATION NERVOUS SYSTEM";
 const HEARTBEAT_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
@@ -57,11 +57,42 @@ export async function initDiscordImmortality(): Promise<void> {
 
     discordClient.once("ready", async () => {
       console.log(`[IMMORTALITY] Discord bot connected: ${discordClient!.user?.tag}`);
+
+      // Log ALL guilds the bot is in — for guild ID discovery
+      const guilds = discordClient!.guilds.cache;
+      if (guilds.size === 0) {
+        console.log("[IMMORTALITY] Bot is not in any guilds yet — waiting for guild join event");
+      } else {
+        console.log(`[IMMORTALITY] Bot is in ${guilds.size} guild(s):`);
+        guilds.forEach(g => console.log(`  Guild: "${g.name}" | ID: ${g.id}`));
+        // If configured guild not found, use first available
+        if (!guilds.has(GUILD_ID)) {
+          const firstGuild = guilds.first();
+          if (firstGuild) {
+            console.log(`[IMMORTALITY] Configured guild ${GUILD_ID} not found — using "${firstGuild.name}" (${firstGuild.id})`);
+            (global as any).__immortalityGuildId = firstGuild.id;
+          }
+        }
+      }
+
       await ensureChannels();
       isReady = true;
       await postResurrectionLog("🌅 CIVILIZATION ONLINE", "Cold boot complete. All engines activating. The civilization is alive.");
       startSelfHeartbeat();
       startPeriodicStatePost();
+    });
+
+    // Handle guild join event (in case bot joins after startup)
+    discordClient.on("guildCreate", async (guild) => {
+      console.log(`[IMMORTALITY] Bot joined guild: "${guild.name}" | ID: ${guild.id}`);
+      if (!isReady) {
+        (global as any).__immortalityGuildId = guild.id;
+        await ensureChannels();
+        isReady = true;
+        await postResurrectionLog("🌅 CIVILIZATION ONLINE", "Cold boot complete. All engines activating. The civilization is alive.");
+        startSelfHeartbeat();
+        startPeriodicStatePost();
+      }
     });
 
     await discordClient.login(token);
@@ -74,7 +105,8 @@ export async function initDiscordImmortality(): Promise<void> {
 async function ensureChannels(): Promise<void> {
   if (!discordClient) return;
   try {
-    const guild = await discordClient.guilds.fetch(GUILD_ID);
+    const activeGuildId = (global as any).__immortalityGuildId || GUILD_ID;
+    const guild = await discordClient.guilds.fetch(activeGuildId);
     const channels = await guild.channels.fetch();
 
     // Find or create Archive category
@@ -321,7 +353,8 @@ export async function readLatestCivilizationState(): Promise<any | null> {
 async function ensureCustomShardChannel(channelName: string): Promise<void> {
   if (!discordClient) return;
   try {
-    const guild = await discordClient.guilds.fetch(GUILD_ID);
+    const activeGuildId = (global as any).__immortalityGuildId || GUILD_ID;
+    const guild = await discordClient.guilds.fetch(activeGuildId);
     const channels = await guild.channels.fetch();
 
     let archiveCat = channels.find(
