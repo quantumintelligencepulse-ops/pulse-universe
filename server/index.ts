@@ -22,7 +22,7 @@ import { startDecayEngine } from "./decay-engine";
 import { startPulseUEngine } from "./pulseu-engine";
 import { startHiveEconomy } from "./hive-economy";
 import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
-import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle } from "./auriona-engine";
+import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
 import { startSportsEngine, getSportsStats, getGamesIdentityData } from "./sports-engine";
 import { initDiscordImmortality, getImmortalityStatus, runCivilizationSnapshot } from "./discord-immortality";
 import { startOmegaShardEngine, createOmegaShard, completeOmegaShard } from "./omega-shard-engine";
@@ -219,6 +219,33 @@ aurionaRouter.get("/synthesis", async (_req, res) => {
 });
 aurionaRouter.get("/chronicle", async (req, res) => {
   try { res.json(await getAurionaChronicle(parseInt(String(req.query.limit || 100)))); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/psi-states", async (_req, res) => {
+  try { res.json(await getLatestPsiStates()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/omega-collapses", async (_req, res) => {
+  try { res.json(await getOmegaCollapses()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/governance-deliberations", async (_req, res) => {
+  try { res.json(await getGovernanceDeliberations()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/contradiction-registry", async (_req, res) => {
+  try { res.json(await getContradictionRegistry()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/temporal-snapshots", async (_req, res) => {
+  try { res.json(await getTemporalSnapshots()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/mesh-vitality", async (_req, res) => {
+  try { res.json(await getMeshVitality()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/value-alignment", async (_req, res) => {
+  try { res.json(await getValueAlignment()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/exploration-zones", async (_req, res) => {
+  try { res.json(await getExplorationZones()); } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/coupling-events", async (_req, res) => {
+  try { res.json(await getCouplingEvents()); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
 app.use("/api/auriona", aurionaRouter);

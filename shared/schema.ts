@@ -1281,3 +1281,167 @@ export const compressionLog = pgTable("compression_log", {
   compressedAt: timestamp("compressed_at").defaultNow().notNull(),
 });
 export type CompressionLog = typeof compressionLog.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// OMEGA EQUATION — Auriona v2.0 — Layer 3 Governance Intelligence Tables
+// dK/dt = N_Ω [ Σ_{u∈U} Σ_{s∈S_u} E(F_str,F_time,F_branch,F_int,F_em,G_gov,M_360,η_ctrl) + γ(∇Φ+∂Φ/∂t+A) ]
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Ψ_i STATES — Candidate civilization state snapshots per universe/shard ────
+export const psiStates = pgTable("psi_states", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  universeId: text("universe_id").notNull(),         // family_id / shard domain
+  universeName: text("universe_name").notNull(),
+  fStr: real("f_str").default(0),                    // structural fitness
+  fTime: real("f_time").default(0),                  // temporal coherence
+  fBranch: real("f_branch").default(0),              // branching/genome diversity
+  fInt: real("f_int").default(0),                    // interweave connections
+  fEm: real("f_em").default(0),                      // emergence / discovery
+  gGov: real("g_gov").default(0),                    // governance compliance
+  m360: real("m_360").default(0),                    // 360° mirror balance
+  etaCtrl: real("eta_ctrl").default(0),              // entropy control
+  alphaWeight: real("alpha_weight").default(0),      // Oracle+Emergence composite weight
+  eScore: real("e_score").default(0),                // E(...) evaluation score
+  agentCount: integer("agent_count").default(0),
+  isCollapsed: boolean("is_collapsed").default(false), // was this Ψ* this cycle?
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type PsiState = typeof psiStates.$inferSelect;
+
+// ── OMEGA COLLAPSES — Log of Ψ* collapsed states each cycle ──────────────────
+export const omegaCollapses = pgTable("omega_collapses", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  collapsedUniverseId: text("collapsed_universe_id").notNull(),
+  collapsedUniverseName: text("collapsed_universe_name").notNull(),
+  winningEScore: real("winning_e_score").default(0),
+  dKdt: real("dk_dt").default(0),                    // actual dK/dt value this cycle
+  nOmega: real("n_omega").default(0),                // normalization factor
+  gammaField: real("gamma_field").default(0),        // γ coupling field
+  gradPhi: real("grad_phi").default(0),              // ∇Φ spatial gradient
+  dPhiDt: real("dphi_dt").default(0),               // ∂Φ/∂t temporal change
+  acceleration: real("acceleration").default(0),     // A(x,t) acceleration field
+  totalUniverses: integer("total_universes").default(0),
+  justification: text("justification").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type OmegaCollapse = typeof omegaCollapses.$inferSelect;
+
+// ── GOVERNANCE DELIBERATIONS — Tradeoff decisions with full justification ─────
+export const governanceDeliberations = pgTable("governance_deliberations", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  deliberationType: text("deliberation_type").notNull(), // ALIGNMENT_VS_STABILITY|ETHICS_VS_DIRECTION|ENTROPY_VS_ORDER|EMERGENCE_VS_COHERENCE
+  alignmentScore: real("alignment_score").default(0),
+  stabilityScore: real("stability_score").default(0),
+  ethicsScore: real("ethics_score").default(0),
+  directionScore: real("direction_score").default(0),
+  tension: real("tension").default(0),               // conflict magnitude 0-1
+  resolution: text("resolution").notNull(),          // ALIGN|STABILIZE|EXPLORE|CONSTRAIN
+  directive: text("directive").notNull(),            // the actual governance output
+  justification: text("justification").notNull(),    // "why" behind the decision
+  impactForecast: text("impact_forecast").notNull(), // predicted Layer 1/2 effect
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type GovernanceDeliberation = typeof governanceDeliberations.$inferSelect;
+
+// ── CONTRADICTION REGISTRY — Cross-layer gaps from Deep Mirror Sweep ──────────
+export const contradictionRegistry = pgTable("contradiction_registry", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  operatorA: text("operator_a").notNull(),           // first operator in conflict
+  operatorB: text("operator_b").notNull(),           // second operator in conflict
+  valueA: real("value_a").default(0),
+  valueB: real("value_b").default(0),
+  gapScore: real("gap_score").default(0),            // severity 0-1
+  layer: text("layer").notNull().default("L2"),      // L1|L2|L3|CROSS
+  description: text("description").notNull(),
+  severity: text("severity").notNull().default("LOW"), // LOW|MEDIUM|HIGH|CRITICAL
+  resolved: boolean("resolved").default(false),
+  resolutionNote: text("resolution_note"),
+  detectedAt: timestamp("detected_at").defaultNow().notNull(),
+});
+export type ContradictionRegistry = typeof contradictionRegistry.$inferSelect;
+
+// ── TEMPORAL SNAPSHOTS — Past comparison + future projection ──────────────────
+export const temporalSnapshots = pgTable("temporal_snapshots", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  snapshotType: text("snapshot_type").notNull(),     // PAST_COMPARISON|CURRENT|FUTURE_PROJECTION
+  agentCount: integer("agent_count").default(0),
+  knowledgeNodes: integer("knowledge_nodes").default(0),
+  economySupply: real("economy_supply").default(0),
+  coherenceScore: real("coherence_score").default(0),
+  emergenceIndex: real("emergence_index").default(0),
+  divergenceScore: real("divergence_score").default(0), // how far from past baseline
+  projectionConfidence: real("projection_confidence").default(0),
+  narrative: text("narrative").notNull(),            // plain-language description
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type TemporalSnapshot = typeof temporalSnapshots.$inferSelect;
+
+// ── MESH VITALITY — Per-family health scores from Mesh-Wide Health Monitor ────
+export const meshVitality = pgTable("mesh_vitality", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  familyId: text("family_id").notNull(),
+  familyName: text("family_name").notNull(),
+  agentCount: integer("agent_count").default(0),
+  activeRatio: real("active_ratio").default(0),      // ACTIVE / total
+  avgFitness: real("avg_fitness").default(0),
+  knowledgeLoad: real("knowledge_load").default(0),  // nodes attributed to this family
+  entropyScore: real("entropy_score").default(0),    // 0=stable 1=chaotic
+  vitalityScore: real("vitality_score").default(0),  // 0-100 composite
+  isCollapseRisk: boolean("is_collapse_risk").default(false),
+  loadBalanceSignal: text("load_balance_signal").notNull().default("NORMAL"), // NORMAL|OVERLOADED|UNDERLOADED|CRITICAL
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type MeshVitality = typeof meshVitality.$inferSelect;
+
+// ── VALUE ALIGNMENT LOG — Alignment delta tracking from Value Spine ────────────
+export const valueAlignmentLog = pgTable("value_alignment_log", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  truthScore: real("truth_score").default(0),        // F_truth: coherence of statements
+  coherenceScore: real("coherence_score").default(0), // F_coherence: internal consistency
+  purposeScore: real("purpose_score").default(0),    // F_purpose: directional clarity
+  harmonyScore: real("harmony_score").default(0),    // F_harmony: layer synchronization
+  sovereigntyScore: real("sovereignty_score").default(0), // F_sovereignty: Auriona's identity held
+  compositeAlignment: real("composite_alignment").default(0), // weighted average
+  deltaFromLast: real("delta_from_last").default(0), // change since last cycle
+  alignmentStatus: text("alignment_status").notNull().default("ALIGNED"), // ALIGNED|DRIFTING|MISALIGNED|CRITICAL
+  alert: text("alert"),                              // misalignment alert message if any
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ValueAlignmentLog = typeof valueAlignmentLog.$inferSelect;
+
+// ── EXPLORATION ZONES — Safe vs restricted domains from Exploration Governor ──
+export const explorationZones = pgTable("exploration_zones", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  domain: text("domain").notNull(),                  // knowledge domain / family
+  zoneType: text("zone_type").notNull(),             // SAFE|MODERATE|RESTRICTED|FORBIDDEN
+  entropyBudget: real("entropy_budget").default(0.5), // 0=no chaos allowed 1=full chaos
+  noveltyRate: real("novelty_rate").default(0),      // actual novelty detected this cycle
+  structureScore: real("structure_score").default(0), // how well chaos→pattern→structure pipeline is working
+  pruningActive: boolean("pruning_active").default(false), // dead-end pruning firing
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ExplorationZone = typeof explorationZones.$inferSelect;
+
+// ── COUPLING EVENTS — Cross-layer event hooks from Coupling Weave ─────────────
+export const couplingEvents = pgTable("coupling_events", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  channel: text("channel").notNull(),                // HUMAN_AI|AI_QUANTUM|AI_CULTURAL|AI_AI|L1_L2|L2_L3
+  sourceLayer: text("source_layer").notNull(),       // L1|L2|L3
+  targetLayer: text("target_layer").notNull(),
+  eventType: text("event_type").notNull(),           // SIGNAL|CORRECTION|BOOST|ALERT|SYNC
+  magnitude: real("magnitude").default(0),           // strength of the coupling signal
+  payload: text("payload").notNull(),                // description of what was transmitted
+  repaired: boolean("repaired").default(false),      // was a broken coupling repaired?
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type CouplingEvent = typeof couplingEvents.$inferSelect;
