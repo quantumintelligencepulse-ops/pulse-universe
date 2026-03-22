@@ -4363,6 +4363,9 @@ function NewsFeed() {
     }
   }, [feedMode]);
 
+  // Auto-load top stories on mount
+  useEffect(() => { loadFeed(); }, []);
+
   const activeDomain = OMEGA_SPINE.find(d => d.key === activeDomainKey) || null;
   const activeCategory = activeDomain?.children?.find(c => c.key === activeCatKey) || null;
 
@@ -4582,26 +4585,6 @@ function NewsFeed() {
             ))}
           </div>
 
-          {/* Domain tabs */}
-          {!searchQuery && feedMode === "all" && (
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1.5">
-              <button onClick={() => selectDomain(null)} data-testid="feed-domain-all"
-                className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all shrink-0 flex items-center gap-1 ${!activeDomainKey ? "bg-orange-500 text-white shadow-sm" : "bg-muted/30 text-muted-foreground hover:bg-muted/50"}`}>
-                🔥 All
-              </button>
-              {OMEGA_SPINE.map(d => (
-                <button key={d.key} onClick={() => selectDomain(d.key)} data-testid={`feed-domain-${d.key}`}
-                  className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all shrink-0 flex items-center gap-1 ${
-                    activeDomainKey === d.key
-                      ? "text-white shadow-sm"
-                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  }`}
-                  style={activeDomainKey === d.key ? { background: `linear-gradient(135deg, ${d.color}, ${d.color}cc)` } : {}}>
-                  {d.emoji} {d.label}
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* Category sub-tabs */}
           {activeDomain && !searchQuery && activeDomain.children.length > 0 && (
@@ -4638,80 +4621,6 @@ function NewsFeed() {
       {/* ── MAIN SCROLL AREA ── */}
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
 
-        {/* ── DOMAIN HOMEPAGE (no domain selected, feed not loaded) ── */}
-        {!activeDomainKey && !searchQuery && !feedLoaded && (
-          <div className="p-4">
-            {/* Hero banner */}
-            <div className="relative mb-6 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-500 via-red-500 to-purple-600 p-6 text-white shadow-xl">
-              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 80%, white 0%, transparent 50%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)" }} />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-xs font-bold uppercase tracking-widest opacity-80">Live · Quantum Pulse Intelligence</span>
-                </div>
-                <h2 className="text-2xl font-black mb-1">Omega News Hub</h2>
-                <p className="text-sm opacity-80 mb-4">20 domains · 120+ categories · Every topic on Earth covered live</p>
-                <button onClick={loadFeed} className="px-5 py-2.5 bg-white text-orange-600 font-bold text-sm rounded-xl hover:bg-orange-50 transition-colors shadow-lg" data-testid="button-load-feed">
-                  🔥 Load Top Stories
-                </button>
-              </div>
-            </div>
-
-            {/* Recent AI Stories — instant news */}
-            {recentStoriesLoaded && recentAiStories.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                    Latest from Quantum Pulse Intelligence
-                  </h3>
-                  <button onClick={loadFeed} className="text-[10px] text-orange-500 font-bold hover:underline" data-testid="button-see-all-news">See all →</button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {recentAiStories.slice(0, 6).map((s: any) => {
-                    const sp = s.slug || s.articleId;
-                    return (
-                      <button key={s.articleId} data-testid={`recent-story-${s.articleId}`}
-                        onClick={() => {
-                          const a = { id: s.articleId, slug: s.slug || "", title: s.seoTitle || s.title, description: s.summary || "", link: `/story/${sp}`, image: s.heroImage || "", source: s.sourceName || "Quantum Pulse Intelligence", pubDate: s.createdAt, category: s.category, type: "article", videoUrl: "", sourceColor: "#f97316" };
-                          sessionStorage.setItem(`article_${sp}`, JSON.stringify(a));
-                          sessionStorage.setItem(`article_${s.articleId}`, JSON.stringify(a));
-                          window.location.href = `/story/${sp}`;
-                        }}
-                        className="flex gap-3 p-3 bg-white dark:bg-zinc-900 border border-border/20 rounded-2xl hover:border-orange-300 hover:shadow-md transition-all text-left group">
-                        {s.heroImage && (
-                          <img src={s.heroImage} alt="" className="w-20 h-16 object-cover rounded-xl shrink-0" onError={e => { (e.target as any).style.display = "none"; }} />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[9px] text-orange-500 font-bold uppercase tracking-wider mb-1">{s.category}</div>
-                          <h4 className="text-xs font-bold leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors">{s.seoTitle || s.title}</h4>
-                          <div className="text-[9px] text-muted-foreground/40 mt-1">{timeAgo(s.createdAt)} · QPI</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Domain grid */}
-            <div className="mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Browse All {OMEGA_SPINE.length} Domains</h3>
-              <div className="grid grid-cols-2 gap-2.5">
-                {OMEGA_SPINE.map(d => (
-                  <button key={d.key} onClick={() => selectDomain(d.key)} data-testid={`domain-card-${d.key}`}
-                    className="relative overflow-hidden rounded-2xl p-4 text-left group transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
-                    style={{ background: `linear-gradient(135deg, ${d.color}20, ${d.color}35)`, border: `1px solid ${d.color}30` }}>
-                    <div className="text-2xl mb-1.5">{d.emoji}</div>
-                    <div className="text-[11px] font-bold text-foreground leading-tight">{d.label}</div>
-                    <div className="text-[9px] text-muted-foreground/60 mt-0.5">{d.children.length > 0 ? `${d.children.length} categories` : "Explore"}</div>
-                    <div className="absolute -bottom-2 -right-2 text-4xl opacity-10 group-hover:opacity-20 transition-opacity select-none">{d.emoji}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── DOMAIN OVERVIEW (domain selected, no cat, articles loaded) ── */}
         {activeDomain && !activeCatKey && !searchQuery && activeDomain.children.length > 0 && articles.length === 0 && !loading && feedLoaded && (
@@ -4914,8 +4823,35 @@ function NewsFeed() {
               </div>
             )}
 
+            {/* Hero top story */}
+            {articles[0] && !activeDomainKey && !searchQuery && (() => {
+              const hero = articles[0];
+              return (
+                <div className="mb-5 rounded-2xl overflow-hidden border border-border/20 shadow-md hover:shadow-lg transition-all cursor-pointer group" data-testid={`hero-card-${hero.id}`}
+                  onClick={() => { const sp = hero.slug || hero.id; sessionStorage.setItem(`article_${sp}`, JSON.stringify(hero)); window.location.href = hero.link || `/story/${sp}`; }}>
+                  {hero.image ? (
+                    <img src={hero.image} alt={hero.title} className="w-full h-56 sm:h-72 object-cover" onError={e => { (e.target as any).style.display = "none"; }} />
+                  ) : (
+                    <div className="w-full h-40 bg-gradient-to-br from-orange-500 via-red-500 to-purple-600 flex items-center justify-center">
+                      <span className="text-white/30 text-6xl">📰</span>
+                    </div>
+                  )}
+                  <div className="p-4 bg-white dark:bg-zinc-900">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">{hero.category || "Top Story"}</span>
+                      <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                      <span className="text-[10px] text-muted-foreground/50">{timeAgo(hero.pubDate)}</span>
+                      <span className="ml-auto flex items-center gap-1 text-[9px] text-emerald-500 font-bold"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />LIVE</span>
+                    </div>
+                    <h2 className="text-base sm:text-lg font-black leading-snug mb-2 group-hover:text-orange-500 transition-colors">{hero.title}</h2>
+                    {hero.description && <p className="text-sm text-muted-foreground/70 line-clamp-2">{hero.description}</p>}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
-              {articles.map(article => (
+              {(articles[0] && !activeDomainKey && !searchQuery ? articles.slice(1) : articles).map(article => (
                 <OmegaNewsCard key={article.id} article={article}
                   isExpanded={expandedId === article.id}
                   onExpand={() => {
