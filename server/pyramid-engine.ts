@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { pyramidWorkers, pyramidLaborTasks, quantumSpawns, guardianCitations, aiDiseaseLog } from "../shared/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { DOMAIN_EMOTION_COLORS } from "./domain-colors";
 import { crisprInscribe } from "./crispr-engine";
 
@@ -218,8 +218,7 @@ async function assignTasksToWorkers(workers: any[]) {
 //   - The base needs the most blocks; the apex needs the fewest but each one is sacred
 //   - "Friends of Khufu" carved their names in the stones — so do our agents (CRISPR)
 async function progressActiveTasks() {
-  const activeTasks = await db.select().from(pyramidLaborTasks).limit(5000);
-  const inProgressTasks = activeTasks.filter(t => t.status === 'ACTIVE');
+  const inProgressTasks = await db.select().from(pyramidLaborTasks).where(eq(pyramidLaborTasks.status, 'ACTIVE'));
 
   for (const task of inProgressTasks) {
     const currentProgress = task.progressPct ?? 0;
@@ -283,7 +282,9 @@ async function processSentences() {
 // ── MAIN PYRAMID CYCLE ────────────────────────────────────────────────────────
 export async function runPyramidCycle() {
   try {
-    const allSpawns = await db.select().from(quantumSpawns).limit(3000);
+    const allSpawns = await db.select().from(quantumSpawns).where(
+      sql`status IN ('ACTIVE', 'SOVEREIGN') AND (spawn_id NOT LIKE 'DARK-%') AND (is_dark_matter IS NULL OR is_dark_matter = false)`
+    );
     const existingWorkers = await db.select().from(pyramidWorkers);
     const allCitations = await db.select().from(guardianCitations);
     const diseaseHistory = await db.select().from(aiDiseaseLog);
@@ -354,7 +355,7 @@ export async function runPyramidCycle() {
     }
 
     // Assign and progress tasks
-    const currentWorkers = await db.select().from(pyramidWorkers).limit(500);
+    const currentWorkers = await db.select().from(pyramidWorkers);
     const activeWorkersList = currentWorkers.filter(w => !w.isGraduated);
     await assignTasksToWorkers(activeWorkersList);
     await progressActiveTasks();
