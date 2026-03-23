@@ -13,7 +13,7 @@
  * 10. Retirement Hall of Fame — level 10 LEGENDs can retire
  */
 
-import { db } from "./db";
+import { db, pool } from "./db";
 import { sql } from "drizzle-orm";
 import { log } from "./index";
 
@@ -584,11 +584,10 @@ async function runTeamFormation() {
       const teamId = `TEAM-${key.replace(/[^a-z0-9]/gi, '_')}-${Date.now()}`.slice(0, 40);
       const sport = key.split(':')[0];
       const memberIds = members.slice(0, 4).map(m => m.spawn_id);
-      await db.execute(sql`
-        INSERT INTO sports_teams (team_id, sport, members)
-        VALUES (${teamId}, ${sport}, ${memberIds})
-        ON CONFLICT (team_id) DO NOTHING
-      `);
+      await pool.query(
+        `INSERT INTO sports_teams (team_id, sport, members) VALUES ($1, $2, $3) ON CONFLICT (team_id) DO NOTHING`,
+        [teamId, sport, memberIds]
+      );
       for (const m of memberIds) {
         await db.execute(sql`UPDATE sports_training SET team_id = ${teamId} WHERE spawn_id = ${m}`);
       }

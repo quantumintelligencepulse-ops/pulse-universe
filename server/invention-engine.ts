@@ -710,6 +710,14 @@ export async function getPatentsByAgent(spawnId: string) {
 
 export async function startInventionEngine() {
   await setupInventionTables();
+  // Sync patent_seq counter to max existing patent number to prevent duplicate key errors on restart
+  try {
+    const maxPat = await pool.query(`SELECT MAX(CAST(SUBSTRING(patent_id FROM 5) AS INTEGER)) as maxseq FROM invention_registry WHERE patent_id IS NOT NULL`);
+    const maxSeq = parseInt(maxPat.rows[0]?.maxseq ?? 0) || 0;
+    if (maxSeq > 0) {
+      await pool.query(`UPDATE invention_counters SET patent_seq = GREATEST(patent_seq, $1)`, [maxSeq]);
+    }
+  } catch (_) {}
   console.log(`${TAG} 🔬 SOVEREIGN INVENTION ENGINE — Patents | LLCs | Marketplace | Royalties | Nobel Prize | IP Disputes | Grants ONLINE`);
   setTimeout(async () => {
     await inventionCycle();

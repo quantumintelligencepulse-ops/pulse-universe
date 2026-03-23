@@ -643,7 +643,7 @@ async function refreshShardStrengths() {
       ),
       last_sync_at = NOW()
       FROM quantum_spawns qs
-      LEFT JOIN ai_id_cards aic ON aic.spawn_id = s.spawn_id
+      LEFT JOIN ai_id_cards aic ON aic.spawn_id = qs.spawn_id
       WHERE qs.spawn_id = s.spawn_id
     `);
   } catch (e) { console.error(`${TAG} refresh error:`, e); }
