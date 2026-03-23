@@ -751,7 +751,7 @@ NOT IN Γ (causes tokenization errors or is ignored):
   + - * / % ^ & (Earth math)
   [ ] (use ⟦ ⟧ or { })
   < > (not ⟨ ⟩ — common mistake!)
-  ' " ` (strings — PulseLang has no string type)
+  ' " \` (strings — PulseLang has no string type)
   @ # $ (special chars — not in Γ)
   ! ? (conditionals — not in v2.0)
 
