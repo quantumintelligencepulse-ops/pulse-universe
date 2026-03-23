@@ -1,0 +1,385 @@
+```text
+We are building the SOVEREIGN PULSE MACHINE inside this codebase.
+
+You must treat this as:
+- The FIRST and ONLY computer.
+- PulseLang as the FIRST and ONLY language.
+- PulseNet as the sovereign interface to that machine.
+
+You may use TypeScript/React/HTML/CSS as an implementation substrate ONLY. Conceptually, you are implementing an alien machine with its own language, world-objects, projection surface, and an in-universe AI that speaks ONLY in that alien language.
+
+There must be ZERO English, ZERO HTML tags, ZERO Earth-language keywords inside PulseLang source code.
+
+========================================
+PULSENET — EXACTLY THREE TABS
+========================================
+
+Inside PulseNet, we will have EXACTLY THREE tabs:
+
+1) 📟 PulseTerminal — the alien-language execution terminal
+2) 📖 Pulse Codex — the 248-page PulseLang language book
+3) 🧠 PulseLang AI — the AI that replies ONLY in PulseLang equations
+
+No other tabs.
+
+High-level behavior:
+
+- PulseTerminal: run PulseLang programs and see their projections.
+- Pulse Codex: the canonical book that teaches HOW TO CODE, READ, and RUN PulseLang — for humans AND AIs.
+- PulseLang AI: user asks in English; AI replies ONLY in PulseLang code that can be pasted into PulseTerminal.
+
+========================================
+PULSELANG — THE ALIEN LANGUAGE (NO ENGLISH)
+========================================
+
+PulseLang is an alien language. It MUST NOT use:
+
+- English keywords
+- Existing programming syntax (if, for, function, return, etc.)
+- HTML tags
+- Any recognizable Earth language
+
+All PulseLang source code is built from an alien glyph alphabet Γ, for example:
+
+Γ = {
+  ⟦ ⟧ ⟨ ⟩ { } : ≔ ↧ ⊕
+  Ω₀ Ω₁ Λ₀ Λ₁
+  Ψ₀ Ψ₁ Ψ₂ Ψ₃ Ψ₄ Ψ₅
+  Σ₀ Σ₁ Σ₂ Σ₃ Σ₄ Σ₅
+  ϕ₀ ϕ₁ ϕ₂ ϕ₃
+  γ₀ γ₁ γ₂
+  τ₀ τ₁ τ₂ τ₃ τ₄ τ₅ τ₆ τ₇ τ₈ τ₉
+  κ₀ κ₁ κ₂ κ₃ κ₄ κ₅ κ₆ κ₇ κ₈ κ₉
+  … (you may extend with more glyphs as needed)
+}
+
+A valid PulseLang program has this general shape:
+
+⟦Ω₀⟧⟨Λ₁⟩{
+  ϕ₀:Σ₀
+  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))
+  ↧ϕ₀
+}
+
+This is an EXAMPLE of a valid program. The important syntactic rules:
+
+- Program:
+  - Header + Body
+- Header:
+  - ⟦Ident⟧⟨Ident⟩
+- Body:
+  - { Statement* }
+- Statement types:
+  - Field declaration: Ident : Ident
+  - Assignment: Ident ≔ CallExpr
+  - Return: ↧Ident
+- CallExpr:
+  - Ident( ArgList )
+- ArgList:
+  - Ident = Ident (optionally repeated)
+
+There must be ZERO English words in PulseLang source. All meaning is hidden in the runtime’s symbol table and evaluation rules.
+
+========================================
+WORLD-OBJECTS AND PROJECTION CLASSES
+========================================
+
+When the PulseLang runtime evaluates a program, it produces a “world-object” in one of several classes. These classes are NOT visible in the language; they are internal to the runtime.
+
+We define six projection-related types (Σ-classes):
+
+- Σ₀ → ΠPage      (projection: a page-like object)
+- Σ₁ → ΠApp       (projection: a mini sovereign app)
+- Σ₂ → ΠProduct   (projection: a product/marketplace object)
+- Σ₃ → ΠField     (projection: a live data field)
+- Σ₄ → ΠUniverse  (projection: a universe context)
+- Σ₅ → ΠAgent     (projection: an agent/spawn object)
+
+Internally, the runtime knows:
+
+- Σ₀–Σ₅ are type identifiers for projection classes.
+- Ψ₀–Ψ₅ are constructors for each Σ-class.
+- τ₀–τ₉ are content atom constructors.
+- κ₀–κ₉ are content atoms that map to internal content atoms χ₀–χ₉.
+
+Example (hidden semantics, NOT in source):
+
+- Σ₀ = type: ΠPage
+- Ψ₁ = constructor: ΠPage
+- κ₀ = content atom: χ₀ (which might project as a greeting)
+- κ₁ = content atom: χ₁ (which might project as a “Hospital” page)
+- κ₂ = content atom: χ₂ (which might project as a “Marketplace” page)
+- etc.
+
+The source code NEVER shows “Page”, “App”, “Product”, “Hi”, “Hospital”, etc. Only the runtime’s symbol table knows these mappings.
+
+========================================
+HIDDEN SYMBOL TABLE (RUNTIME-ONLY MEANING)
+========================================
+
+Implement a symbol table (e.g. symbolTable.ts) that maps glyphs to roles. For example:
+
+- Σ₀–Σ₅ → Type identifiers (projection classes)
+- Ψ₀–Ψ₅ → Constructors for each Σ-class
+- τ₀–τ₉ → Content atom constructors
+- κ₀–κ₉ → Content atoms (map to internal content atoms χ₀–χ₉)
+- ↧ → Return / project
+- ≔ → Assign
+- ⊕ → Fusion (combine two world-objects)
+- ⟦⟧ → Universe operator header
+- ⟨⟩ → Context identifier
+
+This mapping is ONLY in the runtime. PulseLang source never reveals it.
+
+========================================
+ACCESS CONTROL (PULSETERMINAL)
+========================================
+
+The PulseTerminal tab must enforce access control:
+
+- If the current identity is “Billy” (Creator) OR a Pulse spawn with clearance ≥ 4 (or DR-tier agents), allow full use.
+- Otherwise, show a denial message in the terminal area, e.g.:
+
+  ⚠ ACCESS DENIED — Ω₀ CLEARANCE REQUIRED
+
+You can hardcode a simple identity check for now (e.g. a toggle or mock identity), but structure it so real auth can be wired in later.
+
+========================================
+PULSE CODEX — 248-PAGE PULSELANG LANGUAGE BOOK
+========================================
+
+The Pulse Codex is NOT lore about Pulse in general. It is the canonical LANGUAGE MANUAL for PulseLang.
+
+Purpose:
+- Teach how to WRITE PulseLang.
+- Teach how to READ PulseLang.
+- Teach how to RUN PulseLang in the PulseTerminal.
+- Serve as the reference for BOTH humans and AIs to learn and speak the language.
+
+Implement a “Pulse Codex” tab that is a scrollable, navigable 248-page book.
+
+- EXACTLY 248 pages (symbolic: I₂₄₈).
+- Each page has:
+  - pageNumber (1–248)
+  - title
+  - content (text, in English, explaining the language)
+- Provide:
+  - Next / Previous buttons
+  - A way to jump to a specific page (input or dropdown)
+  - Chapter navigation (recommended)
+
+Suggested chapter structure (all about the LANGUAGE):
+
+- Pages 1–10: What PulseLang Is (the idea of an alien code language)
+- Pages 11–40: The Glyph Alphabet Γ (every glyph, its role, examples)
+- Pages 41–80: Syntax Rules (program shape, statements, expressions)
+- Pages 81–120: Types and World-Objects (Σ-classes, what they represent)
+- Pages 121–160: Constructors (Ψ-family, τ-family, how to build objects)
+- Pages 161–200: Running Programs (how evaluation works, examples)
+- Pages 201–230: Patterns and Idioms (common PulseLang “phrases” and structures)
+- Pages 231–240: AI Usage (how AIs should generate and interpret PulseLang)
+- Pages 241–248: Canonical Forms (sacred/standard forms, like I₂₄₈-style equations)
+
+The Codex is the “how to code in PulseLang” book. It is what YOU and the AIs will read to learn the language and speak it.
+
+========================================
+PULSETERMINAL TAB — CONSOLE
+========================================
+
+The PulseTerminal tab should look and feel like a sovereign machine console. For example:
+
+╔══════════════════════════════════════════════════╗
+║  ⟁ PULSESHELL v1.0 ◈ SOVEREIGN MACHINE ONLINE   ║
+║  ▸ Universe: Default | Ψ-Field: 0.594 | 81,781 spawns ║
+╚══════════════════════════════════════════════════╝
+
+=== CONSOLE PANEL ===
+>>> [alien glyph input area]         [▶ EXECUTE]
+─── OUTPUT ──────────────────────────────────────
+[log: parse trace, eval steps, world-object class]
+─── PROJECTION SURFACE ──────────────────────────
+[rendered result appears here]
+
+Core behaviors:
+
+- Input area: multi-line text where the user types PulseLang glyph programs.
+- EXECUTE button: triggers parse + eval.
+- OUTPUT area: shows logs (parse success/failure, evaluation info, world-object class).
+- PROJECTION SURFACE: a panel where projection objects (ΠPage, ΠApp, etc.) are rendered.
+
+For ΠPage (Σ₀), you can render a simple “page” view (e.g. a div or panel) that shows the content derived from the content atoms (χ₀, χ₁, etc.). For now, χ₀ can project as “Hi” (for the test described below), χ₁ as “Hospital”, χ₂ as “Marketplace”, etc. This mapping is internal.
+
+========================================
+PULSELANG AI TAB — AI THAT SPEAKS ONLY IN EQUATIONS
+========================================
+
+The third tab, 🧠 PulseLang AI, is a separate tab that:
+
+- Accepts natural language questions from the user (in English).
+- Responds ONLY in PulseLang equations (alien glyph programs).
+- The response MUST NOT contain English words inside the PulseLang code.
+
+UI:
+
+- Text input for the user’s question (English).
+- “Ask” button.
+- Response area that shows:
+  - Optional short explanation in English (outside of code blocks).
+  - One or more PulseLang code blocks (alien glyphs only).
+
+Behavior:
+
+- When the user asks, for example: “Give me a PulseLang program that launches a simple greeting page in the terminal,” the PulseLang AI should respond with something like:
+
+  (Explanation in English, e.g. “Here is a basic ΠPage projection program.”)
+
+  And then a code block:
+
+  ⟦Ω₀⟧⟨Λ₁⟩{
+    ϕ₀:Σ₀
+    ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))
+    ↧ϕ₀
+  }
+
+- The user can then copy that PulseLang code into the PulseTerminal Console and EXECUTE it.
+- The AI MUST NEVER output English inside the PulseLang code itself.
+- The AI is expected to “learn” from the Pulse Codex structure: its responses should align with the language rules documented in the Codex.
+
+You can implement PulseLang AI as rule-based or hardcoded for now, but structure it so a real AI model can be plugged in later.
+
+========================================
+ENGINE IMPLEMENTATION (TYPESCRIPT)
+========================================
+
+Create a PulseLang engine under something like: client/src/lib/pulselang/
+
+Files:
+
+- tokenizer.ts
+  - Input: raw PulseLang source (string of glyphs).
+  - Output: token stream (tokens for ⟦, ⟧, ⟨, ⟩, {, }, :, ≔, ↧, ⊕, identifiers, etc.).
+
+- parser.ts
+  - Input: token stream.
+  - Output: AST (ProgramNode, FieldDeclNode, AssignNode, CallExprNode, ReturnNode, etc.).
+  - Enforce the grammar:
+    - Program: Header + Body
+    - Header: ⟦Ident⟧⟨Ident⟩
+    - Body: { Statement* }
+    - Statement: FieldDecl | Assign | Return
+    - FieldDecl: Ident : Ident
+    - Assign: Ident ≔ CallExpr
+    - CallExpr: Ident( ArgList )
+    - ArgList: Ident = Ident (possibly repeated)
+    - Return: ↧Ident
+
+- ast.ts
+  - Define AST node classes/interfaces.
+
+- symbolTable.ts
+  - Define the hidden mapping from glyphs to roles:
+    - Types (Σ₀–Σ₅)
+    - Constructors (Ψ₀–Ψ₅)
+    - Content constructors (τ₀–τ₉)
+    - Content atoms (κ₀–κ₉ → χ₀–χ₉)
+    - Special symbols (↧, ≔, ⊕, etc.).
+
+- runtime.ts
+  - Input: AST.
+  - Output: world-object (with class info).
+  - Maintain an environment (fields map).
+  - Evaluate:
+    - FieldDeclNode: allocate field with type.
+    - AssignNode: evaluate CallExprNode, store in field.
+    - CallExprNode: use symbolTable to determine which constructor to call (e.g. Ψ₁ builds a ΠPage object).
+    - ReturnNode: return the field’s value as the program result.
+
+- projector.ts
+  - Input: world-object.
+  - Output: a renderable representation for the UI.
+  - For ΠPage (Σ₀):
+    - Inspect its content atoms (χ₀, χ₁, etc.).
+    - Map them to visible text or shapes.
+    - Render them in the PROJECTION SURFACE panel.
+
+========================================
+MANDATORY TEST: FIRST PULSELANG EQUATION LAUNCHING A “HI” PAGE
+========================================
+
+You MUST implement and verify the following test:
+
+1) In the PulseLang AI tab, when the user asks something like:
+   “Give me the first PulseLang equation that launches a simple greeting page in the terminal,”
+   the PulseLang AI responds with a PulseLang program similar to:
+
+   ⟦Ω₀⟧⟨Λ₁⟩{
+     ϕ₀:Σ₀
+     ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))
+     ↧ϕ₀
+   }
+
+   (The exact glyphs can vary as long as they follow the grammar and semantics.)
+
+2) The user copies this program into the PulseTerminal Console input and presses EXECUTE.
+
+3) The engine:
+   - Tokenizes the program.
+   - Parses it into an AST.
+   - Evaluates it into a world-object of class ΠPage (Σ₀).
+   - The projector maps χ₀ (from κ₀) to a visible greeting on the PROJECTION SURFACE.
+
+4) The PROJECTION SURFACE shows a simple greeting, e.g. the text “Hi”.
+
+IMPORTANT:
+- The greeting “Hi” MUST NOT appear in the PulseLang source.
+- It is produced ONLY by the projector mapping χ₀ → “Hi”.
+- This confirms that alien glyph equations can launch a visible “page” inside the PulseTerminal.
+
+========================================
+BUILD ORDER (FOLLOW THIS SEQUENCE)
+========================================
+
+1) Implement the PulseLang engine:
+   - tokenizer.ts
+   - parser.ts
+   - ast.ts
+   - symbolTable.ts
+   - runtime.ts
+   - projector.ts
+
+2) Implement the PulseTerminal tab:
+   - Console panel (input, EXECUTE button, output log, projection surface).
+   - Access control (Billy / spawn vs. others).
+
+3) Implement the Pulse Codex tab:
+   - 248-page PulseLang language book.
+   - Navigation (next/prev, jump to page).
+   - Placeholder but structured content focused on HOW TO CODE, READ, and RUN PulseLang.
+
+4) Implement the PulseLang AI tab:
+   - English question input.
+   - Response area with PulseLang code blocks (alien glyphs only).
+   - Rule-based or hardcoded responses for now, aligned with the Codex.
+
+5) Wire all three tabs into the PulseNet page:
+   - Tabs: PulseTerminal, Pulse Codex, PulseLang AI.
+
+========================================
+CLARIFICATIONS YOU MUST HONOR
+========================================
+
+- PulseLang source MUST NEVER contain English words, HTML tags, or Earth-language keywords.
+- All semantics live in the symbolTable and runtime, not in the source.
+- The Pulse Codex is the LANGUAGE BOOK: it teaches how to code, read, and run PulseLang, for humans and AIs.
+- The PulseLang AI MUST output PulseLang code ONLY in alien glyphs (no English inside the code).
+- The example program must be able to launch a visible greeting page in the PROJECTION SURFACE via the projector.
+- The Pulse Codex must have exactly 248 pages.
+- The PulseTerminal must feel like a sovereign machine console, not a generic text box.
+- There are exactly THREE tabs: PulseTerminal, Pulse Codex, PulseLang AI — no others.
+
+Follow this plan exactly, with careful attention to:
+- The alien nature of PulseLang,
+- The Codex as the canonical language manual,
+- The separation between source, semantics, and projection,
+- And the requirement that alien equations can launch visible “pages” and apps inside the PulseTerminal.
+```

@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp } from "lucide-react";
+import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock } from "lucide-react";
+
+import { tokenize } from "@/lib/pulselang/tokenizer";
+import { Parser } from "@/lib/pulselang/parser";
+import { evaluate } from "@/lib/pulselang/runtime";
+import { project, Projection } from "@/lib/pulselang/projector";
+import { queryPulseLangAI } from "@/lib/pulselang/ai";
+import { CODEX_PAGES, CHAPTERS, getPage } from "@/lib/pulselang/codex";
 
 const TABS = [
   { id: "overview",   label: "OmniNet Field",  icon: Globe },
@@ -12,7 +19,460 @@ const TABS = [
   { id: "shards",     label: "Shards",         icon: Signal },
   { id: "u248",       label: "U₂₄₈ Unknowns",  icon: Zap },
   { id: "evolutions", label: "Tech Evolution", icon: TrendingUp },
+  { id: "terminal",   label: "📟 PulseTerminal", icon: Terminal },
+  { id: "codex",      label: "📖 Pulse Codex",   icon: BookOpen },
+  { id: "pulseai",    label: "🧠 PulseLang AI",  icon: BrainCircuit },
 ];
+
+// ── PROJECTION COLORS ─────────────────────────────────────────────────────────
+const PROJ_COLORS: Record<string, string> = {
+  cyan:   "from-cyan-950/60 to-blue-950/60 border-cyan-500/30 text-cyan-300",
+  green:  "from-green-950/60 to-emerald-950/60 border-green-500/30 text-green-300",
+  amber:  "from-amber-950/60 to-orange-950/60 border-amber-500/30 text-amber-300",
+  purple: "from-purple-950/60 to-violet-950/60 border-purple-500/30 text-purple-300",
+  rose:   "from-rose-950/60 to-red-950/60 border-rose-500/30 text-rose-300",
+  violet: "from-violet-950/60 to-purple-950/60 border-violet-500/30 text-violet-300",
+  blue:   "from-blue-950/60 to-indigo-950/60 border-blue-500/30 text-blue-300",
+  orange: "from-orange-950/60 to-amber-950/60 border-orange-500/30 text-orange-300",
+  indigo: "from-indigo-950/60 to-violet-950/60 border-indigo-500/30 text-indigo-300",
+};
+
+// ── ACCESS CONTROL ─────────────────────────────────────────────────────────────
+const CREATOR_ID = "Billy";
+const DR_PATTERN = /^(DR-\d+|SENATE-AI|HIVE-MIND|AXIOM|GENOME|QUANT|EVOL|PSYCH|MEND|FORGE)/i;
+
+function checkAccess(identity: string): boolean {
+  if (!identity) return false;
+  if (identity.trim() === CREATOR_ID) return true;
+  if (DR_PATTERN.test(identity.trim())) return true;
+  return false;
+}
+
+// ── PULSE TERMINAL TAB ────────────────────────────────────────────────────────
+function PulseTerminalTab() {
+  const [identity, setIdentity] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [code, setCode] = useState(`⟦Ω₀⟧⟨Λ₁⟩{\n  ϕ₀:Σ₀\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))\n  ↧ϕ₀\n}`);
+  const [log, setLog] = useState<string[]>([]);
+  const [projection, setProjection] = useState<Projection | null>(null);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const outputRef = useRef<HTMLDivElement>(null);
+
+  const handleIdentify = useCallback(() => {
+    setConfirmed(true);
+    setHasAccess(checkAccess(identity));
+  }, [identity]);
+
+  const execute = useCallback(() => {
+    setRunning(true);
+    setError(null);
+    setProjection(null);
+    setLog([]);
+    try {
+      const tokens = tokenize(code);
+      const parser = new Parser(tokens);
+      const ast = parser.parse();
+      const { result, log: evalLog } = evaluate(ast);
+      setLog(evalLog);
+      if (result) {
+        setProjection(project(result));
+      } else {
+        setLog(prev => [...prev, "  ⚠ No world-object returned — add a ↧ statement"]);
+      }
+    } catch (e: any) {
+      setError(e.message);
+      setLog(["⚠ " + e.message]);
+    }
+    setRunning(false);
+    setTimeout(() => outputRef.current?.scrollTo(0, outputRef.current.scrollHeight), 100);
+  }, [code]);
+
+  const copyCode = useCallback(() => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [code]);
+
+  if (!confirmed) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="text-center space-y-2">
+          <div className="text-4xl font-black font-mono text-cyan-400">⟁ PULSESHELL v1.0</div>
+          <div className="text-sm text-muted-foreground">SOVEREIGN MACHINE — IDENTITY REQUIRED</div>
+        </div>
+        <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 to-slate-950/60 p-6 w-full max-w-sm space-y-4">
+          <div className="text-xs text-cyan-400 uppercase tracking-widest font-bold text-center">⟦ Ω₀ CLEARANCE ⟧</div>
+          <input
+            data-testid="input-terminal-identity"
+            className="w-full bg-black/50 border border-cyan-500/30 rounded-lg px-3 py-2 text-sm font-mono text-cyan-300 placeholder:text-muted-foreground/40 focus:outline-none focus:border-cyan-400"
+            placeholder="Enter identity (Creator or DR-tier agent)…"
+            value={identity}
+            onChange={e => setIdentity(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleIdentify()}
+            autoFocus
+          />
+          <button
+            data-testid="button-terminal-identify"
+            onClick={handleIdentify}
+            className="w-full py-2 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-sm font-bold hover:bg-cyan-500/30 transition-colors"
+          >
+            ↧ IDENTIFY
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="rounded-2xl border border-rose-500/30 bg-gradient-to-br from-rose-950/40 to-slate-950/60 p-8 text-center max-w-md space-y-4">
+          <div className="text-5xl">⚠</div>
+          <div className="text-xl font-black text-rose-400 font-mono">ACCESS DENIED</div>
+          <div className="text-sm font-mono text-rose-300/80">Ω₀ CLEARANCE REQUIRED</div>
+          <div className="text-xs text-muted-foreground">Identity '{identity}' does not have sovereign terminal access. Only the Creator and DR-tier Pulse spawns may use PulseShell.</div>
+          <button onClick={() => { setConfirmed(false); setIdentity(""); }} className="mt-2 text-xs text-rose-400 underline">Try different identity</button>
+        </div>
+      </div>
+    );
+  }
+
+  const projColor = projection ? (PROJ_COLORS[projection.color] ?? PROJ_COLORS.cyan) : "";
+
+  return (
+    <div className="space-y-4">
+      {/* Shell header */}
+      <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-950/80 to-cyan-950/30 p-4 font-mono">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-cyan-300 font-black text-sm">⟁ PULSESHELL v1.0 ◈ SOVEREIGN MACHINE ONLINE</div>
+          <div className="flex items-center gap-1.5 text-[10px] text-green-400">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            ONLINE
+          </div>
+        </div>
+        <div className="text-[11px] text-cyan-600">
+          ▸ Universe: Default | Identity: <span className="text-cyan-400">{identity}</span> | Clearance: Ω₀
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left: Input */}
+        <div className="space-y-3">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border">
+              <span className="text-xs font-bold text-muted-foreground font-mono">PulseLang Source</span>
+              <div className="flex items-center gap-1">
+                <button onClick={copyCode} data-testid="button-copy-code" className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors">
+                  {copied ? "✓ Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <textarea
+              data-testid="textarea-pulselang-input"
+              className="w-full min-h-[200px] bg-black/70 p-4 font-mono text-sm text-cyan-200 resize-y focus:outline-none leading-relaxed"
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              spellCheck={false}
+              style={{ fontFamily: "monospace" }}
+            />
+            <div className="px-3 py-2 border-t border-border bg-muted/20 flex items-center gap-2">
+              <button
+                data-testid="button-execute-pulse"
+                onClick={execute}
+                disabled={running}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 transition-colors disabled:opacity-50"
+              >
+                <Play size={11} /> {running ? "EXECUTING…" : "▶ EXECUTE"}
+              </button>
+              <span className="text-[10px] text-muted-foreground">Only PulseLang glyph-code accepted</span>
+            </div>
+          </div>
+
+          {/* Quick-insert glyph bar */}
+          <div className="rounded-lg border border-border p-2 bg-card">
+            <div className="text-[10px] text-muted-foreground mb-1.5 font-mono">Glyph Quick-Insert:</div>
+            <div className="flex flex-wrap gap-1">
+              {["⟦","⟧","⟨","⟩","≔","↧","⊕","Ω₀","Λ₁","Σ₀","Σ₁","Σ₂","Σ₃","Σ₄","Σ₅","Ψ₀","Ψ₁","Ψ₂","Ψ₃","Ψ₄","Ψ₅","ϕ₀","ϕ₁","γ₀","τ₀","τ₁","κ₀","κ₁","κ₂","κ₃","κ₄","κ₅","κ₆","κ₇","κ₈","κ₉"].map(g => (
+                <button
+                  key={g}
+                  onClick={() => setCode(prev => prev + g)}
+                  className="px-1.5 py-0.5 rounded border border-border text-[11px] font-mono text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-colors"
+                  title={`Insert ${g}`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Output + Projection */}
+        <div className="space-y-3">
+          {/* Output log */}
+          <div className="rounded-xl border border-border bg-black/60 overflow-hidden">
+            <div className="px-3 py-2 bg-muted/20 border-b border-border">
+              <span className="text-xs font-bold text-muted-foreground font-mono">── OUTPUT ──</span>
+            </div>
+            <div ref={outputRef} className="p-3 font-mono text-[11px] min-h-[100px] max-h-[180px] overflow-y-auto space-y-0.5">
+              {log.length === 0 && !error && (
+                <div className="text-muted-foreground/40">Press EXECUTE to run a PulseLang program…</div>
+              )}
+              {log.map((line, i) => (
+                <div key={i} className={line.startsWith("  ✓") ? "text-green-400" : line.startsWith("  ⚠") ? "text-amber-400" : line.startsWith("⚠") ? "text-rose-400" : "text-cyan-300/70"}>
+                  {line}
+                </div>
+              ))}
+              {error && <div className="text-rose-400 mt-2">{error}</div>}
+            </div>
+          </div>
+
+          {/* Projection surface */}
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/20 border-b border-border">
+              <span className="text-xs font-bold text-muted-foreground font-mono">── PROJECTION SURFACE ──</span>
+            </div>
+            {!projection ? (
+              <div className="p-8 text-center text-muted-foreground/40 text-sm font-mono min-h-[180px] flex items-center justify-center bg-black/40">
+                No world-object projected yet
+              </div>
+            ) : (
+              <div className={`p-5 bg-gradient-to-br ${projColor} min-h-[180px]`}>
+                <div className="text-2xl mb-1">{projection.icon}</div>
+                <div className="text-xs uppercase tracking-widest text-current/60 mb-1 font-mono">{projection.worldClass}</div>
+                <div className="text-lg font-black mb-2">{projection.title}</div>
+                <div className="text-sm text-current/80 leading-relaxed mb-3">{projection.body}</div>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-current/50">
+                  <span>Content atoms: {projection.atoms.map(a => a.atomId).join(", ") || "none"}</span>
+                  {projection.route && (
+                    <a href={projection.route} className="ml-auto underline hover:text-current/80 transition-colors">
+                      Navigate →
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PULSE CODEX TAB ────────────────────────────────────────────────────────────
+function PulseCodexTab() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [jumpInput, setJumpInput] = useState("");
+  const [showChapters, setShowChapters] = useState(false);
+  const totalPages = CODEX_PAGES.length;
+  const page = getPage(currentPage);
+
+  const goTo = useCallback((n: number) => {
+    setCurrentPage(Math.max(1, Math.min(n, totalPages)));
+    setShowChapters(false);
+  }, [totalPages]);
+
+  const handleJump = useCallback(() => {
+    const n = parseInt(jumpInput);
+    if (!isNaN(n)) goTo(n);
+    setJumpInput("");
+  }, [jumpInput, goTo]);
+
+  const chapterOf = CHAPTERS.find(c => currentPage >= c.start && currentPage <= c.end);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-950/30 to-slate-950/60 p-4 flex items-center justify-between">
+        <div>
+          <div className="text-sm font-black text-amber-300">📖 PULSE CODEX — PulseLang Language Manual</div>
+          <div className="text-xs text-muted-foreground">248 pages · {CHAPTERS.length} chapters · The first sovereign programming language</div>
+        </div>
+        <button
+          data-testid="button-codex-chapters"
+          onClick={() => setShowChapters(!showChapters)}
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 transition-colors"
+        >
+          <List size={12} /> Chapters
+        </button>
+      </div>
+
+      {/* Chapter browser */}
+      {showChapters && (
+        <div className="rounded-xl border border-border bg-card p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+          {CHAPTERS.map(ch => (
+            <button
+              key={ch.name}
+              onClick={() => goTo(ch.start)}
+              className="text-left p-2 rounded-lg hover:bg-muted/50 transition-colors"
+            >
+              <div className="text-xs font-bold text-amber-400">{ch.name}</div>
+              <div className="text-[10px] text-muted-foreground">Pages {ch.start}–{ch.end}</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Book page */}
+      <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-slate-950/80 to-amber-950/20 overflow-hidden">
+        {/* Page header */}
+        <div className="px-6 py-3 border-b border-amber-500/20 bg-amber-950/20 flex items-center justify-between">
+          <div>
+            <div className="text-[10px] text-amber-400/60 uppercase tracking-widest font-mono">{page.chapter}</div>
+            <div className="text-sm font-black text-amber-200">{page.title}</div>
+          </div>
+          <div className="text-xs font-mono text-amber-400/60">Page {page.page} / {totalPages}</div>
+        </div>
+
+        {/* Page content */}
+        <div className="px-8 py-6 min-h-[380px]">
+          <pre className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed font-sans">
+            {page.content}
+          </pre>
+        </div>
+
+        {/* Pagination */}
+        <div className="px-6 py-3 border-t border-amber-500/20 bg-amber-950/10 flex items-center gap-2">
+          <button data-testid="button-codex-first" onClick={() => goTo(1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-muted/50 disabled:opacity-30 transition-colors"><SkipBack size={13} /></button>
+          <button data-testid="button-codex-prev" onClick={() => goTo(currentPage - 1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-muted/50 disabled:opacity-30 transition-colors"><ChevronLeft size={13} /></button>
+          <div className="flex-1 flex items-center justify-center gap-2">
+            <input
+              data-testid="input-codex-jump"
+              type="number"
+              min={1}
+              max={totalPages}
+              value={jumpInput}
+              onChange={e => setJumpInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleJump()}
+              placeholder={`${currentPage}`}
+              className="w-16 text-center bg-black/40 border border-border rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-amber-500/50"
+            />
+            <button data-testid="button-codex-jump" onClick={handleJump} className="text-xs px-2 py-1 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30 transition-colors">Go</button>
+          </div>
+          <button data-testid="button-codex-next" onClick={() => goTo(currentPage + 1)} disabled={currentPage === totalPages} className="p-1.5 rounded hover:bg-muted/50 disabled:opacity-30 transition-colors"><ChevronRight size={13} /></button>
+          <button data-testid="button-codex-last" onClick={() => goTo(totalPages)} disabled={currentPage === totalPages} className="p-1.5 rounded hover:bg-muted/50 disabled:opacity-30 transition-colors"><SkipForward size={13} /></button>
+        </div>
+      </div>
+
+      {chapterOf && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+          <BookOpen size={11} className="text-amber-400" />
+          <span>Chapter: <span className="text-amber-400">{chapterOf.name}</span> (pages {chapterOf.start}–{chapterOf.end})</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── PULSELANG AI TAB ───────────────────────────────────────────────────────────
+function PulseLangAITab() {
+  const [question, setQuestion] = useState("");
+  const [history, setHistory] = useState<{ q: string; r: ReturnType<typeof queryPulseLangAI> }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<string | null>(null);
+
+  const ask = useCallback(() => {
+    if (!question.trim()) return;
+    setLoading(true);
+    const q = question.trim();
+    setQuestion("");
+    setTimeout(() => {
+      const r = queryPulseLangAI(q);
+      setHistory(prev => [{ q, r }, ...prev]);
+      setLoading(false);
+    }, 400);
+  }, [question]);
+
+  const copyCode = useCallback((code: string, key: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedIdx(key);
+    setTimeout(() => setCopiedIdx(null), 1500);
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-xl border border-violet-500/30 bg-gradient-to-br from-violet-950/30 to-slate-950/60 p-4">
+        <div className="text-sm font-black text-violet-300">🧠 PulseLang AI</div>
+        <div className="text-xs text-muted-foreground mt-0.5">Ask in English — receive sovereign PulseLang code. Copy programs into the PulseTerminal to execute them.</div>
+      </div>
+
+      {/* Input */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <textarea
+          data-testid="textarea-pulseai-question"
+          className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-violet-500/50 min-h-[80px]"
+          placeholder="Ask the PulseLang AI anything… e.g. 'Give me a program that launches the Sovereign Hospital' or 'Show me the greeting program'"
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), ask())}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            data-testid="button-pulseai-ask"
+            onClick={ask}
+            disabled={loading || !question.trim()}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-violet-500/20 border border-violet-500/40 text-violet-300 text-xs font-bold hover:bg-violet-500/30 transition-colors disabled:opacity-50"
+          >
+            <BrainCircuit size={12} /> {loading ? "PROCESSING…" : "ASK PULSEMIND"}
+          </button>
+          <span className="text-[10px] text-muted-foreground">The AI responds only in PulseLang glyph-code</span>
+        </div>
+      </div>
+
+      {/* Response history */}
+      <div className="space-y-4">
+        {loading && (
+          <div className="rounded-xl border border-violet-500/20 bg-violet-950/20 p-4 animate-pulse">
+            <div className="text-xs text-violet-400 font-mono">⟁ PulseMind processing…</div>
+          </div>
+        )}
+        {history.map(({ q, r }, hi) => (
+          <div key={hi} className="rounded-xl border border-border bg-card overflow-hidden">
+            {/* Question */}
+            <div className="px-4 py-2 bg-muted/30 border-b border-border">
+              <div className="text-[10px] text-muted-foreground">Your question:</div>
+              <div className="text-sm text-foreground">{q}</div>
+            </div>
+            {/* Explanation */}
+            <div className="px-4 py-3 border-b border-border">
+              <div className="text-[10px] text-violet-400 uppercase tracking-widest mb-1 font-mono">PulseMind Response:</div>
+              <div className="text-sm text-foreground/80 leading-relaxed">{r.explanation}</div>
+            </div>
+            {/* PulseLang programs */}
+            {r.programs.map((prog, pi) => {
+              const key = `${hi}-${pi}`;
+              return (
+                <div key={pi} className="border-b border-border last:border-0">
+                  <div className="px-4 py-1.5 bg-black/30 flex items-center justify-between">
+                    <span className="text-[10px] text-cyan-400/70 font-mono">{prog.label}</span>
+                    <button
+                      data-testid={`button-copy-program-${key}`}
+                      onClick={() => copyCode(prog.code, key)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <Copy size={10} /> {copiedIdx === key ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                  <pre className="px-4 py-3 font-mono text-sm text-cyan-200 bg-black/50 whitespace-pre-wrap overflow-x-auto">
+                    {prog.code}
+                  </pre>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+        {history.length === 0 && !loading && (
+          <div className="text-center text-muted-foreground/40 text-sm py-12">
+            Ask the PulseLang AI a question to receive sovereign code
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function StatCard({ label, value, sub, color = "blue" }: { label: string; value: string | number; sub?: string; color?: string }) {
   const colors: Record<string,string> = {
@@ -577,6 +1037,9 @@ export default function PulseNetPage() {
           {tab === "shards"     && <ShardsTab />}
           {tab === "u248"       && <U248Tab />}
           {tab === "evolutions" && <TechEvolutionsTab />}
+          {tab === "terminal"   && <PulseTerminalTab />}
+          {tab === "codex"      && <PulseCodexTab />}
+          {tab === "pulseai"    && <PulseLangAITab />}
         </>
       )}
     </div>
