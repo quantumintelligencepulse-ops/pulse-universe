@@ -164,10 +164,12 @@ app.use((req, res, next) => {
       startQuantumNewsEngine().catch((e) => log(`NewsEngine start error: ${e}`));
       startPyramidEngine().catch((e) => log(`PyramidEngine start error: ${e}`));
       startHospitalEngine().catch((e) => log(`HospitalEngine start error: ${e}`));
-      import("./hospital-doctors").then(({ seedDoctors, runDissectionCycle }) => {
+      import("./hospital-doctors").then(({ seedDoctors, runDissectionCycle, backfillEquationStatuses }) => {
         seedDoctors().catch(() => {});
+        backfillEquationStatuses().catch(() => {}); // promote PENDING equations that have enough votes
         runDissectionCycle().catch(() => {}); // first run immediately
         setInterval(() => runDissectionCycle().catch(() => {}), 30000); // every 30s — archive mining always active
+        setInterval(() => backfillEquationStatuses().catch(() => {}), 300_000); // every 5 min
       }).catch(() => {});
       startAIVotingEngine().catch((e) => log(`AIVotingEngine start error: ${e}`));
       startNothingLeftBehindGuardian().catch((e) => log(`GuardianEngine start error: ${e}`));

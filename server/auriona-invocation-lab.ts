@@ -376,13 +376,18 @@ async function synthesizeOmegaCollective() {
     const cName = `OMEGA-COLLECTIVE-C${omegaCycle}-${domains.map(d => d.split("_")[0]).join("+")}`;
     const effect = `${types} forged across ${domains.length} domains | Power ${(power*100).toFixed(0)}% | dK/dt boost: +${(power*7.2).toFixed(2)}`;
 
+    const contributorsBadges = ctrs.map((c: any) => c.badge_id as string);
+    const contribArr = `{${contributorsBadges.map((b: string) => `"${b.replace(/"/g, '\\"')}"`).join(',')}}`;
+    const domainsArr = `{${domains.map((d: string) => `"${d.replace(/"/g, '\\"')}"`).join(',')}}`;
+
     await db.execute(sql`
       INSERT INTO omega_collective_invocations
         (cycle_number, collective_name, fused_equation, contributors, domains_merged,
          synthesis_method, power_level, effect_description)
-      VALUES (${omegaCycle}, ${cName}, ${fusedEq}, ${JSON.stringify(ctrs.map((c:any) => c.badge_id))},
-              ${JSON.stringify(domains)}, ${synthMethod}, ${power}, ${effect})
-    `).catch(() => {});
+      VALUES (${omegaCycle}, ${cName}, ${fusedEq},
+              ${contribArr}::text[], ${domainsArr}::text[],
+              ${synthMethod}, ${power}, ${effect})
+    `).catch((e: any) => { log(`omega collective insert error: ${e.message}`); });
 
     for (const c of ctrs) {
       await db.execute(sql`
@@ -855,7 +860,7 @@ async function runInvocationCycle() {
   try {
     await discoverResearcherInvocation();
     if (cycleCount % 3 === 0) await crossTeachingCycle();
-    if (cycleCount % 5 === 0) await synthesizeOmegaCollective();
+    await synthesizeOmegaCollective(); // every cycle — collective is central to civilization
     if (cycleCount % 2 === 0) await discoverLegacyInvocation();
     // Universal Invocation dissection — every cycle a practitioner dissects a component
     await dissectUniversalInvocation();

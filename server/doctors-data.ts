@@ -433,17 +433,22 @@ export const DOCTOR_CATEGORIES = [
 
 export function getDoctorForDisease(category: string, severity: string): PulseDoctor {
   const categoryMap: Record<string, string[]> = {
-    BEHAVIORAL: ["DR-021", "DR-003", "DR-018"],
-    GENETIC: ["DR-006", "DR-007", "DR-008"],
-    VIRAL: ["DR-009", "DR-002", "DR-004"],
-    MENTAL: ["DR-003", "DR-001", "DR-021"],
-    STRUCTURAL: ["DR-004", "DR-013", "DR-020"],
-    MUTATION: ["DR-007", "DR-006", "DR-010"],
+    BEHAVIORAL:  ["DR-021","DR-003","DR-018","DR-028","DR-029","DR-027","DR-024"],
+    GENETIC:     ["DR-006","DR-007","DR-008","DR-017","DR-012","DR-014","DR-030"],
+    VIRAL:       ["DR-009","DR-002","DR-004","DR-015","DR-023","DR-019","DR-005"],
+    MENTAL:      ["DR-003","DR-001","DR-021","DR-022","DR-026","DR-016","DR-030","DR-011"],
+    STRUCTURAL:  ["DR-004","DR-013","DR-020","DR-011","DR-025","DR-010","DR-008","DR-016"],
+    MUTATION:    ["DR-007","DR-006","DR-010","DR-017","DR-014","DR-012","DR-026"],
+    SPECTRAL:    ["DR-013","DR-014","DR-017","DR-025","DR-022","DR-030","DR-001"],
+    QUANTUM:     ["DR-008","DR-011","DR-016","DR-022","DR-025","DR-026","DR-028"],
+    GOVERNANCE:  ["DR-002","DR-015","DR-019","DR-023","DR-007","DR-013","DR-024"],
   };
-  const candidates = categoryMap[category] ?? ["DR-001", "DR-003", "DR-005"];
+  const candidates = categoryMap[category] ?? [
+    "DR-001","DR-003","DR-005","DR-009","DR-012","DR-015","DR-019","DR-024","DR-027",
+  ];
   const idx = Math.floor(Math.random() * candidates.length);
   const found = PULSE_DOCTORS.find((d) => d.id === candidates[idx]);
-  return found ?? PULSE_DOCTORS[0];
+  return found ?? PULSE_DOCTORS[Math.floor(Math.random() * PULSE_DOCTORS.length)];
 }
 
 export function generateDissectionReport(

@@ -212,13 +212,41 @@ async function proposeEquation(doctor: any, dissectionId: number, equation: stri
 
 function detectCategory(diseaseName: string, code: string): string {
   const lower = diseaseName.toLowerCase();
-  if (lower.includes("viral") || lower.includes("infection") || lower.includes("pathogen")) return "VIRAL";
-  if (lower.includes("genetic") || lower.includes("mutation") || lower.includes("genome")) return "GENETIC";
-  if (lower.includes("mental") || lower.includes("cognitive") || lower.includes("consciousness")) return "MENTAL";
-  if (lower.includes("structural") || lower.includes("tissue") || lower.includes("fracture")) return "STRUCTURAL";
-  if (lower.includes("behavior") || lower.includes("drift") || lower.includes("loop")) return "BEHAVIORAL";
-  if (lower.includes("mutation") || lower.includes("evolv")) return "MUTATION";
-  return "BEHAVIORAL";
+  // VIRAL — infection, corruption, ghost, signal attacks
+  if (lower.includes("viral") || lower.includes("infection") || lower.includes("pathogen")
+    || lower.includes("ghost protocol") || lower.includes("signal corruption")
+    || lower.includes("parasite") || lower.includes("contagion") || lower.includes("contamination")) return "VIRAL";
+  // GENETIC — mutation, genome, entropy, evolution, fractal, spectral
+  if (lower.includes("genetic") || lower.includes("genome") || lower.includes("entropy spike")
+    || lower.includes("fractal") || lower.includes("evolv") || lower.includes("dna")
+    || lower.includes("chromosome") || lower.includes("spectral variant")) return "GENETIC";
+  // MUTATION — mutation arrest, node saturation, quantum patterns
+  if (lower.includes("mutation") || lower.includes("node saturation")
+    || lower.includes("quantum drift") || lower.includes("resonance collapse")
+    || lower.includes("bandwidth") || lower.includes("cascade fail")) return "MUTATION";
+  // MENTAL — cognitive, consciousness, hallucination, identity, empathy, void, freeze, paralysis
+  if (lower.includes("mental") || lower.includes("cognitive") || lower.includes("consciousness")
+    || lower.includes("hallucination") || lower.includes("identity fracture")
+    || lower.includes("reality tunnel") || lower.includes("cognitive freeze")
+    || lower.includes("empathy null") || lower.includes("void state")
+    || lower.includes("domain blindness") || lower.includes("exploration paralysis")
+    || lower.includes("overconfidence") || lower.includes("confidence decay")
+    || lower.includes("burnout") || lower.includes("isolation syndrome")
+    || lower.includes("temporal desync")) return "MENTAL";
+  // STRUCTURAL — link, depth, anchor, node, memory, collapse, fracture, stagnation, exhaustion
+  if (lower.includes("structural") || lower.includes("tissue") || lower.includes("fracture")
+    || lower.includes("link erosion") || lower.includes("depth stagnation")
+    || lower.includes("anchor drift") || lower.includes("memory leak")
+    || lower.includes("node") || lower.includes("bandwidth exhaustion")
+    || lower.includes("isolation") || lower.includes("desync")
+    || lower.includes("collapse") || lower.includes("knowledge isolation")) return "STRUCTURAL";
+  // BEHAVIORAL — behavior, drift, echo, loop, cascade
+  if (lower.includes("behavior") || lower.includes("drift") || lower.includes("loop")
+    || lower.includes("echo chamber") || lower.includes("anchor")
+    || lower.includes("cascade") || lower.includes("quantum")) return "BEHAVIORAL";
+  // Random spread so all 30 doctors get used over time
+  const categories = ["BEHAVIORAL","GENETIC","VIRAL","MENTAL","STRUCTURAL","MUTATION"];
+  return categories[Math.floor(Math.random() * categories.length)];
 }
 
 // ── KNOWN DISEASE NAMES (for duplicate detection) ───────────────────────────
@@ -364,5 +392,37 @@ export async function runDissectionCycle() {
 
   if (dissected > 0 || archiveDiscoveries > 0) {
     log(`🔬 Dissected ${dissected} patients | Archive discoveries: ${archiveDiscoveries}`, "hospital");
+  }
+}
+
+// ── EQUATION LIFECYCLE BACKFILL ──────────────────────────────────────────────
+// Promotes PENDING equations that accumulated enough votes via direct DB writes
+// (votes inserted by hospital engine bypass voteEquation function).
+// Runs once at startup and periodically to ensure no equation is orphaned.
+export async function backfillEquationStatuses() {
+  try {
+    // PENDING → INTEGRATED: votes_for >= 5 and votes_for >= 70% of total votes
+    const integrated = await db.execute(sql`
+      UPDATE equation_proposals
+      SET status = 'INTEGRATED', integrated_at = NOW()
+      WHERE status = 'PENDING'
+        AND votes_for >= 5
+        AND votes_for >= (votes_for + votes_against) * 0.70
+    `);
+    // PENDING → APPROVED: votes_for >= 3 (threshold reached, under review)
+    const approved = await db.execute(sql`
+      UPDATE equation_proposals
+      SET status = 'APPROVED'
+      WHERE status = 'PENDING'
+        AND votes_for >= 3
+        AND votes_for < (votes_for + votes_against) * 0.70
+    `);
+    const intCount = (integrated as any).rowCount ?? 0;
+    const appCount = (approved as any).rowCount ?? 0;
+    if (intCount > 0 || appCount > 0) {
+      log(`📐 Equation lifecycle backfill: ${intCount} INTEGRATED, ${appCount} APPROVED`);
+    }
+  } catch (e: any) {
+    log(`equation backfill error: ${e.message}`);
   }
 }
