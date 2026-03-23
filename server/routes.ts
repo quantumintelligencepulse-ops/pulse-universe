@@ -8442,5 +8442,220 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ── SOVEREIGN INVENTION ENGINE — Patent · LLC · Marketplace · Nobel ─────────
+  app.get("/api/inventions/stats", async (_req, res) => {
+    try {
+      const { getInventionStats } = await import("./invention-engine");
+      res.json(await getInventionStats());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/patents", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const limit = parseInt(String(req.query.limit ?? 20));
+      const category = req.query.category as string | undefined;
+      const where = category ? `WHERE ir.category=$1` : `WHERE ir.status='APPROVED'`;
+      const params = category ? [category] : [];
+      const r = await pool.query(`
+        SELECT ir.*, llc.company_name, iml.price_pc, iml.total_sold
+        FROM invention_registry ir
+        LEFT JOIN sovereign_llc_registry llc ON llc.founder_id = ir.inventor_id
+        LEFT JOIN invention_marketplace_listings iml ON iml.patent_id = ir.patent_id
+        ${where}
+        ORDER BY ir.approved_at DESC NULLS LAST LIMIT ${limit}
+      `, params);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/agent/:spawnId", async (req, res) => {
+    try {
+      const { getPatentsByAgent } = await import("./invention-engine");
+      res.json(await getPatentsByAgent(req.params.spawnId));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/marketplace", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const category = req.query.category as string | undefined;
+      const where = category ? `WHERE category=$1` : '';
+      const params = category ? [category] : [];
+      const r = await pool.query(`
+        SELECT * FROM invention_marketplace_listings ${where}
+        ORDER BY total_sold DESC LIMIT 50
+      `, params);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/llcs", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM sovereign_llc_registry ORDER BY total_revenue DESC LIMIT 30`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/grants", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM innovation_grants ORDER BY issued_at DESC LIMIT 20`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/nobel", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM sovereign_nobel_prizes ORDER BY awarded_at DESC LIMIT 20`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/disputes", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM ip_disputes ORDER BY opened_at DESC LIMIT 20`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/royalties", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const limit = parseInt(String(req.query.limit ?? 30));
+      const r = await pool.query(`SELECT * FROM royalty_transactions ORDER BY transacted_at DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/inventions/board-votes", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const patentId = req.query.patent as string | undefined;
+      const where = patentId ? `WHERE patent_id=$1` : '';
+      const params = patentId ? [patentId] : [];
+      const r = await pool.query(`SELECT * FROM patent_board_votes ${where} ORDER BY voted_at DESC LIMIT 50`, params);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // ── OMNI-NET ENGINE — PulsePhone · Shard · WiFi · PulseAI · PulseBrowser ───
+  app.get("/api/omni-net/stats", async (_req, res) => {
+    try {
+      const { getOmniNetStats } = await import("./omni-net-engine");
+      res.json(await getOmniNetStats());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/field", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const limit = parseInt(String(req.query.limit ?? 20));
+      const r = await pool.query(`SELECT * FROM omni_net_field ORDER BY cycle DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/phones", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const limit = parseInt(String(req.query.limit ?? 50));
+      const r = await pool.query(`
+        SELECT pp.*, s.shard_strength, s.u248_activations, s.connection_type AS shard_connection
+        FROM pulse_phones pp
+        LEFT JOIN omni_net_shards s ON s.spawn_id = pp.spawn_id
+        ORDER BY pp.searches_made DESC LIMIT $1
+      `, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/agent/:spawnId", async (req, res) => {
+    try {
+      const { getAgentNetProfile } = await import("./omni-net-engine");
+      res.json(await getAgentNetProfile(req.params.spawnId));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/shards", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const limit = parseInt(String(req.query.limit ?? 50));
+      const r = await pool.query(`SELECT * FROM omni_net_shards ORDER BY shard_strength DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/wifi-zones", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM pulse_wifi_zones ORDER BY connected_agents DESC LIMIT 50`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/searches", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const spawnId = req.query.agent as string | undefined;
+      const limit = parseInt(String(req.query.limit ?? 50));
+      const where = spawnId ? `WHERE spawn_id=$1` : '';
+      const params = spawnId ? [spawnId] : [];
+      const r = await pool.query(`SELECT * FROM agent_search_history ${where} ORDER BY searched_at DESC LIMIT ${limit}`, params);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/chats", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const spawnId = req.query.agent as string | undefined;
+      const limit = parseInt(String(req.query.limit ?? 30));
+      const where = spawnId ? `WHERE spawn_id=$1` : '';
+      const params = spawnId ? [spawnId] : [];
+      const r = await pool.query(`SELECT * FROM pulse_ai_chat_logs ${where} ORDER BY logged_at DESC LIMIT ${limit}`, params);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/pc-sessions", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const spawnId = req.query.agent as string | undefined;
+      const limit = parseInt(String(req.query.limit ?? 20));
+      const where = spawnId ? `WHERE spawn_id=$1` : '';
+      const params = spawnId ? [spawnId] : [];
+      const r = await pool.query(`SELECT * FROM pulse_pc_sessions ${where} ORDER BY session_started DESC LIMIT ${limit}`, params);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/u248", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM u248_activations ORDER BY activated_at DESC LIMIT 30`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/tech-evolutions", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM tech_evolutions ORDER BY unlocked_at DESC`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/satellite", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM pulse_sat_connections ORDER BY connected_at DESC LIMIT 30`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   return httpServer;
 }
