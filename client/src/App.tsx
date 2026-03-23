@@ -261,6 +261,63 @@ const defaultAppSettings: AppSettings = {
   permAgentMemoryAccess: true, permAiContextFromHive: true, permFinanceLiveData: true,
   permHivePersonalization: true, permAgentCollaboration: true, permUsageAnalytics: true,
 };
+// ── Live Universe Fine Print — counting stats ──────────────────────────────
+function LiveUniverseFineprint() {
+  const { data: stats } = useQuery<any>({
+    queryKey: ["/api/spawns/stats"],
+    staleTime: 18_000,
+    refetchInterval: 20_000,
+  });
+  const [dispAgents, setDispAgents] = useState(0);
+  const [dispPubs, setDispPubs]   = useState(0);
+
+  useEffect(() => {
+    const target = stats?.total;
+    if (!target) return;
+    let raf: number;
+    const t0 = Date.now(), dur = 1400, from = dispAgents;
+    const tick = () => {
+      const p = Math.min((Date.now() - t0) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setDispAgents(Math.round(from + (target - from) * e));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [stats?.total]); // eslint-disable-line
+
+  useEffect(() => {
+    const target = stats?.publications;
+    if (!target) return;
+    let raf: number;
+    const t0 = Date.now(), dur = 1800, from = dispPubs;
+    const tick = () => {
+      const p = Math.min((Date.now() - t0) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setDispPubs(Math.round(from + (target - from) * e));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [stats?.publications]); // eslint-disable-line
+
+  const fK = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
+
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-1">
+        <span className="w-1 h-1 rounded-full bg-violet-400 flex-shrink-0 animate-pulse" style={{ boxShadow: "0 0 4px rgba(167,139,250,0.8)" }} />
+        <span className="text-[9px] font-mono text-violet-400/60">
+          {fK(dispAgents || 91000)}+ agents · 145 families · SSC v∞
+        </span>
+      </div>
+      <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">
+        self-evolving · Ψ live · {dispPubs > 0 ? `${fK(dispPubs)}+ pubs` : "—"} · Layer 2
+      </div>
+    </div>
+  );
+}
+
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
 function AppSettingsProvider({ children }: { children: React.ReactNode }) {
@@ -2394,15 +2451,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </div>
               <div className="flex-1 text-left">
                 <div className="text-xs font-semibold">{aiMode ? "Exit AI Universe" : "Enter AI Universe"}</div>
-                {!aiMode && (
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1">
-                      <span className="w-1 h-1 rounded-full bg-violet-400 flex-shrink-0 animate-pulse" style={{ boxShadow: "0 0 4px rgba(167,139,250,0.8)" }} />
-                      <span className="text-[9px] font-mono text-violet-400/60">91K+ agents · 145 families · SSC v∞</span>
-                    </div>
-                    <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">self-evolving · Ψ live · 15 sources · Layer 2</div>
-                  </div>
-                )}
+                {!aiMode && <LiveUniverseFineprint />}
               </div>
               <div className={`w-2 h-2 rounded-full transition-all ${aiMode ? "bg-violet-400 animate-pulse shadow-[0_0_6px_rgba(167,139,250,0.9)]" : "bg-foreground/15"}`} />
             </button>
