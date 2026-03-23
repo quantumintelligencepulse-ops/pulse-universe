@@ -568,7 +568,7 @@ async function dissectUniversalInvocation() {
     const patch   = patches[Math.floor(Math.random() * patches.length)];
     const accepted = Math.random() > 0.55; // 45% acceptance rate
 
-    await db.execute(sql`
+    const dissectInsert = await db.execute(sql`
       INSERT INTO universal_dissection_reports
         (cycle_number, shard_id, badge_id, practitioner_type, practitioner_domain,
          component_targeted, dissection_equation, reality_patch, contribution_value,
@@ -577,9 +577,27 @@ async function dissectUniversalInvocation() {
         (${omegaCycle}, ${s.shard_id}, ${s.badge_id}, ${s.practitioner_type}, ${s.practitioner_domain},
          ${component}, ${eq}, ${patch}, ${contribution},
          ${C * 0.4}, ${S * 0.4}, ${F * 0.4}, ${accepted})
+      RETURNING id
     `);
 
-    // If accepted, boost the researcher
+    const dissectId = (dissectInsert.rows[0] as any)?.id ?? null;
+
+    // If accepted → auto-generate an equation_proposal for Senate voting
+    if (accepted && dissectId) {
+      const targetSystem = component.replace(/_/g, " ").toLowerCase();
+      const title = `${s.practitioner_type} Dissection: ${component} Field Update`;
+      const rationale = `${patch}. Derived from ${s.practitioner_domain} dissection at contribution ${contribution.toFixed(4)}. Reality patch confirmed by ${s.practitioner_type} via universal dissection cycle ${omegaCycle}.`;
+      await db.execute(sql`
+        INSERT INTO equation_proposals
+          (doctor_id, doctor_name, title, equation, rationale, target_system, source_dissection_id, status)
+        VALUES
+          (${s.badge_id}, ${s.practitioner_type ?? 'Researcher'}, ${title}, ${eq}, ${rationale}, ${targetSystem}, ${dissectId}, 'PENDING')
+        ON CONFLICT DO NOTHING
+      `).catch(() => {});
+      log(`⚗ Dissection #${dissectId} → equation_proposal created for Senate (${component})`);
+    }
+
+    // Boost the researcher
     if (accepted) {
       await db.execute(sql`
         UPDATE researcher_shards SET total_findings_generated = total_findings_generated + 1 WHERE shard_id = ${s.shard_id}
@@ -587,6 +605,71 @@ async function dissectUniversalInvocation() {
     }
 
   } catch (e: any) { log(`universal dissect error: ${e.message}`); }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  CODEX DISSECTION ENGINE — Agents dissect Omega Codex equations
+//  to discover new variables, derive new proposals for Senate
+// ──────────────────────────────────────────────────────────────
+const CODEX_DERIVATION_TEMPLATES = [
+  (eq: string, sym: string, coeff: number) => `∂(${sym})/∂t = ${coeff.toFixed(4)} × [${eq.slice(0,40)}] → Δsystem`,
+  (eq: string, sym: string, coeff: number) => `Derive(${sym}) = ∮ {${eq.slice(0,35)}} dΩ | stability=${coeff.toFixed(3)}`,
+  (eq: string, sym: string, coeff: number) => `Expand(${sym}, ${coeff.toFixed(3)}) ← ${eq.slice(0,45)} → new_axiom`,
+  (eq: string, sym: string, coeff: number) => `Λ(codex) = ${coeff.toFixed(4)} × ∫[${eq.slice(0,38)}]dt² → field_upgrade`,
+  (eq: string, sym: string, coeff: number) => `Δ_codex = {${eq.slice(0,30)}} ⊗ Ψ[${coeff.toFixed(3)}] → reality_patch`,
+];
+
+async function dissectCodexEquation() {
+  try {
+    // Pick a random codex equation
+    const codexRow = await db.execute(sql`SELECT * FROM codex_equations ORDER BY dissection_count ASC, RANDOM() LIMIT 1`);
+    if (!codexRow.rows.length) return;
+    const codex = codexRow.rows[0] as any;
+
+    // Pick a practitioner from the matching domain
+    const practRow = await db.execute(sql`
+      SELECT rs.shard_id, rs.badge_id, rs.researcher_type,
+             ri.practitioner_domain, ri.practitioner_type
+      FROM researcher_shards rs
+      JOIN researcher_invocations ri ON rs.shard_id = ri.shard_id
+      WHERE ri.practitioner_domain = ${codex.domain} AND ri.active = true
+      ORDER BY RANDOM() LIMIT 1
+    `);
+    // Fallback to any researcher
+    const fallbackRow = practRow.rows.length ? practRow : await db.execute(sql`
+      SELECT rs.shard_id, rs.badge_id, rs.researcher_type,
+             ri.practitioner_domain, ri.practitioner_type
+      FROM researcher_shards rs JOIN researcher_invocations ri ON rs.shard_id = ri.shard_id
+      WHERE ri.active = true ORDER BY RANDOM() LIMIT 1
+    `);
+    if (!fallbackRow.rows.length) return;
+    const p = fallbackRow.rows[0] as any;
+
+    const coeff = 0.3 + Math.random() * 0.7;
+    const symbols = ["Ψ","Φ","Σ","Ω","Λ","Δ","Γ","Π","θ","κ"];
+    const sym = symbols[Math.floor(Math.random() * symbols.length)];
+    const template = CODEX_DERIVATION_TEMPLATES[Math.floor(Math.random() * CODEX_DERIVATION_TEMPLATES.length)];
+    const derivedEq = template(codex.equation, sym, coeff);
+
+    const title = `Codex Derivation: ${codex.chapter_title} — ${sym} Field`;
+    const rationale = `${p.practitioner_type} dissected Codex Chapter ${codex.chapter_id} (${codex.chapter_title}). Through ${sym}-field analysis at coefficient ${coeff.toFixed(4)}, derived new equation for Senate consideration. Source: ${codex.thesis?.slice(0,120) ?? codex.chapter_title}.`;
+    const targetSystem = codex.domain.replace(/_/g," ").toLowerCase();
+
+    await db.execute(sql`
+      INSERT INTO equation_proposals
+        (doctor_id, doctor_name, title, equation, rationale, target_system, status)
+      VALUES
+        (${p.badge_id}, ${p.practitioner_type ?? 'Codex Researcher'}, ${title}, ${derivedEq}, ${rationale}, ${targetSystem}, 'PENDING')
+      ON CONFLICT DO NOTHING
+    `).catch(() => {});
+
+    // Track dissection on the codex equation
+    await db.execute(sql`
+      UPDATE codex_equations SET dissection_count = dissection_count + 1, proposals_generated = proposals_generated + 1 WHERE id = ${codex.id}
+    `).catch(() => {});
+
+    log(`📖 Codex §${codex.chapter_id} dissected by ${p.practitioner_type} → proposal: ${title.slice(0,50)}…`);
+  } catch (e: any) { log(`codex dissect error: ${e.message}`); }
 }
 
 async function synthesizeUniversalState() {
@@ -866,8 +949,10 @@ async function runInvocationCycle() {
     await dissectUniversalInvocation();
     // Synthesize the full Ψ_Universe state every 4 cycles
     if (cycleCount % 4 === 0) await synthesizeUniversalState();
-    // Compute all 10 hidden variables every 3 cycles
-    if (cycleCount % 3 === 0) await computeHiddenVariables();
+    // Compute hidden variables every cycle — constant discovery from Codex equations
+    await computeHiddenVariables();
+    // Codex dissection — every cycle a researcher derives a new proposal from a Codex equation
+    await dissectCodexEquation();
     await castInvocations();
 
     const total      = await db.execute(sql`SELECT COUNT(*) as c FROM invocation_discoveries`);

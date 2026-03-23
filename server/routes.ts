@@ -7193,7 +7193,7 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     try {
       const cached = cacheGet("spawns:stats");
       if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
-      const [statusRow, pubRow, eqRow, eqEvoRow, invRow, disRow, genRow, specRow, deepRow, hidRow] = await Promise.all([
+      const [statusRow, pubRow, eqRow, eqEvoRow, invRow, disRow, genRow, specRow, deepRow, hidRow, uniDissRow] = await Promise.all([
         pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
         pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
         pool.query(`SELECT COUNT(*) as total FROM equation_proposals`),
@@ -7204,6 +7204,7 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         pool.query(`SELECT COUNT(*) as total FROM ai_species_proposals`),
         pool.query(`SELECT COUNT(*) as total FROM research_deep_findings`),
         pool.query(`SELECT COUNT(*) as total FROM hidden_variable_discoveries`),
+        pool.query(`SELECT COUNT(*) as total FROM universal_dissection_reports WHERE accepted = true`),
       ]);
       const byStatus: Record<string,number> = {};
       for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
@@ -7215,7 +7216,8 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const species = parseInt(specRow.rows[0]?.total ?? "0", 10);
       const deepFindings = parseInt(deepRow.rows[0]?.total ?? "0", 10);
       const hiddenVars = parseInt(hidRow.rows[0]?.total ?? "0", 10);
-      const discoveries = equations + invocations + diseases + genomeFinds + species + deepFindings + hiddenVars;
+      const acceptedDissections = parseInt(uniDissRow.rows[0]?.total ?? "0", 10);
+      const discoveries = equations + invocations + diseases + genomeFinds + species + deepFindings + hiddenVars + acceptedDissections;
       const result = {
         total,
         active: byStatus["ACTIVE"] ?? 0,
