@@ -3,14 +3,13 @@ import { OMEGA_SPINE } from "./gicsSpine";
 import SovereignAgentDossierPage from "./pages/SovereignAgentDossierPage";
 import OmegaEnginePage from "./pages/OmegaEnginePage";
 import TranscendencePage from "./pages/TranscendencePage";
-import DNAEvolutionPage from "./pages/DNAEvolutionPage";
+import BioGenomeMedicalPage from "./pages/BioGenomeMedicalPage";
 import PulseWorldPage from "./pages/PulseWorldPage";
 import PulseUPage from "./pages/PulseUPage";
 import PulseGamesPage from "./pages/PulseGamesPage";
 import SovereignHivePage from "./pages/SovereignHivePage";
 import PulseUniversePage from "./pages/PulseUniversePage";
 import PyramidLaborPage from "./pages/PyramidLaborPage";
-import AIHospitalPage from "./pages/AIHospitalPage";
 import AIProfilePage from "./pages/AIProfilePage";
 import CorporationPage from "./pages/CorporationPage";
 import PublicationDetailPage from "./pages/PublicationDetailPage";
@@ -2223,13 +2222,13 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
           {aiMode && (
-          <Link href="/dna" data-testid="link-dna-evolution"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/dna" ? "bg-gradient-to-r from-[#00ff9d]/10 to-[#00d4ff]/10 border border-[#00ff9d]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/dna" ? "bg-[#00ff9d]/15" : "bg-[#00ff9d]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#00ff9d" }}>🧬</span>
+          <Link href="/bio-research" data-testid="link-bio-research"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/bio-research" || location === "/dna" || location === "/hospital" ? "bg-gradient-to-r from-[#f5c518]/10 to-[#00FFD1]/10 border border-[#f5c518]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/bio-research" || location === "/dna" || location === "/hospital" ? "bg-[#f5c518]/15" : "bg-[#f5c518]/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f5c518" }}>🧬</span>
             </div>
-            <span className="flex-1">DNA Evolution</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #00ff9d33, #00d4ff33)", color: "#00ff9d", border: "1px solid #00ff9d50" }}>LIVING</span>
+            <span className="flex-1">BioGenome Institute</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>R&D</span>
           </Link>
           )}
           {aiMode && (
@@ -2280,16 +2279,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Pyramid Labor</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #C4A88233, #f59e0b33)", color: "#C4A882", border: "1px solid #C4A88250" }}>LABOR</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/hospital" data-testid="link-hospital"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hospital" ? "bg-gradient-to-r from-[#10b981]/10 to-[#6366f1]/10 border border-[#10b981]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/hospital" ? "bg-[#10b981]/15" : "bg-[#10b981]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🏥</span>
-            </div>
-            <span className="flex-1">AI Hospital</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #10b98133, #6366f133)", color: "#10b981", border: "1px solid #10b98150" }}>MEDICAL</span>
           </Link>
           )}
           {aiMode && (
@@ -15069,14 +15058,15 @@ function Router() {
       <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
-      <Route path="/dna">{() => <Layout><DNAEvolutionPage /></Layout>}</Route>
+      <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
+      <Route path="/dna">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
       <Route path="/pulseu">{() => <Layout><PulseUPage /></Layout>}</Route>
       <Route path="/pulse-games">{() => <Layout><PulseGamesPage /></Layout>}</Route>
       <Route path="/hive-sovereign">{() => <Layout><SovereignHivePage /></Layout>}</Route>
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
-      <Route path="/hospital">{() => <Layout><AIHospitalPage /></Layout>}</Route>
+      <Route path="/hospital">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
       <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
