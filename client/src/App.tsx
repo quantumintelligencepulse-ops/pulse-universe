@@ -5721,7 +5721,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className={`flex h-[100dvh] w-full bg-background overflow-hidden ${layoutSettings.sidebarPosition === "right" ? "flex-row-reverse" : ""}`}>
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
-      <main className="flex-1 flex flex-col relative min-w-0 h-full">{children}</main>
+      <main className="flex-1 flex flex-col relative min-w-0 h-full overflow-y-auto">{children}</main>
     </div>
   );
 }
