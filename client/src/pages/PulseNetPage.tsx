@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock } from "lucide-react";
+import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown } from "lucide-react";
+import type { PulseState } from "@/lib/pulselang/runtime";
 
 import { tokenize } from "@/lib/pulselang/tokenizer";
 import { Parser } from "@/lib/pulselang/parser";
@@ -21,7 +22,9 @@ const TABS = [
   { id: "evolutions", label: "Tech Evolution", icon: TrendingUp },
   { id: "terminal",   label: "📟 PulseTerminal", icon: Terminal },
   { id: "codex",      label: "📖 Pulse Codex",   icon: BookOpen },
-  { id: "pulseai",    label: "🧠 PulseLang AI",  icon: BrainCircuit },
+  { id: "pulseai",    label: "🧠 PulseLang AI",   icon: BrainCircuit },
+  { id: "dissection", label: "🔬 PulseLang Lab",  icon: FlaskConical },
+  { id: "omninet",    label: "⚡ OmniNet Eq",     icon: Waves },
 ];
 
 // ── PROJECTION COLORS ─────────────────────────────────────────────────────────

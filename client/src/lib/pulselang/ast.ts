@@ -5,7 +5,11 @@ export interface ProgramNode {
   statements: StatementNode[];
 }
 
-export type StatementNode = FieldDeclNode | AssignNode | ReturnNode;
+export type StatementNode =
+  | FieldDeclNode
+  | AssignNode
+  | ReturnNode
+  | FusionNode;
 
 export interface FieldDeclNode {
   type: "FieldDecl";
@@ -19,6 +23,18 @@ export interface AssignNode {
   callExpr: CallExprNode;
 }
 
+export interface ReturnNode {
+  type: "Return";
+  name: string;
+}
+
+export interface FusionNode {
+  type: "Fusion";
+  left: string;
+  right: string;
+  target: string;
+}
+
 export interface CallExprNode {
   type: "CallExpr";
   callee: string;
@@ -29,9 +45,4 @@ export interface ArgNode {
   type: "Arg";
   key: string;
   value: string | CallExprNode;
-}
-
-export interface ReturnNode {
-  type: "Return";
-  name: string;
 }
