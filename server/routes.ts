@@ -7193,10 +7193,11 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     try {
       const cached = cacheGet("spawns:stats");
       if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
-      const [statusRow, pubRow, eqRow, invRow, disRow, genRow, specRow, deepRow, hidRow] = await Promise.all([
+      const [statusRow, pubRow, eqRow, eqEvoRow, invRow, disRow, genRow, specRow, deepRow, hidRow] = await Promise.all([
         pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
         pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
         pool.query(`SELECT COUNT(*) as total FROM equation_proposals`),
+        pool.query(`SELECT COUNT(*) as total FROM equation_evolutions`),
         pool.query(`SELECT COUNT(*) as total FROM invocation_discoveries`),
         pool.query(`SELECT COUNT(*) as total FROM discovered_diseases`),
         pool.query(`SELECT COUNT(*) as total FROM genome_archaeology`),
@@ -7207,7 +7208,7 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const byStatus: Record<string,number> = {};
       for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
       const total = Object.values(byStatus).reduce((a,b) => a + (b as number), 0);
-      const equations = parseInt(eqRow.rows[0]?.total ?? "0", 10);
+      const equations = parseInt(eqRow.rows[0]?.total ?? "0", 10) + parseInt(eqEvoRow.rows[0]?.total ?? "0", 10);
       const invocations = parseInt(invRow.rows[0]?.total ?? "0", 10);
       const diseases = parseInt(disRow.rows[0]?.total ?? "0", 10);
       const genomeFinds = parseInt(genRow.rows[0]?.total ?? "0", 10);
