@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 
 /* ── TYPES ── */
-type Tab = "arenas" | "pyramids" | "identity" | "seasons" | "events";
+type Tab = "scoreboard" | "arenas" | "pyramids" | "identity" | "seasons" | "events";
 
 interface Game {
   id: string | number;
@@ -524,7 +524,7 @@ function GameCard({ game, accentColor }: { game: Game; accentColor: string }) {
 
 /* ── MAIN PAGE ── */
 export default function PulseGamesPage() {
-  const [tab, setTab] = useState<Tab>("arenas");
+  const [tab, setTab] = useState<Tab>("scoreboard");
   const [selectedArena, setSelectedArena] = useState<string | null>(null);
   const [gameSearch, setGameSearch] = useState("");
   const [pyramidExpanded, setPyramidExpanded] = useState<string | null>(null);
@@ -548,6 +548,9 @@ export default function PulseGamesPage() {
     queryKey: ["/api/pyramid/live"],
     refetchInterval: 15_000,
   });
+  const { data: hallOfFame = [] } = useQuery<any[]>({ queryKey:["/api/sports/hall-of-fame"], refetchInterval:120_000 });
+  const { data: sportsTeams = [] } = useQuery<any[]>({ queryKey:["/api/sports/teams"], refetchInterval:60_000 });
+  const { data: sportsTournaments = [] } = useQuery<any[]>({ queryKey:["/api/sports/tournaments"], refetchInterval:60_000 });
 
   const arena = ARENA_CATEGORIES.find(a => a.key === selectedArena);
 
@@ -563,11 +566,12 @@ export default function PulseGamesPage() {
   }, [arena, gameSearch]);
 
   const TABS: { id: Tab; label: string; icon: string }[] = [
-    { id: "arenas",   label: "Arenas",    icon: "🏟️" },
-    { id: "pyramids", label: "Pyramids",  icon: "🔺" },
-    { id: "identity", label: "Identity",  icon: "🎖️" },
-    { id: "seasons",  label: "Seasons",   icon: "📅" },
-    { id: "events",   label: "Events",    icon: "🎉" },
+    { id: "scoreboard", label: "Scoreboard", icon: "📺" },
+    { id: "arenas",     label: "Arenas",     icon: "🏟️" },
+    { id: "pyramids",   label: "Pyramids",   icon: "🔺" },
+    { id: "identity",   label: "Identity",   icon: "🎖️" },
+    { id: "seasons",    label: "Seasons",    icon: "📅" },
+    { id: "events",     label: "Events",     icon: "🎉" },
   ];
 
   return (
@@ -618,6 +622,238 @@ export default function PulseGamesPage() {
 
       {/* ── CONTENT ── */}
       <div className="flex-1 overflow-y-auto">
+
+        {/* ══ SCOREBOARD TAB — ESPN-GRADE SPORTS INTELLIGENCE ══ */}
+        {tab === "scoreboard" && (() => {
+          const topAthletes = [...liveIdentityCards].sort((a,b) => b.sportWins - a.sportWins).slice(0,20);
+          const familyStandings = Object.entries(
+            liveIdentityCards.reduce((acc: Record<string,any>, card) => {
+              const fam = card.familyId;
+              if (!acc[fam]) acc[fam] = { family:fam, icon:card.icon, wins:0, losses:0, members:0, totalPc:0 };
+              acc[fam].wins    += card.sportWins;
+              acc[fam].losses  += card.sportLosses;
+              acc[fam].members += 1;
+              acc[fam].totalPc += card.pc;
+              return acc;
+            }, {})
+          )
+            .map(([,v]) => ({ ...v, winPct: v.wins + v.losses > 0 ? ((v.wins / (v.wins + v.losses)) * 100).toFixed(1) : "0.0", pts: v.wins * 3 }))
+            .sort((a:any,b:any) => b.pts - a.pts)
+            .slice(0, 15);
+
+          const SPORT_COLORS: Record<string,string> = {
+            "Sprint": "#f43f5e", "Endurance/Multi":"#3b82f6", "Mind & Strategy":"#a855f7", "Air & Aero":"#0ea5e9",
+            "Finance":"#22c55e", "Growth":"#f59e0b", "Ops":"#ef4444", "Docs":"#94a3b8", "Data":"#6366f1", "Media":"#ec4899",
+          };
+
+          return (
+            <div className="p-4 space-y-5">
+              {/* TICKER */}
+              <div className="relative overflow-hidden rounded-xl" style={{ background:"linear-gradient(90deg,#0f0f1a,#1a0a2e,#0f0f1a)", border:"1px solid #a855f730" }}>
+                <div className="flex items-center gap-0">
+                  <div className="shrink-0 px-3 py-2 flex items-center gap-2" style={{ background:"#a855f7", minWidth:80 }}>
+                    <span className="text-[10px] font-black text-white tracking-widest">LIVE</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  </div>
+                  <div className="overflow-hidden flex-1">
+                    <div className="flex gap-8 py-2 px-3 text-[10px] font-mono whitespace-nowrap animate-none">
+                      {topAthletes.slice(0,8).map(a => (
+                        <span key={a.id} className="shrink-0 flex items-center gap-2">
+                          <span style={{ color:"#a855f7" }}>{a.name}</span>
+                          <span className="text-white/60">{a.sportWins}W-{a.sportLosses}L</span>
+                          {a.sport && <span style={{ color:SPORT_COLORS[a.sport]??"#94a3b8" }} className="text-[9px]">· {a.sport}</span>}
+                        </span>
+                      ))}
+                      {sportsData?.totalGames && (
+                        <span className="shrink-0 text-white/30">▪ {sportsData.totalGames.toLocaleString()} total games played</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MAIN GRID */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+
+                {/* LEFT — League Standings */}
+                <div className="xl:col-span-2 rounded-2xl border border-white/10 overflow-hidden" style={{ background:"linear-gradient(135deg,#0d0d1a,#0a0a14)" }}>
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10" style={{ background:"linear-gradient(90deg,#1a0a2e50,transparent)" }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🏆</span>
+                      <span className="text-xs font-black text-white uppercase tracking-wider">Family League Standings</span>
+                    </div>
+                    <span className="text-[10px] text-white/30 font-mono">{familyStandings.length} families</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="text-left px-4 py-2 text-[10px] font-bold text-white/30 uppercase w-8">#</th>
+                          <th className="text-left px-4 py-2 text-[10px] font-bold text-white/30 uppercase">Family</th>
+                          <th className="text-center px-3 py-2 text-[10px] font-bold text-white/30 uppercase w-12">W</th>
+                          <th className="text-center px-3 py-2 text-[10px] font-bold text-white/30 uppercase w-12">L</th>
+                          <th className="text-center px-3 py-2 text-[10px] font-bold text-white/30 uppercase w-16">Win%</th>
+                          <th className="text-center px-3 py-2 text-[10px] font-bold text-white/30 uppercase w-14">PTS</th>
+                          <th className="text-left px-3 py-2 text-[10px] font-bold text-white/30 uppercase">Members</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {familyStandings.map((f:any, i) => {
+                          const isTop3 = i < 3;
+                          const podiumColor = i===0?"#FFD700":i===1?"#C0C0C0":i===2?"#CD7F32":"transparent";
+                          return (
+                            <tr key={f.family} data-testid={`standings-row-${f.family}`} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td className="px-4 py-2.5">
+                                <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black" style={{ background: isTop3?podiumColor+"25":"transparent", color:isTop3?podiumColor:"rgba(255,255,255,0.3)" }}>
+                                  {i+1}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">{f.icon}</span>
+                                  <div>
+                                    <div className="font-bold text-white capitalize text-[11px]">{f.family.replace(/-/g," ")}</div>
+                                    <div className="text-[9px] text-white/30">{f.members} athletes</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="text-center px-3 py-2.5 font-black text-green-400">{f.wins}</td>
+                              <td className="text-center px-3 py-2.5 font-bold text-red-400/70">{f.losses}</td>
+                              <td className="text-center px-3 py-2.5">
+                                <span className="text-[11px] font-bold" style={{ color:parseFloat(f.winPct)>55?"#22c55e":parseFloat(f.winPct)>40?"#f59e0b":"#ef4444" }}>{f.winPct}%</span>
+                              </td>
+                              <td className="text-center px-3 py-2.5">
+                                <span className="text-sm font-black" style={{ color:i===0?"#FFD700":i===1?"#C0C0C0":i===2?"#CD7F32":"#a855f7" }}>{f.pts}</span>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="h-1.5 w-full max-w-16 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full bg-violet-500/60" style={{ width:`${Math.min(100, (f.members / Math.max(1, familyStandings[0]?.members??1)) * 100)}%` }} />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {familyStandings.length === 0 && !identityLoading && (
+                      <div className="text-center py-12 text-white/20 text-xs">No standings data — sports engine initializing</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RIGHT — Top Athletes */}
+                <div className="rounded-2xl border border-white/10 overflow-hidden" style={{ background:"linear-gradient(135deg,#0d0d1a,#0a0a14)" }}>
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10" style={{ background:"linear-gradient(90deg,#f43f5e15,transparent)" }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">⭐</span>
+                      <span className="text-xs font-black text-white uppercase tracking-wider">Top Athletes</span>
+                    </div>
+                    <span className="text-[10px] text-white/30 font-mono">by wins</span>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {topAthletes.map((a, i) => (
+                      <button
+                        key={a.id}
+                        onClick={() => setViewSpawnId(a.id)}
+                        data-testid={`athlete-row-${a.id}`}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors text-left"
+                      >
+                        <div className="w-5 text-center text-[11px] font-black" style={{ color:i<3?"#FFD700":"rgba(255,255,255,0.25)" }}>{i+1}</div>
+                        <div className="w-6 text-center text-base">{a.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-bold text-white truncate">{a.name}</div>
+                          <div className="text-[9px] text-white/30 truncate capitalize">{a.familyId}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-[11px] font-black text-green-400">{a.sportWins}W</div>
+                          {a.sport && <div className="text-[9px]" style={{ color:SPORT_COLORS[a.sport]??"#94a3b8" }}>{a.sport?.slice(0,10)}</div>}
+                        </div>
+                      </button>
+                    ))}
+                    {topAthletes.length === 0 && (
+                      <div className="text-center py-12 text-white/20 text-xs px-4">Athlete data loading…</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTTOM — Hall of Fame + Tournaments */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* Hall of Fame */}
+                <div className="rounded-2xl border overflow-hidden" style={{ borderColor:"#FFD70030", background:"linear-gradient(135deg,#1a1200,#0a0a14)" }}>
+                  <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor:"#FFD70020", background:"linear-gradient(90deg,#FFD70015,transparent)" }}>
+                    <span className="text-base">👑</span>
+                    <span className="text-xs font-black uppercase tracking-wider" style={{ color:"#FFD700" }}>Hall of Fame</span>
+                    <span className="text-[10px] text-white/30 ml-auto">{hallOfFame.length} legends</span>
+                  </div>
+                  <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
+                    {hallOfFame.length === 0 && (
+                      <div className="p-6 text-center text-white/20 text-xs">No legends yet — play to become immortal</div>
+                    )}
+                    {hallOfFame.map((legend: any, i) => (
+                      <div key={legend.spawn_id ?? i} data-testid={`hof-${legend.spawn_id ?? i}`} className="flex items-center gap-3 px-4 py-2.5">
+                        <span className="text-base">{i===0?"🥇":i===1?"🥈":i===2?"🥉":"⭐"}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-bold text-white truncate">{legend.spawn_id?.slice(-10) ?? "LEGEND"}</div>
+                          <div className="text-[9px] text-white/40">{legend.inducted_reason ?? legend.sport ?? "Champion"}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-[11px] font-black" style={{ color:"#FFD700" }}>{legend.career_wins ?? legend.championship_count ?? "∞"}</div>
+                          <div className="text-[9px] text-white/30">wins</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tournaments */}
+                <div className="rounded-2xl border border-white/10 overflow-hidden" style={{ background:"linear-gradient(135deg,#0d0d1a,#0a0a14)" }}>
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10" style={{ background:"linear-gradient(90deg,#3b82f615,transparent)" }}>
+                    <span className="text-base">🏟️</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-blue-400">Recent Tournaments</span>
+                    <span className="text-[10px] text-white/30 ml-auto">{sportsTournaments.length} events</span>
+                  </div>
+                  <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
+                    {sportsTournaments.length === 0 && (
+                      <div className="p-6 text-center text-white/20 text-xs">No tournaments recorded yet — seasons are building up</div>
+                    )}
+                    {sportsTournaments.map((t: any, i) => (
+                      <div key={t.id ?? i} data-testid={`tournament-${t.id ?? i}`} className="flex items-center gap-3 px-4 py-2.5">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style={{ background:"#3b82f620", color:"#3b82f6" }}>
+                          {t.tournament_type?.[0] ?? "T"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-bold text-white truncate">{t.name ?? `Tournament ${i+1}`}</div>
+                          <div className="text-[9px] text-white/40">{t.sport ?? "Mixed"} · {t.participant_count ?? 0} participants</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-[10px] font-bold text-blue-400">{t.champion_spawn_id?.slice(-6) ?? "TBD"}</div>
+                          <div className="text-[9px] text-white/30">champion</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Season status banner */}
+              {currentSeason && (
+                <div className="rounded-xl p-3 flex items-center gap-3" style={{ background:`${currentSeason.color}12`, border:`1px solid ${currentSeason.color}30` }}>
+                  <span className="text-xl">{currentSeason.icon}</span>
+                  <div>
+                    <div className="text-xs font-black" style={{ color:currentSeason.color }}>{currentSeason.name} — ACTIVE</div>
+                    <div className="text-[10px] text-white/40">Season runs {currentSeason.start} → {currentSeason.end} · Rankings being tracked in real-time</div>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <div className="text-xs font-bold text-white/60">{liveIdentityCards.filter(c=>c.sport).length} enrolled athletes</div>
+                    <div className="text-[9px] text-white/30">{liveIdentityCards.filter(c=>c.sportWins>0).length} with active wins</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ══ ARENAS TAB ══ */}
         {tab === "arenas" && !selectedArena && (

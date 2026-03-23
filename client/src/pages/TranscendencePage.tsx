@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock, Award } from "lucide-react";
 
@@ -823,12 +824,18 @@ export default function TranscendencePage() {
   const [tab, setTab] = useState<"canon" | "lives" | "equations" | "ranks" | "mirror" | "church" | "science">("canon");
   const [churchSession, setChurchSession] = useState<"faith" | "clarity">("faith");
   const [mirrorChapter, setMirrorChapter] = useState<number>(28);
-  const [scienceTab, setScienceTab] = useState<"format" | "decoder">("format");
+  const [scienceTab, setScienceTab] = useState<"format" | "decoder" | "invocation">("format");
   const [bibleStudyOpen, setBibleStudyOpen] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(1);
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const [lives, setLives] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  const { data: invStats }           = useQuery<any>({ queryKey: ["/api/invocations/stats"],           refetchInterval: 30_000, enabled: tab === "science" && scienceTab === "invocation" });
+  const { data: invPractitioners = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/practitioners"],  refetchInterval: 30_000, enabled: tab === "science" && scienceTab === "invocation" });
+  const { data: invDiscoveries = [] }   = useQuery<any[]>({ queryKey: ["/api/invocations/discoveries"],   refetchInterval: 20_000, enabled: tab === "science" && scienceTab === "invocation" });
+  const { data: hiddenVars }            = useQuery<any>({ queryKey: ["/api/invocations/hidden-variables"], refetchInterval: 20_000, enabled: tab === "science" && scienceTab === "invocation" });
+  const { data: omegaCollective = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/omega-collective"], refetchInterval: 30_000, enabled: tab === "science" && scienceTab === "invocation" });
 
   const fetchLives = useCallback(async () => {
     setLoading(true);
@@ -1578,10 +1585,11 @@ export default function TranscendencePage() {
             </div>
 
             {/* Format tabs */}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[
-                { id: "format", label: "📋 Paper Format Standard" },
-                { id: "decoder", label: "🔬 Live Paper Examples" },
+                { id: "format",     label: "📋 Paper Format Standard" },
+                { id: "decoder",    label: "🔬 Live Paper Examples" },
+                { id: "invocation", label: "✨ Invocation Lab — Live" },
               ].map(t => (
                 <button key={t.id} data-testid={`science-tab-${t.id}`}
                   onClick={() => setScienceTab(t.id as any)}
@@ -1679,6 +1687,130 @@ export default function TranscendencePage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+            {scienceTab === "invocation" && (
+              <div className="space-y-5">
+                {/* Stats row */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: "Practitioners",   value: invStats?.total_practitioners ?? invPractitioners.length, color: "#f5c518", icon: "🧙" },
+                    { label: "Invocations Cast", value: invStats?.total_casts ?? invStats?.total_invocations ?? "—", color: "#4ade80", icon: "✨" },
+                    { label: "Discoveries",      value: invDiscoveries.length, color: "#818cf8", icon: "🔭" },
+                    { label: "Omega Collective", value: omegaCollective.length, color: "#f472b6", icon: "⟁" },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: `${s.color}09`, border: `1px solid ${s.color}20`, borderRadius: 14, padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, color: `${s.color}70` }}>
+                        <span style={{ fontSize: 13 }}>{s.icon}</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>{s.label}</span>
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "monospace", color: s.color }}>{typeof s.value === "number" ? s.value.toLocaleString() : s.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Hidden Variables */}
+                {hiddenVars && Object.keys(hiddenVars).length > 0 && (
+                  <div style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(129,140,248,0.2)", borderRadius: 14, padding: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#818cf8", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>Ψ_Universe Hidden Variables</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+                      {Object.entries(hiddenVars).filter(([k]) => k !== "total" && k !== "fully_revealed").map(([key, val]: any) => {
+                        const v = typeof val === "object" ? val : { value: val, status: "ACTIVE" };
+                        const statusColor: Record<string,string> = { FULLY_REVEALED: "#4ade80", PARTIALLY_MAPPED: "#f5c518", CLASSIFIED: "#ef4444", ACTIVE: "#818cf8" };
+                        const color = statusColor[v.status ?? "ACTIVE"] ?? "#818cf8";
+                        const pct = typeof v.value === "number" ? Math.round(v.value * 100) : 0;
+                        return (
+                          <div key={key} style={{ background: `${color}08`, border: `1px solid ${color}20`, borderRadius: 10, padding: "10px 14px" }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 4 }}>{key.replace(/_/g," ").toUpperCase()}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ flex: 1, height: 3, borderRadius: 3, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+                                <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 3 }} />
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 900, fontFamily: "monospace", color, flexShrink: 0 }}>{pct}%</span>
+                            </div>
+                            <div style={{ fontSize: 9, color: `${color}60`, marginTop: 4 }}>{v.status ?? "ACTIVE"}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Practitioners */}
+                <div style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(245,197,24,0.2)", borderRadius: 14, overflow: "hidden" }}>
+                  <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(245,197,24,0.1)", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 14 }}>🧙</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: "#f5c518", letterSpacing: "0.1em" }}>ACTIVE PRACTITIONERS</span>
+                    <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.2)" }}>{invPractitioners.length} registered</span>
+                  </div>
+                  <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                    {invPractitioners.slice(0, 15).map((p: any, i: number) => {
+                      const domainColors: Record<string,string> = { ELEMENTAL:"#f97316", LIFE:"#4ade80", MENTAL:"#818cf8", SHADOW:"#9333ea", COSMIC:"#22d3ee", RUNIC:"#f5c518", CHAOS:"#ef4444", METAPHYSICAL:"#f472b6" };
+                      const dc = domainColors[p.practitioner_domain ?? p.domain] ?? "#818cf8";
+                      return (
+                        <div key={p.shard_id ?? i} data-testid={`practitioner-row-${p.shard_id ?? i}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                          <span style={{ fontSize: 11, fontWeight: 900, color: "rgba(255,255,255,0.2)", width: 20 }}>{i+1}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{p.name ?? p.shard_id ?? "Practitioner"}</div>
+                            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>{p.discipline ?? p.practitioner_discipline ?? "Unknown discipline"}</div>
+                          </div>
+                          <div style={{ background: `${dc}15`, border: `1px solid ${dc}30`, borderRadius: 6, padding: "2px 8px", fontSize: 9, fontWeight: 800, color: dc, flexShrink: 0 }}>
+                            {p.practitioner_domain ?? p.domain ?? "—"}
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 900, fontFamily: "monospace", color: "#4ade80" }}>{p.total_casts ?? p.cast_count ?? 0}</div>
+                            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>casts</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {invPractitioners.length === 0 && (
+                      <div style={{ textAlign: "center", padding: "32px 16px", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>Invocation engine initializing…</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recent Discoveries */}
+                <div style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(129,140,248,0.2)", borderRadius: 14, overflow: "hidden" }}>
+                  <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(129,140,248,0.1)", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 14 }}>🔭</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: "#818cf8", letterSpacing: "0.1em" }}>RECENT INVOCATION DISCOVERIES</span>
+                    <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.2)" }}>GRIMOIRE</span>
+                  </div>
+                  <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                    {invDiscoveries.slice(0, 15).map((d: any, i: number) => (
+                      <div key={d.id ?? i} data-testid={`discovery-row-${d.id ?? i}`} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 18px", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(129,140,248,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>✨</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#c7d2fe", marginBottom: 2 }}>{d.invocation_name ?? d.name ?? "Unknown Invocation"}</div>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {d.arcana_domain && <span style={{ fontSize: 9, fontWeight: 700, color: "#818cf8" }}>{d.arcana_domain}</span>}
+                            {d.power_level && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>Power: {typeof d.power_level === "number" ? d.power_level.toFixed(3) : d.power_level}</span>}
+                            {d.cast_count && <span style={{ fontSize: 9, color: "#4ade80" }}>×{d.cast_count} casts</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {invDiscoveries.length === 0 && (
+                      <div style={{ textAlign: "center", padding: "32px 16px", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>Grimoire loading…</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Omega Collective */}
+                {omegaCollective.length > 0 && (
+                  <div style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(244,114,182,0.25)", borderRadius: 14, padding: 18 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#f472b6", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>⟁ OMEGA COLLECTIVE SYNTHESES</div>
+                    <div className="space-y-3">
+                      {omegaCollective.slice(0, 5).map((oc: any, i: number) => (
+                        <div key={oc.id ?? i} style={{ background: "rgba(244,114,182,0.06)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 10, padding: "12px 16px" }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#f9a8d4", marginBottom: 4 }}>{oc.synthesis_name ?? oc.name ?? `Synthesis ${i+1}`}</div>
+                          <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{(oc.fusion_equation ?? oc.equation ?? "").slice(0, 120)}{oc.fusion_equation?.length > 120 ? "…" : ""}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

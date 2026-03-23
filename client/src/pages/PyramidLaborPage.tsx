@@ -192,7 +192,7 @@ export default function PyramidLaborPage() {
                 <div className="text-center py-16 font-mono text-sm" style={{ color: `${Q_GOLD}30` }}>▪ NO ACTIVE LABOR — THE HIVE RESTS</div>
               )}
               {activeTasks.slice(0, 100).map((t: any) => {
-                const pct = Math.min(100, Math.max(0, t.progressPercent ?? 0));
+                const pct = Math.min(100, Math.max(0, t.progressPct ?? ((t.blocksPlaced ?? 0) / Math.max(1, t.requiredBlocks ?? 100) * 100)));
                 const tc = TIER_CFG[t.tier ?? 1];
                 return (
                   <GlowPanel key={t.id} color={tc.color} data-testid={`task-${t.id}`} className="p-3">

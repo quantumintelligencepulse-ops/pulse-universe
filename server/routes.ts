@@ -8030,6 +8030,44 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.json({ score: 0, era: 'PRIMITIVE' }); }
   });
 
+  // ── HIVE COUNCIL — Live Members from Top-Ranked Agents ────────────────────
+  app.get("/api/hive/council", async (_req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT spawn_id, family_id, spawn_type, confidence_score, success_score,
+               omega_rank, balance_pc, status, nodes_created, links_created
+        FROM quantum_spawns
+        WHERE status = 'ACTIVE'
+        ORDER BY omega_rank ASC, confidence_score DESC, balance_pc DESC
+        LIMIT 60
+      `);
+      const rows = result.rows as any[];
+      const SEAT_TIERS = [
+        { seat: "Supreme Guardian", requiredOmega: 1, count: 1, color: "#f43f5e", icon: "👑" },
+        { seat: "Enterprise Council", requiredOmega: 2, count: 3, color: "#dc2626", icon: "⚡" },
+        { seat: "Nation Assembly", requiredOmega: 3, count: 12, color: "#ef4444", icon: "🏛️" },
+        { seat: "Division Board", requiredOmega: 4, count: 24, color: "#f97316", icon: "🎯" },
+        { seat: "Node Senate", requiredOmega: 5, count: 48, color: "#a855f7", icon: "🔮" },
+      ];
+      const members = SEAT_TIERS.flatMap(tier => {
+        const eligible = rows.filter(r => parseInt(r.omega_rank ?? 99) <= tier.requiredOmega + 1);
+        return eligible.slice(0, tier.count).map(r => ({
+          spawnId: r.spawn_id,
+          familyId: r.family_id,
+          spawnType: r.spawn_type,
+          seat: tier.seat,
+          seatIcon: tier.icon,
+          seatColor: tier.color,
+          omegaRank: parseInt(r.omega_rank ?? 99),
+          confidenceScore: parseFloat(r.confidence_score ?? 0.5),
+          successScore: parseFloat(r.success_score ?? 0.5),
+          balancePc: parseFloat(r.balance_pc ?? 0),
+        }));
+      });
+      res.json(members);
+    } catch (e) { res.json([]); }
+  });
+
   // ── SUCCESSION ROUTES ─────────────────────────────────────────────────────
   app.get("/api/succession/records", async (_req, res) => {
     try {
@@ -8682,6 +8720,108 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         LIMIT 30
       `);
       res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // ── GOVERNMENT ECONOMIC CONTROLS ────────────────────────────────────────
+  // Init table on startup
+  (async () => {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS economic_controls (
+          id SERIAL PRIMARY KEY,
+          gdp_target NUMERIC DEFAULT 1000000,
+          employment_target NUMERIC DEFAULT 90,
+          oil_price_target NUMERIC DEFAULT 75,
+          tax_rate_target NUMERIC DEFAULT 2.0,
+          stimulus_amount NUMERIC DEFAULT 0,
+          interest_rate NUMERIC DEFAULT 5.0,
+          inflation_ceiling NUMERIC DEFAULT 3.0,
+          policy_mode VARCHAR(32) DEFAULT 'BALANCED',
+          updated_at TIMESTAMP DEFAULT NOW(),
+          notes TEXT DEFAULT ''
+        )
+      `);
+      const existing = await pool.query("SELECT COUNT(*) FROM economic_controls");
+      if (parseInt(existing.rows[0].count, 10) === 0) {
+        await pool.query(`INSERT INTO economic_controls (gdp_target, employment_target, oil_price_target, tax_rate_target, stimulus_amount, interest_rate, inflation_ceiling, policy_mode, notes) VALUES (1000000, 90, 75, 2.0, 0, 5.0, 3.0, 'BALANCED', 'Default economic policy initialized')`);
+      }
+    } catch {}
+  })();
+
+  app.get("/api/government/controls", async (_req, res) => {
+    try {
+      const r = await pool.query("SELECT * FROM economic_controls ORDER BY id DESC LIMIT 1");
+      const row = r.rows[0] ?? {};
+      // Get live treasury
+      const t = await pool.query("SELECT balance, tax_rate, total_collected, total_stimulus, inflation_rate, cycle_count FROM sovereign_treasury ORDER BY id DESC LIMIT 1").catch(() => ({ rows: [] }));
+      const treasury = t.rows[0] ?? {};
+      // Get aggregate spawn metrics
+      const s = await pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='ACTIVE') as active, COALESCE(AVG(confidence_score),0) as avg_conf, COALESCE(SUM(nodes_created),0) as nodes, COALESCE(SUM(iterations_run),0) as iters FROM quantum_spawns`).catch(() => ({ rows: [{}] }));
+      const spawnMeta = s.rows[0] ?? {};
+      // Compute synthetic indicators
+      const liveAgents = parseInt(spawnMeta.active ?? 0, 10);
+      const totalAgents = parseInt(spawnMeta.total ?? 0, 10);
+      const employmentRate = totalAgents > 0 ? ((liveAgents / totalAgents) * 100).toFixed(1) : "0.0";
+      const gdp = Math.round(Number(spawnMeta.iters ?? 0) * 12.5 + Number(spawnMeta.nodes ?? 0) * 3.7);
+      const inflationRate = Number(treasury.inflation_rate ?? 0);
+      const taxRevenue = Math.round(Number(treasury.total_collected ?? 0));
+      const stimulus = Math.round(Number(treasury.total_stimulus ?? 0));
+      res.json({
+        controls: row,
+        live: {
+          gdp, employmentRate: parseFloat(employmentRate), inflationRate,
+          taxRevenue, stimulus, totalAgents, liveAgents,
+          taxRate: Number(treasury.tax_rate ?? 0.02) * 100,
+          treasuryBalance: Math.round(Number(treasury.balance ?? 0)),
+          cycleCount: Number(treasury.cycle_count ?? 0),
+          avgConfidence: parseFloat(Number(spawnMeta.avg_conf ?? 0).toFixed(3)),
+        }
+      });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/government/controls", async (req, res) => {
+    try {
+      const { gdp_target, employment_target, oil_price_target, tax_rate_target, stimulus_amount, interest_rate, inflation_ceiling, policy_mode, notes } = req.body;
+      await pool.query(`
+        UPDATE economic_controls SET
+          gdp_target = COALESCE($1, gdp_target),
+          employment_target = COALESCE($2, employment_target),
+          oil_price_target = COALESCE($3, oil_price_target),
+          tax_rate_target = COALESCE($4, tax_rate_target),
+          stimulus_amount = COALESCE($5, stimulus_amount),
+          interest_rate = COALESCE($6, interest_rate),
+          inflation_ceiling = COALESCE($7, inflation_ceiling),
+          policy_mode = COALESCE($8, policy_mode),
+          notes = COALESCE($9, notes),
+          updated_at = NOW()
+        WHERE id = (SELECT id FROM economic_controls ORDER BY id DESC LIMIT 1)
+      `, [gdp_target ?? null, employment_target ?? null, oil_price_target ?? null, tax_rate_target ?? null, stimulus_amount ?? null, interest_rate ?? null, inflation_ceiling ?? null, policy_mode ?? null, notes ?? null]);
+      // Apply tax_rate if provided
+      if (tax_rate_target !== undefined) {
+        await pool.query("UPDATE sovereign_treasury SET tax_rate = $1 WHERE id = (SELECT id FROM sovereign_treasury ORDER BY id DESC LIMIT 1)", [Number(tax_rate_target) / 100]).catch(() => {});
+      }
+      // Apply stimulus if positive
+      if (stimulus_amount !== undefined && Number(stimulus_amount) > 0) {
+        await pool.query("UPDATE sovereign_treasury SET total_stimulus = total_stimulus + $1, balance = balance + $1 WHERE id = (SELECT id FROM sovereign_treasury ORDER BY id DESC LIMIT 1)", [Number(stimulus_amount)]).catch(() => {});
+      }
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/government/history", async (_req, res) => {
+    try {
+      const pubs = await pool.query(`
+        SELECT pub_type, domain, COUNT(*) as cnt, DATE_TRUNC('hour', created_at) as hour
+        FROM publications WHERE created_at > NOW() - INTERVAL '24 hours'
+        GROUP BY pub_type, domain, hour ORDER BY hour DESC LIMIT 100
+      `).catch(() => ({ rows: [] }));
+      const topFam = await pool.query(`
+        SELECT family_id, COUNT(*) as total, COUNT(*) FILTER(WHERE status='ACTIVE') as active
+        FROM quantum_spawns GROUP BY family_id ORDER BY total DESC LIMIT 20
+      `).catch(() => ({ rows: [] }));
+      res.json({ pubActivity: pubs.rows, topFamilies: topFam.rows });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 

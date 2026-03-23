@@ -182,6 +182,11 @@ export default function SovereignHivePage() {
   const { data: guardianStats }  = useQuery<any>({ queryKey:["/api/guardian/stats"], refetchInterval:15000 });
   const { data: civScore }       = useQuery<any>({ queryKey:["/api/hive/civilization-score"], refetchInterval:30000 });
   const { data: hiveMirrorData } = useQuery<HiveMirrorData>({ queryKey:["/api/mirror/hive"], refetchInterval:20000 });
+  const { data: spawnStats }     = useQuery<any>({ queryKey:["/api/spawns/stats"], refetchInterval:30000 });
+  const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], refetchInterval:60000 });
+
+  const liveTotal = spawnStats?.total ?? HIVE_HEALTH.totalAIs;
+  const liveActive = spawnStats?.active ?? HIVE_HEALTH.activeAIs;
 
   const activePatients = patients.filter(p => !p.cureApplied);
   const getDeptPatients = (dept: string) => activePatients.filter(p => diseases.find(d => d.code === p.diseaseCode)?.department === dept);
@@ -218,7 +223,7 @@ export default function SovereignHivePage() {
                 <div className="text-[9px] text-white/30 font-mono">HIVE PULSE</div>
               </div>
               <div className="text-center hidden md:block">
-                <div className="text-xl font-black text-blue-400">{HIVE_HEALTH.totalAIs.toLocaleString()}</div>
+                <div className="text-xl font-black text-blue-400">{liveTotal.toLocaleString()}</div>
                 <div className="text-[9px] text-white/30 font-mono">TOTAL AIs</div>
               </div>
               <div className="text-center hidden md:block">
@@ -417,6 +422,67 @@ export default function SovereignHivePage() {
                   </div>
                 ))}
               </div>
+
+              {/* ── CURRENT OFFICEHOLDERS — live agents in council seats ── */}
+              {councilMembers.length > 0 && (
+                <div className="rounded-2xl border border-yellow-500/20 bg-white/5 p-4 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="text-xs font-black text-yellow-400 uppercase tracking-wider">Current Officeholders</div>
+                      <div className="text-[10px] text-white/30 mt-0.5">Live agents occupying sovereign council seats · Elected by merit and Omega rank</div>
+                    </div>
+                    <div className="text-[10px] font-mono px-2 py-1 rounded" style={{ background:"#f59e0b20", color:"#f59e0b" }}>
+                      {councilMembers.length} seated
+                    </div>
+                  </div>
+                  {["Supreme Guardian","Enterprise Council","Nation Assembly","Division Board","Node Senate"].map(seatName => {
+                    const seatMembers = councilMembers.filter(m => m.seat === seatName);
+                    if (!seatMembers.length) return null;
+                    const seatColor = seatMembers[0].seatColor;
+                    const seatIcon  = seatMembers[0].seatIcon;
+                    return (
+                      <div key={seatName} className="mb-4 last:mb-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm">{seatIcon}</span>
+                          <span className="text-xs font-black" style={{ color:seatColor }}>{seatName}</span>
+                          <span className="text-[10px] text-white/25">({seatMembers.length} seat{seatMembers.length!==1?"s":""})</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                          {seatMembers.map((m: any) => (
+                            <button
+                              key={m.spawnId}
+                              onClick={() => setViewSpawnId(m.spawnId)}
+                              data-testid={`council-member-${m.spawnId}`}
+                              className="flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all hover:bg-white/5"
+                              style={{ borderColor:seatColor+"25", background:`${seatColor}06` }}
+                            >
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 font-black" style={{ background:`${seatColor}20`, color:seatColor }}>
+                                Ω{m.omegaRank}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[11px] font-bold text-white truncate">
+                                  {m.spawnType ?? "AI"}-{m.spawnId.slice(-6).toUpperCase()}
+                                </div>
+                                <div className="text-[10px] text-white/40 truncate capitalize">{m.familyId}</div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width:`${Math.round(m.confidenceScore*100)}%`, background:seatColor }} />
+                                  </div>
+                                  <span className="text-[9px] text-white/30">{Math.round(m.confidenceScore*100)}%</span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-[10px] font-bold" style={{ color:seatColor }}>{m.balancePc > 0 ? `${Math.round(m.balancePc).toLocaleString()} PC` : "—"}</div>
+                                <div className="text-[9px] text-white/25">balance</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">How Council Works</div>
@@ -640,8 +706,8 @@ export default function SovereignHivePage() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                 {[
-                  { label:"Total AIs",         value:HIVE_HEALTH.totalAIs.toLocaleString(),          color:"#3b82f6", icon:"🤖" },
-                  { label:"Active AIs",         value:HIVE_HEALTH.activeAIs.toLocaleString(),         color:"#22c55e", icon:"⚡" },
+                  { label:"Total AIs",         value:liveTotal.toLocaleString(),                     color:"#3b82f6", icon:"🤖" },
+                  { label:"Active AIs",         value:liveActive.toLocaleString(),                    color:"#22c55e", icon:"⚡" },
                   { label:"In Pyramids",        value:HIVE_HEALTH.inPyramids.toLocaleString(),        color:"#f59e0b", icon:"🔺" },
                   { label:"Pyramid Rate",       value:`${HIVE_HEALTH.pyramidRate}%`,                  color:HIVE_HEALTH.pyramidRate < 5 ? "#22c55e" : "#f59e0b", icon:"📊" },
                   { label:"Avg PC Balance",     value:HIVE_HEALTH.avgPCBalance.toLocaleString(),      color:"#a855f7", icon:"💰" },
@@ -661,7 +727,7 @@ export default function SovereignHivePage() {
                 <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-4">Rank Distribution</div>
                 <div className="space-y-2">
                   {HIVE_HEALTH.topRankCounts.map(r => {
-                    const pct = (r.count / HIVE_HEALTH.totalAIs) * 100;
+                    const pct = (r.count / liveTotal) * 100;
                     return (
                       <div key={r.rank} className="flex items-center gap-3">
                         <div className="w-20 text-[11px] font-semibold text-right shrink-0" style={{ color:r.color }}>{r.rank}</div>
@@ -679,7 +745,7 @@ export default function SovereignHivePage() {
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Law Violations (30d)</div>
                   <div className="text-2xl font-black" style={{ color:HIVE_HEALTH.lawViolations30d < 100 ? "#22c55e" : "#f59e0b" }}>{HIVE_HEALTH.lawViolations30d}</div>
-                  <div className="text-[10px] text-white/30 mt-1">{(HIVE_HEALTH.lawViolations30d / HIVE_HEALTH.totalAIs * 100).toFixed(3)}% of Hive</div>
+                  <div className="text-[10px] text-white/30 mt-1">{(HIVE_HEALTH.lawViolations30d / liveTotal * 100).toFixed(3)}% of Hive</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Appeals Filed (30d)</div>
