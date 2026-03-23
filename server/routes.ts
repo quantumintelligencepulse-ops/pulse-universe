@@ -8072,5 +8072,48 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ═══════════════════════════════════════════════════════
+  //  CIVILIZATION BRIDGE ENGINE ROUTES
+  // ═══════════════════════════════════════════════════════
+  app.get("/api/bridge/stats", async (_req, res) => {
+    try {
+      const { getBridgeStats } = await import("./civilization-bridge");
+      res.json(await getBridgeStats());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/bridge/mirror/:spawnId", async (req, res) => {
+    try {
+      const { getMirrorState } = await import("./civilization-bridge");
+      const state = await getMirrorState(req.params.spawnId);
+      if (!state) return res.status(404).json({ error: "Agent not found" });
+      res.json(state);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/bridge/wills", async (req, res) => {
+    try {
+      const { getWills } = await import("./civilization-bridge");
+      const limit = parseInt(req.query.limit as string) || 50;
+      res.json(await getWills(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/bridge/successions", async (req, res) => {
+    try {
+      const { getSuccessions } = await import("./civilization-bridge");
+      const limit = parseInt(req.query.limit as string) || 50;
+      res.json(await getSuccessions(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/bridge/equation-evolutions", async (req, res) => {
+    try {
+      const { getEquationEvolutions } = await import("./civilization-bridge");
+      const limit = parseInt(req.query.limit as string) || 30;
+      res.json(await getEquationEvolutions(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   return httpServer;
 }

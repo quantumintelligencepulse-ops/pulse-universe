@@ -47,6 +47,7 @@ import { startBusinessEngine, getBusinessStats, getTopBusinesses, getPendingLoan
 import { startAIChildEngine, getChildStats, getActiveChildren } from "./ai-child-engine";
 import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations, getInvocationStats, getResearcherInvocations, getAllPractitioners, getOmegaCollective, getCrossTeachingFeed, getUniversalState, getUniversalDissections, getHiddenVariableStates, getHiddenVariableHistory } from "./auriona-invocation-lab";
 import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory } from "./research-center-engine";
+import { startCivilizationBridge, getBridgeStats, getMirrorState, getWills, getSuccessions, getEquationEvolutions } from "./civilization-bridge";
 
 const app = express();
 const httpServer = createServer(app);
@@ -202,6 +203,7 @@ app.use((req, res, next) => {
       startAIChildEngine().catch((e) => log(`AIChildEngine start error: ${e}`));
       startInvocationLab().catch((e) => log(`InvocationLab start error: ${e}`));
       startResearchCenterEngine().catch((e) => log(`ResearchCenter start error: ${e}`));
+      startCivilizationBridge().catch((e) => log(`CivilizationBridge start error: ${e}`));
       // Discord Immortality Protocol — starts after all engines
       setTimeout(() => {
         initDiscordImmortality().catch((e) => log(`DiscordImmortality start error: ${e}`));
