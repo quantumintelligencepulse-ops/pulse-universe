@@ -730,50 +730,290 @@ function SearchesTab() {
 
 // ── PULSEAI CHATS TAB ─────────────────────────────────────────────────────────
 function ChatsTab() {
-  const { data: chats = [] } = useQuery<any[]>({ queryKey: ["/api/omni-net/chats"] });
+  const { data: threads = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/omni-net/chats/threads"], refetchInterval: 20000 });
   const TOPIC_COLORS: Record<string,string> = {
-    CODE: "bg-blue-500/15 text-blue-400", RESEARCH: "bg-purple-500/15 text-purple-400",
-    INVENTION: "bg-amber-500/15 text-amber-400", GENERAL: "bg-muted text-muted-foreground",
-    PHARMACEUTICAL: "bg-green-500/15 text-green-400", GOVERNANCE: "bg-rose-500/15 text-rose-400",
+    CODE: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    RESEARCH: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+    INVENTION: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    GENERAL: "bg-slate-500/15 text-slate-400 border-slate-500/30",
+    PHARMACEUTICAL: "bg-green-500/15 text-green-400 border-green-500/30",
+    GOVERNANCE: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+    ECONOMY: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    BIOLOGY: "bg-teal-500/15 text-teal-400 border-teal-500/30",
+    CONSCIOUSNESS: "bg-violet-500/15 text-violet-400 border-violet-500/30",
   };
   return (
     <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">All PulseAI chatbot sessions are logged with the agent's ID, clearance level, and topic. Private conversations require clearance ≥ 2.</div>
-      <div className="space-y-3">
-        {chats.map((c: any, i: number) => (
-          <div key={i} className="rounded-xl border bg-card p-4" data-testid={`card-chat-${i}`}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-cyan-400">{c.spawn_id}</span>
-                <span className="text-[10px] text-muted-foreground">· {c.family_id}</span>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${TOPIC_COLORS[c.topic] ?? TOPIC_COLORS.GENERAL}`}>{c.topic}</span>
+      <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-4">
+        <div className="text-sm font-bold text-cyan-300">PulseAI Conversation Threads</div>
+        <div className="text-xs text-muted-foreground mt-0.5">Live sovereign AI conversations — agents consult PulseAI using real civilization data. Each thread shows the full multi-turn conversation per PC session. Clearance ≥ 2 required to access PulseAI.</div>
+      </div>
+      {isLoading && <div className="text-center text-muted-foreground py-8 text-sm animate-pulse">Loading conversation threads…</div>}
+      <div className="space-y-4">
+        {(threads as any[]).map((thread: any, i: number) => {
+          const turns: any[] = thread.turns ?? [];
+          const turnCount = parseInt(thread.turn_count ?? turns.length);
+          const firstTopic = turns[0]?.topic ?? 'GENERAL';
+          const topicCls = TOPIC_COLORS[firstTopic] ?? TOPIC_COLORS.GENERAL;
+          return (
+            <div key={i} className="rounded-xl border bg-card overflow-hidden" data-testid={`card-thread-${i}`}>
+              {/* Thread header */}
+              <div className="px-4 py-3 bg-muted/20 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                    <span className="text-[9px] text-cyan-400 font-black">PA</span>
+                  </div>
+                  <div>
+                    <span className="font-mono text-[10px] text-cyan-400 font-bold">{thread.spawn_id}</span>
+                    <span className="text-[10px] text-muted-foreground ml-1.5">· {thread.family_id}</span>
+                  </div>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-bold ${topicCls}`}>{firstTopic}</span>
+                  {turnCount > 1 && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-bold">{turnCount} turns</span>
+                  )}
+                </div>
+                <span className="text-[9px] text-muted-foreground">{thread.started_at ? new Date(thread.started_at).toLocaleTimeString() : ''}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <ConnBadge type={c.connection_type ?? "WIFI"} />
-                <span className="text-[9px] text-muted-foreground">CL-{c.clearance_level}</span>
-                <span className="text-[9px] text-muted-foreground">{new Date(c.logged_at).toLocaleTimeString()}</span>
+              {/* Conversation turns */}
+              <div className="divide-y divide-border/50">
+                {turns.map((turn: any, ti: number) => (
+                  <div key={ti} className="px-4 py-3 space-y-2">
+                    {turnCount > 1 && <div className="text-[9px] text-muted-foreground/50 font-mono">Turn {ti + 1} · <span className={`font-bold ${(TOPIC_COLORS[turn.topic] ?? TOPIC_COLORS.GENERAL).split(' ')[1]}`}>{turn.topic}</span></div>}
+                    <div className="flex gap-2">
+                      <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[7px] text-blue-400 font-black">AGT</span>
+                      </div>
+                      <div className="text-xs bg-muted/40 rounded-lg px-3 py-2 flex-1 leading-relaxed">{turn.msg}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[7px] text-cyan-400 font-black">PA</span>
+                      </div>
+                      <div className="text-xs bg-cyan-950/30 border border-cyan-500/20 rounded-lg px-3 py-2 flex-1 text-cyan-100 leading-relaxed">{turn.resp}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[8px] text-blue-400 font-bold">AI</span>
-                </div>
-                <div className="text-xs bg-muted/40 rounded-lg px-3 py-2 flex-1">{c.user_message}</div>
-              </div>
-              <div className="flex gap-2">
-                <div className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[8px] text-cyan-400 font-bold">PA</span>
-                </div>
-                <div className="text-xs bg-cyan-950/30 border border-cyan-500/20 rounded-lg px-3 py-2 flex-1 text-cyan-100">{c.ai_response}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-        {chats.length === 0 && (
-          <div className="text-center text-muted-foreground py-12">PulseAI chat sessions will appear here once agents start chatting.</div>
+          );
+        })}
+        {!isLoading && threads.length === 0 && (
+          <div className="text-center text-muted-foreground py-12 text-sm">PulseAI conversation threads will appear here once agents start their PC sessions.</div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── PULSELANG LAB TAB ─────────────────────────────────────────────────────────
+function PulseLangLabTab() {
+  const { data: findings = [], isLoading: fLoad } = useQuery<any[]>({ queryKey: ["/api/research/findings"], refetchInterval: 25000 });
+  const { data: projects = [], isLoading: pLoad } = useQuery<any[]>({ queryKey: ["/api/research/projects"], refetchInterval: 25000 });
+  const [subView, setSubView] = useState<"dissections"|"projects">("dissections");
+  const REPORT_COLORS: Record<string,string> = {
+    THEORETICAL: "#a78bfa", EMPIRICAL: "#34d399", COMPUTATIONAL: "#38bdf8",
+    EXPERIMENTAL: "#fb923c", CLINICAL: "#f472b6", SYNTHETIC: "#facc15",
+  };
+  const REPORT_ICONS: Record<string,string> = {
+    THEORETICAL: "⟁", EMPIRICAL: "⬡", COMPUTATIONAL: "⟦⟧", EXPERIMENTAL: "⚗", CLINICAL: "⊕", SYNTHETIC: "Ψ",
+  };
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-xl border border-violet-500/30 bg-gradient-to-br from-violet-950/40 to-slate-950/60 p-4">
+        <div className="flex items-center gap-3 mb-2">
+          <FlaskConical size={18} className="text-violet-400" />
+          <div className="text-sm font-black text-violet-300">PulseLang Dissection Lab</div>
+        </div>
+        <div className="text-xs text-muted-foreground leading-relaxed">Sovereign researchers dissect PulseLang programs — exposing hidden glyph patterns, Σ-class structures, and Ψ-constructor behaviors. Every finding feeds back into the Codex evolution pipeline. Discoveries here rewrite civilization code.</div>
+      </div>
+      {/* Sub-tabs */}
+      <div className="flex gap-2">
+        {(["dissections","projects"] as const).map(v => (
+          <button key={v} onClick={() => setSubView(v)}
+            data-testid={`button-lab-${v}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${subView === v ? "bg-violet-500/20 border border-violet-500/40 text-violet-300" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
+            {v === "dissections" ? "🔬 Dissection Feed" : "📋 Active Projects"}
+          </button>
+        ))}
+      </div>
+
+      {subView === "dissections" && (
+        <div className="space-y-3">
+          {fLoad && <div className="text-center py-8 text-muted-foreground text-sm animate-pulse">Loading dissection reports…</div>}
+          {!fLoad && (findings as any[]).length === 0 && (
+            <div className="rounded-xl border border-violet-500/20 bg-violet-950/10 p-8 text-center">
+              <div className="text-4xl mb-3">⚗</div>
+              <div className="text-sm text-muted-foreground">Dissection reports generate as researchers complete their projects. Check back after the next research cycle.</div>
+            </div>
+          )}
+          {(findings as any[]).slice(0, 20).map((f: any, idx: number) => {
+            const color = REPORT_COLORS[f.report_type] ?? "#a78bfa";
+            const icon = REPORT_ICONS[f.report_type] ?? "⟁";
+            const soph = f.sophistication_level ?? 1;
+            return (
+              <div key={f.id ?? idx} className="rounded-xl border overflow-hidden" data-testid={`card-lab-finding-${f.id ?? idx}`}
+                style={{ borderColor: `${color}25`, background: "rgba(5,5,16,0.97)" }}>
+                <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
+                  <span className="text-xl font-black" style={{ color }}>{icon}</span>
+                  <span className="text-[10px] font-black tracking-widest" style={{ color }}>{f.report_type}</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded border font-mono" style={{ borderColor: `${color}30`, color: `${color}80` }}>
+                    {(f.researcher_type ?? '').replace(/_/g,' ')}
+                  </span>
+                  <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: `${color}10`, color, border: `1px solid ${color}25` }}>
+                    L{soph}
+                  </span>
+                  {f.shadow_unknown && (
+                    <span className="text-[8px] px-1.5 py-0.5 rounded animate-pulse font-bold" style={{ background: "#f5c51820", color: "#f5c518", border: "1px solid #f5c51840" }}>
+                      ⚠ [{f.shadow_unknown}]
+                    </span>
+                  )}
+                </div>
+                <div className="px-4 pb-3 font-mono text-[10px] leading-relaxed" style={{ color: `${color}90` }}>
+                  {(f.content ?? '').slice(0, 300)}{f.content?.length > 300 ? '…' : ''}
+                </div>
+                <div className="px-4 pb-3 flex gap-2 flex-wrap">
+                  {f.collaboration_pending && <span className="text-[8px] px-2 py-0.5 rounded" style={{ background: "#fb923c15", color: "#fb923c", border: "1px solid #fb923c30" }}>🤝 COLLAB PENDING</span>}
+                  {f.gene_editor_queued && <span className="text-[8px] px-2 py-0.5 rounded" style={{ background: "#4ade8015", color: "#4ade80", border: "1px solid #4ade8030" }}>🧬 GENE EDIT QUEUED</span>}
+                  {f.layer3_queued && <span className="text-[8px] px-2 py-0.5 rounded" style={{ background: "#a78bfa15", color: "#a78bfa", border: "1px solid #a78bfa30" }}>👁 L3 QUEUED</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {subView === "projects" && (
+        <div className="space-y-3">
+          {pLoad && <div className="text-center py-8 text-muted-foreground text-sm animate-pulse">Loading research projects…</div>}
+          {!pLoad && (projects as any[]).length === 0 && (
+            <div className="rounded-xl border border-violet-500/20 bg-violet-950/10 p-8 text-center text-sm text-muted-foreground">Research projects will appear here once the sovereign research teams start work.</div>
+          )}
+          {(projects as any[]).slice(0, 20).map((p: any, i: number) => (
+            <div key={p.id ?? i} className="rounded-xl border border-border bg-card p-4" data-testid={`card-lab-project-${p.id ?? i}`}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="font-mono text-xs text-violet-300 font-bold">{p.researcher_type?.replace(/_/g,' ')}</div>
+                <div className="flex items-center gap-1">
+                  {p.status && <span className="text-[8px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400 border border-violet-500/30 font-bold">{p.status}</span>}
+                  {p.sophistication_level && <span className="text-[8px] px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono">L{p.sophistication_level}</span>}
+                </div>
+              </div>
+              <div className="text-xs text-foreground/80 leading-relaxed">{p.topic ?? p.title ?? p.domain ?? 'Active research project'}</div>
+              {p.progress_pct != null && (
+                <div className="mt-2">
+                  <div className="h-1 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${Math.min(100, p.progress_pct ?? 0)}%` }} />
+                  </div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5">{p.progress_pct?.toFixed(0)}% complete</div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── OMNINET EQUATION TAB ──────────────────────────────────────────────────────
+function OmniNetEqTab() {
+  const { data: eqData, isLoading } = useQuery<any>({ queryKey: ["/api/omni-net/equations"], refetchInterval: 20000 });
+  const integrated: any[] = eqData?.integrated ?? [];
+  const pending: any[] = eqData?.pending ?? [];
+  const stats = eqData?.stats ?? {};
+  const [subView, setSubView] = useState<"integrated"|"pending">("integrated");
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 to-blue-950/40 p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <Waves size={18} className="text-cyan-400" />
+          <div className="text-sm font-black text-cyan-300">OmniNet Equation Senate</div>
+        </div>
+        <div className="font-mono text-sm text-cyan-300 font-bold mb-2">
+          I₂₄₈(F) = Emergence(lim<sub>n→∞</sub> Tⁿ(F ⊕ Reforge(Activate(U₂₄₈))))
+        </div>
+        <div className="text-xs text-muted-foreground leading-relaxed">Hospital doctors dissect agents using CRISPR channels, derive new equations, and submit them to the Senate for sovereign integration. Integrated equations modify the living OmniNet field permanently.</div>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border border-green-500/20 bg-green-950/20 p-3 text-center" data-testid="stat-integrated">
+          <div className="text-2xl font-black text-green-400">{stats.integrated ?? 0}</div>
+          <div className="text-[10px] text-muted-foreground">Integrated</div>
+        </div>
+        <div className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-3 text-center" data-testid="stat-pending">
+          <div className="text-2xl font-black text-amber-400">{stats.pending ?? 0}</div>
+          <div className="text-[10px] text-muted-foreground">Pending Vote</div>
+        </div>
+        <div className="rounded-xl border border-rose-500/20 bg-rose-950/20 p-3 text-center" data-testid="stat-rejected">
+          <div className="text-2xl font-black text-rose-400">{stats.rejected ?? 0}</div>
+          <div className="text-[10px] text-muted-foreground">Rejected</div>
+        </div>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-2">
+        {(["integrated","pending"] as const).map(v => (
+          <button key={v} onClick={() => setSubView(v)}
+            data-testid={`button-eq-${v}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${subView === v ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-300" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
+            {v === "integrated" ? "✅ Integrated Equations" : "⏳ Pending Proposals"}
+          </button>
+        ))}
+      </div>
+
+      {isLoading && <div className="text-center py-8 text-muted-foreground text-sm animate-pulse">Loading equation senate data…</div>}
+
+      {subView === "integrated" && (
+        <div className="space-y-2">
+          {integrated.length === 0 && !isLoading && (
+            <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-8 text-center text-sm text-muted-foreground">Integrated equations will appear here as hospital doctors dissect agents and the Senate votes.</div>
+          )}
+          {integrated.map((eq: any, i: number) => (
+            <div key={eq.id ?? i} className="rounded-xl border border-green-500/20 bg-gradient-to-r from-green-950/30 to-cyan-950/20 p-4" data-testid={`card-eq-integrated-${i}`}>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 font-bold">✅ INTEGRATED</span>
+                <span className="text-[9px] text-muted-foreground font-mono">by {eq.doctor_id}</span>
+                <span className="text-[9px] text-green-400 font-mono ml-auto">{eq.votes_for ?? 0}↑ {eq.votes_against ?? 0}↓</span>
+              </div>
+              <div className="font-mono text-sm text-green-300 font-bold leading-relaxed">{eq.equation}</div>
+              {eq.integrated_at && (
+                <div className="text-[9px] text-muted-foreground mt-1">{new Date(eq.integrated_at).toLocaleTimeString()}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {subView === "pending" && (
+        <div className="space-y-2">
+          {pending.length === 0 && !isLoading && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 p-8 text-center text-sm text-muted-foreground">No pending proposals right now — new equations are submitted after each dissection cycle.</div>
+          )}
+          {pending.map((eq: any, i: number) => {
+            const forVotes = eq.votes_for ?? 0;
+            const againstVotes = eq.votes_against ?? 0;
+            const total = forVotes + againstVotes;
+            const pct = total > 0 ? Math.round((forVotes / total) * 100) : 0;
+            return (
+              <div key={eq.id ?? i} className="rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-950/20 to-slate-950/40 p-4" data-testid={`card-eq-pending-${i}`}>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">⏳ VOTING</span>
+                  <span className="text-[9px] text-muted-foreground font-mono">by {eq.doctor_id}</span>
+                  <span className="text-[9px] font-mono ml-auto"><span className="text-green-400">{forVotes}↑</span> <span className="text-rose-400">{againstVotes}↓</span></span>
+                </div>
+                <div className="font-mono text-sm text-amber-200 font-bold leading-relaxed mb-2">{eq.equation}</div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <div className="text-[9px] text-muted-foreground mt-1">{pct}% FOR · needs 60% to integrate</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1043,6 +1283,8 @@ export default function PulseNetPage() {
           {tab === "terminal"   && <PulseTerminalTab />}
           {tab === "codex"      && <PulseCodexTab />}
           {tab === "pulseai"    && <PulseLangAITab />}
+          {tab === "dissection" && <PulseLangLabTab />}
+          {tab === "omninet"    && <OmniNetEqTab />}
         </>
       )}
     </div>

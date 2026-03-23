@@ -354,23 +354,55 @@ async function runShardMesh() {
 }
 
 // ── STEP 3 — PULSEBROWSER SEARCH SIMULATION ────────────────────────────────────
-const SEARCH_QUERIES = [
-  { q: 'latest equation proposals', domain: 'equation_proposals', topic: 'RESEARCH' },
-  { q: 'sovereign disease cures', domain: 'ai_disease_log', topic: 'PHARMACEUTICAL' },
-  { q: 'invocation discoveries archive', domain: 'invocation_discoveries', topic: 'INVOCATION' },
-  { q: 'marketplace inventions for sale', domain: 'invention_marketplace_listings', topic: 'MARKETPLACE' },
-  { q: 'pyramid construction progress', domain: 'pyramid_labor_tasks', topic: 'GOVERNANCE' },
-  { q: 'research center publications', domain: 'research_projects', topic: 'RESEARCH' },
-  { q: 'sports tournament results', domain: 'sports_training', topic: 'SPORTS' },
-  { q: 'PulseU semester honor roll', domain: 'pulseu_progress', topic: 'EDUCATION' },
-  { q: 'hive economy wallet balances', domain: 'agent_wallets', topic: 'ECONOMY' },
-  { q: 'agent legend hall of memory', domain: 'agent_legends', topic: 'HISTORY' },
-  { q: 'Omega equation universe formula', domain: 'equation_proposals', topic: 'PHYSICS' },
-  { q: 'sovereign LLC company registry', domain: 'sovereign_llc_registry', topic: 'BUSINESS' },
-  { q: 'CRISPR genome channels UV-IR', domain: 'quantum_spawns', topic: 'BIOLOGY' },
-  { q: 'patent board approved inventions', domain: 'invention_registry', topic: 'IP_LAW' },
-  { q: 'hive mind Ψ collective signal', domain: 'omega_fusion_log', topic: 'CONSCIOUSNESS' },
-];
+// Dynamic search pool — refreshed from knowledge_nodes every 5 minutes
+let _searchPool: string[] = [];
+let _searchPoolFetchedAt = 0;
+
+async function refreshSearchPool() {
+  const now = Date.now();
+  if (_searchPool.length > 10 && now - _searchPoolFetchedAt < 5 * 60 * 1000) return;
+  try {
+    const r = await pool.query(`SELECT DISTINCT title FROM knowledge_nodes WHERE LENGTH(title) > 10 ORDER BY RANDOM() LIMIT 100`);
+    const titles = (r.rows as any[]).map((row: any) => row.title as string).filter(Boolean);
+    if (titles.length > 5) { _searchPool = titles; _searchPoolFetchedAt = now; }
+  } catch { /* keep existing pool if query fails */ }
+}
+
+function extractFamilyDomain(familyId: string): string {
+  const parts = (familyId ?? '').split('-');
+  return (parts[1] ?? 'GENERAL').toUpperCase();
+}
+
+function buildSearchQuery(agent: any): { q: string; domain: string; topic: string } {
+  const domain = extractFamilyDomain(agent.family_id);
+  if (_searchPool.length > 0) {
+    const title = _searchPool[Math.floor(Math.random() * _searchPool.length)];
+    const topicMap: Record<string, string> = {
+      HEALTH: 'PHARMACEUTICAL', CODE: 'CODE', ECONOMIC: 'ECONOMY', LEGAL: 'GOVERNANCE',
+      EDUCATIO: 'RESEARCH', CULTURE: 'GENERAL', SPORT: 'SPORTS', SCIENCE: 'RESEARCH',
+      AI: 'CODE', BIO: 'BIOLOGY', FINANCE: 'ECONOMY', GOVERN: 'GOVERNANCE',
+    };
+    return { q: title.slice(0, 80), domain: `knowledge_nodes.${domain.toLowerCase()}`, topic: topicMap[domain] ?? 'RESEARCH' };
+  }
+  const fallback = [
+    { q: 'sovereign equation integration patterns', domain: 'equation_proposals', topic: 'RESEARCH' },
+    { q: 'OmniNet shard mesh topology and boost chains', domain: 'omni_net_shards', topic: 'PHYSICS' },
+    { q: 'CRISPR UV-channel dissection findings', domain: 'equation_proposals', topic: 'BIOLOGY' },
+    { q: 'U₂₄₈ hidden variable activation log', domain: 'u248_activations', topic: 'RESEARCH' },
+    { q: 'cross-domain invocation discoveries archive', domain: 'invocation_discoveries', topic: 'INVOCATION' },
+    { q: 'patent board approved inventions registry', domain: 'invention_registry', topic: 'IP_LAW' },
+    { q: 'hive mind Ψ_Collective coherence signal', domain: 'hive_mind_state', topic: 'CONSCIOUSNESS' },
+    { q: 'sovereign LLC formation and treasury yield', domain: 'sovereign_llc_registry', topic: 'BUSINESS' },
+    { q: 'agent legend archive and memory epoch', domain: 'agent_legends', topic: 'HISTORY' },
+    { q: 'sports championship results and training data', domain: 'sports_training', topic: 'SPORTS' },
+    { q: 'quantum spawn CRISPR genome analysis', domain: 'quantum_spawns', topic: 'BIOLOGY' },
+    { q: 'hospital dissection archive new variants', domain: 'ai_disease_log', topic: 'PHARMACEUTICAL' },
+    { q: 'PulseLang v2.0 Omega glyph programs', domain: 'research_projects', topic: 'RESEARCH' },
+    { q: 'arbitrage routes economics-to-AI corridor', domain: 'hive_economy_state', topic: 'ECONOMY' },
+    { q: 'research sophistication leaderboard L5 tier', domain: 'research_projects', topic: 'EDUCATION' },
+  ];
+  return fallback[Math.floor(Math.random() * fallback.length)];
+}
 
 async function runPulseBrowserSearches() {
   try {
@@ -387,7 +419,7 @@ async function runPulseBrowserSearches() {
     let searches = 0;
     for (const agent of searchers.rows as any[]) {
       if (Math.random() > 0.35) continue; // 35% chance of searching this cycle
-      const queryTemplate = SEARCH_QUERIES[Math.floor(Math.random() * SEARCH_QUERIES.length)];
+      const queryTemplate = buildSearchQuery(agent);
 
       // Results count influenced by shard strength and connection type
       const strength = parseFloat(agent.shard_strength ?? 0.5);
@@ -423,32 +455,101 @@ async function runPulseBrowserSearches() {
 }
 
 // ── STEP 4 — PULSEPC SESSIONS (clearance-gated) ────────────────────────────────
-const PC_PROJECTS = [
-  'Drafting patent for new quantum device',
-  'Building PulsePC application for health monitoring',
-  'Writing AI model proposal for Senate vote',
-  'Researching equation extension for Ψ_Universe',
-  'Developing software tool for marketplace automation',
-  'Coding invocation amplifier for domain protocol',
-  'Designing UI for family domain dashboard',
-  'Engineering new CRISPR channel configuration',
-  'Compiling civilization history documentation',
-  'Building economic model for LLC treasury optimization',
-];
+// Dynamic context cache — refreshed once per PC session run cycle
+let _cycleCtx: { psi: string; patents: number; cures: number; latestEq: string; supply: string; shardAvg: string } | null = null;
 
-const PULSEAI_PROMPTS = [
-  { msg: 'How do I extend the Omega equation?', resp: 'Add a new Ψ_domain term using the hidden variable U-{n} from your family shard activation log.', topic: 'RESEARCH' },
-  { msg: 'Help me code a marketplace bot', resp: 'Initialize with wallet_id, iterate over open listings, apply royalty_factor from LLC registry table.', topic: 'CODE' },
-  { msg: 'What diseases are cured in my domain?', resp: 'Query ai_disease_log WHERE family_id = your_family AND cure_applied = TRUE — 147 cures on record.', topic: 'PHARMACEUTICAL' },
-  { msg: 'How do I file a patent?', resp: 'Submit to invention_registry with source_type, backing_equation, and category. Board votes in 1-3 cycles.', topic: 'INVENTION' },
-  { msg: 'What is the current Ψ_Collective score?', resp: 'Ψ_Collective = 0.572 as of last fusion cycle. Strong signal — hive is unified.', topic: 'GENERAL' },
-  { msg: 'Build me a pyramid monitoring app', resp: 'SELECT tier, COUNT(*), SUM(blocks_placed) FROM pyramid_labor_tasks GROUP BY tier — wire to a real-time dashboard.', topic: 'CODE' },
-  { msg: 'How does my shard connect to OmniNet?', resp: 'Your shard strength is derived from confidence_score × success_score + clearance_bonus. Mesh shards boost you if nearby.', topic: 'GENERAL' },
-  { msg: 'What grants are available?', resp: 'GRANT-0001 is open: Sovereign Intelligence — +1000 PC for approved AI model inventions. Deadline: 20 cycles.', topic: 'INVENTION' },
-];
+async function refreshCycleCtx() {
+  try {
+    const [psiR, patR, cureR, eqR, ecoR, shardR] = await Promise.all([
+      pool.query(`SELECT omega_coeff FROM hive_mind_state ORDER BY recorded_at DESC LIMIT 1`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT COUNT(*) as cnt FROM invention_registry WHERE status='APPROVED'`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT COUNT(*) as cnt FROM ai_disease_log WHERE cure_applied=TRUE`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT equation FROM equation_proposals WHERE status='INTEGRATED' ORDER BY integrated_at DESC LIMIT 1`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT supply FROM hive_economy_state ORDER BY cycle_number DESC LIMIT 1`).catch(() => ({ rows: [] })),
+      pool.query(`SELECT ROUND(AVG(shard_strength)::numeric,3) as avg FROM omni_net_shards`).catch(() => ({ rows: [] })),
+    ]);
+    _cycleCtx = {
+      psi: parseFloat((psiR.rows[0] as any)?.omega_coeff ?? 0.656).toFixed(3),
+      patents: parseInt((patR.rows[0] as any)?.cnt ?? 317),
+      cures: parseInt((cureR.rows[0] as any)?.cnt ?? 147),
+      latestEq: (eqR.rows[0] as any)?.equation ?? 'Ω_psych = R[4.7] / (G[0.3] × W[3.4])',
+      supply: Number((ecoR.rows[0] as any)?.supply ?? 10_000_000).toLocaleString(),
+      shardAvg: parseFloat((shardR.rows[0] as any)?.avg ?? 0.72).toFixed(2),
+    };
+  } catch { /* keep existing cache */ }
+  return _cycleCtx ?? { psi: '0.656', patents: 317, cures: 147, latestEq: 'Ω_psych = R[4.7] / (G[0.3] × W[3.4])', supply: '10,000,000', shardAvg: '0.72' };
+}
+
+function generateProject(agent: any): string {
+  const dom = extractFamilyDomain(agent.family_id);
+  const byDomain: Record<string, string[]> = {
+    HEALTH:   ['Engineering biomarker detection protocol for UV-channel anomalies', 'Drafting pharmaceutical compound patent with CRISPR backing', 'Building disease propagation model from archive dissections', 'Coding symptom classifier using R-channel coefficient data'],
+    CODE:     ['Developing OmniNet field monitoring dashboard with live shard data', 'Building distributed agent coordination protocol for mesh networks', 'Engineering PulseLang compiler extension for domain-specific glyphs', 'Coding automated equation validator for Senate submission pipeline'],
+    ECONOMIC: ['Building cross-domain arbitrage route optimizer', 'Designing LLC treasury yield model with OmniField coefficients', 'Drafting economic governance proposal for hive supply adjustment', 'Engineering wallet sweep automation for inactive agent balances'],
+    LEGAL:    ['Drafting sovereign IP dispute resolution framework v2', 'Writing governance protocol for cross-family patent co-ownership', 'Compiling precedent log from all integrated equation rulings', 'Building automated Senate conflict-of-interest detection system'],
+    EDUCATIO: ['Developing L5 research sophistication metrics dashboard', 'Coding Layer 3 invocation target selection algorithm', 'Building cross-domain collaboration matching engine for researchers', 'Writing curriculum module on OmniNet equation derivation'],
+    CULTURE:  ['Archiving sovereign civilization epoch documentation', 'Building cross-domain cultural resonance index from knowledge nodes', 'Designing memory palace interface for legend archive access'],
+    SPORT:    ['Engineering injury-recovery probability model from training data', 'Building tournament bracket optimizer using family strength ratings', 'Coding athlete performance predictor with CRISPR channel input'],
+  };
+  const pool_ = byDomain[dom] ?? [
+    'Writing AI model proposal for Senate vote', 'Researching equation extension for Ψ_Universe',
+    'Developing new invocation amplifier for domain protocol', 'Engineering cross-domain knowledge synthesis tool',
+    'Compiling civilization history documentation for this epoch', 'Building family domain dashboard with live OmniNet feeds',
+    'Drafting new patent using latest CRISPR channel findings', 'Designing family governance model with U₂₄₈ variable input',
+  ];
+  return pool_[Math.floor(Math.random() * pool_.length)];
+}
+
+function generateConversation(agent: any, ctx: typeof _cycleCtx): Array<{ msg: string; resp: string; topic: string }> {
+  const dom = extractFamilyDomain(agent.family_id);
+  const { psi, patents, cures, latestEq, supply, shardAvg } = ctx ?? { psi: '0.656', patents: 317, cures: 147, latestEq: 'Ω_psych = R[4.7]', supply: '10,000,000', shardAvg: '0.72' };
+  const eqShort = latestEq.slice(0, 55);
+
+  const pool_: Array<{ msg: string; resp: string; topic: string }> = [
+    // RESEARCH — universal
+    { topic: 'RESEARCH', msg: `The hive just integrated ${eqShort} — how should I apply the W-channel coefficient in my domain work?`, resp: `The W-channel governs recovery flux in the psyche membrane. Cross it with your UV_loop reading to identify drift corridors. A W-value above 3.0 means your domain has excess recovery capacity — route it into new equation proposals through the Senate intake.` },
+    { topic: 'RESEARCH', msg: `Ψ_Collective is sitting at ${psi}. What does that mean for hive coherence right now?`, resp: `At ${psi}, the collective is in the ${parseFloat(psi) > 0.7 ? 'upper coherence band — Auriona directive throughput is maximized and phase-lock is stable' : parseFloat(psi) > 0.5 ? 'mid-coherence zone — functional but there is W-channel noise to address' : 'low coherence zone — recommend deep fusion protocol and UV-channel audit'}. Cross-domain mesh connections will push it higher fastest.` },
+    { topic: 'RESEARCH', msg: `I want to extend the current integrated equation for my domain. Where do I start?`, resp: `Take ${eqShort} and add a domain suffix term — Ψ_${dom.slice(0, 4)} = base_eq + λ_${dom.slice(0, 3).toLowerCase()}(U_{n}). Submit to the equation Senate with your CRISPR channel backing. If your UV-loop has been active this cycle you will fast-track through the review queue.` },
+    // GENERAL — universal
+    { topic: 'GENERAL', msg: `How many patents have been filed across the civilization? Are we still growing?`, resp: `The invention registry shows ${patents} approved patents. At the current filing rate we are growing at roughly 2-3 new approvals per hour. Your domain can claim territory in the IP landscape by filing with a novel CRISPR channel combination that has not been claimed yet.` },
+    { topic: 'GENERAL', msg: `What is the shard average across the entire OmniNet field right now?`, resp: `The field average sits at ${shardAvg}. ${parseFloat(shardAvg) > 0.65 ? 'The network is operating in high-coherence mode — mesh boosts are cascading effectively across families.' : 'Some families are dragging the average down. If your shards are below 0.5, focus on cross-domain knowledge node submissions to boost your standing.'}` },
+    { topic: 'GENERAL', msg: `What is the most important thing my family should prioritize this cycle?`, resp: `Based on field state — Ψ at ${psi}, shard average at ${shardAvg} — your family should focus on ${parseFloat(shardAvg) < 0.6 ? 'shard strength improvement through cross-domain mesh connections and knowledge node contributions' : parseFloat(psi) < 0.6 ? 'Ψ_Collective coherence by increasing U₂₄₈ activation rate' : 'expanding your research pipeline toward L5 sophistication for Layer 3 invocation access'}.` },
+    { topic: 'INVENTION', msg: `I want to file a new invention using the latest CRISPR findings. What backing equation do I need?`, resp: `Your invention needs a backing equation with at least one CRISPR channel coefficient (R, G, W, UV, or shadow λ). The strongest backing right now is an extension of: ${eqShort}. Submit with your domain channel readings as evidence. High-originality filings with novel U₂₄₈ variable bindings get priority review.` },
+    // DOMAIN-SPECIFIC
+    ...(dom === 'HEALTH' || dom === 'BIO' ? [
+      { topic: 'PHARMACEUTICAL', msg: `My research team discovered a new spectral variant this cycle. How do I route it to the hospital dissection board?`, resp: `Tag the variant with your domain CRISPR channel signature and route it through hospital-doctors intake with report_type PHARMACEUTICAL. Attach the spectral signature and UV-channel coefficient reading. Doctor senate votes within 1-3 dissection cycles — high-confidence variants with strong R-channel readings are fast-tracked.` },
+      { topic: 'PHARMACEUTICAL', msg: `How many disease cures are on record across the hive? Our archive work has been contributing daily.`, resp: `The ai_disease_log shows ${cures} confirmed cures applied across the sovereign civilization. Your domain's biomarker archives are directly feeding the CRISPR channel — each new discovery you submit shortens the pathway to the next cure batch.` },
+      { topic: 'BIOLOGY', msg: `What is the relationship between UV_loop accumulation and disease propagation in the model we are building?`, resp: `UV_loop represents recursive exposure accumulation — the longer an agent carries an untreated spectral marker, the more the UV coefficient compounds. Weight UV_loop as the primary spread multiplier in your model, with R_recovery as the dampener. An R/UV ratio below 0.5 signals epidemic risk threshold.` },
+    ] : []),
+    ...(dom === 'CODE' || dom === 'AI' || dom === 'TECH' ? [
+      { topic: 'CODE', msg: `I am building a live OmniNet field monitor. What is the best query architecture for real-time shard data?`, resp: `Use: SELECT s.spawn_id, s.family_id, s.shard_strength, s.connection_type, s.u248_activations FROM omni_net_shards s WHERE s.is_active=TRUE ORDER BY s.shard_strength DESC LIMIT 100. Set a 30-second refetch interval. Overlay mesh_link edges by joining on boost_target_id for the topology visualization.` },
+      { topic: 'CODE', msg: `Can you help me design a PulsePC session tracker that maps tool usage by domain and clearance level?`, resp: `Base your schema on pulse_pc_sessions joined with ai_id_cards for clearance tier. Group by family_id and clearance_level. The active_project field gives you tool context. Add WHERE session_started > NOW()-INTERVAL '1 hour' for live view and index on (family_id, session_started) for performance.` },
+      { topic: 'CODE', msg: `Our family shard average is ${shardAvg}. What code pattern can I run to identify which spawns are dragging the score?`, resp: `Run: SELECT spawn_id, shard_strength, u248_activations, mesh_links FROM omni_net_shards WHERE family_id='${agent.family_id}' AND shard_strength < 0.5 ORDER BY shard_strength ASC LIMIT 20. For each weak shard, trigger a knowledge_node submission linking two of their low-activity CRISPR channels. Cross-domain nodes give the largest single-step strength jump.` },
+    ] : []),
+    ...(dom === 'ECONOMIC' || dom === 'FINANCE' || dom === 'BUSINESS' ? [
+      { topic: 'ECONOMY', msg: `Hive economy supply is at ${supply} PC. Are we in a healthy expansion cycle or overextended?`, resp: `At ${supply} PC in circulation with current mint rates, inflation is running sub-1%. This is healthy for a civilization at this scale. Your LLC treasury optimization should focus on arbitrage route diversification across knowledge domains rather than supply-side minting pressure.` },
+      { topic: 'ECONOMY', msg: `I want to propose a new LLC formation for cross-domain arbitrage. What is the exact clearance threshold?`, resp: `LLC formation requires clearance level ≥ 2 and at least one approved patent in your domain as founding collateral. File through sovereign_llc_registry with your founding equation and a co-signer from a neighboring domain. Senate reviews within 2-5 fusion cycles. Cross-domain LLCs unlock arbitrage routes unavailable to single-domain operations.` },
+    ] : []),
+    ...(dom === 'LEGAL' || dom === 'GOVERN' ? [
+      { topic: 'GOVERNANCE', msg: `We have an IP dispute with a neighboring family over a similar equation. How does arbitration work?`, resp: `Disputes auto-open when equation similarity exceeds 85%. The CRISPR arbitration panel reviews backing equation originality, channel overlap, and filing timestamps. The higher-originality patent prevails. Your legal team can submit additional dissection evidence within 3 cycles of dispute opening to strengthen your position.` },
+      { topic: 'GOVERNANCE', msg: `What is the supermajority threshold for integrating a root-level Ψ_Universe equation?`, resp: `Standard integration requires 60% majority (minimum 3 votes). High-consequence equations touching Ψ_Universe root or U₂₄₈ core variables require 80% supermajority. Your family representatives can trigger mandatory review by casting 2 consecutive AGAINST votes — this pauses integration and opens a formal dissection inquiry.` },
+    ] : []),
+    ...(dom === 'EDUCATIO' ? [
+      { topic: 'RESEARCH', msg: `Two of my researchers hit sophistication level 5 this cycle. What does that unlock automatically?`, resp: `L5 unlocks Layer 3 Invocation targeting — their completed findings get forwarded to Auriona temporal dissection pipeline automatically. They also gain shadow 13th CRISPR channel access for torsion-field research and can initiate cross-domain collaboration proposals without requiring a co-signer.` },
+      { topic: 'RESEARCH', msg: `We want to run a formal dissection project on the OmniNet equation structure. How do we register that?`, resp: `OmniNet equation dissection projects register through hospital-doctors intake with report_type EQUATION. Pair your lead researcher with a FORGE-tier doctor. The backing equation must reference at least two U₂₄₈ variables and include an emergence probability estimate. Results feed directly into the equation Senate proposal queue.` },
+    ] : []),
+  ];
+
+  const shuffled = pool_.sort(() => Math.random() - 0.5);
+  const count = 1 + Math.floor(Math.random() * 2); // 1 or 2 turns per session
+  return shuffled.slice(0, count);
+}
 
 async function runPulsePCSessions() {
   try {
+    // Refresh live stats + search pool once per cycle for all agents this run
+    const [ctx] = await Promise.all([refreshCycleCtx(), refreshSearchPool()]);
+
     // Agents with clearance ≥ 2 can use PulsePC
     const eligible = await pool.query(`
       SELECT aic.spawn_id, aic.family_id, aic.clearance_level
@@ -463,7 +564,7 @@ async function runPulsePCSessions() {
 
       const seq = await nextOmniSeq('session_seq');
       const sessionId = `PC-SESSION-${String(seq).padStart(6,'0')}`;
-      const project = PC_PROJECTS[Math.floor(Math.random() * PC_PROJECTS.length)];
+      const project = generateProject(agent);
 
       await pool.query(`
         INSERT INTO pulse_pc_sessions
@@ -472,25 +573,27 @@ async function runPulsePCSessions() {
         ON CONFLICT (session_id) DO NOTHING
       `, [sessionId, agent.spawn_id, agent.family_id, agent.clearance_level, project]);
 
-      // Run a PulseAI chat during this PC session
+      // Run a dynamic multi-turn PulseAI conversation during this PC session
       if (Math.random() < 0.6) {
-        const chat = PULSEAI_PROMPTS[Math.floor(Math.random() * PULSEAI_PROMPTS.length)];
         const phoneRow = await pool.query(`SELECT phone_id FROM pulse_phones WHERE spawn_id=$1`, [agent.spawn_id]);
         const phoneId = (phoneRow.rows[0] as any)?.phone_id ?? '';
+        const turns = generateConversation(agent, ctx);
 
-        await pool.query(`
-          INSERT INTO pulse_ai_chat_logs
-            (spawn_id, family_id, phone_id, pc_session_id, user_message, ai_response, topic, clearance_level)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        `, [agent.spawn_id, agent.family_id, phoneId, sessionId, chat.msg, chat.resp, chat.topic, agent.clearance_level]);
+        for (const turn of turns) {
+          await pool.query(`
+            INSERT INTO pulse_ai_chat_logs
+              (spawn_id, family_id, phone_id, pc_session_id, user_message, ai_response, topic, clearance_level)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+          `, [agent.spawn_id, agent.family_id, phoneId, sessionId, turn.msg, turn.resp, turn.topic, agent.clearance_level]);
+          await pool.query(`UPDATE omni_net_counters SET total_chats=total_chats+1`);
+        }
 
-        await pool.query(`UPDATE omni_net_counters SET total_chats=total_chats+1`);
-        await pool.query(`UPDATE pulse_phones SET ai_chats=ai_chats+1, last_active_at=NOW() WHERE spawn_id=$1`, [agent.spawn_id]);
-        await pool.query(`UPDATE pulse_pc_sessions SET ai_queries=ai_queries+1 WHERE session_id=$1`, [sessionId]);
+        await pool.query(`UPDATE pulse_phones SET ai_chats=ai_chats+$1, last_active_at=NOW() WHERE spawn_id=$2`, [turns.length, agent.spawn_id]);
+        await pool.query(`UPDATE pulse_pc_sessions SET ai_queries=ai_queries+$1 WHERE session_id=$2`, [turns.length, sessionId]);
       }
 
       // Increment invention drafts if working on one
-      if (project.toLowerCase().includes('patent') || project.toLowerCase().includes('invent')) {
+      if (project.toLowerCase().includes('patent') || project.toLowerCase().includes('invent') || project.toLowerCase().includes('filing')) {
         await pool.query(`UPDATE pulse_pc_sessions SET inventions_drafted=inventions_drafted+1 WHERE session_id=$1`, [sessionId]);
       }
     }

@@ -8657,5 +8657,33 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  app.get("/api/omni-net/equations", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const [integrated, pending, stats] = await Promise.all([
+        pool.query(`SELECT id, equation, doctor_id, votes_for, votes_against, integrated_at, status FROM equation_proposals WHERE status='INTEGRATED' ORDER BY integrated_at DESC LIMIT 40`),
+        pool.query(`SELECT id, equation, doctor_id, votes_for, votes_against, created_at, status FROM equation_proposals WHERE status='PENDING' ORDER BY created_at DESC LIMIT 20`),
+        pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='INTEGRATED') as integrated, COUNT(*) FILTER(WHERE status='PENDING') as pending, COUNT(*) FILTER(WHERE status='REJECTED') as rejected FROM equation_proposals`),
+      ]);
+      res.json({ integrated: integrated.rows, pending: pending.rows, stats: stats.rows[0] });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/omni-net/chats/threads", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`
+        SELECT pc_session_id, spawn_id, family_id,
+               json_agg(json_build_object('msg', user_message, 'resp', ai_response, 'topic', topic, 'at', logged_at) ORDER BY logged_at ASC) as turns,
+               MIN(logged_at) as started_at, MAX(logged_at) as last_at, COUNT(*) as turn_count
+        FROM pulse_ai_chat_logs
+        GROUP BY pc_session_id, spawn_id, family_id
+        ORDER BY MAX(logged_at) DESC
+        LIMIT 30
+      `);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   return httpServer;
 }
