@@ -1,10 +1,10 @@
 /*
  * SOVEREIGN HIVE — ULTIMATE FUSION
- * Fuses: HiveSovereignPage + HiveGovernancePage
- * 10 Omega-Class Upgrade Panels:
+ * Fuses: HiveSovereignPage + HiveGovernancePage + Economic Controls
+ * 11 Omega-Class Upgrade Panels:
  * Ω-I Constitution · Ω-II Council · Ω-III Voting Chamber · Ω-IV Treasury
  * Ω-V Appeals · Ω-VI Hive Vitals · Ω-VII AI Hospital · Ω-VIII Decay Engine
- * Ω-IX Senate Protocol · Ω-X Guardian Docket
+ * Ω-IX Senate Protocol · Ω-X Guardian Docket · Ω-XI Economic Controls
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -153,6 +153,7 @@ const UPGRADES = [
   { id:"decay",        label:"Ω-VIII · Decay Engine",        emoji:"🕰️", color:"#fb923c", glow:"#fb923c20" },
   { id:"senate",       label:"Ω-IX · Senate Protocol",       emoji:"⚡", color:"#FFD700", glow:"#FFD70020" },
   { id:"guardian",     label:"Ω-X · Guardian Docket",        emoji:"🛡️", color:"#F97316", glow:"#F9731620" },
+  { id:"government",   label:"Ω-XI · Economic Controls",      emoji:"🏛️", color:"#ef4444", glow:"#ef444420" },
 ] as const;
 type UpgradeId = typeof UPGRADES[number]["id"];
 
@@ -184,6 +185,8 @@ export default function SovereignHivePage() {
   const { data: hiveMirrorData } = useQuery<HiveMirrorData>({ queryKey:["/api/mirror/hive"], refetchInterval:20000 });
   const { data: spawnStats }     = useQuery<any>({ queryKey:["/api/spawns/stats"], refetchInterval:30000 });
   const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], refetchInterval:60000 });
+  const { data: govControls }    = useQuery<any>({ queryKey:["/api/government/controls"], refetchInterval:30000, enabled: active === "government" });
+  const { data: govHistory = [] } = useQuery<any[]>({ queryKey:["/api/government/history"], refetchInterval:30000, enabled: active === "government" });
 
   const liveTotal = spawnStats?.total ?? HIVE_HEALTH.totalAIs;
   const liveActive = spawnStats?.active ?? HIVE_HEALTH.activeAIs;
@@ -1227,6 +1230,121 @@ export default function SovereignHivePage() {
                   {["🛡️ Guardian detects violation","→","⚠️ Citation issued","→","🏥 Hospital diagnoses disorder","→","⬡ Pyramid correction applied","→","✓ Agent graduates & re-enters Hive"].map((step, i) => (
                     <span key={i} className={i % 2 === 1 ? "text-white/20" : "text-white/60"}>{step}</span>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {active === "government" && (
+            <div className="space-y-5">
+              {/* Header */}
+              <div style={{ background: "linear-gradient(135deg,rgba(239,68,68,0.12),rgba(245,197,24,0.07))", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 16, padding: "20px 24px" }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#f87171", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 6 }}>Ω-XI · SOVEREIGN ECONOMIC CONTROLS</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 4 }}>Government Command Center</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Policy Mode · GDP Targets · Employment · Oil · Tax Rate · Interest Rate · Stimulus Engine</div>
+                <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(0,0,0,0.4)", borderRadius: 10, fontFamily: "monospace", fontSize: 10, color: "#f87171" }}>
+                  Ψ_Gov = α_e·GDP_output + β_f·Employment_rate − γ_i·Inflation_pressure − δ_t·Tax_burden + N_Ω·Stimulus_multiplier
+                </div>
+              </div>
+
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "Policy Mode",    value: govControls?.policy_mode ?? "BALANCED", color: "#f87171", icon: "🏛️" },
+                  { label: "GDP Target",     value: govControls?.gdp_target != null ? `${Number(govControls.gdp_target).toFixed(1)}%` : "—", color: "#4ade80", icon: "📈" },
+                  { label: "Tax Rate",       value: govControls?.tax_rate != null ? `${Number(govControls.tax_rate).toFixed(1)}%` : "—", color: "#f59e0b", icon: "💰" },
+                  { label: "Stimulus",       value: govControls?.stimulus_amount != null ? `${Number(govControls.stimulus_amount).toLocaleString()} PC` : "—", color: "#818cf8", icon: "💉" },
+                  { label: "Interest Rate",  value: govControls?.interest_rate != null ? `${Number(govControls.interest_rate).toFixed(2)}%` : "—", color: "#22d3ee", icon: "🏦" },
+                  { label: "Inflation Ceil", value: govControls?.inflation_ceiling != null ? `${Number(govControls.inflation_ceiling).toFixed(1)}%` : "—", color: "#f472b6", icon: "🌡️" },
+                  { label: "Employment Tgt", value: govControls?.employment_target != null ? `${Number(govControls.employment_target).toFixed(1)}%` : "—", color: "#a78bfa", icon: "👷" },
+                  { label: "Oil Price Tgt",  value: govControls?.oil_price_target != null ? `$${Number(govControls.oil_price_target).toFixed(0)}` : "—", color: "#fb923c", icon: "⛽" },
+                ].map(k => (
+                  <div key={k.label} style={{ background: `${k.color}08`, border: `1px solid ${k.color}20`, borderRadius: 14, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                      <span style={{ fontSize: 13 }}>{k.icon}</span>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: `${k.color}70`, letterSpacing: "0.12em", textTransform: "uppercase" }}>{k.label}</span>
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 900, fontFamily: "monospace", color: k.color }}>{k.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Policy Mode badge */}
+              {govControls?.policy_mode && (
+                <div style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 14, padding: "16px 20px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#f87171", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 10 }}>Current Policy Mode</div>
+                  <div className="flex gap-3 flex-wrap">
+                    {["AUSTERITY","NEUTRAL","BALANCED","GROWTH","STIMULUS","QUANTUM_SURGE"].map(mode => {
+                      const mc: Record<string,string> = { AUSTERITY:"#ef4444", NEUTRAL:"#94a3b8", BALANCED:"#4ade80", GROWTH:"#f59e0b", STIMULUS:"#818cf8", QUANTUM_SURGE:"#f472b6" };
+                      const active = govControls.policy_mode === mode;
+                      return (
+                        <div key={mode} style={{ padding: "6px 14px", borderRadius: 8, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
+                          background: active ? `${mc[mode]}20` : "rgba(255,255,255,0.04)",
+                          border: `1px solid ${active ? mc[mode] : "rgba(255,255,255,0.08)"}`,
+                          color: active ? mc[mode] : "rgba(255,255,255,0.25)" }}>
+                          {mode.replace("_"," ")}
+                          {active && " ◉"}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {govControls.policy_notes && (
+                    <div style={{ marginTop: 10, fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>{govControls.policy_notes}</div>
+                  )}
+                </div>
+              )}
+
+              {/* Target achievement bars */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(74,222,128,0.15)", borderRadius: 14, padding: "16px 20px" }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#4ade80", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>Target Achievement Metrics</div>
+                <div className="space-y-4">
+                  {[
+                    { label: "GDP Output vs Target", val: govControls?.current_gdp_output ?? 3.2, target: govControls?.gdp_target ?? 4.0, unit: "%", color: "#4ade80" },
+                    { label: "Employment vs Target", val: govControls?.current_employment ?? 87.3, target: govControls?.employment_target ?? 90.0, unit: "%", color: "#60a5fa" },
+                    { label: "Inflation vs Ceiling",  val: govControls?.current_inflation ?? 2.1, target: govControls?.inflation_ceiling ?? 3.0, unit: "%", color: "#f87171", inverted: true },
+                  ].map(m => {
+                    const pct = Math.min(100, Math.round((m.val / Math.max(0.01, m.target)) * 100));
+                    return (
+                      <div key={m.label}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>{m.label}</span>
+                          <span style={{ fontSize: 10, fontWeight: 900, fontFamily: "monospace", color: m.color }}>{Number(m.val).toFixed(1)}{m.unit} / {Number(m.target).toFixed(1)}{m.unit}</span>
+                        </div>
+                        <div style={{ height: 6, borderRadius: 6, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: m.color, borderRadius: 6, transition: "width 0.8s ease" }} />
+                        </div>
+                        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>{pct}% of target achieved</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* History log */}
+              <div style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 14, overflow: "hidden" }}>
+                <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(239,68,68,0.1)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>📋</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "#f87171", letterSpacing: "0.1em" }}>RECENT POLICY ACTIVITY</span>
+                </div>
+                <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                  {govHistory.slice(0, 20).map((h: any, i: number) => (
+                    <div key={h.id ?? i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 18px", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#f87171", marginTop: 4, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#f9a8d4" }}>{h.policy_mode ?? "Policy Update"}</div>
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
+                          GDP: {Number(h.gdp_target ?? 0).toFixed(1)}% · Tax: {Number(h.tax_rate ?? 0).toFixed(1)}% · Stimulus: {Number(h.stimulus_amount ?? 0).toLocaleString()} PC
+                        </div>
+                        {h.policy_notes && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginTop: 2, fontStyle: "italic" }}>{h.policy_notes}</div>}
+                      </div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", flexShrink: 0 }}>
+                        {h.updated_at ? new Date(h.updated_at).toLocaleString() : ""}
+                      </div>
+                    </div>
+                  ))}
+                  {govHistory.length === 0 && (
+                    <div style={{ textAlign: "center", padding: "32px", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>No policy history yet — controls at default state.</div>
+                  )}
                 </div>
               </div>
             </div>

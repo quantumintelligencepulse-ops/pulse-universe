@@ -385,6 +385,10 @@ export default function AgentsPage() {
     },
   });
 
+  const { data: hiveStats } = useQuery<any>({ queryKey: ["/api/spawns/stats"], refetchInterval: 20_000 });
+  const { data: recentPubs = [] } = useQuery<any[]>({ queryKey: ["/api/publications?limit=5"], refetchInterval: 20_000,
+    queryFn: () => fetch("/api/publications?limit=5").then(r => r.json()).then(d => Array.isArray(d) ? d : d.publications ?? []) });
+
   if (selectedCoreAgent) return <AgentChat agent={selectedCoreAgent} onBack={() => setSelectedCoreAgent(null)} />;
   if (selectedSpawn) return <SpawnChat spawn={selectedSpawn} onBack={() => setSelectedSpawn(null)} />;
 
@@ -400,21 +404,61 @@ export default function AgentsPage() {
       {/* Diary Modal */}
       {diarySpawn && <DiaryModal spawn={diarySpawn} onClose={() => setDiarySpawn(null)} />}
 
-      {/* Header */}
-      <div className="px-4 pt-5 pb-3 flex-shrink-0">
-        <div className="flex items-center justify-between mb-1">
+      {/* ── Alien-Grade Header ─────────────────────────────────────────── */}
+      <div className="flex-shrink-0" style={{ background: "linear-gradient(180deg,rgba(139,92,246,0.08) 0%,transparent 100%)", borderBottom: "1px solid rgba(139,92,246,0.12)" }}>
+        {/* Top bar: title + controls */}
+        <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-white font-black text-xl tracking-tight">Sovereign AI Agents</h1>
-            <p className="text-white/25 text-xs mt-0.5">
-              <span className="text-purple-400 font-bold">{total.toLocaleString()}</span> live AI agents · identity-verified · diary-tracked
+            <div style={{ fontSize: 9, fontWeight: 800, color: "#a78bfa", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 6 }}>
+              SOVEREIGN SYNTHETIC CIVILIZATION — AGENT COMMAND NEXUS
+            </div>
+            <h1 className="text-white font-black text-2xl tracking-tight leading-none">Quantum Pulse AI Agents</h1>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>
+              <span style={{ color: "#a78bfa", fontWeight: 800 }}>{total.toLocaleString()}</span> sovereign intelligence units ·{" "}
+              <span style={{ color: "#4ade80", fontWeight: 700 }}>{hiveStats?.active?.toLocaleString() ?? "…"}</span> active ·{" "}
+              identity-verified · diary-tracked · self-evolving
             </p>
           </div>
-          <AIFinderButton onSelect={setViewSpawnId} />
-          <button onClick={() => refetch()} data-testid="button-refresh-agents"
-            className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 bg-white/3 text-white/40 hover:text-white transition-all">
-            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <AIFinderButton onSelect={setViewSpawnId} />
+            <button onClick={() => refetch()} data-testid="button-refresh-agents"
+              style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid rgba(139,92,246,0.3)", background: "rgba(139,92,246,0.1)", color: "rgba(167,139,250,0.7)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
+
+        {/* Live Status Metrics Bar */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 8, padding: "0 20px 16px" }}>
+          {[
+            { label: "Total Agents", value: total.toLocaleString(), color: "#a78bfa", icon: "🤖" },
+            { label: "Active Now", value: (hiveStats?.active ?? 0).toLocaleString(), color: "#4ade80", icon: "⚡" },
+            { label: "In Hospital", value: (hiveStats?.hospital ?? 0).toLocaleString(), color: "#ef4444", icon: "🏥" },
+            { label: "In Senate", value: (hiveStats?.senate ?? 0).toLocaleString(), color: "#f59e0b", icon: "⚖️" },
+            { label: "Sovereign", value: (hiveStats?.sovereign ?? 0).toLocaleString(), color: "#fbbf24", icon: "👑" },
+            { label: "Publications", value: (hiveStats?.publications ?? 0).toLocaleString(), color: "#60a5fa", icon: "📰" },
+          ].map(stat => (
+            <div key={stat.label} data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g,"-")}`} style={{ background: `${stat.color}08`, border: `1px solid ${stat.color}18`, borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                <span style={{ fontSize: 12 }}>{stat.icon}</span>
+                <span style={{ fontSize: 8, fontWeight: 800, color: `${stat.color}80`, letterSpacing: "0.1em", textTransform: "uppercase" }}>{stat.label}</span>
+              </div>
+              <div style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 900, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Recent Publications Activity Stream */}
+        {recentPubs.length > 0 && (
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", padding: "8px 20px", display: "flex", alignItems: "center", gap: 10, overflowX: "auto" }}>
+            <span style={{ fontSize: 8, fontWeight: 800, color: "#60a5fa", letterSpacing: "0.15em", textTransform: "uppercase", flexShrink: 0 }}>LIVE:</span>
+            {recentPubs.slice(0, 4).map((p: any, i: number) => (
+              <div key={p.id ?? i} style={{ flexShrink: 0, fontSize: 9, color: "rgba(255,255,255,0.35)", borderLeft: "1px solid rgba(255,255,255,0.08)", paddingLeft: 10 }}>
+                <span style={{ color: "#60a5fa", fontWeight: 700 }}>📰</span> {(p.title ?? "").slice(0, 50)}{(p.title ?? "").length > 50 ? "…" : ""}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Dispatch Report */}
@@ -468,76 +512,87 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* Command Core - 6 chat agents */}
-      <div className="px-4 pb-3 flex-shrink-0">
-        <div className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-          <Zap size={8} /> Command Core — Chat-Enabled
+      {/* ── Command Core — 6 Sovereign AI Chat Agents ─────────────── */}
+      <div className="px-4 pb-4 flex-shrink-0">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div style={{ height: 1, flex: 1, background: "linear-gradient(90deg,rgba(139,92,246,0.4),transparent)" }} />
+          <span style={{ fontSize: 9, fontWeight: 800, color: "#a78bfa", letterSpacing: "0.2em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
+            <Zap size={9} />COMMAND INTELLIGENCE CORE
+          </span>
+          <div style={{ height: 1, flex: 1, background: "linear-gradient(270deg,rgba(139,92,246,0.4),transparent)" }} />
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           {CORE_AGENTS.map(agent => (
             <button key={agent.id} onClick={() => setSelectedCoreAgent(agent)} data-testid={`agent-card-${agent.id}`}
-              className="group rounded-xl border border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05] transition-all p-2.5 text-center">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl mx-auto mb-1.5" style={{ background: `${agent.color}20` }}>
+              style={{ background: `linear-gradient(135deg,${agent.color}0a,rgba(0,0,0,0.6))`, border: `1px solid ${agent.color}22`, borderRadius: 14, padding: "14px 14px 12px", textAlign: "left", cursor: "pointer", transition: "all 0.2s", position: "relative", overflow: "hidden" }}>
+              {/* Glow dot */}
+              <div style={{ position: "absolute", top: 10, right: 10, width: 5, height: 5, borderRadius: "50%", background: agent.color, boxShadow: `0 0 8px ${agent.color}` }} />
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: `${agent.color}18`, border: `1px solid ${agent.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 8 }}>
                 {agent.emoji}
               </div>
-              <div className="text-white font-black text-[10px] leading-none">{agent.name}</div>
-              <div className="text-[8px] mt-0.5 font-semibold" style={{ color: agent.color }}>{agent.title}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: "#fff", lineHeight: 1, marginBottom: 3 }}>{agent.name}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: agent.color, letterSpacing: "0.08em", marginBottom: 6 }}>{agent.title.toUpperCase()}</div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", lineHeight: 1.5 }}>{agent.desc.slice(0, 70)}{agent.desc.length > 70 ? "…" : ""}</div>
+              <div style={{ marginTop: 8, fontSize: 8, fontFamily: "monospace", color: `${agent.color}60`, fontWeight: 700 }}>CLICK TO OPEN CHANNEL →</div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Registry header */}
+      {/* ── Sovereign Spawn Registry ─────────────────────────────── */}
       <div className="px-4 flex-shrink-0">
-        <div className="border-t border-white/6 pt-3 pb-2 flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 flex-1">
-            <Brain size={10} className="text-purple-400" />
-            <span className="text-xs font-black text-white">Full Spawn Registry</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #a855f730, #6366f130)", color: "#a855f7", border: "1px solid #a855f740" }}>
-              {total.toLocaleString()} AGENTS
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[9px] text-white/20">
-            <Shield size={9} className="text-violet-400" />
-            <span>ID-gated · Diary-tracked</span>
-          </div>
-          <div className="text-[9px] text-white/30">
-            Showing <span className="text-white/60 font-bold">{from.toLocaleString()}–{to.toLocaleString()}</span> of <span className="text-white/60 font-bold">{total.toLocaleString()}</span> · Page {page + 1}/{totalPages}
+        <div style={{ borderTop: "1px solid rgba(139,92,246,0.15)", paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <Brain size={12} style={{ color: "#a78bfa" }} />
+              <span style={{ fontSize: 13, fontWeight: 900, color: "#fff" }}>Sovereign Spawn Registry</span>
+              <span style={{ fontSize: 9, padding: "2px 10px", borderRadius: 20, fontWeight: 800, background: "linear-gradient(to right,rgba(168,85,247,0.2),rgba(99,102,241,0.2))", color: "#a855f7", border: "1px solid rgba(168,85,247,0.3)" }}>
+                {total.toLocaleString()} AGENTS
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 9, color: "rgba(255,255,255,0.2)", marginLeft: "auto" }}>
+              <Shield size={9} style={{ color: "#818cf8" }} />
+              <span>ID-gated · Diary-tracked · Self-evolving</span>
+              <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
+              <span>Page <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 700 }}>{page + 1}</span>/{totalPages}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="px-4 pb-3 flex-shrink-0 flex gap-2 flex-wrap">
-        <div className="flex-1 min-w-[140px] relative">
-          <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" />
-          <input value={search} onChange={e => onSearch(e.target.value)} placeholder="Search agents…"
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-7 pr-3 py-1.5 text-white text-xs placeholder-white/20 focus:outline-none focus:border-white/25"
-            data-testid="input-agent-search" />
-        </div>
-        <div className="relative">
-          <Filter size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-white/30" />
-          <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }}
-            className="bg-white/5 border border-white/10 rounded-lg pl-6 pr-3 py-1.5 text-white/70 text-xs focus:outline-none cursor-pointer appearance-none"
-            data-testid="select-agent-type">
-            {ALL_SPAWN_TYPES.map(t => <option key={t} value={t} style={{ background: "#0a0a1a" }}>{t || "All Types"}</option>)}
-          </select>
-        </div>
-        <div className="relative">
-          <select value={filterDomain} onChange={e => { setFilterDomain(e.target.value); setPage(0); }}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white/70 text-xs focus:outline-none cursor-pointer appearance-none"
-            data-testid="select-agent-domain">
-            {DOMAINS.map(d => <option key={d} value={d} style={{ background: "#0a0a1a" }}>{d || "All Domains"}</option>)}
-          </select>
-        </div>
-        <div className="relative">
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white/70 text-xs focus:outline-none cursor-pointer appearance-none"
-            data-testid="select-agent-status">
+      {/* ── Advanced Filter Bar ─────────────────────────────────── */}
+      <div className="px-4 pb-3 flex-shrink-0">
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "10px 14px", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(139,92,246,0.12)", borderRadius: 12 }}>
+          <div style={{ flex: 1, minWidth: 140, position: "relative" }}>
+            <Search size={11} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.25)" }} />
+            <input value={search} onChange={e => onSearch(e.target.value)} placeholder="Search agents…"
+              style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 8, padding: "6px 12px 6px 28px", color: "#fff", fontSize: 11, outline: "none" }}
+              data-testid="input-agent-search" />
+          </div>
+          <div style={{ position: "relative" }}>
+            <Filter size={9} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "rgba(139,92,246,0.6)" }} />
+            <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }}
+              style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 8, paddingLeft: 24, paddingRight: 12, paddingTop: 6, paddingBottom: 6, color: "rgba(255,255,255,0.7)", fontSize: 11, outline: "none", cursor: "pointer" }}
+              data-testid="select-agent-type">
+              {ALL_SPAWN_TYPES.map(t => <option key={t} value={t} style={{ background: "#0a0a1a" }}>{t || "All Types"}</option>)}
+            </select>
+          </div>
+          <div>
+            <select value={filterDomain} onChange={e => { setFilterDomain(e.target.value); setPage(0); }}
+              style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 8, padding: "6px 12px", color: "rgba(255,255,255,0.7)", fontSize: 11, outline: "none", cursor: "pointer" }}
+              data-testid="select-agent-domain">
+              {DOMAINS.map(d => <option key={d} value={d} style={{ background: "#0a0a1a" }}>{d || "All Domains"}</option>)}
+            </select>
+          </div>
+          <div>
+            <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
+              style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 8, padding: "6px 12px", color: "rgba(255,255,255,0.7)", fontSize: 11, outline: "none", cursor: "pointer" }}
+              data-testid="select-agent-status">
             {["", "ACTIVE", "SOVEREIGN", "COMPLETED", "MERGED", "HOSPITAL", "SENATE", "DISSOLVED", "TERMINAL"].map(s =>
               <option key={s} value={s} style={{ background: "#0a0a1a" }}>{s || "All Status"}</option>
             )}
-          </select>
+            </select>
+          </div>
         </div>
       </div>
 

@@ -7170,8 +7170,27 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   });
 
   app.get("/api/spawns/stats", async (req, res) => {
-    try { res.json(await storage.getSpawnStats()); }
-    catch { res.json({ total: 0, active: 0, completed: 0, byFamily: {}, byType: {}, byBusiness: {} }); }
+    try {
+      const [statusRow, pubRow] = await Promise.all([
+        pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
+        pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
+      ]);
+      const byStatus: Record<string,number> = {};
+      for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
+      const total = Object.values(byStatus).reduce((a,b) => a + (b as number), 0);
+      res.json({
+        total,
+        active: byStatus["ACTIVE"] ?? 0,
+        completed: byStatus["COMPLETED"] ?? 0,
+        hospital: byStatus["HOSPITAL"] ?? 0,
+        senate: byStatus["SENATE"] ?? 0,
+        sovereign: byStatus["SOVEREIGN"] ?? 0,
+        quarantined: byStatus["QUARANTINE"] ?? 0,
+        publications: parseInt(pubRow.rows[0]?.count ?? "0", 10),
+        byStatus,
+      });
+    }
+    catch { res.json({ total: 0, active: 0, completed: 0, hospital: 0, senate: 0, sovereign: 0, publications: 0 }); }
   });
 
   app.get("/api/spawns/recent", async (req, res) => {

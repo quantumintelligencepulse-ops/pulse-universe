@@ -2388,35 +2388,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
 
-          {/* Government Economic Controls */}
-          {aiMode && (
-          <Link href="/government" data-testid="link-government">
-            <div style={{
-              margin: "0 4px 8px",
-              padding: "12px 16px",
-              borderRadius: 14,
-              cursor: "pointer",
-              position: "relative",
-              overflow: "hidden",
-              background: location === "/government"
-                ? "linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(245,197,24,0.10) 100%)"
-                : "linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(245,197,24,0.04) 100%)",
-              border: `1px solid ${location === "/government" ? "rgba(239,68,68,0.45)" : "rgba(239,68,68,0.18)"}`,
-              boxShadow: location === "/government" ? "0 0 20px rgba(239,68,68,0.18)" : "none",
-              transition: "all 0.3s ease",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-                <div style={{ fontSize: 18, lineHeight: 1, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>🏛️</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#f87171", letterSpacing: "0.08em" }}>GOVERNMENT</div>
-                  <div style={{ fontSize: 9, color: "rgba(248,113,113,0.50)", letterSpacing: "0.10em", marginTop: 1 }}>Economic Controls · GDP · Oil · Tax</div>
-                </div>
-                <div style={{ fontSize: 8, fontWeight: 900, color: "#f5c518", background: "rgba(245,197,24,0.12)", border: "1px solid rgba(245,197,24,0.35)", borderRadius: 5, padding: "2px 6px", letterSpacing: "0.10em", flexShrink: 0 }}>GOV</div>
-              </div>
-            </div>
-          </Link>
-          )}
-
           {/* ── AI Universe Mode Toggle ─────────────────────── */}
           <div className={`mt-1 pt-2 border-t ${aiMode ? "border-violet-500/15" : "border-border/10"}`}>
             <button
