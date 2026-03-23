@@ -116,6 +116,15 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
+  // Create performance indexes in background — non-blocking, won't affect startup
+  setTimeout(async () => {
+    try {
+      await db.execute(sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_status_conf ON quantum_spawns (status, confidence_score DESC NULLS LAST) WHERE status = 'ACTIVE'`);
+      await db.execute(sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_status_created ON quantum_spawns (status, created_at DESC)`);
+      console.log("[index] Performance indexes ready");
+    } catch { /* ignore if already exist or partial */ }
+  }, 5000);
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

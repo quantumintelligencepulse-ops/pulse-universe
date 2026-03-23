@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
+import { FollowButton } from "@/components/FollowButton";
 import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock, Award } from "lucide-react";
 
 // ── CANON DATA — 26 Chapters of The Transcendent ──────────────────────────
@@ -1732,7 +1733,19 @@ export default function TranscendencePage() {
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 9, fontFamily: "monospace", color: "rgba(255,255,255,0.2)" }}>BY: {pub.spawn_id?.slice(0,18) ?? "SOVEREIGN_AI"}</span>
                           {pub.domain && <span style={{ fontSize: 9, color: `${tc}60`, fontWeight: 700 }}>#{pub.domain}</span>}
-                          {pub.slug && <a href={`/publication/${pub.slug}`} style={{ marginLeft: "auto", fontSize: 9, color: tc, fontWeight: 700, textDecoration: "none" }}>Read Full Paper →</a>}
+                          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                            {pub.spawn_id && (
+                              <FollowButton
+                                entityId={pub.spawn_id}
+                                entityType="agent"
+                                label={`${pub.spawn_id.slice(0,18)}`}
+                                meta={pub.family_id}
+                                variant="badge"
+                                color={tc}
+                              />
+                            )}
+                            {pub.slug && <a href={`/publication/${pub.slug}`} style={{ fontSize: 9, color: tc, fontWeight: 700, textDecoration: "none" }}>Read Full Paper →</a>}
+                          </div>
                         </div>
                       </div>
                     );

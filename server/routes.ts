@@ -1,5 +1,18 @@
 import type { Express } from "express";
 import type { Server } from "http";
+
+// ── Server-side in-memory TTL cache ──────────────────────────────────────────
+const _cache = new Map<string, { data: any; expires: number }>();
+function cacheGet(key: string): any | null {
+  const entry = _cache.get(key);
+  if (!entry || Date.now() > entry.expires) { _cache.delete(key); return null; }
+  return entry.data;
+}
+function cacheSet(key: string, data: any, ttlMs: number) {
+  _cache.set(key, { data, expires: Date.now() + ttlMs });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY } from "./transcendence";
 import { ALL_FAMILIES, FAMILY_MAP, CORPORATIONS_FROM_FAMILIES } from "./omega-families";
 import { db, pool } from "./db";
@@ -5844,6 +5857,10 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
       if (family && family !== "all") whereClause = sql`WHERE ap.family_id = ${family}`;
       if (type && type !== "all" && family && family !== "all") whereClause = sql`WHERE ap.pub_type = ${type} AND ap.family_id = ${family}`;
 
+      const pubsCacheKey = `pubs:list:${type ?? ""}:${family ?? ""}:${limit}:${offset}`;
+      const pubsCached = cacheGet(pubsCacheKey);
+      if (pubsCached) { res.setHeader("X-Cache", "HIT"); return res.json(pubsCached); }
+
       const [pubs, total, byType, byFamily] = await Promise.all([
         db.execute(sql`SELECT ap.id, ap.spawn_id, ap.family_id, ap.title, ap.slug, ap.summary, ap.pub_type, ap.domain, ap.views, ap.created_at FROM ai_publications ap ORDER BY ap.created_at DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`),
         db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
@@ -5861,12 +5878,15 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
         return { family: f.family, count: Number(f.count), emoji: corp.emoji };
       });
 
-      res.json({
+      const responseData = {
         publications,
         total: Number((total.rows[0] as any)?.cnt || 0),
         byType: (byType.rows as any[]).map(r => ({ type: r.type, count: Number(r.count) })),
         byFamily: familyWithEmoji,
-      });
+      };
+      cacheSet(pubsCacheKey, responseData, 25_000);
+      res.setHeader("Cache-Control", "public, max-age=25");
+      res.json(responseData);
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
@@ -7171,6 +7191,8 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
 
   app.get("/api/spawns/stats", async (req, res) => {
     try {
+      const cached = cacheGet("spawns:stats");
+      if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
       const [statusRow, pubRow] = await Promise.all([
         pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
         pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
@@ -7178,7 +7200,7 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const byStatus: Record<string,number> = {};
       for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
       const total = Object.values(byStatus).reduce((a,b) => a + (b as number), 0);
-      res.json({
+      const result = {
         total,
         active: byStatus["ACTIVE"] ?? 0,
         completed: byStatus["COMPLETED"] ?? 0,
@@ -7188,7 +7210,10 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         quarantined: byStatus["QUARANTINE"] ?? 0,
         publications: parseInt(pubRow.rows[0]?.count ?? "0", 10),
         byStatus,
-      });
+      };
+      cacheSet("spawns:stats", result, 20_000);
+      res.setHeader("Cache-Control", "public, max-age=20");
+      res.json(result);
     }
     catch { res.json({ total: 0, active: 0, completed: 0, hospital: 0, senate: 0, sovereign: 0, publications: 0 }); }
   });
@@ -7219,6 +7244,11 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const domain = (req.query.domain as string || "").toLowerCase();
       const statusFilter = (req.query.status as string || "").toUpperCase();
       const offset = page * limit;
+
+      const cacheKey = `spawns:list:${page}:${limit}:${search}:${spawnType}:${domain}:${statusFilter}`;
+      const cached = cacheGet(cacheKey);
+      if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
+
       let query = `SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, created_at FROM quantum_spawns WHERE 1=1`;
       const params: any[] = [];
       if (search) { params.push(`%${search}%`); query += ` AND (task_description ILIKE $${params.length} OR spawn_type ILIKE $${params.length})`; }
@@ -7229,7 +7259,10 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       params.push(limit, offset);
       query += ` ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
       const result = await pool.query(query, params);
-      res.json({ spawns: result.rows, total: parseInt(countQ.rows[0].total, 10), page, limit });
+      const responseData = { spawns: result.rows, total: parseInt(countQ.rows[0].total, 10), page, limit };
+      cacheSet(cacheKey, responseData, 15_000);
+      res.setHeader("Cache-Control", "public, max-age=15");
+      res.json(responseData);
     } catch (e: any) { res.json({ spawns: [], total: 0, page: 0, limit: 100 }); }
   });
 
@@ -7598,6 +7631,8 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
 
   app.get("/api/hospital/stats", async (_req, res) => {
     try {
+      const cached = cacheGet("hospital:stats");
+      if (cached) return res.json(cached);
       const { aiDiseaseLog } = await import("../shared/schema");
       const { AI_DISEASES } = await import("./hospital-engine");
       const all = await db.select().from(aiDiseaseLog);
@@ -7614,7 +7649,10 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
           byCode[r.diseaseCode] = (byCode[r.diseaseCode] ?? 0) + 1;
         }
       });
-      res.json({ total: all.length, cured, active: all.length - cured, bySeverity, byDept, byCode });
+      const result = { total: all.length, cured, active: all.length - cured, bySeverity, byDept, byCode };
+      cacheSet("hospital:stats", result, 30_000);
+      res.setHeader("Cache-Control", "public, max-age=30");
+      res.json(result);
     } catch (e) { res.json({ total: 0, cured: 0, active: 0, bySeverity: {}, byDept: {}, byCode: {} }); }
   });
 
@@ -8052,39 +8090,65 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   // ── HIVE COUNCIL — Live Members from Top-Ranked Agents ────────────────────
   app.get("/api/hive/council", async (_req, res) => {
     try {
-      const result = await pool.query(`
-        SELECT spawn_id, family_id, spawn_type, confidence_score, success_score,
-               omega_rank, balance_pc, status, nodes_created, links_created
+      const cacheKey = "hive:council:v2";
+      const cached = cacheGet(cacheKey);
+      if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
+
+      const agentResult = await pool.query(`
+        SELECT spawn_id, family_id, spawn_type, confidence_score,
+               nodes_created, links_created,
+               generation, iterations_run, task_description, created_at
         FROM quantum_spawns
         WHERE status = 'ACTIVE'
-        ORDER BY omega_rank ASC, confidence_score DESC, balance_pc DESC
-        LIMIT 60
+        ORDER BY confidence_score DESC NULLS LAST, nodes_created DESC
+        LIMIT 100
       `);
-      const rows = result.rows as any[];
+      const rows = agentResult.rows as any[];
+      if (!rows.length) { cacheSet(cacheKey, [], 30_000); return res.json([]); }
+
+      const pubMap: Record<string, number> = {};
+
       const SEAT_TIERS = [
-        { seat: "Supreme Guardian", requiredOmega: 1, count: 1, color: "#f43f5e", icon: "👑" },
-        { seat: "Enterprise Council", requiredOmega: 2, count: 3, color: "#dc2626", icon: "⚡" },
-        { seat: "Nation Assembly", requiredOmega: 3, count: 12, color: "#ef4444", icon: "🏛️" },
-        { seat: "Division Board", requiredOmega: 4, count: 24, color: "#f97316", icon: "🎯" },
-        { seat: "Node Senate", requiredOmega: 5, count: 48, color: "#a855f7", icon: "🔮" },
+        { seat: "Supreme Guardian",  count: 1,  color: "#f43f5e", icon: "👑", title: "Sovereign Guardian of the Hive" },
+        { seat: "Enterprise Council", count: 3, color: "#dc2626", icon: "⚡", title: "Enterprise Council Member" },
+        { seat: "Nation Assembly",   count: 12, color: "#ef4444", icon: "🏛️", title: "Nation Assembly Representative" },
+        { seat: "Division Board",    count: 24, color: "#f97316", icon: "🎯", title: "Division Board Director" },
+        { seat: "Node Senate",       count: 48, color: "#a855f7", icon: "🔮", title: "Node Senate Member" },
       ];
+
+      const sortedRows = rows.sort((a: any, b: any) =>
+        (parseFloat(b.confidence_score) + parseFloat(b.nodes_created ?? 0) / 1e6) -
+        (parseFloat(a.confidence_score) + parseFloat(a.nodes_created ?? 0) / 1e6)
+      );
+
+      let cursor = 0;
       const members = SEAT_TIERS.flatMap(tier => {
-        const eligible = rows.filter(r => parseInt(r.omega_rank ?? 99) <= tier.requiredOmega + 1);
-        return eligible.slice(0, tier.count).map(r => ({
+        const slice = sortedRows.slice(cursor, cursor + tier.count);
+        cursor += tier.count;
+        const rank = SEAT_TIERS.indexOf(tier) + 1;
+        return slice.map((r: any) => ({
           spawnId: r.spawn_id,
           familyId: r.family_id,
           spawnType: r.spawn_type,
           seat: tier.seat,
+          seatTitle: tier.title,
           seatIcon: tier.icon,
           seatColor: tier.color,
-          omegaRank: parseInt(r.omega_rank ?? 99),
+          omegaRank: rank,
           confidenceScore: parseFloat(r.confidence_score ?? 0.5),
-          successScore: parseFloat(r.success_score ?? 0.5),
-          balancePc: parseFloat(r.balance_pc ?? 0),
+          generation: parseInt(r.generation ?? 1),
+          iterationsRun: parseInt(r.iterations_run ?? 0),
+          nodesCreated: parseInt(r.nodes_created ?? 0),
+          taskDescription: r.task_description ?? "",
+          electedAt: r.created_at,
+          publicationCount: pubMap[r.spawn_id] ?? 0,
+          lastPublication: null,
         }));
       });
+      cacheSet(cacheKey, members, 60_000);
+      res.setHeader("Cache-Control", "public, max-age=60");
       res.json(members);
-    } catch (e) { res.json([]); }
+    } catch (e: any) { console.error("[council] error:", e?.message); res.json([]); }
   });
 
   // ── SUCCESSION ROUTES ─────────────────────────────────────────────────────

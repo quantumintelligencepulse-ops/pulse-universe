@@ -3,6 +3,7 @@ import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
+import { FollowButton } from "@/components/FollowButton";
 import SpawnChat from "@/components/SpawnChat";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -321,6 +322,14 @@ function SpawnCard({ spawn, onClick, onDiaryClick, onReport }: { spawn: any; onC
             <Shield size={8} className="inline mr-1" />ID
           </button>
         )}
+        <FollowButton
+          entityId={spawn.spawn_id}
+          entityType="agent"
+          label={`${spawn.spawn_type}-${spawn.spawn_id.slice(-6).toUpperCase()}`}
+          meta={spawn.family_id}
+          variant="icon"
+          color={meta.color}
+        />
       </div>
     </div>
   );
@@ -367,11 +376,13 @@ export default function AgentsPage() {
       if (filterStatus) params.set("status", filterStatus);
       return fetch(`/api/spawns/list?${params}`).then(r => r.json());
     },
+    staleTime: 12_000,
     refetchInterval: 15000,
   });
 
   const { data: duplicatesData } = useQuery<{ duplicates: any[]; total: number }>({
     queryKey: ["/api/spawns/duplicates"],
+    staleTime: 55_000,
     refetchInterval: 60000,
   });
 
@@ -385,8 +396,8 @@ export default function AgentsPage() {
     },
   });
 
-  const { data: hiveStats } = useQuery<any>({ queryKey: ["/api/spawns/stats"], refetchInterval: 20_000 });
-  const { data: recentPubs = [] } = useQuery<any[]>({ queryKey: ["/api/publications?limit=5"], refetchInterval: 20_000,
+  const { data: hiveStats } = useQuery<any>({ queryKey: ["/api/spawns/stats"], staleTime: 18_000, refetchInterval: 20_000 });
+  const { data: recentPubs = [] } = useQuery<any[]>({ queryKey: ["/api/publications?limit=5"], staleTime: 18_000, refetchInterval: 20_000,
     queryFn: () => fetch("/api/publications?limit=5").then(r => r.json()).then(d => Array.isArray(d) ? d : d.publications ?? []) });
 
   if (selectedCoreAgent) return <AgentChat agent={selectedCoreAgent} onBack={() => setSelectedCoreAgent(null)} />;

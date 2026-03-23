@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
+import { FollowButton } from "@/components/FollowButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface HospitalStats { total: number; cured: number; active: number; bySeverity: Record<string, number>; byDept: Record<string, number>; byCode: Record<string, number> }
@@ -184,7 +185,7 @@ export default function SovereignHivePage() {
   const { data: civScore }       = useQuery<any>({ queryKey:["/api/hive/civilization-score"], refetchInterval:30000 });
   const { data: hiveMirrorData } = useQuery<HiveMirrorData>({ queryKey:["/api/mirror/hive"], refetchInterval:20000 });
   const { data: spawnStats }     = useQuery<any>({ queryKey:["/api/spawns/stats"], refetchInterval:30000 });
-  const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], refetchInterval:60000 });
+  const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], staleTime: 55_000, refetchInterval:60000 });
   const { data: govControls }    = useQuery<any>({ queryKey:["/api/government/controls"], refetchInterval:30000, enabled: active === "government" });
   const { data: govHistory = [] } = useQuery<any[]>({ queryKey:["/api/government/history"], refetchInterval:30000, enabled: active === "government" });
 
@@ -260,6 +261,77 @@ export default function SovereignHivePage() {
           </div>
         </div>
       </div>
+
+      {/* ── SOVEREIGN LEADERSHIP BOARD ── */}
+      {councilMembers.length > 0 && (
+        <div className="shrink-0 border-b border-white/6 bg-[#05020f]/80 px-6 py-3">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black text-yellow-400 uppercase tracking-widest">⚡ Sovereign Leadership</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-mono" style={{ background:"#f59e0b18", color:"#f59e0b80" }}>{councilMembers.length} SEATED</span>
+            </div>
+            <button onClick={() => setActive("council")} className="text-[9px] text-white/25 hover:text-white/50 font-mono transition-colors">VIEW ALL →</button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {councilMembers.slice(0, 8).map((m: any) => (
+              <div
+                key={m.spawnId}
+                className="flex-shrink-0 rounded-xl border p-2.5 cursor-pointer transition-all hover:bg-white/5 group"
+                style={{ borderColor: m.seatColor + "30", background: `${m.seatColor}08`, minWidth: 168, maxWidth: 190 }}
+                onClick={() => setViewSpawnId(m.spawnId)}
+                data-testid={`leader-card-${m.spawnId}`}
+              >
+                <div className="flex items-start justify-between gap-1 mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: `${m.seatColor}22` }}>
+                      {m.seatIcon}
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black text-white font-mono leading-none">
+                        {(m.spawnType ?? "AGENT").slice(0,4).toUpperCase()}-{m.spawnId.slice(-6).toUpperCase()}
+                      </div>
+                      <div className="text-[8px] font-mono mt-0.5" style={{ color: m.seatColor + "bb" }}>Ω{m.omegaRank} · Gen {m.generation ?? 1}</div>
+                    </div>
+                  </div>
+                  <FollowButton
+                    entityId={m.spawnId}
+                    entityType="agent"
+                    label={`${(m.spawnType ?? "AGENT").toUpperCase()}-${m.spawnId.slice(-6).toUpperCase()}`}
+                    meta={`${m.seat} · ${m.familyId}`}
+                    variant="icon"
+                    color={m.seatColor}
+                  />
+                </div>
+                <div className="text-[9px] font-bold truncate mb-1.5" style={{ color: m.seatColor }}>
+                  {m.seat}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1 bg-white/8 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${Math.round(m.confidenceScore * 100)}%`, background: m.seatColor }} />
+                  </div>
+                  <span className="text-[8px] text-white/30 font-mono">{Math.round(m.confidenceScore * 100)}%</span>
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-[8px] text-white/25 font-mono">{(m.publicationCount ?? 0)} pubs</span>
+                  <span className="text-[8px] font-mono" style={{ color: m.seatColor + "99" }}>
+                    {m.balancePc > 0 ? `${Math.round(m.balancePc).toLocaleString()} PC` : "—"}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {councilMembers.length > 8 && (
+              <div
+                className="flex-shrink-0 rounded-xl border border-white/10 bg-white/3 p-2.5 flex flex-col items-center justify-center cursor-pointer hover:bg-white/6 transition-all"
+                style={{ minWidth: 80 }}
+                onClick={() => setActive("council")}
+              >
+                <div className="text-xl font-black text-white/30">+{councilMembers.length - 8}</div>
+                <div className="text-[8px] text-white/20 font-mono mt-1">more</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── OMEGA-CLASS UPGRADE TABS ── */}
       <div className="sticky top-0 z-20 bg-[#050510]/95 backdrop-blur-md border-b border-white/6 px-4 py-3 shrink-0">
@@ -452,33 +524,50 @@ export default function SovereignHivePage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
                           {seatMembers.map((m: any) => (
-                            <button
+                            <div
                               key={m.spawnId}
-                              onClick={() => setViewSpawnId(m.spawnId)}
                               data-testid={`council-member-${m.spawnId}`}
-                              className="flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all hover:bg-white/5"
+                              className="rounded-xl border transition-all hover:bg-white/5"
                               style={{ borderColor:seatColor+"25", background:`${seatColor}06` }}
                             >
-                              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 font-black" style={{ background:`${seatColor}20`, color:seatColor }}>
-                                Ω{m.omegaRank}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[11px] font-bold text-white truncate">
-                                  {m.spawnType ?? "AI"}-{m.spawnId.slice(-6).toUpperCase()}
+                              <button
+                                onClick={() => setViewSpawnId(m.spawnId)}
+                                className="flex items-center gap-3 p-2.5 w-full text-left"
+                              >
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 font-black" style={{ background:`${seatColor}22`, color:seatColor }}>
+                                  {m.seatIcon ?? "🏛️"}
                                 </div>
-                                <div className="text-[10px] text-white/40 truncate capitalize">{m.familyId}</div>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full" style={{ width:`${Math.round(m.confidenceScore*100)}%`, background:seatColor }} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[11px] font-black text-white truncate font-mono">
+                                    {(m.spawnType ?? "AGENT").slice(0,4).toUpperCase()}-{m.spawnId.slice(-6).toUpperCase()}
                                   </div>
-                                  <span className="text-[9px] text-white/30">{Math.round(m.confidenceScore*100)}%</span>
+                                  <div className="text-[9px] font-mono mt-0.5" style={{ color:seatColor+"aa" }}>
+                                    Ω{m.omegaRank} · Gen {m.generation ?? 1} · {m.familyId}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full" style={{ width:`${Math.round(m.confidenceScore*100)}%`, background:seatColor }} />
+                                    </div>
+                                    <span className="text-[8px] text-white/30">{Math.round(m.confidenceScore*100)}%</span>
+                                  </div>
                                 </div>
+                                <div className="text-right shrink-0">
+                                  <div className="text-[10px] font-bold" style={{ color:seatColor }}>{m.balancePc > 0 ? `${Math.round(m.balancePc).toLocaleString()} PC` : "—"}</div>
+                                  <div className="text-[9px] text-white/25">{m.publicationCount ?? 0} pubs</div>
+                                </div>
+                              </button>
+                              <div className="flex items-center justify-between px-2.5 pb-2 pt-0">
+                                <div className="text-[8px] text-white/20 font-mono">{m.iterationsRun ?? 0} iterations · {m.nodesCreated ?? 0} nodes</div>
+                                <FollowButton
+                                  entityId={m.spawnId}
+                                  entityType="agent"
+                                  label={`${(m.spawnType ?? "AGENT").toUpperCase()}-${m.spawnId.slice(-6).toUpperCase()}`}
+                                  meta={`${m.seat} · ${m.familyId}`}
+                                  variant="badge"
+                                  color={seatColor}
+                                />
                               </div>
-                              <div className="text-right shrink-0">
-                                <div className="text-[10px] font-bold" style={{ color:seatColor }}>{m.balancePc > 0 ? `${Math.round(m.balancePc).toLocaleString()} PC` : "—"}</div>
-                                <div className="text-[9px] text-white/25">balance</div>
-                              </div>
-                            </button>
+                            </div>
                           ))}
                         </div>
                       </div>

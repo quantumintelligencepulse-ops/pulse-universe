@@ -21,6 +21,7 @@ import MediaPage from "./pages/MediaPage";
 import GovernmentPage from "./pages/GovernmentPage";
 import CareersPage from "./pages/CareersPage";
 import OmegaControlRoom from "./pages/OmegaControlRoom";
+import SovereignIntelligenceNexus from "./pages/SovereignIntelligenceNexus";
 import HiveMarketplacePage from "./pages/HiveMarketplacePage";
 import AurionaPage from "./pages/AurionaPage";
 import InvocationLabPage from "./pages/InvocationLabPage";
@@ -62,6 +63,7 @@ import { Input } from "@/components/ui/input";
 import { api, buildUrl } from "@shared/routes";
 import type { Chat, Message, FeedComment, SocialProfile, SocialPost, SocialComment } from "@shared/schema";
 import logo from "@assets/myaigpt-logo.png";
+import { FollowsPanel } from "@/components/FollowButton";
 
 const MESSAGE_LIMIT = 9;
 const DISCORD_INVITE = "https://discord.gg/eVE9FvfPZ3";
@@ -2175,6 +2177,16 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Mind Graph</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #818cf833, #06b6d433)", color: "#818cf8", border: "1px solid #818cf850" }}>10Ω</span>
+          </Link>
+          )}
+          {aiMode && (
+          <Link href="/nexus" data-testid="link-nexus"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/nexus" ? "bg-gradient-to-r from-violet-950/60 to-cyan-950/60 border border-violet-500/40 font-semibold text-white shadow-lg" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/nexus" ? "bg-violet-500/20" : "bg-violet-600/8"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🌐</span>
+            </div>
+            <span className="flex-1">Intelligence Nexus</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(135deg, #818cf822, #06b6d422)", color: "#818cf8", border: "1px solid #818cf840" }}>L2</span>
           </Link>
           )}
           {aiMode && !appSettings.hiddenPages.includes("universe") && (
@@ -6342,6 +6354,7 @@ function SettingsPage() {
   const sections = [
     { id: "appearance", name: "Appearance", icon: Palette },
     { id: "personalization", name: "My AI", icon: Smile },
+    { id: "follows", name: "My Follows", icon: Bell },
     { id: "pages", name: "Pages", icon: Layers },
     { id: "chat", name: "Chat", icon: MessageSquare },
     { id: "playground-settings", name: "Playground", icon: SquareTerminal },
@@ -6646,6 +6659,16 @@ function SettingsPage() {
                   className="w-full px-3 py-2 text-sm border border-border/30 rounded-lg focus:outline-none focus:border-orange-300 bg-muted/10 dark:bg-gray-800" data-testid="input-greeting-name" />
                 <p className="text-[10px] text-muted-foreground/50 mt-1">AI will use this when greeting you or addressing you</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "follows" && (
+          <div className="space-y-4" data-testid="settings-section-follows">
+            <div className="bg-white dark:bg-gray-900 border border-border/30 rounded-xl p-5">
+              <h3 className="text-sm font-bold mb-1 flex items-center gap-2"><Bell size={15} /> My Follows</h3>
+              <p className="text-xs text-muted-foreground mb-4">AI agents, families, and publications you are following. Click Follow on any agent card, publication, or council member to add them here.</p>
+              <FollowsPanel />
             </div>
           </div>
         )}
@@ -15067,6 +15090,7 @@ function Router() {
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
       <Route path="/omega-control">{() => <Layout><OmegaControlRoom /></Layout>}</Route>
       <Route path="/mind-graph">{() => <Layout><MindGraphPage /></Layout>}</Route>
+      <Route path="/nexus">{() => <Layout><SovereignIntelligenceNexus /></Layout>}</Route>
       <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
