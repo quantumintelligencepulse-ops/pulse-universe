@@ -162,7 +162,7 @@ export default function PublicationDetailPage() {
   const publishedAt = new Date(pub.createdAt);
 
   return (
-    <div data-testid="publication-detail-page" className="min-h-screen bg-[#030014] text-white">
+    <div data-testid="publication-detail-page" className="absolute inset-0 overflow-y-auto bg-[#030014] text-white">
 
       {/* ── Top navigation bar ── */}
       <div className="sticky top-0 z-30 border-b border-white/8 bg-[#030014]/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between gap-4">
