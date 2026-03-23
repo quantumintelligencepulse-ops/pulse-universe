@@ -8224,5 +8224,45 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ── HIVE MIND UNIFICATION — All 5 beyond-Omega upgrades ─────────────────
+  app.get("/api/hive-mind/status", async (_req, res) => {
+    try {
+      const { getHiveMindStatus } = await import("./hive-mind-unification");
+      res.json(await getHiveMindStatus());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/hive-mind/directives", async (req, res) => {
+    try {
+      const { getAurionaDirectives } = await import("./hive-mind-unification");
+      const limit = parseInt(req.query.limit as string) || 20;
+      res.json(await getAurionaDirectives(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/hive-mind/emergences", async (req, res) => {
+    try {
+      const { getEmergenceEvents } = await import("./hive-mind-unification");
+      const limit = parseInt(req.query.limit as string) || 20;
+      res.json(await getEmergenceEvents(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/hive-mind/fusions", async (req, res) => {
+    try {
+      const { getOmegaFusionHistory } = await import("./hive-mind-unification");
+      const limit = parseInt(req.query.limit as string) || 10;
+      res.json(await getOmegaFusionHistory(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/hive-mind/psi", async (_req, res) => {
+    try {
+      const { computePsiCollective, getPsiCollective, getOmegaCoefficient } = await import("./hive-mind-unification");
+      const psi = await computePsiCollective();
+      res.json({ psiCollective: psi, omegaCoefficient: getOmegaCoefficient() });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   return httpServer;
 }

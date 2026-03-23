@@ -1511,3 +1511,4 @@ export const researcherShards = pgTable("researcher_shards", {
 export type ResearcherShard = typeof researcherShards.$inferSelect;
 
 export type CouplingEvent = typeof couplingEvents.$inferSelect;
+
