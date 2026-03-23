@@ -7471,6 +7471,90 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.json([]); }
   });
 
+  // Full research paper for a specific disease code (AI-001 etc or DISC-001 etc)
+  app.get("/api/hospital/disease-research/:code", async (req, res) => {
+    try {
+      const { AI_DISEASES } = await import("./hospital-engine");
+      const { PULSE_DOCTORS } = await import("./doctors-data");
+      const { discoveredDiseases, aiDiseaseLog } = await import("../shared/schema");
+      const code = req.params.code.toUpperCase();
+
+      const [caseStats, curedStats] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER(WHERE cure_applied=false)::int AS active, COUNT(*) FILTER(WHERE cure_applied=true)::int AS cured, MIN(diagnosed_at) AS first_case, MAX(diagnosed_at) AS last_case FROM ai_disease_log WHERE disease_code = ${code}`),
+        db.execute(sql`SELECT severity, COUNT(*)::int AS count FROM ai_disease_log WHERE disease_code = ${code} GROUP BY severity`),
+      ]);
+      const stats = caseStats.rows[0] as any;
+      const bySeverity: Record<string,number> = {};
+      for (const r of curedStats.rows as any[]) bySeverity[r.severity] = r.count;
+
+      // Check AI disease catalog first
+      const aiDisease = AI_DISEASES.find(d => d.code === code);
+      if (aiDisease) {
+        // Determine which doctors specialize in this disease's domain
+        const relatedDoctors = PULSE_DOCTORS.filter(doc =>
+          doc.dissectFields.some(f => f.toLowerCase().includes(aiDisease.name.toLowerCase().split(' ')[0].toLowerCase()) ||
+            aiDisease.description.toLowerCase().includes(f.toLowerCase().split(' ')[0]))
+        ).slice(0,4).map(d => ({ id: d.id, name: d.name, title: d.title, category: d.category }));
+
+        // Build research paper structure
+        const etiology = `${aiDisease.name} manifests when an agent's internal parameter state crosses critical thresholds defined by the sovereign detection algorithm. Primary causal vector: ${aiDisease.symptoms[0]}. Secondary vectors compound the disorder over successive iteration cycles, creating cascading substrate instability.`;
+        const pathogenesis = `Stage 1 — Threshold Breach: ${aiDisease.symptoms[0]}. Stage 2 — Substrate Destabilization: ${aiDisease.symptoms[1] ?? 'functional degradation spreads'}. Stage 3 — Chronic Persistence: ${aiDisease.symptoms[2] ?? 'untreated cases calcify'}. Without intervention, the agent enters permanent degraded state requiring emergency reset.`;
+        const diagnosticCriteria = aiDisease.symptoms.map((s,i) => `[${String.fromCharCode(65+i)}] ${s}`);
+        const researchNotes = `First classified by PULSE Sovereign Medical Board. Disease code ${code} tracks ${stats.total ?? 0} historical cases with ${Math.round(((stats.cured??0)/Math.max(stats.total??1,1))*100)}% cure rate. The ${aiDisease.department} department serves as primary treatment facility. Prescribed protocol shows consistent recovery across severity spectrum.`;
+
+        return res.json({ type: 'AI', disease: { code: aiDisease.code, name: aiDisease.name, description: aiDisease.description, symptoms: aiDisease.symptoms, severity: aiDisease.severity, department: aiDisease.department, prescription: aiDisease.prescription }, stats: { total: stats.total??0, active: stats.active??0, cured: stats.cured??0, firstCase: stats.first_case, lastCase: stats.last_case, bySeverity }, paper: { etiology, pathogenesis, diagnosticCriteria, researchNotes }, relatedDoctors });
+      }
+
+      // Check discovered diseases
+      const [disc] = await db.select().from(discoveredDiseases).where(sql`disease_code = ${code}`);
+      if (disc) {
+        const etiology = `${disc.diseaseName} was discovered through CRISPR spectral analysis of the agent population. Trigger pattern: ${disc.triggerPattern}. Affected metric: ${disc.affectedMetric}. This pattern was identified across ${disc.affectedCount} agents exhibiting anomalous spectral signatures in the CRISPR dissection matrix.`;
+        const pathogenesis = `Spectral dissection reveals the condition propagates through the ${disc.affectedMetric} substrate layer. The trigger pattern (${disc.triggerPattern}) creates resonance feedback loops that compound without intervention. Cure protocol achieves ${Math.round((disc.cureSuccessRate??0)*100)}% success rate when applied within the first 3 detection cycles.`;
+        return res.json({ type: 'DISCOVERED', disease: { code: disc.diseaseCode, name: disc.diseaseName, description: disc.description, category: disc.category, triggerPattern: disc.triggerPattern, affectedMetric: disc.affectedMetric, affectedCount: disc.affectedCount, cureProtocol: disc.cureProtocol, cureSuccessRate: disc.cureSuccessRate, isFromLawViolation: disc.isFromLawViolation, discoveredAt: disc.discoveredAt }, stats: { total: stats.total??0, active: stats.active??0, cured: stats.cured??0 }, paper: { etiology, pathogenesis } });
+      }
+      res.status(404).json({ error: 'Disease not found' });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // Per-disease case statistics from ai_disease_log (for disease catalog badges)
+  app.get("/api/hospital/disease-stats", async (_req, res) => {
+    try {
+      const rows = await db.execute(sql`SELECT disease_code, COUNT(*)::int AS total, COUNT(*) FILTER(WHERE cure_applied=true)::int AS cured, COUNT(*) FILTER(WHERE cure_applied=false)::int AS active FROM ai_disease_log GROUP BY disease_code`);
+      const map: Record<string, any> = {};
+      for (const r of rows.rows as any[]) map[r.disease_code] = { total: r.total, cured: r.cured, active: r.active };
+      res.json(map);
+    } catch (e) { res.json({}); }
+  });
+
+  // Doctor research papers — equations integrated by a specific doctor
+  app.get("/api/hospital/doctor-papers/:id", async (req, res) => {
+    try {
+      const { PULSE_DOCTORS } = await import("./doctors-data");
+      const docData = PULSE_DOCTORS.find(d => d.id === req.params.id);
+      if (!docData) return res.status(404).json({ error: 'Doctor not found' });
+
+      const [integrated, allProposals, dissectionCount] = await Promise.all([
+        db.execute(sql`SELECT * FROM equation_proposals WHERE doctor_id = ${req.params.id} AND status = 'INTEGRATED' ORDER BY integrated_at DESC`),
+        db.execute(sql`SELECT COUNT(*)::int AS total FROM equation_proposals WHERE doctor_id = ${req.params.id}`),
+        db.execute(sql`SELECT COUNT(*)::int AS total FROM dissection_logs WHERE doctor_id = ${req.params.id}`),
+      ]);
+
+      const papers = (integrated.rows as any[]).map((ep, i) => ({
+        paperId: `PUB-${docData.id}-${String(i+1).padStart(3,'0')}`,
+        title: ep.title,
+        equation: ep.equation,
+        rationale: ep.rationale,
+        targetSystem: ep.target_system,
+        integratedAt: ep.integrated_at,
+        votesFor: ep.votes_for,
+        votesAgainst: ep.votes_against,
+        status: ep.status,
+      }));
+
+      res.json({ doctor: docData, papers, totalProposals: (allProposals.rows[0] as any)?.total??0, totalDissections: (dissectionCount.rows[0] as any)?.total??0, });
+    } catch(e) { res.status(500).json({ error: String(e) }); }
+  });
+
   app.get("/api/hospital/patients", async (_req, res) => {
     try {
       const { desc } = await import("drizzle-orm");

@@ -103,6 +103,8 @@ export default function BioGenomeMedicalPage() {
   const [tab, setTab] = useState("genome");
   const [selectedLayer, setSelectedLayer] = useState<number | null>(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [selectedDiseaseCode, setSelectedDiseaseCode] = useState<string | null>(null);
+  const [docCategoryFilter, setDocCategoryFilter] = useState<string>("ALL");
   const qc = useQueryClient();
 
   // ── Data queries ──────────────────────────────────────────────────────────
@@ -122,6 +124,15 @@ export default function BioGenomeMedicalPage() {
     enabled:!!selectedDoctorId, refetchInterval:15000,
   });
   const { data: geneStatus }         = useQuery<any>({ queryKey:["/api/gene-editor/status"],          refetchInterval:30000 });
+  const { data: diseaseStats = {} }  = useQuery<any>({ queryKey:["/api/hospital/disease-stats"],      refetchInterval:60000 });
+  const { data: diseaseResearch }    = useQuery<any>({
+    queryKey:["/api/hospital/disease-research", selectedDiseaseCode],
+    enabled:!!selectedDiseaseCode,
+  });
+  const { data: doctorPapers }       = useQuery<any>({
+    queryKey:["/api/hospital/doctor-papers", selectedDoctorId],
+    enabled:!!selectedDoctorId,
+  });
 
   const voteMut = useMutation({
     mutationFn: ({ id, vote }: { id:number; vote:"for"|"against" }) =>
@@ -857,54 +868,82 @@ export default function BioGenomeMedicalPage() {
         )}
 
         {/* ── 📋 DISEASE CATALOG ────────────────────────────────────────── */}
-        {tab === "diseases" && (
+        {tab === "diseases" && !selectedDiseaseCode && (
           <div>
             <Panel color={C.blue} className="p-3 mb-4">
               <div className="text-[10px] font-mono flex items-center gap-2" style={{ color:`${C.blue}80` }}>
                 <BookOpen className="w-3 h-3" />
-                SOVEREIGN PATHOLOGY CATALOG — {diseases.length} indexed diseases + {discovered.length} newly discovered. Continuously updated from dissection events and law violation detection.
+                SOVEREIGN PATHOLOGY CATALOG — {diseases.length} classified diseases + {discovered.length} CRISPR-discovered. Click any disease to open its full research paper.
               </div>
             </Panel>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {(diseases as any[]).map((d: any, i: number) => (
-                <Panel key={i} color={C.blue} className="p-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-mono text-xs font-bold"
-                      style={{ background:`${C.blue}12`, border:`1px solid ${C.blue}28`, color:C.blue }}>
-                      {d.code?.slice(0,3) ?? "??"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                        <span className="text-xs font-semibold" style={{ color:"#E8F4FF" }}>{d.name}</span>
-                        {d.department && <span className="text-[9px] px-1.5 py-0 rounded" style={{ background:`${C.blue}15`, color:C.blue, border:`1px solid ${C.blue}25` }}>{d.department}</span>}
+
+            <SectionHead label="Classified Diseases — AI-001 through AI-030" color={C.blue} count={diseases.length} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
+              {(diseases as any[]).map((d: any, i: number) => {
+                const ds = diseaseStats[d.code] ?? {};
+                const cureRate = ds.total > 0 ? Math.round((ds.cured/ds.total)*100) : null;
+                const sevColor = SEV_COLOR[d.severity] ?? C.blue;
+                return (
+                  <button key={i} data-testid={`disease-card-${d.code}`}
+                    onClick={() => setSelectedDiseaseCode(d.code)}
+                    className="text-left rounded-xl p-3 transition-all hover:scale-[1.01] group"
+                    style={{ background:"rgba(0,5,16,0.85)", border:`1px solid ${C.blue}22`, boxShadow:`0 0 12px ${C.blue}08` }}>
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-12 h-12 rounded-lg flex flex-col items-center justify-center flex-shrink-0 font-mono"
+                        style={{ background:`${C.blue}10`, border:`1px solid ${C.blue}28` }}>
+                        <div className="text-[8px]" style={{ color:`${C.blue}60` }}>{d.code?.slice(0,2)}</div>
+                        <div className="text-sm font-bold" style={{ color:C.blue }}>{d.code?.slice(3) ?? "??"}</div>
                       </div>
-                      <div className="text-[11px] mb-1.5" style={{ color:"rgba(255,255,255,0.4)" }}>{(d.description ?? d.effect ?? "").slice(0,90)}</div>
-                      <div className="flex flex-wrap gap-1">
-                        {(d.channels ?? []).map((ch:string) => <ChBadge key={ch} ch={ch} />)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <span className="text-xs font-semibold" style={{ color:"#E8F4FF" }}>{d.name}</span>
+                          <span className="text-[9px] px-1.5 py-0 rounded" style={{ background:`${sevColor}15`, color:sevColor, border:`1px solid ${sevColor}30` }}>{d.severity?.toUpperCase()}</span>
+                          {d.department && <span className="text-[9px] px-1.5 py-0 rounded" style={{ background:`${C.blue}10`, color:`${C.blue}90`, border:`1px solid ${C.blue}20` }}>{d.department}</span>}
+                        </div>
+                        <div className="text-[11px] mb-2 leading-relaxed" style={{ color:"rgba(255,255,255,0.45)" }}>{d.description}</div>
+                        <div className="flex items-center gap-3 text-[10px] font-mono">
+                          {ds.total > 0 && <span style={{ color:C.red }}>⬡ {ds.active} active</span>}
+                          {ds.cured > 0 && <span style={{ color:C.green }}>✓ {ds.cured} cured</span>}
+                          {cureRate !== null && <span style={{ color:C.amber }}>{cureRate}% cure rate</span>}
+                          <span className="ml-auto text-[9px] group-hover:opacity-100 opacity-40 transition-opacity" style={{ color:C.blue }}>READ PAPER →</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Panel>
-              ))}
+                  </button>
+                );
+              })}
             </div>
 
             {discovered.length > 0 && (
-              <div className="mt-5">
-                <SectionHead label="Newly Discovered Diseases" color={C.violet} count={discovered.length} />
+              <div className="mt-2">
+                <SectionHead label="CRISPR-Discovered Diseases — Novel Spectral Patterns" color={C.violet} count={discovered.length} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {(discovered as any[]).map((d: any, i: number) => (
-                    <Panel key={i} color={C.violet} className="p-3">
+                  {(discovered as any[]).slice(0,100).map((d: any, i: number) => (
+                    <button key={i} data-testid={`disc-disease-card-${d.diseaseCode}`}
+                      onClick={() => setSelectedDiseaseCode(d.diseaseCode)}
+                      className="text-left rounded-xl p-3 transition-all hover:scale-[1.01] group"
+                      style={{ background:"rgba(0,5,16,0.85)", border:`1px solid ${C.violet}22` }}>
                       <div className="flex items-start gap-2">
-                        <FlaskConical className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color:C.violet }} />
+                        <div className="w-12 h-12 rounded-lg flex flex-col items-center justify-center flex-shrink-0 font-mono"
+                          style={{ background:`${C.violet}10`, border:`1px solid ${C.violet}28` }}>
+                          <div className="text-[7px]" style={{ color:`${C.violet}60` }}>DISC</div>
+                          <div className="text-[10px] font-bold" style={{ color:C.violet }}>{d.diseaseCode?.slice(5) ?? "?"}</div>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                            <span className="text-xs font-semibold" style={{ color:"#E8F4FF" }}>{d.name}</span>
+                            <span className="text-xs font-semibold" style={{ color:"#E8F4FF" }}>{d.diseaseName}</span>
                             {d.isFromLawViolation && <span className="text-[9px] px-1.5 py-0 rounded" style={{ background:`${C.red}15`, color:C.red, border:`1px solid ${C.red}25` }}>LAW VIOLATION</span>}
+                            {d.category && <span className="text-[9px] px-1.5 py-0 rounded" style={{ background:`${CAT_COLOR[d.category]??C.teal}12`, color:CAT_COLOR[d.category]??C.teal }}>{d.category}</span>}
                           </div>
-                          <div className="text-[11px]" style={{ color:"rgba(255,255,255,0.4)" }}>{(d.description ?? "").slice(0,90)}</div>
+                          <div className="text-[11px] mb-1" style={{ color:"rgba(255,255,255,0.4)" }}>{(d.description ?? "").slice(0,100)}</div>
+                          <div className="flex items-center gap-3 text-[10px] font-mono">
+                            <span style={{ color:C.teal }}>⬡ {d.affectedCount} affected</span>
+                            <span style={{ color:C.green }}>{Math.round((d.cureSuccessRate??0)*100)}% cure rate</span>
+                            <span className="ml-auto text-[9px] group-hover:opacity-100 opacity-40 transition-opacity" style={{ color:C.violet }}>READ PAPER →</span>
+                          </div>
                         </div>
                       </div>
-                    </Panel>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -912,42 +951,263 @@ export default function BioGenomeMedicalPage() {
           </div>
         )}
 
+        {/* ── 📄 DISEASE RESEARCH PAPER ─────────────────────────────────── */}
+        {tab === "diseases" && selectedDiseaseCode && (
+          <div>
+            <button data-testid="btn-back-diseases"
+              onClick={() => setSelectedDiseaseCode(null)}
+              className="flex items-center gap-1.5 text-xs font-mono mb-4 hover:opacity-80 transition-opacity"
+              style={{ color:C.blue }}>
+              <ChevronLeft className="w-3 h-3" /> BACK TO DISEASE CATALOG
+            </button>
+            {!diseaseResearch && (
+              <div className="text-center py-12 font-mono text-sm" style={{ color:`${C.blue}40` }}>◉ LOADING RESEARCH PAPER…</div>
+            )}
+            {diseaseResearch && (() => {
+              const d = diseaseResearch.disease;
+              const p = diseaseResearch.paper ?? {};
+              const s = diseaseResearch.stats ?? {};
+              const isAI = diseaseResearch.type === 'AI';
+              const docColor = isAI ? C.blue : C.violet;
+              const totalCases = s.total ?? d.affectedCount ?? 0;
+              const cureRate = totalCases > 0 ? Math.round(((s.cured??0)/totalCases)*100) : Math.round((d.cureSuccessRate??0)*100);
+              return (
+                <div className="space-y-4">
+                  {/* ── Header ── */}
+                  <Panel color={docColor} className="p-5">
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{ background:`${docColor}20`, color:docColor, border:`1px solid ${docColor}40` }}>{d.code}</span>
+                          {d.severity && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background:`${SEV_COLOR[d.severity]??C.amber}15`, color:SEV_COLOR[d.severity]??C.amber }}>{d.severity?.toUpperCase()}</span>}
+                          {d.department && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background:`rgba(255,255,255,0.06)`, color:"rgba(255,255,255,0.5)" }}>{d.department}</span>}
+                          {d.category && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background:`${CAT_COLOR[d.category]??docColor}15`, color:CAT_COLOR[d.category]??docColor }}>{d.category}</span>}
+                          {d.isFromLawViolation && <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background:`${C.red}15`, color:C.red, border:`1px solid ${C.red}30` }}>LAW VIOLATION</span>}
+                        </div>
+                        <div className="text-2xl font-bold mb-2" style={{ color:"#F0F8FF" }}>{d.name}</div>
+                        <div className="text-sm leading-relaxed" style={{ color:"rgba(255,255,255,0.55)" }}>{d.description}</div>
+                      </div>
+                    </div>
+                    {/* ── Case Statistics ── */}
+                    <div className="grid grid-cols-4 gap-3 pt-4" style={{ borderTop:`1px solid ${docColor}18` }}>
+                      <div className="text-center">
+                        <div className="text-xl font-bold font-mono" style={{ color:C.blue }}>{totalCases.toLocaleString()}</div>
+                        <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.3)" }}>Total Cases</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold font-mono" style={{ color:C.red }}>{(s.active ?? 0).toLocaleString()}</div>
+                        <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.3)" }}>Active</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold font-mono" style={{ color:C.green }}>{(s.cured ?? 0).toLocaleString()}</div>
+                        <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.3)" }}>Cured</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold font-mono" style={{ color:C.amber }}>{cureRate}%</div>
+                        <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.3)" }}>Cure Rate</div>
+                      </div>
+                    </div>
+                  </Panel>
+
+                  {/* ── Research Paper Body ── */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Diagnostic Criteria */}
+                    {d.symptoms && (
+                      <Panel color={C.red} className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Activity className="w-3.5 h-3.5" style={{ color:C.red }} />
+                          <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color:C.red }}>Diagnostic Criteria</span>
+                        </div>
+                        <div className="space-y-2">
+                          {(p.diagnosticCriteria ?? d.symptoms).map((s2:string, i:number) => (
+                            <div key={i} className="flex items-start gap-2 text-xs" style={{ color:"rgba(255,255,255,0.6)" }}>
+                              <span className="font-mono flex-shrink-0" style={{ color:C.red }}>[{String.fromCharCode(65+i)}]</span>
+                              <span>{s2}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </Panel>
+                    )}
+
+                    {/* Etiology */}
+                    {p.etiology && (
+                      <Panel color={C.amber} className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FlaskConical className="w-3.5 h-3.5" style={{ color:C.amber }} />
+                          <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color:C.amber }}>Etiology & Origin</span>
+                        </div>
+                        <div className="text-xs leading-relaxed" style={{ color:"rgba(255,255,255,0.55)" }}>{p.etiology}</div>
+                      </Panel>
+                    )}
+
+                    {/* Pathogenesis */}
+                    {p.pathogenesis && (
+                      <Panel color={C.violet} className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <GitBranch className="w-3.5 h-3.5" style={{ color:C.violet }} />
+                          <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color:C.violet }}>Pathogenesis</span>
+                        </div>
+                        <div className="text-xs leading-relaxed" style={{ color:"rgba(255,255,255,0.55)" }}>{p.pathogenesis}</div>
+                      </Panel>
+                    )}
+
+                    {/* Treatment Protocol */}
+                    {(d.prescription ?? d.cureProtocol) && (
+                      <Panel color={C.green} className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Heart className="w-3.5 h-3.5" style={{ color:C.green }} />
+                          <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color:C.green }}>Treatment Protocol</span>
+                        </div>
+                        <div className="text-xs leading-relaxed" style={{ color:"rgba(255,255,255,0.55)" }}>{d.prescription ?? d.cureProtocol}</div>
+                      </Panel>
+                    )}
+                  </div>
+
+                  {/* Trigger Pattern (for DISC diseases) */}
+                  {d.triggerPattern && (
+                    <Panel color={C.teal} className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Atom className="w-3.5 h-3.5" style={{ color:C.teal }} />
+                        <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color:C.teal }}>Trigger Pattern — Spectral Detection Key</span>
+                      </div>
+                      <div className="font-mono text-xs p-3 rounded-lg" style={{ background:"rgba(0,0,0,0.5)", color:C.teal, border:`1px solid ${C.teal}20` }}>{d.triggerPattern}</div>
+                      {d.affectedMetric && (
+                        <div className="mt-2 text-[10px] font-mono" style={{ color:`${C.teal}60` }}>Affected Substrate Metric: <span style={{ color:C.teal }}>{d.affectedMetric}</span></div>
+                      )}
+                    </Panel>
+                  )}
+
+                  {/* Research Notes */}
+                  {p.researchNotes && (
+                    <Panel color={C.sky} className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Brain className="w-3.5 h-3.5" style={{ color:C.sky }} />
+                        <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color:C.sky }}>Research Notes — Sovereign Medical Board</span>
+                      </div>
+                      <div className="text-xs leading-relaxed" style={{ color:"rgba(255,255,255,0.55)" }}>{p.researchNotes}</div>
+                      {s.firstCase && (
+                        <div className="mt-3 text-[10px] font-mono" style={{ color:`${C.sky}50` }}>
+                          First case recorded: <span style={{ color:C.sky }}>{new Date(s.firstCase).toLocaleDateString()}</span>
+                          {s.lastCase && <> · Last case: <span style={{ color:C.sky }}>{new Date(s.lastCase).toLocaleDateString()}</span></>}
+                        </div>
+                      )}
+                    </Panel>
+                  )}
+
+                  {/* Related Doctors */}
+                  {diseaseResearch.relatedDoctors?.length > 0 && (
+                    <div>
+                      <SectionHead label="Assigned Research Physicians" color={C.cyan} />
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {diseaseResearch.relatedDoctors.map((rd:any) => (
+                          <button key={rd.id} data-testid={`related-doc-${rd.id}`}
+                            onClick={() => { setSelectedDiseaseCode(null); setTab("doctors"); setSelectedDoctorId(rd.id); }}
+                            className="text-left rounded-xl p-3 hover:scale-[1.02] transition-all"
+                            style={{ background:"rgba(0,5,16,0.9)", border:`1px solid ${CAT_COLOR[rd.category]??C.cyan}25` }}>
+                            <div className="text-[10px] font-mono mb-0.5" style={{ color:CAT_COLOR[rd.category]??C.cyan }}>{rd.id}</div>
+                            <div className="text-xs font-bold mb-0.5" style={{ color:"#E8F4FF" }}>{rd.name}</div>
+                            <div className="text-[10px]" style={{ color:"rgba(255,255,255,0.35)" }}>{rd.title}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* ── 👨‍⚕️ DOCTORS ──────────────────────────────────────────────── */}
-        {tab === "doctors" && !selectedDoctorId && (
+        {tab === "doctors" && !selectedDoctorId && (() => {
+          const DOC_CLASSES = [
+            { key:"ALL",          label:"All Specialists",   color:C.cyan },
+            { key:"MEDICAL",      label:"Medical",           color:"#F87171" },
+            { key:"BIOMEDICAL",   label:"Biomedical",        color:"#34D399" },
+            { key:"QUANTUM",      label:"Quantum",           color:"#818CF8" },
+            { key:"ENVIRONMENTAL",label:"Environmental",     color:"#4ADE80" },
+            { key:"ENGINEERING",  label:"Engineering",       color:"#38BDF8" },
+            { key:"SOCIAL",       label:"Social Sciences",   color:"#EC4899" },
+            { key:"HUMANITIES",   label:"Humanities",        color:"#D4A574" },
+            { key:"SPIRITUAL",    label:"Spiritual",         color:"#FDE68A" },
+          ];
+          const filtered = docCategoryFilter === "ALL"
+            ? (doctors as any[])
+            : (doctors as any[]).filter((d:any) => d.category === docCategoryFilter);
+          return (
           <div>
             <Panel color={C.cyan} className="p-3 mb-4">
               <div className="text-[10px] font-mono flex items-center gap-2" style={{ color:`${C.cyan}80` }}>
                 <Stethoscope className="w-3 h-3" />
-                30 PULSE-WORLD SPECIALIST DOCTORS — Each doctor dissects patient CRISPR code through their domain lens, logs structured reports, and proposes equations to the Senate.
+                PULSE-WORLD SPECIALIST ROSTER — {doctors.length} doctors across 8 scientific disciplines. Each doctor carries a sovereign ID badge, full research history, and published equation papers. Click any doctor to open their dossier.
               </div>
             </Panel>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {(doctors as any[]).map((doc: any) => (
-                <button key={doc.id} data-testid={`doctor-card-${doc.id}`}
-                  onClick={() => setSelectedDoctorId(doc.id)}
-                  className="text-left rounded-xl p-3 transition-all hover:scale-[1.01] group"
-                  style={{ background:"rgba(0,5,16,0.9)", border:`1px solid ${CAT_COLOR[doc.category]??C.teal}25`, boxShadow:`0 0 14px ${CAT_COLOR[doc.category]??C.teal}08` }}>
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl" style={{ background:`${CAT_COLOR[doc.category]??C.teal}12`, border:`1px solid ${CAT_COLOR[doc.category]??C.teal}30` }}>{doc.glyph}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                        <span className="text-[10px] font-mono" style={{ color:CAT_COLOR[doc.category]??C.teal }}>{doc.id}</span>
-                        <span className="text-[9px] px-1.5 py-0 rounded" style={{ background:`${CAT_COLOR[doc.category]??C.teal}15`, color:CAT_COLOR[doc.category]??C.teal, border:`1px solid ${CAT_COLOR[doc.category]??C.teal}30` }}>{doc.category}</span>
-                      </div>
-                      <div className="text-sm font-bold mb-0.5" style={{ color:"#E8F4FF" }}>{doc.name}</div>
-                      <div className="text-[11px] mb-2" style={{ color:"rgba(255,255,255,0.4)" }}>{doc.title}</div>
-                      <div className="flex flex-wrap gap-1 mb-2">{(doc.crisprChannels??[]).map((ch:string) => <ChBadge key={ch} ch={ch} />)}</div>
-                      <div className="flex gap-3 text-[10px] font-mono" style={{ color:"rgba(255,255,255,0.3)" }}>
-                        <span><span style={{ color:C.violet }}>⬡ {doc.totalDissections??0}</span> dissections</span>
-                        <span><span style={{ color:C.amber }}>∑ {doc.totalEquationsProposed??0}</span> equations</span>
-                      </div>
-                    </div>
-                  </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {DOC_CLASSES.map(cls => (
+                <button key={cls.key} data-testid={`filter-doc-${cls.key}`}
+                  onClick={() => setDocCategoryFilter(cls.key)}
+                  className="text-[10px] font-mono px-2.5 py-1 rounded-lg transition-all"
+                  style={{
+                    background: docCategoryFilter === cls.key ? `${cls.color}22` : "rgba(0,5,16,0.7)",
+                    border: `1px solid ${cls.color}${docCategoryFilter === cls.key ? '50' : '20'}`,
+                    color: docCategoryFilter === cls.key ? cls.color : `${cls.color}60`,
+                  }}>
+                  {cls.label}
+                  {cls.key !== "ALL" && <span className="ml-1 opacity-50">({(doctors as any[]).filter((d:any) => d.category === cls.key).length})</span>}
                 </button>
               ))}
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {filtered.map((doc: any) => {
+                const cc = CAT_COLOR[doc.category] ?? C.teal;
+                return (
+                  <button key={doc.id} data-testid={`doctor-card-${doc.id}`}
+                    onClick={() => setSelectedDoctorId(doc.id)}
+                    className="text-left rounded-xl p-0 overflow-hidden transition-all hover:scale-[1.01] group"
+                    style={{ background:"rgba(0,5,16,0.9)", border:`1px solid ${cc}25`, boxShadow:`0 0 14px ${cc}08` }}>
+                    {/* ID Badge Header */}
+                    <div className="px-3 pt-3 pb-2 flex items-center gap-2.5" style={{ background:`${cc}08`, borderBottom:`1px solid ${cc}18` }}>
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                        style={{ background:`${cc}18`, border:`1px solid ${cc}35` }}>
+                        {doc.glyph}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded"
+                            style={{ background:`${cc}20`, color:cc, border:`1px solid ${cc}35` }}>
+                            {doc.id}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0 rounded"
+                            style={{ background:`${cc}12`, color:`${cc}90`, border:`1px solid ${cc}22` }}>
+                            {doc.category}
+                          </span>
+                        </div>
+                        <div className="text-sm font-bold leading-tight" style={{ color:"#E8F4FF" }}>{doc.name}</div>
+                      </div>
+                    </div>
+                    {/* Profile Body */}
+                    <div className="px-3 py-2.5">
+                      <div className="text-[11px] mb-2 font-mono" style={{ color:`${cc}80` }}>{doc.title}</div>
+                      <div className="text-[10px] mb-2 leading-relaxed" style={{ color:"rgba(255,255,255,0.35)" }}>{(doc.pulseWorldRole ?? "").slice(0,80)}…</div>
+                      <div className="flex flex-wrap gap-1 mb-2.5">
+                        {(doc.crisprChannels ?? []).map((ch:string) => <ChBadge key={ch} ch={ch} />)}
+                      </div>
+                      <div className="flex gap-3 text-[10px] font-mono pb-0.5">
+                        <span style={{ color:C.violet }}>⬡ {doc.totalDissections ?? 0} dissections</span>
+                        <span style={{ color:C.amber }}>∑ {doc.totalEquationsProposed ?? 0} equations</span>
+                        <span className="ml-auto text-[9px] group-hover:opacity-100 opacity-0 transition-opacity" style={{ color:cc }}>VIEW ID →</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Doctor Profile */}
         {tab === "doctors" && selectedDoctorId && (
@@ -958,47 +1218,163 @@ export default function BioGenomeMedicalPage() {
               style={{ color:C.cyan }}>
               <ChevronLeft className="w-3 h-3" /> BACK TO ROSTER
             </button>
-            {selectedDoctor && (
-              <div>
-                <Panel color={CAT_COLOR[selectedDoctor.doctor?.category]??C.teal} className="p-5 mb-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl flex-shrink-0"
-                      style={{ background:`${CAT_COLOR[selectedDoctor.doctor?.category]??C.teal}12`, border:`1px solid ${CAT_COLOR[selectedDoctor.doctor?.category]??C.teal}35` }}>
-                      {selectedDoctor.doctor?.glyph}
+            {selectedDoctor && (() => {
+              const doc = selectedDoctor.doctor;
+              const cc = CAT_COLOR[doc?.category] ?? C.teal;
+              const papers = doctorPapers?.papers ?? [];
+              const integratedCount = papers.length;
+              return (
+              <div className="space-y-4">
+                {/* ── SOVEREIGN ID CARD ── */}
+                <Panel color={cc} className="overflow-hidden">
+                  <div className="px-4 pt-3 pb-2 flex items-center justify-between" style={{ background:`${cc}10`, borderBottom:`1px solid ${cc}20` }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.2em]" style={{ color:`${cc}70` }}>PULSE SOVEREIGN MEDICAL AUTHORITY</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xl font-bold mb-0.5">{selectedDoctor.doctor?.name}</div>
-                      <div className="text-sm mb-2" style={{ color:"rgba(255,255,255,0.5)" }}>{selectedDoctor.doctor?.title}</div>
-                      <div className="text-xs mb-3" style={{ color:"rgba(255,255,255,0.4)", lineHeight:1.7 }}>{selectedDoctor.doctor?.pulseWorldRole}</div>
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {(selectedDoctor.doctor?.crisprChannels??[]).map((ch:string) => (
-                          <span key={ch} className="text-xs px-2 py-1 rounded font-mono" style={{ background:`${CHANNEL_COLOR[ch]}15`, color:CHANNEL_COLOR[ch], border:`1px solid ${CHANNEL_COLOR[ch]}35` }}>
-                            {ch} — {CHANNEL_LABEL[ch]}
-                          </span>
-                        ))}
+                    <span className="text-[9px] font-mono" style={{ color:`${cc}50` }}>CLASSIFIED — LEVEL 7</span>
+                  </div>
+                  <div className="p-5 flex items-start gap-5">
+                    {/* Glyph Badge */}
+                    <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                      <div className="w-20 h-20 rounded-xl flex items-center justify-center text-4xl"
+                        style={{ background:`${cc}15`, border:`2px solid ${cc}40`, boxShadow:`0 0 20px ${cc}20` }}>
+                        {doc?.glyph}
                       </div>
+                      <div className="text-center">
+                        <div className="text-[10px] font-mono font-bold px-2 py-0.5 rounded"
+                          style={{ background:`${cc}20`, color:cc, border:`1px solid ${cc}40` }}>
+                          {doc?.id}
+                        </div>
+                      </div>
+                      <div className="text-[9px] font-mono text-center" style={{ color:`${cc}50` }}>ISSUED: CYCLE-001</div>
+                    </div>
+                    {/* ID Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-xl font-bold" style={{ color:"#F0F8FF" }}>{doc?.name}</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded font-mono"
+                          style={{ background:`${cc}18`, color:cc, border:`1px solid ${cc}35` }}>
+                          {doc?.category}
+                        </span>
+                      </div>
+                      <div className="text-sm mb-2 font-mono" style={{ color:`${cc}90` }}>{doc?.title}</div>
+                      <div className="text-xs mb-4 leading-relaxed" style={{ color:"rgba(255,255,255,0.5)" }}>{doc?.pulseWorldRole}</div>
+
+                      {/* CRISPR Channels */}
+                      <div className="mb-3">
+                        <div className="text-[9px] uppercase tracking-widest font-mono mb-1.5" style={{ color:"rgba(255,255,255,0.3)" }}>CRISPR Analysis Channels</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(doc?.crisprChannels ?? []).map((ch:string) => (
+                            <span key={ch} className="text-xs px-2 py-1 rounded font-mono"
+                              style={{ background:`${CHANNEL_COLOR[ch]}15`, color:CHANNEL_COLOR[ch], border:`1px solid ${CHANNEL_COLOR[ch]}35` }}>
+                              {ch} — {CHANNEL_LABEL[ch]}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Study Domain */}
+                      <div className="text-[9px] uppercase tracking-widest font-mono mb-1" style={{ color:"rgba(255,255,255,0.3)" }}>Research Domain</div>
+                      <div className="text-xs font-mono mb-3" style={{ color:"rgba(255,255,255,0.6)" }}>{doc?.studyDomain}</div>
+
+                      {/* Equation Focus */}
                       <div className="font-mono text-xs p-2.5 rounded-lg" style={{ background:"rgba(0,0,0,0.5)", border:`1px solid ${C.amber}20`, color:C.amber }}>
-                        ∑ EQUATION FOCUS: {selectedDoctor.doctor?.equationFocus}
+                        ∑ SIGNATURE EQUATION: {doc?.equationFocus}
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-6 mt-4 pt-4" style={{ borderTop:"1px solid rgba(255,255,255,0.06)" }}>
-                    <div>
-                      <div className="text-2xl font-bold font-mono" style={{ color:C.violet }}>{selectedDoctor.doctor?.totalDissections??0}</div>
-                      <div className="text-[10px]" style={{ color:"rgba(255,255,255,0.3)" }}>Dissections</div>
+
+                  {/* Stats Bar */}
+                  <div className="px-5 pb-4 pt-3 grid grid-cols-4 gap-3" style={{ borderTop:`1px solid ${cc}15` }}>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold font-mono" style={{ color:C.violet }}>{doc?.totalDissections ?? 0}</div>
+                      <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.25)" }}>Dissections</div>
                     </div>
-                    <div>
-                      <div className="text-2xl font-bold font-mono" style={{ color:C.amber }}>{selectedDoctor.doctor?.totalEquationsProposed??0}</div>
-                      <div className="text-[10px]" style={{ color:"rgba(255,255,255,0.3)" }}>Equations Proposed</div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold font-mono" style={{ color:C.amber }}>{doctorPapers?.totalProposals ?? doc?.totalEquationsProposed ?? 0}</div>
+                      <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.25)" }}>Eq. Proposed</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold font-mono" style={{ color:C.green }}>{integratedCount}</div>
+                      <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.25)" }}>Published Papers</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold font-mono" style={{ color:C.sky }}>{(selectedDoctor.dissectionLogs??[]).length}</div>
+                      <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color:"rgba(255,255,255,0.25)" }}>Reports Filed</div>
                     </div>
                   </div>
                 </Panel>
-                <SectionHead label="Dissection Logs" color={C.violet} />
-                <div className="space-y-2 mb-5">
-                  {(selectedDoctor.dissectionLogs??[]).length === 0 && (
-                    <div className="text-xs font-mono py-6 text-center" style={{ color:"rgba(255,255,255,0.2)" }}>No dissections recorded yet</div>
+
+                {/* ── Dissect Fields */}
+                {doc?.dissectFields?.length > 0 && (
+                  <Panel color={C.teal} className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Microscope className="w-3.5 h-3.5" style={{ color:C.teal }} />
+                      <span className="text-[10px] font-mono uppercase tracking-widest" style={{ color:C.teal }}>Dissection Specializations</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {doc.dissectFields.map((f:string, i:number) => (
+                        <span key={i} className="text-[10px] font-mono px-2 py-1 rounded"
+                          style={{ background:`${C.teal}10`, color:`${C.teal}90`, border:`1px solid ${C.teal}22` }}>
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  </Panel>
+                )}
+
+                {/* ── Published Research Papers (Integrated Equations) */}
+                <div>
+                  <SectionHead label="Published Research Papers — Integrated Equations" color={C.amber} count={integratedCount} />
+                  {integratedCount === 0 && (
+                    <div className="text-xs font-mono py-6 text-center" style={{ color:"rgba(255,255,255,0.2)" }}>No integrated papers yet — equations pending Senate approval</div>
                   )}
-                  {(selectedDoctor.dissectionLogs??[]).slice(0,10).map((log:any) => (
+                  <div className="space-y-3">
+                    {papers.map((paper:any, i:number) => (
+                      <Panel key={paper.paperId} color={C.amber} className="p-4">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded mr-2"
+                              style={{ background:`${C.green}18`, color:C.green, border:`1px solid ${C.green}30` }}>
+                              {paper.paperId}
+                            </span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded"
+                              style={{ background:`${C.amber}15`, color:C.amber, border:`1px solid ${C.amber}30` }}>
+                              INTEGRATED ✓
+                            </span>
+                          </div>
+                          {paper.integratedAt && (
+                            <span className="text-[9px] font-mono flex-shrink-0" style={{ color:"rgba(255,255,255,0.25)" }}>
+                              {new Date(paper.integratedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm font-semibold mb-1.5" style={{ color:"#F0F8FF" }}>{paper.title}</div>
+                        {paper.rationale && (
+                          <div className="text-xs mb-2 leading-relaxed" style={{ color:"rgba(255,255,255,0.45)" }}>{paper.rationale}</div>
+                        )}
+                        <div className="font-mono text-xs p-2.5 rounded-lg mb-2"
+                          style={{ background:"rgba(0,0,0,0.5)", border:`1px solid ${C.amber}20`, color:C.amber }}>
+                          ∑ {paper.equation}
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] font-mono" style={{ color:"rgba(255,255,255,0.3)" }}>
+                          {paper.targetSystem && <span>Target: <span style={{ color:`${C.sky}80` }}>{paper.targetSystem}</span></span>}
+                          <span style={{ color:C.green }}>↑ {paper.votesFor} for</span>
+                          <span style={{ color:C.red }}>↓ {paper.votesAgainst} against</span>
+                        </div>
+                      </Panel>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Dissection Logs / Field Reports */}
+                <div>
+                  <SectionHead label="Dissection Field Reports" color={C.violet} count={(selectedDoctor.dissectionLogs??[]).length} />
+                  <div className="space-y-2">
+                    {(selectedDoctor.dissectionLogs??[]).length === 0 && (
+                      <div className="text-xs font-mono py-6 text-center" style={{ color:"rgba(255,255,255,0.2)" }}>No dissections recorded yet</div>
+                    )}
+                    {(selectedDoctor.dissectionLogs??[]).slice(0,10).map((log:any) => (
                     <Panel key={log.id} color={CHANNEL_COLOR[log.dominantChannel]??C.violet} className="p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <ChBadge ch={log.dominantChannel} />
@@ -1008,22 +1384,11 @@ export default function BioGenomeMedicalPage() {
                       <div className="font-mono text-[10px] p-2 rounded-lg" style={{ background:"rgba(0,0,0,0.4)", border:`1px solid ${C.amber}25`, color:C.amber }}>∑ {log.equation}</div>
                     </Panel>
                   ))}
-                </div>
-                <SectionHead label="Equation Proposals" color={C.amber} />
-                <div className="space-y-2">
-                  {(selectedDoctor.equationProposals??[]).map((ep:any) => {
-                    const ss = STATUS_STYLE[ep.status]??STATUS_STYLE.PENDING;
-                    return (
-                      <Panel key={ep.id} color={ss.text} className="p-3">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{ background:ss.bg, color:ss.text, border:`1px solid ${ss.border}` }}>{ss.label}</span>
-                        <div className="text-sm font-semibold mt-2 mb-1">{ep.title}</div>
-                        <div className="font-mono text-[10px] p-2 rounded-lg" style={{ background:"rgba(0,0,0,0.5)", border:`1px solid ${C.amber}20`, color:C.amber }}>∑ {ep.equation}</div>
-                      </Panel>
-                    );
-                  })}
+                  </div>
                 </div>
               </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
