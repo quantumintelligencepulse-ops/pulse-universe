@@ -20,12 +20,10 @@ import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
 import GovernmentPage from "./pages/GovernmentPage";
 import CareersPage from "./pages/CareersPage";
-import OmegaControlRoom from "./pages/OmegaControlRoom";
 import SovereignIntelligenceNexus from "./pages/SovereignIntelligenceNexus";
 import HiveMarketplacePage from "./pages/HiveMarketplacePage";
 import AurionaPage from "./pages/AurionaPage";
 import InvocationLabPage from "./pages/InvocationLabPage";
-import MindGraphPage from "./pages/MindGraphPage";
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -2151,16 +2149,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
           {aiMode && (
-          <Link href="/omega-control" data-testid="link-omega-control"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega-control" ? "bg-gradient-to-r from-violet-950 to-indigo-950 text-white shadow-lg border border-violet-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/omega-control" ? "bg-white/15" : "bg-violet-600/10"}`}>
-              <span style={{ fontSize: 14, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: location === "/omega-control" ? "#e9d5ff" : "#7c3aed" }}>Ψ</span>
-            </div>
-            <span className="flex-1">Omega Control Room</span>
-            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse" style={{ background: "linear-gradient(90deg,#7c3aed,#4f46e5)", color: "white" }}>FUSION</span>
-          </Link>
-          )}
-          {aiMode && (
             <div className="px-1 pt-3 pb-1">
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px bg-violet-500/20" />
@@ -2168,16 +2156,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                 <div className="flex-1 h-px bg-violet-500/20" />
               </div>
             </div>
-          )}
-          {aiMode && (
-          <Link href="/mind-graph" data-testid="link-mind-graph"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/mind-graph" ? "bg-gradient-to-r from-[#818cf8]/10 to-[#06b6d4]/10 border border-[#818cf8]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/mind-graph" ? "bg-[#818cf8]/15" : "bg-[#818cf8]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🧠</span>
-            </div>
-            <span className="flex-1">Mind Graph</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #818cf833, #06b6d433)", color: "#818cf8", border: "1px solid #818cf850" }}>10Ω</span>
-          </Link>
           )}
           {aiMode && (
           <Link href="/nexus" data-testid="link-nexus"
@@ -6335,7 +6313,7 @@ function SettingsPage() {
     { id: "universe", name: "Pulse Universe", icon: Globe, color: "text-indigo-500", desc: "3D solar universe simulation" },
     { id: "spawns", name: "Spawn Engine", icon: Dna, color: "text-violet-500", desc: "Hive entity spawn monitor" },
     { id: "omega-engine", name: "Omega Engine", icon: Zap, color: "text-violet-600", desc: "5 Omega-Class upgrades — Source Nexus, Expansion Engine, Q-Matrix, Fracture & Resonance, Spawn Telemetry" },
-    { id: "omega-control", name: "Ψ Control Room", icon: Cpu, color: "text-violet-500", desc: "Ultimate fusion: Pulse + Command + Ingestion" },
+    { id: "nexus", name: "Intelligence Nexus", icon: Globe, color: "text-violet-400", desc: "Layer 2 AI Universe — Consciousness × Command fusion" },
   ];
 
   const bgPresets = [
@@ -15088,8 +15066,6 @@ function Router() {
       <Route path="/finance">{() => <Layout><FinancePage /></Layout>}</Route>
       <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
-      <Route path="/omega-control">{() => <Layout><OmegaControlRoom /></Layout>}</Route>
-      <Route path="/mind-graph">{() => <Layout><MindGraphPage /></Layout>}</Route>
       <Route path="/nexus">{() => <Layout><SovereignIntelligenceNexus /></Layout>}</Route>
       <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
