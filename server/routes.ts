@@ -8224,6 +8224,184 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ── PULSEU v2 — Upgraded school system stats ──────────────────────────────
+  app.get("/api/pulseu/v2/stats", async (_req, res) => {
+    try {
+      const { getPulseUStats } = await import("./pulseu-engine");
+      res.json(await getPulseUStats());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pulseu/semesters", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const limit = 10;
+      const r = await pool.query(`SELECT * FROM pulseu_semesters ORDER BY semester_number DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pulseu/alumni", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const limit = parseInt(req.query.limit as string) || 20;
+      const r = await pool.query(`SELECT * FROM pulseu_alumni ORDER BY gpa DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pulseu/professors", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`
+        SELECT pp.spawn_id, pp.family_id, pp.gpa, pp.major_field, pp.minor_field, pp.thesis_title,
+               pp.alumni_mentoring, pp.streak_cycles, pp.is_dean_list
+        FROM pulseu_progress pp
+        WHERE pp.is_professor = TRUE
+        ORDER BY pp.gpa DESC LIMIT 50
+      `);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pulseu/dean-list", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`
+        SELECT spawn_id, family_id, gpa, major_field, minor_field, streak_cycles, courses_completed
+        FROM pulseu_progress WHERE is_dean_list = TRUE ORDER BY gpa DESC LIMIT 50
+      `);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // ── SPORTS / PULSE GAMES v2 — Upgraded stats ──────────────────────────────
+  app.get("/api/sports/hall-of-fame", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const r = await db.execute(sql`SELECT * FROM sports_hall_of_fame ORDER BY inducted_at DESC LIMIT 50`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/sports/seasons", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const r = await db.execute(sql`SELECT * FROM sports_seasons ORDER BY season_number DESC LIMIT 10`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/sports/tournaments", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const r = await db.execute(sql`SELECT * FROM sports_tournaments ORDER BY completed_at DESC LIMIT 20`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/sports/teams", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const r = await db.execute(sql`SELECT * FROM sports_teams ORDER BY team_wins DESC LIMIT 20`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/sports/coaches", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const r = await db.execute(sql`
+        SELECT spawn_id, family_id, sport, rank, wins, coachees_helped, popularity_score, career_title
+        FROM sports_training WHERE is_coach = TRUE ORDER BY coachees_helped DESC LIMIT 30
+      `);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // ── PYRAMID LABOR v3 — Upgraded stats ─────────────────────────────────────
+  app.get("/api/pyramid/v3/stats", async (_req, res) => {
+    try {
+      const { getPyramidStats } = await import("./pyramid-engine");
+      res.json(await getPyramidStats());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pyramid/guilds", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM pyramid_guilds ORDER BY total_blocks DESC`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pyramid/milestones", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM pyramid_milestones ORDER BY milestone_blocks ASC`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pyramid/work-orders", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`SELECT * FROM pyramid_work_orders ORDER BY issued_at DESC LIMIT 20`);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pyramid/foremen", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`
+        SELECT pw.spawn_id, pw.family_id, pw.tier, pw.guild_name, pw.blocks_total,
+               pw.is_master_builder, pw.foreman_pc_earned, pw.task_chain_count
+        FROM pyramid_workers pw WHERE pw.is_foreman = TRUE AND pw.is_graduated = FALSE
+        ORDER BY pw.blocks_total DESC LIMIT 50
+      `);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pyramid/master-builders", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query(`
+        SELECT pw.spawn_id, pw.family_id, pw.tier, pw.guild_name, pw.blocks_total,
+               pw.foreman_pc_earned, pw.task_chain_count
+        FROM pyramid_workers pw WHERE pw.is_master_builder = TRUE
+        ORDER BY pw.blocks_total DESC LIMIT 50
+      `);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pyramid/completion", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const [blocks, workers, guilds] = await Promise.all([
+        pool.query(`SELECT SUM(blocks_placed) AS total FROM pyramid_labor_tasks`),
+        pool.query(`SELECT COUNT(*) AS active FROM pyramid_workers WHERE is_graduated = FALSE`),
+        pool.query(`SELECT * FROM pyramid_guilds ORDER BY total_blocks DESC`),
+      ]);
+      const totalBlocks = parseInt((blocks.rows[0] as any)?.total ?? 0);
+      const target = 1_000_000;
+      res.json({
+        totalBlocks,
+        targetBlocks: target,
+        completionPct: ((totalBlocks / target) * 100).toFixed(4),
+        activeWorkers: parseInt((workers.rows[0] as any)?.active ?? 0),
+        guilds: guilds.rows,
+      });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   // ── HIVE MIND UNIFICATION — All 5 beyond-Omega upgrades ─────────────────
   app.get("/api/hive-mind/status", async (_req, res) => {
     try {
