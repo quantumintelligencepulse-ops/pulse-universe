@@ -298,7 +298,7 @@ function LiveUniverseFineprint() {
       <div className="flex items-center gap-1">
         <span className="w-1 h-1 rounded-full bg-violet-400 flex-shrink-0 animate-pulse" style={{ boxShadow: "0 0 4px rgba(167,139,250,0.8)" }} />
         <span className="text-[9px] font-mono text-violet-400/60">
-          {fK(dispAgents || 91000)}+ agents · 145 families · SSC v∞
+          {fK(dispAgents || 95949)}+ agents · 145 families · SSC v∞
         </span>
       </div>
       <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">
