@@ -758,10 +758,21 @@ setInterval(() => {
     console.log(`[memory-guardian] 🧹 GC triggered at ${heapMB}MB → freed to ${after}MB | RSS: ${rssGB}GB`);
     _guardianQuiet = 0;
   }
-  // Exit cleanly at 3GB RSS — well before the 4GB+ danger zone
-  if (rssMB > 3000) {
-    console.log(`[memory-guardian] 🔴 RSS at ${rssGB}GB — triggering clean restart before OOM kill`);
-    process.exit(1);
+  // Exit cleanly at 3.5GB RSS — but ONLY if heap is also still high (GC didn't help).
+  // If GC already freed the heap to a safe level, the high RSS is just the OS slowly
+  // releasing memory pages — the process is actually healthy, don't restart it.
+  if (rssMB > 3500) {
+    const currentHeapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+    if (currentHeapMB > 1500) {
+      // GC didn't help — memory is truly exhausted
+      console.log(`[memory-guardian] 🔴 RSS ${rssGB}GB + heap ${currentHeapMB}MB — GC failed, restarting`);
+      process.exit(1);
+    } else {
+      // GC worked — high RSS is temporary OS page lag, process is healthy
+      if (_guardianQuiet++ % 10 === 0) {
+        console.log(`[memory-guardian] ⚠️ RSS ${rssGB}GB but heap=${currentHeapMB}MB — GC effective, staying alive`);
+      }
+    }
   } else if (_guardianQuiet++ % 10 === 0) {
     // Log status every 5 minutes (10 × 30s) to avoid log spam
     console.log(`[memory-guardian] ✅ Heap: ${heapMB}MB | RSS: ${rssGB}GB — healthy`);

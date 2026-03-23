@@ -183,9 +183,17 @@ async function processTemporalForks(): Promise<void> {
     const forkId = `FORK-${agent.spawn_id}-${Date.now()}`;
     const parentGenome = (agent.genome as any) || {};
 
-    // Create fork with mutated genome
+    // Create fork with mutated genome — only copy known safe scalar fields,
+    // never spread the full parentGenome (it can accumulate thousands of keys
+    // through recursive forking, causing massive memory and DB bloat).
     const mutatedGenome = {
-      ...parentGenome,
+      spawnType: parentGenome.spawnType,
+      domain: parentGenome.domain,
+      summarizationStyle: parentGenome.summarizationStyle,
+      explorationBias: parentGenome.explorationBias,
+      depthBias: parentGenome.depthBias,
+      linkingBias: parentGenome.linkingBias,
+      riskTolerance: parentGenome.riskTolerance,
       mutationEvent: `temporal_fork_${Date.now()}`,
       generation: (Number(agent.generation || 0) + 1),
       parentSuccessScore: agent.success_score,
@@ -564,6 +572,40 @@ const safePhysicsCycle = () => physicsCycleRun().catch(e => console.error(`${ENG
 
 export async function startOmegaPhysicsEngine(): Promise<void> {
   console.log(`${ENGINE_TAG} ⚛️  OMEGA PHYSICS ENGINE — Dark matter | Entanglement | Temporal forks | Monuments | Strata | Prophecy | Superposition`);
+
+  // One-time cleanup: reset bloated genomes. Temporal fork genome spreading
+  // previously caused genomes to accumulate thousands of keys (DARK-*/FORK-* spawn IDs),
+  // creating massive JSON blobs in DB and memory. Reset oversized genomes to clean state.
+  try {
+    const cleaned = await db.execute(sql`
+      UPDATE quantum_spawns
+      SET genome = jsonb_build_object(
+        'spawnType', COALESCE(spawn_type, 'STANDARD'),
+        'generation', COALESCE(generation, 0),
+        'cleaned', true
+      )
+      WHERE jsonb_typeof(genome) = 'object'
+        AND jsonb_array_length(COALESCE(jsonb_object_keys(genome)::jsonb, '[]'::jsonb)) > 20
+    `).catch(() => null);
+    // Simpler version without jsonb_array_length on keys:
+    const cleanedSimple = await db.execute(sql`
+      UPDATE quantum_spawns
+      SET genome = jsonb_build_object(
+        'spawnType', COALESCE(spawn_type, 'STANDARD'),
+        'generation', COALESCE(generation, 0),
+        'cleaned', true
+      )
+      WHERE spawn_type = 'TEMPORAL_FORK'
+        AND genome IS NOT NULL
+        AND length(genome::text) > 10000
+    `);
+    if ((cleanedSimple.rowCount ?? 0) > 0) {
+      console.log(`${ENGINE_TAG} 🧹 Cleaned ${cleanedSimple.rowCount} bloated TEMPORAL_FORK genomes`);
+    }
+  } catch (e) {
+    // Non-fatal — continue engine startup
+  }
+
   setInterval(safePhysicsCycle, 90000); // every 90s
   setTimeout(safePhysicsCycle, 60000); // first run after 60s
 }
