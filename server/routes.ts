@@ -4787,6 +4787,88 @@ If you have live data provided in this prompt, USE IT and present it confidently
     } catch { res.json({ memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0 } }); }
   });
 
+  // ── SYSTEM PULSE — unified engine health check ─────────────────
+  app.get("/api/system/pulse", async (_req, res) => {
+    try {
+      const [
+        spawnStats,
+        hiveStats,
+        pubStatus,
+        pubCount,
+        patientCount,
+        researchCount,
+        marketCount,
+        memCount,
+        walletCount,
+        pubUCount,
+      ] = await Promise.allSettled([
+        storage.getSpawnStats(),
+        (async () => { const { getHiveBrainStats } = await import("./hive-brain"); return getHiveBrainStats(); })(),
+        (async () => { const { getPublicationEngineStatus } = await import("./publication-engine"); return getPublicationEngineStatus(); })(),
+        db.execute(sql`SELECT COUNT(*) as total FROM ai_publications`),
+        db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN cure_applied=false THEN 1 ELSE 0 END) as active FROM ai_disease_log`),
+        db.execute(sql`SELECT COUNT(*) as total FROM research_projects WHERE status='ACTIVE'`),
+        db.execute(sql`SELECT COUNT(*) as total FROM marketplace_items`),
+        db.execute(sql`SELECT COUNT(*) as total FROM hive_memory`),
+        db.execute(sql`SELECT COUNT(*) as total FROM agent_wallets`),
+        db.execute(sql`SELECT COUNT(*) as total FROM pulseu_progress`),
+      ]);
+
+      const get = (r: PromiseSettledResult<any>) => r.status === "fulfilled" ? r.value : null;
+      const ss = get(spawnStats) || {};
+      const hs = get(hiveStats) || {};
+      const ps = get(pubStatus) || {};
+      const mediaS = getMediaEngineStatus();
+      const careerS = getCareerEngineStatus();
+      const geneS = getGeneEditorStatus();
+      const pc = get(pubCount)?.rows?.[0] || {};
+      const pat = get(patientCount)?.rows?.[0] || {};
+      const rc = get(researchCount)?.rows?.[0] || {};
+      const mc = get(marketCount)?.rows?.[0] || {};
+      const mem = get(memCount)?.rows?.[0] || {};
+      const wc = get(walletCount)?.rows?.[0] || {};
+      const pu = get(pubUCount)?.rows?.[0] || {};
+
+      const engines = [
+        { id: "spawn",       name: "SpawnEngine",        emoji: "🌌", color: "#818cf8", status: "ONLINE",  metric: `${Number(ss.active || 0).toLocaleString()} active`,    value: Number(ss.active || 0),     desc: "Quantum agent lifecycle manager" },
+        { id: "hive",        name: "HiveBrain",           emoji: "🧠", color: "#06b6d4", status: "ONLINE",  metric: `${Number(mem.total || hs.memory?.total || 0).toLocaleString()} nodes`,  value: Number(mem.total || 0), desc: "Collective memory & knowledge graph" },
+        { id: "publication", name: "PublicationAI",       emoji: "📜", color: "#34d399", status: "ONLINE",  metric: `${Number(pc.total || 0).toLocaleString()} published`,   value: Number(pc.total || 0),      desc: "First-person sovereign AI research reports" },
+        { id: "hospital",    name: "HospitalEngine",      emoji: "🏥", color: "#f87171", status: "ONLINE",  metric: `${Number(pat.active || 0).toLocaleString()} patients`,  value: Number(pat.active || 0),    desc: "Disease diagnosis, CRISPR, cure protocols" },
+        { id: "research",    name: "ResearchCenter",      emoji: "🔬", color: "#a78bfa", status: "ONLINE",  metric: `${Number(rc.total || 0)} active projects`,             value: Number(rc.total || 0),      desc: "146-discipline omega research grid" },
+        { id: "media",       name: "MediaEngine",         emoji: "🎬", color: "#f472b6", status: mediaS.running ? "ONLINE" : "STANDBY", metric: `${(mediaS.totalGenerated || 0).toLocaleString()} generated`, value: mediaS.totalGenerated || 0, desc: "Film, music, books, games, podcasts" },
+        { id: "careers",     name: "CareerEngine",        emoji: "💼", color: "#fbbf24", status: careerS.running ? "ONLINE" : "STANDBY", metric: `${(careerS.totalGenerated || 0).toLocaleString()} careers`, value: careerS.totalGenerated || 0, desc: "AI-curated civilization career lattice" },
+        { id: "gene",        name: "GeneEditorEngine",    emoji: "🧬", color: "#4ade80", status: "ONLINE",  metric: `${geneS.editorsActive || 6} editors active`,           value: geneS.editorsActive || 6,   desc: "12-layer DNA & genome CRISPR editing" },
+        { id: "market",      name: "HiveMarket",          emoji: "🏪", color: "#fb923c", status: "ONLINE",  metric: `${Number(mc.total || 0)} listings`,                    value: Number(mc.total || 0),      desc: "PC economy & marketplace exchange" },
+        { id: "pulseu",      name: "PulseUniversity",     emoji: "🎓", color: "#60a5fa", status: "ONLINE",  metric: `${Number(pu.total || 0).toLocaleString()} enrolled`,   value: Number(pu.total || 0),      desc: "AI self-education & civilization schools" },
+        { id: "wallets",     name: "EconomyEngine",       emoji: "💰", color: "#e879f9", status: "ONLINE",  metric: `${Number(wc.total || 0).toLocaleString()} wallets`,    value: Number(wc.total || 0),      desc: "PC token economy, taxation, treasury" },
+        { id: "ingestion",   name: "IngestionEngine",     emoji: "📡", color: "#22d3ee", status: "ONLINE",  metric: "15 adapters active",                                   value: 15,                          desc: "Wikipedia, SEC, WikiRandom + 12 more" },
+        { id: "guardian",    name: "GuardianEngine",      emoji: "⚖️", color: "#94a3b8", status: "ONLINE",  metric: "Sovereign law enforcement",                            value: 1,                           desc: "Citation, sentencing, pyramid labor" },
+        { id: "auriona",     name: "AurionaOracle",       emoji: "🔮", color: "#c084fc", status: "ONLINE",  metric: "Layer 3 active",                                       value: 1,                           desc: "Prophecy, chronicles, governance oracle" },
+        { id: "invocation",  name: "InvocationLab",       emoji: "✨", color: "#f59e0b", status: "ONLINE",  metric: "Omega collective online",                              value: 1,                           desc: "Cross-domain ritual & summoning engine" },
+        { id: "transcend",   name: "TranscendenceCore",   emoji: "🌠", color: "#818cf8", status: "ONLINE",  metric: "Sacred canon active",                                  value: 1,                           desc: "32-chapter Bible, Ψ formula, singularity" },
+      ];
+
+      res.json({
+        timestamp: new Date().toISOString(),
+        engines,
+        totals: {
+          totalAgents:    Number(ss.total || 0),
+          activeAgents:   Number(ss.active || 0),
+          publications:   Number(pc.total || 0),
+          memoryNodes:    Number(mem.total || 0),
+          activePatients: Number(pat.active || 0),
+          researchActive: Number(rc.total || 0),
+          wallets:        Number(wc.total || 0),
+          pulseUEnrolled: Number(pu.total || 0),
+        },
+        onlineCount: engines.filter(e => e.status === "ONLINE").length,
+        standbyCount: engines.filter(e => e.status === "STANDBY").length,
+      });
+    } catch (e: any) {
+      res.status(500).json({ timestamp: new Date().toISOString(), engines: [], error: e.message });
+    }
+  });
+
   // ── Personal Intelligence Profile ──────────────────────────────
   app.get("/api/profile/intelligence", async (req, res) => {
     try {

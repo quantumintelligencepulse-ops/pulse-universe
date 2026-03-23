@@ -33,11 +33,13 @@ export default function CareersPage() {
   const [view, setView] = useState<"home" | "career">("home");
 
   useEffect(() => {
-    fetch("/api/careers").then(r => r.json()).then(setItems).catch(() => {}).finally(() => setLoading(false));
+    const fetchItems = () => fetch("/api/careers").then(r => r.json()).then(setItems).catch(() => {});
+    fetchItems().finally(() => setLoading(false));
+    const itemsId = setInterval(fetchItems, 45000);
     const fetchStatus = () => fetch("/api/careers/engine-status").then(r => r.json()).then(setEngineStatus).catch(() => {});
     fetchStatus();
-    const id = setInterval(fetchStatus, 12000);
-    return () => clearInterval(id);
+    const statusId = setInterval(fetchStatus, 12000);
+    return () => { clearInterval(itemsId); clearInterval(statusId); };
   }, []);
 
   const fetchByField = async (field: string) => {

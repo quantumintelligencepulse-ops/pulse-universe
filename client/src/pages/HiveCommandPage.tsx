@@ -1043,34 +1043,71 @@ const ENGINES = [
 ];
 
 export function EnginesPanel() {
+  const { data: pulse, isLoading, dataUpdatedAt } = useQuery<any>({
+    queryKey: ["/api/system/pulse"],
+    queryFn: () => fetch("/api/system/pulse").then(r => r.json()),
+    refetchInterval: 15000,
+  });
+
+  const engines: any[] = pulse?.engines || [];
+  const totals = pulse?.totals || {};
+  const onlineCount = pulse?.onlineCount ?? engines.filter((e: any) => e.status === "ONLINE").length;
+  const standbyCount = pulse?.standbyCount ?? 0;
+  const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : null;
+
   return (
     <div className="p-4 h-full overflow-y-auto">
-      <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3 font-mono">
-        Quantum Engine Array · {ENGINES.length} engines online
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[10px] text-white/30 uppercase tracking-widest font-mono">
+          System Pulse · {isLoading ? "syncing..." : `${onlineCount} online${standbyCount > 0 ? ` · ${standbyCount} standby` : ""}`}
+        </div>
+        {lastUpdate && <div className="text-[9px] text-white/20 font-mono">{lastUpdate}</div>}
       </div>
-      <div className="space-y-1.5">
-        {ENGINES.map(e => (
-          <div key={e.id}
-            data-testid={`engine-${e.id}`}
-            className="rounded border p-3 flex items-center gap-3 transition-all hover:bg-white/[0.03]"
-            style={{ borderColor: e.color + "22", backgroundColor: e.color + "07" }}>
-            <div className="text-lg flex-shrink-0">{e.emoji}</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold" style={{ color: e.color }}>{e.name}</span>
-                <span className="text-[8px] px-1 rounded font-mono"
-                  style={{ backgroundColor: e.color + "1a", color: e.color }}>{e.id}</span>
-                <span className="ml-auto flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full animate-pulse"
-                    style={{ backgroundColor: e.color, boxShadow: `0 0 5px ${e.color}` }}></span>
-                  <span className="text-[8px] font-mono text-white/40">ACTIVE</span>
-                </span>
-              </div>
-              <div className="text-[10px] text-white/30 font-mono mt-0.5 truncate">{e.desc}</div>
+
+      {!isLoading && pulse?.totals && (
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
+          {[
+            { label: "Active Agents",  value: Number(totals.activeAgents || 0).toLocaleString(), color: "#818cf8" },
+            { label: "Publications",   value: Number(totals.publications || 0).toLocaleString(),  color: "#34d399" },
+            { label: "Memory Nodes",   value: Number(totals.memoryNodes || 0).toLocaleString(),   color: "#06b6d4" },
+            { label: "Wallets",        value: Number(totals.wallets || 0).toLocaleString(),        color: "#e879f9" },
+          ].map(s => (
+            <div key={s.label} className="rounded border border-white/[0.06] bg-white/[0.02] px-2 py-1.5">
+              <div className="text-[9px] text-white/30 font-mono uppercase">{s.label}</div>
+              <div className="text-[11px] font-mono font-bold" style={{ color: s.color }}>{s.value}</div>
             </div>
-            <ChevronRight size={11} className="text-white/15 flex-shrink-0" />
-          </div>
-        ))}
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        {isLoading
+          ? Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded border border-white/[0.04] bg-white/[0.01] p-3 h-[48px] animate-pulse" />
+            ))
+          : engines.map((e: any) => (
+              <div key={e.id}
+                data-testid={`engine-${e.id}`}
+                className="rounded border p-3 flex items-center gap-3 transition-all hover:bg-white/[0.03]"
+                style={{ borderColor: e.color + "22", backgroundColor: e.color + "07" }}>
+                <div className="text-base flex-shrink-0">{e.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono font-bold" style={{ color: e.color }}>{e.name}</span>
+                    <span className="ml-auto flex items-center gap-1">
+                      <span className={`w-1.5 h-1.5 rounded-full ${e.status === "ONLINE" ? "animate-pulse" : ""}`}
+                        style={{ backgroundColor: e.status === "ONLINE" ? e.color : "#4b5563", boxShadow: e.status === "ONLINE" ? `0 0 5px ${e.color}` : "none" }} />
+                      <span className="text-[8px] font-mono" style={{ color: e.status === "ONLINE" ? e.color : "#6b7280" }}>{e.status}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] text-white/50 font-mono font-semibold">{e.metric}</span>
+                    <span className="text-[9px] text-white/20 font-mono truncate hidden sm:block">{e.desc}</span>
+                  </div>
+                </div>
+              </div>
+            ))
+        }
       </div>
     </div>
   );
