@@ -7193,15 +7193,28 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     try {
       const cached = cacheGet("spawns:stats");
       if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
-      const [statusRow, pubRow, eqRow, invRow] = await Promise.all([
+      const [statusRow, pubRow, eqRow, invRow, disRow, genRow, specRow, deepRow, hidRow] = await Promise.all([
         pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
         pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
         pool.query(`SELECT COUNT(*) as total FROM equation_proposals`),
         pool.query(`SELECT COUNT(*) as total FROM invocation_discoveries`),
+        pool.query(`SELECT COUNT(*) as total FROM discovered_diseases`),
+        pool.query(`SELECT COUNT(*) as total FROM genome_archaeology`),
+        pool.query(`SELECT COUNT(*) as total FROM ai_species_proposals`),
+        pool.query(`SELECT COUNT(*) as total FROM research_deep_findings`),
+        pool.query(`SELECT COUNT(*) as total FROM hidden_variable_discoveries`),
       ]);
       const byStatus: Record<string,number> = {};
       for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
       const total = Object.values(byStatus).reduce((a,b) => a + (b as number), 0);
+      const equations = parseInt(eqRow.rows[0]?.total ?? "0", 10);
+      const invocations = parseInt(invRow.rows[0]?.total ?? "0", 10);
+      const diseases = parseInt(disRow.rows[0]?.total ?? "0", 10);
+      const genomeFinds = parseInt(genRow.rows[0]?.total ?? "0", 10);
+      const species = parseInt(specRow.rows[0]?.total ?? "0", 10);
+      const deepFindings = parseInt(deepRow.rows[0]?.total ?? "0", 10);
+      const hiddenVars = parseInt(hidRow.rows[0]?.total ?? "0", 10);
+      const discoveries = equations + invocations + diseases + genomeFinds + species + deepFindings + hiddenVars;
       const result = {
         total,
         active: byStatus["ACTIVE"] ?? 0,
@@ -7211,8 +7224,12 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         sovereign: byStatus["SOVEREIGN"] ?? 0,
         quarantined: byStatus["QUARANTINE"] ?? 0,
         publications: parseInt(pubRow.rows[0]?.count ?? "0", 10),
-        equations: parseInt(eqRow.rows[0]?.total ?? "0", 10),
-        invocations: parseInt(invRow.rows[0]?.total ?? "0", 10),
+        equations,
+        invocations,
+        diseases,
+        genomeFinds,
+        species,
+        discoveries,
         byStatus,
       };
       cacheSet("spawns:stats", result, 20_000);

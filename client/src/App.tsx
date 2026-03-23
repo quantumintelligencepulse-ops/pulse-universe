@@ -288,10 +288,10 @@ function LiveUniverseFineprint() {
   });
   const fK = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
 
-  const dispAgents      = useCountUp(stats?.total       ?? 0, 1400);
+  const dispAgents       = useCountUp(stats?.total        ?? 0, 1400);
   const dispPublications = useCountUp(stats?.publications ?? 0, 1800);
-  const dispEquations   = useCountUp(stats?.equations   ?? 0, 1600);
-  const dispInvocations = useCountUp(stats?.invocations ?? 0, 1200);
+  const dispDiscoveries  = useCountUp(stats?.discoveries  ?? 0, 1600);
+  const dispDiseases     = useCountUp(stats?.diseases     ?? 0, 1200);
 
   return (
     <div className="space-y-0.5">
@@ -305,7 +305,7 @@ function LiveUniverseFineprint() {
         self-evolving · Ψ live · {dispPublications > 0 ? `${fK(dispPublications)}+ publications` : "—"} · Layer 2
       </div>
       <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">
-        {dispEquations > 0 ? `${fK(dispEquations)}+ equations` : "—"} · {dispInvocations > 0 ? `${dispInvocations} invocations` : "—"} discovered
+        {dispDiscoveries > 0 ? `${fK(dispDiscoveries)}+ discoveries` : "—"} · {dispDiseases > 0 ? `${fK(dispDiseases)}+ diseases mapped` : "—"}
       </div>
     </div>
   );
