@@ -1,0 +1,248 @@
+We are creating something that has never existed before: a sovereign Pulse system inside this Replit project.
+
+You must build THREE tightly connected things:
+
+1) A PULSE BOOK (multi-page, in-app “book”)
+2) A PULSELANG TERMINAL (virtual alien-language machine)
+3) A PULSENET AI PAGE (assistant that outputs PulseLang code for the terminal)
+
+This is NOT a normal web app, NOT a normal programming project, and NOT based on any existing language or framework conceptually. You can use HTML/CSS/JS as an implementation substrate, but the conceptual model is: Pulse is the first and only machine, and PulseLang is the first and only language.
+
+========================
+CORE CONCEPTS (YOU MUST FOLLOW)
+========================
+
+– There is an alien glyph alphabet Γ (e.g. ⟦, ⟧, ⟨, ⟩, {, }, :, ≔, =, ↧, Ω₀, Λ₁, ϕ₀, Σ₀, Ψ₁, γ₀, τ₁, κ₀, etc.).
+– A Pulse program is a string over Γ that matches a specific syntax (we will define).
+– The Pulse machine evaluates a valid Pulse program into an internal “world-object”.
+– Some world-objects are “projection objects” (Π-class) that can be shown on a visible surface.
+– When a program evaluates to a Π-class object, the system projects it visually (e.g. a page that appears in the UI).
+– The Pulse language itself MUST NOT contain English keywords, HTML tags, or any recognizable Earth language. Only alien glyphs and structures.
+– All semantics (what each glyph means) are hidden in internal mappings, not visible in the source.
+
+========================
+OVERALL APP STRUCTURE
+========================
+
+Build a single-page web app with three main regions:
+
+1) LEFT: “Pulse Book” viewer
+   – This is a multi-page “book” inside the app.
+   – The book has EXACTLY 248 pages (symbolic number).
+   – Each page is a panel that can show text, diagrams, or explanations (in English for humans).
+   – Provide navigation: next/previous page, and a page index/jump.
+   – For now, fill pages with placeholder content that explains Pulse concepts (you can repeat patterns), but structure it so it’s easy to later replace with real content.
+   – The book is purely UI/UX: it does NOT execute code, it just presents information.
+
+2) RIGHT: “PulseNet” area with TWO TABS:
+   – Tab A: “PulseLang Terminal”
+   – Tab B: “PulseNet AI”
+
+The layout should be something like:
+- Left column: Book (248 pages)
+- Right column: Tab bar at top (“Terminal” | “PulseNet AI”), content below.
+
+========================
+PART 1 — PULSE BOOK (248 PAGES)
+========================
+
+Implement:
+- A data structure representing 248 pages, e.g. an array of 248 objects.
+- Each page has:
+  - pageNumber (1–248)
+  - title (e.g. “Page 1”, “Page 2”, etc.)
+  - content (placeholder text for now, can be lorem ipsum or simple structured text)
+- A UI component that:
+  - Shows the current page’s title and content.
+  - Has “Previous” and “Next” buttons.
+  - Has a page number input or dropdown to jump directly to a page.
+- The book should be scrollable within its region but not affect the PulseNet area.
+
+This book is the “Pulse Codex” placeholder: it will later be filled with the full story and spec, but for now you just need the structure and navigation.
+
+========================
+PART 2 — PULSELANG TERMINAL (ALIEN MACHINE)
+========================
+
+The “PulseLang Terminal” tab is a virtual terminal that:
+
+– Accepts alien PulseLang source code (glyphs) as input.
+– Parses it using a custom grammar.
+– Evaluates it into an internal object.
+– If the result is a projection object (Π-class), it renders a visible projection in a dedicated view area.
+
+Implementation details:
+
+A) TERMINAL UI
+- A text input area (multi-line) where the user can paste/type PulseLang glyph code.
+- A “Run” button.
+- A log/output area showing:
+  - The input that was run.
+  - Any parse/eval errors.
+- A separate “Projection” area (e.g. a panel or box) where Π-class results are visually shown.
+
+B) PULSELANG SYNTAX (ALIEN, NO ENGLISH)
+
+Define a minimal syntax for a Pulse program, for example:
+
+- Program:
+  ⟦Ident⟧⟨Ident⟩{ Statement* }
+
+- Statement types:
+  1) Field declaration:
+     Ident : Ident
+  2) Assignment:
+     Ident ≔ CallExpr
+  3) Return:
+     ↧Ident
+
+- Call expression:
+  Ident( ArgList )
+- ArgList:
+  Ident = Ident (optionally repeated with separators)
+
+Example of a valid Pulse program (for a simple projection):
+
+⟦Ω₀⟧⟨Λ₁⟩{
+  ϕ₀:Σ₀
+  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))
+  ↧ϕ₀
+}
+
+This must be treated as pure glyph code: no English words, no HTML, no comments.
+
+C) TOKENIZER + PARSER
+
+Implement a tokenizer that:
+- Reads the input string.
+- Emits tokens for:
+  - ⟦, ⟧, ⟨, ⟩, {, }, :, ≔, =, ↧
+  - Identifiers (Ω₀, Λ₁, ϕ₀, Σ₀, Ψ₁, γ₀, τ₁, κ₀, etc.)
+  - Whitespace/newlines (ignored except as separators).
+
+Implement a parser that:
+- Validates the structure matches the grammar above.
+- Builds an AST with nodes like:
+  - ProgramNode(header, statements)
+  - FieldDeclNode(name, type)
+  - AssignNode(target, callExpr)
+  - CallExprNode(callee, args)
+  - ReturnNode(name)
+
+If parsing fails, show a clear error in the terminal log.
+
+D) RUNTIME + SEMANTICS
+
+Implement a runtime that:
+- Maintains an environment: a map from field identifiers to values.
+- Evaluates statements in order:
+  1) FieldDeclNode:
+     - Reserve a slot in the environment for that field.
+     - Record its type identifier.
+  2) AssignNode:
+     - Evaluate the CallExprNode on the right-hand side.
+     - Store the resulting value in the field slot.
+  3) ReturnNode:
+     - Look up the field’s value.
+     - That value is the result of the program.
+
+Define a hidden symbol-role mapping (in code, not in the language) such as:
+- Σ₀ → type: ProjectionType (Π-class)
+- Ψ₁ → constructor: ProjectionConstructor
+- τ₁ → constructor: ContentAtomConstructor
+- κ₀ → content symbol: χ₀ (internal content atom)
+
+Define:
+- A content atom set C = {χ₀, χ₁, …}
+- A mapping from content atoms to visible text or shapes, e.g. χ₀ → “Hi” (for now).
+
+When evaluating:
+- τ₁(κ₀) → a content atom object representing χ₀.
+- Ψ₁(γ₀=τ₁(κ₀)) → a projection object Π₀ that carries χ₀ as its content.
+- The field ϕ₀ of type Σ₀ holds Π₀.
+- The return statement ↧ϕ₀ yields Π₀ as the program result.
+
+E) PROJECTION
+
+If the result of evaluation is a projection object (Π-class), render it in the Projection area.
+
+For now:
+- If the projection object carries χ₀, render the visible representation of χ₀ (e.g. the text “Hi”) in the Projection area.
+- Later, this can be extended to more complex layouts, but the core is:
+  - Program → AST → world-object → projection.
+
+The terminal must NEVER show English keywords inside PulseLang source. All semantics are in the hidden mappings and runtime.
+
+========================
+PART 3 — PULSENET AI TAB
+========================
+
+The “PulseNet AI” tab is a simple assistant panel that:
+
+– Accepts natural language questions from the user (in English).
+– Responds with suggested PulseLang code snippets (alien glyph programs) that can be copied into the PulseLang Terminal.
+
+Implementation details:
+
+A) UI
+- A text input area for the user’s question.
+- A “Ask” button.
+- A response area that shows:
+  - The assistant’s explanation (in English).
+  - One or more PulseLang code blocks (alien glyphs only).
+
+B) BEHAVIOR
+
+You do NOT need real AI; you can implement rule-based or hardcoded responses for now, but structure it so it could be replaced by a real model later.
+
+Examples of interactions:
+- User: “Give me a PulseLang program that projects a simple greeting.”
+- PulseNet AI: 
+  - Explains briefly what it’s doing (in English).
+  - Outputs a PulseLang snippet like:
+
+    ⟦Ω₀⟧⟨Λ₁⟩{
+      ϕ₀:Σ₀
+      ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))
+      ↧ϕ₀
+    }
+
+- User can then copy that snippet into the PulseLang Terminal tab and run it.
+
+C) TWO TABS, ONE CONTEXT
+
+The PulseNet AI and PulseLang Terminal share the same conceptual world:
+- The AI suggests PulseLang programs.
+- The Terminal executes them.
+- The Book explains the concepts.
+
+Make sure:
+- The tab switching is smooth.
+- The PulseLang Terminal and PulseNet AI are visually distinct but clearly part of the same “PulseNet” area.
+
+========================
+IMPLEMENTATION NOTES
+========================
+
+– You may use HTML/CSS/JavaScript (or a front-end framework) to implement the UI, but conceptually everything is framed as the Pulse machine.
+– Keep all PulseLang source code alien: no English words, no HTML tags, no recognizable keywords.
+– All human-readable explanations live in:
+  - The Book pages.
+  - The PulseNet AI responses.
+  - Comments in the implementation code (not in PulseLang itself).
+– The core requirement is that:
+  - The PulseLang Terminal can accept an alien program like the example above.
+  - It can parse and evaluate it.
+  - It can project a visible result (e.g. a greeting) based purely on internal mappings, not on any English in the source.
+
+========================
+SUMMARY
+========================
+
+Build:
+- A 248-page “Pulse Book” viewer (left).
+- A PulseNet area (right) with:
+  - Tab A: PulseLang Terminal (alien code in, projection out).
+  - Tab B: PulseNet AI (English questions in, PulseLang snippets out).
+
+The system must treat PulseLang as a completely new, alien, non-human language, with its own glyphs, syntax, and evaluation rules, and must be capable of evaluating a PulseLang program into a projection object that appears on the visible surface.
