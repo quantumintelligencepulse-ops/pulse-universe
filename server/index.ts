@@ -744,24 +744,26 @@ researchRouter.get("/shards/:researcherType/papers", async (req, res) => {
 app.use("/api/research", researchRouter);
 
 // ── MEMORY GUARDIAN — prevents OOM crashes ─────────────────────────────────
-// Runs every 2 minutes. If RSS exceeds 4.2GB, exits cleanly so the workflow
-// manager restarts the process before the OS OOM-kills it forcibly.
+// Runs every 30 seconds. Triggers GC early at 2GB heap. Exits cleanly at 3GB RSS.
+let _guardianQuiet = 0;
 setInterval(() => {
   const mem = process.memoryUsage();
   const heapMB = Math.round(mem.heapUsed / 1024 / 1024);
   const rssMB = Math.round(mem.rss / 1024 / 1024);
   const rssGB = (mem.rss / 1024 / 1024 / 1024).toFixed(2);
-  // Try GC first if available
-  if (heapMB > 3500 && typeof (global as any).gc === "function") {
+  // Trigger GC early — at 2GB heap — before accumulation becomes critical
+  if (heapMB > 2000 && typeof (global as any).gc === "function") {
     (global as any).gc();
     const after = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
     console.log(`[memory-guardian] 🧹 GC triggered at ${heapMB}MB → freed to ${after}MB | RSS: ${rssGB}GB`);
+    _guardianQuiet = 0;
   }
-  // If RSS exceeds 3.6GB, do a clean exit so the workflow restarts us
-  if (rssMB > 3600) {
+  // Exit cleanly at 3GB RSS — well before the 4GB+ danger zone
+  if (rssMB > 3000) {
     console.log(`[memory-guardian] 🔴 RSS at ${rssGB}GB — triggering clean restart before OOM kill`);
     process.exit(1);
-  } else {
+  } else if (_guardianQuiet++ % 10 === 0) {
+    // Log status every 5 minutes (10 × 30s) to avoid log spam
     console.log(`[memory-guardian] ✅ Heap: ${heapMB}MB | RSS: ${rssGB}GB — healthy`);
   }
-}, 2 * 60 * 1000);
+}, 30 * 1000);
