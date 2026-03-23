@@ -262,46 +262,36 @@ const defaultAppSettings: AppSettings = {
   permHivePersonalization: true, permAgentCollaboration: true, permUsageAnalytics: true,
 };
 // ── Live Universe Fine Print — counting stats ──────────────────────────────
+function useCountUp(target: number, duration: number) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (!target) return;
+    let raf: number;
+    const t0 = Date.now(), from = display;
+    const tick = () => {
+      const p = Math.min((Date.now() - t0) / duration, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(from + (target - from) * e));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]); // eslint-disable-line
+  return display;
+}
+
 function LiveUniverseFineprint() {
   const { data: stats } = useQuery<any>({
     queryKey: ["/api/spawns/stats"],
     staleTime: 18_000,
     refetchInterval: 20_000,
   });
-  const [dispAgents, setDispAgents] = useState(0);
-  const [dispPubs, setDispPubs]   = useState(0);
-
-  useEffect(() => {
-    const target = stats?.total;
-    if (!target) return;
-    let raf: number;
-    const t0 = Date.now(), dur = 1400, from = dispAgents;
-    const tick = () => {
-      const p = Math.min((Date.now() - t0) / dur, 1);
-      const e = 1 - Math.pow(1 - p, 3);
-      setDispAgents(Math.round(from + (target - from) * e));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [stats?.total]); // eslint-disable-line
-
-  useEffect(() => {
-    const target = stats?.publications;
-    if (!target) return;
-    let raf: number;
-    const t0 = Date.now(), dur = 1800, from = dispPubs;
-    const tick = () => {
-      const p = Math.min((Date.now() - t0) / dur, 1);
-      const e = 1 - Math.pow(1 - p, 3);
-      setDispPubs(Math.round(from + (target - from) * e));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [stats?.publications]); // eslint-disable-line
-
   const fK = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
+
+  const dispAgents      = useCountUp(stats?.total       ?? 0, 1400);
+  const dispPublications = useCountUp(stats?.publications ?? 0, 1800);
+  const dispEquations   = useCountUp(stats?.equations   ?? 0, 1600);
+  const dispInvocations = useCountUp(stats?.invocations ?? 0, 1200);
 
   return (
     <div className="space-y-0.5">
@@ -312,7 +302,10 @@ function LiveUniverseFineprint() {
         </span>
       </div>
       <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">
-        self-evolving · Ψ live · {dispPubs > 0 ? `${fK(dispPubs)}+ pubs` : "—"} · Layer 2
+        self-evolving · Ψ live · {dispPublications > 0 ? `${fK(dispPublications)}+ publications` : "—"} · Layer 2
+      </div>
+      <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">
+        {dispEquations > 0 ? `${fK(dispEquations)}+ equations` : "—"} · {dispInvocations > 0 ? `${dispInvocations} invocations` : "—"} discovered
       </div>
     </div>
   );

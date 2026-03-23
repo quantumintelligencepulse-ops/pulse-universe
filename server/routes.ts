@@ -7193,9 +7193,11 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     try {
       const cached = cacheGet("spawns:stats");
       if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
-      const [statusRow, pubRow] = await Promise.all([
+      const [statusRow, pubRow, eqRow, invRow] = await Promise.all([
         pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
         pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
+        pool.query(`SELECT COUNT(*) as total FROM equation_proposals`),
+        pool.query(`SELECT COUNT(*) as total FROM researcher_invocations`),
       ]);
       const byStatus: Record<string,number> = {};
       for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
@@ -7209,6 +7211,8 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         sovereign: byStatus["SOVEREIGN"] ?? 0,
         quarantined: byStatus["QUARANTINE"] ?? 0,
         publications: parseInt(pubRow.rows[0]?.count ?? "0", 10),
+        equations: parseInt(eqRow.rows[0]?.total ?? "0", 10),
+        invocations: parseInt(invRow.rows[0]?.total ?? "0", 10),
         byStatus,
       };
       cacheSet("spawns:stats", result, 20_000);
