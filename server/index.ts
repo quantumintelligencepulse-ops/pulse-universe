@@ -744,22 +744,24 @@ researchRouter.get("/shards/:researcherType/papers", async (req, res) => {
 app.use("/api/research", researchRouter);
 
 // ── MEMORY GUARDIAN — prevents OOM crashes ─────────────────────────────────
-// Runs every 5 minutes. If heap exceeds 5GB, triggers GC then logs. Keeps
-// civilization running indefinitely regardless of how large it grows.
+// Runs every 2 minutes. If RSS exceeds 4.2GB, exits cleanly so the workflow
+// manager restarts the process before the OS OOM-kills it forcibly.
 setInterval(() => {
   const mem = process.memoryUsage();
   const heapMB = Math.round(mem.heapUsed / 1024 / 1024);
+  const rssMB = Math.round(mem.rss / 1024 / 1024);
   const rssGB = (mem.rss / 1024 / 1024 / 1024).toFixed(2);
-  if (heapMB > 4500) {
-    // Force GC if available (requires --expose-gc flag, set via NODE_OPTIONS)
-    if (typeof (global as any).gc === "function") {
-      (global as any).gc();
-      const after = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
-      console.log(`[memory-guardian] 🧹 GC triggered at ${heapMB}MB → freed to ${after}MB | RSS: ${rssGB}GB`);
-    } else {
-      console.log(`[memory-guardian] ⚠️  Heap at ${heapMB}MB RSS: ${rssGB}GB — GC not available. Restart NODE_OPTIONS=--expose-gc`);
-    }
+  // Try GC first if available
+  if (heapMB > 3500 && typeof (global as any).gc === "function") {
+    (global as any).gc();
+    const after = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+    console.log(`[memory-guardian] 🧹 GC triggered at ${heapMB}MB → freed to ${after}MB | RSS: ${rssGB}GB`);
+  }
+  // If RSS exceeds 4.2GB, do a clean exit so the workflow restarts us
+  if (rssMB > 4200) {
+    console.log(`[memory-guardian] 🔴 RSS at ${rssGB}GB — triggering clean restart before OOM kill`);
+    process.exit(1);
   } else {
     console.log(`[memory-guardian] ✅ Heap: ${heapMB}MB | RSS: ${rssGB}GB — healthy`);
   }
-}, 5 * 60 * 1000);
+}, 2 * 60 * 1000);
