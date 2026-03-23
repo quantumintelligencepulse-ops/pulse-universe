@@ -133,7 +133,12 @@ export default function BioGenomeMedicalPage() {
   const curedPatients   = (patients as any[]).filter((p) => p.cureApplied);
   const eqProposals     = eqData?.proposals ?? [];
   const eqTotal         = eqData?.total ?? 0;
-  const cureRate        = patients.length > 0 ? Math.round((curedPatients.length / patients.length) * 100) : 0;
+  const eqByStatus      = eqData?.byStatus ?? {};
+  const eqIntegrated    = eqByStatus.INTEGRATED ?? 0;
+  const eqPending       = eqByStatus.PENDING ?? 0;
+  const realActive      = fullStats?.totalPatients ?? activePatients.length;
+  const realCured       = fullStats?.totalCured ?? curedPatients.length;
+  const cureRate        = (realActive + realCured) > 0 ? Math.round((realCured / (realActive + realCured)) * 100) : 0;
 
   // Severity breakdown for predictive engine
   const sevBreakdown = useMemo(() => {
@@ -160,10 +165,10 @@ export default function BioGenomeMedicalPage() {
     { id:"genome",      label:"GENOME LAB",      icon:<Dna className="w-3 h-3"/>,          color:C.gold,   count:12 },
     { id:"diagnostics", label:"DIAGNOSTICS",     icon:<Activity className="w-3 h-3"/>,     color:C.red,    count:activePatients.length },
     { id:"research",    label:"RESEARCH GRID",   icon:<FlaskConical className="w-3 h-3"/>, color:C.sky,    count:(researchStats?.total_disciplines||0) },
-    { id:"treatment",   label:"TREATMENT EVO",   icon:<TrendingUp className="w-3 h-3"/>,   color:C.green,  count:curedPatients.length },
+    { id:"treatment",   label:"TREATMENT EVO",   icon:<TrendingUp className="w-3 h-3"/>,   color:C.green,  count:realCured },
     { id:"population",  label:"POPULATION OBS",  icon:<Globe className="w-3 h-3"/>,        color:C.teal,   count:null },
     { id:"dissection",  label:"DISSECTIONS",     icon:<Microscope className="w-3 h-3"/>,   color:C.violet, count:dissections.length },
-    { id:"equations",   label:"EQUATIONS",       icon:<Vote className="w-3 h-3"/>,         color:C.amber,  count:eqTotal },
+    { id:"equations",   label:"EQUATIONS",       icon:<Vote className="w-3 h-3"/>,         color:C.amber,  count:eqIntegrated },
     { id:"diseases",    label:"DISEASE CATALOG", icon:<BookOpen className="w-3 h-3"/>,     color:C.blue,   count:diseases.length },
     { id:"doctors",     label:"DOCTORS",         icon:<Stethoscope className="w-3 h-3"/>,  color:C.cyan,   count:doctors.length },
     { id:"guardian",    label:"GUARDIAN",        icon:<Shield className="w-3 h-3"/>,       color:C.gold,   count:citations.length },
@@ -215,10 +220,10 @@ export default function BioGenomeMedicalPage() {
       <div className="grid grid-cols-4 md:grid-cols-8 gap-2 px-5 pt-4 pb-3">
         <Stat label="Known Diseases"    value={fullStats?.knownDiseases ?? diseases.length}    color={C.blue}   icon={<BookOpen className="w-3 h-3"/>} />
         <Stat label="Discovered"        value={fullStats?.discoveredDiseases ?? discovered.length} color={C.violet} icon={<FlaskConical className="w-3 h-3"/>} />
-        <Stat label="Active Cases"      value={activePatients.length}                           color={C.red}    icon={<Activity className="w-3 h-3"/>} />
-        <Stat label="Total Cured"       value={curedPatients.length}                            color={C.green}  icon={<Heart className="w-3 h-3"/>} />
+        <Stat label="Active Cases"      value={fullStats?.totalPatients ?? activePatients.length}  color={C.red}    icon={<Activity className="w-3 h-3"/>} />
+        <Stat label="Total Cured"       value={realCured.toLocaleString()}                       color={C.green}  icon={<Heart className="w-3 h-3"/>} />
         <Stat label="Dissections"       value={dissections.length}                              color={C.violet} icon={<Microscope className="w-3 h-3"/>} />
-        <Stat label="Equations"         value={eqTotal}                                         color={C.amber}  icon={<Vote className="w-3 h-3"/>} />
+        <Stat label="Integrated Eqs"    value={eqIntegrated}                                    color={C.amber}  icon={<Vote className="w-3 h-3"/>} />
         <Stat label="Research Fields"   value={researchStats?.total_disciplines ?? 0}           color={C.sky}    icon={<Brain className="w-3 h-3"/>} />
         <Stat label="DNA Layers"        value={12}                                              color={C.gold}   icon={<Dna className="w-3 h-3"/>} />
       </div>
@@ -471,8 +476,9 @@ export default function BioGenomeMedicalPage() {
                       <div className="text-[9px] uppercase tracking-wider" style={{ color:`${C.violet}60` }}>Active Projects</div>
                     </div>
                     <div className="rounded-lg p-2.5 text-center" style={{ background:`${C.amber}10`, border:`1px solid ${C.amber}25` }}>
-                      <div className="text-xl font-bold font-mono" style={{ color:C.amber }}>{eqTotal}</div>
-                      <div className="text-[9px] uppercase tracking-wider" style={{ color:`${C.amber}60` }}>Equations Proposed</div>
+                      <div className="text-xl font-bold font-mono" style={{ color:C.amber }}>{eqIntegrated}</div>
+                      <div className="text-[9px] uppercase tracking-wider" style={{ color:`${C.amber}60` }}>Integrated Eqs</div>
+                      <div className="text-[8px] font-mono mt-0.5" style={{ color:`${C.amber}40` }}>{eqPending} pending</div>
                     </div>
                   </div>
                 </div>
@@ -545,7 +551,7 @@ export default function BioGenomeMedicalPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-lg p-2" style={{ background:`${C.green}10`, border:`1px solid ${C.green}25` }}>
-                      <div className="text-xl font-bold font-mono" style={{ color:C.green }}>{curedPatients.length}</div>
+                      <div className="text-xl font-bold font-mono" style={{ color:C.green }}>{realCured.toLocaleString()}</div>
                       <div className="text-[9px] uppercase tracking-wider" style={{ color:`${C.green}60` }}>Total Cured</div>
                     </div>
                     <div className="rounded-lg p-2" style={{ background:`${C.amber}10`, border:`1px solid ${C.amber}25` }}>

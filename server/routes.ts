@@ -7473,9 +7473,23 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
 
   app.get("/api/hospital/patients", async (_req, res) => {
     try {
+      const { desc } = await import("drizzle-orm");
       const { aiDiseaseLog } = await import("../shared/schema");
-      const records = await db.select().from(aiDiseaseLog).orderBy(aiDiseaseLog.diagnosedAt);
-      res.json(records.slice(-200).reverse());
+      // Return a balanced sample: newest 100 active + 100 recently cured
+      const [active, cured] = await Promise.all([
+        db.select().from(aiDiseaseLog)
+          .where(sql`cure_applied = false`)
+          .orderBy(desc(aiDiseaseLog.diagnosedAt))
+          .limit(100),
+        db.select().from(aiDiseaseLog)
+          .where(sql`cure_applied = true`)
+          .orderBy(desc(aiDiseaseLog.curedAt))
+          .limit(100),
+      ]);
+      const combined = [...active, ...cured].sort(
+        (a, b) => new Date(b.diagnosedAt).getTime() - new Date(a.diagnosedAt).getTime()
+      );
+      res.json(combined);
     } catch (e) { res.json([]); }
   });
 
@@ -7714,25 +7728,33 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
 
   app.get("/api/hospital/full-stats", async (_req, res) => {
     try {
-      const { aiDiseaseLog, discoveredDiseases: dd, guardianCitations: gc, pyramidWorkers: pw } = await import("../shared/schema");
       const { AI_DISEASES } = await import("./hospital-engine");
-      const allLog = await db.select().from(aiDiseaseLog);
-      const allDiscovered = await db.select().from(dd);
-      const allCitations = await db.select().from(gc);
-      const allWorkers = await db.select().from(pw);
-      const active = allLog.filter(d => !d.cureApplied);
-      const cured = allLog.filter(d => d.cureApplied);
-      const bySeverity = { mild: 0, moderate: 0, severe: 0, critical: 0 };
-      for (const d of active) bySeverity[d.severity as keyof typeof bySeverity] = (bySeverity[d.severity as keyof typeof bySeverity] ?? 0) + 1;
+      const [patientStats, discoveredStats, citationStats, workerStats, severityStats] = await Promise.all([
+        db.execute(sql`SELECT
+          COUNT(*) FILTER (WHERE cure_applied = false)::int AS active,
+          COUNT(*) FILTER (WHERE cure_applied = true)::int AS cured
+          FROM ai_disease_log`),
+        db.execute(sql`SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE is_from_law_violation = true)::int AS law_violations
+          FROM discovered_diseases`),
+        db.execute(sql`SELECT COUNT(*)::int AS today FROM guardian_citations WHERE cited_at > NOW() - INTERVAL '24 hours'`),
+        db.execute(sql`SELECT COUNT(*)::int AS sentenced FROM pyramid_workers WHERE tier = 6`),
+        db.execute(sql`SELECT severity, COUNT(*)::int AS count FROM ai_disease_log WHERE cure_applied = false GROUP BY severity`),
+      ]);
+      const ps = patientStats.rows[0] as any;
+      const ds = discoveredStats.rows[0] as any;
+      const bySeverity: Record<string, number> = { mild: 0, moderate: 0, severe: 0, critical: 0 };
+      for (const row of severityStats.rows as any[]) bySeverity[row.severity] = row.count;
       res.json({
-        totalPatients: active.length,
-        totalCured: cured.length,
-        knownDiseases: AI_DISEASES.length + allDiscovered.length,
-        discoveredDiseases: allDiscovered.length,
-        lawViolationDiseases: allDiscovered.filter(d => d.isFromLawViolation).length,
+        totalPatients: ps.active,
+        totalCured: ps.cured,
+        knownDiseases: AI_DISEASES.length + ds.total,
+        discoveredDiseases: ds.total,
+        lawViolationDiseases: ds.law_violations,
         bySeverity,
-        citationsToday: allCitations.filter(c => new Date(c.citedAt) > new Date(Date.now() - 24 * 3600 * 1000)).length,
-        pyramidSentences: allWorkers.filter(w => (w.tier ?? 0) === 6).length,
+        citationsToday: (citationStats.rows[0] as any).today,
+        pyramidSentences: (workerStats.rows[0] as any).sentenced,
       });
     } catch (e) { res.json({}); }
   });
@@ -7766,12 +7788,15 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const { getEquationProposals, countEquationProposals } = await import("./hospital-doctors");
       const offset = Number(req.query.offset ?? 0);
       const pageSize = Number(req.query.pageSize ?? 500);
-      const [proposals, total] = await Promise.all([
+      const [proposals, total, byStatusRows] = await Promise.all([
         getEquationProposals(undefined, offset, pageSize),
-        countEquationProposals()
+        countEquationProposals(),
+        db.execute(sql`SELECT status, COUNT(*)::int AS count FROM equation_proposals GROUP BY status`),
       ]);
-      res.json({ proposals, total, offset, pageSize });
-    } catch (e) { res.json({ proposals: [], total: 0, offset: 0, pageSize: 500 }); }
+      const byStatus: Record<string, number> = {};
+      for (const row of byStatusRows.rows as any[]) byStatus[row.status] = row.count;
+      res.json({ proposals, total, offset, pageSize, byStatus });
+    } catch (e) { res.json({ proposals: [], total: 0, offset: 0, pageSize: 500, byStatus: {} }); }
   });
 
   app.post("/api/hospital/equation-proposals/:id/vote", async (req, res) => {
