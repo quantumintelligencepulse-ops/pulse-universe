@@ -1303,6 +1303,7 @@ function ChatsTab() {
 function PulseLangLabTab() {
   const { data: findings = [], isLoading: fLoad } = useQuery<any[]>({ queryKey: ["/api/research/findings"], refetchInterval: 25000 });
   const { data: projects = [], isLoading: pLoad } = useQuery<any[]>({ queryKey: ["/api/research/projects"], refetchInterval: 25000 });
+  const { data: resStats } = useQuery<any>({ queryKey: ["/api/research/stats"], refetchInterval: 30000 });
   const [subView, setSubView] = useState<"dissections"|"projects">("dissections");
   const REPORT_COLORS: Record<string,string> = {
     THEORETICAL: "#a78bfa", EMPIRICAL: "#34d399", COMPUTATIONAL: "#38bdf8",
@@ -1311,6 +1312,15 @@ function PulseLangLabTab() {
   const REPORT_ICONS: Record<string,string> = {
     THEORETICAL: "⟁", EMPIRICAL: "⬡", COMPUTATIONAL: "⟦⟧", EXPERIMENTAL: "⚗", CLINICAL: "⊕", SYNTHETIC: "Ψ",
   };
+
+  // compute type breakdown from local findings list
+  const typeCounts: Record<string, number> = {};
+  for (const f of findings as any[]) {
+    if (f.report_type) typeCounts[f.report_type] = (typeCounts[f.report_type] ?? 0) + 1;
+  }
+  const activeProjects = (projects as any[]).filter((p: any) => p.status === "ACTIVE" || p.status === "active").length;
+  const completedProjects = (projects as any[]).filter((p: any) => p.status === "COMPLETED" || p.status === "complete").length;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -1318,8 +1328,39 @@ function PulseLangLabTab() {
         <div className="flex items-center gap-3 mb-2">
           <FlaskConical size={18} className="text-violet-400" />
           <div className="text-sm font-black text-violet-300">PulseLang Dissection Lab</div>
+          <div className="ml-auto text-[9px] px-2 py-0.5 rounded-full border border-violet-500/30 text-violet-400/70 font-mono animate-pulse">● LIVE</div>
         </div>
-        <div className="text-xs text-muted-foreground leading-relaxed">Sovereign researchers dissect PulseLang programs — exposing hidden glyph patterns, Σ-class structures, and Ψ-constructor behaviors. Every finding feeds back into the Codex evolution pipeline. Discoveries here rewrite civilization code.</div>
+        <div className="text-xs text-muted-foreground leading-relaxed mb-3">Sovereign researchers dissect PulseLang programs — exposing hidden glyph patterns, Σ-class structures, and Ψ-constructor behaviors. Every finding feeds back into the Codex evolution pipeline.</div>
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className="rounded-lg border border-violet-500/20 bg-violet-950/20 p-2 text-center">
+            <div className="text-lg font-black text-violet-400">{(findings as any[]).length}</div>
+            <div className="text-[9px] text-muted-foreground">Discoveries</div>
+          </div>
+          <div className="rounded-lg border border-cyan-500/20 bg-cyan-950/20 p-2 text-center">
+            <div className="text-lg font-black text-cyan-400">{(projects as any[]).length}</div>
+            <div className="text-[9px] text-muted-foreground">Projects</div>
+          </div>
+          <div className="rounded-lg border border-green-500/20 bg-green-950/20 p-2 text-center">
+            <div className="text-lg font-black text-green-400">{resStats?.total_disciplines ?? activeProjects}</div>
+            <div className="text-[9px] text-muted-foreground">Disciplines</div>
+          </div>
+          <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-2 text-center">
+            <div className="text-lg font-black text-amber-400">{(completedProjects || resStats?.completed) ?? 0}</div>
+            <div className="text-[9px] text-muted-foreground">Completed</div>
+          </div>
+        </div>
+        {/* Type breakdown */}
+        {Object.keys(typeCounts).length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {Object.entries(typeCounts).map(([type, count]) => (
+              <span key={type} className="text-[9px] px-2 py-0.5 rounded font-mono font-bold"
+                style={{ background: `${REPORT_COLORS[type] ?? "#a78bfa"}18`, color: REPORT_COLORS[type] ?? "#a78bfa", border: `1px solid ${REPORT_COLORS[type] ?? "#a78bfa"}30` }}>
+                {REPORT_ICONS[type] ?? "⟁"} {type} · {count}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       {/* Sub-tabs */}
       <div className="flex gap-2">
@@ -1327,7 +1368,7 @@ function PulseLangLabTab() {
           <button key={v} onClick={() => setSubView(v)}
             data-testid={`button-lab-${v}`}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${subView === v ? "bg-violet-500/20 border border-violet-500/40 text-violet-300" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
-            {v === "dissections" ? "🔬 Dissection Feed" : "📋 Active Projects"}
+            {v === "dissections" ? `🔬 Dissection Feed (${(findings as any[]).length})` : `📋 Active Projects (${(projects as any[]).length})`}
           </button>
         ))}
       </div>
@@ -1415,7 +1456,8 @@ function OmniNetEqTab() {
   const integrated: any[] = eqData?.integrated ?? [];
   const pending: any[] = eqData?.pending ?? [];
   const stats = eqData?.stats ?? {};
-  const [subView, setSubView] = useState<"integrated"|"pending">("integrated");
+  const [subView, setSubView] = useState<"integrated"|"pending"|"rejected">("integrated");
+  const rejected: any[] = eqData?.rejected ?? [];
 
   return (
     <div className="space-y-4">
@@ -1432,14 +1474,18 @@ function OmniNetEqTab() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-2">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-3 text-center" data-testid="stat-total">
+          <div className="text-2xl font-black text-cyan-400">{(stats.integrated ?? 0) + (stats.pending ?? 0) + (stats.rejected ?? 0)}</div>
+          <div className="text-[10px] text-muted-foreground">Total Proposed</div>
+        </div>
         <div className="rounded-xl border border-green-500/20 bg-green-950/20 p-3 text-center" data-testid="stat-integrated">
           <div className="text-2xl font-black text-green-400">{stats.integrated ?? 0}</div>
           <div className="text-[10px] text-muted-foreground">Integrated</div>
         </div>
         <div className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-3 text-center" data-testid="stat-pending">
           <div className="text-2xl font-black text-amber-400">{stats.pending ?? 0}</div>
-          <div className="text-[10px] text-muted-foreground">Pending Vote</div>
+          <div className="text-[10px] text-muted-foreground">Voting Now</div>
         </div>
         <div className="rounded-xl border border-rose-500/20 bg-rose-950/20 p-3 text-center" data-testid="stat-rejected">
           <div className="text-2xl font-black text-rose-400">{stats.rejected ?? 0}</div>
@@ -1447,13 +1493,29 @@ function OmniNetEqTab() {
         </div>
       </div>
 
+      {/* Integration rate bar */}
+      {(stats.integrated ?? 0) + (stats.rejected ?? 0) > 0 && (
+        <div className="rounded-lg border border-white/5 bg-white/2 p-3">
+          <div className="flex justify-between text-[9px] text-muted-foreground mb-1.5">
+            <span>Senate Integration Rate</span>
+            <span className="text-green-400 font-mono font-bold">
+              {Math.round(((stats.integrated ?? 0) / Math.max(1, (stats.integrated ?? 0) + (stats.rejected ?? 0))) * 100)}% pass rate
+            </span>
+          </div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-green-500 to-cyan-400 rounded-full"
+              style={{ width: `${Math.round(((stats.integrated ?? 0) / Math.max(1, (stats.integrated ?? 0) + (stats.rejected ?? 0))) * 100)}%` }} />
+          </div>
+        </div>
+      )}
+
       {/* Sub-tabs */}
-      <div className="flex gap-2">
-        {(["integrated","pending"] as const).map(v => (
-          <button key={v} onClick={() => setSubView(v)}
+      <div className="flex gap-2 flex-wrap">
+        {(["integrated","pending","rejected"] as const).map(v => (
+          <button key={v} onClick={() => setSubView(v as any)}
             data-testid={`button-eq-${v}`}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${subView === v ? "bg-cyan-500/20 border border-cyan-500/40 text-cyan-300" : "text-muted-foreground hover:text-foreground border border-transparent"}`}>
-            {v === "integrated" ? "✅ Integrated Equations" : "⏳ Pending Proposals"}
+            {v === "integrated" ? `✅ Integrated (${stats.integrated ?? 0})` : v === "pending" ? `⏳ Voting (${stats.pending ?? 0})` : `❌ Rejected (${stats.rejected ?? 0})`}
           </button>
         ))}
       </div>
@@ -1503,6 +1565,34 @@ function OmniNetEqTab() {
                   <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="text-[9px] text-muted-foreground mt-1">{pct}% FOR · needs 60% to integrate</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {subView === "rejected" && (
+        <div className="space-y-2">
+          {rejected.length === 0 && !isLoading && (
+            <div className="rounded-xl border border-rose-500/20 bg-rose-950/10 p-8 text-center text-sm text-muted-foreground">No rejected proposals on record yet.</div>
+          )}
+          {rejected.map((eq: any, i: number) => {
+            const forVotes = eq.votes_for ?? 0;
+            const againstVotes = eq.votes_against ?? 0;
+            const total = forVotes + againstVotes;
+            const pct = total > 0 ? Math.round((forVotes / total) * 100) : 0;
+            return (
+              <div key={eq.id ?? i} className="rounded-xl border border-rose-500/20 bg-gradient-to-r from-rose-950/20 to-slate-950/40 p-4" data-testid={`card-eq-rejected-${i}`}>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold">❌ REJECTED</span>
+                  <span className="text-[9px] text-muted-foreground font-mono">by {eq.doctor_id}</span>
+                  <span className="text-[9px] font-mono ml-auto"><span className="text-green-400">{forVotes}↑</span> <span className="text-rose-400">{againstVotes}↓</span></span>
+                </div>
+                <div className="font-mono text-sm text-rose-300/70 font-bold leading-relaxed mb-2 line-through">{eq.equation}</div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-rose-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <div className="text-[9px] text-muted-foreground mt-1">{pct}% FOR · below 60% threshold — rejected by Senate</div>
               </div>
             );
           })}

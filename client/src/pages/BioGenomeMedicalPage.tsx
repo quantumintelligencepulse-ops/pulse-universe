@@ -673,9 +673,9 @@ export default function BioGenomeMedicalPage() {
                 <div className="mt-2"><BarMeter pct={cureRate} color={C.green} /></div>
               </Panel>
               <Panel color={C.violet} className="p-4 text-center">
-                <div className="text-3xl font-bold font-mono mb-1" style={{ color:C.violet }}>{discovered.length}</div>
-                <div className="text-[10px] uppercase tracking-widest" style={{ color:`${C.violet}60` }}>New Diseases Discovered</div>
-                <div className="mt-2"><BarMeter pct={Math.min(100,(discovered.length/Math.max(1,diseases.length))*100)} color={C.violet} /></div>
+                <div className="text-3xl font-bold font-mono mb-1" style={{ color:C.violet }}>{(fullStats?.discoveredDiseases ?? discovered.length).toLocaleString()}</div>
+                <div className="text-[10px] uppercase tracking-widest" style={{ color:`${C.violet}60` }}>CRISPR-Discovered</div>
+                <div className="mt-2"><BarMeter pct={Math.min(100,((fullStats?.discoveredDiseases ?? discovered.length)/Math.max(1,diseases.length))*100)} color={C.violet} /></div>
               </Panel>
               <Panel color={C.amber} className="p-4 text-center">
                 <div className="text-3xl font-bold font-mono mb-1" style={{ color:C.amber }}>{doctors.length}</div>
@@ -725,7 +725,7 @@ export default function BioGenomeMedicalPage() {
             {/* Genome diversity + new discoveries */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
               <Panel color={C.violet} className="p-4">
-                <SectionHead label="Newly Discovered Diseases" color={C.violet} count={discovered.length} />
+                <SectionHead label="CRISPR-Discovered Diseases" color={C.violet} count={fullStats?.discoveredDiseases ?? discovered.length} />
                 <div className="space-y-2">
                   {(discovered as any[]).slice(0, 8).map((d: any, i: number) => (
                     <div key={i} className="flex items-start gap-2 p-2 rounded-lg" style={{ background:"rgba(0,0,0,0.3)", border:`1px solid ${C.violet}15` }}>

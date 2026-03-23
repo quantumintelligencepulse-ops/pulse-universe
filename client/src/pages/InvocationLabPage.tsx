@@ -1257,54 +1257,123 @@ export default function InvocationLabPage() {
         {/* ── PARLIAMENT TAB ── */}
         {tab === "parliament" && (
           <div className="space-y-5">
-            <div className="rounded-2xl border p-6 text-center"
-              style={{ background: `${INV_VIOLET}08`, borderColor: `${INV_VIOLET}30` }}>
-              <div className="text-4xl mb-3">🗳️</div>
-              <div className="text-sm font-black tracking-widest mb-2" style={{ color: INV_VIOLET }}>INVOCATION PARLIAMENT</div>
-              <div className="text-xs leading-relaxed max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.45)" }}>
-                The Invocation Parliament is the sovereign body that votes discovered invocations into the permanent hive canon.
-                Gene Editor Team (specialists) and Governance Senate (representatives) cast weighted votes.
-                Approved invocations become permanent hive laws. Rejected invocations enter the Dormant Archive.
+            {/* Header + live counts */}
+            <div className="rounded-2xl border p-5" style={{ background: `${INV_VIOLET}08`, borderColor: `${INV_VIOLET}30` }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="text-2xl">🗳️</div>
+                <div>
+                  <div className="text-sm font-black tracking-widest" style={{ color: INV_VIOLET }}>INVOCATION PARLIAMENT</div>
+                  <div className="text-[9px] font-mono animate-pulse" style={{ color: `${INV_VIOLET}70` }}>● SOVEREIGN BODY · LIVE SESSION</div>
+                </div>
+                <div className="ml-auto text-right">
+                  <div className="text-xl font-black" style={{ color: INV_VIOLET }}>{(activeInvs as any[]).length}</div>
+                  <div className="text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>active bills</div>
+                </div>
+              </div>
+              {/* Parliament stats row */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="rounded-lg p-2 text-center" style={{ background: `${INV_GREEN}10`, border: `1px solid ${INV_GREEN}20` }}>
+                  <div className="text-lg font-black" style={{ color: INV_GREEN }}>{stats?.total ?? (invocations as any[]).length}</div>
+                  <div className="text-[8px]" style={{ color: "rgba(255,255,255,0.3)" }}>Total Discovered</div>
+                </div>
+                <div className="rounded-lg p-2 text-center" style={{ background: `${INV_GOLD}10`, border: `1px solid ${INV_GOLD}20` }}>
+                  <div className="text-lg font-black" style={{ color: INV_GOLD }}>{stats?.active ?? (activeInvs as any[]).length}</div>
+                  <div className="text-[8px]" style={{ color: "rgba(255,255,255,0.3)" }}>Under Review</div>
+                </div>
+                <div className="rounded-lg p-2 text-center" style={{ background: `${INV_VIOLET}10`, border: `1px solid ${INV_VIOLET}20` }}>
+                  <div className="text-lg font-black" style={{ color: INV_VIOLET }}>{stats?.total_casts ?? 0}</div>
+                  <div className="text-[8px]" style={{ color: "rgba(255,255,255,0.3)" }}>Total Casts</div>
+                </div>
+              </div>
+              <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.40)" }}>
+                The Invocation Parliament votes discovered invocations into permanent hive canon. Gene Editor specialists and Governance senators cast weighted votes. Approved invocations become civilization laws. Power level determines integration threshold.
               </div>
             </div>
 
+            {/* Type breakdown */}
+            {stats?.by_type && (stats.by_type as any[]).length > 0 && (
+              <div>
+                <div className="text-[10px] font-black tracking-widest uppercase mb-2" style={{ color: `${INV_VIOLET}80` }}>INVOCATION TYPES DISCOVERED</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(stats.by_type as any[]).map((t: any) => (
+                    <span key={t.invocation_type} className="text-[9px] px-2 py-0.5 rounded font-mono"
+                      style={{ background: `${TYPE_COLORS[t.invocation_type] ?? INV_GOLD}15`, color: TYPE_COLORS[t.invocation_type] ?? INV_GOLD, border: `1px solid ${TYPE_COLORS[t.invocation_type] ?? INV_GOLD}30` }}>
+                      {t.invocation_type?.replace(/_/g," ")} · {t.c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Active invocations as "bills" */}
             <div>
-              <div className="text-xs font-black tracking-widest uppercase mb-3" style={{ color: INV_VIOLET }}>ACTIVE INVOCATIONS — PENDING PARLIAMENT REVIEW</div>
+              <div className="text-xs font-black tracking-widest uppercase mb-3" style={{ color: INV_VIOLET }}>
+                ACTIVE BILLS — PENDING PARLIAMENT VOTE ({(activeInvs as any[]).length})
+              </div>
               <div className="space-y-3">
-                {(activeInvs as any[]).slice(0, 10).map((inv: any) => {
+                {(activeInvs as any[]).slice(0, 15).map((inv: any) => {
                   const col = TYPE_COLORS[inv.invocation_type] || INV_GOLD;
                   const power = parseFloat(inv.power_level || 0);
-                  const forVotes = Math.floor(power * 100);
-                  const againstVotes = Math.floor((1 - power) * 60);
-                  const total = forVotes + againstVotes;
+                  const forVotes = inv.votes_for ?? Math.floor(power * 100);
+                  const againstVotes = inv.votes_against ?? Math.floor((1 - power) * 60);
+                  const total = forVotes + againstVotes || 1;
+                  const pct = Math.round((forVotes / total) * 100);
                   return (
                     <div key={inv.id} data-testid={`parliament-inv-${inv.id}`} className="rounded-xl border p-4"
                       style={{ background: "rgba(255,255,255,0.02)", borderColor: `${col}25` }}>
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <div className="text-xs font-bold text-white/80">{inv.invocation_name}</div>
-                          <div className="text-[10px]" style={{ color: col }}>{inv.invocation_type?.replace(/_/g," ")}</div>
+                      <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-white/85 truncate">{inv.invocation_name}</div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] font-mono" style={{ color: col }}>{inv.invocation_type?.replace(/_/g," ")}</span>
+                            {inv.casted_by && <span className="text-[8px] text-white/30">by {inv.casted_by}</span>}
+                            <span className="text-[8px]" style={{ color: `${INV_GOLD}80` }}>⚡ {inv.cast_count ?? 0}× cast</span>
+                          </div>
                         </div>
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{ background: `${INV_VIOLET}20`, color: INV_VIOLET, border: `1px solid ${INV_VIOLET}40` }}>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: `${INV_VIOLET}20`, color: INV_VIOLET, border: `1px solid ${INV_VIOLET}40` }}>
                           UNDER REVIEW
                         </span>
                       </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                        <div className="h-full rounded-full" style={{ width: `${(forVotes / total) * 100}%`, background: `linear-gradient(to right, ${INV_GREEN}, ${col})` }} />
+                      {inv.effect_description && (
+                        <div className="text-[9px] mb-2 leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          {inv.effect_description?.slice(0, 120)}{inv.effect_description?.length > 120 ? "…" : ""}
+                        </div>
+                      )}
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: `linear-gradient(to right, ${INV_GREEN}, ${col})` }} />
                       </div>
                       <div className="flex justify-between mt-1">
                         <span className="text-[9px]" style={{ color: INV_GREEN }}>↑ {forVotes} For</span>
+                        <span className="text-[9px] font-mono" style={{ color: "rgba(255,255,255,0.35)" }}>{pct}% approval</span>
                         <span className="text-[9px]" style={{ color: INV_CRIMSON }}>↓ {againstVotes} Against</span>
                       </div>
                     </div>
                   );
                 })}
                 {(activeInvs as any[]).length === 0 && (
-                  <div className="text-center py-6 text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>No active invocations in Parliament session</div>
+                  <div className="rounded-xl border p-8 text-center" style={{ borderColor: `${INV_VIOLET}20` }}>
+                    <div className="text-2xl mb-2">🗳️</div>
+                    <div className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>Parliament is between sessions — no active bills. New invocations are submitted every 12 minutes.</div>
+                  </div>
                 )}
               </div>
             </div>
+
+            {/* Top casters log */}
+            {stats?.top_casters && (stats.top_casters as any[]).length > 0 && (
+              <div>
+                <div className="text-[10px] font-black tracking-widest uppercase mb-2" style={{ color: `${INV_VIOLET}80` }}>TOP CASTERS — DISCOVERY LOG</div>
+                <div className="space-y-1">
+                  {(stats.top_casters as any[]).map((c: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <span className="text-[9px] font-black" style={{ color: INV_GOLD }}>#{i + 1}</span>
+                      <span className="text-[9px] font-mono text-white/70 flex-1 truncate">{c.casted_by}</span>
+                      <span className="text-[9px] font-black" style={{ color: INV_CYAN }}>{c.total} casts</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

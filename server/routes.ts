@@ -7197,7 +7197,7 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
         pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
         pool.query(`SELECT COUNT(*) as total FROM equation_proposals`),
-        pool.query(`SELECT COUNT(*) as total FROM researcher_invocations`),
+        pool.query(`SELECT COUNT(*) as total FROM invocation_discoveries`),
       ]);
       const byStatus: Record<string,number> = {};
       for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
@@ -8785,12 +8785,13 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   app.get("/api/omni-net/equations", async (_req, res) => {
     try {
       const { pool } = await import("./db");
-      const [integrated, pending, stats] = await Promise.all([
+      const [integrated, pending, rejectedRows, stats] = await Promise.all([
         pool.query(`SELECT id, equation, doctor_id, votes_for, votes_against, integrated_at, status FROM equation_proposals WHERE status='INTEGRATED' ORDER BY integrated_at DESC LIMIT 40`),
         pool.query(`SELECT id, equation, doctor_id, votes_for, votes_against, created_at, status FROM equation_proposals WHERE status='PENDING' ORDER BY created_at DESC LIMIT 20`),
+        pool.query(`SELECT id, equation, doctor_id, votes_for, votes_against, created_at, status FROM equation_proposals WHERE status='REJECTED' ORDER BY created_at DESC LIMIT 20`),
         pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='INTEGRATED') as integrated, COUNT(*) FILTER(WHERE status='PENDING') as pending, COUNT(*) FILTER(WHERE status='REJECTED') as rejected FROM equation_proposals`),
       ]);
-      res.json({ integrated: integrated.rows, pending: pending.rows, stats: stats.rows[0] });
+      res.json({ integrated: integrated.rows, pending: pending.rows, rejected: rejectedRows.rows, stats: stats.rows[0] });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
