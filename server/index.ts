@@ -757,8 +757,8 @@ setInterval(() => {
     const after = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
     console.log(`[memory-guardian] 🧹 GC triggered at ${heapMB}MB → freed to ${after}MB | RSS: ${rssGB}GB`);
   }
-  // If RSS exceeds 4.2GB, do a clean exit so the workflow restarts us
-  if (rssMB > 4200) {
+  // If RSS exceeds 3.6GB, do a clean exit so the workflow restarts us
+  if (rssMB > 3600) {
     console.log(`[memory-guardian] 🔴 RSS at ${rssGB}GB — triggering clean restart before OOM kill`);
     process.exit(1);
   } else {

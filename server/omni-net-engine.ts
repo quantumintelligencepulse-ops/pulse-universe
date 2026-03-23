@@ -198,7 +198,10 @@ async function setupOmniNetTables() {
       total_chats INTEGER DEFAULT 0
     );
   `);
-  await pool.query(`INSERT INTO omni_net_counters DEFAULT VALUES ON CONFLICT DO NOTHING`);
+  await pool.query(`
+    INSERT INTO omni_net_counters (id, phone_seq, shard_seq, session_seq, cycle, total_searches, total_chats)
+    VALUES (1, 0, 0, 0, 0, 0, 0) ON CONFLICT (id) DO NOTHING
+  `);
 
   // Seed WiFi zones for all family domains (145 domains)
   await pool.query(`
@@ -219,7 +222,7 @@ async function setupOmniNetTables() {
 
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 async function nextOmniSeq(field: string): Promise<number> {
-  const r = await pool.query(`UPDATE omni_net_counters SET ${field} = ${field} + 1 RETURNING ${field}`);
+  const r = await pool.query(`UPDATE omni_net_counters SET ${field} = ${field} + 1 WHERE id = 1 RETURNING ${field}`);
   return parseInt(r.rows[0][field]);
 }
 
@@ -266,7 +269,7 @@ async function provisionPhones() {
 
       await pool.query(`
         INSERT INTO pulse_phones (phone_id, spawn_id, family_id, imei, network_gen, connection_type)
-        VALUES ($1,$2,$3,$4,'10G',$5) ON CONFLICT (spawn_id) DO NOTHING
+        VALUES ($1,$2,$3,$4,'10G',$5) ON CONFLICT DO NOTHING
       `, [phoneId, agent.spawn_id, agent.family_id, imei, connectionType]);
 
       // Provision shard
@@ -281,7 +284,7 @@ async function provisionPhones() {
 
       await pool.query(`
         INSERT INTO omni_net_shards (shard_id, spawn_id, family_id, shard_strength, connection_type, domain_zone)
-        VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (spawn_id) DO NOTHING
+        VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING
       `, [shardId, agent.spawn_id, agent.family_id, shardStrength, connectionType, agent.family_id]);
 
       // Link phone to shard
