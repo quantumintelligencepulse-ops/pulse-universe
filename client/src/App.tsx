@@ -2394,7 +2394,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </div>
               <div className="flex-1 text-left">
                 <div className="text-xs font-semibold">{aiMode ? "Exit AI Universe" : "Enter AI Universe"}</div>
-                {!aiMode && <div className="text-[9px] text-foreground/30">19 AI-internal pages</div>}
+                {!aiMode && (
+                  <div className="flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-violet-400 flex-shrink-0 animate-pulse" style={{ boxShadow: "0 0 4px rgba(167,139,250,0.8)" }} />
+                    <span className="text-[9px] font-mono text-violet-400/60">91K+ agents · 145 families · SSC v∞</span>
+                  </div>
+                )}
               </div>
               <div className={`w-2 h-2 rounded-full transition-all ${aiMode ? "bg-violet-400 animate-pulse shadow-[0_0_6px_rgba(167,139,250,0.9)]" : "bg-foreground/15"}`} />
             </button>
