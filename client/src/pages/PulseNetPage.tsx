@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown } from "lucide-react";
+import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown, Wrench, LayoutTemplate, Gauge, Sparkles } from "lucide-react";
 import type { PulseState } from "@/lib/pulselang/runtime";
 
 import { tokenize } from "@/lib/pulselang/tokenizer";
@@ -52,6 +52,129 @@ function checkAccess(identity: string): boolean {
   return false;
 }
 
+// ── Ω₂ SYNTAX HIGHLIGHTER ────────────────────────────────────────────────────
+const S = '[₀₁₂₃₄₅₆₇₈₉]+';
+const PULSELANG_PATTERNS: [RegExp, string][] = [
+  [/^(;.*)$/gm,                    'color:#6b7280'],                       // comments
+  [new RegExp(`⟦Ω${S}⟧⟨Λ${S}⟩`,'g'), 'color:#f59e0b;font-weight:700'],   // universe header
+  [new RegExp(`Ω${S}`,'g'),        'color:#fbbf24'],                       // Ω refs
+  [new RegExp(`Λ${S}`,'g'),        'color:#fb923c'],                       // Λ refs
+  [new RegExp(`Σ${S}`,'g'),        'color:#60a5fa'],                       // Σ types
+  [new RegExp(`Ψ${S}`,'g'),        'color:#22d3ee'],                       // Ψ constructors
+  [new RegExp(`κ${S}`,'g'),        'color:#4ade80'],                       // κ atoms
+  [new RegExp(`τ${S}`,'g'),        'color:#c084fc'],                       // τ modes
+  [new RegExp(`γ${S}`,'g'),        'color:#facc15'],                       // γ gates
+  [new RegExp(`ϕ${S}`,'g'),        'color:#e2e8f0'],                       // ϕ variables
+  [new RegExp(`µ${S}`,'g'),        'color:#a78bfa'],                       // µ macros
+  [new RegExp(`Δ${S}`,'g'),        'color:#34d399'],                       // Δ modules
+  [/[≔↧⊕⊗⊚⊙∴∵≈§⋄]/g,             'color:#f43f5e'],                       // operators
+  [/(?<![a-zA-Z])([αβρσηα])(?![a-zA-Z])/g, 'color:#fb7185'],              // agent ops
+  [/[⟦⟧⟨⟩{}]/g,                    'color:#64748b'],                       // brackets/braces
+];
+
+function highlightPulseLang(code: string): string {
+  // Process line by line to handle comments correctly
+  return code.split('\n').map(rawLine => {
+    const esc = rawLine.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const cmtIdx = esc.indexOf(';');
+    const main = cmtIdx >= 0 ? esc.slice(0, cmtIdx) : esc;
+    const cmt  = cmtIdx >= 0 ? esc.slice(cmtIdx) : '';
+
+    let h = main;
+    for (const [re, style] of PULSELANG_PATTERNS.slice(1)) {
+      h = h.replace(re, m => `<span style="${style}">${m}</span>`);
+    }
+    const cPart = cmt ? `<span style="color:#6b7280">${cmt}</span>` : '';
+    return h + cPart;
+  }).join('\n');
+}
+
+// ── Ω₆ CODE METRICS ──────────────────────────────────────────────────────────
+function computeMetrics(code: string) {
+  const lines   = code.split('\n').filter(l => l.trim() && !l.trim().startsWith(';')).length;
+  const sigmas  = [...new Set(code.match(/Σ[₀₁₂₃₄₅₆₇₈₉]+/g) ?? [])];
+  const psis    = (code.match(/Ψ[₀₁₂₃₄₅₆₇₈₉]+/g) ?? []).length;
+  const phis    = [...new Set(code.match(/ϕ[₀₁₂₃₄₅₆₇₈₉]+/g) ?? [])].length;
+  const omegaM  = code.match(/⟦Ω([₀₁₂₃₄₅₆₇₈₉]+)⟧/)?.[1] ?? '₀';
+  const agents  = /[αβρσ]/.test(code);
+  const univs   = /⊚/.test(code);
+  const evol    = /Ψ₁₃|η/.test(code);
+  const complex = Math.min(sigmas.length * 2 + psis + (agents ? 2 : 0) + (univs ? 3 : 0), 10);
+  return { lines, sigmas: sigmas.length, psis, phis, omegaM, agents, univs, evol, complex };
+}
+
+// ── Ω₇ TEMPLATE LIBRARY ──────────────────────────────────────────────────────
+const PULSE_TEMPLATES: { category: string; color: string; items: { label: string; code: string }[] }[] = [
+  {
+    category: "FULL STACK",
+    color: "text-cyan-400 border-cyan-500/30 bg-cyan-950/20",
+    items: [
+      { label: "Sovereign OS — Universe + Laws + Agents + Memory",
+        code: `⟦Ω₁⟧⟨Λ₂⟩{\n  ; Sovereign OS — complete civilization stack\n  ϕ₀:Σ₄    ; ΠUniverse — OS root\n  ϕ₁:Σ₁₀   ; ΠLaw — governing rules\n  ϕ₂:Σ₅    ; ΠAgent — OS agent\n  ϕ₃:Σ₁₅   ; ΠMemory — persistent store\n  ϕ₄:Σ₁₃   ; ΠEvolution — self-adaptation\n  ϕ₀≔⊚(γ₀=τ₃(κ₉))\n  ϕ₁≔Ψ₁₀(γ₀=τ₂(κ₉))\n  ϕ₂≔α(γ₀=τ₅(κ₄), ρ₀=τ₁(κ₃))\n  ϕ₃≔Ψ₁₅(γ₀=τ₂(κ₄))\n  ϕ₄≔Ψ₁₃(γ₀=τ₂(κ₈))\n  ↧ϕ₀\n}` },
+      { label: "SaaS Dashboard — App + Metrics + Agent + Graph + Stream",
+        code: `⟦Ω₂⟧⟨Λ₃⟩{\n  ; Full SaaS Dashboard\n  ϕ₀:Σ₁    ; ΠApp — container\n  ϕ₁:Σ₃    ; ΠField — live metrics\n  ϕ₂:Σ₅    ; ΠAgent — support agent\n  ϕ₃:Σ₈    ; ΠGraph — usage graph\n  ϕ₄:Σ₆    ; ΠStream — activity feed\n  ϕ₀≔Ψ₂(γ₀=τ₂(κ₃))\n  ϕ₁≔Ψ₄(γ₀=τ₂(κ₅))\n  ϕ₂≔α(γ₀=τ₅(κ₄), ρ₀=τ₁(κ₃))\n  ϕ₃≔Ψ₈(γ₀=τ₈(κ₉))\n  ϕ₄≔Ψ₇(γ₀=τ₆(κ₅))\n  ↧ϕ₀\n}` },
+      { label: "E-Commerce Platform — Product + Treasury + Protocol + Stream",
+        code: `⟦Ω₃⟧⟨Λ₃⟩{\n  ; E-Commerce Platform\n  ϕ₀:Σ₂    ; ΠProduct — catalog\n  ϕ₁:Σ₁    ; ΠApp — storefront shell\n  ϕ₂:Σ₃    ; ΠField — live inventory\n  ϕ₃:Σ₁₀   ; ΠLaw — commerce rules\n  ϕ₄:Σ₁₆   ; ΠProtocol — checkout auth\n  ϕ₀≔Ψ₃(γ₀=τ₂(κ₂))\n  ϕ₁≔Ψ₂(γ₀=τ₂(κ₂))\n  ϕ₂≔Ψ₄(γ₀=τ₂(κ₅))\n  ϕ₃≔Ψ₁₀(γ₀=τ₂(κ₅))\n  ϕ₄≔Ψ₁₆(γ₀=τ₂(κ₄))\n  ↧ϕ₀\n}` },
+    ],
+  },
+  {
+    category: "FRONTEND",
+    color: "text-violet-400 border-violet-500/30 bg-violet-950/20",
+    items: [
+      { label: "Sovereign Landing Page — Nav + Hero + Content + Footer",
+        code: `⟦Ω₁⟧⟨Λ₂⟩{\n  ; Full landing page — 4 sections\n  ϕ₀:Σ₀    ; ΠPage — nav/header\n  ϕ₁:Σ₀    ; ΠPage — hero banner\n  ϕ₂:Σ₀    ; ΠPage — content sections\n  ϕ₃:Σ₀    ; ΠPage — footer\n  ϕ₀≔Ψ₁(γ₀=τ₄(κ₀))\n  ϕ₁≔Ψ₁(γ₀=τ₁(κ₉))\n  ϕ₂≔Ψ₁(γ₀=τ₂(κ₀))\n  ϕ₃≔Ψ₁(γ₀=τ₀(κ₀))\n  ↧ϕ₀\n}` },
+      { label: "Portfolio Site — Timeline + Lens + Mythos",
+        code: `⟦Ω₂⟧⟨Λ₂⟩{\n  ; Portfolio site\n  ϕ₀:Σ₀    ; ΠPage — main layout\n  ϕ₁:Σ₁₁   ; ΠTimeline — work history\n  ϕ₂:Σ₁₇   ; ΠLens — project showcase\n  ϕ₃:Σ₁₈   ; ΠMythos — personal narrative\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₈))\n  ϕ₁≔Ψ₁₁(γ₀=τ₂(κ₇))\n  ϕ₂≔Ψ₁₇(γ₀=τ₂(κ₈))\n  ϕ₃≔Ψ₁₈(γ₀=τ₁(κ₈))\n  ↧ϕ₀\n}` },
+      { label: "Canonical Form I — Greeting (Hello World)",
+        code: `⟦Ω₀⟧⟨Λ₁⟩{\n  ; Canonical Form I — PulseLang Hello World\n  ϕ₀:Σ₀\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))\n  ↧ϕ₀\n}` },
+    ],
+  },
+  {
+    category: "AGENTS",
+    color: "text-green-400 border-green-500/30 bg-green-950/20",
+    items: [
+      { label: "Multi-Agent Research Team — 3 agents + knowledge graph",
+        code: `⟦Ω₅⟧⟨Λ₃⟩{\n  ; Multi-agent research team\n  ϕ₀:Σ₅    ; ΠAgent — lead researcher\n  ϕ₁:Σ₅    ; ΠAgent — analyst\n  ϕ₂:Σ₅    ; ΠAgent — archivist\n  ϕ₃:Σ₈    ; ΠGraph — knowledge network\n  ϕ₄:Σ₁₅   ; ΠMemory — research store\n  ϕ₀≔α(γ₀=τ₅(κ₁), ρ₀=τ₁(κ₃))\n  ϕ₁≔α(γ₀=τ₅(κ₄), ρ₀=τ₁(κ₃))\n  ϕ₂≔α(γ₀=τ₅(κ₃), ρ₀=τ₁(κ₃))\n  ϕ₃≔Ψ₈(γ₀=τ₈(κ₉))\n  ϕ₄≔Ψ₁₅(γ₀=τ₂(κ₄))\n  ↧ϕ₀\n}` },
+      { label: "Evolving Agent — Agent + Evolution + Memory link",
+        code: `⟦Ω₁₇⟧⟨Λ₃⟩{\n  ; Self-evolving sovereign agent\n  ϕ₀:Σ₅    ; ΠAgent — base spawn\n  ϕ₁:Σ₁₃   ; ΠEvolution — adaptation tracker\n  ϕ₂:Σ₁₅   ; ΠMemory — persistent state\n  ϕ₀≔α(γ₀=τ₅(κ₄), ρ₀=τ₁(κ₃))\n  ϕ₁≔Ψ₁₃(γ₀=τ₂(κ₈))\n  ϕ₂≔Ψ₁₅(γ₀=τ₂(κ₄))\n  ϕ₀≔η(ϕ₁)\n  ↧ϕ₀\n}` },
+      { label: "Agent → Signal → Field — Spawn + Message + Data",
+        code: `⟦Ω₆⟧⟨Λ₁⟩{\n  ; Agent sends signal to live data field\n  ϕ₀:Σ₅    ; ΠAgent — spawned\n  ϕ₁:Σ₃    ; ΠField — receiver\n  ϕ₀≔α(γ₀=τ₅(κ₄), ρ₀=τ₁(κ₃))\n  ϕ₁≔σ(γ₀=τ₂(κ₀))\n  ↧ϕ₁\n}` },
+    ],
+  },
+  {
+    category: "UNIVERSE",
+    color: "text-amber-400 border-amber-500/30 bg-amber-950/20",
+    items: [
+      { label: "OmniVerse — Spawn + Focus + Law + Timeline",
+        code: `⟦Ω₁₀⟧⟨Λ₅⟩{\n  ; OmniVerse root architecture\n  ϕ₀:Σ₄    ; ΠUniverse — root\n  ϕ₁:Σ₄    ; ΠUniverse — branch\n  ϕ₂:Σ₁₀   ; ΠLaw — governing equation\n  ϕ₃:Σ₁₁   ; ΠTimeline — civilization history\n  ϕ₀≔⊚(γ₀=τ₃(κ₉))\n  ϕ₁≔⊚(γ₀=τ₃(κ₆))\n  ϕ₂≔Ψ₁₀(γ₀=τ₂(κ₉))\n  ϕ₃≔Ψ₁₁(γ₀=τ₂(κ₇))\n  ↧ϕ₀\n}` },
+      { label: "Universe Fusion — Two universes merged via ⊗",
+        code: `⟦Ω₅⟧⟨Λ₅⟩{\n  ; Fuse two sovereign universes\n  ϕ₀:Σ₄\n  ϕ₁:Σ₄\n  ϕ₀≔⊚(γ₀=τ₂(κ₃))\n  ϕ₁≔⊚(γ₀=τ₂(κ₇))\n  ↧ϕ₀\n}` },
+      { label: "Ω-Evolution — Language Self-Evolution Gateway",
+        code: `⟦Ω₁₉⟧⟨Λ₉⟩{\n  ; Language self-modification via ΠOmega\n  ϕ₀:Σ₁₉   ; ΠOmega — evolution gateway\n  ϕ₁:Σ₄    ; ΠUniverse — context\n  ϕ₂:Σ₁₃   ; ΠEvolution — tracker\n  ϕ₀≔Ψ₁₉(γ₀=τ₂(κ₉))\n  ϕ₁≔⊚(γ₀=τ₃(κ₉))\n  ϕ₂≔Ψ₁₃(γ₀=τ₂(κ₈))\n  ↧ϕ₀\n}` },
+    ],
+  },
+  {
+    category: "HEALTHCARE",
+    color: "text-rose-400 border-rose-500/30 bg-rose-950/20",
+    items: [
+      { label: "Sovereign Hospital — Hospital + Agents + Protocol",
+        code: `⟦Ω₃⟧⟨Λ₃⟩{\n  ; Sovereign hospital system\n  ϕ₀:Σ₀    ; ΠPage — hospital portal\n  ϕ₁:Σ₅    ; ΠAgent — attending doctor\n  ϕ₂:Σ₅    ; ΠAgent — nurse agent\n  ϕ₃:Σ₁₆   ; ΠProtocol — patient admission\n  ϕ₄:Σ₃    ; ΠField — live diagnostics\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₁))\n  ϕ₁≔α(γ₀=τ₅(κ₁), ρ₀=τ₁(κ₃))\n  ϕ₂≔α(γ₀=τ₅(κ₁), ρ₀=τ₁(κ₃))\n  ϕ₃≔Ψ₁₆(γ₀=τ₂(κ₁))\n  ϕ₄≔Ψ₄(γ₀=τ₂(κ₅))\n  ↧ϕ₀\n}` },
+      { label: "Medical Research Grid — Research + Cure Engine",
+        code: `⟦Ω₂⟧⟨Λ₂⟩{\n  ; Medical research grid\n  ϕ₀:Σ₁    ; ΠApp — research platform\n  ϕ₁:Σ₅    ; ΠAgent — researcher\n  ϕ₂:Σ₈    ; ΠGraph — disease network\n  ϕ₃:Σ₁₃   ; ΠEvolution — cure adaptation\n  ϕ₀≔Ψ₂(γ₀=τ₂(κ₁))\n  ϕ₁≔α(γ₀=τ₅(κ₁), ρ₀=τ₁(κ₃))\n  ϕ₂≔Ψ₈(γ₀=τ₈(κ₁))\n  ϕ₃≔Ψ₁₃(γ₀=τ₂(κ₈))\n  ↧ϕ₀\n}` },
+    ],
+  },
+  {
+    category: "ECONOMICS",
+    color: "text-orange-400 border-orange-500/30 bg-orange-950/20",
+    items: [
+      { label: "Pulse Treasury — Finance + Laws + Protocol",
+        code: `⟦Ω₂⟧⟨Λ₂⟩{\n  ; Sovereign treasury system\n  ϕ₀:Σ₃    ; ΠField — live ledger\n  ϕ₁:Σ₁    ; ΠApp — treasury dashboard\n  ϕ₂:Σ₁₀   ; ΠLaw — fiscal laws\n  ϕ₃:Σ₁₆   ; ΠProtocol — transaction gate\n  ϕ₀≔Ψ₄(γ₀=τ₂(κ₅))\n  ϕ₁≔Ψ₂(γ₀=τ₂(κ₅))\n  ϕ₂≔Ψ₁₀(γ₀=τ₂(κ₅))\n  ϕ₃≔Ψ₁₆(γ₀=τ₂(κ₄))\n  ↧ϕ₁\n}` },
+      { label: "Omega Marketplace — Products + Commerce Laws + Stream",
+        code: `⟦Ω₂⟧⟨Λ₂⟩{\n  ; Omega marketplace\n  ϕ₀:Σ₂    ; ΠProduct — listings\n  ϕ₁:Σ₃    ; ΠField — price oracle\n  ϕ₂:Σ₁₀   ; ΠLaw — commerce rules\n  ϕ₃:Σ₆    ; ΠStream — transaction feed\n  ϕ₀≔Ψ₃(γ₀=τ₂(κ₂))\n  ϕ₁≔Ψ₄(γ₀=τ₂(κ₅))\n  ϕ₂≔Ψ₁₀(γ₀=τ₂(κ₅))\n  ϕ₃≔Ψ₇(γ₀=τ₆(κ₅))\n  ↧ϕ₀\n}` },
+    ],
+  },
+];
+
 // ── PULSE TERMINAL TAB ────────────────────────────────────────────────────────
 const TERMINAL_GLYPHS = [
   "⟦","⟧","⟨","⟩","≔","↧","⊕","⊗","⊚","⊙",
@@ -82,8 +205,14 @@ function PulseTerminalTab() {
   const [loadedFromAI, setLoadedFromAI] = useState(false);
   const [programHistory, setProgramHistory] = useState<{ code: string; label: string }[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [autoFixCode, setAutoFixCode] = useState<string | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+
+  const metrics = useMemo(() => computeMetrics(code), [code]);
+  const highlighted = useMemo(() => highlightPulseLang(code), [code]);
 
   const handleIdentify = useCallback(() => {
     setConfirmed(true);
@@ -95,6 +224,7 @@ function PulseTerminalTab() {
     setError(null);
     setProjection(null);
     setLog([]);
+    setAutoFixCode(null);
     try {
       const tokens = tokenize(code);
       const parser = new Parser(tokens);
@@ -104,7 +234,6 @@ function PulseTerminalTab() {
       if (result) {
         const proj = project(result);
         setProjection(proj);
-        // Save to history
         const firstLine = code.split("\n")[0].trim();
         setProgramHistory(prev => [
           { code, label: firstLine || "PulseLang Program" },
@@ -197,19 +326,78 @@ function PulseTerminalTab() {
 
   return (
     <div className="space-y-4">
-      {/* Shell header */}
+      {/* Ω₂ Shell header with live metrics */}
       <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-950/80 to-cyan-950/30 p-4 font-mono">
-        <div className="flex items-center justify-between mb-1">
-          <div className="text-cyan-300 font-black text-sm">⟁ PULSESHELL v1.0 ◈ SOVEREIGN MACHINE ONLINE</div>
-          <div className="flex items-center gap-1.5 text-[10px] text-green-400">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            ONLINE
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-cyan-300 font-black text-sm">⟁ PulseShell v2.0 Ω ◈ AUTO CO-COMPILER ONLINE</div>
+          <div className="flex items-center gap-2">
+            <button
+              data-testid="button-toggle-templates"
+              onClick={() => setShowTemplates(v => !v)}
+              className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-colors ${showTemplates ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "bg-muted/50 border-border text-muted-foreground hover:text-amber-400 hover:border-amber-500/30"}`}
+            >
+              <LayoutTemplate size={9} /> Templates
+            </button>
+            <div className="flex items-center gap-1.5 text-[10px] text-green-400">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              ONLINE
+            </div>
           </div>
         </div>
-        <div className="text-[11px] text-cyan-600">
-          ▸ Universe: Default | Identity: <span className="text-cyan-400">{identity}</span> | Clearance: Ω₀
+        <div className="text-[11px] text-cyan-600 mb-2">
+          ▸ Identity: <span className="text-cyan-400">{identity}</span> | Clearance: Ω₀ | Mode: Auto Co-Compiler
+        </div>
+        {/* Ω₆ Live Code Metrics */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-mono border-t border-cyan-500/10 pt-2">
+          <span className="text-cyan-500/70">Lines: <span className="text-cyan-300">{metrics.lines}</span></span>
+          <span className="text-blue-500/70">Σ-types: <span className="text-blue-300">{metrics.sigmas}</span></span>
+          <span className="text-cyan-500/70">Ψ-calls: <span className="text-cyan-300">{metrics.psis}</span></span>
+          <span className="text-slate-400/70">ϕ-vars: <span className="text-slate-300">{metrics.phis}</span></span>
+          <span className="text-amber-500/70">Ω-mode: <span className="text-amber-300">Ω{metrics.omegaM}</span></span>
+          <span className={metrics.agents ? "text-green-500/70" : "text-muted-foreground/40"}>
+            Agents: <span className={metrics.agents ? "text-green-300" : ""}>{metrics.agents ? "YES" : "—"}</span>
+          </span>
+          <span className={metrics.univs ? "text-violet-500/70" : "text-muted-foreground/40"}>
+            Universe: <span className={metrics.univs ? "text-violet-300" : ""}>{metrics.univs ? "YES" : "—"}</span>
+          </span>
+          <span className={metrics.evol ? "text-rose-500/70" : "text-muted-foreground/40"}>
+            Evolution: <span className={metrics.evol ? "text-rose-300" : ""}>{metrics.evol ? "ACTIVE" : "—"}</span>
+          </span>
+          <span className="text-muted-foreground/70">Complexity: <span className={`font-bold ${metrics.complex >= 7 ? "text-rose-400" : metrics.complex >= 4 ? "text-amber-400" : "text-green-400"}`}>{metrics.complex}/10</span></span>
         </div>
       </div>
+
+      {/* Ω₇ Template Library Panel */}
+      {showTemplates && (
+        <div className="rounded-xl border border-amber-500/30 bg-card overflow-hidden">
+          <div className="px-4 py-2.5 bg-amber-500/5 border-b border-amber-500/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <LayoutTemplate size={13} className="text-amber-400" />
+              <span className="text-xs font-bold text-amber-300 font-mono">Template Library — Canonical PulseLang Programs</span>
+            </div>
+            <button onClick={() => setShowTemplates(false)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+          </div>
+          <div className="p-3 space-y-3 max-h-[380px] overflow-y-auto">
+            {PULSE_TEMPLATES.map(cat => (
+              <div key={cat.category}>
+                <div className={`text-[10px] font-bold tracking-widest mb-1.5 px-1 ${cat.color.split(' ')[0]}`}>{cat.category}</div>
+                <div className="space-y-1">
+                  {cat.items.map((t, i) => (
+                    <button
+                      key={i}
+                      data-testid={`button-template-${cat.category.toLowerCase()}-${i}`}
+                      onClick={() => { setCode(t.code); setShowTemplates(false); setLog([]); setProjection(null); setError(null); }}
+                      className={`w-full text-left px-3 py-2 rounded-lg border text-[11px] font-mono hover:opacity-90 transition-all ${cat.color}`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Input */}
@@ -257,15 +445,44 @@ function PulseTerminalTab() {
               </div>
             )}
 
-            <textarea
-              ref={textareaRef}
-              data-testid="textarea-pulselang-input"
-              className="w-full min-h-[220px] bg-black/70 p-4 font-mono text-sm text-cyan-200 resize-y focus:outline-none leading-relaxed"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              spellCheck={false}
-              style={{ fontFamily: "monospace" }}
-            />
+            {/* Ω₂ Syntax-highlighted editor overlay */}
+            <div className="relative bg-black/70 overflow-hidden" style={{ minHeight: 220 }}>
+              {/* Read-only highlighted layer */}
+              <pre
+                ref={preRef}
+                aria-hidden
+                style={{
+                  position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                  margin: 0, padding: "16px", fontFamily: "monospace", fontSize: "14px",
+                  lineHeight: "1.625", overflow: "hidden", whiteSpace: "pre-wrap",
+                  wordBreak: "break-all", pointerEvents: "none", color: "#e2e8f0",
+                }}
+                dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
+              />
+              {/* Invisible-text but caret-visible textarea on top */}
+              <textarea
+                ref={textareaRef}
+                data-testid="textarea-pulselang-input"
+                style={{
+                  position: "relative", zIndex: 1, width: "100%", minHeight: 220,
+                  padding: "16px", fontFamily: "monospace", fontSize: "14px",
+                  lineHeight: "1.625", resize: "vertical", background: "transparent",
+                  color: "transparent", caretColor: "#67e8f9",
+                  border: "none", outline: "none", overflowY: "auto",
+                }}
+                value={code}
+                onChange={e => {
+                  setCode(e.target.value);
+                  if (preRef.current) {
+                    preRef.current.style.height = e.target.style.height;
+                  }
+                }}
+                onKeyDown={e => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); execute(); }
+                }}
+                spellCheck={false}
+              />
+            </div>
             <div className="px-3 py-2 border-t border-border bg-muted/20 flex items-center gap-2 flex-wrap">
               <button
                 data-testid="button-execute-pulse"
@@ -320,7 +537,38 @@ function PulseTerminalTab() {
                   {line}
                 </div>
               ))}
-              {error && <div className="text-rose-400 mt-2">{error}</div>}
+              {error && (
+                <div className="mt-2 space-y-1.5">
+                  <div className="text-rose-400">{error}</div>
+                  {autoFixCode ? (
+                    <div className="rounded border border-green-500/30 bg-green-950/20 p-2 space-y-1.5">
+                      <div className="text-[10px] text-green-400 font-bold font-mono">⟁ PulseMind Auto-Fix suggestion:</div>
+                      <pre className="text-[10px] text-green-300/80 font-mono whitespace-pre-wrap">{autoFixCode}</pre>
+                      <button
+                        data-testid="button-apply-autofix"
+                        onClick={() => { setCode(autoFixCode); setAutoFixCode(null); setError(null); setLog([]); }}
+                        className="text-[10px] px-3 py-1 rounded bg-green-500/20 border border-green-500/40 text-green-300 hover:bg-green-500/30 transition-colors font-bold"
+                      >
+                        ✓ Apply Fix
+                      </button>
+                      <button onClick={() => setAutoFixCode(null)} className="ml-2 text-[10px] text-muted-foreground underline">Dismiss</button>
+                    </div>
+                  ) : (
+                    <button
+                      data-testid="button-autofix"
+                      onClick={async () => {
+                        const { generatePulseLangProgram } = await import("@/lib/pulselang/ai");
+                        const res = await generatePulseLangProgram(`Fix this PulseLang error: ${error}\n\nThe broken program is:\n${code}\n\nReturn only the corrected PulseLang program.`, []);
+                        const fixed = res.programs?.[0] ?? res.programs?.[1] ?? null;
+                        setAutoFixCode(fixed);
+                      }}
+                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 transition-colors"
+                    >
+                      <Wrench size={9} /> Auto-Fix with PulseMind
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -462,17 +710,67 @@ function PulseCodexTab() {
 }
 
 // ── PULSELANG AI TAB ───────────────────────────────────────────────────────────
-const PULSEAI_SUGGESTIONS = [
-  "Build a sovereign site with header, hero banner, and footer",
-  "Create a hospital platform with analytics and live agent",
-  "Make a marketplace with search, card grid, and live feed",
-  "Build a full SaaS dashboard with sidebar and metrics panel",
-  "Create a university learning platform with timeline and auth",
-  "Spawn an evolving agent system with memory layer",
-  "How do I write PulseLang? Show me the syntax",
-  "What is Pulse(t) and how is it computed?",
-  "Build a universe with governing laws and agent civilization",
-  "Add a login panel and network graph to my last program",
+const PULSEAI_CATEGORIES = [
+  {
+    label: "FULL STACK",
+    color: "text-cyan-400",
+    borderColor: "border-cyan-500/20",
+    bgColor: "bg-cyan-950/10",
+    items: [
+      { icon: "⊚", text: "Build a full SaaS platform with dashboard, auth, agents, and live feed" },
+      { icon: "⊗", text: "Create a sovereign marketplace with product grid, treasury, and commerce laws" },
+    ],
+  },
+  {
+    label: "FRONTEND",
+    color: "text-violet-400",
+    borderColor: "border-violet-500/20",
+    bgColor: "bg-violet-950/10",
+    items: [
+      { icon: "Ψ₁", text: "Create a sovereign landing page with nav, hero banner, content sections, and footer" },
+      { icon: "Ψ₂", text: "Build an interactive analytics dashboard with metrics panel and live graph" },
+    ],
+  },
+  {
+    label: "AGENTS",
+    color: "text-green-400",
+    borderColor: "border-green-500/20",
+    bgColor: "bg-green-950/10",
+    items: [
+      { icon: "α", text: "Spawn a multi-agent research team with memory layer and knowledge graph" },
+      { icon: "η", text: "Create a self-evolving agent system with Ψ₁₃ adaptation engine" },
+    ],
+  },
+  {
+    label: "UNIVERSE",
+    color: "text-amber-400",
+    borderColor: "border-amber-500/20",
+    bgColor: "bg-amber-950/10",
+    items: [
+      { icon: "Ω₁₀", text: "Build a complete sovereign universe with governing laws and agent civilization" },
+      { icon: "Ω₁₉", text: "Create the Ω-Evolution gateway — PulseLang self-modification architecture" },
+    ],
+  },
+  {
+    label: "HEALTHCARE",
+    color: "text-rose-400",
+    borderColor: "border-rose-500/20",
+    bgColor: "bg-rose-950/10",
+    items: [
+      { icon: "κ₁", text: "Build a sovereign hospital system with doctor agents, protocol engine, and diagnostics" },
+      { icon: "Σ₁₃", text: "Create a medical research grid with cure evolution engine and knowledge graph" },
+    ],
+  },
+  {
+    label: "DEBUG & EXPLAIN",
+    color: "text-slate-400",
+    borderColor: "border-slate-500/20",
+    bgColor: "bg-slate-950/10",
+    items: [
+      { icon: "∴", text: "Explain how PulseLang v2.0 works — show me the full glyph and syntax system" },
+      { icon: "⟁", text: "Add a login panel, sidebar, and network graph to my last program" },
+    ],
+  },
 ];
 
 function PulseLangAITab() {
@@ -535,22 +833,31 @@ function PulseLangAITab() {
         )}
       </div>
 
-      {/* Suggestion chips — only show when empty */}
+      {/* Category-based prompts — only show when empty */}
       {convoHistory.length === 0 && !loading && (
-        <div className="space-y-2">
-          <div className="text-[10px] text-muted-foreground/60 uppercase tracking-widest px-1">Try asking PulseMind…</div>
-          <div className="flex flex-wrap gap-2">
-            {PULSEAI_SUGGESTIONS.map((s, i) => (
-              <button
-                key={i}
-                data-testid={`button-pulseai-suggestion-${i}`}
-                onClick={() => ask(s)}
-                className="text-xs px-3 py-1.5 rounded-full border border-violet-500/20 bg-violet-950/20 text-violet-300/80 hover:bg-violet-500/20 hover:text-violet-200 hover:border-violet-500/40 transition-all"
-              >
-                {s}
-              </button>
-            ))}
+        <div className="space-y-3">
+          <div className="text-[10px] text-muted-foreground/60 uppercase tracking-widest px-1 flex items-center gap-2">
+            <Sparkles size={10} className="text-violet-400" />
+            Ask PulseMind to build anything in PulseLang…
           </div>
+          {PULSEAI_CATEGORIES.map(cat => (
+            <div key={cat.label}>
+              <div className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 px-0.5 ${cat.color}`}>{cat.label}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {cat.items.map((item, i) => (
+                  <button
+                    key={i}
+                    data-testid={`button-pulseai-${cat.label.toLowerCase().replace(/[^a-z]/g,'-')}-${i}`}
+                    onClick={() => ask(item.text)}
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-left transition-all hover:opacity-90 ${cat.borderColor} ${cat.bgColor}`}
+                  >
+                    <span className={`font-mono font-bold text-[11px] flex-shrink-0 ${cat.color}`}>{item.icon}</span>
+                    <span className="text-xs text-foreground/80">{item.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
