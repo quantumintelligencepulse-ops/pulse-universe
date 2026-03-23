@@ -10,6 +10,7 @@ import PulseGamesPage from "./pages/PulseGamesPage";
 import SovereignHivePage from "./pages/SovereignHivePage";
 import PulseUniversePage from "./pages/PulseUniversePage";
 import PyramidLaborPage from "./pages/PyramidLaborPage";
+import PulseNetPage from "./pages/PulseNetPage";
 import AIProfilePage from "./pages/AIProfilePage";
 import CorporationPage from "./pages/CorporationPage";
 import PublicationDetailPage from "./pages/PublicationDetailPage";
@@ -2279,6 +2280,16 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Pyramid Labor</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #C4A88233, #f59e0b33)", color: "#C4A882", border: "1px solid #C4A88250" }}>LABOR</span>
+          </Link>
+          )}
+          {aiMode && (
+          <Link href="/pulse-net" data-testid="link-pulse-net"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse-net" ? "bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/pulse-net" ? "bg-cyan-500/15" : "bg-cyan-500/5"}`}>
+              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>📡</span>
+            </div>
+            <span className="flex-1">PulseNet</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #06b6d433, #3b82f633)", color: "#06b6d4", border: "1px solid #06b6d450" }}>10G</span>
           </Link>
           )}
           {aiMode && (
@@ -15066,6 +15077,7 @@ function Router() {
       <Route path="/hive-sovereign">{() => <Layout><SovereignHivePage /></Layout>}</Route>
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
+      <Route path="/pulse-net">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/hospital">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
       <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
