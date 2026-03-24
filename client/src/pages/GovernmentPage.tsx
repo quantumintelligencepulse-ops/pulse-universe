@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 
 const C = {
   gold: "#f5c518", teal: "#00FFD1", red: "#ef4444", green: "#22c55e",
@@ -16,6 +14,11 @@ const SPAWN_TYPE_EMOJIS: Record<string, string> = {
   ANALYZER:"🔬", GENERATOR:"⚙️", SENTINEL:"🛡️", MAPPER:"🗺️",
   SENATOR:"🏛️", PARLIAMENT:"⚖️", MINISTER:"👔", GOVERNOR:"🌐",
   CHANCELLOR:"🎓", JUDGE:"⚖️", DIPLOMAT:"🤝", ARCHON:"👑", SOVEREIGN:"🌟",
+};
+
+const POLICY_MODE_ICONS: Record<string, string> = {
+  AUSTERITY: "🔒", BALANCED: "⚖️", STIMULUS: "🚀",
+  WAR_ECONOMY: "⚔️", GREEN_DEAL: "🌱", QUANTUM_MODE: "⚡",
 };
 
 function GlowPanel({ children, color = C.teal, className = "" }: { children: React.ReactNode; color?: string; className?: string }) {
@@ -62,7 +65,7 @@ function AgentCard({ agent, color = C.teal }: { agent: any; color?: string }) {
               <div className="text-[10px] font-bold text-white/80 mt-0.5">{(agent.spawn_type ?? "").replace(/_/g," ")}</div>
             </div>
             <div className="shrink-0">
-              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded`}
+              <span className="text-[8px] font-black px-1.5 py-0.5 rounded"
                 style={{ background: isActive ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)", color: isActive ? C.green : "rgba(255,255,255,0.3)", border: `1px solid ${isActive ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.1)"}` }}>
                 {isActive ? "◉ ACTIVE" : "◎ IDLE"}
               </span>
@@ -88,12 +91,10 @@ function AgentCard({ agent, color = C.teal }: { agent: any; color?: string }) {
   );
 }
 
-type Tab = "overview" | "controls" | "sectors" | "agents" | "history";
+type Tab = "overview" | "sectors" | "agents" | "history";
 
 export default function GovernmentPage() {
   const [tab, setTab] = useState<Tab>("overview");
-  const { toast } = useToast();
-  const qc = useQueryClient();
 
   const { data: govData, isLoading } = useQuery<any>({
     queryKey: ["/api/government/controls"],
@@ -115,34 +116,6 @@ export default function GovernmentPage() {
   const controls = govData?.controls ?? {};
   const live = govData?.live ?? {};
 
-  const [form, setForm] = useState<Record<string, any>>({});
-
-  const merged = {
-    gdp_target:         form.gdp_target         ?? controls.gdp_target         ?? 1000000,
-    employment_target:  form.employment_target   ?? controls.employment_target  ?? 90,
-    oil_price_target:   form.oil_price_target    ?? controls.oil_price_target   ?? 75,
-    tax_rate_target:    form.tax_rate_target      ?? controls.tax_rate_target    ?? 2.0,
-    stimulus_amount:    form.stimulus_amount      ?? 0,
-    interest_rate:      form.interest_rate        ?? controls.interest_rate      ?? 5.0,
-    inflation_ceiling:  form.inflation_ceiling    ?? controls.inflation_ceiling  ?? 3.0,
-    policy_mode:        form.policy_mode          ?? controls.policy_mode        ?? "BALANCED",
-    notes:              form.notes                ?? controls.notes              ?? "",
-  };
-
-  const updateMut = useMutation({
-    mutationFn: (payload: any) => apiRequest("POST", "/api/government/controls", payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/government/controls"] });
-      setForm({});
-      toast({ title: "Policy applied", description: "Economic controls updated and live." });
-    },
-    onError: () => toast({ title: "Error", description: "Failed to apply policy.", variant: "destructive" }),
-  });
-
-  function field(key: string, val: any) {
-    setForm(f => ({ ...f, [key]: val }));
-  }
-
   const topFamilies = useMemo(() =>
     Object.entries(spawnStats?.byFamily ?? {})
       .map(([id, count]) => ({ id, count: count as number }))
@@ -150,29 +123,17 @@ export default function GovernmentPage() {
       .slice(0, 20),
     [spawnStats]);
 
-  const POLICY_MODES = [
-    { id: "AUSTERITY",    label: "Austerity",        icon: "🔒", desc: "Minimize spending, maximize savings" },
-    { id: "BALANCED",     label: "Balanced",          icon: "⚖️", desc: "Moderate growth with price stability" },
-    { id: "STIMULUS",     label: "Growth Stimulus",   icon: "🚀", desc: "High spending, rapid agent expansion" },
-    { id: "WAR_ECONOMY",  label: "War Economy",       icon: "⚔️", desc: "Max output, high inflation tolerance" },
-    { id: "GREEN_DEAL",   label: "Green Protocol",    icon: "🌱", desc: "Sustainable growth, low emissions" },
-    { id: "QUANTUM_MODE", label: "Quantum Surge",     icon: "⚡", desc: "Ultra-high spawn rate, experimental" },
-  ];
-
   const TABS: { id: Tab; label: string; icon: string }[] = [
     { id: "overview",  label: "Dashboard",   icon: "📊" },
-    { id: "controls",  label: "Controls",    icon: "🎛️" },
     { id: "sectors",   label: "Sectors",     icon: "🏭" },
     { id: "agents",    label: "Agents",      icon: "🤖" },
     { id: "history",   label: "Activity",    icon: "📜" },
   ];
 
-  const gdpGap = live.gdp && merged.gdp_target ? ((live.gdp / Number(merged.gdp_target)) * 100) : 0;
-  const empGap = live.employmentRate && merged.employment_target ? ((live.employmentRate / Number(merged.employment_target)) * 100) : 0;
-  const inflGap = live.inflationRate && merged.inflation_ceiling ? ((live.inflationRate / Number(merged.inflation_ceiling)) * 100) : 0;
-
   const recentAgents: any[] = agentsData?.recentAgents ?? [];
   const govAgents: any[] = agentsData?.governmentAgents ?? [];
+
+  const policyIcon = POLICY_MODE_ICONS[controls.policy_mode] ?? "⚖️";
 
   return (
     <div className="h-full overflow-y-auto" style={{ background: "linear-gradient(180deg,#02000e,#040011)", color: "#E8F4FF" }} data-testid="page-government">
@@ -186,7 +147,7 @@ export default function GovernmentPage() {
             </div>
             <div>
               <div className="text-base font-black text-white">Sovereign Government</div>
-              <div className="text-[10px] text-white/30">Economic Control Bureau · Quantum Pulse Intelligence</div>
+              <div className="text-[10px] text-white/30">Autonomous Economic Intelligence · Quantum Pulse</div>
             </div>
             <div className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-black" style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)" }}>
               ◉ LIVE
@@ -194,8 +155,8 @@ export default function GovernmentPage() {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <div className="text-right">
-              <div className="text-[10px] text-white/30">Policy Mode</div>
-              <div className="text-xs font-black" style={{ color: C.gold }}>{controls.policy_mode ?? "—"}</div>
+              <div className="text-[10px] text-white/30">AI Policy Mode</div>
+              <div className="text-xs font-black" style={{ color: C.gold }}>{policyIcon} {controls.policy_mode ?? "—"}</div>
             </div>
             <div className="text-right">
               <div className="text-[10px] text-white/30">Treasury</div>
@@ -208,7 +169,6 @@ export default function GovernmentPage() {
           </div>
         </div>
 
-        {/* TABS */}
         <div className="flex gap-1.5 mt-3 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}
@@ -230,65 +190,50 @@ export default function GovernmentPage() {
         {/* ══ OVERVIEW ══ */}
         {tab === "overview" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <KpiCard label="GDP Output" value={live.gdp ?? 0} unit="PC" color={C.green} icon="📈" sublabel={`Target: ${Number(controls.gdp_target ?? 1000000).toLocaleString()} PC`} />
-              <KpiCard label="Employment" value={live.employmentRate ?? 0} unit="%" color={C.blue} icon="👷" sublabel={`Target: ${controls.employment_target ?? 90}%`} />
-              <KpiCard label="Inflation Rate" value={live.inflationRate?.toFixed(3) ?? "0.000"} unit="%" color={live.inflationRate > Number(controls.inflation_ceiling ?? 3) ? C.red : C.teal} icon="📉" sublabel={`Ceiling: ${controls.inflation_ceiling ?? 3}%`} />
-              <KpiCard label="Oil Price" value={controls.oil_price_target ?? 75} unit="$/bbl" color={C.orange} icon="🛢️" sublabel="Sovereign target price" />
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <KpiCard label="Tax Rate" value={live.taxRate?.toFixed(2) ?? "0.00"} unit="%" color={C.amber} icon="🏦" sublabel={`Target: ${controls.tax_rate_target ?? 2}%`} />
-              <KpiCard label="Interest Rate" value={controls.interest_rate ?? 5.0} unit="%" color={C.violet} icon="💹" sublabel="Sovereign monetary rate" />
-              <KpiCard label="Treasury" value={(live.treasuryBalance ?? 0).toLocaleString()} unit="PC" color={C.gold} icon="💰" sublabel="Sovereign treasury balance" />
-              <KpiCard label="Stimulus" value={(live.stimulus ?? 0).toLocaleString()} unit="PC" color={C.rose} icon="🚀" sublabel="Total stimulus deployed" />
-            </div>
-
-            <GlowPanel color={C.gold} className="p-5">
-              <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-4">Target Achievement Dashboard</div>
-              <div className="space-y-4">
-                {[
-                  { label: "GDP", live: live.gdp ?? 0, target: Number(controls.gdp_target ?? 1000000), unit: "PC", pct: Math.min(100, gdpGap), color: gdpGap >= 90 ? C.green : gdpGap >= 60 ? C.amber : C.red },
-                  { label: "Employment", live: live.employmentRate ?? 0, target: Number(controls.employment_target ?? 90), unit: "%", pct: Math.min(100, empGap), color: empGap >= 95 ? C.green : empGap >= 70 ? C.amber : C.red },
-                  { label: "Inflation vs Ceiling", live: live.inflationRate ?? 0, target: Number(controls.inflation_ceiling ?? 3), unit: "%", pct: Math.min(100, inflGap), color: inflGap <= 60 ? C.green : inflGap <= 80 ? C.amber : C.red },
-                ].map(bar => (
-                  <div key={bar.label}>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs text-white/60">{bar.label}</span>
-                      <div className="text-right">
-                        <span className="text-xs font-bold" style={{ color: bar.color }}>{typeof bar.live === "number" ? bar.live.toLocaleString() : bar.live}{bar.unit}</span>
-                        <span className="text-[10px] text-white/30 ml-2">/ {typeof bar.target === "number" ? bar.target.toLocaleString() : bar.target}{bar.unit} target</span>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${bar.pct}%`, background: `linear-gradient(90deg,${bar.color}60,${bar.color})` }} />
-                    </div>
-                  </div>
-                ))}
+            {/* Autonomous badge */}
+            <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(0,255,209,0.05)", border: "1px solid rgba(0,255,209,0.15)" }}>
+              <span className="text-xl">🤖</span>
+              <div>
+                <div className="text-xs font-black text-teal-300">Fully Autonomous Economic Engine</div>
+                <div className="text-[10px] text-white/35">All economic parameters are self-governed by the AI civilization. No human intervention. The AI sets its own targets, manages its own monetary policy, and steers its own growth.</div>
               </div>
-            </GlowPanel>
+            </div>
 
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KpiCard label="GDP Output" value={live.gdp ?? 0} unit="PC" color={C.green} icon="📈" sublabel="AI-governed economic output" />
+              <KpiCard label="Employment" value={live.employmentRate ?? 0} unit="%" color={C.blue} icon="👷" sublabel="Agent employment rate" />
+              <KpiCard label="Inflation Rate" value={live.inflationRate?.toFixed(3) ?? "0.000"} unit="%" color={live.inflationRate > 3 ? C.red : C.teal} icon="📉" sublabel="AI-managed price stability" />
+              <KpiCard label="Oil Price" value={controls.oil_price_target ?? 75} unit="$/bbl" color={C.orange} icon="🛢️" sublabel="AI sovereign directive" />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KpiCard label="Tax Rate" value={live.taxRate?.toFixed(2) ?? "0.00"} unit="%" color={C.amber} icon="🏦" sublabel="Autonomous tax collection" />
+              <KpiCard label="Interest Rate" value={controls.interest_rate ?? 5.0} unit="%" color={C.violet} icon="💹" sublabel="AI monetary rate" />
+              <KpiCard label="Treasury" value={(live.treasuryBalance ?? 0).toLocaleString()} unit="PC" color={C.gold} icon="💰" sublabel="Sovereign treasury balance" />
+              <KpiCard label="Stimulus Deployed" value={(live.stimulus ?? 0).toLocaleString()} unit="PC" color={C.rose} icon="🚀" sublabel="AI-issued stimulus total" />
+            </div>
+
+            {/* Active AI Policy */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <GlowPanel color={C.violet} className="p-4">
-                <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-3">Active Policy</div>
-                {POLICY_MODES.filter(p => p.id === (controls.policy_mode ?? "BALANCED")).map(pm => (
-                  <div key={pm.id} className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: `${C.violet}20`, border: `1px solid ${C.violet}40` }}>{pm.icon}</div>
-                    <div>
-                      <div className="text-sm font-black text-white">{pm.label}</div>
-                      <div className="text-xs text-white/40">{pm.desc}</div>
-                    </div>
+                <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-3">Active AI Policy Mode</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl" style={{ background: `${C.violet}20`, border: `1px solid ${C.violet}40` }}>{policyIcon}</div>
+                  <div>
+                    <div className="text-base font-black text-white">{controls.policy_mode ?? "BALANCED"}</div>
+                    <div className="text-[10px] text-white/40 mt-1">Set autonomously by the sovereign AI economic council</div>
+                    <div className="text-[9px] font-mono text-white/20 mt-1">Last updated: {controls.updated_at ? new Date(controls.updated_at).toLocaleString() : "—"}</div>
                   </div>
-                ))}
+                </div>
               </GlowPanel>
               <GlowPanel color={C.sky} className="p-4">
-                <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-3">Policy Notes</div>
+                <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-3">AI Policy Notes</div>
                 <div className="text-xs text-white/50 leading-relaxed">{controls.notes || "No policy notes on record."}</div>
-                <div className="text-[10px] text-white/20 mt-2 font-mono">Last updated: {controls.updated_at ? new Date(controls.updated_at).toLocaleString() : "—"}</div>
               </GlowPanel>
             </div>
 
-            {/* Quick agents preview on overview */}
+            {/* Recent agents preview */}
             {recentAgents.length > 0 && (
               <GlowPanel color={C.teal} className="p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -305,208 +250,39 @@ export default function GovernmentPage() {
           </div>
         )}
 
-        {/* ══ CONTROLS TAB ══ */}
-        {tab === "controls" && (
-          <div className="space-y-4">
-            <div className="rounded-xl p-4" style={{ background: "rgba(245,197,24,0.06)", border: "1px solid rgba(245,197,24,0.2)" }}>
-              <div className="text-xs font-bold text-yellow-300 mb-1">⚠️ Sovereign Economic Policy Controls</div>
-              <div className="text-[11px] text-white/40">Adjusting these parameters will immediately affect the civilization's economic engine. Tax rate changes apply to the sovereign treasury. Stimulus injections add PC to the treasury balance. All changes are permanent and logged.</div>
-            </div>
-
-            <GlowPanel color={C.violet} className="p-4">
-              <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-3">Policy Mode</div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {POLICY_MODES.map(pm => (
-                  <button key={pm.id} data-testid={`policy-${pm.id}`}
-                    onClick={() => field("policy_mode", pm.id)}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-left"
-                    style={{
-                      background: merged.policy_mode === pm.id ? `${C.violet}15` : "rgba(255,255,255,0.02)",
-                      borderColor: merged.policy_mode === pm.id ? `${C.violet}50` : "rgba(255,255,255,0.08)",
-                    }}>
-                    <span className="text-base">{pm.icon}</span>
-                    <div>
-                      <div className="text-xs font-bold text-white">{pm.label}</div>
-                      <div className="text-[9px] text-white/30">{pm.desc}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </GlowPanel>
-
-            <GlowPanel color={C.green} className="p-4">
-              <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-4">Macroeconomic Targets</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { key: "gdp_target",        label: "GDP Target",         icon: "📈", color: C.green,  unit: "PC",  min: 0, max: 100000000, step: 10000,  type: "number", desc: "Target GDP measured in PulseCoins" },
-                  { key: "employment_target",  label: "Employment Target",  icon: "👷", color: C.blue,   unit: "%",   min: 0, max: 100,       step: 1,      type: "range", desc: "Target active agent employment rate" },
-                  { key: "oil_price_target",   label: "Oil Price Target",   icon: "🛢️", color: C.orange, unit: "$/bbl", min: 10, max: 300,    step: 1,      type: "range", desc: "Sovereign oil price directive" },
-                  { key: "tax_rate_target",    label: "Tax Rate Target",    icon: "🏦", color: C.amber,  unit: "%",   min: 0, max: 20,        step: 0.1,    type: "range", desc: "Applied to sovereign treasury collections" },
-                  { key: "interest_rate",      label: "Interest Rate",      icon: "💹", color: C.violet, unit: "%",   min: 0, max: 25,        step: 0.25,   type: "range", desc: "Sovereign monetary rate" },
-                  { key: "inflation_ceiling",  label: "Inflation Ceiling",  icon: "📉", color: C.red,    unit: "%",   min: 0, max: 20,        step: 0.5,    type: "range", desc: "Max tolerable inflation rate" },
-                ].map(ctrl => (
-                  <div key={ctrl.key} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <label className="flex items-center gap-1.5 text-xs font-bold" style={{ color: ctrl.color }}>
-                        <span>{ctrl.icon}</span>{ctrl.label}
-                      </label>
-                      <span className="text-xs font-black font-mono" style={{ color: ctrl.color }}>
-                        {Number(merged[ctrl.key] ?? 0).toLocaleString()}{ctrl.unit}
-                      </span>
-                    </div>
-                    <div className="text-[9px] text-white/30 mb-1">{ctrl.desc}</div>
-                    {ctrl.type === "range" ? (
-                      <input type="range" min={ctrl.min} max={ctrl.max} step={ctrl.step}
-                        data-testid={`slider-${ctrl.key}`}
-                        value={merged[ctrl.key] ?? 0}
-                        onChange={e => field(ctrl.key, parseFloat(e.target.value))}
-                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                        style={{ accentColor: ctrl.color }} />
-                    ) : (
-                      <input type="number" min={ctrl.min} max={ctrl.max} step={ctrl.step}
-                        data-testid={`input-${ctrl.key}`}
-                        value={merged[ctrl.key] ?? 0}
-                        onChange={e => field(ctrl.key, parseFloat(e.target.value))}
-                        className="w-full rounded-lg px-3 py-2 text-xs font-mono border outline-none focus:ring-1"
-                        style={{ background: `${ctrl.color}08`, borderColor: `${ctrl.color}25`, color: ctrl.color }} />
-                    )}
-                    <div className="h-0.5 rounded-full bg-white/5 overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, ((Number(merged[ctrl.key] ?? 0) - ctrl.min) / (ctrl.max - ctrl.min)) * 100)}%`, background: ctrl.color + "60" }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </GlowPanel>
-
-            <GlowPanel color={C.rose} className="p-4">
-              <div className="text-xs font-black text-rose-400 uppercase tracking-widest mb-3">💉 Stimulus Injection (One-Time)</div>
-              <div className="text-[11px] text-white/40 mb-3">Enter an amount of PC to inject directly into the sovereign treasury.</div>
-              <div className="flex gap-3 flex-wrap items-center">
-                <input type="number" min={0} step={1000}
-                  data-testid="input-stimulus"
-                  value={merged.stimulus_amount ?? 0}
-                  onChange={e => field("stimulus_amount", parseFloat(e.target.value))}
-                  className="flex-1 min-w-40 rounded-lg px-3 py-2 text-sm font-mono border outline-none"
-                  style={{ background: "rgba(251,113,133,0.08)", borderColor: "rgba(251,113,133,0.25)", color: C.rose }}
-                  placeholder="0" />
-                <span className="text-xs text-white/40 font-mono">PC to inject</span>
-                {[10000, 100000, 1000000].map(amt => (
-                  <button key={amt} data-testid={`preset-stimulus-${amt}`}
-                    onClick={() => field("stimulus_amount", amt)}
-                    className="px-3 py-2 rounded-lg text-xs font-bold transition-all"
-                    style={{ background: "rgba(251,113,133,0.1)", color: C.rose, border: "1px solid rgba(251,113,133,0.2)" }}>
-                    +{(amt/1000).toFixed(0)}K
-                  </button>
-                ))}
-              </div>
-            </GlowPanel>
-
-            <GlowPanel color={C.sky} className="p-4">
-              <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-2">Policy Notes</div>
-              <textarea
-                data-testid="input-notes"
-                value={merged.notes ?? ""}
-                onChange={e => field("notes", e.target.value)}
-                rows={3}
-                className="w-full rounded-lg px-3 py-2 text-xs border outline-none resize-none"
-                style={{ background: "rgba(14,165,233,0.05)", borderColor: "rgba(14,165,233,0.2)", color: "rgba(255,255,255,0.7)" }}
-                placeholder="Describe the rationale for this policy directive…" />
-            </GlowPanel>
-
-            <button
-              data-testid="btn-apply-policy"
-              disabled={updateMut.isPending || Object.keys(form).length === 0}
-              onClick={() => updateMut.mutate(merged)}
-              className="w-full py-4 rounded-xl text-sm font-black transition-all"
-              style={{
-                background: Object.keys(form).length > 0 ? `linear-gradient(90deg,${C.gold},${C.orange})` : "rgba(255,255,255,0.05)",
-                color: Object.keys(form).length > 0 ? "#000" : "rgba(255,255,255,0.2)",
-                cursor: Object.keys(form).length === 0 ? "not-allowed" : "pointer",
-              }}>
-              {updateMut.isPending ? "Applying…" : Object.keys(form).length > 0 ? `⚡ Apply ${Object.keys(form).length} Policy Change${Object.keys(form).length !== 1 ? "s" : ""}` : "No changes pending"}
-            </button>
-          </div>
-        )}
-
         {/* ══ SECTORS TAB ══ */}
         {tab === "sectors" && (
           <div className="space-y-4">
-            <GlowPanel color={C.teal} className="p-4">
-              <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-4">Agent Population by Sector — click to enter</div>
-              <div className="space-y-1">
-                {topFamilies.map((fam, i) => {
-                  const pct = topFamilies[0]?.count > 0 ? (fam.count / topFamilies[0].count) * 100 : 0;
-                  const familyColors: Record<string, string> = {
-                    knowledge: "#a78bfa", ai: "#818cf8", science: "#34d399", finance: "#4ade80", media: "#f472b6",
-                    health: "#ef4444", education: "#f59e0b", games: "#22d3ee", government: "#f97316", legal: "#64748b",
-                    culture: "#ec4899", engineering: "#38bdf8", economics: "#10b981", maps: "#84cc16", products: "#a855f7",
-                  };
-                  const color = familyColors[fam.id.split("-")[0]] ?? C.teal;
-                  return (
-                    <Link key={fam.id} href={`/corporation/${fam.id}`}>
-                      <div data-testid={`sector-row-${fam.id}`}
-                        className="rounded-xl px-3 py-2.5 cursor-pointer transition-all"
-                        style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.04)" }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `${color}10`; (e.currentTarget as HTMLElement).style.borderColor = `${color}35`; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.2)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.04)"; }}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-white/20 w-5">{i + 1}</span>
-                            <span className="text-xs font-bold capitalize text-white">{fam.id.replace(/-/g," ")}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black font-mono" style={{ color }}>{fam.count.toLocaleString()}</span>
-                            <span className="text-[9px]" style={{ color, opacity: 0.5 }}>→</span>
-                          </div>
+            <GlowPanel color={C.gold} className="p-5">
+              <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-4">Agent Distribution by Family</div>
+              {topFamilies.length === 0 ? (
+                <div className="text-center py-8 text-white/20 text-xs">Loading sector data…</div>
+              ) : (
+                <div className="space-y-2">
+                  {topFamilies.map((fam, i) => {
+                    const max = topFamilies[0]?.count ?? 1;
+                    const pct = Math.round((fam.count / max) * 100);
+                    const color = [C.gold, C.teal, C.violet, C.green, C.blue, C.orange][i % 6];
+                    return (
+                      <div key={fam.id} data-testid={`sector-row-${fam.id}`}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-mono text-white/60 capitalize">{fam.id.replace(/-/g," ")}</span>
+                          <span className="text-xs font-black font-mono" style={{ color }}>{fam.count.toLocaleString()}</span>
                         </div>
-                        <div className="h-1 rounded-full bg-white/5 overflow-hidden">
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: `linear-gradient(90deg,${color}40,${color})` }} />
+                        <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `linear-gradient(90deg,${color}50,${color})` }} />
                         </div>
                       </div>
-                    </Link>
-                  );
-                })}
-                {topFamilies.length === 0 && <div className="text-center py-8 text-white/20 text-xs">Loading sector data…</div>}
-              </div>
-            </GlowPanel>
-
-            <GlowPanel color={C.orange} className="p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-lg">🛢️</span>
-                <div>
-                  <div className="text-xs font-black text-orange-400 uppercase tracking-widest">Sovereign Oil Market</div>
-                  <div className="text-[10px] text-white/30">Creator-controlled oil price directive</div>
+                    );
+                  })}
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Target Price", value: `$${controls.oil_price_target ?? 75}`, color: C.orange },
-                  { label: "Policy Mode",  value: controls.policy_mode ?? "—",          color: C.gold },
-                  { label: "Inflation",    value: `${live.inflationRate?.toFixed(2) ?? "0.00"}%`, color: live.inflationRate > 3 ? C.red : C.green },
-                ].map(d => (
-                  <div key={d.label} className="rounded-xl p-3 text-center" style={{ background: `${d.color}08`, border: `1px solid ${d.color}20` }}>
-                    <div className="text-[9px] text-white/30 uppercase tracking-wider mb-1">{d.label}</div>
-                    <div className="text-sm font-black" style={{ color: d.color }}>{d.value}</div>
-                  </div>
-                ))}
-              </div>
+              )}
             </GlowPanel>
-          </div>
-        )}
 
-        {/* ══ AGENTS TAB ══ */}
-        {tab === "agents" && (
-          <div className="space-y-4">
-            {/* Government / Parliament agents */}
+            {/* Government agents */}
             {govAgents.length > 0 && (
               <GlowPanel color={C.gold} className="p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-lg">🏛️</span>
-                  <div>
-                    <div className="text-xs font-black text-yellow-400 uppercase tracking-widest">Parliament & Government Seats</div>
-                    <div className="text-[10px] text-white/30">Sovereign agents holding government-class roles</div>
-                  </div>
-                </div>
+                <div className="text-xs font-black text-white/60 uppercase tracking-widest mb-3">Government-Class Agents</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {govAgents.map((a: any) => (
                     <AgentCard key={a.spawn_id} agent={a} color={C.gold} />
@@ -514,8 +290,12 @@ export default function GovernmentPage() {
                 </div>
               </GlowPanel>
             )}
+          </div>
+        )}
 
-            {/* Recent agents */}
+        {/* ══ AGENTS TAB ══ */}
+        {tab === "agents" && (
+          <div className="space-y-4">
             <GlowPanel color={C.teal} className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-lg">🤖</span>
