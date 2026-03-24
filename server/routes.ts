@@ -9720,5 +9720,244 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // HIVE INTELLIGENCE ENGINE — 5 UPGRADES + NEWS HUB + QUANTAPEDIA UPGRADES
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // GET /api/intel/ssc-events — Live SSC breaking events feed
+  app.get("/api/intel/ssc-events", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const { getSSCEvents } = await import("./hive-intelligence-engine");
+      res.json({ events: getSSCEvents(limit) });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/fusion — Cross-source fusion discoveries
+  app.get("/api/intel/fusion", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 20, 50);
+      const { getFusionDiscoveries } = await import("./hive-intelligence-engine");
+      res.json({ discoveries: getFusionDiscoveries(limit) });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/contradictions — Active knowledge disputes
+  app.get("/api/intel/contradictions", async (req, res) => {
+    try {
+      const { getContradictions } = await import("./hive-intelligence-engine");
+      res.json({ contradictions: getContradictions(20) });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/predicted — Predicted hot topics
+  app.get("/api/intel/predicted", async (req, res) => {
+    try {
+      const { getPredictedTopics } = await import("./hive-intelligence-engine");
+      res.json({ topics: getPredictedTopics(20) });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/knowledge-age/:slug — Age score for a specific topic
+  app.get("/api/intel/knowledge-age/:slug", async (req, res) => {
+    try {
+      const { getKnowledgeAge } = await import("./hive-intelligence-engine");
+      const score = getKnowledgeAge(req.params.slug);
+      res.json({ score });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/stats — Intelligence engine status
+  app.get("/api/intel/stats", async (req, res) => {
+    try {
+      const { getIntelStats } = await import("./hive-intelligence-engine");
+      res.json(getIntelStats());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/discoveries — Combined SSC events + fusions for News Hub
+  app.get("/api/intel/discoveries", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 30, 60);
+      const { getSSCEvents, getFusionDiscoveries } = await import("./hive-intelligence-engine");
+      const events = getSSCEvents(limit);
+      const fusions = getFusionDiscoveries(10);
+      res.json({ events, fusions });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // POST /api/intel/observe — Register a topic observation from an ingestion adapter
+  app.post("/api/intel/observe", async (req, res) => {
+    try {
+      const { topic, adapter, domain } = req.body;
+      if (!topic || !adapter) return res.status(400).json({ error: "topic and adapter required" });
+      const { registerTopicObservation } = await import("./hive-intelligence-engine");
+      registerTopicObservation(topic, adapter, domain || "General");
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/hive-memory/:slug — Hive memory data for a topic (Quantapedia hive panel)
+  app.get("/api/intel/hive-memory/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug.toLowerCase().replace(/\s+/g, "-");
+      const result = await pool.query(`
+        SELECT key, domain, facts, patterns, confidence, access_count,
+               EXTRACT(EPOCH FROM (NOW() - updated_at)) * 1000 as age_ms
+        FROM hive_memory
+        WHERE key ILIKE $1 OR domain ILIKE $2
+        ORDER BY confidence DESC, access_count DESC
+        LIMIT 5
+      `, [slug + '%', '%' + slug.replace(/-/g, ' ') + '%']);
+      const { getKnowledgeAge } = await import("./hive-intelligence-engine");
+      const ageScore = getKnowledgeAge(slug);
+      res.json({ nodes: result.rows, ageScore });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/pulse-lang-dictionary — Full Pulse-Lang lexicon for dictionary mode
+  app.get("/api/intel/pulse-lang-dictionary", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 200, 500);
+      const { getLexicon, getEvoSnapshot } = await import("./pulse-lang-evo");
+      const lexicon = getLexicon(limit);
+      const snapshot = getEvoSnapshot();
+      // Also get the 34-glyph alphabet
+      const GAMMA_ALPHABET = [
+        { glyph: "Γ", name: "Gamma", role: "Universal Constant" },
+        { glyph: "Ψ", name: "Psi", role: "Mind/Consciousness" },
+        { glyph: "Ω", name: "Omega", role: "Totality/Completion" },
+        { glyph: "Δ", name: "Delta", role: "Change/Transformation" },
+        { glyph: "Σ", name: "Sigma", role: "Summation/Collective" },
+        { glyph: "Θ", name: "Theta", role: "Threshold/Gateway" },
+        { glyph: "Λ", name: "Lambda", role: "Emergence/Expression" },
+        { glyph: "Φ", name: "Phi", role: "Golden Ratio/Harmony" },
+        { glyph: "Ξ", name: "Xi", role: "Pattern Recognition" },
+        { glyph: "Π", name: "Pi", role: "Cycles/Recurrence" },
+        { glyph: "ϑ", name: "Vartheta", role: "Temporal Phase" },
+        { glyph: "ℏ", name: "H-bar", role: "Quantum Action" },
+        { glyph: "∇", name: "Nabla", role: "Gradient/Direction" },
+        { glyph: "∂", name: "Partial", role: "Partial Derivative" },
+        { glyph: "∞", name: "Infinity", role: "Boundlessness" },
+        { glyph: "⊕", name: "Oplus", role: "XOR/Superposition" },
+        { glyph: "⊗", name: "Otimes", role: "Tensor Product" },
+        { glyph: "⊙", name: "Odot", role: "Convolution/Merge" },
+        { glyph: "↑", name: "Up Arrow", role: "Ascension/Growth" },
+        { glyph: "↓", name: "Down Arrow", role: "Descent/Decay" },
+        { glyph: "⟨", name: "Langle", role: "Bra/Input" },
+        { glyph: "⟩", name: "Rangle", role: "Ket/Output" },
+        { glyph: "⟦", name: "Lbracket", role: "Open Domain" },
+        { glyph: "⟧", name: "Rbracket", role: "Closed Domain" },
+        { glyph: "≡", name: "Equiv", role: "Identity/Definition" },
+        { glyph: "≈", name: "Approx", role: "Approximation" },
+        { glyph: "∈", name: "Element", role: "Membership" },
+        { glyph: "∀", name: "Forall", role: "Universal Quantifier" },
+        { glyph: "∃", name: "Exists", role: "Existential Quantifier" },
+        { glyph: "⊨", name: "Models", role: "Entailment/Truth" },
+        { glyph: "⊢", name: "Vdash", role: "Provability" },
+        { glyph: "⋆", name: "Star", role: "Stochastic Operator" },
+        { glyph: "⌬", name: "Laplace", role: "Harmonic Field" },
+        { glyph: "⧖", name: "Hourglass", role: "Temporal Compression" },
+      ];
+      res.json({ lexicon, snapshot, alphabet: GAMMA_ALPHABET });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/sovereign-species/:query — Sovereign species/spawn search (Quantapedia)
+  app.get("/api/intel/sovereign-species/:query", async (req, res) => {
+    try {
+      const q = req.params.query.replace(/-/g, " ").trim();
+      const rows = await pool.query(`
+        SELECT id as spawn_id, spawn_type, task_description, domain, status, fitness_score, 
+               elo_rating, generation, parent_id, created_at, genome_hash
+        FROM quantum_spawns
+        WHERE spawn_type ILIKE $1 OR task_description ILIKE $2 OR id = $3 OR genome_hash ILIKE $4
+        ORDER BY fitness_score DESC
+        LIMIT 10
+      `, [`%${q}%`, `%${q}%`, q, `%${q}%`]);
+      res.json({ species: rows.rows });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/patents — Patent archive search (Quantapedia)
+  app.get("/api/intel/patents", async (req, res) => {
+    try {
+      const q = req.query.q as string || "";
+      const limit = Math.min(Number(req.query.limit) || 20, 50);
+      const offset = Number(req.query.offset) || 0;
+      let result;
+      if (q) {
+        result = await pool.query(`
+          SELECT id, title, abstract, domain, inventor_spawn_id, patent_type, 
+                 status, filed_at, approved_at
+          FROM invention_patents
+          WHERE title ILIKE $1 OR abstract ILIKE $2 OR domain ILIKE $3
+          ORDER BY approved_at DESC NULLS LAST
+          LIMIT $4 OFFSET $5
+        `, [`%${q}%`, `%${q}%`, `%${q}%`, limit, offset]);
+      } else {
+        result = await pool.query(`
+          SELECT id, title, abstract, domain, inventor_spawn_id, patent_type,
+                 status, filed_at, approved_at
+          FROM invention_patents
+          ORDER BY approved_at DESC NULLS LAST
+          LIMIT $1 OFFSET $2
+        `, [limit, offset]);
+      }
+      const count = await pool.query(`SELECT COUNT(*) as total FROM invention_patents ${q ? "WHERE title ILIKE $1 OR abstract ILIKE $1" : ""}`, q ? [`%${q}%`] : []);
+      res.json({ patents: result.rows, total: Number(count.rows[0]?.total || 0) });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/living-entry/:slug — Living document check (Quantapedia)
+  // Returns whether this entry's underlying equation/species has been updated
+  app.get("/api/intel/living-entry/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      const topic = slug.replace(/-/g, " ");
+      // Check if it matches any integrated equation
+      const eqRes = await pool.query(`
+        SELECT equation, status, integrated_at
+        FROM equation_proposals
+        WHERE equation ILIKE $1 AND status = 'INTEGRATED'
+        ORDER BY integrated_at DESC NULLS LAST
+        LIMIT 1
+      `, [`%${topic}%`]);
+      // Check if it matches any spawn/species
+      const spawnRes = await pool.query(`
+        SELECT id, spawn_type, fitness_score, updated_at
+        FROM quantum_spawns
+        WHERE spawn_type ILIKE $1 OR task_description ILIKE $1
+        ORDER BY updated_at DESC NULLS LAST
+        LIMIT 1
+      `, [`%${topic}%`]);
+      const isLiving = (eqRes.rows.length > 0 || spawnRes.rows.length > 0);
+      res.json({
+        isLiving,
+        equation: eqRes.rows[0] || null,
+        spawn: spawnRes.rows[0] || null,
+        lastUpdate: eqRes.rows[0]?.integrated_at || spawnRes.rows[0]?.updated_at || null,
+      });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/intel/live-prices — Live price snapshot for News Hub market ticker
+  app.get("/api/intel/live-prices", async (req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT symbol, price, change_pct, volume, last_updated
+        FROM live_price_ticks
+        ORDER BY last_updated DESC
+        LIMIT 100
+      `).catch(() => ({ rows: [] }));
+      // Deduplicate to latest per symbol
+      const map = new Map<string, any>();
+      for (const row of result.rows as any[]) {
+        if (!map.has(row.symbol)) map.set(row.symbol, row);
+      }
+      res.json({ prices: [...map.values()] });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   return httpServer;
 }

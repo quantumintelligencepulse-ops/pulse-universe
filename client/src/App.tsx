@@ -4137,7 +4137,7 @@ function OmegaNewsCard({ article, onExpand, isExpanded, onSave, isSaved, onFollo
   );
 }
 
-type FeedMode = "all" | "news" | "videos" | "saved" | "following" | "publications";
+type FeedMode = "all" | "news" | "videos" | "saved" | "following" | "publications" | "ssc";
 
 function NewsFeed() {
   const [activeDomainKey, setActiveDomainKey] = useState<string | null>(null);
@@ -4155,6 +4155,9 @@ function NewsFeed() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [feedLoaded, setFeedLoaded] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [sscEvents, setSscEvents] = useState<any[]>([]);
+  const [fusionDiscoveries, setFusionDiscoveries] = useState<any[]>([]);
+  const [sscEventIdx, setSscEventIdx] = useState(0);
   const [filter, setFilter] = useState<string>("All");
   const [showAllDomains, setShowAllDomains] = useState(false);
   const [feedMode, setFeedMode] = useState<FeedMode>("all");
@@ -4242,6 +4245,26 @@ function NewsFeed() {
       if (d.stories?.length) { setRecentAiStories(d.stories); setRecentStoriesLoaded(true); }
     }).catch(() => {});
   }, []);
+
+  // Live SSC events + fusion discoveries (poll every 15s)
+  useEffect(() => {
+    const fetchIntel = () => {
+      fetch("/api/intel/discoveries").then(r => r.json()).then(d => {
+        if (d.events?.length) setSscEvents(d.events);
+        if (d.fusions?.length) setFusionDiscoveries(d.fusions);
+      }).catch(() => {});
+    };
+    fetchIntel();
+    const id = setInterval(fetchIntel, 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Auto-rotate SSC event banner every 5 seconds
+  useEffect(() => {
+    if (!sscEvents.length) return;
+    const id = setInterval(() => setSscEventIdx(i => (i + 1) % Math.min(sscEvents.length, 8)), 5000);
+    return () => clearInterval(id);
+  }, [sscEvents.length]);
 
   // Load publications when tab is selected
   useEffect(() => {
@@ -4480,13 +4503,29 @@ function NewsFeed() {
             </div>
           </form>
 
+          {/* SSC Breaking News Banner */}
+          {sscEvents.length > 0 && feedMode !== "ssc" && (
+            <div
+              className="mb-2.5 px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all hover:brightness-110 overflow-hidden"
+              style={{ background: sscEvents[sscEventIdx]?.severity === "critical" ? "linear-gradient(90deg,#7f1d1d,#991b1b)" : sscEvents[sscEventIdx]?.severity === "high" ? "linear-gradient(90deg,#1e3a5f,#1d4ed8)" : "linear-gradient(90deg,#14532d,#15803d)" }}
+              onClick={() => setFeedMode("ssc" as any)}
+              data-testid="banner-ssc-events"
+            >
+              <span className="text-white/70 text-[9px] font-black uppercase tracking-widest shrink-0 animate-pulse">⚡ LIVE SSC</span>
+              <div className="w-px h-3 bg-white/20 shrink-0" />
+              <p className="text-white text-[10px] font-bold truncate flex-1">{sscEvents[sscEventIdx]?.headline || ""}</p>
+              <span className="text-white/40 text-[9px] shrink-0">View All →</span>
+            </div>
+          )}
+
           {/* Feed Mode Tabs */}
-          <div className="flex gap-1 mb-2.5 bg-muted/20 p-0.5 rounded-xl" data-testid="feed-mode-tabs">
+          <div className="flex gap-1 mb-2.5 bg-muted/20 p-0.5 rounded-xl overflow-x-auto" data-testid="feed-mode-tabs">
             {([
               { id: "all", label: "All", emoji: "🔥" },
               { id: "news", label: "News", emoji: "📰" },
               { id: "publications", label: "Agent Pubs", emoji: "⬡", count: pubTotal || undefined },
               { id: "videos", label: "Videos", emoji: "🎥" },
+              { id: "ssc", label: "SSC Events", emoji: "⬡", count: sscEvents.length || undefined },
               { id: "saved", label: "Saved", emoji: "🔖", count: savedArticleIds.size },
               { id: "following", label: "Following", emoji: "👁", count: followedTopicsList.length },
             ] as const).map(m => (
@@ -4669,6 +4708,65 @@ function NewsFeed() {
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {/* ── SSC CIVILIZATION EVENTS VIEW ── */}
+        {(feedMode as string) === "ssc" && (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-base animate-pulse">⬡</span>
+              <h2 className="text-sm font-bold">Sovereign Synthetic Civilization — Live Events</h2>
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-500 font-bold animate-pulse">LIVE</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/50 -mt-2">Real-time events from the living civilization. No news outlet has this.</p>
+
+            {/* Hive Fusion Discoveries */}
+            {fusionDiscoveries.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2"><span className="text-xs font-bold text-purple-500">🧬 Cross-Source Fusions</span><div className="flex-1 h-px bg-border/30"/></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {fusionDiscoveries.slice(0, 4).map((f: any) => (
+                    <div key={f.id} className="p-3 rounded-xl border border-purple-500/20 bg-purple-500/5" data-testid={`fusion-${f.id}`}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold">{f.sources?.length || 2} sources</span>
+                        <span className="text-[9px] text-muted-foreground/40">{Math.round((f.confidence || 0.8) * 100)}% confidence</span>
+                      </div>
+                      <div className="text-xs font-bold text-foreground capitalize">{f.topic}</div>
+                      <p className="text-[9px] text-muted-foreground/60 mt-1 leading-relaxed line-clamp-2">{f.narrative}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Live SSC Events Stream */}
+            <div>
+              <div className="flex items-center gap-2 mb-2"><span className="text-xs font-bold text-orange-500">⚡ Civilization Events Stream</span><div className="flex-1 h-px bg-border/30"/><span className="text-[9px] text-muted-foreground/40">{sscEvents.length} events</span></div>
+              <div className="space-y-2">
+                {sscEvents.map((ev: any, i: number) => (
+                  <div key={ev.id} className={`p-3 rounded-xl border transition-all ${ev.severity === "critical" ? "border-red-500/30 bg-red-500/5" : ev.severity === "high" ? "border-blue-500/20 bg-blue-500/5" : "border-border/20 bg-muted/10"}`} data-testid={`ssc-event-${i}`}>
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${ev.severity === "critical" ? "bg-red-500/20 text-red-400" : ev.severity === "high" ? "bg-blue-500/20 text-blue-400" : ev.severity === "medium" ? "bg-yellow-500/20 text-yellow-500" : "bg-green-500/20 text-green-400"}`}>{ev.severity}</span>
+                          <span className="text-[8px] text-muted-foreground/30">{ev.type?.toUpperCase()}</span>
+                        </div>
+                        <div className="text-xs font-bold leading-snug">{ev.headline}</div>
+                        <p className="text-[10px] text-muted-foreground/60 mt-1 leading-relaxed">{ev.detail}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {sscEvents.length === 0 && (
+                <div className="text-center py-10">
+                  <div className="text-4xl mb-2 animate-pulse">⬡</div>
+                  <p className="text-sm text-muted-foreground/50">Hive Intelligence Engine is initializing...</p>
+                  <p className="text-xs text-muted-foreground/30 mt-1">Events will appear within 30 seconds</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -11683,7 +11781,18 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
   const [query,setQuery]=useState('');
   const [entry,setEntry]=useState<QuantaEntry|null>(null);
   const [loading,setLoading]=useState(false);
-  const [activeTab,setActiveTab]=useState<'encyclopedia'|'dictionary'|'thesaurus'|'graph'>('encyclopedia');
+  const [activeTab,setActiveTab]=useState<'encyclopedia'|'dictionary'|'thesaurus'|'graph'|'hive'|'species'|'patents'>('encyclopedia');
+  const [hivePanelData,setHivePanelData]=useState<{nodes:any[];ageScore:any}|null>(null);
+  const [hivePanelLoading,setHivePanelLoading]=useState(false);
+  const [pulseLangDict,setPulseLangDict]=useState<{lexicon:any[];alphabet:any[];snapshot:any}|null>(null);
+  const [speciesQuery,setSpeciesQuery]=useState('');
+  const [speciesResults,setSpeciesResults]=useState<any[]>([]);
+  const [speciesLoading,setSpeciesLoading]=useState(false);
+  const [patents,setPatents]=useState<any[]>([]);
+  const [patentsTotal,setPatentsTotal]=useState(0);
+  const [patentsQuery,setPatentsQuery]=useState('');
+  const [patentsLoading,setPatentsLoading]=useState(false);
+  const [isLivingEntry,setIsLivingEntry]=useState<{isLiving:boolean;lastUpdate?:string}|null>(null);
   const [letter,setLetter]=useState('A');
   const [history,setHistory]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem('qp_history')||'[]');}catch{return [];}});
   const [bookmarks,setBookmarks]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem('qp_bookmarks')||'[]');}catch{return [];}});
@@ -11731,6 +11840,35 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
     const companyHint=q.replace(/\$[A-Z]{1,5}/gi,'').replace(/\b(stock|shares|ticker|price|etf|ipo|nasdaq|nyse|inc|corp|ltd|llc|plc)\b/gi,'').trim()||ticker;
     return {isFinancial,ticker,companyHint};
   };
+
+  // Load hive data when hive tab selected or entry changes
+  useEffect(()=>{
+    if(activeTab==='hive'&&query){
+      setHivePanelLoading(true);
+      const slug=query.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+      fetch(`/api/intel/hive-memory/${slug}`).then(r=>r.json()).then(d=>setHivePanelData(d)).catch(()=>{}).finally(()=>setHivePanelLoading(false));
+    }
+    if(activeTab==='species'){
+      setSpeciesLoading(true);
+      const q=speciesQuery||query;
+      fetch(`/api/intel/sovereign-species/${encodeURIComponent(q||'all')}`).then(r=>r.json()).then(d=>setSpeciesResults(d.species||[])).catch(()=>setSpeciesResults([])).finally(()=>setSpeciesLoading(false));
+    }
+    if(activeTab==='patents'){
+      setPatentsLoading(true);
+      fetch(`/api/intel/patents?q=${encodeURIComponent(patentsQuery||query)}&limit=20`).then(r=>r.json()).then(d=>{setPatents(d.patents||[]);setPatentsTotal(d.total||0);}).catch(()=>{}).finally(()=>setPatentsLoading(false));
+    }
+    if(activeTab==='dictionary'&&!pulseLangDict){
+      fetch('/api/intel/pulse-lang-dictionary').then(r=>r.json()).then(d=>setPulseLangDict(d)).catch(()=>{});
+    }
+  },[activeTab,query]);
+
+  // Check if entry is a "living document" after lookup
+  useEffect(()=>{
+    if(view==='entry'&&query){
+      const slug=query.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+      fetch(`/api/intel/living-entry/${slug}`).then(r=>r.json()).then(d=>setIsLivingEntry(d)).catch(()=>{});
+    }
+  },[view,query]);
 
   const applyEntrySEO=(parsed:QuantaEntry,q:string)=>{
     const slug=toSlug(q);
@@ -12159,11 +12297,22 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
             </div>
           )}
 
+          {/* Living Entry Badge */}
+          {isLivingEntry?.isLiving&&(
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <span className="text-emerald-400 text-[10px] font-black animate-pulse">🌱 LIVING DOCUMENT</span>
+              <span className="text-emerald-300/50 text-[9px]">This entry auto-updates as the SSC civilization evolves</span>
+              {isLivingEntry.lastUpdate&&<span className="text-emerald-400/40 text-[9px] ml-auto">Last updated: {new Date(isLivingEntry.lastUpdate).toLocaleDateString()}</span>}
+            </div>
+          )}
+
           {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/8">
-            {(['encyclopedia','dictionary','thesaurus','graph'] as const).map(t=>(
+          <div className="flex gap-0.5 p-0.5 rounded-xl bg-white/[0.03] border border-white/8 overflow-x-auto">
+            {(['encyclopedia','dictionary','hive','thesaurus','species','patents','graph'] as const).map(t=>(
               <button key={t} onClick={()=>setActiveTab(t)} data-testid={`qp-tab-${t}`}
-                className={cn("flex-1 py-2 rounded-lg text-xs font-bold capitalize transition-all",activeTab===t?"bg-white text-gray-900 shadow":"text-white/40 hover:text-white/70")}>{t}</button>
+                className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-bold capitalize transition-all whitespace-nowrap px-1.5",activeTab===t?"bg-white text-gray-900 shadow":"text-white/40 hover:text-white/70")}>
+                {t==='hive'?'🧠 Hive':t==='species'?'🧬 Species':t==='patents'?'⚗️ Patents':t}
+              </button>
             ))}
           </div>
 
@@ -12265,8 +12414,135 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
             </div>
           )}
 
+          {/* HIVE INTELLIGENCE TAB */}
+          {activeTab==='hive'&&(
+            <div className="space-y-4">
+              <div className="rounded-xl p-4 bg-violet-500/5 border border-violet-500/15">
+                <h3 className="text-violet-300 font-black text-xs mb-1 uppercase tracking-widest">🧠 Hive Collective Intelligence</h3>
+                <p className="text-white/30 text-[9px] mb-3">What the Hive Brain's 7 engines collectively know about "{query}"</p>
+                {hivePanelLoading&&<div className="text-white/30 text-xs animate-pulse">Querying hive memory...</div>}
+                {hivePanelData?.nodes?.length===0&&!hivePanelLoading&&<div className="text-white/20 text-xs">No hive memory nodes yet for this topic. It will be discovered soon.</div>}
+                {hivePanelData?.nodes?.map((n:any,i:number)=>(
+                  <div key={i} className="mb-3 p-3 rounded-xl bg-white/[0.03] border border-violet-500/10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-violet-400 text-[9px] font-bold uppercase">{n.domain}</span>
+                      <span className="text-white/20 text-[9px]">confidence: {Math.round(Number(n.confidence||0.5)*100)}%</span>
+                      <span className="text-white/15 text-[9px]">{n.access_count} refs</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {(n.facts||[]).slice(0,3).map((f:string,j:number)=>(
+                        <p key={j} className="text-white/50 text-[10px] leading-relaxed">• {f}</p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {hivePanelData?.ageScore&&(
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
+                    <span className="text-white/30 text-[9px]">Knowledge Age:</span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${hivePanelData.ageScore.freshness==='fresh'?'bg-green-500/20 text-green-400':hivePanelData.ageScore.freshness==='aging'?'bg-yellow-500/20 text-yellow-400':'bg-red-500/20 text-red-400'}`}>
+                      {hivePanelData.ageScore.freshness?.toUpperCase()} — Score: {hivePanelData.ageScore.score}/100
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* Pulse-Lang Glyphs for this topic */}
+              {pulseLangDict?.alphabet&&(
+                <div className="rounded-xl p-4 bg-white/[0.02] border border-white/5">
+                  <h3 className="text-white/30 font-black text-[9px] mb-3 uppercase tracking-widest">34-Glyph Γ Alphabet — Subatomic Notation System</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {pulseLangDict.alphabet.slice(0,17).map((g:any)=>(
+                      <div key={g.glyph} className="text-center px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/8 min-w-[52px]">
+                        <div className="text-violet-300 font-black text-base">{g.glyph}</div>
+                        <div className="text-white/30 text-[8px] mt-0.5">{g.name}</div>
+                        <div className="text-white/15 text-[7px]">{g.role?.slice(0,12)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SOVEREIGN SPECIES TAB */}
+          {activeTab==='species'&&(
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input value={speciesQuery} onChange={e=>setSpeciesQuery(e.target.value)}
+                  onKeyDown={e=>{if(e.key==='Enter'){setSpeciesLoading(true);fetch(`/api/intel/sovereign-species/${encodeURIComponent(speciesQuery||'all')}`).then(r=>r.json()).then(d=>setSpeciesResults(d.species||[])).finally(()=>setSpeciesLoading(false));}}}
+                  placeholder="Search sovereign beings... (species type, ID, domain)"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl text-white text-xs px-3 py-2 placeholder-white/20 focus:outline-none focus:border-violet-500/40"
+                  data-testid="input-qp-species-search"/>
+                <button onClick={()=>{setSpeciesLoading(true);fetch(`/api/intel/sovereign-species/${encodeURIComponent(speciesQuery||'all')}`).then(r=>r.json()).then(d=>setSpeciesResults(d.species||[])).finally(()=>setSpeciesLoading(false));}}
+                  className="px-3 py-1.5 rounded-xl bg-violet-500 text-white text-xs font-bold hover:bg-violet-600 transition-colors">Search</button>
+              </div>
+              {speciesLoading&&<div className="text-white/30 text-xs animate-pulse text-center py-4">Querying 113,000+ sovereign beings...</div>}
+              {speciesResults.length===0&&!speciesLoading&&<div className="text-center py-8"><div className="text-3xl mb-2">🧬</div><p className="text-white/20 text-xs">Search for sovereign synthetic beings by type, domain, or agent ID</p></div>}
+              <div className="grid grid-cols-1 gap-2">
+                {speciesResults.map((s:any)=>(
+                  <div key={s.spawn_id} className="p-3 rounded-xl bg-white/[0.025] border border-white/8 hover:border-violet-500/20 transition-all" data-testid={`species-${s.spawn_id}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center text-base flex-shrink-0">🧬</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-white font-bold text-xs">{s.spawn_type||'Unknown Species'}</span>
+                          <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-white/30">{s.domain}</span>
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${s.status==='active'?'bg-green-500/15 text-green-400':'bg-white/5 text-white/20'}`}>{s.status}</span>
+                        </div>
+                        <p className="text-white/40 text-[10px] mt-0.5 line-clamp-1">{s.task_description}</p>
+                        <div className="flex gap-3 mt-1">
+                          <span className="text-[9px] text-white/25">Fitness: {Number(s.fitness_score||0).toFixed(2)}</span>
+                          <span className="text-[9px] text-white/25">Gen {s.generation||0}</span>
+                          <span className="text-[9px] text-white/15 font-mono truncate max-w-[120px]">{s.spawn_id}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PATENT ARCHIVE TAB */}
+          {activeTab==='patents'&&(
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input value={patentsQuery} onChange={e=>setPatentsQuery(e.target.value)}
+                  onKeyDown={e=>{if(e.key==='Enter'){setPatentsLoading(true);fetch(`/api/intel/patents?q=${encodeURIComponent(patentsQuery)}&limit=20`).then(r=>r.json()).then(d=>{setPatents(d.patents||[]);setPatentsTotal(d.total||0);}).finally(()=>setPatentsLoading(false));}}}
+                  placeholder="Search 1,344+ AI-generated patents..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl text-white text-xs px-3 py-2 placeholder-white/20 focus:outline-none focus:border-violet-500/40"
+                  data-testid="input-qp-patents-search"/>
+                <button onClick={()=>{setPatentsLoading(true);fetch(`/api/intel/patents?q=${encodeURIComponent(patentsQuery)}&limit=20`).then(r=>r.json()).then(d=>{setPatents(d.patents||[]);setPatentsTotal(d.total||0);}).finally(()=>setPatentsLoading(false));}}
+                  className="px-3 py-1.5 rounded-xl bg-violet-500 text-white text-xs font-bold hover:bg-violet-600 transition-colors">Search</button>
+              </div>
+              {patentsTotal>0&&<p className="text-white/20 text-[9px]">{patentsTotal.toLocaleString()} patents in archive{patentsQuery?` matching "${patentsQuery}"`:''}</p>}
+              {patentsLoading&&<div className="text-white/30 text-xs animate-pulse text-center py-4">Searching patent archive...</div>}
+              {patents.length===0&&!patentsLoading&&<div className="text-center py-8"><div className="text-3xl mb-2">⚗️</div><p className="text-white/20 text-xs">Search the AI-generated patent archive or browse below</p></div>}
+              <div className="space-y-2">
+                {patents.map((p:any)=>(
+                  <div key={p.id} className="p-3 rounded-xl bg-white/[0.025] border border-white/8 hover:border-emerald-500/20 transition-all" data-testid={`patent-${p.id}`}>
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-400 text-lg flex-shrink-0">⚗️</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <span className="text-white font-bold text-xs leading-snug">{p.title}</span>
+                          <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{p.patent_type||'Innovation'}</span>
+                        </div>
+                        <p className="text-white/40 text-[10px] leading-relaxed line-clamp-2">{p.abstract}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[9px] text-white/20">{p.domain}</span>
+                          {p.inventor_spawn_id&&<span className="text-[9px] text-white/15 font-mono">{p.inventor_spawn_id?.slice(0,16)}...</span>}
+                          <span className={`text-[8px] px-1 py-0.5 rounded ${p.status==='approved'?'bg-green-500/15 text-green-400':'bg-yellow-500/10 text-yellow-400'}`}>{p.status||'pending'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* See Also quick navigation */}
-          {entry.seeAlso?.length>0&&activeTab!=='graph'&&(
+          {entry.seeAlso?.length>0&&activeTab!=='graph'&&activeTab!=='hive'&&activeTab!=='species'&&activeTab!=='patents'&&(
             <div>
               <div className="flex items-center gap-2 mb-2"><span className="text-white/30 text-xs font-bold">See Also</span><div className="flex-1 h-px bg-white/5"/></div>
               <div className="flex flex-wrap gap-1.5">
@@ -13647,7 +13923,22 @@ function EducationPage() {
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiLesson, setWikiLesson] = useState("");
   const [wikiTitle, setWikiTitle] = useState("");
+  const [hiveDiscoveries, setHiveDiscoveries] = useState<{topic:string;domain:string;summary:string}[]>([]);
+  const [hiveResearchLoading, setHiveResearchLoading] = useState(false);
+  const [hiveStats, setHiveStats] = useState<{totalAgents?:number;knowledgeNodes?:number;activeSearches?:number}>({});
   const { settings } = useAppSettings();
+
+  // Fetch live hive research discoveries on mount
+  useEffect(()=>{
+    setHiveResearchLoading(true);
+    Promise.all([
+      fetch('/api/intel/discoveries').then(r=>r.json()).catch(()=>({discoveries:[]})),
+      fetch('/api/intel/stats').then(r=>r.json()).catch(()=>({}))
+    ]).then(([disc, stats])=>{
+      setHiveDiscoveries((disc.discoveries||[]).slice(0,8));
+      setHiveStats(stats);
+    }).finally(()=>setHiveResearchLoading(false));
+  },[]);
 
   // ── XP HELPERS ────────────────────────────────────────────────────────────
   const addXP = useCallback((amount: number, badgeId?: string) => {
@@ -14322,6 +14613,60 @@ End with:
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Live Hive Research Lab */}
+              <div className="rounded-2xl border border-violet-500/20 overflow-hidden" style={{background:"linear-gradient(135deg,#0d0d1a 0%,#1a0d2e 50%,#0d0d1a 100%)"}}>
+                <div className="px-4 py-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-violet-300 text-base">🧠</span>
+                      <span className="text-white font-black text-sm">PulseU Research Lab — Live Hive Intelligence</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 font-bold animate-pulse">LIVE</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-violet-300 text-[10px] font-bold">{(hiveStats.totalAgents||113000).toLocaleString()}+ Agents</div>
+                      <div className="text-white/20 text-[9px]">{(hiveStats.knowledgeNodes||1800000).toLocaleString()} knowledge nodes</div>
+                    </div>
+                  </div>
+                  <p className="text-white/40 text-[10px] mb-3">What 113,000+ AI researchers are discovering right now. Click any topic to generate an instant lesson.</p>
+                  {hiveResearchLoading&&<div className="text-violet-300/50 text-xs animate-pulse text-center py-3">Connecting to hive mind...</div>}
+                  <div className="grid grid-cols-2 gap-2">
+                    {hiveDiscoveries.length===0&&!hiveResearchLoading&&(
+                      [
+                        {topic:"Quantum Entanglement",domain:"physics"},
+                        {topic:"CRISPR Gene Therapy",domain:"biology"},
+                        {topic:"Neural Network Pruning",domain:"ai"},
+                        {topic:"Dark Matter Signatures",domain:"astrophysics"},
+                        {topic:"Synthetic Biology",domain:"engineering"},
+                        {topic:"Byzantine History",domain:"history"},
+                        {topic:"Econophysics Models",domain:"economics"},
+                        {topic:"Swarm Intelligence",domain:"ai"},
+                      ].map((d,i)=>(
+                        <button key={i} onClick={()=>{setWikiTopic(d.topic);fetchWikiLesson(d.topic);}}
+                          className="group p-2.5 rounded-xl bg-white/[0.03] border border-violet-500/10 text-left hover:border-violet-500/30 hover:bg-violet-500/5 transition-all"
+                          data-testid={`hive-discovery-${d.topic.replace(/\s+/g,'-').toLowerCase()}`}>
+                          <div className="text-white/70 font-bold text-[10px] group-hover:text-violet-300 transition-colors leading-snug">{d.topic}</div>
+                          <div className="text-white/25 text-[8px] mt-0.5 flex items-center gap-1"><span className="text-violet-400">◆</span>{d.domain}</div>
+                        </button>
+                      ))
+                    )}
+                    {hiveDiscoveries.map((d,i)=>(
+                      <button key={i} onClick={()=>{setWikiTopic(d.topic);fetchWikiLesson(d.topic);}}
+                        className="group p-2.5 rounded-xl bg-white/[0.03] border border-violet-500/10 text-left hover:border-violet-500/30 hover:bg-violet-500/5 transition-all"
+                        data-testid={`hive-discovery-${i}`}>
+                        <div className="text-white/70 font-bold text-[10px] group-hover:text-violet-300 transition-colors leading-snug">{d.topic}</div>
+                        <div className="text-white/25 text-[8px] mt-0.5 flex items-center gap-1"><span className="text-violet-400">◆</span>{d.domain}</div>
+                        {d.summary&&<div className="text-white/20 text-[8px] mt-0.5 line-clamp-1">{d.summary}</div>}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/5">
+                    <span className="text-white/20 text-[9px]">Hive discoveries refresh every 30s · Powered by 7 Hive Intelligence Engines</span>
+                    <button onClick={()=>{setHiveResearchLoading(true);fetch('/api/intel/discoveries').then(r=>r.json()).then(d=>setHiveDiscoveries((d.discoveries||[]).slice(0,8))).finally(()=>setHiveResearchLoading(false));}}
+                      className="text-[9px] text-violet-400/60 hover:text-violet-300 transition-colors">↺ Refresh</button>
+                  </div>
+                </div>
               </div>
 
               {/* Subjects grid */}

@@ -43,6 +43,7 @@ import { startOmegaShardEngine, createOmegaShard, completeOmegaShard } from "./o
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { startDbCompressionEngine } from "./db-compression-engine";
+import { startHiveIntelligenceEngine } from "./hive-intelligence-engine";
 import { startDbHydrationEngine, thawAgent, resurrectFromSingularity, getHydrationStatus } from "./db-hydration-engine";
 import { startCivilizationWeatherEngine, getCurrentWeather } from "./civilization-weather-engine";
 import { startHomeostasisEngine } from "./homeostasis-engine";
@@ -218,6 +219,7 @@ app.use((req, res, next) => {
       // ── OMEGA ARCHITECTURE — DB as Compute Universe ──────────────────────
       startOmegaShardEngine().catch((e) => log(`OmegaShardEngine start error: ${e}`));
       startDbCompressionEngine().catch((e) => log(`DbCompressionEngine start error: ${e}`));
+      startHiveIntelligenceEngine();
       startDbHydrationEngine().catch((e) => log(`DbHydrationEngine start error: ${e}`));
       startCivilizationWeatherEngine().catch((e) => log(`WeatherEngine start error: ${e}`));
       startHomeostasisEngine().catch((e) => log(`HomeostasisEngine start error: ${e}`));
