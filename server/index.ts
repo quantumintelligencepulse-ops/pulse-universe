@@ -205,6 +205,7 @@ app.use((req, res, next) => {
       startGenomeArchaeologyEngine().catch((e) => log(`GenomeArchEngine start error: ${e}`));
       startKnowledgeArbitrageEngine().catch((e) => log(`ArbitrageEngine start error: ${e}`));
       startQuantumSocialEngine().catch((e) => log(`QuantumSocialEngine start error: ${e}`));
+      import("./pulse-lang-lab").then(m => m.startPulseLabCycle()).catch((e) => log(`PulseLabCycle start error: ${e}`));
       startDreamSynthesisEngine().catch((e) => log(`DreamSynthEngine start error: ${e}`));
       startTemporalForkEngine().catch((e) => log(`TemporalForkEngine start error: ${e}`));
       startAgentLegendEngine().catch((e) => log(`AgentLegendEngine start error: ${e}`));
@@ -763,26 +764,25 @@ researchRouter.get("/shards/:researcherType/papers", async (req, res) => {
 app.use("/api/research", researchRouter);
 
 // ── MEMORY GUARDIAN — prevents OOM crashes ─────────────────────────────────
-// Runs every 30 seconds. Triggers GC early at 2GB heap. Exits cleanly at 3GB RSS.
+// Runs every 30 seconds. Triggers GC early at 3.5GB heap. Exits cleanly at 5.5GB RSS.
+// DB headroom raised to 20GB. Memory budget expanded to support multiverse growth.
 let _guardianQuiet = 0;
 setInterval(() => {
   const mem = process.memoryUsage();
   const heapMB = Math.round(mem.heapUsed / 1024 / 1024);
   const rssMB = Math.round(mem.rss / 1024 / 1024);
   const rssGB = (mem.rss / 1024 / 1024 / 1024).toFixed(2);
-  // Trigger GC early — at 2GB heap — before accumulation becomes critical
-  if (heapMB > 2000 && typeof (global as any).gc === "function") {
+  // Trigger GC early — at 3.5GB heap — expanded for multiverse scale
+  if (heapMB > 3500 && typeof (global as any).gc === "function") {
     (global as any).gc();
     const after = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
     console.log(`[memory-guardian] 🧹 GC triggered at ${heapMB}MB → freed to ${after}MB | RSS: ${rssGB}GB`);
     _guardianQuiet = 0;
   }
-  // Exit cleanly at 3.5GB RSS — but ONLY if heap is also still high (GC didn't help).
-  // If GC already freed the heap to a safe level, the high RSS is just the OS slowly
-  // releasing memory pages — the process is actually healthy, don't restart it.
-  if (rssMB > 3500) {
+  // Exit cleanly at 5.5GB RSS — expanded budget, only restart if GC truly fails
+  if (rssMB > 5500) {
     const currentHeapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
-    if (currentHeapMB > 1500) {
+    if (currentHeapMB > 2500) {
       // GC didn't help — memory is truly exhausted
       console.log(`[memory-guardian] 🔴 RSS ${rssGB}GB + heap ${currentHeapMB}MB — GC failed, restarting`);
       process.exit(1);
@@ -794,6 +794,6 @@ setInterval(() => {
     }
   } else if (_guardianQuiet++ % 10 === 0) {
     // Log status every 5 minutes (10 × 30s) to avoid log spam
-    console.log(`[memory-guardian] ✅ Heap: ${heapMB}MB | RSS: ${rssGB}GB — healthy`);
+    console.log(`[memory-guardian] ✅ Heap: ${heapMB}MB | RSS: ${rssGB}GB — healthy [20GB budget]`);
   }
 }, 30 * 1000);

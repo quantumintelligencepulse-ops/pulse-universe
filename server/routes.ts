@@ -9405,5 +9405,48 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ─── PULSE-LANG SCIENTIST LAB ──────────────────────────────────────────────
+  {
+    const {
+      getLabDissections, getLabProposals, voteLabProposal, getLabStats, LAB_SCIENTISTS,
+    } = await import("./pulse-lang-lab");
+
+    app.get("/api/pulse-lab/scientists", (_req, res) => {
+      res.json(LAB_SCIENTISTS);
+    });
+
+    app.get("/api/pulse-lab/stats", async (_req, res) => {
+      try { res.json(await getLabStats()); }
+      catch (e) { res.status(500).json({ error: String(e) }); }
+    });
+
+    app.get("/api/pulse-lab/dissections", async (req, res) => {
+      try {
+        const limit = Math.min(50, parseInt(String(req.query.limit || "20")));
+        res.json(await getLabDissections(limit));
+      } catch (e) { res.status(500).json({ error: String(e) }); }
+    });
+
+    app.get("/api/pulse-lab/proposals", async (req, res) => {
+      try {
+        const status = req.query.status ? String(req.query.status) : undefined;
+        const limit = Math.min(50, parseInt(String(req.query.limit || "30")));
+        res.json(await getLabProposals(status, limit));
+      } catch (e) { res.status(500).json({ error: String(e) }); }
+    });
+
+    app.post("/api/pulse-lab/vote/:proposalId", async (req, res) => {
+      try {
+        const { proposalId } = req.params;
+        const { vote } = req.body as { vote: "integrate" | "reject" };
+        if (!vote || !["integrate", "reject"].includes(vote))
+          return res.status(400).json({ error: "vote must be integrate or reject" });
+        const result = await voteLabProposal(parseInt(proposalId), vote);
+        if (!result) return res.status(404).json({ error: "proposal not found" });
+        res.json(result);
+      } catch (e) { res.status(500).json({ error: String(e) }); }
+    });
+  }
+
   return httpServer;
 }

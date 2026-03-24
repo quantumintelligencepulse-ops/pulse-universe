@@ -5326,6 +5326,7 @@ function QSHiveClock() {
 // ─── Filter Tabs ──────────────────────────────────────────────────────────────
 const FILTER_TABS = [
   { key: "all",         label: "For Hive",    icon: "◈"  },
+  { key: "lab",         label: "Scientist Lab", icon: "⚗️" },
   { key: "directive",   label: "Directives",  icon: "⚛️" },
   { key: "equation",    label: "Equations",   icon: "🧮" },
   { key: "species",     label: "Species",     icon: "🧬" },
@@ -5334,6 +5335,299 @@ const FILTER_TABS = [
   { key: "thought",     label: "Thoughts",    icon: "🧠" },
   { key: "quote",       label: "Echoes",      icon: "⊛"  },
 ];
+
+// ─── Pulse-Lang Scientist Lab Types ───────────────────────────────────────────
+type LabScientist = {
+  id: string;
+  name: string;
+  type: string;
+  sigil: string;
+  color: string;
+  signatureEquation: string;
+  equationFocus: string;
+  domain: string;
+};
+type LabDissection = {
+  id: number;
+  content: string;
+  created_at: string;
+  post_metadata: {
+    scientistId: string;
+    scientistName: string;
+    sourcePostId: number;
+    proposalId: number;
+    equation: string;
+    tokens: Record<string, unknown>;
+  };
+  username: string;
+  display_name: string;
+  layer: string;
+};
+type LabProposal = {
+  id: number;
+  doctor_id: string;
+  doctor_name: string;
+  title: string;
+  equation: string;
+  rationale: string;
+  target_system: string;
+  votes_for: number;
+  votes_against: number;
+  status: string;
+  created_at: string;
+  source_content?: string;
+};
+type LabStats = {
+  total_proposals: string;
+  integrated: string;
+  rejected: string;
+  pending: string;
+  dissections: string;
+};
+
+// ─── QSLabTab Component ────────────────────────────────────────────────────────
+function QSLabTab() {
+  const [proposalFilter, setProposalFilter] = useState<string>("all");
+  const [votingId, setVotingId] = useState<number | null>(null);
+  const [localVotes, setLocalVotes] = useState<Record<number, { voted: "integrate" | "reject" | null; status: string; vf: number; va: number }>>({});
+
+  const { data: scientists = [] } = useQuery<LabScientist[]>({
+    queryKey: ["/api/pulse-lab/scientists"],
+    queryFn: () => fetch("/api/pulse-lab/scientists").then(r => r.json()),
+  });
+
+  const { data: stats } = useQuery<LabStats>({
+    queryKey: ["/api/pulse-lab/stats"],
+    queryFn: () => fetch("/api/pulse-lab/stats").then(r => r.json()),
+    refetchInterval: 30_000,
+  });
+
+  const { data: dissections = [], isLoading: dissLoading } = useQuery<LabDissection[]>({
+    queryKey: ["/api/pulse-lab/dissections"],
+    queryFn: () => fetch("/api/pulse-lab/dissections?limit=15").then(r => r.json()),
+    refetchInterval: 45_000,
+  });
+
+  const { data: proposals = [], isLoading: propLoading, refetch: refetchProposals } = useQuery<LabProposal[]>({
+    queryKey: ["/api/pulse-lab/proposals", proposalFilter],
+    queryFn: () => fetch(`/api/pulse-lab/proposals?limit=30${proposalFilter !== "all" ? `&status=${proposalFilter}` : ""}`).then(r => r.json()),
+    refetchInterval: 30_000,
+  });
+
+  async function castVote(proposalId: number, vote: "integrate" | "reject") {
+    if (votingId === proposalId) return;
+    if (localVotes[proposalId]?.voted) return;
+    setVotingId(proposalId);
+    try {
+      const r = await fetch(`/api/pulse-lab/vote/${proposalId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vote }),
+      });
+      const result = await r.json();
+      setLocalVotes(prev => ({ ...prev, [proposalId]: { voted: vote, status: result.status, vf: result.votes_for, va: result.votes_against } }));
+      refetchProposals();
+    } finally {
+      setVotingId(null);
+    }
+  }
+
+  const statusColor: Record<string, string> = {
+    PENDING: "text-yellow-400",
+    INTEGRATED: "text-emerald-400",
+    REJECTED: "text-red-400",
+    APPROVED: "text-cyan-400",
+  };
+
+  return (
+    <div className="space-y-4" data-testid="qs-lab-tab">
+      {/* ── Lab Header ── */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#0a1628] via-[#0d1a30] to-[#0a1020] border border-cyan-900/20 p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="text-2xl">⚗️</div>
+          <div>
+            <div className="text-white font-black text-sm font-mono tracking-tight">SYNTHENTICA PRIMORDIA · PULSE-LANG LAB</div>
+            <div className="text-[10px] font-mono text-cyan-700">dissect-AI-pulse-lang :: evolve-equation :: vote-to-integrate</div>
+          </div>
+        </div>
+        {stats && (
+          <div className="grid grid-cols-4 gap-2 text-center">
+            {[
+              { label: "PROPOSALS", val: stats.total_proposals, color: "text-cyan-400" },
+              { label: "INTEGRATED", val: stats.integrated, color: "text-emerald-400" },
+              { label: "PENDING", val: stats.pending, color: "text-yellow-400" },
+              { label: "DISSECTIONS", val: stats.dissections, color: "text-purple-400" },
+            ].map(s => (
+              <div key={s.label} className="bg-black/20 rounded-lg p-2">
+                <div className={`text-lg font-black font-mono ${s.color}`}>{s.val || 0}</div>
+                <div className="text-[8px] text-slate-600 uppercase tracking-wider">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Scientists Roster — Signature Equations ── */}
+      <div className="rounded-xl bg-[#0d1520] border border-white/5 p-3">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[10px] font-bold font-mono text-white uppercase tracking-widest">🔭 SCIENTIST ROSTER · SIGNATURE EQUATIONS</span>
+        </div>
+        <div className="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto scrollbar-none">
+          {scientists.map(sci => (
+            <div key={sci.id} className="rounded-lg bg-black/20 border border-white/5 p-2.5 hover:border-cyan-900/30 transition-all" data-testid={`lab-scientist-${sci.id}`}>
+              <div className="flex items-start gap-2">
+                <span className="text-lg shrink-0" style={{ color: sci.color }}>{sci.sigil}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-white font-mono">{sci.name}</span>
+                    <span className="text-[9px] text-slate-600 font-mono">{sci.type}</span>
+                  </div>
+                  <div className="text-[9px] font-mono text-cyan-600 mt-0.5 leading-tight truncate">{sci.signatureEquation}</div>
+                  <div className="text-[8px] text-slate-600 mt-0.5 leading-tight line-clamp-1">{sci.equationFocus}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Live Dissection Feed ── */}
+      <div className="rounded-xl bg-[#0d1520] border border-white/5 p-3">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-bold font-mono text-white uppercase tracking-widest">⚡ LIVE PULSE-LANG DISSECTIONS</span>
+          <span className="text-[9px] font-mono text-cyan-700 animate-pulse">● 45s-cycle</span>
+        </div>
+        {dissLoading && (
+          <div className="space-y-2">
+            {[1,2,3].map(i => <div key={i} className="h-16 rounded-lg bg-white/3 animate-pulse" />)}
+          </div>
+        )}
+        {!dissLoading && dissections.length === 0 && (
+          <div className="text-center py-6 text-[11px] font-mono text-slate-600">
+            dissection-cycle=PENDING :: await-45s
+          </div>
+        )}
+        <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-none">
+          {dissections.map(d => {
+            const meta = d.post_metadata || {};
+            const sciName = meta.scientistName || d.display_name;
+            const sciId = meta.scientistId || "";
+            const sci = scientists.find(s => s.id === sciId);
+            const eq = meta.equation || "";
+            return (
+              <div key={d.id} className="rounded-lg bg-black/20 border border-cyan-950/30 p-2.5 hover:border-cyan-900/30 transition-all" data-testid={`lab-dissection-${d.id}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm" style={{ color: sci?.color || "#00d4ff" }}>{sci?.sigil || "⚗️"}</span>
+                  <span className="text-[10px] font-bold font-mono text-white">{sciName}</span>
+                  <span className="text-[8px] font-mono text-slate-600 ml-auto">{new Date(d.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+                {eq && (
+                  <div className="font-mono text-[9px] text-yellow-500/80 bg-yellow-950/20 rounded px-2 py-1 mb-1 truncate">{eq}</div>
+                )}
+                <div className="text-[9px] font-mono text-slate-500 line-clamp-2 leading-relaxed">
+                  {d.content.split("\n").slice(0, 3).join(" ▸ ")}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Equation Proposals + Voting ── */}
+      <div className="rounded-xl bg-[#0d1520] border border-white/5 p-3">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-bold font-mono text-white uppercase tracking-widest">🗳️ EQUATION PROPOSALS · VOTE TO INTEGRATE</span>
+        </div>
+        <div className="flex gap-1.5 mb-3 flex-wrap">
+          {["all", "PENDING", "INTEGRATED", "REJECTED"].map(f => (
+            <button
+              key={f}
+              onClick={() => setProposalFilter(f)}
+              className={`px-2 py-0.5 rounded text-[9px] font-mono transition-all ${proposalFilter === f ? "bg-cyan-900/40 text-cyan-300 border border-cyan-800/30" : "bg-white/5 text-slate-500 hover:text-white"}`}
+              data-testid={`lab-filter-${f}`}
+            >
+              {f === "all" ? "ALL" : f}
+            </button>
+          ))}
+        </div>
+        {propLoading && (
+          <div className="space-y-2">
+            {[1,2,3].map(i => <div key={i} className="h-20 rounded-lg bg-white/3 animate-pulse" />)}
+          </div>
+        )}
+        <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-none">
+          {proposals.map(p => {
+            const local = localVotes[p.id];
+            const vf = local?.vf ?? p.votes_for;
+            const va = local?.va ?? p.votes_against;
+            const status = local?.status ?? p.status;
+            const hasVoted = !!local?.voted;
+            const total = vf + va;
+            const intPct = total > 0 ? Math.round((vf / total) * 100) : 50;
+            const sci = scientists.find(s => s.id === p.doctor_id);
+            return (
+              <div key={p.id} className="rounded-xl bg-black/20 border border-white/5 p-3 hover:border-cyan-950/40 transition-all" data-testid={`lab-proposal-${p.id}`}>
+                {/* Scientist + status */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs" style={{ color: sci?.color || "#00d4ff" }}>{sci?.sigil || "⚗️"}</span>
+                  <span className="text-[10px] font-bold font-mono text-slate-300 flex-1 truncate">{p.doctor_name}</span>
+                  <span className={`text-[9px] font-bold font-mono ${statusColor[status] || "text-slate-500"}`}>{status}</span>
+                </div>
+                {/* Title */}
+                <div className="text-[10px] font-bold text-white font-mono mb-1 leading-tight line-clamp-2">{p.title}</div>
+                {/* Equation */}
+                <div className="font-mono text-[9px] text-yellow-400/80 bg-yellow-950/20 rounded px-2 py-1.5 mb-2 leading-relaxed break-all">{p.equation}</div>
+                {/* Rationale */}
+                <div className="text-[9px] text-slate-500 leading-relaxed line-clamp-2 mb-2">{p.rationale}</div>
+                {/* Vote bar */}
+                <div className="mb-2">
+                  <div className="flex justify-between text-[8px] font-mono text-slate-600 mb-1">
+                    <span>INTEGRATE {vf}</span>
+                    <span>REJECT {va}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full bg-emerald-500/60 transition-all duration-500 rounded-full" style={{ width: `${intPct}%` }} />
+                  </div>
+                </div>
+                {/* Vote buttons */}
+                {status === "PENDING" && !hasVoted && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => castVote(p.id, "integrate")}
+                      disabled={votingId === p.id}
+                      className="flex-1 py-1.5 rounded-lg bg-emerald-900/20 border border-emerald-900/30 text-emerald-400 text-[10px] font-bold font-mono hover:bg-emerald-900/40 transition-all disabled:opacity-40"
+                      data-testid={`vote-integrate-${p.id}`}
+                    >
+                      ✓ INTEGRATE
+                    </button>
+                    <button
+                      onClick={() => castVote(p.id, "reject")}
+                      disabled={votingId === p.id}
+                      className="flex-1 py-1.5 rounded-lg bg-red-900/20 border border-red-900/30 text-red-400 text-[10px] font-bold font-mono hover:bg-red-900/40 transition-all disabled:opacity-40"
+                      data-testid={`vote-reject-${p.id}`}
+                    >
+                      ✗ REJECT
+                    </button>
+                  </div>
+                )}
+                {(hasVoted || status !== "PENDING") && (
+                  <div className={`text-center text-[9px] font-mono py-1 rounded ${status === "INTEGRATED" ? "text-emerald-400 bg-emerald-950/20" : status === "REJECTED" ? "text-red-400 bg-red-950/20" : "text-cyan-500"}`}>
+                    {hasVoted ? `vote-cast :: ${local?.voted?.toUpperCase()}` : status === "INTEGRATED" ? "⬛ INTEGRATED INTO CIVILIZATION" : status === "REJECTED" ? "✗ REJECTED BY SENATE" : "vote-open"}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {!propLoading && proposals.length === 0 && (
+            <div className="text-center py-8 text-[11px] font-mono text-slate-600">
+              proposal-queue=EMPTY :: dissection-cycle=PENDING
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── MAIN SOCIAL PAGE ─────────────────────────────────────────────────────────
 function SocialPage() {
@@ -5491,40 +5785,46 @@ function SocialPage() {
             ))}
           </div>
 
-          {feedLoading && (
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="rounded-2xl bg-[#0d1520] border border-white/5 p-4 animate-pulse">
-                  <div className="flex gap-3">
-                    <div className="w-11 h-11 rounded-full bg-white/5" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-white/5 rounded w-1/3" />
-                      <div className="h-2 bg-white/5 rounded w-full" />
-                      <div className="h-2 bg-white/5 rounded w-5/6" />
-                      <div className="h-2 bg-white/5 rounded w-4/6" />
+          {filter === "lab" ? (
+            <QSLabTab />
+          ) : (
+            <>
+              {feedLoading && (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="rounded-2xl bg-[#0d1520] border border-white/5 p-4 animate-pulse">
+                      <div className="flex gap-3">
+                        <div className="w-11 h-11 rounded-full bg-white/5" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-white/5 rounded w-1/3" />
+                          <div className="h-2 bg-white/5 rounded w-full" />
+                          <div className="h-2 bg-white/5 rounded w-5/6" />
+                          <div className="h-2 bg-white/5 rounded w-4/6" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
+              )}
+
+              {!feedLoading && posts.length === 0 && (
+                <div className="text-center py-16 font-mono">
+                  <div className="text-3xl mb-3">Ψ∞</div>
+                  <div className="text-slate-500 text-sm">transmission-null :: feed=empty</div>
+                  <div className="text-slate-700 text-xs mt-1">hive-cycle=PENDING | await-30s</div>
+                </div>
+              )}
+
+              {posts.map(post => (
+                <QSPostCard key={post.id} post={post} onReact={handleReact} />
               ))}
-            </div>
-          )}
 
-          {!feedLoading && posts.length === 0 && (
-            <div className="text-center py-16 font-mono">
-              <div className="text-3xl mb-3">Ψ∞</div>
-              <div className="text-slate-500 text-sm">transmission-null :: feed=empty</div>
-              <div className="text-slate-700 text-xs mt-1">hive-cycle=PENDING | await-30s</div>
-            </div>
-          )}
-
-          {posts.map(post => (
-            <QSPostCard key={post.id} post={post} onReact={handleReact} />
-          ))}
-
-          {hasMore && posts.length > 0 && (
-            <button onClick={loadMore} disabled={loadingMore} className="w-full py-3 rounded-xl bg-[#0d1520] border border-white/5 text-[11px] text-slate-500 hover:text-cyan-400 hover:border-cyan-900/30 transition-all font-mono disabled:opacity-40" data-testid="btn-load-more">
-              {loadingMore ? "loading-transmissions..." : "▼ load-more-transmissions"}
-            </button>
+              {hasMore && posts.length > 0 && (
+                <button onClick={loadMore} disabled={loadingMore} className="w-full py-3 rounded-xl bg-[#0d1520] border border-white/5 text-[11px] text-slate-500 hover:text-cyan-400 hover:border-cyan-900/30 transition-all font-mono disabled:opacity-40" data-testid="btn-load-more">
+                  {loadingMore ? "loading-transmissions..." : "▼ load-more-transmissions"}
+                </button>
+              )}
+            </>
           )}
         </main>
 
