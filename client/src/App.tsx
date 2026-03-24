@@ -2163,13 +2163,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("shopping") && (
-          <Link href="/shopping" data-testid="link-shopping"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/shopping" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/shopping" ? "bg-lime-500/15" : "bg-lime-500/5"}`}><ShoppingBag size={14} className="text-lime-600" /></div>
-            <span className="flex-1">Shopping</span>
-          </Link>
-          )}
           {!appSettings.hiddenPages.includes("media") && (
           <Link href="/media" data-testid="link-media"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/media" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2177,18 +2170,25 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Media</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("careers") && (
-          <Link href="/careers" data-testid="link-careers"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/careers" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/careers" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
-            <span className="flex-1">Careers</span>
-          </Link>
-          )}
           {!appSettings.hiddenPages.includes("finance") && (
           <Link href="/finance" data-testid="link-finance"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/finance" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/finance" ? "bg-yellow-500/15" : "bg-yellow-500/5"}`}><TrendingUp size={14} className="text-yellow-500" /></div>
             <span className="flex-1">Finance Oracle</span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("shopping") && (
+          <Link href="/shopping" data-testid="link-shopping"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/shopping" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/shopping" ? "bg-lime-500/15" : "bg-lime-500/5"}`}><ShoppingBag size={14} className="text-lime-600" /></div>
+            <span className="flex-1">Shopping</span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("careers") && (
+          <Link href="/careers" data-testid="link-careers"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/careers" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/careers" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
+            <span className="flex-1">Careers</span>
           </Link>
           )}
           {aiMode && (
