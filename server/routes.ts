@@ -6800,13 +6800,19 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const sym = req.params.symbol.toUpperCase();
       const tf = (req.query.tf as string) || "1M";
       const tfMap: Record<string, { range: string; interval: string }> = {
-        "1D": { range: "5d",  interval: "30m" },
-        "1W": { range: "5d",  interval: "1d"  },
-        "1M": { range: "1mo", interval: "1d"  },
-        "3M": { range: "3mo", interval: "1d"  },
-        "6M": { range: "6mo", interval: "1d"  },
-        "1Y": { range: "1y",  interval: "1d"  },
-        "5Y": { range: "5y",  interval: "1wk" },
+        "1m":  { range: "1d",  interval: "1m"  },
+        "5m":  { range: "5d",  interval: "5m"  },
+        "15m": { range: "5d",  interval: "15m" },
+        "30m": { range: "1mo", interval: "30m" },
+        "1h":  { range: "3mo", interval: "60m" },
+        "4h":  { range: "6mo", interval: "60m" },
+        "1D":  { range: "5d",  interval: "30m" },
+        "1W":  { range: "5d",  interval: "1d"  },
+        "1M":  { range: "1mo", interval: "1d"  },
+        "3M":  { range: "3mo", interval: "1d"  },
+        "6M":  { range: "6mo", interval: "1d"  },
+        "1Y":  { range: "1y",  interval: "1d"  },
+        "5Y":  { range: "5y",  interval: "1wk" },
       };
       const { range, interval } = tfMap[tf] || tfMap["1M"];
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=${interval}&range=${range}`;

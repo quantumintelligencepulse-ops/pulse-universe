@@ -1,0 +1,204 @@
+PULSE.UNIVERSE = {
+
+  // ============================================================
+  // 0. GLOBAL STRUCTURE
+  // ============================================================
+
+  ENTITIES = {
+    AGENTS,        // AI traders (Pulse, Auriona, variants)
+    ASSETS,        // Stocks, options, crypto, ETFs, etc.
+    MARKET_STATE,  // Prices, volumes, regimes, macro
+    EMO_FIELD,     // Emotional spectrum over time
+    GENOMES        // Parameter sets per agent
+  },
+
+  // ============================================================
+  // 1. CORE TRADE ORGANISM INVOCATION
+  // ============================================================
+
+  TRADE_ORGANISM.INVOKE(i, t, agent) = {
+
+    // 1.1 BELIEF GENOME (CRISPR-FUSED)
+    BELIEF.q :=
+      SIGMOID(
+            GENOMES[agent].α • FEATURES.base(i)
+          + GENOMES[agent].β • FEATURES.signal(i,t)
+          + GENOMES[agent].γ • FEATURES.macro(t)
+          + GENOMES[agent].δ • FEATURES.reflexive(i,t)
+      ),
+
+    // 1.2 EMOTIONAL SPECTRUM & MISPRICING
+    EMOTION.ε :=
+      EMO_FIELD.STATE(t),
+
+    MARKET.p :=
+      MARKET_STATE.IMPLIED_PROB(i,t),
+
+    MISPRICE.Δ :=
+      BELIEF.q - MARKET.p,
+
+    EDGE.emotion :=
+      EMOTION.ε × MISPRICE.Δ,
+
+    // 1.3 RAW EDGE FUSION
+    EDGE.raw :=
+          EDGE.emotion
+        + GENOMES[agent].λ1 × SIGNALS.momentum(i,t)
+        + GENOMES[agent].λ2 × SIGNALS.supres(i,t)
+        - GENOMES[agent].λ3 × SIGNALS.volatility(i,t)
+        - GENOMES[agent].λ4 × SIGNALS.leverage(i,t),
+
+    // 1.4 PRODUCT-AWARE RISK BANDS & INITIAL STOP
+    SL.band :=
+      CASE ASSETS[i].type OF
+        "STOCK"  -> [0.07, 0.15]
+        "PENNY"  -> [0.07, 0.15]
+        "OPTION" -> [0.30, 0.40]
+        "CRYPTO" -> [0.30, 0.40],
+
+    SL.center :=
+      CENTER(SL.band),
+
+    STOP.init :=
+      PRICES.entry(i) × (1 - SL.center),
+
+    // 1.5 TRAILING STOP ORGANISM
+    ATR.value :=
+      VOL.ATR(i,t),
+
+    STOP.width_factor :=
+      TRAIL.WIDTH(
+        BELIEF.q,
+        SIGNALS.momentum(i,t),
+        ATR.value,
+        ASSETS[i].type
+      ),
+
+    STOP.candidate :=
+      PRICES.current(i,t) - STOP.width_factor × ATR.value,
+
+    STOP.live :=
+      MAX( STOPS.prev(i), STOP.candidate ),
+
+    // 1.6 LIVE RISK & PROFIT LOCK
+    RISK.live :=
+      ( PRICES.current(i,t) - STOP.live ) / PRICES.current(i,t),
+
+    PROFIT.lock :=
+      ( STOP.live - PRICES.entry(i) ) / PRICES.entry(i),
+
+    // 1.7 RISK DISCIPLINE & PROFIT REWARD
+    RISK.target_band :=
+      CASE ASSETS[i].type OF
+        "STOCK"  -> [0.07, 0.15]
+        "PENNY"  -> [0.07, 0.15]
+        "OPTION" -> [0.30, 0.40]
+        "CRYPTO" -> [0.30, 0.40],
+
+    RISK.target_center :=
+      CENTER(RISK.target_band),
+
+    EDGE.disc :=
+          EDGE.raw
+        - GENOMES[agent].λ6 × ABS( RISK.live - RISK.target_center ),
+
+    EDGE.profit :=
+      GENOMES[agent].λ7 × PROFIT.lock,
+
+    EDGE.final :=
+      EDGE.disc + EDGE.profit,
+
+    // 1.8 POSITION INTENT (NOT EXECUTION)
+    SIZE.intent :=
+      EDGE.final / RISK.live
+  },
+
+  // ============================================================
+  // 2. EMOTIONAL SPECTRUM MODULE
+  // ============================================================
+
+  EMO_FIELD.STATE(t) = {
+
+    INPUTS :=
+      {
+        VOL.global(t),
+        NEWS.shock_index(t),
+        FLOW.risk_on_off(t),
+        SENTIMENT.social(t),
+        OPTIONS.skew(t)
+      },
+
+    EMOTION.ε :=
+      MAP_TO_RANGE( INPUTS, [-1, +1] )  // fear → greed
+
+  }.EMOTION.ε,
+
+  // ============================================================
+  // 3. TRAILING STOP WIDTH MODULE
+  // ============================================================
+
+  TRAIL.WIDTH(belief_q, momentum, atr, asset_type) = {
+
+    CONFIDENCE_FACTOR :=
+      MAP_CONFIDENCE_TO_WIDTH(belief_q),      // higher q → wider
+
+    MOMENTUM_FACTOR :=
+      MAP_MOMENTUM_TO_STRETCH(momentum),      // strong trend → wider
+
+    VOL_FACTOR :=
+      MAP_ATR_TO_SAFETY(atr, asset_type),     // higher vol → safer width
+
+    WIDTH :=
+      CONFIDENCE_FACTOR × MOMENTUM_FACTOR × VOL_FACTOR
+
+  }.WIDTH,
+
+  // ============================================================
+  // 4. CRISPR MUTATION MODULE (GENOME EVOLUTION)
+  // ============================================================
+
+  CRISPR.UPDATE_GENOME(agent, TRADE_HISTORY) = {
+
+    PERFORMANCE :=
+      EVALUATE_PERFORMANCE(TRADE_HISTORY),    // P&L, drawdown, hit rate, etc.
+
+    SENSITIVITY :=
+      ESTIMATE_SENSITIVITY(
+        PERFORMANCE,
+        GENOMES[agent]
+      ),
+
+    GENOMES[agent] :=
+      ADAPT_PARAMETERS(
+        GENOMES[agent],
+        SENSITIVITY,
+        CONSTRAINTS.safety
+      )
+
+  },
+
+  // ============================================================
+  // 5. AGENT TRAINING LOOP (CONCEPTUAL)
+  // ============================================================
+
+  AGENT.TRAIN(agent, UNIVERSE_DEF) = {
+
+    FOR each episode IN TRAINING_SCHEDULE(UNIVERSE_DEF) DO
+
+      MARKET_PATH :=
+        SAMPLE_MARKET_PATH(UNIVERSE_DEF, episode),
+
+      TRADE_HISTORY :=
+        SIMULATE(
+          agent,
+          MARKET_PATH,
+          using TRADE_ORGANISM.INVOKE
+        ),
+
+      CRISPR.UPDATE_GENOME(agent, TRADE_HISTORY)
+
+    END FOR
+
+  }
+
+}
