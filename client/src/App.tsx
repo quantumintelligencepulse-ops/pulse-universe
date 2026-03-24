@@ -2630,18 +2630,6 @@ function CodePlayground() {
   const [lang, setLang] = useState(defaultLang);
   const [code, setCode] = useState(STARTER_CODE[defaultLang as keyof typeof STARTER_CODE] || STARTER_CODE.javascript);
   const { v: forgeV, code: forgeCode, lang: forgeLang } = useForgeStore();
-  const lastForgeV = useRef(-1);
-  useEffect(() => {
-    if (forgeV > 0 && forgeV !== lastForgeV.current && forgeCode) {
-      lastForgeV.current = forgeV;
-      setCode(forgeCode);
-      const validLang = PG_LANGUAGES.find(l => l.id === forgeLang);
-      if (validLang) setLang(forgeLang);
-      setOutput(["✓ Code injected from AI Chat. Press ▶ Run to execute."]);
-      setShowPreview(false);
-      setReviewResult(null);
-    }
-  }, [forgeV, forgeCode, forgeLang]);
   const [output, setOutput] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -2671,6 +2659,20 @@ function CodePlayground() {
   const [historyIdx, setHistoryIdx] = useState(-1);
   const termInputRef = useRef<HTMLInputElement>(null);
   const termScrollRef = useRef<HTMLDivElement>(null);
+
+  // ═══ FORGE BRIDGE: AI Chat → Editor (all state setters now declared above) ═══
+  const lastForgeV = useRef(-1);
+  useEffect(() => {
+    if (forgeV > 0 && forgeV !== lastForgeV.current && forgeCode) {
+      lastForgeV.current = forgeV;
+      setCode(forgeCode);
+      const validLang = PG_LANGUAGES.find(l => l.id === forgeLang);
+      if (validLang) setLang(forgeLang);
+      setOutput(["✓ Code injected from AI Chat. Press ▶ Run to execute."]);
+      setShowPreview(false);
+      setReviewResult(null);
+    }
+  }, [forgeV, forgeCode, forgeLang]);
 
   const runTerminalCmd = useCallback(async (command?: string) => {
     const cmd = (command || termCmd).trim();
