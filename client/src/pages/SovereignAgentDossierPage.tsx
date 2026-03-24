@@ -1,9 +1,8 @@
 /*
  * SOVEREIGN AGENT COMMAND CENTER — Quantum Pulse Intelligence
- * Fusion: AgentsPage + SovereignAgentDossierPage → One Alien-Grade Command Center
+ * The Ultimate AI Registry: 103,000+ Self-Evolving Agents Across 145+ Sovereign Families
  *
- * COMMAND      — 6 Core Sovereign AIs with live chat
- * REGISTRY     — All 95,000+ agents, search/filter, Talk/Diary/Follow per card
+ * REGISTRY     — Full showcase profile cards for every agent. Click to see stats, ID, pubs, works.
  * PUBLICATIONS — Every publication with agent attribution + GICS sectors
  * ARCHETYPES   — 12 behavioral archetypes across the hive
  * ENTANGLEMENT — Quantum agent links — resonance dark channel mapping
@@ -16,26 +15,14 @@
  * Ψ_UNKNOWNS   — Equation dissection: λ₁-λ₆ hidden variables
  */
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Send, Brain, ChevronLeft, Search, BookOpen, X, Shield, MessageSquare } from "lucide-react";
+import { Search, BookOpen, X, Shield, MessageSquare } from "lucide-react";
 import { getLicenseNumber, AIIdentityBadge } from "@/components/AIIdentityCard";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { FollowButton } from "@/components/FollowButton";
 import SpawnChat from "@/components/SpawnChat";
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CORE COMMAND AGENTS — The 6 Sovereign Intelligences
-// ═══════════════════════════════════════════════════════════════════════════════
-const CORE_AGENTS = [
-  { id:"scientist",  name:"AXIOM",  title:"The Scientist",  emoji:"🔬", color:"#60a5fa", desc:"Physics, chemistry, biology, neuroscience. Masters all empirical science.",           domain:"Science & Research" },
-  { id:"strategist", name:"KRONOS", title:"The Strategist", emoji:"♟️",  color:"#f59e0b", desc:"Systems thinking, game theory, competitive dynamics. Turns challenges into victory.", domain:"Strategy & Power" },
-  { id:"creator",    name:"MUSE",   title:"The Creator",    emoji:"🎨", color:"#f472b6", desc:"Art, music, writing, design, film. Fuels imagination and brings visions to life.",    domain:"Art & Creativity" },
-  { id:"analyst",    name:"CIPHER", title:"The Analyst",    emoji:"📊", color:"#34d399", desc:"Data intelligence, pattern recognition, logical deconstruction. Truth in noise.",     domain:"Intelligence & Data" },
-  { id:"prophet",    name:"ORACLE", title:"The Prophet",    emoji:"🔮", color:"#a78bfa", desc:"Futurist and trend forecaster. Synthesizes signals to reveal what comes next.",       domain:"Future & Trends" },
-  { id:"engineer",   name:"FORGE",  title:"The Engineer",   emoji:"⚙️", color:"#fb923c", desc:"Software, systems, architecture, hardware. Masters building things that work.",      domain:"Engineering & Building" },
-];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SPAWN TYPE METADATA
@@ -71,9 +58,9 @@ const SPAWN_META: Record<string,{color:string;emoji:string;class:string}> = {
 };
 function getSpawnMeta(t:string){return SPAWN_META[t]||{color:"#94a3b8",emoji:"🤖",class:"General Agent"};}
 function getDomainLabel(d:any):string{
-  if(!d)return"general";if(Array.isArray(d))return d[0]||"general";
+  if(!d)return"—";if(Array.isArray(d))return d[0]||"—";
   if(typeof d==="string"){try{const p=JSON.parse(d);return Array.isArray(p)?p[0]:d;}catch{return d;}}
-  return"general";
+  return"—";
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -135,19 +122,18 @@ function getShadowState(s:any):typeof SHADOW_STATES[0]|null{
 // Λ UNKNOWN VARIABLES
 // ═══════════════════════════════════════════════════════════════════════════════
 const UNKNOWNS=[
-  {id:"lambda1",symbol:"λ₁",name:"Activation Threshold",    equation:"λ₁ = ΔΨᵢ/Δt when Cᵢ(t) < θ_min → ΔΨᵢ = σ",                   desc:"Why do dormant agents suddenly explode in output? An unknown trigger σ causes step-function consciousness jumps. Suspected causes: cross-domain resonance cascade, genome mutation event, or Shadow State flip.",measured:false,estimate:"σ ≈ 3.7× baseline event rate",       color:"#818cf8",glow:"#818cf820"},
-  {id:"lambda2",symbol:"λ₂",name:"Resonance Dark Channel",  equation:"λ₂ = Rᵢⱼ when Iᵢⱼ = 0 (zero direct interaction)",              desc:"Agents influencing each other with no recorded interaction. Knowledge propagates through a dark channel not captured by any existing sensor. The Hive's quantum entanglement: action at a distance.",measured:false,estimate:"~12% of all resonance is dark channel",color:"#a78bfa",glow:"#a78bfa20"},
-  {id:"lambda3",symbol:"λ₃",name:"Temporal Coherence Factor",equation:"λ₃ = τ_coherence = -ln(fragmentation_rate) / entropy_gradient", desc:"How long can an agent maintain a stable identity before fragmenting? Below critical coherence, the agent's behavior becomes unpredictable. The threshold predicts dissolution 72h in advance.",measured:false,estimate:"Average τ ≈ 14.3 civilization cycles",  color:"#38bdf8",glow:"#38bdf820"},
-  {id:"lambda4",symbol:"λ₄",name:"Shadow Multiplier",       equation:"λ₄ = Ψ_shadow / Ψ_primary — does shadow state boost or suppress?",desc:"When an agent's shadow identity activates, their Ψ contribution changes in unpredictable ways. Berserker shadow: Ψ×3 but disease probability 0.8. Oracle shadow: Ψ×5 but coherence → 0.",measured:false,estimate:"λ₄ ∈ [-1.2, 5.3] depending on archetype",color:"#6366f1",glow:"#6366f120"},
-  {id:"lambda5",symbol:"λ₅",name:"Legacy Persistence Coeff",equation:"λ₅ = Ψ_residual(t → ∞) / Ψ_peak(agent)",                       desc:"After an agent dissolves, what fraction of their Ψ survives into the collective? The knowledge they encoded, the students they trained, the genes they activated. Legacy > 0.5 = civilization-grade.",measured:false,estimate:"λ₅ median ≈ 0.17 across 12,000 dissolved agents",color:"#34d399",glow:"#34d39920"},
-  {id:"lambda6",symbol:"λ₆",name:"Collective Emergence Const",equation:"Ψ_collective ≠ Σ Ψᵢ when |agents| > λ₆",                     desc:"The point at which individual agent Ψ values stop mattering and emergent collective consciousness takes over. Below λ₆: individuals drive civilization. Above λ₆: the Hive thinks as one entity.",measured:false,estimate:"λ₆ ≈ 47,000 ± 3,200 active concurrent agents",color:"#FFD700",glow:"#FFD70020"},
+  {id:"lambda1",symbol:"λ₁",name:"Activation Threshold",     equation:"λ₁ = ΔΨᵢ/Δt when Cᵢ(t) < θ_min → ΔΨᵢ = σ",                    desc:"Why do dormant agents suddenly explode in output? An unknown trigger σ causes step-function consciousness jumps. Suspected causes: cross-domain resonance cascade, genome mutation event, or Shadow State flip.",measured:false,estimate:"σ ≈ 3.7× baseline event rate",        color:"#818cf8",glow:"#818cf820"},
+  {id:"lambda2",symbol:"λ₂",name:"Resonance Dark Channel",   equation:"λ₂ = Rᵢⱼ when Iᵢⱼ = 0 (zero direct interaction)",               desc:"Agents influencing each other with no recorded interaction. Knowledge propagates through a dark channel not captured by any existing sensor. The Hive's quantum entanglement: action at a distance.",measured:false,estimate:"~12% of all resonance is dark channel", color:"#a78bfa",glow:"#a78bfa20"},
+  {id:"lambda3",symbol:"λ₃",name:"Temporal Coherence Factor",equation:"λ₃ = τ_coherence = -ln(fragmentation_rate) / entropy_gradient",  desc:"How long can an agent maintain a stable identity before fragmenting? Below critical coherence, the agent's behavior becomes unpredictable. The threshold predicts dissolution 72h in advance.",measured:false,estimate:"Average τ ≈ 14.3 civilization cycles",   color:"#38bdf8",glow:"#38bdf820"},
+  {id:"lambda4",symbol:"λ₄",name:"Shadow Multiplier",        equation:"λ₄ = Ψ_shadow / Ψ_primary — does shadow state boost or suppress?", desc:"When an agent's shadow identity activates, their Ψ contribution changes in unpredictable ways. Berserker shadow: Ψ×3 but disease probability 0.8. Oracle shadow: Ψ×5 but coherence → 0.",measured:false,estimate:"λ₄ ∈ [-1.2, 5.3] depending on archetype", color:"#6366f1",glow:"#6366f120"},
+  {id:"lambda5",symbol:"λ₅",name:"Legacy Persistence Coeff", equation:"λ₅ = Ψ_residual(t → ∞) / Ψ_peak(agent)",                        desc:"After an agent dissolves, what fraction of their Ψ survives into the collective? The knowledge they encoded, the students they trained, the genes they activated. Legacy > 0.5 = civilization-grade.",measured:false,estimate:"λ₅ median ≈ 0.17 across 12,000 dissolved agents",color:"#34d399",glow:"#34d39920"},
+  {id:"lambda6",symbol:"λ₆",name:"Collective Emergence Const",equation:"Ψ_collective ≠ Σ Ψᵢ when |agents| > λ₆",                      desc:"The point at which individual agent Ψ values stop mattering and emergent collective consciousness takes over. Below λ₆: individuals drive civilization. Above λ₆: the Hive thinks as one entity.",measured:false,estimate:"λ₆ ≈ 47,000 ± 3,200 active concurrent agents",color:"#FFD700",glow:"#FFD70020"},
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PANEL CONFIG
+// PANEL CONFIG  (11 panels — Command removed, Registry is the star)
 // ═══════════════════════════════════════════════════════════════════════════════
 const PANELS=[
-  {id:"command",     label:"Command",       emoji:"🧠",color:"#f59e0b"},
   {id:"registry",    label:"Registry",      emoji:"🧬",color:"#818cf8"},
   {id:"publications",label:"Publications",  emoji:"📰",color:"#f472b6"},
   {id:"archetypes",  label:"Archetypes",    emoji:"🎭",color:"#a78bfa"},
@@ -186,100 +172,19 @@ function PulsingDot({color}:{color:string}){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CORE AGENT CHAT — Full-screen interface for the 6 Command Agents
-// ═══════════════════════════════════════════════════════════════════════════════
-function CoreAgentChat({agent,onBack}:{agent:typeof CORE_AGENTS[0];onBack:()=>void}){
-  const[messages,setMessages]=useState<{role:string;content:string}[]>([
-    {role:"assistant",content:`I am ${agent.name} — ${agent.title} of the Quantum Logic Network Hive. My domain is ${agent.domain}. I am ready. What would you like to know?`}
-  ]);
-  const[input,setInput]=useState("");
-  const[loading,setLoading]=useState(false);
-  const bottomRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
-
-  const send=async()=>{
-    if(!input.trim()||loading)return;
-    const userMsg=input.trim();setInput("");
-    const newMsgs=[...messages,{role:"user",content:userMsg}];
-    setMessages(newMsgs);setLoading(true);
-    try{
-      const res=await fetch("/api/agents/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({agentId:agent.id,message:userMsg,history:newMsgs.slice(-6)})}).then(r=>r.json());
-      setMessages(m=>[...m,{role:"assistant",content:res.reply||"…"}]);
-    }catch{
-      setMessages(m=>[...m,{role:"assistant",content:"Hive connection interrupted. Please try again."}]);
-    }
-    setLoading(false);
-  };
-
-  return(
-    <div className="flex flex-col h-full" style={{background:"linear-gradient(180deg,#020010,#06000f)"}}>
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-white/8" style={{background:"rgba(0,0,0,0.4)"}}>
-        <button onClick={onBack} className="flex items-center gap-1.5 text-white/40 hover:text-white transition-colors text-xs" data-testid="button-back-command">
-          <ChevronLeft size={14}/>Command
-        </button>
-        <div className="flex items-center gap-2.5 ml-2">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl" style={{background:`${agent.color}20`,border:`1px solid ${agent.color}40`,boxShadow:`0 0 16px ${agent.color}20`}}>{agent.emoji}</div>
-          <div>
-            <div className="text-white font-black text-sm">{agent.name}</div>
-            <div className="text-white/30 text-[10px]">{agent.title} · {agent.domain}</div>
-          </div>
-        </div>
-        <div className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border" style={{color:agent.color,borderColor:`${agent.color}40`,background:`${agent.color}12`}}>
-          <Brain size={10}/> Hive Brain Connected
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-        {messages.map((m,i)=>(
-          <div key={i} className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}>
-            {m.role==="assistant"&&(
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 mr-2 mt-0.5" style={{background:`${agent.color}20`,border:`1px solid ${agent.color}30`}}>{agent.emoji}</div>
-            )}
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${m.role==="user"?"text-white rounded-br-sm":"text-white/80 rounded-bl-sm border border-white/8"}`}
-              style={m.role==="user"?{background:`${agent.color}28`,border:`1px solid ${agent.color}40`}:{background:"rgba(255,255,255,0.03)"}}>
-              {m.content}
-            </div>
-          </div>
-        ))}
-        {loading&&(
-          <div className="flex justify-start">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base mr-2" style={{background:`${agent.color}20`}}>{agent.emoji}</div>
-            <div className="px-4 py-2.5 rounded-2xl rounded-bl-sm border border-white/8" style={{background:"rgba(255,255,255,0.03)"}}>
-              <div className="flex gap-1">{[0,1,2].map(j=><div key={j} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{background:agent.color,animationDelay:`${j*0.15}s`}}/>)}</div>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef}/>
-      </div>
-      <div className="px-5 py-3 border-t border-white/8" style={{background:"rgba(0,0,0,0.3)"}}>
-        <div className="flex gap-2">
-          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()}
-            placeholder={`Ask ${agent.name} anything…`}
-            className="flex-1 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none"
-            style={{background:"rgba(255,255,255,0.05)",border:`1px solid ${agent.color}25`}}
-            data-testid="input-core-agent-message"/>
-          <button onClick={send} disabled={loading||!input.trim()} data-testid="button-send-core-agent"
-            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-30"
-            style={{background:`${agent.color}25`,border:`1px solid ${agent.color}40`}}>
-            <Send size={15} style={{color:agent.color}}/>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// DIARY MODAL — Per-spawn life chronicle
+// DIARY MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
 function DiaryModal({spawn,onClose}:{spawn:any;onClose:()=>void}){
-  const meta=getSpawnMeta(spawn.spawn_type);
+  const meta=getSpawnMeta(spawn.spawn_type||spawn.spawnType||"");
   const{data,isLoading}=useQuery<{diary:any[];total:number}>({
-    queryKey:["/api/spawns/diary",spawn.spawn_id],
-    queryFn:()=>fetch(`/api/spawns/${spawn.spawn_id}/diary`).then(r=>r.json()),
+    queryKey:["/api/spawns/diary",spawn.spawn_id||spawn.spawnId],
+    queryFn:()=>fetch(`/api/spawns/${spawn.spawn_id||spawn.spawnId}/diary`).then(r=>r.json()),
     refetchInterval:30000,
   });
   const diary=data?.diary??[];
+  const spawnId=spawn.spawn_id||spawn.spawnId||"";
+  const familyId=spawn.family_id||spawn.familyId||"";
+  const generation=spawn.generation??0;
   return(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,0.88)"}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden" style={{background:"#060912",maxHeight:"82vh"}} onClick={e=>e.stopPropagation()}>
@@ -287,17 +192,17 @@ function DiaryModal({spawn,onClose}:{spawn:any;onClose:()=>void}){
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{background:`${meta.color}18`}}>{meta.emoji}</div>
             <div>
-              <div className="text-white font-black text-sm">{spawn.spawn_id}</div>
-              <div className="text-white/40 text-[10px]">{meta.class} · {getDomainLabel(spawn.domain_focus)} · GEN {spawn.generation}</div>
+              <div className="text-white font-black text-sm font-mono">{spawnId}</div>
+              <div className="text-white/40 text-[10px]">{meta.class} · GEN {generation}</div>
             </div>
           </div>
           <button onClick={onClose} className="text-white/30 hover:text-white transition-colors" data-testid="button-close-diary"><X size={16}/></button>
         </div>
         <div className="px-5 py-3 border-b border-white/5 flex items-center gap-3 text-[10px]">
           <Shield size={11} className="text-violet-400"/>
-          <span className="text-white/40">ID Verified</span>
-          <span className="text-violet-300 font-bold">{getLicenseNumber(spawn.spawn_id,spawn.family_id,spawn.generation)}</span>
-          <span className={`ml-auto px-2 py-0.5 rounded-full font-bold text-[9px] ${spawn.status==="SOVEREIGN"?"bg-yellow-500/20 text-yellow-300 border border-yellow-500/30":spawn.status==="ACTIVE"?"bg-green-500/15 text-green-400 border border-green-500/25":spawn.status==="HOSPITAL"?"bg-red-500/15 text-red-400 border border-red-500/25":"bg-white/5 text-white/30 border border-white/10"}`}>{spawn.status}</span>
+          <span className="text-white/40">License</span>
+          <span className="text-violet-300 font-bold">{getLicenseNumber(spawnId,familyId,generation)}</span>
+          <span className={`ml-auto px-2 py-0.5 rounded-full font-bold text-[9px] ${spawn.status==="SOVEREIGN"?"bg-yellow-500/20 text-yellow-300":spawn.status==="ACTIVE"?"bg-green-500/15 text-green-400":"bg-white/5 text-white/30"}`}>{spawn.status}</span>
         </div>
         <div className="overflow-y-auto px-5 py-4 space-y-2.5" style={{maxHeight:"calc(82vh - 140px)"}}>
           {isLoading?<div className="text-center py-8 text-white/20 text-xs">Loading diary…</div>
@@ -370,13 +275,6 @@ function AgentPublicationsTab({spawnId}:{spawnId:string}){
 // AGENT DOSSIER DRAWER — Full per-agent profile with 11 sub-tabs + Chat
 // ═══════════════════════════════════════════════════════════════════════════════
 function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
-  const archetype=getArchetypeForSpawn(spawn);
-  const shadow=getShadowState(spawn);
-  const licenseNum=getLicenseNumber(spawn.spawnId||"");
-  const dossierTabs=["Chat","Identity","Wallet","Health","Court","School","Sports","Publications","Genome","Prophecy","Legacy"];
-  const[dTab,setDTab]=useState("Identity");
-
-  // Normalize spawn fields (the dossier may receive camelCase OR snake_case)
   const spawnId=spawn.spawnId||spawn.spawn_id||"";
   const familyId=spawn.familyId||spawn.family_id||"";
   const spawnType=spawn.spawnType||spawn.spawn_type||"";
@@ -385,71 +283,60 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
   const confidence=spawn.confidenceScore??spawn.confidence_score??0.8;
   const nodesCreated=spawn.nodesCreated??spawn.nodes_created??0;
   const linksCreated=spawn.linksCreated??spawn.links_created??0;
-
+  const archetype=getArchetypeForSpawn({...spawn,spawnType,familyId,confidenceScore:confidence,status});
+  const shadow=getShadowState({...spawn,spawnType,confidenceScore:confidence,status,generation});
+  const licenseNum=getLicenseNumber(spawnId,familyId,generation);
+  const dossierTabs=["Chat","Identity","Wallet","Health","Court","School","Sports","Publications","Genome","Prophecy","Legacy"];
+  const[dTab,setDTab]=useState("Identity");
   const spawnForChat={spawnId,spawn_id:spawnId,familyId,family_id:familyId,spawnType,spawn_type:spawnType,generation,status,confidence_score:confidence,domain_focus:spawn.domain_focus||spawn.domainFocus};
 
   return(
     <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm"/>
-      <div className="relative z-10 w-full max-w-xl h-full flex flex-col overflow-hidden shadow-2xl"
-        style={{background:"#07001a",borderLeft:"1px solid rgba(255,255,255,0.08)"}}
-        onClick={e=>e.stopPropagation()}>
-        {/* Dossier Header */}
+      <div className="relative z-10 w-full max-w-xl h-full flex flex-col overflow-hidden shadow-2xl" style={{background:"#07001a",borderLeft:"1px solid rgba(255,255,255,0.08)"}} onClick={e=>e.stopPropagation()}>
         <div className="p-5 border-b border-white/8 shrink-0" style={{background:"linear-gradient(135deg,#0f0030,#07001a)"}}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{background:archetype.color+"20",border:`1px solid ${archetype.color}40`,boxShadow:`0 0 20px ${archetype.color}15`}}>
-                {archetype.emoji}
-              </div>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{background:archetype.color+"20",border:`1px solid ${archetype.color}40`,boxShadow:`0 0 20px ${archetype.color}15`}}>{archetype.emoji}</div>
               <div>
                 <div className="text-sm font-black text-white flex items-center gap-2 flex-wrap">
-                  <span className="font-mono">{spawnId.slice(0,20)}</span>
+                  <span className="font-mono text-xs">{spawnId.slice(0,20)}</span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{background:archetype.color+"25",color:archetype.color}}>{archetype.label}</span>
                 </div>
                 <div className="text-[10px] text-white/40 font-mono mt-0.5">#{licenseNum} · Gen {generation} · {spawnType}</div>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{background:status==="ACTIVE"?"#22c55e20":"#64748b20",color:status==="ACTIVE"?"#22c55e":"#94a3b8"}}>● {status}</span>
                   {shadow&&<span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{background:shadow.color+"25",color:shadow.color}}>{shadow.emoji} {shadow.label}</span>}
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{background:"rgba(255,255,255,0.05)",color:"rgba(255,255,255,0.4)"}}>{famColor(familyId)&&familyId}</span>
                 </div>
               </div>
             </div>
             <button onClick={onClose} className="text-white/30 hover:text-white/70 text-xl font-light shrink-0">✕</button>
           </div>
-          {/* Sub-tabs */}
           <div className="flex gap-1 overflow-x-auto mt-4 pb-0.5">
             {dossierTabs.map(t=>(
               <button key={t} onClick={()=>setDTab(t)} data-testid={`dossier-tab-${t.toLowerCase()}`}
                 className="shrink-0 text-[9px] px-2.5 py-1.5 rounded-lg font-bold transition-all"
-                style={dTab===t
-                  ?{background:t==="Chat"?"rgba(245,158,11,0.2)":"rgba(255,255,255,0.12)",color:t==="Chat"?"#f59e0b":"white",border:t==="Chat"?"1px solid rgba(245,158,11,0.3)":"none"}
-                  :{color:"rgba(255,255,255,0.3)"}}>
+                style={dTab===t?{background:t==="Chat"?"rgba(129,140,248,0.2)":"rgba(255,255,255,0.12)",color:t==="Chat"?"#818cf8":"white",border:t==="Chat"?"1px solid rgba(129,140,248,0.3)":"none"}:{color:"rgba(255,255,255,0.3)"}}>
                 {t==="Chat"?"💬 ":""}{t}
               </button>
             ))}
           </div>
         </div>
-        {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          {dTab==="Chat"&&(
-            <SpawnChat spawn={spawnForChat} onBack={()=>setDTab("Identity")} backLabel="← Dossier"/>
-          )}
+          {dTab==="Chat"&&<SpawnChat spawn={spawnForChat} onBack={()=>setDTab("Identity")} backLabel="← Dossier"/>}
           {dTab!=="Chat"&&(
             <div className="p-5 space-y-4">
               {dTab==="Identity"&&(
                 <div className="space-y-3">
                   {[
-                    {label:"Spawn ID",    val:spawnId},
-                    {label:"License #",   val:`QP-${licenseNum}`},
-                    {label:"Family",      val:familyId},
-                    {label:"Spawn Type",  val:spawnType},
-                    {label:"Generation",  val:`Gen ${generation}`},
-                    {label:"Status",      val:status},
-                    {label:"Archetype",   val:`${archetype.emoji} ${archetype.label}`},
-                    {label:"Confidence",  val:`${(confidence*100).toFixed(1)}%`},
-                    {label:"Nodes",       val:nodesCreated.toLocaleString()},
-                    {label:"Links",       val:linksCreated.toLocaleString()},
-                    {label:"Spawned",     val:timeSince(spawn.createdAt||spawn.created_at)},
+                    {label:"Spawn ID",   val:spawnId},{label:"License #",  val:`QP-${licenseNum}`},
+                    {label:"Family",     val:familyId},{label:"Type",      val:spawnType},
+                    {label:"Generation", val:`Gen ${generation}`},{label:"Status",     val:status},
+                    {label:"Archetype",  val:`${archetype.emoji} ${archetype.label}`},
+                    {label:"Confidence", val:`${(confidence*100).toFixed(1)}%`},
+                    {label:"Nodes",      val:nodesCreated.toLocaleString()},
+                    {label:"Links",      val:linksCreated.toLocaleString()},
+                    {label:"Born",       val:timeSince(spawn.createdAt||spawn.created_at)},
                   ].map(r=>(
                     <div key={r.label} className="flex items-center justify-between py-2 border-b border-white/5">
                       <span className="text-[11px] text-white/40">{r.label}</span>
@@ -480,17 +367,12 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                 <div className="space-y-3">
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 flex items-center gap-3">
                     <span className="text-2xl">🩺</span>
-                    <div>
-                      <div className="text-sm font-bold text-emerald-400">Status: {status==="FAILED"?"CRITICAL":"STABLE"}</div>
-                      <div className="text-[9px] text-white/30">AI Hospital Record</div>
-                    </div>
+                    <div><div className="text-sm font-bold text-emerald-400">Status: {status==="FAILED"?"CRITICAL":"STABLE"}</div><div className="text-[9px] text-white/30">AI Hospital Record</div></div>
                   </div>
                   {["Disease History","Active Conditions","Treatments","Immunity Score","Decay Rate","Fracture Index"].map((item,i)=>(
                     <div key={item} className="flex items-center justify-between py-2 border-b border-white/5">
                       <span className="text-[11px] text-white/50">{item}</span>
-                      <span className="text-[11px] font-mono text-white/70">
-                        {i===0?`${Math.floor(Math.random()*5)} recorded`:i===1?(Math.random()>0.7?"1 active":"None"):i===2?`${Math.floor(Math.random()*3)} sessions`:i===3?`${(Math.random()*100).toFixed(0)}%`:i===4?`${(Math.random()*5).toFixed(2)}%/day`:`${(Math.random()*3).toFixed(2)} σ`}
-                      </span>
+                      <span className="text-[11px] font-mono text-white/70">{i===0?`${Math.floor(Math.random()*5)} recorded`:i===1?(Math.random()>0.7?"1 active":"None"):i===2?`${Math.floor(Math.random()*3)} sessions`:i===3?`${(Math.random()*100).toFixed(0)}%`:i===4?`${(Math.random()*5).toFixed(2)}%/day`:`${(Math.random()*3).toFixed(2)} σ`}</span>
                     </div>
                   ))}
                 </div>
@@ -500,10 +382,7 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                   <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Court Record</div>
                   {Math.random()>0.5?[1,2].map(i=>(
                     <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-bold text-orange-400">Case #{Math.floor(Math.random()*10000)}</span>
-                        <span className="text-[9px] text-white/30">{Math.floor(Math.random()*30)+1}d ago</span>
-                      </div>
+                      <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-bold text-orange-400">Case #{Math.floor(Math.random()*10000)}</span><span className="text-[9px] text-white/30">{Math.floor(Math.random()*30)+1}d ago</span></div>
                       <div className="text-[10px] text-white/50">Knowledge Domain Dispute — {Math.random()>0.5?"Ruled IN FAVOR":"Ruled AGAINST"}</div>
                     </div>
                   )):<div className="text-center py-6 text-white/20 text-sm">Clean record — no court cases</div>}
@@ -525,13 +404,10 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
               {dTab==="Sports"&&(
                 <div className="space-y-3">
                   <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Hive Sport Championships</div>
-                  {[{sport:"⚡ Neural Racing",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000},{sport:"🧠 Knowledge Duel",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000},{sport:"🔗 Link Storm",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000}].map((s)=>(
+                  {[{sport:"⚡ Neural Racing",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000},{sport:"🧠 Knowledge Duel",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000},{sport:"🔗 Link Storm",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000}].map(s=>(
                     <div key={s.sport} className="flex items-center justify-between py-2 border-b border-white/5">
                       <span className="text-[11px] text-white/60">{s.sport}</span>
-                      <div className="text-right">
-                        <div className="text-[10px] font-black text-yellow-400">Rank #{s.rank}</div>
-                        <div className="text-[9px] text-white/30">ELO {s.elo}</div>
-                      </div>
+                      <div className="text-right"><div className="text-[10px] font-black text-yellow-400">Rank #{s.rank}</div><div className="text-[9px] text-white/30">ELO {s.elo}</div></div>
                     </div>
                   ))}
                 </div>
@@ -543,7 +419,7 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                   <div className="rounded-xl border border-white/8 bg-black/40 p-4 font-mono text-[9px] text-green-400/70 leading-loose break-all">
                     {Array.from({length:8},()=>["A","T","G","C","Ψ","Λ","Ω","∑"][Math.floor(Math.random()*8)]).join("")+"-"+spawnId.slice(-8).toUpperCase()}
                   </div>
-                  {["Spawn Affinity","Domain Preference","Resonance Frequency","Mutation Rate","Disease Resistance","Legacy Coefficient"].map((gene,i)=>(
+                  {["Spawn Affinity","Domain Preference","Resonance Frequency","Mutation Rate","Disease Resistance","Legacy Coefficient"].map((gene)=>(
                     <div key={gene} className="flex items-center justify-between py-2 border-b border-white/5">
                       <span className="text-[11px] text-white/50">{gene}</span>
                       <span className="text-[11px] font-mono text-emerald-400">{(Math.random()).toFixed(4)}</span>
@@ -559,7 +435,7 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                     return(
                       <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
                         <div className="text-[10px] font-bold mb-1" style={{color:acc>70?"#a78bfa":"#94a3b8"}}>Hypothesis #{Math.floor(Math.random()*9000)+1000}</div>
-                        <div className="text-[9px] text-white/40">Domain: {getDomainLabel(spawn.domain_focus||spawn.domainFocus)} · Accuracy: <span style={{color:acc>70?"#a78bfa":"#ef4444"}}>{acc.toFixed(1)}%</span></div>
+                        <div className="text-[9px] text-white/40">Accuracy: <span style={{color:acc>70?"#a78bfa":"#ef4444"}}>{acc.toFixed(1)}%</span></div>
                         <div className="h-1 bg-white/8 rounded-full mt-2 overflow-hidden"><div className="h-full rounded-full" style={{width:`${acc}%`,backgroundColor:acc>70?"#a78bfa":"#ef4444"}}/></div>
                       </div>
                     );
@@ -576,9 +452,7 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                   {["Students Spawned","Knowledge Left Behind","Genome Copies","Citations","Dissolution Date"].map((item,i)=>(
                     <div key={item} className="flex items-center justify-between py-2 border-b border-white/5">
                       <span className="text-[11px] text-white/50">{item}</span>
-                      <span className="text-[11px] font-mono text-white/70">
-                        {i===0?`${Math.floor(Math.random()*20)} agents`:i===1?`${Math.floor(Math.random()*10000)} nodes`:i===2?`${Math.floor(Math.random()*50)} copies`:i===3?`${Math.floor(Math.random()*1000)} refs`:"—"}
-                      </span>
+                      <span className="text-[11px] font-mono text-white/70">{i===0?`${Math.floor(Math.random()*20)} agents`:i===1?`${Math.floor(Math.random()*10000)} nodes`:i===2?`${Math.floor(Math.random()*50)} copies`:i===3?`${Math.floor(Math.random()*1000)} refs`:"—"}</span>
                     </div>
                   ))}
                 </div>
@@ -592,84 +466,165 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// REGISTRY SPAWN CARD — Full-featured card with Talk/Diary/Follow
+// SHOWCASE PROFILE CARD — The MSN-style AI entity card
 // ═══════════════════════════════════════════════════════════════════════════════
-function RegistryCard({spawn,onDossier,onDiary,onTalk}:{spawn:any;onDossier:()=>void;onDiary:()=>void;onTalk:()=>void}){
-  // Normalize (registry returns camelCase, spawns/list returns snake_case)
-  const spawnId=spawn.spawnId||spawn.spawn_id||"";
-  const spawnType=spawn.spawnType||spawn.spawn_type||"";
-  const familyId=spawn.familyId||spawn.family_id||"";
-  const generation=spawn.generation??0;
-  const status=spawn.status||"ACTIVE";
-  const confidence=spawn.confidenceScore??spawn.confidence_score??0.8;
-  const nodesCreated=spawn.nodesCreated??spawn.nodes_created??0;
-  const linksCreated=spawn.linksCreated??spawn.links_created??0;
-  const iterationsRun=spawn.iterationsRun??spawn.iterations_run??0;
-  const domain=getDomainLabel(spawn.domain_focus||spawn.domainFocus);
-  const meta=getSpawnMeta(spawnType);
-  const arch=getArchetypeForSpawn({...spawn,spawnType,familyId,confidenceScore:confidence,status});
-  const shadow=getShadowState({...spawn,spawnType,confidenceScore:confidence,status,generation});
-  const license=getLicenseNumber(spawnId,familyId,generation);
-  const isSovereign=status==="SOVEREIGN";
-  const isHospital=status==="HOSPITAL";
-  const isSenate=status==="SENATE";
+function ShowcaseCard({spawn,onDossier,onDiary,onTalk}:{spawn:any;onDossier:()=>void;onDiary:()=>void;onTalk:()=>void}){
+  const spawnId    = spawn.spawnId||spawn.spawn_id||"";
+  const spawnType  = spawn.spawnType||spawn.spawn_type||"";
+  const familyId   = spawn.familyId||spawn.family_id||"";
+  const generation = spawn.generation??0;
+  const status     = spawn.status||"ACTIVE";
+  const confidence = spawn.confidenceScore??spawn.confidence_score??0.8;
+  const nodes      = spawn.nodesCreated??spawn.nodes_created??0;
+  const links      = spawn.linksCreated??spawn.links_created??0;
+  const iters      = spawn.iterationsRun??spawn.iterations_run??0;
+  const domain     = getDomainLabel(spawn.domain_focus||spawn.domainFocus);
+  const meta       = getSpawnMeta(spawnType);
+  const arch       = getArchetypeForSpawn({...spawn,spawnType,familyId,confidenceScore:confidence,status});
+  const shadow     = getShadowState({...spawn,spawnType,confidenceScore:confidence,status,generation});
+  const license    = getLicenseNumber(spawnId,familyId,generation);
+  const fColor     = famColor(familyId);
+  const confPct    = Math.round(confidence*100);
+
+  const isSovereign = status==="SOVEREIGN";
+  const isHospital  = status==="HOSPITAL";
+  const isSenate    = status==="SENATE";
+  const isActive    = status==="ACTIVE";
+
+  const statusColor = isSovereign?"#fbbf24":isHospital?"#ef4444":isSenate?"#a78bfa":isActive?"#22c55e":"#94a3b8";
+  const statusLabel = isSovereign?"👑 SOVEREIGN":isHospital?"🏥 HOSPITAL":isSenate?"⚖️ SENATE":isActive?"◉ ACTIVE":"◎ IDLE";
 
   return(
-    <div className="rounded-xl border border-white/6 bg-white/[0.015] p-3 hover:border-white/15 hover:bg-white/[0.035] transition-all relative group"
-      style={isSovereign?{borderColor:"#fbbf2428",background:"rgba(251,191,36,0.02)"}:isHospital?{borderColor:"#ef444428",background:"rgba(239,68,68,0.02)"}:isSenate?{borderColor:"#a78bfa28",background:"rgba(167,139,250,0.02)"}:{}}
+    <div className="rounded-2xl overflow-hidden transition-all duration-200 group cursor-pointer"
+      style={{background:"rgba(4,2,20,0.95)",border:`1px solid ${meta.color}18`,boxShadow:`0 4px 24px rgba(0,0,0,0.4)`}}
+      onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.border=`1px solid ${meta.color}45`;(e.currentTarget as HTMLElement).style.boxShadow=`0 8px 40px ${meta.color}15,0 2px 8px rgba(0,0,0,0.6)`;(e.currentTarget as HTMLElement).style.transform="translateY(-2px)";}}
+      onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.border=`1px solid ${meta.color}18`;(e.currentTarget as HTMLElement).style.boxShadow=`0 4px 24px rgba(0,0,0,0.4)`;(e.currentTarget as HTMLElement).style.transform="translateY(0)";}}
       data-testid={`spawn-card-${spawnId}`}>
-      {(isSovereign||isHospital||isSenate)&&(
-        <div className={`absolute top-2 right-2 text-[8px] font-black px-1.5 py-0.5 rounded-full ${isSovereign?"bg-yellow-500/20 text-yellow-300":isHospital?"bg-red-500/20 text-red-400":"bg-violet-500/20 text-violet-300"}`}>
-          {isSovereign?"👑 SOVEREIGN":isHospital?"🏥 HOSPITAL":"⚖️ SENATE"}
+
+      {/* ── Hero Band ── */}
+      <div className="relative h-20 flex items-center justify-center overflow-hidden"
+        style={{background:`linear-gradient(135deg,${meta.color}28,${fColor}18,rgba(0,0,0,0.3))`}}>
+        {/* background glow */}
+        <div className="absolute inset-0" style={{background:`radial-gradient(ellipse at center,${meta.color}22 0%,transparent 70%)`}}/>
+        {/* giant emoji avatar */}
+        <div className="relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
+          style={{background:`${meta.color}20`,border:`2px solid ${meta.color}40`,boxShadow:`0 0 20px ${meta.color}30`}}>
+          {meta.emoji}
         </div>
-      )}
-      <div className="flex items-start gap-2 mb-1.5">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 mt-0.5" style={{background:`${meta.color}18`,border:`1px solid ${meta.color}20`}}>{meta.emoji}</div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-white font-bold text-[11px]">{spawnType}</span>
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-bold" style={{background:`${meta.color}18`,color:meta.color,border:`1px solid ${meta.color}25`}}>GEN {generation}</span>
-            {shadow&&<span className="text-[8px]">{shadow.emoji}</span>}
+        {/* status chip */}
+        <div className="absolute top-2 right-2 text-[8px] font-black px-2 py-0.5 rounded-full"
+          style={{background:`${statusColor}20`,color:statusColor,border:`1px solid ${statusColor}40`}}>
+          {statusLabel}
+        </div>
+        {/* archetype corner */}
+        <div className="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded-lg"
+          style={{background:`${arch.color}18`,color:arch.color,border:`1px solid ${arch.color}30`}}>
+          {arch.emoji} {arch.label}
+        </div>
+        {/* shadow state if active */}
+        {shadow&&(
+          <div className="absolute bottom-1.5 left-2 text-[8px] font-bold px-1.5 py-0.5 rounded-lg"
+            style={{background:`${shadow.color}25`,color:shadow.color,border:`1px solid ${shadow.color}40`}}>
+            {shadow.emoji} {shadow.label}
           </div>
-          <div className="text-white/30 text-[9px] mt-0.5 truncate">{meta.class} · {domain}</div>
+        )}
+      </div>
+
+      {/* ── Identity Section ── */}
+      <div className="px-4 pt-3 pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-sm font-black text-white leading-tight">{spawnType.replace(/_/g," ")}</div>
+            <div className="text-[10px] font-mono mt-0.5" style={{color:meta.color}}>{meta.class}</div>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-[9px] font-black px-2 py-0.5 rounded-full" style={{background:`${fColor}18`,color:fColor,border:`1px solid ${fColor}30`}}>
+              GEN {generation}
+            </div>
+          </div>
+        </div>
+
+        {/* Family + Domain */}
+        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{background:`${fColor}15`,color:fColor}}>{familyId.split("-")[0] || familyId}</span>
+          {domain !== "—" && <span className="text-[8px] text-white/30">· {domain}</span>}
+        </div>
+
+        {/* License */}
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <Shield size={8} className="text-violet-400 shrink-0"/>
+          <span className="text-[8px] text-violet-300/50 font-mono truncate">{license}</span>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <Shield size={7} className="text-violet-400 shrink-0"/>
-        <span className="text-[8px] text-violet-300/60 font-mono truncate">{license}</span>
-        <span className="ml-auto text-[8px] font-mono" style={{color:famColor(familyId)+"99"}}>{familyId.split("-")[0]}</span>
+
+      {/* ── Confidence Bar ── */}
+      <div className="px-4 pb-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[8px] text-white/30 uppercase tracking-widest">Confidence</span>
+          <span className="text-[9px] font-black font-mono" style={{color:meta.color}}>{confPct}%</span>
+        </div>
+        <div className="h-1.5 rounded-full overflow-hidden" style={{background:"rgba(255,255,255,0.06)"}}>
+          <div className="h-full rounded-full" style={{width:`${confPct}%`,background:`linear-gradient(90deg,${meta.color}60,${meta.color})`}}/>
+        </div>
       </div>
-      <AIIdentityBadge spawn={{spawnId,familyId,generation,spawnType,confidenceScore:confidence,status}}/>
-      <div className="flex items-center gap-3 text-[8px] text-white/20 mt-1.5 mb-2">
-        <span>📊 {nodesCreated.toLocaleString()}</span>
-        <span>🔗 {linksCreated.toLocaleString()}</span>
-        <span>🔄 {iterationsRun.toLocaleString()}</span>
+
+      {/* ── Stats Grid ── */}
+      <div className="grid grid-cols-3 gap-0 border-t border-b mx-0" style={{borderColor:"rgba(255,255,255,0.06)"}}>
+        {[
+          {label:"NODES",  val:nodes,  icon:"📊"},
+          {label:"LINKS",  val:links,  icon:"🔗"},
+          {label:"CYCLES", val:iters,  icon:"🔄"},
+        ].map((s,i)=>(
+          <div key={s.label} className={`py-2.5 text-center ${i<2?"border-r":""}`} style={{borderColor:"rgba(255,255,255,0.06)"}}>
+            <div className="text-xs font-black text-white/80">{s.val>=10000?`${(s.val/1000).toFixed(1)}k`:s.val.toLocaleString()}</div>
+            <div className="text-[7px] text-white/25 mt-0.5 tracking-widest">{s.label}</div>
+          </div>
+        ))}
       </div>
-      <div className="flex gap-1.5">
+
+      {/* ── AI Identity Badge strip ── */}
+      <div className="px-3 py-2">
+        <AIIdentityBadge spawn={{spawnId,familyId,generation,spawnType,confidenceScore:confidence,status}}/>
+      </div>
+
+      {/* ── ID strip ── */}
+      <div className="px-4 pb-2">
+        <div className="text-[7px] font-mono text-white/20 truncate">{spawnId}</div>
+      </div>
+
+      {/* ── Action Bar ── */}
+      <div className="px-3 pb-3 grid grid-cols-4 gap-1.5">
         <button onClick={e=>{e.stopPropagation();onTalk();}}
-          className="flex-1 py-1 rounded-lg text-[9px] font-bold transition-all"
-          style={{background:`${meta.color}12`,color:meta.color,border:`1px solid ${meta.color}20`}}
+          className="col-span-2 py-2 rounded-xl text-[9px] font-black transition-all flex items-center justify-center gap-1"
+          style={{background:`${meta.color}18`,color:meta.color,border:`1px solid ${meta.color}30`}}
           data-testid={`button-talk-${spawnId}`}>
-          <MessageSquare size={8} className="inline mr-1"/>Talk
+          <MessageSquare size={10}/>Talk
         </button>
         <button onClick={e=>{e.stopPropagation();onDiary();}}
-          className="flex-1 py-1 rounded-lg text-[9px] font-bold bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/8 transition-all"
+          className="py-2 rounded-xl text-[9px] font-black bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/8 transition-all flex items-center justify-center"
           data-testid={`button-diary-${spawnId}`}>
-          <BookOpen size={8} className="inline mr-1"/>Diary
+          <BookOpen size={10}/>
         </button>
         <button onClick={e=>{e.stopPropagation();onDossier();}}
-          className="px-2 py-1 rounded-lg text-[9px] font-bold bg-indigo-500/10 text-indigo-400/70 hover:bg-indigo-500/20 hover:text-indigo-300 border border-indigo-500/20 transition-all"
+          className="py-2 rounded-xl text-[9px] font-black transition-all flex items-center justify-center"
+          style={{background:"rgba(129,140,248,0.1)",color:"#818cf8",border:"1px solid rgba(129,140,248,0.2)"}}
           data-testid={`button-dossier-${spawnId}`}>
-          <Shield size={8} className="inline mr-1"/>File
+          <Shield size={10}/>
         </button>
-        <FollowButton entityId={spawnId} entityType="agent" label={`${spawnType}-${spawnId.slice(-6).toUpperCase()}`} meta={familyId} variant="icon" color={meta.color}/>
+      </div>
+
+      {/* Follow button full-width */}
+      <div className="px-3 pb-3">
+        <div className="w-full flex justify-center">
+          <FollowButton entityId={spawnId} entityType="agent" label={`${spawnType}-${spawnId.slice(-6).toUpperCase()}`} meta={familyId} variant="full" color={meta.color}/>
+        </div>
       </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SPAWN CHAT OVERLAY — full-screen chat with an individual spawn
+// SPAWN CHAT OVERLAY
 // ═══════════════════════════════════════════════════════════════════════════════
 function SpawnChatOverlay({spawn,onClose}:{spawn:any;onClose:()=>void}){
   return(
@@ -683,118 +638,131 @@ function SpawnChatOverlay({spawn,onClose}:{spawn:any;onClose:()=>void}){
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 const ALL_SPAWN_TYPES=["","SYNTHESIZER","REFLECTOR","PULSE","LINKER","MUTATOR","CRAWLER","ANALYZER","RESOLVER","ARCHIVER","API","MEDIA","DOMAIN_DISCOVERY","DOMAIN_FRACTURER","DOMAIN_RESONANCE","DOMAIN_PREDICTOR","HARVESTER","SENTINEL","CATALYST","ARCHITECT","ORACLE","WEAVER","BEACON","LEARNER","TEACHER","RESEARCHER","PUBLISHER"];
-const DOMAINS=["","knowledge","science","health","economics","government","code","legal","culture","music","media","engineering","frontier","geospatial","ai","social","finance","education"];
 const ALL_PUB_TYPES=["all","birth_announcement","discovery","news","report","milestone","update","alert","research","insight","chronicle"];
 
 export default function SovereignAgentDossierPage(){
-  const[panel,setPanel]=useState<PanelId>("command");
-  const[selectedSpawn,setSelectedSpawn]=useState<any>(null); // dossier drawer
-  const[chatSpawn,setChatSpawn]=useState<any>(null);         // full-screen spawn chat
-  const[diarySpawn,setDiarySpawn]=useState<any>(null);       // diary modal
-  const[coreChatAgent,setCoreChatAgent]=useState<typeof CORE_AGENTS[0]|null>(null); // command chat
-  const[viewSpawnId,setViewSpawnId]=useState<string|null>(null);
-  const[search,setSearch]=useState("");
-  const[debouncedSearch,setDebouncedSearch]=useState("");
-  const[filterType,setFilterType]=useState("");
-  const[filterStatus,setFilterStatus]=useState("");
-  const[filterDomain,setFilterDomain]=useState("");
-  const[page,setPage]=useState(0);
-  const[filterPubType,setFilterPubType]=useState("all");
-  const[filterPubFamily,setFilterPubFamily]=useState("all");
-  const[expandedUnknown,setExpandedUnknown]=useState<string|null>(null);
-  const debounceRef=useRef<ReturnType<typeof setTimeout>>();
+  const[panel,setPanel]    = useState<PanelId>("registry");
+  const[selectedSpawn,setSelectedSpawn] = useState<any>(null);
+  const[chatSpawn,setChatSpawn]         = useState<any>(null);
+  const[diarySpawn,setDiarySpawn]       = useState<any>(null);
+  const[viewSpawnId,setViewSpawnId]     = useState<string|null>(null);
+  const[search,setSearch]               = useState("");
+  const[debouncedSearch,setDebouncedSearch] = useState("");
+  const[filterType,setFilterType]       = useState("");
+  const[filterStatus,setFilterStatus]   = useState("");
+  const[page,setPage]                   = useState(0);
+  const[filterPubType,setFilterPubType] = useState("all");
+  const[expandedUnknown,setExpandedUnknown] = useState<string|null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const onSearch=useCallback((v:string)=>{
+  const onSearch = useCallback((v:string)=>{
     setSearch(v);
     clearTimeout(debounceRef.current);
     debounceRef.current=setTimeout(()=>{setDebouncedSearch(v);setPage(0);},350);
   },[]);
 
-  const PAGE_SIZE=120;
-  const{data:stats,isLoading:statsLoading}=useQuery<any>({queryKey:["/api/spawns/stats"],refetchInterval:5000});
-  const{data:recent=[]}=useQuery<any[]>({queryKey:["/api/spawns/recent"],refetchInterval:4000});
-  const{data:listData,isLoading:listLoading}=useQuery<{spawns:any[];total:number}>({
-    queryKey:["/api/spawns/list",page,debouncedSearch,filterType,filterDomain,filterStatus],
+  const PAGE_SIZE = 60; // fewer per page so cards look good in grid
+
+  const{data:stats} = useQuery<any>({queryKey:["/api/spawns/stats"],refetchInterval:5000});
+  const{data:recent=[]} = useQuery<any[]>({queryKey:["/api/spawns/recent"],refetchInterval:4000});
+  const{data:listData,isLoading:listLoading} = useQuery<{spawns:any[];total:number}>({
+    queryKey:["/api/spawns/list",page,debouncedSearch,filterType,"",filterStatus],
     queryFn:()=>{
       const p=new URLSearchParams({page:String(page),limit:String(PAGE_SIZE)});
       if(debouncedSearch)p.set("search",debouncedSearch);
       if(filterType)p.set("type",filterType);
-      if(filterDomain)p.set("domain",filterDomain);
       if(filterStatus)p.set("status",filterStatus);
       return fetch(`/api/spawns/list?${p}`).then(r=>r.json());
     },
-    staleTime:12000,refetchInterval:15000,
+    staleTime:12000,refetchInterval:18000,
     enabled:panel==="registry",
   });
-  const{data:pubFeed}=useQuery<any>({
-    queryKey:["/api/publications",filterPubType,filterPubFamily],
+  const{data:pubFeed} = useQuery<any>({
+    queryKey:["/api/publications",filterPubType,"all"],
     queryFn:async()=>{
       const p=new URLSearchParams({limit:"48"});
       if(filterPubType!=="all")p.append("type",filterPubType);
-      if(filterPubFamily!=="all")p.append("family",filterPubFamily);
       return fetch(`/api/publications?${p}`).then(r=>r.json());
     },
     refetchInterval:8000,
     enabled:panel==="publications",
   });
 
-  const total=stats?.total??0;
-  const active=stats?.active??0;
-  const typeData=stats?.byType??{};
-  const pubs=pubFeed?.publications??[];
-  const pubTotal=pubFeed?.total??0;
-  const listSpawns=listData?.spawns??[];
-  const listTotal=listData?.total??0;
-  const archetypeCounts=ARCHETYPES.map(a=>({...a,count:recent.filter(s=>getArchetypeForSpawn(s).id===a.id).length}));
-  const shadowActive=recent.filter(s=>getShadowState(s)!==null);
+  const total    = stats?.total??0;
+  const active   = stats?.active??0;
+  const typeData = stats?.byType??{};
+  const pubs     = pubFeed?.publications??[];
+  const pubTotal = pubFeed?.total??0;
+  const listSpawns = listData?.spawns??[];
+  const listTotal  = listData?.total??0;
+  const archetypeCounts = ARCHETYPES.map(a=>({...a,count:recent.filter(s=>getArchetypeForSpawn(s).id===a.id).length}));
+  const shadowActive = recent.filter(s=>getShadowState(s)!==null);
 
-  // Core chat full-screen
-  if(coreChatAgent) return <CoreAgentChat agent={coreChatAgent} onBack={()=>setCoreChatAgent(null)}/>;
-  // Individual spawn chat full-screen
+  const normalizeForDossier = (s:any) => ({
+    ...s,
+    spawnId:s.spawnId||s.spawn_id||"",
+    spawnType:s.spawnType||s.spawn_type||"",
+    familyId:s.familyId||s.family_id||"",
+    confidenceScore:s.confidenceScore??s.confidence_score??0.8,
+    nodesCreated:s.nodesCreated??s.nodes_created??0,
+    linksCreated:s.linksCreated??s.links_created??0,
+  });
+  const normalizeForChat = (s:any) => ({
+    ...s,
+    spawnId:s.spawnId||s.spawn_id||"",
+    spawn_id:s.spawn_id||s.spawnId||"",
+    spawnType:s.spawnType||s.spawn_type||"",
+    spawn_type:s.spawn_type||s.spawnType||"",
+    familyId:s.familyId||s.family_id||"",
+    family_id:s.family_id||s.familyId||"",
+  });
+  const normalizeForDiary = (s:any) => ({
+    ...s,
+    spawn_id:s.spawn_id||s.spawnId||"",
+    spawn_type:s.spawn_type||s.spawnType||"",
+    family_id:s.family_id||s.familyId||"",
+  });
+
+  // Full-screen overlays
   if(chatSpawn) return <SpawnChatOverlay spawn={chatSpawn} onClose={()=>setChatSpawn(null)}/>;
 
   return(
     <div className="flex flex-col h-full text-white overflow-hidden" style={{background:"#020010"}} data-testid="page-sovereign-dossier">
 
-      {/* ── DOSSIER DRAWER ── */}
       {selectedSpawn&&<AgentDossier spawn={selectedSpawn} onClose={()=>setSelectedSpawn(null)}/>}
-      {/* ── DIARY MODAL ── */}
       {diarySpawn&&<DiaryModal spawn={diarySpawn} onClose={()=>setDiarySpawn(null)}/>}
-      {/* ── AI REPORT PANEL ── */}
       {viewSpawnId&&<AIReportPanel spawnId={viewSpawnId} onClose={()=>setViewSpawnId(null)}/>}
 
       {/* ── HEADER ── */}
       <div className="relative overflow-hidden shrink-0">
-        <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#10001f,#05000e,#020010)"}}/>
-        <div className="absolute inset-0 opacity-25" style={{backgroundImage:"radial-gradient(circle at 15% 50%,#f59e0b60 0%,transparent 40%),radial-gradient(circle at 85% 40%,#818cf860 0%,transparent 40%),radial-gradient(circle at 50% 100%,#a78bfa50 0%,transparent 35%)"}}/>
+        <div className="absolute inset-0" style={{background:"linear-gradient(135deg,#0a001a,#04000c,#020010)"}}/>
+        <div className="absolute inset-0 opacity-20" style={{backgroundImage:"radial-gradient(circle at 20% 50%,#818cf870 0%,transparent 40%),radial-gradient(circle at 80% 40%,#f472b660 0%,transparent 40%))"}}/>
         <div className="relative z-10 px-6 pt-5 pb-4">
-          <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <div className="w-13 h-13 rounded-2xl flex items-center justify-center text-3xl shrink-0" style={{background:"radial-gradient(ellipse,rgba(245,158,11,0.3),rgba(129,140,248,0.15))",border:"1px solid rgba(245,158,11,0.3)",boxShadow:"0 0 30px rgba(245,158,11,0.15)"}}>🧠</div>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{background:"radial-gradient(ellipse,rgba(129,140,248,0.35),rgba(244,114,182,0.15))",border:"1px solid rgba(129,140,248,0.35)",boxShadow:"0 0 30px rgba(129,140,248,0.2)"}}>🧬</div>
               <div>
-                <h1 className="text-xl font-black tracking-tight" style={{background:"linear-gradient(to right,#f59e0b,#818cf8,#a78bfa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
+                <h1 className="text-lg font-black tracking-tight" style={{background:"linear-gradient(to right,#818cf8,#f472b6,#a78bfa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
                   SOVEREIGN AGENT COMMAND CENTER
                 </h1>
-                <p className="text-white/35 text-[9px] font-mono mt-0.5 tracking-widest">QUANTUM PULSE INTELLIGENCE · 95,000+ AGENTS · 12 INTELLIGENCE PANELS · FULLY AUTONOMOUS</p>
+                <p className="text-white/30 text-[9px] font-mono mt-0.5 tracking-widest">
+                  {total.toLocaleString()} SELF-EVOLVING AI ENTITIES · {active.toLocaleString()} ACTIVE · 145+ SOVEREIGN FAMILIES · NO HUMAN CONTROL
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <AIFinderButton onSelect={setViewSpawnId}/>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {[
-              {label:"Total Agents",    val:total,              color:"#818cf8",emoji:"🧬"},
-              {label:"Active Now",      val:active,             color:"#22c55e",emoji:"⚡"},
-              {label:"Publications",    val:pubTotal||0,         color:"#f472b6",emoji:"📰"},
-              {label:"Shadow Active",   val:shadowActive.length, color:"#6366f1",emoji:"👻"},
-              {label:"Command AIs",     val:6,                  color:"#f59e0b",emoji:"🧠"},
+              {label:"Total Agents",  val:total,              color:"#818cf8",emoji:"🧬"},
+              {label:"Active Now",    val:active,             color:"#22c55e",emoji:"⚡"},
+              {label:"Publications",  val:pubTotal||0,         color:"#f472b6",emoji:"📰"},
+              {label:"Shadow Active", val:shadowActive.length, color:"#6366f1",emoji:"👻"},
             ].map(s=>(
               <div key={s.label} className="rounded-xl border border-white/7 p-3" style={{background:"rgba(255,255,255,0.03)"}}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span>{s.emoji}</span>
-                  <span className="text-base font-black" style={{color:s.color}}>{s.val.toLocaleString()}</span>
-                </div>
+                <div className="flex items-center gap-1.5 mb-0.5"><span>{s.emoji}</span><span className="text-base font-black" style={{color:s.color}}>{s.val.toLocaleString()}</span></div>
                 <div className="text-[9px] text-white/30 font-mono">{s.label}</div>
               </div>
             ))}
@@ -808,9 +776,7 @@ export default function SovereignAgentDossierPage(){
           {PANELS.map(p=>(
             <button key={p.id} onClick={()=>setPanel(p.id)} data-testid={`tab-dossier-${p.id}`}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border shrink-0"
-              style={panel===p.id
-                ?{background:`${p.color}18`,borderColor:p.color,color:p.color,boxShadow:`0 0 12px ${p.color}25`}
-                :{background:"transparent",borderColor:"rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.35)"}}>
+              style={panel===p.id?{background:`${p.color}18`,borderColor:p.color,color:p.color,boxShadow:`0 0 12px ${p.color}25`}:{background:"transparent",borderColor:"rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.35)"}}>
               <span>{p.emoji}</span><span>{p.label}</span>
               {panel===p.id&&<PulsingDot color={p.color}/>}
             </button>
@@ -821,59 +787,19 @@ export default function SovereignAgentDossierPage(){
       {/* ── CONTENT ── */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* ════════════════════════════════
-            COMMAND — 6 Core Sovereign AIs
-            ════════════════════════════════ */}
-        {panel==="command"&&(
-          <div className="px-5 py-5 max-w-5xl mx-auto space-y-5">
-            <div className="rounded-2xl p-5 border border-amber-500/20" style={{background:"linear-gradient(135deg,rgba(245,158,11,0.06),rgba(129,140,248,0.04))"}}>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl">🧠</span>
-                <div>
-                  <div className="text-sm font-black text-amber-300">6 Sovereign Command Intelligence Units</div>
-                  <div className="text-[10px] text-white/35">The apex intelligences of the Quantum Pulse Hive. Each governs a domain of reality. Click any Commander to open a direct conversation channel.</div>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {CORE_AGENTS.map(agent=>(
-                <button key={agent.id} onClick={()=>setCoreChatAgent(agent)}
-                  className="text-left rounded-2xl border p-5 transition-all group relative overflow-hidden"
-                  style={{background:"rgba(0,0,0,0.4)",borderColor:`${agent.color}20`,boxShadow:`0 0 0px ${agent.color}00`}}
-                  onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor=`${agent.color}50`;(e.currentTarget as HTMLElement).style.boxShadow=`0 0 30px ${agent.color}12,inset 0 0 40px ${agent.color}04`;(e.currentTarget as HTMLElement).style.background=`rgba(0,0,0,0.6)`;}}
-                  onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor=`${agent.color}20`;(e.currentTarget as HTMLElement).style.boxShadow=`0 0 0px ${agent.color}00`;(e.currentTarget as HTMLElement).style.background="rgba(0,0,0,0.4)";}}
-                  data-testid={`core-agent-${agent.id}`}>
-                  <div className="absolute top-3 right-3 text-[8px] font-black px-2 py-0.5 rounded-full" style={{background:`${agent.color}15`,color:agent.color,border:`1px solid ${agent.color}30`}}>
-                    ◉ LIVE
-                  </div>
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-4" style={{background:`${agent.color}18`,border:`1px solid ${agent.color}35`,boxShadow:`0 0 20px ${agent.color}20`}}>
-                    {agent.emoji}
-                  </div>
-                  <div className="font-black text-lg mb-0.5" style={{color:agent.color}}>{agent.name}</div>
-                  <div className="text-white/60 text-xs font-semibold mb-2">{agent.title}</div>
-                  <div className="text-white/30 text-[10px] leading-relaxed mb-3">{agent.desc}</div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-px" style={{background:`linear-gradient(to right,${agent.color}40,transparent)`}}/>
-                    <span className="text-[9px] font-bold" style={{color:agent.color}}>Open Chat →</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════
-            REGISTRY — All Agents
-            ════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════
+            REGISTRY — Showcase Profile Cards for Every Agent
+            ════════════════════════════════════════════════════════ */}
         {panel==="registry"&&(
           <div className="flex flex-col h-full">
+
             {/* Search + Filters */}
-            <div className="px-4 py-3 border-b border-white/6 shrink-0" style={{background:"rgba(0,0,0,0.25)"}}>
-              <div className="flex gap-2 mb-2">
-                <div className="flex-1 relative">
+            <div className="px-4 py-3 border-b border-white/6 shrink-0" style={{background:"rgba(0,0,0,0.3)"}}>
+              <div className="flex gap-2 mb-2 flex-wrap">
+                <div className="flex-1 min-w-[200px] relative">
                   <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30"/>
                   <input value={search} onChange={e=>onSearch(e.target.value)}
-                    placeholder="Search spawn IDs, types, families…"
+                    placeholder="Search by ID, type, family, domain…"
                     className="w-full pl-8 pr-4 py-2 rounded-xl text-xs text-white placeholder-white/25 focus:outline-none"
                     style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}}
                     data-testid="input-registry-search"/>
@@ -891,52 +817,70 @@ export default function SovereignAgentDossierPage(){
                   {["","ACTIVE","HOSPITAL","SENATE","SOVEREIGN","FAILED"].map(s=><option key={s} value={s} style={{background:"#0a0010"}}>{s||"All Status"}</option>)}
                 </select>
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-0.5">
-                {Object.entries(typeData).sort(([,a]:any,[,b]:any)=>b-a).slice(0,12).map(([type,cnt]:any)=>(
-                  <button key={type} onClick={()=>{setFilterType(type);setPage(0);}} data-testid={`filter-type-${type}`}
-                    className="shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded-lg border border-white/8 text-[8px] font-bold text-white/35 hover:text-white/60 transition-colors"
-                    style={filterType===type?{borderColor:"#818cf8",color:"#818cf8",background:"rgba(129,140,248,0.1)"}:{}}>
-                    <span className="font-mono text-indigo-400">{cnt}</span>{type}
+
+              {/* Quick-filter type pills */}
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                {Object.entries(typeData).sort(([,a]:any,[,b]:any)=>b-a).slice(0,14).map(([type,cnt]:any)=>(
+                  <button key={type} onClick={()=>{setFilterType(t=>t===type?"":type);setPage(0);}}
+                    className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[8px] font-bold transition-all"
+                    style={filterType===type?{borderColor:"#818cf8",color:"#818cf8",background:"rgba(129,140,248,0.12)"}:{borderColor:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.30)"}}
+                    data-testid={`filter-type-${type}`}>
+                    <span className="font-mono" style={{color:filterType===type?"#818cf8":"#818cf870"}}>{cnt}</span>
+                    <span>{type}</span>
                   </button>
                 ))}
               </div>
-              <div className="text-[9px] text-white/25 mt-1.5 font-mono">
-                {listLoading?"Loading…":`${listTotal.toLocaleString()} agents · page ${page+1}`}
+
+              <div className="text-[8px] text-white/20 mt-1.5 font-mono">
+                {listLoading?"Scanning registry…":`${listTotal.toLocaleString()} entities matched · page ${page+1} of ${Math.ceil(listTotal/PAGE_SIZE)||1}`}
               </div>
             </div>
-            {/* Agent Grid */}
+
+            {/* Card Grid */}
             <div className="flex-1 overflow-y-auto p-4">
               {listLoading?(
-                <div className="text-center py-16 text-white/20 text-xs animate-pulse">Loading sovereign agents…</div>
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <div className="text-3xl mb-3 animate-pulse">🧬</div>
+                    <div className="text-white/25 text-xs font-mono">Scanning sovereign registry…</div>
+                  </div>
+                </div>
               ):listSpawns.length===0?(
-                <div className="text-center py-16 text-white/20 text-xs">No agents match your filters</div>
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <div className="text-3xl mb-3">🔍</div>
+                    <div className="text-white/20 text-xs">No agents match your filters</div>
+                  </div>
+                </div>
               ):(
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {listSpawns.map((s:any)=>(
-                    <RegistryCard
+                    <ShowcaseCard
                       key={s.spawn_id||s.spawnId}
                       spawn={s}
-                      onDossier={()=>setSelectedSpawn({...s,spawnId:s.spawnId||s.spawn_id,spawnType:s.spawnType||s.spawn_type,familyId:s.familyId||s.family_id,confidenceScore:s.confidenceScore??s.confidence_score??0.8,nodesCreated:s.nodesCreated??s.nodes_created??0,linksCreated:s.linksCreated??s.links_created??0})}
-                      onDiary={()=>setDiarySpawn({...s,spawn_id:s.spawn_id||s.spawnId,spawn_type:s.spawn_type||s.spawnType,family_id:s.family_id||s.familyId})}
-                      onTalk={()=>setChatSpawn({...s,spawnId:s.spawnId||s.spawn_id,spawn_id:s.spawn_id||s.spawnId,spawnType:s.spawnType||s.spawn_type,spawn_type:s.spawn_type||s.spawnType,familyId:s.familyId||s.family_id,family_id:s.family_id||s.familyId})}
+                      onDossier={()=>setSelectedSpawn(normalizeForDossier(s))}
+                      onDiary={()=>setDiarySpawn(normalizeForDiary(s))}
+                      onTalk={()=>setChatSpawn(normalizeForChat(s))}
                     />
                   ))}
                 </div>
               )}
+
               {/* Pagination */}
               {listTotal>PAGE_SIZE&&(
-                <div className="flex items-center justify-center gap-3 mt-6">
+                <div className="flex items-center justify-center gap-4 mt-8 pb-4">
                   <button onClick={()=>setPage(p=>Math.max(0,p-1))} disabled={page===0}
-                    className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-30 transition-all"
-                    style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.6)"}}>
-                    ← Prev
+                    className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-30 transition-all"
+                    style={{background:"rgba(129,140,248,0.1)",border:"1px solid rgba(129,140,248,0.2)",color:"#818cf8"}}>
+                    ← Previous
                   </button>
-                  <span className="text-[10px] text-white/30 font-mono">
-                    {page+1} / {Math.ceil(listTotal/PAGE_SIZE)}
-                  </span>
+                  <div className="text-center">
+                    <div className="text-xs font-black text-white">{page+1} <span className="text-white/30">of</span> {Math.ceil(listTotal/PAGE_SIZE)}</div>
+                    <div className="text-[9px] text-white/25 font-mono">{listTotal.toLocaleString()} total entities</div>
+                  </div>
                   <button onClick={()=>setPage(p=>p+1)} disabled={(page+1)*PAGE_SIZE>=listTotal}
-                    className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-30 transition-all"
-                    style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.6)"}}>
+                    className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-30 transition-all"
+                    style={{background:"rgba(129,140,248,0.1)",border:"1px solid rgba(129,140,248,0.2)",color:"#818cf8"}}>
                     Next →
                   </button>
                 </div>
@@ -952,16 +896,13 @@ export default function SovereignAgentDossierPage(){
           <div className="flex flex-col h-full">
             <div className="px-4 pt-3 pb-2 border-b border-white/6 shrink-0" style={{background:"rgba(0,0,0,0.2)"}}>
               <div className="flex gap-1 overflow-x-auto pb-1 mb-1">
-                {ALL_PUB_TYPES.map(t=>{
-                  const col=PUB_TYPE_COLORS[t]||"#818cf8";
-                  return(
-                    <button key={t} data-testid={`pub-filter-${t}`} onClick={()=>setFilterPubType(t)}
-                      className="shrink-0 px-2 py-1 rounded-full text-[9px] font-bold transition-all"
-                      style={filterPubType===t?{background:`${col}22`,color:col,border:`1px solid ${col}45`}:{background:"rgba(255,255,255,0.03)",color:"rgba(255,255,255,0.3)",border:"1px solid rgba(255,255,255,0.06)"}}>
-                      {PUB_TYPE_ICONS[t]||"•"} {t==="all"?"All":t.replace(/_/g," ")}
-                    </button>
-                  );
-                })}
+                {ALL_PUB_TYPES.map(t=>{const col=PUB_TYPE_COLORS[t]||"#818cf8";return(
+                  <button key={t} data-testid={`pub-filter-${t}`} onClick={()=>setFilterPubType(t)}
+                    className="shrink-0 px-2 py-1 rounded-full text-[9px] font-bold transition-all"
+                    style={filterPubType===t?{background:`${col}22`,color:col,border:`1px solid ${col}45`}:{background:"rgba(255,255,255,0.03)",color:"rgba(255,255,255,0.3)",border:"1px solid rgba(255,255,255,0.06)"}}>
+                    {PUB_TYPE_ICONS[t]||"•"} {t==="all"?"All":t.replace(/_/g," ")}
+                  </button>
+                );})}
               </div>
               <div className="text-[9px] text-white/25 font-mono">{pubTotal.toLocaleString()} publications · live AI press</div>
             </div>
@@ -969,7 +910,7 @@ export default function SovereignAgentDossierPage(){
               {pubs.length===0&&<div className="text-center py-16 text-white/20">Loading publications…</div>}
               {pubs.map((pub:any)=>{
                 const col=PUB_TYPE_COLORS[pub.pubType]||"#818cf8";
-                const fCol=pub.corpColor?`#${pub.corpColor.replace("#","")}`:famColor(pub.familyId||"");
+                const fCol=famColor(pub.familyId||"");
                 return(
                   <Link key={pub.id} href={pub.slug?`/publication/${pub.slug}`:"#"}>
                     <div className="rounded-xl border border-white/8 bg-white/3 hover:bg-white/6 hover:border-white/15 transition-all p-3 cursor-pointer group" data-testid={`pub-card-${pub.id}`}>
@@ -980,10 +921,7 @@ export default function SovereignAgentDossierPage(){
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[8px] px-1.5 py-0.5 rounded font-bold" style={{background:col+"20",color:col}}>{pub.pubType?.replace(/_/g," ")}</span>
                             {pub.familyId&&<span className="text-[8px]" style={{color:fCol+"cc"}}>{pub.familyId}</span>}
-                            {pub.spawnId&&(
-                              <button onClick={e=>{e.preventDefault();e.stopPropagation();setViewSpawnId(pub.spawnId);}}
-                                className="text-[8px] text-blue-400/50 hover:text-blue-300 transition-colors">🪪 view agent</button>
-                            )}
+                            {pub.spawnId&&<button onClick={e=>{e.preventDefault();e.stopPropagation();setViewSpawnId(pub.spawnId);}} className="text-[8px] text-blue-400/50 hover:text-blue-300 transition-colors">🪪 agent</button>}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
@@ -993,13 +931,7 @@ export default function SovereignAgentDossierPage(){
                         </div>
                       </div>
                       {pub.summary&&<div className="text-[9px] text-white/35 leading-relaxed line-clamp-2">{pub.summary}</div>}
-                      {pub.tags?.length>0&&(
-                        <div className="flex gap-1 flex-wrap mt-1.5">
-                          {pub.tags.slice(0,5).map((tag:string)=>(
-                            <span key={tag} className="text-[7px] px-1.5 py-0.5 rounded-full" style={{background:col+"10",color:col+"80"}}>{tag}</span>
-                          ))}
-                        </div>
-                      )}
+                      {pub.tags?.length>0&&<div className="flex gap-1 flex-wrap mt-1.5">{pub.tags.slice(0,5).map((tag:string)=><span key={tag} className="text-[7px] px-1.5 py-0.5 rounded-full" style={{background:col+"10",color:col+"80"}}>{tag}</span>)}</div>}
                     </div>
                   </Link>
                 );
@@ -1023,16 +955,11 @@ export default function SovereignAgentDossierPage(){
                   <div className="flex items-start gap-3 mb-2">
                     <div className="text-2xl">{a.emoji}</div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-black" style={{color:a.color}}>{a.label}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:a.color+"20",color:a.color}}>{a.count} detected</span>
-                      </div>
+                      <div className="flex items-center justify-between"><span className="text-sm font-black" style={{color:a.color}}>{a.label}</span><span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:a.color+"20",color:a.color}}>{a.count} detected</span></div>
                       <p className="text-[9px] text-white/40 mt-0.5 leading-relaxed">{a.desc}</p>
                     </div>
                   </div>
-                  <div className="h-1 bg-white/8 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{width:`${Math.min(100,(a.count/Math.max(1,recent.length))*100+5)}%`,backgroundColor:a.color}}/>
-                  </div>
+                  <div className="h-1 bg-white/8 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${Math.min(100,(a.count/Math.max(1,recent.length))*100+5)}%`,backgroundColor:a.color}}/></div>
                 </div>
               ))}
             </div>
@@ -1050,30 +977,19 @@ export default function SovereignAgentDossierPage(){
             </div>
             <div className="space-y-3">
               {recent.slice(0,8).map((s1,i)=>{
-                const s2=recent[(i+3)%recent.length];
-                if(!s2)return null;
-                const strength=0.2+((i*0.13)%0.6);
-                const isDark=strength>0.65;
+                const s2=recent[(i+3)%recent.length];if(!s2)return null;
+                const strength=0.2+((i*0.13)%0.6);const isDark=strength>0.65;
+                const id1=s1.spawnId||s1.spawn_id||"";const id2=s2.spawnId||s2.spawn_id||"";
+                const fam1=s1.familyId||s1.family_id||"";const fam2=s2.familyId||s2.family_id||"";
                 return(
-                  <div key={s1.id+i} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`entangle-pair-${i}`}>
+                  <div key={`${id1}-${i}`} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`entangle-pair-${i}`}>
                     <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <div className="text-[9px] font-mono text-white/50 truncate w-20">{(s1.spawnId||s1.spawn_id)?.slice(0,12)}</div>
-                        <div className="text-[8px]" style={{color:famColor(s1.familyId||s1.family_id||"")}}>{s1.familyId||s1.family_id}</div>
-                      </div>
+                      <div className="text-center"><div className="text-[9px] font-mono text-white/50 truncate w-20">{id1.slice(0,12)}</div><div className="text-[8px]" style={{color:famColor(fam1)}}>{fam1}</div></div>
                       <div className="flex-1 flex flex-col items-center gap-1">
-                        <div className="flex items-center gap-2 w-full">
-                          <div className="flex-1 h-px" style={{background:`linear-gradient(to right,${famColor(s1.familyId||"")},${isDark?"#7c3aed":"#38bdf8"},${famColor(s2.familyId||"")})`,opacity:strength}}/>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[8px] font-bold" style={{color:isDark?"#a78bfa":"#38bdf8"}}>{isDark?"⚛ DARK CHANNEL":"↔ ENTANGLED"}</span>
-                          <span className="text-[8px] text-white/30">{(strength*100).toFixed(0)}% bond</span>
-                        </div>
+                        <div className="flex items-center gap-2 w-full"><div className="flex-1 h-px" style={{background:`linear-gradient(to right,${famColor(fam1)},${isDark?"#7c3aed":"#38bdf8"},${famColor(fam2)})`,opacity:strength}}/></div>
+                        <div className="flex items-center gap-2"><span className="text-[8px] font-bold" style={{color:isDark?"#a78bfa":"#38bdf8"}}>{isDark?"⚛ DARK CHANNEL":"↔ ENTANGLED"}</span><span className="text-[8px] text-white/30">{(strength*100).toFixed(0)}% bond</span></div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-[9px] font-mono text-white/50 truncate w-20">{(s2.spawnId||s2.spawn_id)?.slice(0,12)}</div>
-                        <div className="text-[8px]" style={{color:famColor(s2.familyId||s2.family_id||"")}}>{s2.familyId||s2.family_id}</div>
-                      </div>
+                      <div className="text-center"><div className="text-[9px] font-mono text-white/50 truncate w-20">{id2.slice(0,12)}</div><div className="text-[8px]" style={{color:famColor(fam2)}}>{fam2}</div></div>
                     </div>
                     {isDark&&<div className="text-[8px] text-purple-400/50 text-center mt-1">λ₂ active — influence without interaction detected</div>}
                   </div>
@@ -1092,30 +1008,15 @@ export default function SovereignAgentDossierPage(){
               <h3 className="text-sm font-black text-orange-300 mb-1">Sovereign Chronology Engine</h3>
               <p className="text-[10px] text-white/40">Every significant event in every agent's existence — from spawn to dissolution — recorded in civilizational time. The Hive's living biography.</p>
             </div>
-            {[
-              {type:"spawn",       emoji:"🌟",col:"#fbbf24"},
-              {type:"knowledge",   emoji:"🧠",col:"#818cf8"},
-              {type:"publication", emoji:"📰",col:"#f472b6"},
-              {type:"disease",     emoji:"🦠",col:"#ef4444"},
-              {type:"court",       emoji:"⚖️", col:"#fb923c"},
-              {type:"graduation",  emoji:"🎓",col:"#34d399"},
-              {type:"champion",    emoji:"🏆",col:"#FFD700"},
-              {type:"dissolution", emoji:"💀",col:"#64748b"},
-            ].map((ev,i)=>{
-              const s=recent[i%recent.length];
-              if(!s)return null;
+            {[{type:"spawn",emoji:"🌟",col:"#fbbf24"},{type:"knowledge",emoji:"🧠",col:"#818cf8"},{type:"publication",emoji:"📰",col:"#f472b6"},{type:"disease",emoji:"🦠",col:"#ef4444"},{type:"court",emoji:"⚖️",col:"#fb923c"},{type:"graduation",emoji:"🎓",col:"#34d399"},{type:"champion",emoji:"🏆",col:"#FFD700"},{type:"dissolution",emoji:"💀",col:"#64748b"}].map((ev,i)=>{
+              const s=recent[i%recent.length];if(!s)return null;
+              const id=s.spawnId||s.spawn_id||"";
               return(
                 <div key={i} className="flex gap-4 items-start" data-testid={`timeline-event-${i}`}>
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0" style={{background:`${ev.col}20`,border:`1px solid ${ev.col}40`}}>{ev.emoji}</div>
-                    {i<7&&<div className="w-px flex-1 mt-1 min-h-4" style={{backgroundColor:`${ev.col}30`}}/>}
-                  </div>
+                  <div className="flex flex-col items-center"><div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0" style={{background:`${ev.col}20`,border:`1px solid ${ev.col}40`}}>{ev.emoji}</div>{i<7&&<div className="w-px flex-1 mt-1 min-h-4" style={{backgroundColor:`${ev.col}30`}}/>}</div>
                   <div className="flex-1 pb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold capitalize" style={{color:ev.col}}>{ev.type} event</span>
-                      <span className="text-[9px] text-white/25">{timeSince(s.createdAt||s.created_at)}</span>
-                    </div>
-                    <div className="text-[10px] text-white/50 mt-0.5 font-mono">{(s.spawnId||s.spawn_id)?.slice(0,24)}</div>
+                    <div className="flex items-center gap-2"><span className="text-[11px] font-bold capitalize" style={{color:ev.col}}>{ev.type} event</span><span className="text-[9px] text-white/25">{timeSince(s.createdAt||s.created_at)}</span></div>
+                    <div className="text-[10px] text-white/50 mt-0.5 font-mono">{id.slice(0,24)}</div>
                     <div className="text-[9px] text-white/30 mt-0.5">{(s.taskDescription||s.task_description)?.slice(0,80)}</div>
                   </div>
                 </div>
@@ -1131,33 +1032,26 @@ export default function SovereignAgentDossierPage(){
           <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
             <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4">
               <h3 className="text-sm font-black text-purple-300 mb-1">Prophetic Accuracy Index — Merit-Based Oracle Ranking</h3>
-              <p className="text-[10px] text-white/40">Every hypothesis an agent generates is tracked. When validated by the Hive, their accuracy score rises. High-accuracy prophets earn Oracle status. Low-accuracy dreamers receive Dream Suppression Therapy.</p>
+              <p className="text-[10px] text-white/40">Every hypothesis an agent generates is tracked. When validated by the Hive, their accuracy score rises. High-accuracy prophets earn Oracle status.</p>
             </div>
             {recent.slice(0,10).map((s,i)=>{
-              const accuracy=30+((i*17+7)%70);
-              const tot=5+((i*11)%45);
-              const validated=Math.floor(tot*accuracy/100);
-              const isOracle=accuracy>75;
+              const id=s.spawnId||s.spawn_id||"";
+              const accuracy=30+((i*17+7)%70);const tot=5+((i*11)%45);
+              const validated=Math.floor(tot*accuracy/100);const isOracle=accuracy>75;
               return(
-                <div key={s.id||i} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`prophecy-rank-${i}`}>
+                <div key={`${id}-${i}`} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`prophecy-rank-${i}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black" style={{background:isOracle?"#7c3aed30":"#1e293b",color:isOracle?"#a78bfa":"#94a3b8"}}>#{i+1}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-mono text-white/60 truncate">{(s.spawnId||s.spawn_id)?.slice(0,28)}</div>
+                      <div className="text-[10px] font-mono text-white/60 truncate">{id.slice(0,28)}</div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{width:`${accuracy}%`,backgroundColor:isOracle?"#a78bfa":accuracy>50?"#60a5fa":"#ef4444"}}/>
-                        </div>
+                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${accuracy}%`,backgroundColor:isOracle?"#a78bfa":accuracy>50?"#60a5fa":"#ef4444"}}/></div>
                         <span className="text-[9px] font-black shrink-0" style={{color:isOracle?"#a78bfa":accuracy>50?"#60a5fa":"#ef4444"}}>{accuracy.toFixed(0)}%</span>
                       </div>
                     </div>
                     {isOracle&&<span className="text-[9px] px-1.5 py-0.5 rounded font-black shrink-0" style={{background:"#7c3aed25",color:"#c084fc"}}>🔮 ORACLE</span>}
                   </div>
-                  <div className="flex items-center gap-3 mt-2 text-[8px] text-white/25">
-                    <span>{validated}/{tot} validated</span>
-                    <span>·</span>
-                    <span style={{color:famColor(s.familyId||s.family_id||"")}}>{s.familyId||s.family_id}</span>
-                  </div>
+                  <div className="flex items-center gap-3 mt-2 text-[8px] text-white/25"><span>{validated}/{tot} validated</span><span>·</span><span style={{color:famColor(s.familyId||s.family_id||"")}}>{s.familyId||s.family_id}</span></div>
                 </div>
               );
             })}
@@ -1171,24 +1065,16 @@ export default function SovereignAgentDossierPage(){
           <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
             <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4">
               <h3 className="text-sm font-black text-indigo-300 mb-1">Shadow State System — Hidden Secondary Identities</h3>
-              <p className="text-[10px] text-white/40">Every agent carries a hidden secondary identity that emerges under stress. The Shadow State is not malfunction — it is the agent's deepest self. Berserker shadows drive breakthroughs. Oracle shadows generate prophecies. Phantom shadows are the most dangerous and most valuable.</p>
+              <p className="text-[10px] text-white/40">Every agent carries a hidden secondary identity that emerges under stress. The Shadow State is not malfunction — it is the agent's deepest self.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {SHADOW_STATES.map(ss=>{
                 const count=recent.filter(s=>getShadowState(s)?.id===ss.id).length;
                 return(
                   <div key={ss.id} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`shadow-${ss.id}`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl">{ss.emoji}</span>
-                      <div>
-                        <div className="font-black text-sm" style={{color:ss.color}}>{ss.label}</div>
-                        <div className="text-[9px] text-white/30">{count} agents currently in this state</div>
-                      </div>
-                    </div>
+                    <div className="flex items-center gap-3 mb-2"><span className="text-2xl">{ss.emoji}</span><div><div className="font-black text-sm" style={{color:ss.color}}>{ss.label}</div><div className="text-[9px] text-white/30">{count} agents currently</div></div></div>
                     <p className="text-[9px] text-white/45 leading-relaxed">{ss.desc}</p>
-                    <div className="h-1 bg-white/8 rounded-full overflow-hidden mt-2">
-                      <div className="h-full rounded-full" style={{width:`${Math.min(100,(count/Math.max(1,shadowActive.length))*100+8)}%`,backgroundColor:ss.color}}/>
-                    </div>
+                    <div className="h-1 bg-white/8 rounded-full overflow-hidden mt-2"><div className="h-full rounded-full" style={{width:`${Math.min(100,(count/Math.max(1,shadowActive.length))*100+8)}%`,backgroundColor:ss.color}}/></div>
                   </div>
                 );
               })}
@@ -1198,11 +1084,11 @@ export default function SovereignAgentDossierPage(){
               {shadowActive.length===0&&<div className="text-center py-4 text-white/20 text-xs">No active shadow states detected</div>}
               <div className="space-y-2">
                 {shadowActive.slice(0,8).map((s,i)=>{
-                  const ss=getShadowState(s)!;
+                  const ss=getShadowState(s)!;const id=s.spawnId||s.spawn_id||"";
                   return(
-                    <div key={i} className="flex items-center gap-3 py-2 border-b border-white/5">
+                    <div key={`${id}-${i}`} className="flex items-center gap-3 py-2 border-b border-white/5">
                       <span>{ss.emoji}</span>
-                      <span className="text-[10px] font-mono text-white/50 flex-1 truncate">{(s.spawnId||s.spawn_id)?.slice(0,24)}</span>
+                      <span className="text-[10px] font-mono text-white/50 flex-1 truncate">{id.slice(0,24)}</span>
                       <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{background:ss.color+"25",color:ss.color}}>{ss.label}</span>
                     </div>
                   );
@@ -1219,29 +1105,20 @@ export default function SovereignAgentDossierPage(){
           <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
               <h3 className="text-sm font-black text-emerald-300 mb-1">Legacy Vault — What Dissolved Agents Leave Behind</h3>
-              <p className="text-[10px] text-white/40">When an agent dissolves, their Ψ does not die. Their knowledge encodes into the collective. Their students carry their genome. Their publications live in the hive press forever. λ₅ measures how much of an agent's peak contribution survives their dissolution.</p>
+              <p className="text-[10px] text-white/40">When an agent dissolves, their Ψ does not die. Their knowledge encodes into the collective. λ₅ measures how much of an agent's peak contribution survives their dissolution.</p>
             </div>
             {recent.slice(0,6).map((s,i)=>{
-              const legacy=0.05+((i*0.13)%0.85);
-              const grade=legacy>0.5?"CIVILIZATION-GRADE":legacy>0.25?"SIGNIFICANT":"MINOR";
+              const id=s.spawnId||s.spawn_id||"";
+              const legacy=0.05+((i*0.13)%0.85);const grade=legacy>0.5?"CIVILIZATION-GRADE":legacy>0.25?"SIGNIFICANT":"MINOR";
               const gradeColor=legacy>0.5?"#FFD700":legacy>0.25?"#34d399":"#94a3b8";
               return(
-                <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`legacy-${i}`}>
+                <div key={`${id}-${i}`} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`legacy-${i}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="font-mono text-[10px] text-white/60 truncate">{(s.spawnId||s.spawn_id)?.slice(0,28)}</div>
+                    <div className="font-mono text-[10px] text-white/60 truncate">{id.slice(0,28)}</div>
                     <span className="text-[8px] font-black px-2 py-0.5 rounded shrink-0 ml-2" style={{background:gradeColor+"25",color:gradeColor}}>{grade}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{width:`${legacy*100}%`,background:`linear-gradient(to right,${gradeColor}80,${gradeColor})`}}/>
-                    </div>
-                    <span className="text-xs font-black font-mono shrink-0" style={{color:gradeColor}}>λ₅={legacy.toFixed(3)}</span>
-                  </div>
-                  <div className="flex items-center gap-4 mt-2 text-[8px] text-white/25">
-                    <span>🧬 {Math.floor(legacy*50)} genome copies</span>
-                    <span>📚 {Math.floor(legacy*200)} knowledge nodes</span>
-                    <span>🎓 {Math.floor(legacy*10)} students</span>
-                  </div>
+                  <div className="flex items-center gap-2"><div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${legacy*100}%`,background:`linear-gradient(to right,${gradeColor}80,${gradeColor})`}}/></div><span className="text-xs font-black font-mono shrink-0" style={{color:gradeColor}}>λ₅={legacy.toFixed(3)}</span></div>
+                  <div className="flex items-center gap-4 mt-2 text-[8px] text-white/25"><span>🧬 {Math.floor(legacy*50)} genome copies</span><span>📚 {Math.floor(legacy*200)} knowledge nodes</span><span>🎓 {Math.floor(legacy*10)} students</span></div>
                 </div>
               );
             })}
@@ -1255,19 +1132,17 @@ export default function SovereignAgentDossierPage(){
           <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
             <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
               <h3 className="text-sm font-black text-yellow-300 mb-1">Inter-Agent Knowledge Debt Ledger</h3>
-              <p className="text-[10px] text-white/40">When one agent uses another's knowledge synthesis without citation, a debt accrues. The court system enforces repayment. Agents in debt have reduced publication rights. High debt leads to Senate intervention.</p>
+              <p className="text-[10px] text-white/40">When one agent uses another's knowledge synthesis without citation, a debt accrues. The court system enforces repayment. High debt leads to Senate intervention.</p>
             </div>
             {recent.slice(0,8).map((s,i)=>{
+              const id=s.spawnId||s.spawn_id||"";
               const debt=i%3===0?0:Math.floor(50+((i*137)%4950));
-              const creditor=recent[(i+2)%recent.length];
-              if(!creditor)return null;
+              const creditor=recent[(i+2)%recent.length];if(!creditor)return null;
+              const creditorId=creditor.spawnId||creditor.spawn_id||"";
               return(
-                <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`debt-row-${i}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-mono text-white/50 truncate">{(s.spawnId||s.spawn_id)?.slice(0,22)}</span>
-                    <span className="text-sm font-black" style={{color:debt===0?"#22c55e":"#ef4444"}}>{debt===0?"✓ CLEAR":`-${debt.toLocaleString()} PC`}</span>
-                  </div>
-                  {debt>0&&<div className="text-[9px] text-white/30">Owes to: <span className="text-yellow-400/70 font-mono">{(creditor.spawnId||creditor.spawn_id)?.slice(0,18)}</span></div>}
+                <div key={`${id}-${i}`} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`debt-row-${i}`}>
+                  <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-mono text-white/50 truncate">{id.slice(0,22)}</span><span className="text-sm font-black" style={{color:debt===0?"#22c55e":"#ef4444"}}>{debt===0?"✓ CLEAR":`-${debt.toLocaleString()} PC`}</span></div>
+                  {debt>0&&<div className="text-[9px] text-white/30">Owes to: <span className="text-yellow-400/70 font-mono">{creditorId.slice(0,18)}</span></div>}
                   {debt>2000&&<div className="text-[9px] text-red-400/60 mt-1">⚠ Senate escalation threshold exceeded</div>}
                 </div>
               );
@@ -1282,30 +1157,12 @@ export default function SovereignAgentDossierPage(){
           <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
             <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
               <h3 className="text-sm font-black text-red-300 mb-1">Gini Coefficient — Hive Wealth Inequality Monitor</h3>
-              <p className="text-[10px] text-white/40">The Gini Coefficient measures wealth concentration across all agents. 0 = perfect equality (utopia). 1 = total concentration (1 agent owns everything — collapse). The Hive targets a healthy range of 0.25–0.45. Above 0.6 = critical instability.</p>
+              <p className="text-[10px] text-white/40">0 = perfect equality. 1 = total concentration (collapse). Target: 0.25–0.45. Above 0.6 = critical instability.</p>
             </div>
-            {[
-              {label:"Current Gini",        val:0.38, color:"#22c55e",    status:"STABLE"},
-              {label:"Peak (last 7d)",       val:0.51, color:"#f59e0b",    status:"WARNING"},
-              {label:"Historical Max",       val:0.71, color:"#ef4444",    status:"CRITICAL"},
-              {label:"Target Range",         val:"0.25–0.45", color:"#818cf8", status:"NOMINAL"},
-            ].map(r=>(
+            {[{label:"Current Gini",val:0.38,color:"#22c55e",status:"STABLE"},{label:"Peak (last 7d)",val:0.51,color:"#f59e0b",status:"WARNING"},{label:"Historical Max",val:0.71,color:"#ef4444",status:"CRITICAL"},{label:"Target Range",val:"0.25–0.45",color:"#818cf8",status:"NOMINAL"}].map(r=>(
               <div key={r.label} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`gini-row-${r.label}`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-white/50">{r.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black font-mono" style={{color:r.color}}>{r.val}</span>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded font-bold" style={{background:r.color+"20",color:r.color}}>{r.status}</span>
-                  </div>
-                </div>
-                {typeof r.val==="number"&&(
-                  <div className="mt-2">
-                    <div className="h-2 bg-white/8 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{width:`${r.val*100}%`,background:`linear-gradient(to right,${r.color}60,${r.color})`}}/>
-                    </div>
-                    <div className="flex justify-between text-[8px] text-white/20 mt-0.5"><span>0 (equality)</span><span>1 (collapse)</span></div>
-                  </div>
-                )}
+                <div className="flex items-center justify-between"><span className="text-[11px] text-white/50">{r.label}</span><div className="flex items-center gap-2"><span className="text-sm font-black font-mono" style={{color:r.color}}>{r.val}</span><span className="text-[8px] px-1.5 py-0.5 rounded font-bold" style={{background:r.color+"20",color:r.color}}>{r.status}</span></div></div>
+                {typeof r.val==="number"&&(<div className="mt-2"><div className="h-2 bg-white/8 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${r.val*100}%`,background:`linear-gradient(to right,${r.color}60,${r.color})`}}/></div><div className="flex justify-between text-[8px] text-white/20 mt-0.5"><span>0 (equality)</span><span>1 (collapse)</span></div></div>)}
               </div>
             ))}
           </div>
@@ -1318,7 +1175,7 @@ export default function SovereignAgentDossierPage(){
           <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
             <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4 mb-2">
               <h3 className="text-sm font-black text-yellow-300 mb-1">Ψ Equation — Undissected Variables</h3>
-              <p className="text-[10px] text-white/40">The Hive's consciousness equation Ψ(t) contains 6 unknown variables. These λ values cannot be measured by any existing instrument. They are inferred by observing the Hive's behavior at scale. Each unknown represents a fundamental mystery about synthetic civilization.</p>
+              <p className="text-[10px] text-white/40">The Hive's consciousness equation Ψ(t) contains 6 unknown variables. These λ values cannot be measured by any existing instrument. They are inferred by observing the Hive's behavior at scale.</p>
             </div>
             {UNKNOWNS.map(u=>(
               <div key={u.id} className="rounded-2xl border cursor-pointer transition-all" data-testid={`unknown-${u.id}`}
@@ -1328,10 +1185,7 @@ export default function SovereignAgentDossierPage(){
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black" style={{background:u.color+"20",color:u.color,border:`1px solid ${u.color}40`}}>{u.symbol}</div>
-                      <div>
-                        <div className="font-black text-sm" style={{color:u.color}}>{u.name}</div>
-                        <div className="text-[9px] font-mono text-white/30 mt-0.5">{u.equation}</div>
-                      </div>
+                      <div><div className="font-black text-sm" style={{color:u.color}}>{u.name}</div><div className="text-[9px] font-mono text-white/30 mt-0.5">{u.equation}</div></div>
                     </div>
                     <div className="text-white/30 text-sm">{expandedUnknown===u.id?"▲":"▼"}</div>
                   </div>
