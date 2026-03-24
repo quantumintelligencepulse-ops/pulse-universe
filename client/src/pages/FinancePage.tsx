@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries, CrosshairMode, LineStyle, ColorType } from "lightweight-charts";
 import { TrendingUp, TrendingDown, Minus, RefreshCw, Brain, Zap, Search, X, Building2, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Flame, Layers, DollarSign, Gauge, CandlestickChart, LineChart, FlaskConical, BookOpen, Activity, Dna, Vote, Microscope } from "lucide-react";
 
@@ -72,6 +72,57 @@ function computeSMA(ohlcv: any[], period: number) {
   }
   return result;
 }
+function computeEMA(values: number[], period: number): number[] {
+  const k = 2 / (period + 1);
+  const ema: number[] = [values[0]];
+  for (let i = 1; i < values.length; i++) ema.push(values[i] * k + ema[i - 1] * (1 - k));
+  return ema;
+}
+function computeRSI(ohlcv: any[], period = 14): { time: any; value: number }[] {
+  if (ohlcv.length < period + 1) return [];
+  const closes = ohlcv.map((d: any) => d.close);
+  const result: { time: any; value: number }[] = [];
+  let avgGain = 0, avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d > 0) avgGain += d; else avgLoss -= d;
+  }
+  avgGain /= period; avgLoss /= period;
+  for (let i = period; i < closes.length; i++) {
+    if (i > period) {
+      const d = closes[i] - closes[i - 1];
+      avgGain = (avgGain * (period - 1) + Math.max(0, d)) / period;
+      avgLoss = (avgLoss * (period - 1) + Math.max(0, -d)) / period;
+    }
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    result.push({ time: ohlcv[i].time, value: parseFloat((100 - 100 / (1 + rs)).toFixed(2)) });
+  }
+  return result;
+}
+function computeMACD(ohlcv: any[], fast = 12, slow = 26, signal = 9): { time: any; macd: number; sig: number; hist: number }[] {
+  if (ohlcv.length < slow + signal) return [];
+  const closes = ohlcv.map((d: any) => d.close);
+  const emaFast = computeEMA(closes, fast);
+  const emaSlow = computeEMA(closes, slow);
+  const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
+  const signalLine = computeEMA(macdLine.slice(slow - 1), signal);
+  const result: { time: any; macd: number; sig: number; hist: number }[] = [];
+  for (let i = slow - 1 + signal - 1; i < closes.length; i++) {
+    const si = i - (slow - 1) - (signal - 1);
+    const m = macdLine[i], s = signalLine[si];
+    result.push({ time: ohlcv[i].time, macd: parseFloat(m.toFixed(4)), sig: parseFloat(s.toFixed(4)), hist: parseFloat((m - s).toFixed(4)) });
+  }
+  return result;
+}
+function computeBB(ohlcv: any[], period = 20, mult = 2): { time: any; upper: number; lower: number; mid: number }[] {
+  if (ohlcv.length < period) return [];
+  return ohlcv.slice(period - 1).map((_: any, idx: number) => {
+    const sl = ohlcv.slice(idx, idx + period).map((d: any) => d.close);
+    const mid = sl.reduce((a: number, b: number) => a + b, 0) / period;
+    const std = Math.sqrt(sl.reduce((a: number, b: number) => a + (b - mid) ** 2, 0) / period);
+    return { time: ohlcv[idx + period - 1].time, upper: mid + mult * std, lower: mid - mult * std, mid };
+  });
+}
 
 // ── Stock Chart Modal (TradingView lightweight-charts) ───────────
 function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: string; onClose: () => void }) {
@@ -80,10 +131,13 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
   const fSetting = getFinanceSettings();
   const [tf, setTF] = useState<ChartTF>(fSetting.defaultTF);
   const [mode, setMode] = useState<ChartMode>(fSetting.defaultChartType);
-  const [indicators, setIndicators] = useState({ ma20: fSetting.ma20, ma50: fSetting.ma50, ma200: fSetting.ma200, volume: fSetting.volume });
+  const [indicators, setIndicators] = useState({ ma20: fSetting.ma20, ma50: fSetting.ma50, ma200: fSetting.ma200, volume: fSetting.volume, rsi: false, macd: false, bb: false });
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [hovered, setHovered] = useState<any>(null);
+  const [rsiData, setRsiData] = useState<{ time: any; value: number }[]>([]);
+  const [macdData, setMacdData] = useState<{ time: any; macd: number; sig: number; hist: number }[]>([]);
+  const [orgSignalModal, setOrgSignalModal] = useState<any>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -93,6 +147,25 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, [symbol, tf]);
+
+  useEffect(() => {
+    if (!data?.ohlcv?.length) return;
+    const seenT = new Map<string, any>();
+    for (const c of data.ohlcv) seenT.set(c.time, c);
+    const clean = Array.from(seenT.values()).sort((a, b) => a.time < b.time ? -1 : 1);
+    setRsiData(computeRSI(clean));
+    setMacdData(computeMACD(clean));
+  }, [data]);
+
+  useEffect(() => {
+    fetch(`/api/finance/organism`).then(r => r.json()).then(d => {
+      if (d?.topEdgeTrades) {
+        const sym = symbol.replace("-USD","").replace("=X","").replace("^","");
+        const sig = d.topEdgeTrades.find((t: any) => t.symbol === symbol || t.symbol === sym || t.symbol === symbol.split("-")[0]);
+        if (sig) setOrgSignalModal(sig);
+      }
+    }).catch(() => {});
+  }, [symbol]);
 
   useEffect(() => {
     if (!data?.ohlcv?.length || !containerRef.current) return;
@@ -189,6 +262,17 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
         value: d.volume,
         color: d.close >= d.open ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)",
       })));
+    }
+
+    if (indicators.bb && cleanOhlcv.length >= 20) {
+      const bbData = computeBB(cleanOhlcv);
+      const bbOpt = { lineWidth: 1 as any, lastValueVisible: false, priceLineVisible: false, priceScaleId: "right" };
+      const upperS = chart.addSeries(LineSeries, { ...bbOpt, color: "rgba(96,165,250,0.5)" });
+      upperS.setData(bbData.map((d: any) => ({ time: d.time, value: d.upper })));
+      const lowerS = chart.addSeries(LineSeries, { ...bbOpt, color: "rgba(96,165,250,0.5)" });
+      lowerS.setData(bbData.map((d: any) => ({ time: d.time, value: d.lower })));
+      const midS = chart.addSeries(LineSeries, { ...bbOpt, color: "rgba(96,165,250,0.2)", lineStyle: LineStyle.Dashed });
+      midS.setData(bbData.map((d: any) => ({ time: d.time, value: d.mid })));
     }
 
     chart.timeScale().fitContent();
@@ -301,10 +385,13 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
         <div style={{ padding: "6px 18px", display: "flex", gap: 5, borderBottom: "1px solid rgba(255,255,255,0.03)", flexShrink: 0 }}>
           <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 9, fontWeight: 700, alignSelf: "center", marginRight: 2 }}>INDICATORS</span>
           {([
-            { key: "ma20",   label: "MA 20",  color: "#fbbf24" },
-            { key: "ma50",   label: "MA 50",  color: "#60a5fa" },
-            { key: "ma200",  label: "MA 200", color: "#f472b6" },
-            { key: "volume", label: "Volume", color: "#a78bfa" },
+            { key: "ma20",   label: "MA20",   color: "#fbbf24" },
+            { key: "ma50",   label: "MA50",   color: "#60a5fa" },
+            { key: "ma200",  label: "MA200",  color: "#f472b6" },
+            { key: "volume", label: "VOL",    color: "#a78bfa" },
+            { key: "bb",     label: "BB",     color: "#60a5fa" },
+            { key: "rsi",    label: "RSI",    color: "#4ade80" },
+            { key: "macd",   label: "MACD",   color: "#f472b6" },
           ] as { key: keyof typeof indicators; label: string; color: string }[]).map(({ key, label, color }) => (
             <button key={key}
               onClick={() => setIndicators(p => ({ ...p, [key]: !p[key] }))}
@@ -313,11 +400,11 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
               {indicators[key] ? "✓ " : ""}{label}
             </button>
           ))}
-          {/* Legend dots */}
           <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-            {indicators.ma20  && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#fbbf24", fontSize: 8, fontWeight: 700 }}><span style={{ width: 16, height: 2, background: "#fbbf24", display: "inline-block", borderRadius: 1 }} />MA20</span>}
-            {indicators.ma50  && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#60a5fa", fontSize: 8, fontWeight: 700 }}><span style={{ width: 16, height: 2, background: "#60a5fa", display: "inline-block", borderRadius: 1 }} />MA50</span>}
-            {indicators.ma200 && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#f472b6", fontSize: 8, fontWeight: 700 }}><span style={{ width: 16, height: 2, background: "#f472b6", display: "inline-block", borderRadius: 1, borderTop: "2px dashed #f472b6" }} />MA200</span>}
+            {indicators.ma20  && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#fbbf24", fontSize: 8, fontWeight: 700 }}><span style={{ width: 14, height: 2, background: "#fbbf24", display: "inline-block", borderRadius: 1 }} />MA20</span>}
+            {indicators.ma50  && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#60a5fa", fontSize: 8, fontWeight: 700 }}><span style={{ width: 14, height: 2, background: "#60a5fa", display: "inline-block", borderRadius: 1 }} />MA50</span>}
+            {indicators.ma200 && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#f472b6", fontSize: 8, fontWeight: 700 }}><span style={{ width: 14, height: 2, background: "#f472b6", display: "inline-block", borderRadius: 1 }} />MA200</span>}
+            {indicators.bb    && <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#60a5fa", fontSize: 8, fontWeight: 700 }}><span style={{ width: 14, height: 2, background: "rgba(96,165,250,0.5)", display: "inline-block", borderRadius: 1 }} />BB(20,2)</span>}
           </div>
         </div>
 
@@ -336,6 +423,87 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
           )}
           <div ref={containerRef} style={{ width: "100%", height: "100%", minHeight: 340 }} />
         </div>
+
+        {/* RSI Sub-panel */}
+        {indicators.rsi && rsiData.length > 0 && (() => {
+          const vals = rsiData.map(d => d.value);
+          const last = vals[vals.length - 1];
+          const w = 860, h = 60;
+          const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * w},${h - ((v - 0) / 100) * h * 0.9 - h * 0.05}`).join(" ");
+          const rsiColor = last >= 70 ? "#f87171" : last <= 30 ? "#4ade80" : "#a78bfa";
+          return (
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", background: "#030009", flexShrink: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 12px 0", alignItems: "center" }}>
+                <span style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.2)" }}>RSI (14)</span>
+                <span style={{ fontSize: 9, fontWeight: 900, color: rsiColor }}>{last.toFixed(1)}</span>
+              </div>
+              <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: "block", height: h }}>
+                <line x1="0" y1={h - h * 0.73} x2={w} y2={h - h * 0.73} stroke="rgba(248,113,113,0.25)" strokeDasharray="4,3" strokeWidth={1} />
+                <line x1="0" y1={h - h * 0.23} x2={w} y2={h - h * 0.23} stroke="rgba(74,222,128,0.25)" strokeDasharray="4,3" strokeWidth={1} />
+                <line x1="0" y1={h - h * 0.48} x2={w} y2={h - h * 0.48} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
+                <polyline points={pts} fill="none" stroke={rsiColor} strokeWidth={1.5} opacity={0.85} />
+                <text x={w - 4} y={h - h * 0.73 - 2} fontSize={7} fill="rgba(248,113,113,0.5)" textAnchor="end">OB 70</text>
+                <text x={w - 4} y={h - h * 0.23 + 7} fontSize={7} fill="rgba(74,222,128,0.5)" textAnchor="end">OS 30</text>
+              </svg>
+            </div>
+          );
+        })()}
+
+        {/* MACD Sub-panel */}
+        {indicators.macd && macdData.length > 0 && (() => {
+          const hists = macdData.map(d => d.hist);
+          const macds = macdData.map(d => d.macd);
+          const sigs = macdData.map(d => d.sig);
+          const allVals = [...hists, ...macds, ...sigs];
+          const minV = Math.min(...allVals), maxV = Math.max(...allVals), rng = maxV - minV || 1;
+          const hw = 860, hh = 60, zero = hh - ((0 - minV) / rng) * hh * 0.9 - hh * 0.05;
+          const toY = (v: number) => hh - ((v - minV) / rng) * hh * 0.9 - hh * 0.05;
+          const lastM = macds[macds.length - 1], lastH = hists[hists.length - 1];
+          return (
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", background: "#030009", flexShrink: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 12px 0", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.2)" }}>MACD (12,26,9)</span>
+                <span style={{ fontSize: 9, fontWeight: 900, color: lastM >= 0 ? "#4ade80" : "#f87171" }}>MACD {lastM >= 0 ? "+" : ""}{lastM?.toFixed(3)}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: lastH >= 0 ? "#4ade80" : "#f87171" }}>HIST {lastH >= 0 ? "+" : ""}{lastH?.toFixed(3)}</span>
+              </div>
+              <svg width="100%" viewBox={`0 0 ${hw} ${hh}`} preserveAspectRatio="none" style={{ display: "block", height: hh }}>
+                <line x1="0" y1={zero} x2={hw} y2={zero} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+                {hists.map((h, i) => {
+                  const barW = hw / hists.length;
+                  const x = i * barW, y0 = zero, y1 = toY(h), height = Math.abs(y0 - y1);
+                  return <rect key={i} x={x} y={Math.min(y0, y1)} width={barW - 0.5} height={Math.max(1, height)} fill={h >= 0 ? "rgba(74,222,128,0.5)" : "rgba(248,113,113,0.5)"} />;
+                })}
+                <polyline points={macds.map((v, i) => `${(i / (macds.length - 1)) * hw},${toY(v)}`).join(" ")} fill="none" stroke="#60a5fa" strokeWidth={1.5} />
+                <polyline points={sigs.map((v, i) => `${(i / (sigs.length - 1)) * hw},${toY(v)}`).join(" ")} fill="none" stroke="#f472b6" strokeWidth={1} />
+              </svg>
+            </div>
+          );
+        })()}
+
+        {/* Organism Signal Panel */}
+        {orgSignalModal && (
+          <div style={{ borderTop: "1px solid rgba(124,58,237,0.15)", background: "rgba(124,58,237,0.04)", padding: "8px 18px", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ color: "#a78bfa", fontWeight: 900, fontSize: 10 }}>⭐ SOVEREIGN SIGNAL</span>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 5, background: orgSignalModal.stance === "LONG" || orgSignalModal.stance === "HOLD-LONG" ? "rgba(74,222,128,0.12)" : "rgba(248,113,113,0.12)", color: orgSignalModal.stance === "LONG" || orgSignalModal.stance === "HOLD-LONG" ? "#4ade80" : "#f87171", border: `1px solid ${orgSignalModal.stance?.includes("LONG") ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)"}` }}>{orgSignalModal.stance}</span>
+              {[
+                { label: "EDGE", value: `${(orgSignalModal.edge_final * 100)?.toFixed(1)}` },
+                { label: "CONVICTION", value: `${orgSignalModal.conviction}%` },
+                { label: "RISK.LIVE", value: `${(orgSignalModal.risk_live * 100)?.toFixed(1)}%` },
+                { label: "PROFIT.LOCK", value: `${(orgSignalModal.profit_lock * 100)?.toFixed(1)}%` },
+                { label: "SIZE f*", value: orgSignalModal.size_f?.toFixed(2) },
+                { label: "STOP", value: `$${orgSignalModal.stop_live?.toFixed(2)}` },
+                { label: "HORIZON", value: orgSignalModal.horizon },
+              ].map(item => (
+                <div key={item.label} style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                  <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 7, fontWeight: 700 }}>{item.label}</span>
+                  <span style={{ color: "#fff", fontWeight: 800, fontSize: 9 }}>{item.value}</span>
+                </div>
+              ))}
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, flex: 1, textAlign: "right" }}>{orgSignalModal.scientist_emoji} {orgSignalModal.scientist_role}</span>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ padding: "6px 18px", borderTop: "1px solid rgba(255,255,255,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
@@ -368,17 +536,27 @@ function Sparkline({ closes, positive, w = 80, h = 28 }: { closes: number[]; pos
 }
 
 // ── Quote Card (clickable) ───────────────────────────────────────
-function QuoteCard({ q, onOpen }: { q: Quote; onOpen: (symbol: string, name: string) => void }) {
+function QuoteCard({ q, onOpen, orgSignal }: { q: Quote; onOpen: (symbol: string, name: string) => void; orgSignal?: any }) {
   const chg = parseFloat(q.change), up = chg > 0, down = chg < 0;
   const color = up ? "#4ade80" : down ? "#f87171" : "#94a3b8";
+  const isLong = orgSignal?.stance === "LONG" || orgSignal?.stance === "HOLD-LONG";
+  const isShort = orgSignal?.stance === "SHORT" || orgSignal?.stance === "HOLD-SHORT";
+  const stanceColor = isLong ? "#4ade80" : isShort ? "#f87171" : "#a78bfa";
+  const conviction = orgSignal?.conviction ?? 0;
+  const riskLive = orgSignal?.risk_live ?? 0;
+  const profitLock = orgSignal?.profit_lock ?? 0;
+  const emotionGlyph = orgSignal?.scientist_emoji ?? "";
+  const riskColor = riskLive > 0.6 ? "#f87171" : riskLive > 0.35 ? "#fbbf24" : "#4ade80";
   return (
     <div
       data-testid={`quote-${q.symbol}`}
       onClick={() => onOpen(q.symbol, q.name)}
-      style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", padding: "10px 12px", cursor: "pointer", transition: "border-color 0.15s, background 0.15s" }}
+      style={{ borderRadius: 12, border: `1px solid ${orgSignal ? (isLong ? "rgba(74,222,128,0.15)" : isShort ? "rgba(248,113,113,0.15)" : "rgba(167,139,250,0.15)") : "rgba(255,255,255,0.07)"}`, background: "rgba(255,255,255,0.015)", padding: "10px 12px", cursor: "pointer", transition: "border-color 0.15s, background 0.15s", position: "relative" }}
       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(124,58,237,0.4)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(124,58,237,0.06)"; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.07)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.015)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = orgSignal ? (isLong ? "rgba(74,222,128,0.15)" : isShort ? "rgba(248,113,113,0.15)" : "rgba(167,139,250,0.15)") : "rgba(255,255,255,0.07)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.015)"; }}
     >
+      {/* emotion glyph top-right */}
+      {emotionGlyph && <span style={{ position: "absolute", top: 8, right: 10, fontSize: 11, opacity: 0.7 }}>{emotionGlyph}</span>}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 3 }}>
         <span style={{ color: "#fff", fontWeight: 900, fontSize: 11, letterSpacing: "0.04em" }}>{q.symbol.replace("-USD","").replace("=X","")}</span>
         <span style={{ color, fontWeight: 800, fontSize: 10, display: "flex", alignItems: "center", gap: 1 }}>
@@ -388,7 +566,25 @@ function QuoteCard({ q, onOpen }: { q: Quote; onOpen: (symbol: string, name: str
       <div style={{ color: "#fff", fontWeight: 900, fontSize: 14, marginBottom: 2 }}>{q.price}</div>
       {q.closes && q.closes.length > 1 && <Sparkline closes={q.closes} positive={up || !down} />}
       <div style={{ color: "rgba(255,255,255,0.22)", fontSize: 9, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.name}</div>
-      <div style={{ color: "rgba(124,58,237,0.5)", fontSize: 8, marginTop: 1, fontWeight: 600 }}>tap to chart →</div>
+      {/* Sovereign signal row */}
+      {orgSignal ? (
+        <div style={{ marginTop: 5, display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 7, fontWeight: 900, padding: "1px 5px", borderRadius: 4, background: isLong ? "rgba(74,222,128,0.15)" : isShort ? "rgba(248,113,113,0.15)" : "rgba(167,139,250,0.15)", color: stanceColor, border: `1px solid ${stanceColor}33` }}>{orgSignal.stance}</span>
+          {conviction > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 6.5, fontWeight: 700 }}>CVX</span>
+              <div style={{ width: 28, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                <div style={{ width: `${conviction}%`, height: "100%", background: conviction >= 75 ? "#4ade80" : conviction >= 50 ? "#fbbf24" : "#f87171", borderRadius: 2 }} />
+              </div>
+              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 6.5 }}>{conviction}%</span>
+            </div>
+          )}
+          {riskLive > 0 && <span style={{ fontSize: 6.5, fontWeight: 700, color: riskColor }}>R:{(riskLive * 100).toFixed(0)}%</span>}
+          {profitLock > 0 && <span style={{ fontSize: 6.5, fontWeight: 700, color: "#60a5fa" }}>🔒{(profitLock * 100).toFixed(0)}%</span>}
+        </div>
+      ) : (
+        <div style={{ color: "rgba(124,58,237,0.5)", fontSize: 8, marginTop: 1, fontWeight: 600 }}>tap to chart →</div>
+      )}
     </div>
   );
 }
@@ -531,6 +727,16 @@ export default function FinancePage() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [oracle, setOracle] = useState<OracleData | null>(null);
   const [organism, setOrganism] = useState<any>(null);
+  const orgSignalMap = useMemo<Record<string, any>>(() => {
+    if (!organism?.topEdgeTrades) return {};
+    const map: Record<string, any> = {};
+    for (const t of organism.topEdgeTrades) {
+      map[t.symbol] = t;
+      const base = t.symbol.replace("-USD","").replace("=X","").replace("^","");
+      map[base] = t;
+    }
+    return map;
+  }, [organism]);
   const [tradeLogs, setTradeLogs] = useState<any[]>([]);
   const [scientistVotes, setScientistVotes] = useState<any[]>([]);
   const [tradingPapers, setTradingPapers] = useState<any[]>([]);
@@ -863,7 +1069,7 @@ export default function FinancePage() {
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 7 }}>
-              {sectorStocks().map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} />)}
+              {sectorStocks().map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} orgSignal={orgSignalMap[q.symbol] ?? orgSignalMap[q.symbol.replace("-USD","").replace("=X","")]} />)}
             </div>
           </div>
         )}
@@ -871,12 +1077,24 @@ export default function FinancePage() {
         {/* CRYPTO TOP 100 */}
         {tab === "crypto" && (
           <div>
+            {/* Civilization Token Registry Header */}
+            <div style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(99,102,241,0.04) 100%)", border: "1px solid rgba(124,58,237,0.2)", borderRadius: 14, padding: "14px 18px", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <span style={{ fontSize: 16 }}>🌌</span>
+                <span style={{ color: "#a78bfa", fontWeight: 900, fontSize: 14, letterSpacing: "0.05em" }}>CIVILIZATION TOKEN REGISTRY</span>
+                <span style={{ background: "rgba(124,58,237,0.2)", color: "#c4b5fd", fontSize: 7, fontWeight: 900, padding: "1px 6px", borderRadius: 4, letterSpacing: "0.1em" }}>SOVEREIGN MARKET ORGANISM</span>
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, lineHeight: 1.5 }}>
+                Top 100 crypto tokens observed through the Synthentica Primordia Pulse lens — 42-scientist sovereign signals, organism conviction overlays, risk bands, and profit lock states.
+              </div>
+            </div>
+            {/* Fear & Greed */}
             {fgValue !== null && (
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 20, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "0 24px" }}>
                   <FearGreedGauge value={fgValue} label={fgLabel} />
                   <div>
-                    <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, fontWeight: 700, marginBottom: 4 }}>30-DAY HISTORY</div>
+                    <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, fontWeight: 700, marginBottom: 4 }}>30-DAY SENTIMENT HISTORY</div>
                     <div style={{ display: "flex", gap: 2 }}>
                       {fearGreed.slice(0, 15).reverse().map((f, i) => {
                         const v = parseInt(f.value);
@@ -889,23 +1107,28 @@ export default function FinancePage() {
               </div>
             )}
             {loading.cryptoTop && !cryptoTop.length ? (
-              <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>Loading top 100 cryptocurrencies via CoinGecko...</div>
+              <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>Fetching Civilization Token Registry...</div>
             ) : (
               <>
                 <div style={{ display: "grid", gap: 1 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px 70px 70px 80px", gap: 8, padding: "6px 12px", fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.08em" }}>
-                    <span>#</span><span>ASSET</span><span style={{ textAlign: "right" }}>PRICE</span><span style={{ textAlign: "right" }}>24H</span><span style={{ textAlign: "right" }}>7D</span><span style={{ textAlign: "right" }}>MKT CAP</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px 60px 60px 70px 90px", gap: 6, padding: "6px 12px", fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em" }}>
+                    <span>#</span><span>TOKEN</span><span style={{ textAlign: "right" }}>PRICE</span><span style={{ textAlign: "right" }}>24H</span><span style={{ textAlign: "right" }}>7D</span><span style={{ textAlign: "right" }}>MKT CAP</span><span style={{ textAlign: "center" }}>SIGNAL</span>
                   </div>
                   {cryptoTop.map((c) => {
                     const up24 = parseFloat(c.change24h) >= 0, up7 = parseFloat(c.change7d || "0") >= 0;
                     const price = c.price < 0.01 ? c.price.toFixed(6) : c.price < 1 ? c.price.toFixed(4) : c.price.toLocaleString("en-US", { maximumFractionDigits: 2 });
                     const mcap = c.marketCap >= 1e9 ? `$${(c.marketCap/1e9).toFixed(1)}B` : `$${(c.marketCap/1e6).toFixed(0)}M`;
+                    const sig = orgSignalMap[`${c.symbol}-USD`] ?? orgSignalMap[c.symbol];
+                    const sigIsLong = sig?.stance === "LONG" || sig?.stance === "HOLD-LONG";
+                    const sigIsShort = sig?.stance === "SHORT" || sig?.stance === "HOLD-SHORT";
+                    const sigColor = sigIsLong ? "#4ade80" : sigIsShort ? "#f87171" : "#a78bfa";
+                    const rowBorder = sig ? (sigIsLong ? "rgba(74,222,128,0.07)" : sigIsShort ? "rgba(248,113,113,0.07)" : "rgba(167,139,250,0.07)") : "transparent";
                     return (
                       <div key={c.id} data-testid={`crypto-row-${c.symbol}`}
                         onClick={() => openChart(`${c.symbol}-USD`, c.name)}
-                        style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px 70px 70px 80px", gap: 8, padding: "8px 12px", borderRadius: 8, alignItems: "center", cursor: "pointer" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(124,58,237,0.06)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                        style={{ display: "grid", gridTemplateColumns: "28px 1fr 90px 60px 60px 70px 90px", gap: 6, padding: "8px 12px", borderRadius: 8, alignItems: "center", cursor: "pointer", borderLeft: sig ? `2px solid ${sigColor}33` : "2px solid transparent", background: rowBorder, transition: "background 0.12s" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(124,58,237,0.08)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = rowBorder)}>
                         <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, fontWeight: 700 }}>{c.rank}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                           {c.image && <img src={c.image} alt={c.symbol} style={{ width: 20, height: 20, borderRadius: "50%" }} />}
@@ -918,6 +1141,21 @@ export default function FinancePage() {
                         <span style={{ color: up24 ? "#4ade80" : "#f87171", fontWeight: 700, fontSize: 10, textAlign: "right" }}>{up24 ? "+" : ""}{c.change24h}%</span>
                         <span style={{ color: up7 ? "#4ade80" : "#f87171", fontWeight: 700, fontSize: 10, textAlign: "right" }}>{c.change7d ? (up7 ? "+" : "") + c.change7d + "%" : "—"}</span>
                         <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, textAlign: "right" }}>{mcap}</span>
+                        {/* Sovereign signal cell */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                          {sig ? (
+                            <>
+                              <span style={{ fontSize: 7, fontWeight: 900, padding: "1px 4px", borderRadius: 3, background: sigIsLong ? "rgba(74,222,128,0.15)" : sigIsShort ? "rgba(248,113,113,0.15)" : "rgba(167,139,250,0.15)", color: sigColor }}>{sig.stance}</span>
+                              <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                                {sig.conviction > 0 && <span style={{ fontSize: 6.5, color: sig.conviction >= 75 ? "#4ade80" : sig.conviction >= 50 ? "#fbbf24" : "#f87171", fontWeight: 700 }}>C:{sig.conviction}%</span>}
+                                {sig.risk_live > 0 && <span style={{ fontSize: 6, color: sig.risk_live > 0.6 ? "#f87171" : "#fbbf24", fontWeight: 700 }}>R:{(sig.risk_live*100).toFixed(0)}%</span>}
+                              </div>
+                              <span style={{ fontSize: 8 }}>{sig.scientist_emoji}</span>
+                            </>
+                          ) : (
+                            <span style={{ color: "rgba(255,255,255,0.07)", fontSize: 8 }}>—</span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -979,11 +1217,11 @@ export default function FinancePage() {
             </div>
             <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>ETFs & BENCHMARKS</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 7, marginBottom: 16 }}>
-              {withSpark(realestate.filter(q => ["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} />)}
+              {withSpark(realestate.filter(q => ["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} orgSignal={orgSignalMap[q.symbol]} />)}
             </div>
             <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>TOP REITs</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 7 }}>
-              {withSpark(realestate.filter(q => !["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} />)}
+              {withSpark(realestate.filter(q => !["VNQ","IYR","XLRE"].includes(q.symbol))).map(q => <QuoteCard key={q.symbol} q={q} onOpen={openChart} orgSignal={orgSignalMap[q.symbol]} />)}
             </div>
           </div>
         )}
