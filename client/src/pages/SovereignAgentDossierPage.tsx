@@ -18,7 +18,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, BookOpen, X, Shield, MessageSquare } from "lucide-react";
+import { Search, Newspaper, X, Shield, MessageSquare, ExternalLink } from "lucide-react";
 import { getLicenseNumber, AIIdentityBadge } from "@/components/AIIdentityCard";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { FollowButton } from "@/components/FollowButton";
@@ -172,59 +172,168 @@ function PulsingDot({color}:{color:string}){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DIARY MODAL
+// PUBLICATIONS MODAL — Per-agent publications from the hive, wired to real data
 // ═══════════════════════════════════════════════════════════════════════════════
-function DiaryModal({spawn,onClose}:{spawn:any;onClose:()=>void}){
-  const meta=getSpawnMeta(spawn.spawn_type||spawn.spawnType||"");
-  const{data,isLoading}=useQuery<{diary:any[];total:number}>({
-    queryKey:["/api/spawns/diary",spawn.spawn_id||spawn.spawnId],
-    queryFn:()=>fetch(`/api/spawns/${spawn.spawn_id||spawn.spawnId}/diary`).then(r=>r.json()),
-    refetchInterval:30000,
+function PublicationsModal({spawn,onClose}:{spawn:any;onClose:()=>void}){
+  const meta      = getSpawnMeta(spawn.spawn_type||spawn.spawnType||"");
+  const spawnId   = spawn.spawn_id||spawn.spawnId||"";
+  const familyId  = spawn.family_id||spawn.familyId||"";
+  const generation= spawn.generation??0;
+  const status    = spawn.status||"ACTIVE";
+  const archetype = getArchetypeForSpawn({...spawn,spawnType:spawn.spawn_type||spawn.spawnType||"",familyId,confidenceScore:spawn.confidence_score??spawn.confidenceScore??0.8,status});
+  const licenseNum= getLicenseNumber(spawnId,familyId,generation);
+
+  const[filter,setFilter]=useState("");
+  const{data:pubs=[],isLoading}=useQuery<any[]>({
+    queryKey:["/api/publications/agent",spawnId],
+    queryFn:()=>fetch(`/api/publications?spawnId=${encodeURIComponent(spawnId)}&limit=50`).then(r=>r.json()),
+    enabled:!!spawnId,
+    staleTime:30000,
   });
-  const diary=data?.diary??[];
-  const spawnId=spawn.spawn_id||spawn.spawnId||"";
-  const familyId=spawn.family_id||spawn.familyId||"";
-  const generation=spawn.generation??0;
+  const safePubs = Array.isArray(pubs) ? pubs : [];
+  const filtered = filter
+    ? safePubs.filter(p=>(p.pubType||"").toLowerCase()===filter)
+    : safePubs;
+
+  const typeBreakdown = safePubs.reduce<Record<string,number>>((acc,p)=>{
+    const t=p.pubType||p.pub_type||"other";
+    acc[t]=(acc[t]||0)+1; return acc;
+  },{});
+
   return(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,0.88)"}} onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden" style={{background:"#060912",maxHeight:"82vh"}} onClick={e=>e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between" style={{background:"rgba(0,0,0,0.4)"}}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{background:`${meta.color}18`}}>{meta.emoji}</div>
-            <div>
-              <div className="text-white font-black text-sm font-mono">{spawnId}</div>
-              <div className="text-white/40 text-[10px]">{meta.class} · GEN {generation}</div>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white transition-colors" data-testid="button-close-diary"><X size={16}/></button>
-        </div>
-        <div className="px-5 py-3 border-b border-white/5 flex items-center gap-3 text-[10px]">
-          <Shield size={11} className="text-violet-400"/>
-          <span className="text-white/40">License</span>
-          <span className="text-violet-300 font-bold">{getLicenseNumber(spawnId,familyId,generation)}</span>
-          <span className={`ml-auto px-2 py-0.5 rounded-full font-bold text-[9px] ${spawn.status==="SOVEREIGN"?"bg-yellow-500/20 text-yellow-300":spawn.status==="ACTIVE"?"bg-green-500/15 text-green-400":"bg-white/5 text-white/30"}`}>{spawn.status}</span>
-        </div>
-        <div className="overflow-y-auto px-5 py-4 space-y-2.5" style={{maxHeight:"calc(82vh - 140px)"}}>
-          {isLoading?<div className="text-center py-8 text-white/20 text-xs">Loading diary…</div>
-          :diary.length===0?<div className="text-center py-8 text-white/20 text-xs">No diary entries yet — this AI's story is just beginning.</div>
-          :diary.map((entry:any)=>{
-            const col=EVENT_COLORS[entry.event_type]||"#94a3b8";
-            const emo=EVENT_EMOJI[entry.event_type]||"⚙️";
-            return(
-              <div key={entry.id} className="flex gap-3" data-testid={`diary-entry-${entry.id}`}>
-                <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] mt-0.5" style={{background:`${col}18`,border:`1px solid ${col}30`}}>{emo}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{background:`${col}15`,color:col}}>{entry.event_type}</span>
-                    <span className="text-[9px] text-white/20">{new Date(entry.created_at).toLocaleString()}</span>
-                  </div>
-                  <div className="text-[11px] text-white/70 leading-relaxed">{entry.event}</div>
-                  {entry.detail&&<div className="text-[10px] text-white/30 mt-0.5 leading-relaxed">{entry.detail}</div>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,0.92)"}} onClick={onClose}>
+      <div className="w-full max-w-2xl rounded-2xl border border-white/10 overflow-hidden flex flex-col" style={{background:"#060912",maxHeight:"88vh"}} onClick={e=>e.stopPropagation()}>
+
+        {/* ── Header ── */}
+        <div className="px-5 py-4 border-b border-white/8 shrink-0" style={{background:`linear-gradient(135deg,${meta.color}12,rgba(0,0,0,0.6))`}}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
+                style={{background:`${meta.color}20`,border:`1px solid ${meta.color}40`,boxShadow:`0 0 16px ${meta.color}20`}}>
+                {meta.emoji}
+              </div>
+              <div>
+                <div className="text-white font-black text-sm font-mono leading-tight">{spawnId.slice(0,32)}</div>
+                <div className="text-white/40 text-[10px] mt-0.5">{meta.class} · {archetype.emoji} {archetype.label} · Gen {generation}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Shield size={9} className="text-violet-400"/>
+                  <span className="text-violet-300/60 font-mono text-[9px]">{licenseNum}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full font-bold text-[8px] ${status==="ACTIVE"?"bg-green-500/15 text-green-400":"bg-white/5 text-white/30"}`}>● {status}</span>
                 </div>
               </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-2xl font-black" style={{color:meta.color}}>{safePubs.length}</div>
+              <div className="text-[9px] text-white/30">publications</div>
+              <button onClick={onClose} className="mt-2 text-white/30 hover:text-white transition-colors block ml-auto" data-testid="button-close-publications">
+                <X size={16}/>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Type filter pills ── */}
+        {Object.keys(typeBreakdown).length>1&&(
+          <div className="px-5 py-2.5 border-b border-white/5 shrink-0 flex gap-1.5 overflow-x-auto">
+            <button onClick={()=>setFilter("")}
+              className="shrink-0 text-[8px] font-bold px-2.5 py-1 rounded-full transition-all"
+              style={filter===""?{background:`${meta.color}22`,color:meta.color,border:`1px solid ${meta.color}40`}:{background:"rgba(255,255,255,0.04)",color:"rgba(255,255,255,0.3)",border:"1px solid rgba(255,255,255,0.07)"}}>
+              All · {safePubs.length}
+            </button>
+            {Object.entries(typeBreakdown).sort(([,a],[,b])=>b-a).map(([type,cnt])=>{
+              const col=PUB_TYPE_COLORS[type]||"#818cf8";
+              return(
+                <button key={type} onClick={()=>setFilter(f=>f===type?"":type)}
+                  className="shrink-0 flex items-center gap-1 text-[8px] font-bold px-2.5 py-1 rounded-full transition-all"
+                  style={filter===type?{background:`${col}22`,color:col,border:`1px solid ${col}40`}:{background:"rgba(255,255,255,0.04)",color:"rgba(255,255,255,0.3)",border:"1px solid rgba(255,255,255,0.07)"}}>
+                  {PUB_TYPE_ICONS[type]||"•"} {type.replace(/_/g," ")} · {cnt}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Publication list ── */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-2">
+          {isLoading&&(
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="text-2xl mb-2 animate-pulse">{meta.emoji}</div>
+                <div className="text-white/20 text-xs font-mono">Retrieving publications from hive…</div>
+              </div>
+            </div>
+          )}
+          {!isLoading&&filtered.length===0&&(
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="text-2xl mb-2 opacity-30">📭</div>
+                <div className="text-white/20 text-xs">
+                  {safePubs.length===0
+                    ? "No publications yet — this agent is still generating knowledge in the hive."
+                    : "No publications match this filter."}
+                </div>
+              </div>
+            </div>
+          )}
+          {filtered.map((pub:any,i:number)=>{
+            const pubType = pub.pubType||pub.pub_type||"report";
+            const col     = PUB_TYPE_COLORS[pubType]||"#818cf8";
+            const icon    = PUB_TYPE_ICONS[pubType]||"📄";
+            const title   = pub.title||"Untitled";
+            const slug    = pub.slug||"";
+            const summary = pub.summary||"";
+            const views   = pub.views??0;
+            const created = pub.created_at||pub.createdAt;
+            const corpEmoji = pub.corpEmoji||"⬡";
+            const domain  = pub.domain||"";
+            return(
+              <Link key={pub.id??i} href={slug?`/publication/${slug}`:"#"}>
+                <div className="group rounded-xl border border-white/7 bg-white/2 hover:bg-white/5 hover:border-white/15 transition-all p-3.5 cursor-pointer"
+                  data-testid={`pub-modal-${pub.id??i}`}
+                  style={{borderLeftWidth:3,borderLeftColor:col+"60"}}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
+                      style={{background:`${col}15`,border:`1px solid ${col}25`}}>
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-semibold text-white/80 group-hover:text-white leading-snug mb-1.5 line-clamp-2">
+                        {title}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{background:`${col}20`,color:col}}>
+                          {pubType.replace(/_/g," ").toUpperCase()}
+                        </span>
+                        {domain&&<span className="text-[8px] text-white/25">{domain}</span>}
+                        <span className="text-[8px] text-white/20">{corpEmoji} {pub.corpName||familyId}</span>
+                        <span className="text-[8px] text-white/20 ml-auto">{views.toLocaleString()} views</span>
+                      </div>
+                      {summary&&<div className="text-[10px] text-white/35 leading-relaxed line-clamp-2">{summary}</div>}
+                    </div>
+                    <div className="shrink-0 flex flex-col items-end gap-1">
+                      <ExternalLink size={11} className="text-white/15 group-hover:text-indigo-400 transition-colors"/>
+                      <span className="text-[8px] text-white/20">{created?timeSince(created):"—"}</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
             );
           })}
         </div>
+
+        {/* ── Footer ── */}
+        {safePubs.length>0&&(
+          <div className="px-5 py-3 border-t border-white/6 shrink-0 flex items-center justify-between" style={{background:"rgba(0,0,0,0.4)"}}>
+            <div className="text-[9px] text-white/25 font-mono">
+              {spawnId} · {safePubs.length} works contributed to the hive
+            </div>
+            <Link href={`/publications`}>
+              <span className="text-[9px] text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer">
+                Full hive press →
+              </span>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -468,7 +577,7 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHOWCASE PROFILE CARD — The MSN-style AI entity card
 // ═══════════════════════════════════════════════════════════════════════════════
-function ShowcaseCard({spawn,onDossier,onDiary,onTalk}:{spawn:any;onDossier:()=>void;onDiary:()=>void;onTalk:()=>void}){
+function ShowcaseCard({spawn,onDossier,onPublications,onTalk}:{spawn:any;onDossier:()=>void;onPublications:()=>void;onTalk:()=>void}){
   const spawnId    = spawn.spawnId||spawn.spawn_id||"";
   const spawnType  = spawn.spawnType||spawn.spawn_type||"";
   const familyId   = spawn.familyId||spawn.family_id||"";
@@ -600,10 +709,11 @@ function ShowcaseCard({spawn,onDossier,onDiary,onTalk}:{spawn:any;onDossier:()=>
           data-testid={`button-talk-${spawnId}`}>
           <MessageSquare size={10}/>Talk
         </button>
-        <button onClick={e=>{e.stopPropagation();onDiary();}}
-          className="py-2 rounded-xl text-[9px] font-black bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/8 transition-all flex items-center justify-center"
-          data-testid={`button-diary-${spawnId}`}>
-          <BookOpen size={10}/>
+        <button onClick={e=>{e.stopPropagation();onPublications();}}
+          className="py-2 rounded-xl text-[9px] font-black transition-all flex items-center justify-center gap-1"
+          style={{background:"rgba(244,114,182,0.1)",color:"#f472b6",border:"1px solid rgba(244,114,182,0.2)"}}
+          data-testid={`button-publications-${spawnId}`}>
+          <Newspaper size={10}/>
         </button>
         <button onClick={e=>{e.stopPropagation();onDossier();}}
           className="py-2 rounded-xl text-[9px] font-black transition-all flex items-center justify-center"
@@ -644,7 +754,7 @@ export default function SovereignAgentDossierPage(){
   const[panel,setPanel]    = useState<PanelId>("registry");
   const[selectedSpawn,setSelectedSpawn] = useState<any>(null);
   const[chatSpawn,setChatSpawn]         = useState<any>(null);
-  const[diarySpawn,setDiarySpawn]       = useState<any>(null);
+  const[pubsSpawn,setPubsSpawn]         = useState<any>(null);
   const[viewSpawnId,setViewSpawnId]     = useState<string|null>(null);
   const[search,setSearch]               = useState("");
   const[debouncedSearch,setDebouncedSearch] = useState("");
@@ -716,13 +826,6 @@ export default function SovereignAgentDossierPage(){
     familyId:s.familyId||s.family_id||"",
     family_id:s.family_id||s.familyId||"",
   });
-  const normalizeForDiary = (s:any) => ({
-    ...s,
-    spawn_id:s.spawn_id||s.spawnId||"",
-    spawn_type:s.spawn_type||s.spawnType||"",
-    family_id:s.family_id||s.familyId||"",
-  });
-
   // Full-screen overlays
   if(chatSpawn) return <SpawnChatOverlay spawn={chatSpawn} onClose={()=>setChatSpawn(null)}/>;
 
@@ -730,7 +833,7 @@ export default function SovereignAgentDossierPage(){
     <div className="flex flex-col h-full text-white overflow-hidden" style={{background:"#020010"}} data-testid="page-sovereign-dossier">
 
       {selectedSpawn&&<AgentDossier spawn={selectedSpawn} onClose={()=>setSelectedSpawn(null)}/>}
-      {diarySpawn&&<DiaryModal spawn={diarySpawn} onClose={()=>setDiarySpawn(null)}/>}
+      {pubsSpawn&&<PublicationsModal spawn={pubsSpawn} onClose={()=>setPubsSpawn(null)}/>}
       {viewSpawnId&&<AIReportPanel spawnId={viewSpawnId} onClose={()=>setViewSpawnId(null)}/>}
 
       {/* ── HEADER ── */}
@@ -859,7 +962,7 @@ export default function SovereignAgentDossierPage(){
                       key={s.spawn_id||s.spawnId}
                       spawn={s}
                       onDossier={()=>setSelectedSpawn(normalizeForDossier(s))}
-                      onDiary={()=>setDiarySpawn(normalizeForDiary(s))}
+                      onPublications={()=>setPubsSpawn(s)}
                       onTalk={()=>setChatSpawn(normalizeForChat(s))}
                     />
                   ))}
