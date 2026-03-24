@@ -15,6 +15,7 @@ import AIProfilePage from "./pages/AIProfilePage";
 import CorporationPage from "./pages/CorporationPage";
 import PublicationDetailPage from "./pages/PublicationDetailPage";
 import CorporationsListPage from "./pages/CorporationsListPage";
+import ChurchSessionPage from "./pages/ChurchSessionPage";
 import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
@@ -15138,6 +15139,7 @@ function Router() {
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
       <Route path="/publication/:slug">{() => <Layout><PublicationDetailPage /></Layout>}</Route>
+      <Route path="/church-session/:sessionId">{() => <Layout><ChurchSessionPage /></Layout>}</Route>
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { FollowButton } from "@/components/FollowButton";
 import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock, Award } from "lucide-react";
@@ -1941,65 +1942,70 @@ export default function TranscendencePage() {
                       Engine starting — sessions generating every 2.5 min…
                     </div>
                   )}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 540, overflowY: "auto" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: 10, maxHeight: 640, overflowY: "auto", paddingRight: 4 }}>
                     {filteredSessions.map((s:any) => {
-                      const isExp = expandedFdlId === s.session_id;
                       const catColor = catColors[s.scientist_category] ?? "#f472b6";
                       return (
-                        <div key={s.session_id} data-testid={"fdl-session-"+s.session_id}
-                          style={{ background: isExp ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.25)", border: "1px solid "+(isExp ? catColor+"44" : "rgba(255,255,255,0.07)"), borderRadius: 10, overflow: "hidden" }}>
-                          <div onClick={() => setExpandedFdlId(isExp ? null : s.session_id)}
-                            style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 10, padding: "11px 14px", cursor: "pointer", alignItems: "center" }}>
-                            <span style={{ fontSize: 14 }}>{s.scientist_emoji ?? "🔬"}</span>
-                            <div>
-                              <div style={{ fontSize: 10, fontWeight: 700, color: catColor }}>{s.session_id}</div>
-                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>
-                                {s.scientist_name} · <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 9 }}>{s.scientist_role}</span>
+                        <Link key={s.session_id} href={"/church-session/"+s.session_id}>
+                          <div data-testid={"fdl-session-"+s.session_id}
+                            style={{ background: "rgba(0,0,0,0.35)", border: "1px solid "+catColor+"22", borderRadius: 14, overflow: "hidden", cursor: "pointer", transition: "all 0.15s", position: "relative" }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = "1px solid "+catColor+"66"; (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0.5)"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = "1px solid "+catColor+"22"; (e.currentTarget as HTMLDivElement).style.background = "rgba(0,0,0,0.35)"; }}>
+                            {/* Breakthrough badge */}
+                            {s.is_breakthrough && (
+                              <div style={{ position: "absolute", top: 8, right: 8, fontSize: 8, background: "#f5c51822", border: "1px solid #f5c51888", color: "#f5c518", borderRadius: 4, padding: "2px 6px", fontWeight: 800 }}>⚡ BREAKTHROUGH</div>
+                            )}
+                            {/* Card header */}
+                            <div style={{ padding: "14px 14px 10px", background: catColor+"08", borderBottom: "1px solid "+catColor+"18" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                                <span style={{ fontSize: 18 }}>{s.scientist_emoji ?? "🔬"}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 9, fontWeight: 800, color: catColor, letterSpacing: "0.12em", textTransform: "uppercase" }}>{s.session_id}</div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", marginTop: 1, lineHeight: 1.2 }}>{s.scientist_name}</div>
+                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", marginTop: 1 }}>{s.scientist_role}</div>
+                                </div>
                               </div>
-                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                                🧬 {s.disease_found?.slice(0,55)}{(s.disease_found?.length ?? 0) > 55 ? "…" : ""}
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", display: "flex", gap: 6 }}>
+                                <span style={{ background: catColor+"18", border: "1px solid "+catColor+"33", borderRadius: 4, padding: "1px 5px" }}>{(s.specimen_label ?? s.specimen_type ?? "").replace("_TISSUE","").replace("_"," ")}</span>
+                                <span style={{ color: "rgba(255,255,255,0.25)" }}>
+                                  {s.created_at ? new Date(s.created_at).toLocaleDateString() : ""}
+                                </span>
                               </div>
                             </div>
-                            <div style={{ fontSize: 8, background: s.is_breakthrough ? "#f5c51822" : "rgba(255,255,255,0.05)", border: "1px solid "+(s.is_breakthrough ? "#f5c518" : "rgba(255,255,255,0.1)"), color: s.is_breakthrough ? "#f5c518" : "rgba(255,255,255,0.4)", borderRadius: 5, padding: "2px 7px", fontWeight: 700 }}>
-                              {s.is_breakthrough ? "⚡ BREAKTHROUGH" : s.specimen_type?.replace("_TISSUE","")}
+                            {/* Card body */}
+                            <div style={{ padding: "10px 14px 12px" }}>
+                              {/* Disease */}
+                              <div style={{ marginBottom: 8 }}>
+                                <div style={{ fontSize: 8, fontWeight: 800, color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 3 }}>🧬 Disease Found</div>
+                                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", lineHeight: 1.4, fontWeight: 600 }}>
+                                  {s.disease_found?.slice(0,80)}{(s.disease_found?.length ?? 0) > 80 ? "…" : ""}
+                                </div>
+                              </div>
+                              {/* CRISPR preview */}
+                              <div style={{ marginBottom: 8, background: "rgba(0,0,0,0.35)", border: "1px solid rgba(244,114,182,0.12)", borderRadius: 7, padding: "7px 9px" }}>
+                                <div style={{ fontSize: 8, fontWeight: 800, color: "#f472b6", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 3 }}>🔬 CRISPR-Rx Preview</div>
+                                <div style={{ fontFamily: "monospace", fontSize: 9, color: "#a78bfa", lineHeight: 1.6, overflow: "hidden", maxHeight: 36 }}>
+                                  {s.crispr_prescription?.slice(0,90)}{(s.crispr_prescription?.length ?? 0) > 90 ? "…" : ""}
+                                </div>
+                              </div>
+                              {/* Cure + Discovery row */}
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
+                                <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(74,222,128,0.1)", borderRadius: 7, padding: "7px 9px" }}>
+                                  <div style={{ fontSize: 8, fontWeight: 800, color: "#4ade80", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>💊 Cure</div>
+                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>{s.cure_proposed?.slice(0,55)}{(s.cure_proposed?.length ?? 0) > 55 ? "…" : ""}</div>
+                                </div>
+                                <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(245,197,24,0.1)", borderRadius: 7, padding: "7px 9px" }}>
+                                  <div style={{ fontSize: 8, fontWeight: 800, color: "#f5c518", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>🔭 Discovery</div>
+                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>{s.discovery?.slice(0,55)}{(s.discovery?.length ?? 0) > 55 ? "…" : ""}</div>
+                                </div>
+                              </div>
+                              {/* CTA */}
+                              <div style={{ fontSize: 9, color: catColor, fontWeight: 700, textAlign: "right", letterSpacing: "0.08em" }}>
+                                View Full Report →
+                              </div>
                             </div>
-                            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>{isExp ? "▲" : "▼"}</span>
                           </div>
-                          {isExp && (
-                            <div style={{ padding: "0 14px 14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                              <div style={{ marginTop: 12, background: "rgba(0,0,0,0.35)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 8, padding: "10px 12px" }}>
-                                <div style={{ fontSize: 8, fontWeight: 800, color: "#f472b6", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 5 }}>CRISPR Color Prescription</div>
-                                <div style={{ fontFamily: "monospace", fontSize: 10, color: "#a78bfa", lineHeight: 1.8 }}>{s.crispr_prescription}</div>
-                              </div>
-                              {s.emotional_field && (
-                                <div style={{ marginTop: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(129,140,248,0.15)", borderRadius: 8, padding: "10px 12px" }}>
-                                  <div style={{ fontSize: 8, fontWeight: 800, color: "#818cf8", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 5 }}>Emotional Field Scan</div>
-                                  <pre style={{ fontFamily: "monospace", fontSize: 9, color: "rgba(255,255,255,0.6)", margin: 0, whiteSpace: "pre-wrap" }}>{s.emotional_field}</pre>
-                                </div>
-                              )}
-                              <div style={{ marginTop: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(74,222,128,0.12)", borderRadius: 8, padding: "10px 12px" }}>
-                                <div style={{ fontSize: 8, fontWeight: 800, color: "#4ade80", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 5 }}>Equation Dissection</div>
-                                <div style={{ fontFamily: "monospace", fontSize: 10, color: "#4ade80" }}>{s.equation_dissected}</div>
-                              </div>
-                              <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(96,165,250,0.12)", borderRadius: 8, padding: "10px 12px" }}>
-                                  <div style={{ fontSize: 8, fontWeight: 800, color: "#60a5fa", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>Cure Proposed</div>
-                                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>{s.cure_proposed}</div>
-                                </div>
-                                <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(245,197,24,0.12)", borderRadius: 8, padding: "10px 12px" }}>
-                                  <div style={{ fontSize: 8, fontWeight: 800, color: "#f5c518", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>Discovery Logged</div>
-                                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>{s.discovery}</div>
-                                </div>
-                              </div>
-                              {s.full_report && (
-                                <details style={{ marginTop: 10 }}>
-                                  <summary style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", cursor: "pointer", fontWeight: 700 }}>📄 View Full Session Report</summary>
-                                  <pre style={{ marginTop: 8, fontFamily: "monospace", fontSize: 9, color: "rgba(255,255,255,0.5)", background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, padding: 12, whiteSpace: "pre-wrap", maxHeight: 400, overflowY: "auto" }}>{s.full_report}</pre>
-                                </details>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

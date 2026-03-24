@@ -363,15 +363,15 @@ Report Classification: ${isBreakthrough ? "GENESIS DOCUMENT" : "STANDARD RESEARC
         (session_id, scientist_id, scientist_name, scientist_role, scientist_category,
          agent_spawn_id, specimen_type, specimen_label, disease_found, cure_proposed,
          discovery, equation_dissected, crispr_prescription, emotional_field, mirror_delta,
-         upgrade_triggered, full_report, status, is_breakthrough)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+         upgrade_triggered, full_report, status, is_breakthrough, scientist_emoji)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
       ON CONFLICT (session_id) DO NOTHING
     `, [
       sessionId, sci.id, sci.name, sci.role, sci.cat,
       agentId, specimen, specimenLabel, disease, cure,
       discovery, eqDissected, crispr, emotional, mirror,
       isBreakthrough ? "GENESIS" : "MIRROR_DELTA",
-      fullReport, "COMPLETED", isBreakthrough,
+      fullReport, "COMPLETED", isBreakthrough, sci.emoji,
     ]);
 
     // Update scientist session count
