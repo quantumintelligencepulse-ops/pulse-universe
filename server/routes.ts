@@ -6546,6 +6546,156 @@ ${(pubs.rows as any[]).map(p => {
   });
 
   // ══════════════════════════════════════════════════════════════
+  // QUANTUM CINEMA ENGINE — OMEGA MOVIE FLOW
+  // 5-Strategy live feed: New Arrivals, Genre Rotation, NASA Feed,
+  // Date-sorted catalog, Auto-refresh pool engine
+  // ══════════════════════════════════════════════════════════════
+  const cinemaCache = new Map<string, { data: any[]; ts: number }>();
+  const CINEMA_TTL = 20 * 60 * 1000; // 20 min cache
+
+  // Noise keywords that indicate non-film uploads
+  const CINEMA_NOISE = /youtube|gaming|minecraft|twitch|fortnite|asmr|podcast|vlog|streaming|let'?s play|team fortress|tiktok|youtuber/i;
+
+  async function fetchArchive(query: string, rows = 50, sort = "addeddate desc", yearGate?: [number, number]): Promise<any[]> {
+    const cacheKey = `${query}|${rows}|${sort}|${yearGate ? yearGate.join('-') : 'any'}`;
+    const cached = cinemaCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CINEMA_TTL) return cached.data;
+    try {
+      const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier,title,description,creator,year,subject,addeddate,runtime&sort[]=${encodeURIComponent(sort)}&rows=${rows}&output=json`;
+      const r = await fetch(url, { headers: { "User-Agent": "QuantumCinema/1.0" } });
+      if (!r.ok) return [];
+      const json: any = await r.json();
+      const docs: any[] = json?.response?.docs || [];
+      const mapped = docs
+        .filter(d => {
+          if (!d.identifier || !d.title) return false;
+          const title = String(d.title);
+          if (CINEMA_NOISE.test(title)) return false;
+          const subjectStr = Array.isArray(d.subject) ? d.subject.join(" ") : String(d.subject || "");
+          if (CINEMA_NOISE.test(subjectStr)) return false;
+          if (yearGate) {
+            const yr = d.year ? parseInt(String(d.year)) : null;
+            if (!yr || yr < yearGate[0] || yr > yearGate[1]) return false;
+          }
+          return true;
+        })
+        .map(d => ({
+          id: d.identifier,
+          title: String(d.title).slice(0, 80),
+          year: d.year ? parseInt(String(d.year)) || null : null,
+          genre: Array.isArray(d.subject) ? d.subject.slice(0, 2).join(" / ") : (d.subject || "Classic"),
+          runtime: d.runtime || "—",
+          license: "Public Domain",
+          source: "Internet Archive",
+          desc: d.description ? String(d.description).replace(/<[^>]+>/g, "").slice(0, 300) : "Public domain classic from the Internet Archive.",
+          tags: Array.isArray(d.subject) ? d.subject.slice(0, 5) : [],
+          addedDate: d.addeddate || "",
+          thumb: `https://archive.org/services/img/${d.identifier}`,
+          embedUrl: `https://archive.org/embed/${d.identifier}`,
+        }));
+      cinemaCache.set(cacheKey, { data: mapped, ts: Date.now() });
+      return mapped;
+    } catch { return []; }
+  }
+
+  // Classic films: year-gated + prelinger for zero noise. NASA unfiltered for live ISS.
+  const CLASSIC_BASE = 'mediatype:movies AND year:[1900 TO 2000]';
+  const PRELINGER = 'collection:prelinger AND mediatype:movies';
+  // Blender Foundation films: Sintel, Big Buck Bunny, Elephants Dream, Cosmos Laundromat — CC licensed
+  const BLENDER_COL = 'mediatype:movies AND creator:"Blender Foundation"';
+
+  const GENRE_QUERIES: Record<string, string> = {
+    "sci-fi":       `${CLASSIC_BASE} AND (subject:"science fiction" OR subject:"sci-fi" OR subject:"science-fiction")`,
+    "horror":       `${CLASSIC_BASE} AND (subject:"horror" OR subject:"horror films")`,
+    "noir":         `${CLASSIC_BASE} AND (subject:"film noir" OR subject:"noir" OR subject:"crime thriller")`,
+    "western":      `${CLASSIC_BASE} AND (subject:"western" OR subject:"cowboy" OR subject:"frontier")`,
+    "documentary":  `${CLASSIC_BASE} AND (subject:"documentary" OR subject:"documentaries")`,
+    "animation":    `${CLASSIC_BASE} AND (subject:"animation" OR subject:"cartoon" OR subject:"animated cartoon")`,
+    "comedy":       `${CLASSIC_BASE} AND subject:"comedy"`,
+    "adventure":    `${CLASSIC_BASE} AND subject:"adventure"`,
+    "educational":  PRELINGER,
+    "newsreel":     `${CLASSIC_BASE} AND (subject:"newsreel" OR subject:"news film" OR subject:"newsreels")`,
+    "silent":       `${CLASSIC_BASE} AND year:[1895 TO 1930] AND (subject:"silent" OR subject:"silent film")`,
+    "drama":        `${CLASSIC_BASE} AND subject:"drama"`,
+    "nasa":         'collection:nasa AND mediatype:movies',
+    "blender":      BLENDER_COL,
+    "short":        `${CLASSIC_BASE} AND (subject:"short film" OR subject:"shorts")`,
+  };
+
+  // STRATEGY 1: New Arrivals — recently uploaded classic films (pre-2001, real movies only)
+  app.get("/api/cinema/new-arrivals", async (_req, res) => {
+    const [classics, prelinger, openSource] = await Promise.all([
+      fetchArchive(`${CLASSIC_BASE} AND (subject:"public domain" OR subject:"classic film")`, 40, "addeddate desc", [1900, 2000]),
+      fetchArchive(PRELINGER, 25, "addeddate desc", [1900, 2000]),
+      fetchArchive(BLENDER_COL, 15, "addeddate desc"),
+    ]);
+    const seen = new Set<string>();
+    const merged = [...openSource, ...classics, ...prelinger].filter(f => !seen.has(f.id) && seen.add(f.id));
+    merged.sort((a, b) => (b.addedDate || "").localeCompare(a.addedDate || ""));
+    res.json(merged.slice(0, 50));
+  });
+
+  // STRATEGY 2: Genre Rotation Engine — year-gated classic films, newest uploads first
+  app.get("/api/cinema/genre/:genre", async (req, res) => {
+    const genre = req.params.genre.toLowerCase();
+    const isNasa = genre === "nasa";
+    const isBlender = genre === "blender";
+    const query = GENRE_QUERIES[genre] || `${CLASSIC_BASE} AND subject:"${genre}"`;
+    const gate: [number, number] | undefined = isNasa || isBlender ? undefined : [1895, 2000];
+    const results = await fetchArchive(query, 50, "addeddate desc", gate);
+    res.json(results);
+  });
+
+  // STRATEGY 3: NASA Feed — live ISS footage + historical space archive, no year gate
+  app.get("/api/cinema/nasa", async (_req, res) => {
+    const [live, historical, missions] = await Promise.all([
+      fetchArchive('collection:nasa AND mediatype:movies', 25, "addeddate desc"),
+      fetchArchive('collection:nasa AND mediatype:movies AND (subject:apollo OR subject:shuttle OR subject:gemini)', 15, "addeddate desc"),
+      fetchArchive('collection:nasa AND mediatype:movies AND (subject:"space station" OR subject:ISS OR subject:spacewalk)', 15, "addeddate desc"),
+    ]);
+    const seen = new Set<string>();
+    const merged = [...live, ...historical, ...missions].filter(f => !seen.has(f.id) && seen.add(f.id));
+    merged.sort((a, b) => (b.addedDate || "").localeCompare(a.addedDate || ""));
+    res.json(merged.slice(0, 40));
+  });
+
+  // STRATEGY 4: Full Omega Catalog — 10 rotating genre slots, all year-gated except NASA
+  app.get("/api/cinema/catalog", async (req, res) => {
+    const page = parseInt(String(req.query.page || "1")) || 1;
+    const genreKeys = ["sci-fi", "horror", "animation", "documentary", "western", "noir", "comedy", "adventure", "silent", "drama"];
+    const rotatingGenre = genreKeys[(page - 1) % genreKeys.length];
+    const [classics, genrePool, nasa] = await Promise.all([
+      fetchArchive(`${CLASSIC_BASE} AND subject:"public domain"`, 40, "addeddate desc", [1900, 2000]),
+      fetchArchive(GENRE_QUERIES[rotatingGenre], 35, "addeddate desc", [1895, 2000]),
+      fetchArchive('collection:nasa AND mediatype:movies', 15, "addeddate desc"),
+    ]);
+    const seen = new Set<string>();
+    const all = [...classics, ...genrePool, ...nasa].filter(f => !seen.has(f.id) && seen.add(f.id));
+    all.sort((a, b) => (b.addedDate || "").localeCompare(a.addedDate || ""));
+    res.json({ films: all.slice(0, 80), genre: rotatingGenre, page, total: all.length });
+  });
+
+  // STRATEGY 5: Semantic search — year-gated + NASA + Prelinger, real films only
+  app.get("/api/cinema/search", async (req, res) => {
+    const q = String(req.query.q || "").trim();
+    if (!q) return res.json([]);
+    const [byTitle, bySubject, byNasa, byPrelinger] = await Promise.all([
+      fetchArchive(`${CLASSIC_BASE} AND title:(${q})`, 18, "addeddate desc", [1895, 2000]),
+      fetchArchive(`${CLASSIC_BASE} AND subject:(${q})`, 18, "addeddate desc", [1895, 2000]),
+      fetchArchive(`collection:nasa AND mediatype:movies AND (title:(${q}) OR subject:(${q}))`, 10, "addeddate desc"),
+      fetchArchive(`${PRELINGER} AND (title:(${q}) OR subject:(${q}))`, 12, "addeddate desc", [1895, 2000]),
+    ]);
+    const seen = new Set<string>();
+    const merged = [...byTitle, ...bySubject, ...byNasa, ...byPrelinger].filter(f => !seen.has(f.id) && seen.add(f.id));
+    res.json(merged.slice(0, 35));
+  });
+
+  // Genre list endpoint
+  app.get("/api/cinema/genres", (_req, res) => {
+    res.json(Object.keys(GENRE_QUERIES));
+  });
+
+  // ══════════════════════════════════════════════════════════════
   // QUANTUM CAREER ENGINE
   // ══════════════════════════════════════════════════════════════
   app.get("/api/careers/engine-status", async (req, res) => {

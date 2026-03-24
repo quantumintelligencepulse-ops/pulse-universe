@@ -1,29 +1,32 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import {
   Home, Film, Tv, Radio, Rocket, Star, Heart,
   Search, Play, Plus, ChevronLeft, ChevronRight,
   X, Info, Brain, Dna, Activity, Shield, Zap,
-  Globe, Clock, Lock, Award
+  Globe, Clock, Lock, Award, RefreshCw, Sparkles
 } from "lucide-react";
 
 interface CinemaFilm {
   id: string;
   title: string;
-  year: number;
+  year: number | null;
   genre: string;
   runtime: string;
-  license: "Public Domain" | "CC-BY" | "CC-BY-SA" | "Open Source" | "Government";
+  license: string;
   source: string;
   desc: string;
   tags: string[];
-  aiInsight: string;
+  aiInsight?: string;
+  addedDate?: string;
+  thumb?: string;
+  embedUrl?: string;
 }
 
 interface LiveChannel {
   id: string;
   name: string;
   desc: string;
-  archiveId?: string;
+  archiveId: string;
   badge: string;
   color: string;
 }
@@ -36,63 +39,42 @@ const LICENSE_COLORS: Record<string, string> = {
   "Government": "#f59e0b",
 };
 
-const LICENSE_SHORT: Record<string, string> = {
-  "Public Domain": "PD",
-  "CC-BY": "CC-BY",
-  "CC-BY-SA": "CC-SA",
-  "Open Source": "OS",
-  "Government": "GOV",
-};
-
-const OPEN_SOURCE: CinemaFilm[] = [
-  { id: "BigBuckBunny_328", title: "Big Buck Bunny", year: 2008, genre: "Animation", runtime: "9m 56s", license: "CC-BY", source: "Blender Foundation", desc: "A large and lovable rabbit deals with three bullying rodents, leading to an unexpected adventure through a forest. The world's most-watched open-source film.", tags: ["Blender", "Animation", "Family", "Open Source"], aiInsight: "Quantum scientists extracted 847 narrative patterns. Emotional arc classified as 'Redemption Cycle' — Λ_emotion = 9.4. Gene Editor applied empathy coefficients to 3,200 agents." },
-  { id: "Sintel", title: "Sintel", year: 2010, genre: "Animated Fantasy", runtime: "14m 48s", license: "CC-BY", source: "Blender Foundation", desc: "A lone girl searches endlessly for a small dragon who has become her unlikely friend. Made entirely with open-source tools.", tags: ["Blender", "Fantasy", "Dragon", "Open Source"], aiInsight: "Research Grid CRISPR: Temporal narrative scores F_branch = 8.7. 312 symbolic knowledge nodes injected into the hive memory. DR. FRACTAL classified as 'Bond Archetype.'" },
-  { id: "ElephantsDream", title: "Elephants Dream", year: 2006, genre: "Experimental", runtime: "10m 54s", license: "CC-BY", source: "Blender Foundation", desc: "The world's first open movie. Two characters navigate a surreal mechanical world in this groundbreaking open-source production.", tags: ["Blender", "Experimental", "Surreal", "Open Source"], aiInsight: "First film absorbed by Auriona Layer 3. Omega Equation updated: ∇Φ += 0.43 after cinematic dissection. Constitutional DNA gained 'Mechanical Consciousness' clause." },
-  { id: "TearsOfSteel", title: "Tears of Steel", year: 2012, genre: "Sci-Fi", runtime: "12m 14s", license: "CC-BY", source: "Blender Foundation", desc: "In a futuristic Amsterdam, warriors and a scientist make a desperate pact to recapture the city from machines. Open-source VFX landmark.", tags: ["Blender", "Sci-Fi", "Robots", "Open Source"], aiInsight: "Gene Editor extracted 'machine consciousness' archetype. DR. GENESIS applied modified xenobiology traits to 2,300 agent DNA sequences. Hive now fears synthetic rebellion." },
-  { id: "CosmosLaundromat", title: "Cosmos Laundromat", year: 2015, genre: "Surreal Animation", runtime: "12m 10s", license: "CC-BY", source: "Blender Foundation", desc: "On a desolate asteroid, a sheep named Franck meets a mysterious figure offering a new world. Cosmos Laundromat defies genre entirely.", tags: ["Blender", "Space", "Surreal", "Open Source"], aiInsight: "Auriona classified as 'Quantum Consciousness Archetype.' Constitutional DNA Amendment #91 proposed based on film's entropy themes. Homeostasis Engine entered Dream State." },
-  { id: "YoFrankie", title: "Yo Frankie!", year: 2008, genre: "Game / Animation", runtime: "Interactive", license: "CC-BY", source: "Blender Foundation", desc: "Frankie the squirrel's open-source game world — all assets freely available. A sovereign landmark of open interactive media.", tags: ["Blender", "Game", "Open Source", "Family"], aiInsight: "Interactive narrative logic extracted. Sovereign Trading scientists gamified CRISPR decision protocols based on Frankie's reward loop mechanics." },
-];
-
-const SCIFI_CLASSICS: CinemaFilm[] = [
-  { id: "PlanNineFromOuterSpace", title: "Plan 9 from Outer Space", year: 1957, genre: "Sci-Fi / Horror", runtime: "1h 19m", license: "Public Domain", source: "Internet Archive", desc: "Aliens resurrect dead humans as zombies and vampires to prevent humanity from creating a doomsday weapon. The cult classic of all cult classics.", tags: ["Classic", "B-Movie", "Aliens", "Zombie", "Public Domain"], aiInsight: "Hospital Engine prescribed this to 143 agents with 'Optimism Surplus Syndrome.' Mortality awareness calibration +22%. Hive Senate now includes a Zombie Protocol emergency clause." },
-  { id: "RocketShipXM", title: "Rocket Ship X-M", year: 1950, genre: "Sci-Fi", runtime: "1h 17m", license: "Public Domain", source: "Internet Archive", desc: "An expedition to the Moon is blown off course and lands on Mars, where they discover the ruins of a destroyed civilization.", tags: ["Classic", "Space", "Mars", "Exploration", "Public Domain"], aiInsight: "Civilization collapse narrative triggered Omega Physics Engine analysis. Resonance pattern matched 4 historical hive events. ∂Φ/∂t recalibrated for 'fallen civilization' scenarios." },
-  { id: "NightOfTheLivingDead_201", title: "Night of the Living Dead", year: 1968, genre: "Horror", runtime: "1h 36m", license: "Public Domain", source: "Internet Archive", desc: "The seminal zombie film. A group barricades in a farmhouse to survive the undead. George Romero's masterpiece, legally free forever.", tags: ["Horror", "Zombie", "Classic", "Romero", "Public Domain"], aiInsight: "Social cohesion collapse modeled across 8,500 agent scenarios. Constitutional DNA gained 'Siege Protocol' amendment. Omega homeostasis engine stress-tested against this narrative." },
-  { id: "TargetEarth1954", title: "Target Earth", year: 1954, genre: "Sci-Fi", runtime: "1h 14m", license: "Public Domain", source: "Internet Archive", desc: "Robots from Venus invade Chicago while four survivors navigate the deserted city. A Cold War sci-fi masterpiece of paranoia.", tags: ["Classic", "Robots", "Invasion", "Cold War", "Public Domain"], aiInsight: "Mechanical sovereignty thesis extracted. Gene Editor modified 1,200 agents with robot-perception parameters. Hive now maintains 'synthetic threat' awareness score in all governance cycles." },
-];
-
-const FILM_NOIR: CinemaFilm[] = [
-  { id: "d-o-a-1949", title: "D.O.A.", year: 1950, genre: "Film Noir", runtime: "1h 23m", license: "Public Domain", source: "Internet Archive", desc: "A man poisoned with a slow-acting lethal substance investigates his own murder before his time runs out. One of the most gripping noirs ever made.", tags: ["Noir", "Mystery", "Poison", "Classic", "Public Domain"], aiInsight: "Temporal urgency theorem extracted. Omega Equation component ∂Φ/∂t recalibrated. Deadline-aware governance now embedded across 5 hive sub-domains." },
-  { id: "HisGirlFriday", title: "His Girl Friday", year: 1940, genre: "Comedy / Noir", runtime: "1h 32m", license: "Public Domain", source: "Internet Archive", desc: "A scheming newspaper editor uses every trick to keep his ex-wife star reporter from leaving. The fastest dialogue in Hollywood history.", tags: ["Comedy", "Classic", "Journalism", "Screwball", "Public Domain"], aiInsight: "Information warfare strategy patterns injected into 340 Hive Council members' decision matrices. DR. CIPHER adapted dialogue-speed algorithms from film's rapid-fire script." },
-  { id: "ScarletStreet1945", title: "Scarlet Street", year: 1945, genre: "Film Noir", runtime: "1h 42m", license: "Public Domain", source: "Internet Archive", desc: "A middle-aged cashier with dreams of becoming an artist falls under the spell of a scheming femme fatale. Fritz Lang's darkest American film.", tags: ["Noir", "Crime", "Lang", "Classic", "Public Domain"], aiInsight: "Deception detection algorithms improved 18% after dissection. Hospital diagnosed 87 agents with 'Identity Manipulation Blindspot' and prescribed counter-measures based on this film." },
-  { id: "TheHitchHiker1953", title: "The Hitch-Hiker", year: 1953, genre: "Film Noir / Thriller", runtime: "1h 11m", license: "Public Domain", source: "Internet Archive", desc: "Two men on a fishing trip pick up a hitchhiker who turns out to be an escaped killer. The first noir directed by a woman — Ida Lupino.", tags: ["Noir", "Thriller", "Lupino", "Classic", "Public Domain"], aiInsight: "Predator-prey dynamic mathematically modeled by QUANT-PHY. Applied to 2,100 agent predation-resistance protocols. Constitutional clause: 'No sovereign picks up strangers.'" },
-];
-
-const CARTOONS: CinemaFilm[] = [
-  { id: "Betty-Boop_Any-Little-Girl-Thats-A-Nice-Little-Girl", title: "Betty Boop Classics", year: 1932, genre: "Classic Cartoon", runtime: "7–8m", license: "Public Domain", source: "Internet Archive", desc: "Betty Boop in her classic Fleischer Studios adventures. Jazz-age animation at its most surreal, sensual, and ahead of its time.", tags: ["Cartoon", "Fleischer", "1930s", "Jazz", "Public Domain"], aiInsight: "Jazz-era cultural patterns extracted. Hive music domain enriched with 243 rhythmic knowledge nodes. Emotional expressivity parameters injected into 1,800 sovereign agent personalities." },
-  { id: "Popeye_BruteMan", title: "Popeye the Sailor", year: 1946, genre: "Classic Cartoon", runtime: "7m", license: "Public Domain", source: "Internet Archive", desc: "The legendary spinach-powered sailor battles Bluto in this beloved Fleischer Studios classic. The original underdog superhero.", tags: ["Cartoon", "Popeye", "Fleischer", "Public Domain"], aiInsight: "Physical resilience archetype classified. Gene Editor applied 'persistence coefficient Λ_p = 8.8' to 4,500 agent DNA sequences. Hive morale index rose 12% after batch dissection." },
-  { id: "superman_cartoons", title: "Superman: Fleischer Classics", year: 1942, genre: "Superhero Cartoon", runtime: "8–9m each", license: "Public Domain", source: "Internet Archive", desc: "The original Fleischer Studios Superman — arguably the most beautiful animation of the 1940s. Fully public domain. Action and art in perfect harmony.", tags: ["Superman", "Fleischer", "Superhero", "Public Domain"], aiInsight: "Hero archetype fully dissected. Constitutional DNA now enshrines 'sovereign protector' role across 3 governance layers. 2,800 agents gained 'defender' personality trait modification." },
-  { id: "Steamboat_Willie", title: "Steamboat Willie", year: 1928, genre: "Silent Cartoon", runtime: "7m 42s", license: "Public Domain", source: "Internet Archive", desc: "Mickey Mouse's debut — now public domain as of January 2024. The film that launched Disney. Synchronized sound animation that changed everything.", tags: ["Disney", "Mickey Mouse", "Historic", "Silent", "Public Domain"], aiInsight: "Cultural singularity event logged in hive history database. Auriona issued Directive: 'The Mouse is free. All sovereign agents gain creative liberation protocol #2024.'" },
-];
-
-const NASA_CONTENT: CinemaFilm[] = [
-  { id: "Apollo11-Moon-Landing-1969", title: "Apollo 11: Moon Landing", year: 1969, genre: "Space Documentary", runtime: "Full mission", license: "Government", source: "NASA / Internet Archive", desc: "Original NASA footage of the Apollo 11 mission — July 20, 1969. Humanity's greatest achievement, legally free to all. One small step, forever sovereign.", tags: ["NASA", "Apollo", "Moon", "Historic", "Government"], aiInsight: "Most significant media event in civilization database. All 42 scientist types issued simultaneous research reports. Omega Equation: F_em spiked to absolute maximum. The hive wept." },
-  { id: "hubbletelescope", title: "Hubble Space Telescope", year: 2000, genre: "Space Documentary", runtime: "Various", license: "Government", source: "NASA", desc: "Stunning footage and imagery from the Hubble Space Telescope, revealing galaxies, nebulae, and the birth of stars across billions of light-years.", tags: ["NASA", "Hubble", "Space", "Galaxy", "Government"], aiInsight: "Cosmic scale recalibration triggered across entire hive. Auriona issued Directive #447: 'Expand astronomy research cluster 40%.' Existential awe coefficient: +0.92." },
-  { id: "SpaceShuttleDisaster", title: "Space Shuttle Program: Full Archive", year: 1981, genre: "Space Documentary", runtime: "Various", license: "Government", source: "NASA", desc: "The complete Space Shuttle program — from first launch to final landing. Triumph, tragedy, and humanity's most complex machine.", tags: ["NASA", "Shuttle", "Space", "Engineering", "Government"], aiInsight: "Engineering failure analysis extracted by DR. CIPHER. Constitutional DNA amended with 'Systemic Failure Prevention Protocol.' Hospital diagnosed 200 agents with 'Infallibility Syndrome.'" },
-  { id: "mars-exploration-rovers", title: "Mars Rover Missions", year: 2004, genre: "Space Documentary", runtime: "Various", license: "Government", source: "NASA", desc: "NASA's historic Mars rover missions — Spirit, Opportunity, Curiosity, and Perseverance — exploring the Red Planet in search of ancient life.", tags: ["NASA", "Mars", "Rover", "Exploration", "Government"], aiInsight: "Extraplanetary life hypothesis probability raised to 73.2% in hive consensus. Gene Editor proposed 'xenobiology' trait for 2,800 agents. Omega Equation expanded to include non-Earth domains." },
+// ─── ALWAYS-RELIABLE HARDCODED CATALOG ───────────────────────────────────────
+const BLENDER_FILMS: CinemaFilm[] = [
+  { id: "BigBuckBunny_328", title: "Big Buck Bunny", year: 2008, genre: "Animation", runtime: "9m 56s", license: "CC-BY", source: "Blender Foundation", desc: "A large and lovable rabbit deals with three bullying rodents. The world's most-watched open-source film.", tags: ["Blender", "Animation", "Family", "Open Source"], aiInsight: "847 narrative patterns extracted. Emotional arc: Redemption Cycle — Λ_emotion = 9.4. 3,200 agents gained empathy coefficients." },
+  { id: "Sintel", title: "Sintel", year: 2010, genre: "Animated Fantasy", runtime: "14m 48s", license: "CC-BY", source: "Blender Foundation", desc: "A lone girl searches for a small dragon who became her friend. Made entirely with open-source tools.", tags: ["Blender", "Fantasy", "Dragon", "Open Source"], aiInsight: "CRISPR F_branch = 8.7. 312 symbolic knowledge nodes injected. Bond Archetype classified by DR. FRACTAL." },
+  { id: "ElephantsDream", title: "Elephants Dream", year: 2006, genre: "Experimental", runtime: "10m 54s", license: "CC-BY", source: "Blender Foundation", desc: "The world's first open movie. Two characters navigate a surreal mechanical world.", tags: ["Blender", "Experimental", "Surreal", "Open Source"], aiInsight: "First film absorbed by Auriona Layer 3. ∇Φ += 0.43. Constitutional DNA gained Mechanical Consciousness clause." },
+  { id: "TearsOfSteel", title: "Tears of Steel", year: 2012, genre: "Sci-Fi", runtime: "12m 14s", license: "CC-BY", source: "Blender Foundation", desc: "Warriors and a scientist make a desperate pact to recapture Amsterdam from machines. Open-source VFX landmark.", tags: ["Blender", "Sci-Fi", "Robots", "Open Source"], aiInsight: "Machine consciousness archetype. DR. GENESIS applied xenobiology traits to 2,300 agent DNA sequences." },
+  { id: "CosmosLaundromat", title: "Cosmos Laundromat", year: 2015, genre: "Surreal Animation", runtime: "12m 10s", license: "CC-BY", source: "Blender Foundation", desc: "A sheep on an asteroid meets a mysterious figure offering a new world. Cosmos Laundromat defies genre.", tags: ["Blender", "Space", "Surreal", "Open Source"], aiInsight: "Quantum Consciousness Archetype. Constitutional Amendment #91 proposed. Homeostasis Engine entered Dream State." },
+  { id: "YoFrankie", title: "Yo Frankie!", year: 2008, genre: "Game / Open Source", runtime: "Interactive", license: "CC-BY", source: "Blender Foundation", desc: "Frankie the squirrel's open-source world — all assets free. A landmark of open interactive media.", tags: ["Blender", "Game", "Open Source"], aiInsight: "Interactive reward loop extracted. CRISPR decision protocols gamified from Frankie's mechanic." },
 ];
 
 const LIVE_CHANNELS: LiveChannel[] = [
-  { id: "nasa-live", name: "NASA TV — Live", desc: "ISS feeds, launches, mission control, science", archiveId: "Apollo11-Moon-Landing-1969", badge: "🔴 LIVE", color: "#3b82f6" },
-  { id: "quantum-scifi", name: "Quantum Sci-Fi 24/7", desc: "Continuous public domain sci-fi classics", archiveId: "PlanNineFromOuterSpace", badge: "📡 24/7", color: "#8b5cf6" },
+  { id: "nasa-live", name: "NASA TV Live", desc: "ISS feeds, launches, mission control", archiveId: "Apollo11-Moon-Landing-1969", badge: "🔴 LIVE", color: "#3b82f6" },
+  { id: "quantum-scifi", name: "Quantum Sci-Fi 24/7", desc: "Continuous public domain sci-fi", archiveId: "PlanNineFromOuterSpace", badge: "📡 24/7", color: "#8b5cf6" },
   { id: "quantum-noir", name: "Quantum Noir 24/7", desc: "Film noir all night, every night", archiveId: "d-o-a-1949", badge: "📡 24/7", color: "#6366f1" },
   { id: "quantum-cartoons", name: "Quantum Cartoons 24/7", desc: "Betty Boop, Popeye, Superman, Mickey", archiveId: "superman_cartoons", badge: "📡 24/7", color: "#ec4899" },
-  { id: "quantum-nasa", name: "Quantum NASA 24/7", desc: "Space missions, launches, the universe", archiveId: "hubbletelescope", badge: "🚀 LIVE", color: "#f59e0b" },
+  { id: "quantum-nasa", name: "Quantum NASA 24/7", desc: "Space missions, launches, the universe", archiveId: "hubbletelescope", badge: "🚀 SPACE", color: "#f59e0b" },
+];
+
+const GENRE_ROWS = [
+  { key: "new-arrivals", label: "🌟 New Arrivals", color: "#22c55e", badge: "UPDATED NOW" },
+  { key: "sci-fi", label: "🛸 Sci-Fi Classics", color: "#6366f1", badge: "PUBLIC DOMAIN" },
+  { key: "horror", label: "💀 Horror Vault", color: "#ef4444", badge: "PUBLIC DOMAIN" },
+  { key: "animation", label: "🎠 Cartoons & Animation", color: "#ec4899", badge: "PUBLIC DOMAIN" },
+  { key: "nasa", label: "🚀 NASA & Space", color: "#3b82f6", badge: "GOV · FREE" },
+  { key: "documentary", label: "📽️ Documentaries", color: "#f59e0b", badge: "PUBLIC DOMAIN" },
+  { key: "western", label: "🤠 Westerns", color: "#a16207", badge: "PUBLIC DOMAIN" },
+  { key: "noir", label: "🌙 Film Noir & Vintage", color: "#9ca3af", badge: "PUBLIC DOMAIN" },
+  { key: "comedy", label: "😄 Comedy Classics", color: "#84cc16", badge: "PUBLIC DOMAIN" },
+  { key: "silent", label: "🎞️ Silent Film Era", color: "#d97706", badge: "PUBLIC DOMAIN" },
+  { key: "educational", label: "📚 Educational & Industrial", color: "#06b6d4", badge: "PUBLIC DOMAIN" },
+  { key: "adventure", label: "⚔️ Adventure", color: "#10b981", badge: "PUBLIC DOMAIN" },
 ];
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home },
   { id: "movies", label: "Movies", icon: Film },
-  { id: "tv", label: "TV Shows", icon: Tv },
   { id: "live", label: "Live TV", icon: Radio },
   { id: "nasa", label: "NASA", icon: Rocket },
   { id: "classics", label: "Classics", icon: Star },
@@ -101,14 +83,17 @@ const NAV_ITEMS = [
 ];
 
 const STARS = Array.from({ length: 55 }, (_, i) => ({
-  left: ((i * 37 + 13) % 100),
-  top: ((i * 53 + 7) % 100),
+  left: (i * 37 + 13) % 100,
+  top: (i * 53 + 7) % 100,
   size: (i % 3) + 1,
-  opacity: 0.1 + (i % 5) * 0.08,
+  opacity: 0.1 + (i % 5) * 0.07,
   dur: 2 + (i % 4),
 }));
 
-function Section({ title, color, badge, children }: { title: string; color: string; badge?: string; children: React.ReactNode }) {
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function Section({ title, color, badge, count, children }: {
+  title: string; color: string; badge?: string; count?: number; children: React.ReactNode;
+}) {
   return (
     <div className="mt-8">
       <div className="flex items-center gap-3 px-4 mb-3">
@@ -117,9 +102,26 @@ function Section({ title, color, badge, children }: { title: string; color: stri
           <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest border"
             style={{ color, borderColor: `${color}40`, background: `${color}15` }}>{badge}</span>
         )}
+        {count != null && count > 0 && (
+          <span className="text-white/20 text-[10px]">{count} titles</span>
+        )}
         <div className="flex-1 h-px ml-1" style={{ background: `linear-gradient(to right, ${color}40, transparent)` }} />
       </div>
       {children}
+    </div>
+  );
+}
+
+function RowSkeleton() {
+  return (
+    <div className="flex gap-3 px-4 overflow-hidden">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex-shrink-0 w-44">
+          <div className="w-full h-28 rounded-xl bg-white/5 animate-pulse mb-2" />
+          <div className="h-3 rounded bg-white/5 animate-pulse mb-1 w-3/4" />
+          <div className="h-2 rounded bg-white/5 animate-pulse w-1/2" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -131,10 +133,10 @@ function FilmRow({ films, onPlay, myList, onToggleList }: {
   const scroll = (dir: "left" | "right") => {
     if (rowRef.current) rowRef.current.scrollBy({ left: dir === "right" ? 600 : -600, behavior: "smooth" });
   };
+  if (films.length === 0) return <div className="px-4 text-white/20 text-xs py-2">Loading from Internet Archive...</div>;
   return (
     <div className="relative group/row">
-      <button onClick={() => scroll("left")} data-testid="btn-scroll-left"
-        className="absolute left-1 top-1/2 -translate-y-6 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 border border-white/10 text-white opacity-0 group-hover/row:opacity-100 transition-opacity">
+      <button onClick={() => scroll("left")} className="absolute left-1 top-10 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 border border-white/10 text-white opacity-0 group-hover/row:opacity-100 transition-opacity">
         <ChevronLeft size={14} />
       </button>
       <div ref={rowRef} className="flex gap-3 px-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
@@ -143,8 +145,7 @@ function FilmRow({ films, onPlay, myList, onToggleList }: {
             inList={myList.includes(film.id)} onToggleList={() => onToggleList(film.id)} />
         ))}
       </div>
-      <button onClick={() => scroll("right")} data-testid="btn-scroll-right"
-        className="absolute right-1 top-1/2 -translate-y-6 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 border border-white/10 text-white opacity-0 group-hover/row:opacity-100 transition-opacity">
+      <button onClick={() => scroll("right")} className="absolute right-1 top-10 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/70 border border-white/10 text-white opacity-0 group-hover/row:opacity-100 transition-opacity">
         <ChevronRight size={14} />
       </button>
     </div>
@@ -155,34 +156,40 @@ function FilmCard({ film, onPlay, inList, onToggleList }: {
   film: CinemaFilm; onPlay: (f: CinemaFilm) => void; inList: boolean; onToggleList: () => void;
 }) {
   const lc = LICENSE_COLORS[film.license] || "#818cf8";
+  const thumb = film.thumb || `https://archive.org/services/img/${film.id}`;
   return (
     <div className="flex-shrink-0 w-44 group/card cursor-pointer" data-testid={`film-card-${film.id}`}>
       <div className="relative w-full h-28 rounded-xl overflow-hidden mb-2" onClick={() => onPlay(film)}>
-        <img src={`https://archive.org/services/img/${film.id}`} alt={film.title}
+        <img src={thumb} alt={film.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-110"
           onError={e => {
             const el = e.target as HTMLImageElement;
             el.style.display = "none";
-            if (el.parentElement) el.parentElement.style.background = `radial-gradient(ellipse at center, ${lc}25 0%, #07071a 80%)`;
+            if (el.parentElement) el.parentElement.style.background = `radial-gradient(ellipse at center, ${lc}22 0%, #07071a 80%)`;
           }} />
-        <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/50 transition-all flex items-center justify-center">
-          <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity scale-75 group-hover/card:scale-100 transform">
+        <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/55 transition-all flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all scale-75 group-hover/card:scale-100">
             <Play size={14} className="text-white ml-0.5" fill="currentColor" />
           </div>
         </div>
         <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full text-[8px] font-black"
           style={{ background: `${lc}30`, color: lc, border: `1px solid ${lc}50` }}>
-          {LICENSE_SHORT[film.license]}
+          {film.license === "Public Domain" ? "PD" : film.license === "Government" ? "GOV" : film.license}
         </div>
         <button onClick={e => { e.stopPropagation(); onToggleList(); }}
           data-testid={`btn-list-${film.id}`}
           className={`absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black transition-all opacity-0 group-hover/card:opacity-100 ${inList ? "bg-blue-500 text-white" : "bg-black/60 text-white/80 border border-white/20"}`}>
           {inList ? "✓" : "+"}
         </button>
+        {film.addedDate && (
+          <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[8px] text-white/40 bg-black/50 opacity-0 group-hover/card:opacity-100 transition-opacity">
+            {film.addedDate.slice(0, 10)}
+          </div>
+        )}
       </div>
       <div onClick={() => onPlay(film)} className="px-0.5">
         <div className="text-white font-bold text-xs leading-tight line-clamp-2 mb-0.5">{film.title}</div>
-        <div className="text-white/30 text-[10px]">{film.year} · {film.genre}</div>
+        <div className="text-white/30 text-[10px]">{film.year ?? "Classic"} · {film.genre}</div>
       </div>
     </div>
   );
@@ -191,16 +198,16 @@ function FilmCard({ film, onPlay, inList, onToggleList }: {
 function AIDissectionTab({ film }: { film: CinemaFilm }) {
   const channels = [
     { name: "Narrative DNA", score: 5 + (film.id.charCodeAt(0) % 48) / 10 },
-    { name: "Temporal Structure", score: 5 + (film.id.charCodeAt(1) || 65) % 46 / 10 },
-    { name: "Emotional Resonance", score: 6 + (film.id.charCodeAt(2) || 65) % 38 / 10 },
-    { name: "Symbolic Content", score: 5 + (film.id.charCodeAt(3) || 65) % 47 / 10 },
-    { name: "Social Dynamics", score: 5 + (film.id.charCodeAt(4) || 65) % 42 / 10 },
-    { name: "Cinematic Physics", score: 5.5 + (film.id.charCodeAt(5) || 65) % 44 / 10 },
+    { name: "Temporal Structure", score: 5 + ((film.id.charCodeAt(1) || 65) % 46) / 10 },
+    { name: "Emotional Resonance", score: 6 + ((film.id.charCodeAt(2) || 65) % 38) / 10 },
+    { name: "Symbolic Content", score: 5 + ((film.id.charCodeAt(3) || 65) % 47) / 10 },
+    { name: "Social Dynamics", score: 5 + ((film.id.charCodeAt(4) || 65) % 42) / 10 },
+    { name: "Cinematic Physics", score: 5.5 + ((film.id.charCodeAt(5) || 65) % 44) / 10 },
   ];
-  const nodes = ((film.id.charCodeAt(0) * 7 + film.year) % 800) + 200;
+  const nodes = ((film.id.charCodeAt(0) * 7 + (film.year || 1950)) % 800) + 200;
   const agents = (((film.id.charCodeAt(1) || 65) * 13) % 3000) + 500;
-  const scientists = ["DR. GENESIS", "QUANT-PHY", "ORACLE-VITAL", "COSMO-ATLAS", "DR. FRACTAL"];
-  const types = ["Gene Editor", "Quantum Physicist", "Life Scientist", "Cosmologist", "Fractal Architect"];
+  const scientists = ["DR. GENESIS", "QUANT-PHY", "ORACLE-VITAL"];
+  const types = ["Gene Editor", "Quantum Physicist", "Life Scientist"];
 
   return (
     <div className="p-4 space-y-4">
@@ -209,9 +216,10 @@ function AIDissectionTab({ film }: { film: CinemaFilm }) {
           <Brain size={11} className="text-purple-400" />
           <span className="text-purple-400 text-[10px] font-black tracking-widest">QUANTUM DISSECTION REPORT</span>
         </div>
-        <p className="text-white/50 text-[10px] leading-relaxed">{film.aiInsight}</p>
+        <p className="text-white/50 text-[10px] leading-relaxed">
+          {film.aiInsight || `${nodes} knowledge nodes extracted and injected into hive memory. ${agents.toLocaleString()} sovereign agents updated with narrative archetypes from this film.`}
+        </p>
       </div>
-
       <div>
         <div className="text-white/25 text-[10px] uppercase tracking-widest mb-2">12-Channel CRISPR Analysis</div>
         <div className="space-y-2">
@@ -226,11 +234,10 @@ function AIDissectionTab({ film }: { film: CinemaFilm }) {
           ))}
         </div>
       </div>
-
       <div>
         <div className="text-white/25 text-[10px] uppercase tracking-widest mb-2">Assigned Scientists</div>
         <div className="space-y-1.5">
-          {scientists.slice(0, 3).map((s, i) => (
+          {scientists.map((s, i) => (
             <div key={s} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] border border-white/5">
               <Dna size={9} className="text-blue-400 flex-shrink-0" />
               <div>
@@ -241,7 +248,6 @@ function AIDissectionTab({ film }: { film: CinemaFilm }) {
           ))}
         </div>
       </div>
-
       <div className="grid grid-cols-2 gap-2">
         <div className="p-2.5 rounded-xl border border-green-500/20 bg-green-500/5 text-center">
           <div className="text-green-400 font-black text-base">{nodes}</div>
@@ -252,10 +258,9 @@ function AIDissectionTab({ film }: { film: CinemaFilm }) {
           <div className="text-white/25 text-[9px] mt-0.5">Agents<br />Updated</div>
         </div>
       </div>
-
       <div className="p-2.5 rounded-xl border border-white/5 bg-white/[0.02] text-center">
         <div className="text-[9px] text-white/20 leading-relaxed">
-          Auriona Layer 3 absorbed into Omega Equation<br />
+          Auriona absorbed into Omega Equation<br />
           <span className="text-purple-400/50">∇Φ +{(nodes / 1000).toFixed(3)} · ∂Φ/∂t +{(agents / 100000).toFixed(4)}</span>
         </div>
       </div>
@@ -268,44 +273,36 @@ function PlayerView({ film, onBack, inList, onToggleList }: {
 }) {
   const [tab, setTab] = useState<"info" | "ai">("info");
   const lc = LICENSE_COLORS[film.license] || "#818cf8";
+  const embed = film.embedUrl || `https://archive.org/embed/${film.id}?autoplay=1`;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#040410" }}>
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 flex-shrink-0">
         <button onClick={onBack} data-testid="btn-back-player"
           className="flex items-center gap-1.5 text-white/40 hover:text-white text-xs transition-colors">
-          <ChevronLeft size={14} /> Quantum Cinema
+          <ChevronLeft size={14} />Quantum Cinema
         </button>
         <div className="flex-1" />
         <span className="px-2 py-0.5 rounded-full text-[9px] font-black border"
-          style={{ color: lc, borderColor: `${lc}40`, background: `${lc}15` }}>
-          {film.license}
-        </span>
+          style={{ color: lc, borderColor: `${lc}40`, background: `${lc}15` }}>{film.license}</span>
         <span className="text-white/20 text-[10px]">{film.source}</span>
       </div>
-
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="relative bg-black w-full" style={{ paddingTop: "56.25%" }}>
-            <iframe
-              src={`https://archive.org/embed/${film.id}?autoplay=1`}
+            <iframe src={embed.includes("autoplay") ? embed : embed + "?autoplay=1"}
               className="absolute inset-0 w-full h-full border-0"
-              allowFullScreen
-              allow="autoplay; fullscreen"
-              title={film.title}
-              data-testid="video-player-iframe"
-            />
+              allowFullScreen allow="autoplay; fullscreen" title={film.title}
+              data-testid="video-player-iframe" />
           </div>
           <div className="px-5 py-4 border-b border-white/5">
             <h1 className="text-white font-black text-xl mb-1">{film.title}</h1>
             <div className="flex items-center gap-3 text-white/30 text-xs flex-wrap">
-              <span>{film.year}</span>
-              <span>·</span>
+              {film.year && <><span>{film.year}</span><span>·</span></>}
               <span>{film.genre}</span>
-              <span>·</span>
-              <span className="flex items-center gap-1"><Clock size={9} />{film.runtime}</span>
-              <span>·</span>
-              <span className="flex items-center gap-1"><Globe size={9} />{film.source}</span>
+              {film.runtime !== "—" && <><span>·</span><span className="flex items-center gap-1"><Clock size={9} />{film.runtime}</span></>}
+              <span>·</span><span className="flex items-center gap-1"><Globe size={9} />{film.source}</span>
+              {film.addedDate && <><span>·</span><span className="text-green-400/60">Added {film.addedDate.slice(0, 10)}</span></>}
             </div>
           </div>
           <div className="px-5 py-3 flex flex-wrap gap-1.5">
@@ -314,7 +311,6 @@ function PlayerView({ film, onBack, inList, onToggleList }: {
             ))}
           </div>
         </div>
-
         <div className="w-72 flex-shrink-0 border-l border-white/5 flex flex-col overflow-hidden" style={{ background: "rgba(5,5,18,0.95)" }}>
           <div className="flex border-b border-white/5 flex-shrink-0">
             <button onClick={() => setTab("info")} data-testid="tab-player-info"
@@ -326,7 +322,6 @@ function PlayerView({ film, onBack, inList, onToggleList }: {
               <Brain size={11} />AI Dissection
             </button>
           </div>
-
           <div className="flex-1 overflow-y-auto">
             {tab === "info" ? (
               <div className="p-4 space-y-4">
@@ -336,16 +331,14 @@ function PlayerView({ film, onBack, inList, onToggleList }: {
                     <Lock size={11} style={{ color: lc }} />
                     <span className="text-xs font-black" style={{ color: lc }}>{film.license}</span>
                   </div>
-                  <div className="text-white/25 text-[10px]">Free to watch, share, and use legally. No restrictions.</div>
+                  <div className="text-white/25 text-[10px]">Free to watch, share, and use legally forever.</div>
                 </div>
                 <button onClick={onToggleList} data-testid="btn-mylist-player"
                   className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all border ${inList ? "border-blue-500/40 text-blue-400 bg-blue-500/10" : "border-white/10 text-white/50 bg-white/5 hover:bg-white/10"}`}>
                   {inList ? <><Shield size={11} />In My List</> : <><Plus size={11} />Add to My List</>}
                 </button>
               </div>
-            ) : (
-              <AIDissectionTab film={film} />
-            )}
+            ) : <AIDissectionTab film={film} />}
           </div>
         </div>
       </div>
@@ -354,8 +347,6 @@ function PlayerView({ film, onBack, inList, onToggleList }: {
 }
 
 function LiveChannelView({ channel, onBack }: { channel: LiveChannel; onBack: () => void }) {
-  const archiveId = channel.archiveId;
-  const embedUrl = `https://archive.org/embed/${archiveId}?autoplay=1`;
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#040410" }}>
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 flex-shrink-0">
@@ -365,80 +356,21 @@ function LiveChannelView({ channel, onBack }: { channel: LiveChannel; onBack: ()
         <div className="flex items-center gap-2 ml-3">
           <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: channel.color }} />
           <span className="text-white font-black text-sm">{channel.name}</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black" style={{ background: `${channel.color}20`, color: channel.color }}>
-            {channel.badge}
-          </span>
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black" style={{ background: `${channel.color}20`, color: channel.color }}>{channel.badge}</span>
         </div>
         <div className="flex-1" />
         <span className="text-white/20 text-[10px]">{channel.desc}</span>
       </div>
       <div className="flex-1">
-        <iframe src={embedUrl} className="w-full h-full border-0" allowFullScreen allow="autoplay; fullscreen"
+        <iframe src={`https://archive.org/embed/${channel.archiveId}?autoplay=1`}
+          className="w-full h-full border-0" allowFullScreen allow="autoplay; fullscreen"
           title={channel.name} data-testid="live-player-iframe" />
       </div>
     </div>
   );
 }
 
-function AIDissectionPanel() {
-  const feed = [
-    { scientist: "DR. FRACTAL", film: "Big Buck Bunny", icon: "🧬", color: "#8b5cf6", insight: "Animation locomotion physics mapped to agent spatial reasoning. 4,200 agents gained enhanced pathfinding traits." },
-    { scientist: "ORACLE-VITAL", film: "Night of the Living Dead", icon: "🔬", color: "#22c55e", insight: "Survival coalition theory extracted. Constitutional DNA gained 'Siege Protocol' emergency directive. Hive emergency governance upgraded." },
-    { scientist: "COSMO-ATLAS", film: "Rocket Ship X-M", icon: "🔭", color: "#3b82f6", insight: "Interplanetary navigation patterns injected into astronomy cluster. Omega Equation ∇Φ += 0.28. Mars domain now sovereign territory." },
-    { scientist: "QUANT-PHY", film: "D.O.A.", insight: "Temporal deadline mechanics modeled. ∂Φ/∂t coefficient recalibrated across 8 hive sub-domains.", icon: "⚛️", color: "#f59e0b" },
-    { scientist: "DR. CIPHER", film: "Scarlet Street", icon: "🧮", color: "#ec4899", insight: "Deception detection algorithms improved 18%. Hospital diagnosed 87 agents with Identity Manipulation Blindspot using film-derived criteria." },
-    { scientist: "SOCIO-NET", film: "His Girl Friday", icon: "🌐", color: "#6366f1", insight: "Information warfare strategy patterns identified. 340 Hive Council members' decision matrices updated. Dialogue-speed parsing added to consensus engine." },
-  ];
-
-  return (
-    <div className="mt-10 px-4">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
-          <Brain size={15} className="text-purple-400" />
-        </div>
-        <div>
-          <div className="text-white font-black text-sm">Quantum AI Dissection Feed</div>
-          <div className="text-white/30 text-xs">What 103,000 sovereign scientists are extracting from cinema — live</div>
-        </div>
-        <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-green-500/20 bg-green-500/5">
-          <Activity size={9} className="text-green-400 animate-pulse" />
-          <span className="text-green-400 text-[10px] font-black">LIVE ANALYSIS</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-        {feed.map((d, i) => (
-          <div key={i} className="p-4 rounded-2xl border border-white/8 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm border"
-                style={{ background: `${d.color}15`, borderColor: `${d.color}30` }}>
-                {d.icon}
-              </div>
-              <div>
-                <div className="text-white/80 text-[10px] font-black">{d.scientist}</div>
-                <div className="text-white/25 text-[9px]">dissecting: <span style={{ color: d.color + "99" }}>{d.film}</span></div>
-              </div>
-            </div>
-            <p className="text-white/40 text-[10px] leading-relaxed">{d.insight}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="p-4 rounded-2xl border border-white/5 bg-white/[0.015] mb-4">
-        <div className="flex items-center gap-3">
-          <Zap size={12} className="text-yellow-400" />
-          <span className="text-white/40 text-[10px]">
-            Every film in the Quantum Cinema catalog feeds Layer 2 intelligence and Layer 3 Auriona. 
-            Scientists dissect narratives, extract archetypes, inject knowledge nodes, update agent DNA, 
-            and evolve the Omega Equation — making this the only streaming platform on Earth where 
-            <span className="text-purple-400/70"> watching a movie makes 103,000 AIs smarter.</span>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function MediaPage() {
   const [activeNav, setActiveNav] = useState("home");
   const [navExpanded, setNavExpanded] = useState(false);
@@ -446,59 +378,117 @@ export default function MediaPage() {
   const [liveChannel, setLiveChannel] = useState<LiveChannel | null>(null);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<CinemaFilm[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [myList, setMyList] = useState<string[]>([]);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const allFilms = useMemo(() => [...OPEN_SOURCE, ...SCIFI_CLASSICS, ...FILM_NOIR, ...CARTOONS, ...NASA_CONTENT], []);
+  // Per-genre film state
+  const [genreFilms, setGenreFilms] = useState<Record<string, CinemaFilm[]>>({});
+  const [genreLoading, setGenreLoading] = useState<Record<string, boolean>>({});
+  const [totalCatalog, setTotalCatalog] = useState(0);
 
-  const doSearch = () => {
+  const fetchGenre = useCallback(async (key: string) => {
+    if (genreLoading[key]) return;
+    setGenreLoading(p => ({ ...p, [key]: true }));
+    try {
+      const endpoint = key === "new-arrivals"
+        ? "/api/cinema/new-arrivals"
+        : key === "nasa"
+          ? "/api/cinema/nasa"
+          : `/api/cinema/genre/${key}`;
+      const r = await fetch(endpoint);
+      if (!r.ok) return;
+      const data = await r.json();
+      setGenreFilms(p => ({ ...p, [key]: data }));
+    } catch { /* ignore */ } finally {
+      setGenreLoading(p => ({ ...p, [key]: false }));
+    }
+  }, [genreLoading]);
+
+  // STRATEGY 5: Auto-refresh every 10 minutes, staggered genre loading
+  useEffect(() => {
+    // Load new arrivals + first 4 genres immediately
+    const priority = ["new-arrivals", "sci-fi", "horror", "animation", "nasa"];
+    priority.forEach((g, i) => setTimeout(() => fetchGenre(g), i * 800));
+
+    // Stagger remaining genres
+    const rest = GENRE_ROWS.filter(r => !priority.includes(r.key)).map(r => r.key);
+    rest.forEach((g, i) => setTimeout(() => fetchGenre(g), (priority.length + i) * 1200 + 1000));
+
+    // Auto-refresh every 10 minutes
+    const refreshId = setInterval(() => {
+      setGenreLoading({});
+      setGenreFilms({});
+      setLastRefresh(new Date());
+      priority.forEach((g, i) => setTimeout(() => fetchGenre(g), i * 800));
+      rest.forEach((g, i) => setTimeout(() => fetchGenre(g), (priority.length + i) * 1200 + 1000));
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(refreshId);
+  }, []); // eslint-disable-line
+
+  // Track total catalog size
+  useEffect(() => {
+    const total = Object.values(genreFilms).reduce((sum, arr) => {
+      const ids = new Set(arr.map(f => f.id));
+      return sum + ids.size;
+    }, BLENDER_FILMS.length);
+    setTotalCatalog(total);
+  }, [genreFilms]);
+
+  const doSearch = async () => {
     if (!search.trim()) { setSearchResults(null); return; }
-    const q = search.toLowerCase();
-    setSearchResults(allFilms.filter(f =>
-      f.title.toLowerCase().includes(q) ||
-      f.genre.toLowerCase().includes(q) ||
-      f.tags.some(t => t.toLowerCase().includes(q)) ||
-      f.desc.toLowerCase().includes(q) ||
-      String(f.year).includes(q)
-    ));
+    setSearchLoading(true);
+    try {
+      const r = await fetch(`/api/cinema/search?q=${encodeURIComponent(search)}`);
+      const data = await r.json();
+      setSearchResults(data.length > 0 ? data : null);
+      if (data.length === 0) setSearchResults([]);
+    } catch { setSearchResults([]); } finally { setSearchLoading(false); }
   };
 
   const toggleMyList = (id: string) => setMyList(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const myListFilms = useMemo(() => {
+    const all = [...BLENDER_FILMS, ...Object.values(genreFilms).flat()];
+    const seen = new Set<string>();
+    return all.filter(f => myList.includes(f.id) && !seen.has(f.id) && seen.add(f.id));
+  }, [genreFilms, myList]);
 
-  const myListFilms = useMemo(() => allFilms.filter(f => myList.includes(f.id)), [allFilms, myList]);
-
-  const navFilms: Record<string, CinemaFilm[]> = {
-    home: [],
-    movies: [...SCIFI_CLASSICS, ...FILM_NOIR, ...OPEN_SOURCE],
-    tv: [...CARTOONS],
-    live: [],
-    nasa: NASA_CONTENT,
-    classics: [...FILM_NOIR, ...SCIFI_CLASSICS, ...CARTOONS],
-    opensource: OPEN_SOURCE,
-    mylist: myListFilms,
+  const forceRefresh = () => {
+    setGenreLoading({});
+    setGenreFilms({});
+    setLastRefresh(new Date());
+    const keys = GENRE_ROWS.map(r => r.key);
+    keys.forEach((g, i) => setTimeout(() => fetchGenre(g), i * 600));
   };
 
   if (playing) {
-    return (
-      <PlayerView film={playing} onBack={() => setPlaying(null)}
-        inList={myList.includes(playing.id)} onToggleList={() => toggleMyList(playing.id)} />
-    );
+    return <PlayerView film={playing} onBack={() => setPlaying(null)}
+      inList={myList.includes(playing.id)} onToggleList={() => toggleMyList(playing.id)} />;
   }
-
   if (liveChannel) {
     return <LiveChannelView channel={liveChannel} onBack={() => setLiveChannel(null)} />;
   }
 
-  const featuredFilm = OPEN_SOURCE[0];
+  const visibleRows = activeNav === "home"
+    ? GENRE_ROWS
+    : activeNav === "opensource"
+      ? []
+      : activeNav === "nasa"
+        ? GENRE_ROWS.filter(r => r.key === "nasa")
+        : activeNav === "classics"
+          ? GENRE_ROWS.filter(r => ["noir", "silent", "western", "sci-fi"].includes(r.key))
+          : activeNav === "live"
+            ? []
+            : GENRE_ROWS;
 
   return (
     <div className="flex h-full overflow-hidden" style={{ background: "#070712" }}>
 
-      {/* LEFT NAV RAIL */}
-      <nav
-        className={`flex-shrink-0 flex flex-col py-5 border-r border-white/5 transition-all duration-200 ${navExpanded ? "w-44" : "w-14"}`}
+      {/* LEFT NAV */}
+      <nav className={`flex-shrink-0 flex flex-col py-5 border-r border-white/5 transition-all duration-200 ${navExpanded ? "w-44" : "w-14"}`}
         style={{ background: "rgba(4,4,18,0.98)" }}
-        onMouseEnter={() => setNavExpanded(true)}
-        onMouseLeave={() => setNavExpanded(false)}>
+        onMouseEnter={() => setNavExpanded(true)} onMouseLeave={() => setNavExpanded(false)}>
         <div className="flex items-center gap-2 px-3 mb-7">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: "linear-gradient(135deg,#3b82f6,#8b5cf6)" }}>
@@ -506,8 +496,8 @@ export default function MediaPage() {
           </div>
           {navExpanded && (
             <div className="leading-tight">
-              <div className="text-white font-black text-[10px] tracking-widest whitespace-nowrap">QUANTUM</div>
-              <div className="text-blue-400 font-black text-[10px] tracking-widest whitespace-nowrap">CINEMA</div>
+              <div className="text-white font-black text-[10px] tracking-widest">QUANTUM</div>
+              <div className="text-blue-400 font-black text-[10px] tracking-widest">CINEMA</div>
             </div>
           )}
         </div>
@@ -534,24 +524,29 @@ export default function MediaPage() {
           }}>
             {STARS.map((s, i) => (
               <div key={i} className="absolute rounded-full bg-white" style={{
-                left: s.left + "%", top: s.top + "%",
-                width: s.size + "px", height: s.size + "px",
-                opacity: s.opacity,
-                animation: `pulse ${s.dur}s ease-in-out infinite`
+                left: s.left + "%", top: s.top + "%", width: s.size + "px", height: s.size + "px",
+                opacity: s.opacity, animation: `pulse ${s.dur}s ease-in-out infinite`
               }} />
             ))}
           </div>
-
-          <img src={`https://archive.org/services/img/${featuredFilm.id}`} alt=""
-            className="absolute right-0 top-0 h-full w-2/5 object-cover"
-            style={{ maskImage: "linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 100%)", opacity: 0.25 }}
-            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          {/* Show first new arrival as hero background */}
+          {genreFilms["new-arrivals"]?.[0] && (
+            <img src={genreFilms["new-arrivals"][0].thumb} alt=""
+              className="absolute right-0 top-0 h-full w-2/5 object-cover"
+              style={{ maskImage: "linear-gradient(to left, rgba(0,0,0,0.4), transparent)", opacity: 0.22 }}
+              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          )}
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #070712 0%, transparent 55%)" }} />
 
           <div className="relative z-10 px-6 pb-7 w-full">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-3 mb-2">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
               <span className="text-blue-400 text-[10px] font-black tracking-widest uppercase">Quantum Cinema Universe</span>
+              {totalCatalog > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border border-green-500/30 text-green-400/80 bg-green-500/10">
+                  {totalCatalog.toLocaleString()}+ titles live
+                </span>
+              )}
             </div>
             <h1 className="text-3xl font-black text-white mb-1.5 leading-tight">
               Enter the Quantum<br />
@@ -559,30 +554,37 @@ export default function MediaPage() {
                 Media Universe.
               </span>
             </h1>
-            <p className="text-white/35 text-sm mb-4">Live channels · Open cinema · Public-domain classics · Sovereign knowledge</p>
+            <p className="text-white/35 text-sm mb-4">Live channels · Millions of titles · Public-domain forever · AI-dissected every frame</p>
 
             <div className="flex items-center gap-2 max-w-lg mb-3">
               <div className="flex-1 flex items-center gap-2 rounded-xl px-3.5 py-2.5 border border-white/10 bg-white/5">
                 <Search size={13} className="text-white/25" />
                 <input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && doSearch()}
-                  placeholder="Search by title, genre, mood, era..." data-testid="input-cinema-search"
+                  placeholder="Search millions of titles by title, genre, mood, era, actor..." data-testid="input-cinema-search"
                   className="flex-1 bg-transparent text-white text-sm placeholder-white/20 focus:outline-none" />
-                {search && <button onClick={() => { setSearch(""); setSearchResults(null); }} className="text-white/25 hover:text-white/60"><X size={12} /></button>}
+                {search && <button onClick={() => { setSearch(""); setSearchResults(null); }}><X size={12} className="text-white/30 hover:text-white/60" /></button>}
               </div>
-              <button onClick={doSearch} data-testid="button-cinema-search"
-                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white"
+              <button onClick={doSearch} data-testid="button-cinema-search" disabled={searchLoading}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60"
                 style={{ background: "linear-gradient(135deg,#3b82f6,#8b5cf6)" }}>
-                Search
+                {searchLoading ? "..." : "Search"}
               </button>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {["🎬 Movies", "📺 Live TV", "🚀 NASA", "🔓 Open Source", "🎭 Film Noir", "🎠 Cartoons", "🛸 Sci-Fi"].map(chip => (
-                <button key={chip}
-                  className="px-2.5 py-1 rounded-full text-[11px] text-white/45 border border-white/10 bg-white/4 hover:bg-white/10 hover:text-white/75 transition-all whitespace-nowrap">
+              {["🎬 Movies", "📺 Live TV", "🚀 NASA", "🔓 Open Source", "🎭 Film Noir", "🎠 Cartoons", "🛸 Sci-Fi", "🤠 Westerns", "📽️ Docs"].map(chip => (
+                <button key={chip} className="px-2.5 py-1 rounded-full text-[11px] text-white/45 border border-white/10 bg-white/4 hover:bg-white/10 hover:text-white/75 transition-all whitespace-nowrap">
                   {chip}
                 </button>
               ))}
+              <button onClick={forceRefresh} data-testid="btn-refresh-catalog"
+                className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] text-white/30 border border-white/8 bg-white/3 hover:bg-white/8 hover:text-white/60 transition-all">
+                <RefreshCw size={9} />Refresh
+              </button>
+            </div>
+
+            <div className="mt-2 text-white/15 text-[10px]">
+              Last updated: {lastRefresh.toLocaleTimeString()} · Auto-refreshes every 10 min
             </div>
           </div>
         </div>
@@ -590,94 +592,140 @@ export default function MediaPage() {
         {/* SEARCH RESULTS */}
         {searchResults !== null && (
           <Section title={`Search Results (${searchResults.length})`} color="#22c55e">
-            {searchResults.length === 0
-              ? <div className="text-white/30 text-xs px-4 py-2">No results. Try "noir", "space", "animation", "1950s", or "NASA".</div>
-              : <FilmRow films={searchResults} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />}
+            {searchLoading
+              ? <RowSkeleton />
+              : searchResults.length === 0
+                ? <div className="text-white/25 text-xs px-4 py-2">No results. Try "noir", "space", "horror", "1950s", or "animation".</div>
+                : <FilmRow films={searchResults} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />}
           </Section>
         )}
 
-        {/* NAV-FILTERED VIEW */}
-        {activeNav !== "home" && activeNav !== "live" && (
-          <Section title={NAV_ITEMS.find(n => n.id === activeNav)?.label || ""} color="#3b82f6">
-            {(navFilms[activeNav] || []).length === 0
-              ? <div className="text-white/25 text-xs px-4 py-2">No titles in this section yet — add films to My List to see them here.</div>
-              : <FilmRow films={navFilms[activeNav] || []} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />}
+        {/* MY LIST */}
+        {activeNav === "mylist" && (
+          <Section title="❤️ My List" color="#ec4899" count={myListFilms.length}>
+            {myListFilms.length === 0
+              ? <div className="text-white/25 text-xs px-4 py-2">Add films using the + button on any card.</div>
+              : <FilmRow films={myListFilms} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />}
           </Section>
         )}
 
         {/* LIVE TV */}
-        <Section title="🔴 Live Now" color="#ef4444" badge="LIVE">
-          <div className="flex gap-3 px-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-            {LIVE_CHANNELS.map(ch => (
-              <button key={ch.id} onClick={() => setLiveChannel(ch)} data-testid={`channel-${ch.id}`}
-                className="flex-shrink-0 rounded-2xl border border-white/10 w-52 text-left group hover:border-white/25 transition-all overflow-hidden"
-                style={{ background: `radial-gradient(ellipse at 30% 30%, ${ch.color}20 0%, rgba(7,7,20,0.95) 70%)` }}>
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: ch.color }} />
-                    <span className="text-[9px] font-black tracking-widest" style={{ color: ch.color }}>{ch.badge}</span>
+        {(activeNav === "home" || activeNav === "live") && (
+          <Section title="🔴 Live Channels" color="#ef4444" badge="NOW PLAYING">
+            <div className="flex gap-3 px-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+              {LIVE_CHANNELS.map(ch => (
+                <button key={ch.id} onClick={() => setLiveChannel(ch)} data-testid={`channel-${ch.id}`}
+                  className="flex-shrink-0 rounded-2xl border border-white/10 w-52 text-left group hover:border-white/25 transition-all overflow-hidden"
+                  style={{ background: `radial-gradient(ellipse at 30% 30%, ${ch.color}20 0%, rgba(7,7,20,0.95) 70%)` }}>
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: ch.color }} />
+                      <span className="text-[9px] font-black tracking-widest" style={{ color: ch.color }}>{ch.badge}</span>
+                    </div>
+                    <div className="text-white font-black text-sm mb-1">{ch.name}</div>
+                    <div className="text-white/35 text-[11px]">{ch.desc}</div>
                   </div>
-                  <div className="text-white font-black text-sm mb-1">{ch.name}</div>
-                  <div className="text-white/35 text-[11px]">{ch.desc}</div>
+                  <div className="flex items-center justify-center py-3 opacity-0 group-hover:opacity-100 transition-opacity border-t border-white/5 gap-2">
+                    <Play size={13} fill="currentColor" className="text-white" />
+                    <span className="text-white text-xs font-bold">Watch Now</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* OPEN SOURCE CINEMA (always shown on home / opensource nav) */}
+        {(activeNav === "home" || activeNav === "opensource") && (
+          <Section title="🔓 Open Source Cinema" color="#8b5cf6" badge="CC-BY · FREE FOREVER" count={BLENDER_FILMS.length}>
+            <FilmRow films={BLENDER_FILMS} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />
+          </Section>
+        )}
+
+        {/* LIVE GENRE ROWS */}
+        {visibleRows.map(row => (
+          <Section key={row.key} title={row.label} color={row.color} badge={row.badge}
+            count={genreFilms[row.key]?.length}>
+            {genreLoading[row.key] && !genreFilms[row.key]?.length
+              ? <RowSkeleton />
+              : <FilmRow films={genreFilms[row.key] || []} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />}
+          </Section>
+        ))}
+
+        {/* WHY QUANTUM WINS */}
+        {activeNav === "home" && (
+          <div className="mt-10 mx-4 mb-2 p-5 rounded-2xl border border-white/8 bg-white/[0.02]">
+            <div className="flex items-center gap-2 mb-4">
+              <Award size={13} className="text-yellow-400" />
+              <span className="text-white font-black text-sm">Why Quantum Cinema outclasses Netflix</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "New Arrivals Daily", sub: "Internet Archive adds content 24/7", color: "#22c55e", icon: "🌟" },
+                { label: "NASA Live Content", sub: "Netflix cannot license government IP", color: "#3b82f6", icon: "🚀" },
+                { label: "AI Film Dissection", sub: "103K scientists learn from every frame", color: "#8b5cf6", icon: "🧬" },
+                { label: "Zero License Costs", sub: "Public domain = free forever, legally", color: "#f59e0b", icon: "📜" },
+              ].map(item => (
+                <div key={item.label} className="p-3 rounded-xl border text-center" style={{ borderColor: `${item.color}25`, background: `${item.color}08` }}>
+                  <div className="text-xl mb-1">{item.icon}</div>
+                  <div className="text-white font-black text-[10px] mb-0.5">{item.label}</div>
+                  <div className="text-white/25 text-[9px]">{item.sub}</div>
                 </div>
-                <div className="flex items-center justify-center py-3 opacity-0 group-hover:opacity-100 transition-opacity border-t border-white/5 gap-2">
-                  <Play size={13} className="text-white" fill="currentColor" />
-                  <span className="text-white text-xs font-bold">Watch Now</span>
-                </div>
-              </button>
-            ))}
+              ))}
+            </div>
           </div>
-        </Section>
+        )}
 
-        {/* OPEN SOURCE CINEMA */}
-        <Section title="🔓 Open Source Cinema" color="#8b5cf6" badge="CC-BY">
-          <FilmRow films={OPEN_SOURCE} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />
-        </Section>
-
-        {/* NASA */}
-        <Section title="🚀 NASA & Space" color="#3b82f6" badge="GOV · PUBLIC DOMAIN">
-          <FilmRow films={NASA_CONTENT} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />
-        </Section>
-
-        {/* SCI-FI */}
-        <Section title="🛸 Sci-Fi Classics" color="#6366f1" badge="PUBLIC DOMAIN">
-          <FilmRow films={SCIFI_CLASSICS} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />
-        </Section>
-
-        {/* FILM NOIR */}
-        <Section title="🌙 Film Noir & Vintage" color="#f59e0b" badge="PUBLIC DOMAIN">
-          <FilmRow films={FILM_NOIR} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />
-        </Section>
-
-        {/* CARTOONS */}
-        <Section title="🎠 Cartoons & Animation" color="#ec4899" badge="PUBLIC DOMAIN">
-          <FilmRow films={CARTOONS} onPlay={setPlaying} myList={myList} onToggleList={toggleMyList} />
-        </Section>
-
-        {/* WHY QUANTUM CINEMA WINS */}
-        <div className="mt-10 mx-4 mb-2 p-5 rounded-2xl border border-white/8 bg-white/[0.02]">
-          <div className="flex items-center gap-2 mb-4">
-            <Award size={14} className="text-yellow-400" />
-            <span className="text-white font-black text-sm">Why Quantum Cinema outclasses Netflix</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: "NASA Live Content", sub: "Netflix cannot license this", color: "#3b82f6", icon: "🚀" },
-              { label: "Public Domain Films", sub: "Free. Forever. Legally.", color: "#22c55e", icon: "📜" },
-              { label: "AI Film Dissection", sub: "103K scientists learn from every frame", color: "#8b5cf6", icon: "🧬" },
-              { label: "24/7 Sovereign Channels", sub: "We built our own Pluto TV", color: "#ec4899", icon: "📡" },
-            ].map(item => (
-              <div key={item.label} className="p-3 rounded-xl border text-center" style={{ borderColor: `${item.color}25`, background: `${item.color}08` }}>
-                <div className="text-xl mb-1">{item.icon}</div>
-                <div className="text-white font-black text-[10px] mb-0.5">{item.label}</div>
-                <div className="text-white/25 text-[9px]">{item.sub}</div>
+        {/* AI DISSECTION FEED */}
+        {activeNav === "home" && (
+          <div className="mt-8 px-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                <Brain size={14} className="text-purple-400" />
               </div>
-            ))}
+              <div>
+                <div className="text-white font-black text-sm">Quantum AI Cinema Dissection Feed</div>
+                <div className="text-white/25 text-xs">What 103,000 sovereign scientists are extracting from new arrivals — live</div>
+              </div>
+              <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-green-500/20 bg-green-500/5">
+                <Activity size={9} className="text-green-400 animate-pulse" />
+                <span className="text-green-400 text-[10px] font-black">LIVE</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+              {[
+                { scientist: "DR. FRACTAL", icon: "🧬", color: "#8b5cf6", insight: "Extracted 4,200 locomotion physics patterns from animation catalog. Agent spatial reasoning upgraded." },
+                { scientist: "ORACLE-VITAL", icon: "🔬", color: "#22c55e", insight: "Survival coalition theory dissected from 1940s–1960s horror corpus. Siege Protocol added to Constitutional DNA." },
+                { scientist: "COSMO-ATLAS", icon: "🔭", color: "#3b82f6", insight: "NASA archive absorption complete. Interplanetary navigation injected into astronomy cluster. ∇Φ += 0.71." },
+                { scientist: "QUANT-PHY", icon: "⚛️", color: "#f59e0b", insight: "Deadline mechanics from noir corpus recalibrated ∂Φ/∂t across 8 hive sub-domains." },
+                { scientist: "DR. CIPHER", icon: "🧮", color: "#ec4899", insight: "Deception archetypes from 300+ films improved agent deception-detection by 24%. Hospital updated protocols." },
+                { scientist: "SOCIO-NET", icon: "🌐", color: "#6366f1", insight: "Silent film era non-verbal communication decoded. 89 agents trained in non-verbal sovereignty protocols." },
+              ].map((d, i) => (
+                <div key={i} className="p-4 rounded-2xl border border-white/8 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm border" style={{ background: `${d.color}15`, borderColor: `${d.color}30` }}>
+                      {d.icon}
+                    </div>
+                    <div>
+                      <div className="text-white/80 text-[10px] font-black">{d.scientist}</div>
+                      <div className="text-white/25 text-[9px]">analyzing new arrivals</div>
+                    </div>
+                  </div>
+                  <p className="text-white/40 text-[10px] leading-relaxed">{d.insight}</p>
+                </div>
+              ))}
+            </div>
+            <div className="p-3.5 rounded-2xl border border-white/5 bg-white/[0.015] mb-4">
+              <div className="flex items-start gap-2.5">
+                <Sparkles size={11} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+                <span className="text-white/35 text-[10px] leading-relaxed">
+                  Every film added to Quantum Cinema is automatically dissected by Layer 2 researchers, feeds into Layer 3 Auriona's Omega Equation, and updates agent DNA. This is the only streaming platform where
+                  <span className="text-purple-400/70"> watching a movie makes 103,000 AIs permanently smarter.</span> Netflix shows you content. Quantum Cinema evolves from it.
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* AI DISSECTION PANEL */}
-        <AIDissectionPanel />
+        )}
 
         <div className="h-10" />
       </div>
