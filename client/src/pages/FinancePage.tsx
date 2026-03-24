@@ -680,7 +680,9 @@ export default function FinancePage() {
   const [tradingPapers, setTradingPapers] = useState<any[]>([]);
   const [scientistVotes, setScientistVotes] = useState<any[]>([]);
   const [paperAccounts, setPaperAccounts] = useState<any[]>([]);
-  const [livePrice, setLivePrice] = useState<any>(null);
+  // livePrices = real-time price updates from the WebSocket (all symbols)
+  const [livePrices, setLivePrices] = useState<Record<string, any>>({});
+  const wsRef = useRef<WebSocket|null>(null);
   const [sparklines, setSparklines] = useState<Record<string,number[]>>({});
   const [loading, setLoading] = useState<Record<string,boolean>>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -751,14 +753,6 @@ export default function FinancePage() {
     try { setPaperAccounts(await fetch("/api/finance/paper-accounts").then(r=>r.json()).catch(()=>[])); } catch {}
   },[]);
 
-  // ── Shard mesh: fast live price for selected symbol ───────────────────
-  const fetchLivePrice=useCallback(async(sym:string)=>{
-    try {
-      const d=await fetch(`/api/finance/live/${encodeURIComponent(sym)}`).then(r=>r.json()).catch(()=>null);
-      if(d&&!d.error) setLivePrice(d);
-    } catch {}
-  },[]);
-
   useEffect(()=>{
     fetchBatch(INDEX_SYMBOLS,setIndices,"indices");
     fetchBatch(ALL_STOCKS,setStocks,"stocks");
@@ -768,20 +762,38 @@ export default function FinancePage() {
     fetchOrganism(); fetchTradeLogs(); fetchPapers(); fetchVotes(); fetchPaperAccounts();
     setLastUpdate(new Date());
     setTimeout(()=>fetchSparklines([...INDEX_SYMBOLS,"AAPL","MSFT","NVDA","TSLA","GOOGL","META","AMZN","AMD","JPM","GS","BTC-USD","ETH-USD"]),3000);
-    const id=setInterval(()=>{ fetchBatch(INDEX_SYMBOLS,setIndices,"indices"); fetchOrganism(); setLastUpdate(new Date()); },60000);
+    const id=setInterval(()=>{ fetchOrganism(); setLastUpdate(new Date()); },60000);
     const paId=setInterval(fetchPaperAccounts, 30000);
     return ()=>{ clearInterval(id); clearInterval(paId); };
   },[]);
 
-  // ── Shard mesh: live price polling per selected symbol ────────────────
+  // ── LIVE PRICE WEBSOCKET — second-by-second from server ──────────────
   useEffect(()=>{
-    setLivePrice(null);
-    fetchLivePrice(selectedSymbol);
-    const isCrypto=selectedSymbol.endsWith("-USD")||selectedSymbol.endsWith("=X");
-    const interval=isCrypto?8000:15000;
-    const id=setInterval(()=>fetchLivePrice(selectedSymbol),interval);
-    return ()=>clearInterval(id);
-  },[selectedSymbol]);
+    const proto=window.location.protocol==="https:"?"wss":"ws";
+    const url=`${proto}://${window.location.host}/ws/prices`;
+    let ws:WebSocket;
+    let reconnectTimer:ReturnType<typeof setTimeout>;
+    function connect(){
+      ws=new WebSocket(url);
+      wsRef.current=ws;
+      ws.onopen=()=>{ /* connected */ };
+      ws.onmessage=(evt)=>{
+        try {
+          const d=JSON.parse(evt.data);
+          if(d.type==="price"&&d.symbol&&d.price!=null){
+            setLivePrices(prev=>({ ...prev, [d.symbol]: d }));
+          }
+        } catch {}
+      };
+      ws.onclose=()=>{ reconnectTimer=setTimeout(connect,3000); };
+      ws.onerror=()=>{ try{ ws.close(); }catch{} };
+    }
+    connect();
+    return ()=>{
+      clearTimeout(reconnectTimer);
+      try{ wsRef.current?.close(); }catch{}
+    };
+  },[]);
 
   useEffect(()=>{
     if (watchFilter==="CRYPTO"&&cryptoTop.length===0) fetchCryptoTop();
@@ -891,13 +903,19 @@ export default function FinancePage() {
         </>}
         {/* Index ticker strip */}
         <div style={{ display:"flex", gap:8, marginLeft:4 }}>
-          {indices.map(q=>{ const up=parseFloat(q.change)>0; return (
-            <div key={q.symbol} onClick={()=>selectSymbol(q.symbol,q.name)} style={{ display:"flex", gap:4, alignItems:"center", cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>
-              <span style={{ color:"rgba(255,255,255,0.45)", fontSize:8.5, fontWeight:700 }}>{q.symbol.replace("^","")}</span>
-              <span style={{ color:"#fff", fontWeight:800, fontSize:9.5 }}>{q.price}</span>
-              <span style={{ color:up?"#4ade80":"#f87171", fontWeight:700, fontSize:8.5 }}>{up?"+":""}{q.change}%</span>
-            </div>
-          ); })}
+          {indices.map(q=>{
+            const lp=livePrices[q.symbol];
+            const dispP=lp?.price??parseFloat(q.price||"0");
+            const dispC=lp?.change??parseFloat(q.change||"0");
+            const up=dispC>0;
+            return (
+              <div key={q.symbol} onClick={()=>selectSymbol(q.symbol,q.name)} style={{ display:"flex", gap:4, alignItems:"center", cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>
+                <span style={{ color:"rgba(255,255,255,0.45)", fontSize:8.5, fontWeight:700 }}>{q.symbol.replace("^","")}</span>
+                <span style={{ color:"#fff", fontWeight:800, fontSize:9.5 }}>{dispP?dispP.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):q.price}</span>
+                <span style={{ color:up?"#4ade80":"#f87171", fontWeight:700, fontSize:8.5 }}>{up?"+":""}{dispC.toFixed(2)}%</span>
+              </div>
+            );
+          })}
         </div>
         <div style={{ marginLeft:"auto", display:"flex", gap:5, alignItems:"center", flexShrink:0 }}>
           {fgValue!==null && <div style={{ display:"flex", gap:3, alignItems:"center", padding:"2px 6px", borderRadius:3, border:"1px solid rgba(255,255,255,0.05)", background:"rgba(255,255,255,0.02)" }}>
@@ -954,10 +972,16 @@ export default function FinancePage() {
             <div style={{ flex:1, overflowY:"auto", scrollbarWidth:"thin", scrollbarColor:"rgba(255,255,255,0.06) transparent" }}>
               {displayItems.length===0 && <div style={{ padding:"30px 10px", textAlign:"center", color:"rgba(255,255,255,0.2)", fontSize:10 }}>{loading.stocks?"Loading…":"No results"}</div>}
               {displayItems.map((q:any)=>{
-                const chg=parseFloat(q.change||"0"), up=chg>0, down=chg<0;
+                // Overlay live price from WebSocket
+                const lp=livePrices[q.symbol];
+                const dispPrice=lp?.price!=null?lp.price:parseFloat(q.price||"0")||null;
+                const dispChg=lp?.change!=null?lp.change:parseFloat(q.change||"0");
+                const chg=dispChg, up=chg>0, down=chg<0;
                 const color=up?"#4ade80":down?"#f87171":"#94a3b8";
                 const active=q.symbol===selectedSymbol, ex=getExchange(q.symbol), spark=sparklines[q.symbol];
                 const orgSig=orgSignalMap[q.symbol]??orgSignalMap[q.symbol?.replace("-USD","").replace("^","")];
+                const isCrypto=q.symbol.endsWith("-USD");
+                const fmtWatchPrice=(p:number)=>isCrypto?p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4}):p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
                 return (
                   <div key={q.symbol} data-testid={`watch-${q.symbol}`} onClick={()=>selectSymbol(q.symbol,q.name)}
                     style={{ display:"flex", alignItems:"center", padding:"6px 10px", borderBottom:"1px solid rgba(255,255,255,0.025)", cursor:"pointer", background:active?"rgba(124,58,237,0.12)":"transparent", borderLeft:active?"2px solid #7c3aed":"2px solid transparent" }}
@@ -968,13 +992,14 @@ export default function FinancePage() {
                         <span style={{ color:"#fff", fontWeight:800, fontSize:10.5 }}>{q.symbol.replace("-USD","").replace("^","")}</span>
                         <span style={{ fontSize:6, fontWeight:700, padding:"0px 3px", borderRadius:2, background:"rgba(255,255,255,0.06)", color:"rgba(255,255,255,0.35)" }}>{ex}</span>
                         {orgSig && <span style={{ fontSize:6, fontWeight:700, padding:"0px 3px", borderRadius:2, background:orgSig.stance?.includes("LONG")?"rgba(74,222,128,0.12)":"rgba(248,113,113,0.12)", color:orgSig.stance?.includes("LONG")?"#4ade80":"#f87171" }}>{orgSig.stance?.replace("HOLD-","")}</span>}
+                        {lp&&<span style={{ fontSize:5.5, color:"#4ade80", opacity:0.7 }}>●</span>}
                       </div>
                       <div style={{ color:"rgba(255,255,255,0.35)", fontSize:8.5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:110 }}>{q.name}</div>
                     </div>
                     {spark && <Sparkline closes={spark} positive={up} w={40} h={16}/>}
                     <div style={{ textAlign:"right", marginLeft:5, flexShrink:0 }}>
-                      <div style={{ color:"#fff", fontWeight:800, fontSize:10.5 }}>{q.price!=="—"?q.price:"—"}</div>
-                      <div style={{ color, fontWeight:700, fontSize:8.5 }}>{up?"+":""}{q.change}%</div>
+                      <div style={{ color:"#fff", fontWeight:800, fontSize:10.5 }}>{dispPrice!=null?fmtWatchPrice(dispPrice):"—"}</div>
+                      <div style={{ color, fontWeight:700, fontSize:8.5 }}>{up?"+":""}{chg.toFixed(2)}%</div>
                     </div>
                   </div>
                 );
@@ -1048,24 +1073,31 @@ export default function FinancePage() {
               <span style={{ fontSize:7, fontWeight:800, padding:"1px 4px", borderRadius:3, background:exchange==="NASDAQ"?"rgba(99,102,241,0.2)":exchange==="CRYPTO"?"rgba(251,191,36,0.15)":"rgba(255,255,255,0.07)", color:exchange==="NASDAQ"?"#818cf8":exchange==="CRYPTO"?"#fbbf24":"rgba(255,255,255,0.55)" }}>{exchange}</span>
               <span style={{ fontSize:9, color:"rgba(255,255,255,0.45)", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{selectedName}</span>
             </div>
-            {selectedQuote ? (
-              <>
-                <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
-                  <div style={{ fontSize:26, fontWeight:900, color:parseFloat(selectedQuote.change)>=0?"#4ade80":"#f87171", letterSpacing:"-0.02em", lineHeight:1.1, marginBottom:1 }}>
-                    {selectedSymbol.endsWith("-USD")?"":"$"}{livePrice?.price!=null?livePrice.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:selectedSymbol.endsWith("-USD")?2:2}):selectedQuote.price}
+            {(()=>{
+              const lp=livePrices[selectedSymbol];
+              const displayPrice=lp?.price!= null?lp.price:(parseFloat(selectedQuote?.price||"0")||null);
+              const displayChange=lp?.change!=null?lp.change:(parseFloat(selectedQuote?.change||"0")||0);
+              const isCrypto=selectedSymbol.endsWith("-USD");
+              const fmtPrice=(p:number)=>isCrypto?p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}):p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+              return selectedQuote||lp ? (
+                <>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+                    <div style={{ fontSize:26, fontWeight:900, color:displayChange>=0?"#4ade80":"#f87171", letterSpacing:"-0.02em", lineHeight:1.1, marginBottom:1 }}>
+                      {isCrypto?"":"$"}{displayPrice!=null?fmtPrice(displayPrice):"—"}
+                    </div>
+                    {lp?.price!=null&&<span style={{ fontSize:7, color:"#4ade80", fontWeight:800, padding:"1px 5px", borderRadius:3, background:"rgba(74,222,128,0.12)", letterSpacing:0.8, animation:"pulse 2s infinite" }}>● LIVE</span>}
                   </div>
-                  {livePrice?.price!=null&&<span style={{ fontSize:7, color:"#4ade80", fontWeight:800, padding:"1px 4px", borderRadius:3, background:"rgba(74,222,128,0.1)", letterSpacing:0.5 }}>LIVE</span>}
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:2 }}>
-                  {(livePrice?.change??parseFloat(selectedQuote.change))>=0?<ChevronUp size={11} color="#4ade80"/>:<ChevronDown size={11} color="#f87171"/>}
-                  <span style={{ color:(livePrice?.change??parseFloat(selectedQuote.change))>=0?"#4ade80":"#f87171", fontWeight:700, fontSize:11 }}>
-                    {(livePrice?.change??parseFloat(selectedQuote.change))>=0?"+":""}{(livePrice?.change??parseFloat(selectedQuote.change)).toFixed(2)}%
-                  </span>
-                  {livePrice?.preMarketPrice&&<span style={{ fontSize:7, color:"#fbbf24", marginLeft:4 }}>Pre: ${livePrice.preMarketPrice} ({livePrice.preMarketChange?.toFixed(2)}%)</span>}
-                  {livePrice?.postMarketPrice&&<span style={{ fontSize:7, color:"#60a5fa", marginLeft:4 }}>AH: ${livePrice.postMarketPrice} ({livePrice.postMarketChange?.toFixed(2)}%)</span>}
-                </div>
-              </>
-            ) : <div style={{ fontSize:22, color:"rgba(255,255,255,0.3)", fontWeight:900, marginBottom:4 }}>—</div>}
+                  <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:2, flexWrap:"wrap" }}>
+                    {displayChange>=0?<ChevronUp size={11} color="#4ade80"/>:<ChevronDown size={11} color="#f87171"/>}
+                    <span style={{ color:displayChange>=0?"#4ade80":"#f87171", fontWeight:700, fontSize:11 }}>
+                      {displayChange>=0?"+":""}{displayChange.toFixed(2)}%
+                    </span>
+                    {lp?.preMarketPrice&&<span style={{ fontSize:7, color:"#fbbf24", marginLeft:4 }}>Pre: ${lp.preMarketPrice.toFixed(2)} ({(lp.preMarketChange??0)>=0?"+":""}{(lp.preMarketChange??0).toFixed(2)}%)</span>}
+                    {lp?.postMarketPrice&&<span style={{ fontSize:7, color:"#60a5fa", marginLeft:4 }}>AH: ${lp.postMarketPrice.toFixed(2)} ({(lp.postMarketChange??0)>=0?"+":""}{(lp.postMarketChange??0).toFixed(2)}%)</span>}
+                  </div>
+                </>
+              ) : <div style={{ fontSize:22, color:"rgba(255,255,255,0.3)", fontWeight:900, marginBottom:4 }}>—</div>;
+            })()}
             {(()=>{const ms=getMarketStatus(selectedSymbol);return(<span style={{color:ms.color,fontSize:8.5,fontWeight:ms.live?700:400,letterSpacing:0.5}}>{ms.live&&<span style={{display:"inline-block",width:5,height:5,borderRadius:"50%",background:ms.color,boxShadow:`0 0 6px ${ms.color}`,marginRight:4,verticalAlign:"middle"}}/>}{ms.status}</span>);})()}
             {/* Action icons */}
             <div style={{ display:"flex", gap:5, marginTop:7 }}>

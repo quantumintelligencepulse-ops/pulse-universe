@@ -12,6 +12,7 @@ import { startSpawnEngine } from "./quantum-spawn-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
 import { startSovereignTradingEngine } from "./sovereign-trading-engine";
+import { startLivePriceEngine } from "./live-price-engine";
 import { startDomainKernelEngine } from "./domain-kernel-engine";
 import { startQuantumNewsEngine } from "./quantum-news-engine";
 import { startPyramidEngine } from "./pyramid-engine";
@@ -117,6 +118,9 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+
+  // ── LIVE PRICE ENGINE — Binance WebSocket + Yahoo 2s polling ─────────────
+  startLivePriceEngine(httpServer);
 
   // Create performance indexes in background — non-blocking, won't affect startup
   setTimeout(async () => {
