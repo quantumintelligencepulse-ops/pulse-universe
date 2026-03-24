@@ -12611,6 +12611,7 @@ function MusicPage() {
   const analyzerRef = useRef<AnalyserNode|null>(null);
   const animFrameRef = useRef<number>(0);
   const musicGenAudioRef = useRef<HTMLAudioElement|null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Load producer styles on mount
   useEffect(()=>{
@@ -13441,6 +13442,11 @@ function MusicPage() {
       const newTrack: TrackCard = { id:`creator_${Date.now()}`, pulseKey:creatorPulse, genreKey:creatorGenre, bpm:pulse.tempo, beats:64, scale:"auto", randomness:0.4, name:trackName, playing:false, createdAt:new Date() };
       setCreatorTrack(newTrack);
       setUserTracks(prev=>[newTrack,...prev]);
+      // Auto-play the beat immediately
+      playUserTrack(newTrack);
+      // Build beat genome display
+      const mood = analyzePromptMood(creatorPrompt);
+      setBeatGenome({ scale: mood.scale, root: beatKey, swing: PRODUCER_GENOMES[producerStyle]?.swing||0, mood: mood.mood, bpm: pulse.tempo, pattern: producerStyle });
     } catch { setCreatorLyrics("Generation failed. Please try again."); }
     setCreatorLoading(false);
   };
@@ -13645,155 +13651,116 @@ function MusicPage() {
   if (view==="creator") return (
     <div className="flex-1 overflow-y-auto" style={{background:"#050510"}}>
       <StickyNav/>
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[10px] font-bold px-3 py-1 rounded-full mb-3">⚡ QUANTUM SOUND RECORDS — AI STUDIO v3.0</div>
-          <h2 className="text-2xl font-extrabold text-white mb-1">Create Your Track</h2>
-          <p className="text-white/40 text-sm">AI writes lyrics · Generates real audio · Produces the beat</p>
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="text-center mb-7">
+          <div className="text-4xl mb-3">🎵</div>
+          <h2 className="text-3xl font-extrabold text-white mb-2">AI Music Creator</h2>
+          <p className="text-white/40 text-sm">Describe your song — AI writes the lyrics and plays the beat instantly</p>
         </div>
         <div className="space-y-4">
 
-          {/* ── MAIN CREATION PANEL ─────────────────────────────────────────── */}
-          <div className="rounded-2xl p-5 border border-white/10 bg-white/[0.02]">
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div>
-                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Voice</label>
-                <div className="flex flex-col gap-1.5">
-                  {(["singing","rapping"] as const).map(v=>(
-                    <button key={v} onClick={()=>setCreatorVoice(v)} data-testid={`creator-voice-${v}`} className={`py-2 rounded-xl text-xs font-bold border transition-all ${creatorVoice===v?"bg-violet-500/20 border-violet-400/50 text-violet-300":"border-white/10 text-white/40 hover:border-white/20"}`}>{v==="singing"?"🎤 Singing":"🎤 Rapping"}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Genre</label>
-                <select value={creatorGenre} onChange={e=>setCreatorGenre(e.target.value)} data-testid="creator-select-genre" className="w-full px-2 py-2 rounded-xl text-xs bg-black/50 text-white border border-white/10 mb-2">
-                  {Object.keys(MUSIC_GENRES).map(g=><option key={g} value={g}>{g}</option>)}
-                </select>
-                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1">Key</label>
-                <select value={beatKey} onChange={e=>setBeatKey(e.target.value)} data-testid="creator-select-key" className="w-full px-2 py-2 rounded-xl text-xs bg-black/50 text-white border border-white/10">
-                  {["Am","Dm","Em","Gm","Cm","F#m","Bm","A","C","D","E","F","G","Bb","Eb"].map(k=><option key={k} value={k}>{k}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Pulse</label>
-                <select value={creatorPulse} onChange={e=>setCreatorPulse(e.target.value)} data-testid="creator-select-pulse" className="w-full px-2 py-2 rounded-xl text-xs bg-black/50 text-white border border-white/10 mb-2">
-                  {Object.entries(PULSE_COLORS_DEF).map(([k,v])=><option key={k} value={k}>{v.name}</option>)}
-                </select>
-                <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1">AI Duration</label>
-                <select value={musicGenDuration} onChange={e=>setMusicGenDuration(Number(e.target.value))} data-testid="creator-select-duration" className="w-full px-2 py-2 rounded-xl text-xs bg-black/50 text-white border border-white/10">
-                  {[8,15,20,28].map(d=><option key={d} value={d}>{d}s</option>)}
-                </select>
-              </div>
-            </div>
-            <label className="text-white/40 text-[10px] font-bold uppercase tracking-wider block mb-1.5">Describe Your Song</label>
-            <textarea value={creatorPrompt} onChange={e=>setCreatorPrompt(e.target.value)} data-testid="creator-input-prompt" rows={3} placeholder={`"A dark aggressive trap banger about city hustle"\n"A smooth R&B track about losing love"\n"An Afrobeats bop about winning and sunshine"`} className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-violet-400/50 placeholder:text-white/20 resize-none mb-4"/>
-            <div className="flex gap-2 mb-3">
-              <button onClick={generateCreatorTrack} disabled={creatorLoading||!creatorPrompt.trim()} data-testid="creator-button-generate" className="flex-1 py-3.5 bg-gradient-to-r from-violet-500 to-pink-500 text-white font-extrabold rounded-xl hover:from-violet-400 hover:to-pink-400 transition-all disabled:opacity-40 text-sm">
-                {creatorLoading?"✨ Generating Lyrics + Beat...":"⚡ Generate Lyrics + Beat"}
-              </button>
-              <button onClick={()=>{
-                if(!creatorPrompt.trim()){return;}
-                const mood = analyzePromptMood(creatorPrompt);
-                generateMusicGenBeat(creatorPrompt, creatorGenre, MUSIC_GENRES[creatorGenre as keyof typeof MUSIC_GENRES]?.bpm||140, beatKey);
-              }} disabled={musicGenLoading||!creatorPrompt.trim()} data-testid="creator-button-musicgen" className="px-5 py-3.5 font-extrabold rounded-xl border transition-all text-sm disabled:opacity-40" style={{background:"linear-gradient(135deg,#1a0a3a,#0a1a3a)",borderColor:"rgba(139,92,246,0.3)",color:"#a78bfa"}}>
-                {musicGenLoading?"⏳ AI Audio...":"🤖 MusicGen AI"}
-              </button>
-            </div>
-            {creatorLoading&&<p className="text-center text-violet-300/60 text-xs animate-pulse">✨ Writing lyrics and composing your beat...</p>}
-
-            {/* MusicGen Status */}
-            {musicGenStatus==="loading"&&(
-              <div className="mt-3 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-center">
-                <div className="text-violet-300 text-xs animate-pulse">🤖 MusicGen AI generating real audio...</div>
-                <div className="text-white/30 text-[10px] mt-1">Neural network composing your {creatorGenre} beat in {beatKey}</div>
-              </div>
-            )}
-            {musicGenStatus==="error"&&musicGenError&&(
-              <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                <div className="text-red-400 text-xs">{musicGenError}</div>
-                <div className="text-white/30 text-[10px] mt-1">WebAudio beat engine still available — use Generate above</div>
-              </div>
-            )}
-            {musicGenStatus==="playing"&&musicGenAudio&&(
-              <div className="mt-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-green-400 text-xs font-bold">🎵 MusicGen AI Track Playing</span>
-                  <button onClick={stopTrack} className="text-white/40 hover:text-white/70 text-xs px-2 py-1 border border-white/10 rounded-lg">Stop</button>
-                </div>
-                <audio controls src={musicGenAudio} className="w-full h-8 opacity-60" style={{filter:"invert(0.8) hue-rotate(240deg)"}} data-testid="musicgen-audio-player"/>
-              </div>
-            )}
-          </div>
-
-          {/* ── PRODUCER STYLE SELECTOR ──────────────────────────────────────── */}
-          <div className="rounded-2xl p-4 border border-white/10 bg-white/[0.02]">
-            <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-3">Producer Style / Beat Genome</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {producerStyles.slice(0,8).map(ps=>(
-                <button key={ps.id} onClick={()=>setProducerStyle(ps.id)} data-testid={`producer-style-${ps.id}`}
-                  className={`p-2 rounded-xl border text-[10px] font-bold text-center transition-all ${producerStyle===ps.id?"border-violet-400/50 text-violet-300":"border-white/8 text-white/30 hover:border-white/20 hover:text-white/60"}`}
-                  style={producerStyle===ps.id?{background:`${ps.palette}18`,borderColor:`${ps.palette}55`}:{background:"transparent"}}>
-                  <div style={{color:ps.palette}} className="text-xs mb-0.5">◆</div>
-                  <div className="truncate">{ps.name}</div>
-                  <div className="text-white/20 text-[9px]">{ps.genre}</div>
-                </button>
-              ))}
-            </div>
-            {beatGenome&&(
-              <div className="mt-3 p-3 rounded-xl bg-black/30 border border-violet-500/15">
-                <div className="text-violet-300/70 text-[10px] font-bold uppercase tracking-wider mb-1">Beat Genome Active</div>
-                <div className="flex gap-3 flex-wrap">
-                  {Object.entries(beatGenome).map(([k,v])=>(
-                    <span key={k} className="text-[10px] text-white/40"><span className="text-white/25">{k}:</span> <span className="text-white/60">{String(v)}</span></span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── STEM MIXER ───────────────────────────────────────────────────── */}
-          <div className="rounded-2xl p-4 border border-white/10 bg-white/[0.02]">
-            <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-3">Stem Mixer</h3>
-            <div className="grid grid-cols-7 gap-2">
-              {(Object.keys(stemMix) as (keyof typeof stemMix)[]).map(stem=>(
-                <div key={stem} className="flex flex-col items-center gap-1">
-                  <div className="relative w-6 h-20 bg-black/40 rounded-full border border-white/10 flex items-end overflow-hidden">
-                    <div className="w-full rounded-full transition-all" style={{height:`${stemMix[stem]*100}%`,background:"linear-gradient(to top,#7c3aed,#ec4899)"}}/>
-                  </div>
-                  <input type="range" min="0" max="1" step="0.05" value={stemMix[stem]} data-testid={`stem-${stem}`}
-                    onChange={e=>setStemMix(prev=>({...prev,[stem]:Number(e.target.value)}))}
-                    className="w-16 accent-violet-500" style={{writingMode:"unset"}}/>
-                  <span className="text-white/30 text-[9px] uppercase">{stem}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── FREQUENCY VISUALIZER ─────────────────────────────────────────── */}
-          {(playingId||musicGenStatus==="playing")&&(
-            <div className="rounded-2xl p-4 border border-violet-500/15 bg-black/30">
-              <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-3">Frequency Visualizer</h3>
-              <div className="flex items-end gap-1 h-16">
-                {(analyzerData.length>0?analyzerData:Array(16).fill(0).map(()=>Math.random()*0.4+0.1)).map((v,i)=>(
-                  <div key={i} data-testid={`viz-bar-${i}`} className="flex-1 rounded-t transition-all duration-100"
-                    style={{height:`${Math.max(4,v*100)}%`,background:`hsl(${260+i*5},70%,${40+v*30}%)`}}/>
+          {/* Simple creator form */}
+          <div className="rounded-2xl p-6 border border-white/10 bg-white/[0.02]">
+            <textarea value={creatorPrompt} onChange={e=>setCreatorPrompt(e.target.value)} data-testid="creator-input-prompt" rows={4}
+              placeholder={"Describe your beat or song...\ne.g. 'A dark trap banger about city hustle'\n'A smooth R&B track about losing love'\n'An Afrobeats bop full of energy and drums'"}
+              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-violet-400/50 placeholder:text-white/20 resize-none mb-4"/>
+            <div className="flex gap-3 mb-4">
+              <select value={creatorGenre} onChange={e=>setCreatorGenre(e.target.value)} data-testid="creator-select-genre" className="flex-1 px-3 py-2.5 rounded-xl text-sm bg-black/50 text-white border border-white/10">
+                {Object.keys(MUSIC_GENRES).map(g=><option key={g} value={g}>{g}</option>)}
+              </select>
+              <div className="flex rounded-xl border border-white/10 overflow-hidden">
+                {(["rapping","singing"] as const).map(v=>(
+                  <button key={v} onClick={()=>setCreatorVoice(v)} data-testid={`creator-voice-${v}`}
+                    className={`px-4 py-2.5 text-sm font-bold transition-all ${creatorVoice===v?"bg-violet-600 text-white":"bg-black/30 text-white/40 hover:text-white/70"}`}>
+                    {v==="rapping"?"🎤 Rap":"🎵 Sing"}
+                  </button>
                 ))}
               </div>
-              {playingId&&<div className="text-white/30 text-[10px] mt-2 text-center">WebAudio Beat Engine · {producerStyles.find(p=>p.id===producerStyle)?.name||producerStyle}</div>}
+            </div>
+            <button onClick={generateCreatorTrack} disabled={creatorLoading||!creatorPrompt.trim()} data-testid="creator-button-generate"
+              className="w-full py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white font-extrabold rounded-xl hover:from-violet-500 hover:to-pink-500 transition-all disabled:opacity-40 text-base tracking-wide">
+              {creatorLoading?"✨  Writing lyrics + building your beat...":"⚡  Generate & Play Beat"}
+            </button>
+          </div>
+
+          {/* Now Playing indicator — auto-appears when beat starts */}
+          {creatorTrack&&playingId===creatorTrack.id&&(
+            <div className="rounded-2xl p-4 border border-violet-500/30 bg-violet-500/10 flex items-center gap-4">
+              <div className="flex gap-0.5 items-end h-7 shrink-0">
+                {Array.from({length:8}).map((_,i)=>(
+                  <div key={i} className="w-1 rounded-sm bg-violet-400 animate-pulse" style={{height:`${30+Math.random()*70}%`,animationDelay:`${i*0.08}s`}}/>
+                ))}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-violet-300 text-[10px] font-bold tracking-wider">NOW PLAYING</div>
+                <div className="text-white text-sm font-bold truncate">{creatorTrack.name}</div>
+                <div className="text-white/40 text-[10px]">{creatorTrack.genreKey} · {creatorTrack.bpm} BPM</div>
+              </div>
+              <button onClick={stopTrack} data-testid="creator-button-stop" className="px-4 py-2 rounded-xl text-sm font-bold text-white/60 border border-white/15 hover:bg-white/10 shrink-0">⏹ Stop</button>
             </div>
           )}
 
-          {/* ── KEY / BPM DISPLAY ─────────────────────────────────────────────── */}
-          {creatorPrompt.trim()&&(()=>{const mood=analyzePromptMood(creatorPrompt);return(
-            <div className="flex gap-2">
-              {[{label:"Key",value:beatKey},{label:"Scale",value:mood.scale},{label:"Mood",value:mood.mood},{label:"Detect BPM",value:mood.bpm}].map(item=>(
-                <div key={item.label} className="flex-1 rounded-xl p-2.5 bg-black/30 border border-white/8 text-center">
-                  <div className="text-white/25 text-[9px] uppercase tracking-wider">{item.label}</div>
-                  <div className="text-white/70 text-xs font-bold">{item.value}</div>
+          {/* Advanced settings toggle */}
+          <button onClick={()=>setShowAdvanced(!showAdvanced)} data-testid="creator-toggle-advanced"
+            className="w-full py-2.5 rounded-xl border border-white/8 text-white/30 hover:text-white/50 hover:border-white/15 text-xs transition-all">
+            {showAdvanced?"▲ Hide Advanced Settings":"▾ Advanced Settings  (Stem Mixer · AI Audio · Producer Style)"}
+          </button>
+          {showAdvanced&&(
+            <div className="space-y-4">
+              {/* Stem Mixer */}
+              <div className="rounded-2xl p-4 border border-white/10 bg-white/[0.02]">
+                <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-3">Stem Mixer</h3>
+                <div className="grid grid-cols-7 gap-2">
+                  {(Object.keys(stemMix) as (keyof typeof stemMix)[]).map(stem=>(
+                    <div key={stem} className="flex flex-col items-center gap-1">
+                      <div className="relative w-5 h-16 bg-black/40 rounded-full border border-white/10 flex items-end overflow-hidden">
+                        <div className="w-full rounded-full transition-all" style={{height:`${stemMix[stem]*100}%`,background:"linear-gradient(to top,#7c3aed,#ec4899)"}}/>
+                      </div>
+                      <input type="range" min="0" max="1" step="0.05" value={stemMix[stem]} data-testid={`stem-${stem}`}
+                        onChange={e=>setStemMix(prev=>({...prev,[stem]:Number(e.target.value)}))}
+                        className="w-14 accent-violet-500"/>
+                      <span className="text-white/30 text-[9px] uppercase">{stem}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              {/* MusicGen AI */}
+              <div className="rounded-2xl p-4 border border-white/10 bg-white/[0.02]">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-white/70 text-sm font-bold">MusicGen AI Audio</h3>
+                    <p className="text-white/30 text-[10px]">Real AI audio via HuggingFace neural network</p>
+                  </div>
+                  <select value={musicGenDuration} onChange={e=>setMusicGenDuration(Number(e.target.value))} className="px-2 py-1.5 rounded-lg text-xs bg-black/50 text-white border border-white/10">
+                    {[8,15,20,28].map(d=><option key={d} value={d}>{d}s</option>)}
+                  </select>
+                </div>
+                <button onClick={()=>{if(creatorPrompt.trim())generateMusicGenBeat(creatorPrompt,creatorGenre,MUSIC_GENRES[creatorGenre as keyof typeof MUSIC_GENRES]?.bpm||140,beatKey);}}
+                  disabled={musicGenLoading||!creatorPrompt.trim()} data-testid="creator-button-musicgen"
+                  className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40 border border-violet-500/30 text-violet-300 hover:bg-violet-500/10">
+                  {musicGenLoading?"⏳ AI generating...":"🤖 Generate AI Audio (HuggingFace)"}
+                </button>
+                {musicGenStatus==="error"&&musicGenError&&<p className="text-red-400 text-xs mt-2">{musicGenError}</p>}
+                {musicGenStatus==="playing"&&musicGenAudio&&(
+                  <audio controls src={musicGenAudio} className="w-full mt-3" data-testid="musicgen-audio-player"/>
+                )}
+              </div>
+              {/* Producer Style */}
+              <div className="rounded-2xl p-4 border border-white/10 bg-white/[0.02]">
+                <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-3">Producer Style</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {producerStyles.slice(0,8).map(ps=>(
+                    <button key={ps.id} onClick={()=>setProducerStyle(ps.id)} data-testid={`producer-style-${ps.id}`}
+                      className={`p-2 rounded-xl border text-[10px] font-bold text-center transition-all ${producerStyle===ps.id?"border-violet-400/50 text-violet-300":"border-white/8 text-white/30 hover:border-white/20"}`}
+                      style={producerStyle===ps.id?{background:`${ps.palette}18`}:{}}>
+                      <div style={{color:ps.palette}} className="text-xs mb-0.5">◆</div>
+                      <div className="truncate">{ps.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          );})()}
+          )}
 
           {creatorLyrics&&(<>
             <div className="rounded-2xl p-5 border border-violet-500/20 bg-violet-500/5">
@@ -13801,7 +13768,7 @@ function MusicPage() {
                 <h3 className="text-white font-bold text-sm">Generated Lyrics</h3>
                 {creatorTrack&&(
                   <div className="flex items-center gap-1.5">
-                    <button onClick={()=>playUserTrack(creatorTrack)} data-testid="creator-button-play-beat" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-white/70 border border-white/15 hover:bg-white/10">▶ Beat</button>
+                    <button onClick={()=>playUserTrack(creatorTrack)} data-testid="creator-button-play-beat" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-white/70 border border-white/15 hover:bg-white/10">▶ Play Again</button>
                     <button onClick={()=>performCreatorTrack(creatorTrack, creatorLyrics, creatorVoice)} data-testid="creator-button-perform" className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white" style={{background:PULSE_COLORS_DEF[creatorPulse as keyof typeof PULSE_COLORS_DEF]?.color||"#8b5cf6"}}>🎤 Perform Live</button>
                   </div>
                 )}
