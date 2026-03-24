@@ -29,6 +29,7 @@ import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
+import { getOrganismState, getRecentTradeLogs, getScientistVotes, getTradingPapers, getScientistRoster } from "./sovereign-trading-engine";
 import { getEconomyStats, getFamilyGrades, getFractalGraphData, getRecentMiniPulses } from "./hive-economy";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
@@ -7146,6 +7147,41 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const match = raw.match(/\{[\s\S]*\}/);
       res.json(match ? JSON.parse(match[0]) : {});
     } catch (e) { res.json({}); }
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // SYNTHENTICA PRIMORDIA PULSE — SOVEREIGN TRADING ORGANISM
+  // ══════════════════════════════════════════════════════════════
+
+  app.get("/api/finance/organism", async (_req, res) => {
+    try { res.json(await getOrganismState()); }
+    catch { res.json({ mood:"UNKNOWN", regime:"UNKNOWN", activeScientists:42, totalTrades:0, totalVotes:0, totalPapers:0, topEdgeTrades:[], crispWeights:{}, vitalSigns:{}, lastUpdated: new Date().toISOString() }); }
+  });
+
+  app.get("/api/finance/trade-logs", async (req, res) => {
+    try {
+      const limit = Math.min(200, parseInt(req.query.limit as string || "80", 10));
+      res.json(await getRecentTradeLogs(limit));
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/finance/scientist-votes", async (req, res) => {
+    try {
+      const limit = Math.min(100, parseInt(req.query.limit as string || "40", 10));
+      res.json(await getScientistVotes(limit));
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/finance/trading-papers", async (req, res) => {
+    try {
+      const limit = Math.min(50, parseInt(req.query.limit as string || "20", 10));
+      res.json(await getTradingPapers(limit));
+    } catch { res.json([]); }
+  });
+
+  app.get("/api/finance/scientists", async (_req, res) => {
+    try { res.json(getScientistRoster()); }
+    catch { res.json([]); }
   });
 
   // HIVE GRAPH — Knowledge Visualization

@@ -11,6 +11,7 @@ import { startQuantumCareerEngine } from "./quantum-career-engine";
 import { startSpawnEngine } from "./quantum-spawn-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
+import { startSovereignTradingEngine } from "./sovereign-trading-engine";
 import { startDomainKernelEngine } from "./domain-kernel-engine";
 import { startQuantumNewsEngine } from "./quantum-news-engine";
 import { startPyramidEngine } from "./pyramid-engine";
@@ -221,6 +222,7 @@ app.use((req, res, next) => {
       startInventionEngine().catch((e) => log(`InventionEngine start error: ${e}`));
       startOmniNetEngine().catch((e) => log(`OmniNetEngine start error: ${e}`));
       startCivilizationBridge().catch((e) => log(`CivilizationBridge start error: ${e}`));
+      startSovereignTradingEngine().catch((e) => log(`SovereignTradingEngine start error: ${e}`));
       // Discord Immortality Protocol — starts after all engines
       setTimeout(() => {
         initDiscordImmortality().catch((e) => log(`DiscordImmortality start error: ${e}`));

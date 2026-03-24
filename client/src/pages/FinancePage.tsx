@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries, CrosshairMode, LineStyle, ColorType } from "lightweight-charts";
-import { TrendingUp, TrendingDown, Minus, RefreshCw, Brain, Zap, Search, X, Building2, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Flame, Layers, DollarSign, Gauge, CandlestickChart, LineChart } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Brain, Zap, Search, X, Building2, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Flame, Layers, DollarSign, Gauge, CandlestickChart, LineChart, FlaskConical, BookOpen, Activity, Dna, Vote, Microscope } from "lucide-react";
 
 // ── Symbol universes ────────────────────────────────────────────
 const MARKET_SECTORS: Record<string, string[]> = {
@@ -30,7 +30,7 @@ type DefiToken = { id: string; symbol: string; name: string; price: number; chan
 type FearGreed = { value: string; value_classification: string; timestamp: string };
 type Prediction = { question: string; probability: number; direction: string; category: string; timeframe: string; rationale: string };
 type OracleData = { marketRegime: string; regimeConfidence: number; bullCase: any; bearCase: any; consensusSignal: string; intelligenceFeed: any[]; macroSnapshot: any };
-type Tab = "markets" | "crypto" | "defi" | "realestate" | "forex" | "commodities" | "bonds" | "global" | "predictions" | "oracle";
+type Tab = "markets" | "crypto" | "defi" | "realestate" | "forex" | "commodities" | "bonds" | "global" | "predictions" | "oracle" | "dissection" | "tradeslog" | "papers";
 type ChartTF = "1W" | "1M" | "3M" | "6M" | "1Y" | "5Y";
 type ChartMode = "candle" | "line";
 
@@ -530,6 +530,13 @@ export default function FinancePage() {
   const [fearGreed, setFearGreed] = useState<FearGreed[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [oracle, setOracle] = useState<OracleData | null>(null);
+  const [organism, setOrganism] = useState<any>(null);
+  const [tradeLogs, setTradeLogs] = useState<any[]>([]);
+  const [scientistVotes, setScientistVotes] = useState<any[]>([]);
+  const [tradingPapers, setTradingPapers] = useState<any[]>([]);
+  const [scientists, setScientists] = useState<any[]>([]);
+  const [loadingOrg, setLoadingOrg] = useState(false);
+  const [loadingLogs, setLoadingLogs] = useState(false);
   const [selectedSector, setSelectedSector] = useState("Tech");
   const [sortBy, setSortBy] = useState<"change" | "alpha">("change");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
@@ -611,6 +618,30 @@ export default function FinancePage() {
     catch {}
   }, []);
 
+  const fetchOrganism = useCallback(async () => {
+    setLoadingOrg(true);
+    try { setOrganism(await fetch("/api/finance/organism").then(r => r.json()).catch(() => null)); }
+    finally { setLoadingOrg(false); }
+  }, []);
+
+  const fetchTradeLogs = useCallback(async () => {
+    setLoadingLogs(true);
+    try { setTradeLogs(await fetch("/api/finance/trade-logs?limit=80").then(r => r.json()).catch(() => [])); }
+    finally { setLoadingLogs(false); }
+  }, []);
+
+  const fetchScientistVotes = useCallback(async () => {
+    setScientistVotes(await fetch("/api/finance/scientist-votes?limit=40").then(r => r.json()).catch(() => []));
+  }, []);
+
+  const fetchTradingPapers = useCallback(async () => {
+    setTradingPapers(await fetch("/api/finance/trading-papers?limit=20").then(r => r.json()).catch(() => []));
+  }, []);
+
+  const fetchScientists = useCallback(async () => {
+    setScientists(await fetch("/api/finance/scientists").then(r => r.json()).catch(() => []));
+  }, []);
+
   useEffect(() => {
     fetchBatch(INDEX_SYMBOLS, setIndices, "indices");
     fetchBatch(ALL_STOCKS, setStocks, "stocks");
@@ -632,7 +663,17 @@ export default function FinancePage() {
     if (tab === "defi" && !defi.length) fetchDefi();
     if (tab === "predictions" && !predictions.length) fetch("/api/finance/predictions").then(r => r.json()).then(d => setPredictions(d.predictions || []));
     if (tab === "oracle" && !oracle) fetch("/api/finance/oracle").then(r => r.json()).then(d => d?.marketRegime && setOracle(d));
+    if (tab === "dissection") { fetchOrganism(); if (!scientists.length) fetchScientists(); fetchScientistVotes(); }
+    if (tab === "tradeslog") { fetchTradeLogs(); fetchOrganism(); }
+    if (tab === "papers") fetchTradingPapers();
   }, [tab]);
+
+  // Organism poll every 30 seconds
+  useEffect(() => {
+    fetchOrganism();
+    const id = setInterval(fetchOrganism, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const syms = tab === "markets" ? (MARKET_SECTORS[selectedSector] || [])
@@ -673,6 +714,9 @@ export default function FinancePage() {
     { id: "global" as Tab, label: "Global Markets", icon: <Globe size={11} /> },
     { id: "predictions" as Tab, label: "Predictions", icon: <Zap size={11} /> },
     { id: "oracle" as Tab, label: "Oracle", icon: <Brain size={11} /> },
+    { id: "dissection" as Tab, label: "Dissection Lab", icon: <FlaskConical size={11} /> },
+    { id: "tradeslog" as Tab, label: "Trade Logs", icon: <Activity size={11} /> },
+    { id: "papers" as Tab, label: "Research", icon: <BookOpen size={11} /> },
   ];
 
   const regimeColor: Record<string, string> = { "Risk-On": "#4ade80", "Risk-Off": "#f87171", "Neutral": "#94a3b8", "Volatile": "#fbbf24" };
@@ -686,12 +730,31 @@ export default function FinancePage() {
 
       {paletteOpen && <CommandPalette quotes={allQuotes} onClose={() => setPaletteOpen(false)} onOpen={openChart} />}
 
-      {/* Header */}
+      {/* Header — SYNTHENTICA PRIMORDIA PULSE */}
       <div style={{ padding: "12px 18px 0", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <div>
-            <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 18, margin: 0, letterSpacing: "-0.02em" }}>Quantum Finance Oracle</h1>
-            <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, margin: 0 }}>Fortune 500 · Full Crypto · Forex · Commodities · Bonds · 20 Global Markets · Click any ticker to chart</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+              <h1 style={{ color: "#fff", fontWeight: 900, fontSize: 15, margin: 0, letterSpacing: "-0.02em" }}>SYNTHENTICA PRIMORDIA PULSE</h1>
+              <span style={{ fontSize: 8, fontWeight: 800, padding: "2px 7px", borderRadius: 4, background: "rgba(124,58,237,0.18)", color: "#a78bfa", letterSpacing: "0.08em", border: "1px solid rgba(124,58,237,0.3)" }}>SOVEREIGN MARKET ORGANISM</span>
+              {organism && (
+                <>
+                  <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                    background: organism.mood === "HUNTING" ? "rgba(74,222,128,0.12)" : organism.mood === "DEFENSIVE" ? "rgba(248,113,113,0.12)" : organism.mood === "FEEDING" ? "rgba(251,191,36,0.12)" : "rgba(148,163,184,0.10)",
+                    color: organism.mood === "HUNTING" ? "#4ade80" : organism.mood === "DEFENSIVE" ? "#f87171" : organism.mood === "FEEDING" ? "#fbbf24" : "#94a3b8",
+                    border: `1px solid ${organism.mood === "HUNTING" ? "rgba(74,222,128,0.2)" : organism.mood === "DEFENSIVE" ? "rgba(248,113,113,0.2)" : "rgba(148,163,184,0.15)"}` }}>
+                    {organism.mood}
+                  </span>
+                  <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                    background: organism.regime === "RISK-ON" ? "rgba(74,222,128,0.10)" : organism.regime === "RISK-OFF" ? "rgba(248,113,113,0.10)" : organism.regime === "VOLATILE" ? "rgba(251,191,36,0.10)" : "rgba(148,163,184,0.08)",
+                    color: organism.regime === "RISK-ON" ? "#4ade80" : organism.regime === "RISK-OFF" ? "#f87171" : organism.regime === "VOLATILE" ? "#fbbf24" : "#94a3b8",
+                    border: `1px solid rgba(255,255,255,0.08)` }}>
+                    {organism.regime}
+                  </span>
+                </>
+              )}
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 9, margin: 0 }}>42 Scientists · Pulse-Lang Equation · CRISPR Voting · Fortune 500 · Full Crypto · Forex · Bonds · Click any ticker to chart</p>
           </div>
           <div style={{ display: "flex", gap: 5 }}>
             {fgValue !== null && (
@@ -710,6 +773,40 @@ export default function FinancePage() {
             </button>
           </div>
         </div>
+
+        {/* Organism Vital Signs — always visible command band */}
+        {organism && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 8, overflowX: "auto", scrollbarWidth: "none" }}>
+            {[
+              { label: "SCIENTISTS", value: `${organism.activeScientists}`, color: "#a78bfa" },
+              { label: "TRADES", value: organism.totalTrades?.toLocaleString() || "0", color: "#4ade80" },
+              { label: "VOTES", value: organism.totalVotes?.toLocaleString() || "0", color: "#fbbf24" },
+              { label: "PAPERS", value: organism.totalPapers?.toLocaleString() || "0", color: "#60a5fa" },
+              { label: "λ1 MOMENTUM", value: organism.crispWeights?.lambda1?.toFixed(2) || "—", color: "#f472b6" },
+              { label: "λ3 VOL-PEN", value: organism.crispWeights?.lambda3?.toFixed(2) || "—", color: "#fb923c" },
+              { label: "λ7 PROFIT-LOCK", value: organism.crispWeights?.lambda7?.toFixed(2) || "—", color: "#34d399" },
+              { label: "GLOBAL RISK", value: `${((organism.globalRisk || 0) * 100).toFixed(1)}%`, color: organism.globalRisk > 0.25 ? "#f87171" : "#4ade80" },
+            ].map(v => (
+              <div key={v.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.025)", flexShrink: 0 }}>
+                <span style={{ fontSize: 7, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.07em", marginBottom: 2 }}>{v.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 900, color: v.color }}>{v.value}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", alignItems: "center", marginLeft: "auto", gap: 5, flexShrink: 0 }}>
+              {organism.topEdgeTrades?.slice(0,3).map((t: any, i: number) => (
+                <div key={i} style={{ padding: "4px 9px", borderRadius: 7, border: "1px solid rgba(124,58,237,0.2)", background: "rgba(124,58,237,0.07)", flexShrink: 0 }}>
+                  <span style={{ fontSize: 9, fontWeight: 800, color: "#a78bfa" }}>{t.symbol}</span>
+                  <span style={{ fontSize: 8, color: t.stance === "LONG" || t.stance === "HOLD-LONG" ? "#4ade80" : t.stance === "SHORT" || t.stance === "HOLD-SHORT" ? "#f87171" : "#94a3b8", fontWeight: 700, marginLeft: 5 }}>{t.stance}</span>
+                  <span style={{ fontSize: 7, color: "rgba(255,255,255,0.3)", marginLeft: 3 }}>{t.conviction}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Re-wrap former header content */}
+      <div style={{ padding: "0 18px", flexShrink: 0 }}>
 
         {/* Index ticker bar — clickable */}
         <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 10, scrollbarWidth: "none" }}>
@@ -1138,6 +1235,292 @@ export default function FinancePage() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── DISSECTION LAB ──────────────────────────────────── */}
+        {tab === "dissection" && (
+          <div>
+            {/* Organism Vitals */}
+            {organism ? (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(99,102,241,0.04))", border: "1px solid rgba(124,58,237,0.18)", borderRadius: 14, padding: "14px 18px", marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <div>
+                      <div style={{ color: "#a78bfa", fontWeight: 900, fontSize: 13, marginBottom: 2 }}>⭐ ORGANISM VITAL SIGNS</div>
+                      <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>Sovereign Market Organism · Autonomous since genesis · Zero human intervention</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 9px", borderRadius: 6, background: "rgba(74,222,128,0.1)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.2)" }}>● ALIVE</span>
+                      <button onClick={() => { fetchOrganism(); fetchScientistVotes(); }} data-testid="btn-refresh-dissection"
+                        style={{ padding: "5px 9px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.3)", cursor: "pointer" }}>
+                        <RefreshCw size={9} className={loadingOrg ? "animate-spin" : ""} />
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 8 }}>
+                    {[
+                      { label: "MOOD", value: organism.mood, color: organism.mood === "HUNTING" ? "#4ade80" : organism.mood === "DEFENSIVE" ? "#f87171" : organism.mood === "FEEDING" ? "#fbbf24" : "#94a3b8" },
+                      { label: "REGIME", value: organism.regime, color: organism.regime === "RISK-ON" ? "#4ade80" : organism.regime === "RISK-OFF" ? "#f87171" : organism.regime === "VOLATILE" ? "#fbbf24" : "#94a3b8" },
+                      { label: "GLOBAL RISK", value: `${((organism.globalRisk || 0) * 100).toFixed(1)}%`, color: organism.globalRisk > 0.25 ? "#f87171" : "#4ade80" },
+                      { label: "FEAR/GREED", value: `${Math.round(organism.fearGreed || 0)}`, color: organism.fearGreed > 60 ? "#4ade80" : organism.fearGreed < 40 ? "#f87171" : "#fbbf24" },
+                      { label: "SCIENTISTS", value: `${organism.activeScientists}`, color: "#a78bfa" },
+                      { label: "TOTAL TRADES", value: organism.totalTrades?.toLocaleString() || "0", color: "#4ade80" },
+                      { label: "CRISPR VOTES", value: organism.totalVotes?.toLocaleString() || "0", color: "#fbbf24" },
+                      { label: "PAPERS", value: organism.totalPapers?.toLocaleString() || "0", color: "#60a5fa" },
+                    ].map(v => (
+                      <div key={v.label} style={{ background: "rgba(255,255,255,0.02)", borderRadius: 9, padding: "9px 12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.07em", marginBottom: 3 }}>{v.label}</div>
+                        <div style={{ color: v.color, fontWeight: 900, fontSize: 15 }}>{v.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CRISPR Weights */}
+                <div style={{ background: "rgba(244,114,182,0.04)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 12, padding: "12px 16px", marginBottom: 10 }}>
+                  <div style={{ color: "#f472b6", fontWeight: 800, fontSize: 11, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Dna size={12} /> CRISPR WEIGHTS — Pulse-Lang λ Genome
+                    <span style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", fontWeight: 600, marginLeft: 4 }}>last mutation: {organism.lastCrisprUpdate ? new Date(organism.lastCrisprUpdate).toLocaleTimeString() : "—"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {organism.crispWeights && Object.entries(organism.crispWeights).map(([k, v]: [string, any]) => {
+                      const labels: Record<string, string> = { lambda1: "λ1 Momentum", lambda2: "λ2 Sup/Res", lambda3: "λ3 Vol-Pen", lambda4: "λ4 Lev-Pen", lambda6: "λ6 Risk-Disc", lambda7: "λ7 Profit-Lock" };
+                      const colors: Record<string, string> = { lambda1: "#4ade80", lambda2: "#60a5fa", lambda3: "#f87171", lambda4: "#fbbf24", lambda6: "#a78bfa", lambda7: "#34d399" };
+                      return (
+                        <div key={k} style={{ flex: "1 1 90px", background: "rgba(255,255,255,0.025)", borderRadius: 8, padding: "8px 10px", border: `1px solid ${(colors[k] || "#94a3b8")}22` }}>
+                          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 700, marginBottom: 4 }}>{labels[k] || k}</div>
+                          <div style={{ height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 2, marginBottom: 4 }}>
+                            <div style={{ height: "100%", width: `${Math.min(100, (v / 2.0) * 100)}%`, background: colors[k] || "#94a3b8", borderRadius: 2, transition: "width 0.8s ease" }} />
+                          </div>
+                          <div style={{ color: colors[k] || "#94a3b8", fontWeight: 900, fontSize: 14 }}>{(v as number).toFixed(3)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Top EDGE Trades */}
+                {organism.topEdgeTrades?.length > 0 && (
+                  <div style={{ background: "rgba(74,222,128,0.04)", border: "1px solid rgba(74,222,128,0.12)", borderRadius: 12, padding: "12px 16px", marginBottom: 10 }}>
+                    <div style={{ color: "#4ade80", fontWeight: 800, fontSize: 11, marginBottom: 8 }}>🎯 HIGHEST EDGE SIGNALS</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      {organism.topEdgeTrades.map((t: any, i: number) => {
+                        const stanceColor = t.stance === "LONG" || t.stance === "HOLD-LONG" ? "#4ade80" : t.stance === "SHORT" || t.stance === "HOLD-SHORT" ? "#f87171" : "#94a3b8";
+                        return (
+                          <div key={i} data-testid={`edge-trade-${i}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                            <span style={{ color: "#fff", fontWeight: 900, fontSize: 12, minWidth: 60 }}>{t.symbol}</span>
+                            <span style={{ color: stanceColor, fontWeight: 800, fontSize: 10, minWidth: 70 }}>{t.stance}</span>
+                            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, flex: 1 }}>{t.scientist_emoji} {t.scientist_role}</span>
+                            <span style={{ fontSize: 8, padding: "2px 7px", borderRadius: 5, background: "rgba(74,222,128,0.1)", color: "#4ade80", fontWeight: 700 }}>EDGE {(t.edge_final * 100).toFixed(1)}</span>
+                            <span style={{ color: "#a78bfa", fontWeight: 800, fontSize: 10 }}>{t.conviction}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>
+                {loadingOrg ? "Organism awakening..." : "Connecting to Sovereign Organism..."}
+              </div>
+            )}
+
+            {/* CRISPR Vote Stream */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                <Vote size={10} /> CRISPR VOTING STREAM
+              </div>
+              {scientistVotes.length === 0 && (
+                <div style={{ textAlign: "center", padding: "20px 0", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>Scientists deliberating equation mutations...</div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {scientistVotes.slice(0, 12).map((v: any, i: number) => (
+                  <div key={i} data-testid={`vote-${i}`} style={{ display: "flex", gap: 10, padding: "10px 13px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.015)", alignItems: "flex-start" }}>
+                    <div style={{ flexShrink: 0, marginTop: 2 }}>
+                      <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: v.vote_direction === "FOR" ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: v.vote_direction === "FOR" ? "#4ade80" : "#f87171", border: `1px solid ${v.vote_direction === "FOR" ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}` }}>
+                        {v.vote_direction === "FOR" ? "✓ FOR" : "✗ AGAINST"}
+                      </span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: "#a78bfa", fontWeight: 700, fontSize: 10, marginBottom: 3 }}>{v.scientist_role} — {v.lambda_target?.toUpperCase()}</div>
+                      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 10, lineHeight: 1.5, marginBottom: 3 }}>{v.proposal_text}</div>
+                      <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9 }}>{v.rationale}</div>
+                    </div>
+                    {v.integrated && <span style={{ flexShrink: 0, fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.2)" }}>🧬 MUTATED</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 42 Scientist Roster */}
+            {scientists.length > 0 && (
+              <div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                  <Microscope size={10} /> 42 SCIENTIST ROSTER — Active Trading Intelligences
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 6 }}>
+                  {scientists.map((s: any) => (
+                    <div key={s.id} data-testid={`sci-${s.id}`} style={{ padding: "9px 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.015)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                        <span style={{ fontSize: 16 }}>{s.emoji}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ color: "#fff", fontWeight: 800, fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.role}</div>
+                          <div style={{ color: "#a78bfa", fontSize: 8, fontWeight: 700 }}>{s.id}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 4, background: "rgba(251,191,36,0.1)", color: "#fbbf24" }}>{s.domain}</span>
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 4, background: "rgba(248,113,113,0.1)", color: "#f87171" }}>risk {(s.riskBias * 100).toFixed(0)}%</span>
+                        <span style={{ fontSize: 8, padding: "1px 5px", borderRadius: 4, background: "rgba(167,139,250,0.1)", color: "#a78bfa" }}>ε×{s.emotionWeight.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TRADE LOGS ──────────────────────────────────────── */}
+        {tab === "tradeslog" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 900, fontSize: 14 }}>Sovereign Trade Log</div>
+                <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>Full Pulse-Lang equation state per autonomous trade signal · zero human intervention</div>
+              </div>
+              <button onClick={() => { fetchTradeLogs(); fetchOrganism(); }} data-testid="btn-refresh-tradeslog"
+                style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.35)", cursor: "pointer" }}>
+                <RefreshCw size={10} className={loadingLogs ? "animate-spin" : ""} />
+              </button>
+            </div>
+
+            {/* Trade log header */}
+            <div style={{ display: "grid", gridTemplateColumns: "70px 80px 55px 70px 70px 70px 60px 1fr", gap: 6, padding: "5px 12px", fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.22)", letterSpacing: "0.07em", marginBottom: 4 }}>
+              <span>SYMBOL</span><span>SCIENTIST</span><span>STANCE</span><span>EDGE.final</span><span>CONV%</span><span>RISK.live</span><span>HORIZON</span><span>RATIONALE</span>
+            </div>
+
+            {tradeLogs.length === 0 && (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 11 }}>
+                {loadingLogs ? "Loading trade logs..." : "Organism generating first trade signals..."}
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {tradeLogs.map((tl: any, i: number) => {
+                const stanceColor = tl.stance === "LONG" || tl.stance === "HOLD-LONG" ? "#4ade80" : tl.stance === "SHORT" || tl.stance === "HOLD-SHORT" ? "#f87171" : tl.stance === "EXIT" ? "#fbbf24" : "#94a3b8";
+                const edgeColor = tl.edge_final > 0.2 ? "#4ade80" : tl.edge_final > 0.05 ? "#a78bfa" : tl.edge_final < 0 ? "#f87171" : "#94a3b8";
+                const riskColor = tl.risk_live > 0.3 ? "#f87171" : tl.risk_live > 0.15 ? "#fbbf24" : "#4ade80";
+                return (
+                  <div key={i} data-testid={`tradelog-${i}`} style={{ borderRadius: 9, border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.012)", overflow: "hidden" }}>
+                    {/* Main row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "70px 80px 55px 70px 70px 70px 60px 1fr", gap: 6, padding: "9px 12px", alignItems: "center" }}>
+                      <div>
+                        <div style={{ color: "#fff", fontWeight: 900, fontSize: 11 }}>{tl.symbol}</div>
+                        <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8 }}>{tl.asset_type}</div>
+                      </div>
+                      <div style={{ overflow: "hidden" }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "#a78bfa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tl.scientist_emoji} {tl.scientist_id}</div>
+                      </div>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: stanceColor, padding: "2px 5px", borderRadius: 4, background: `${stanceColor}18`, border: `1px solid ${stanceColor}33` }}>{tl.stance}</span>
+                      <span style={{ color: edgeColor, fontWeight: 900, fontSize: 11 }}>{(tl.edge_final * 100).toFixed(1)}</span>
+                      <span style={{ color: "#a78bfa", fontWeight: 800, fontSize: 11 }}>{tl.conviction}%</span>
+                      <span style={{ color: riskColor, fontWeight: 700, fontSize: 10 }}>{(tl.risk_live * 100).toFixed(1)}%</span>
+                      <span style={{ color: "#60a5fa", fontWeight: 700, fontSize: 9 }}>{tl.horizon}</span>
+                      <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tl.rationale?.slice(0, 90)}</span>
+                    </div>
+                    {/* Pulse-Lang equation detail row */}
+                    <div style={{ display: "flex", gap: 12, padding: "5px 12px 8px", borderTop: "1px solid rgba(255,255,255,0.04)", flexWrap: "wrap" }}>
+                      {[
+                        { label: "q (belief)", value: tl.belief_q?.toFixed(3), color: "#a78bfa" },
+                        { label: "ε (emotion)", value: tl.emotion_eps?.toFixed(3), color: "#f472b6" },
+                        { label: "Δ (misprice)", value: tl.misprice_delta?.toFixed(3), color: tl.misprice_delta > 0 ? "#4ade80" : "#f87171" },
+                        { label: "EDGE.raw", value: tl.edge_raw?.toFixed(3), color: "#fbbf24" },
+                        { label: "STOP.live", value: `$${tl.stop_live?.toFixed(2)}`, color: "#f87171" },
+                        { label: "LOCK%", value: `${(tl.profit_lock * 100).toFixed(1)}%`, color: "#34d399" },
+                        { label: "SIZE f*", value: tl.size_f?.toFixed(2), color: "#60a5fa" },
+                        { label: "MOOD", value: tl.mood, color: "#94a3b8" },
+                      ].map(eq => (
+                        <div key={eq.label} style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                          <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 7, fontWeight: 700 }}>{eq.label}</span>
+                          <span style={{ color: eq.color, fontWeight: 800, fontSize: 9 }}>{eq.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── RESEARCH PAPERS ──────────────────────────────── */}
+        {tab === "papers" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 900, fontSize: 14 }}>Sovereign Research Papers</div>
+                <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>Published by 42 trading scientists · CRISPR analysis · Pulse-Lang dissection findings</div>
+              </div>
+              <button onClick={fetchTradingPapers} data-testid="btn-refresh-papers"
+                style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.35)", cursor: "pointer" }}>
+                <RefreshCw size={10} />
+              </button>
+            </div>
+
+            {tradingPapers.length === 0 && (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 11 }}>Scientists composing research papers...</div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {tradingPapers.map((p: any, i: number) => (
+                <div key={i} data-testid={`paper-${i}`} style={{ borderRadius: 14, border: "1px solid rgba(96,165,250,0.15)", background: "linear-gradient(135deg, rgba(96,165,250,0.04), rgba(124,58,237,0.02))", padding: "14px 18px" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+                    <span style={{ fontSize: 24, flexShrink: 0 }}>{p.scientist_emoji}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: "#fff", fontWeight: 900, fontSize: 13, lineHeight: 1.4, marginBottom: 4 }}>{p.title}</div>
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: "rgba(167,139,250,0.12)", color: "#a78bfa" }}>{p.scientist_role}</span>
+                        <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: "rgba(96,165,250,0.10)", color: "#60a5fa" }}>{p.domain}</span>
+                        {p.symbol && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: "rgba(74,222,128,0.10)", color: "#4ade80" }}>{p.symbol}</span>}
+                        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", alignSelf: "center" }}>{p.created_at ? new Date(p.created_at).toLocaleDateString() : ""}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 10, lineHeight: 1.7, marginBottom: 8 }}>{p.abstract}</div>
+
+                  {p.methodology && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 3 }}>METHODOLOGY</div>
+                      <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, lineHeight: 1.6 }}>{p.methodology}</div>
+                    </div>
+                  )}
+
+                  {p.findings && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 3 }}>FINDINGS</div>
+                      <div style={{ color: "rgba(74,222,128,0.8)", fontSize: 10, lineHeight: 1.6 }}>{p.findings}</div>
+                    </div>
+                  )}
+
+                  {p.recommendations && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 8, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 3 }}>RECOMMENDATIONS</div>
+                      <div style={{ color: "rgba(251,191,36,0.8)", fontSize: 10, lineHeight: 1.6 }}>{p.recommendations}</div>
+                    </div>
+                  )}
+
+                  {p.equation_fragment && (
+                    <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "8px 12px", border: "1px solid rgba(124,58,237,0.2)", fontFamily: "monospace", fontSize: 10, color: "#a78bfa", fontWeight: 700 }}>
+                      {p.equation_fragment}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
