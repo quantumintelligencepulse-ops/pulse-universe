@@ -11,6 +11,7 @@ import { startQuantumCareerEngine } from "./quantum-career-engine";
 import { startCareerCrisprEngine } from "./career-crispr-engine";
 import { startJobIngestionEngine } from "./job-ingestion-engine";
 import { startCareerCache } from "./career-cache";
+import { startPulseNetCache } from "./pulsenet-cache";
 import { startSpawnEngine } from "./quantum-spawn-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
@@ -58,6 +59,7 @@ import { startHiveMindUnification, getHiveMindStatus, getAurionaDirectives, getE
 import { startInventionEngine, getInventionStats, getPatentsByAgent } from "./invention-engine";
 import { startOmniNetEngine, getOmniNetStats, getAgentNetProfile } from "./omni-net-engine";
 import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory } from "./research-center-engine";
+import { getResearchCached, isResearchReady } from "./pulsenet-cache";
 import { startCivilizationBridge, getBridgeStats, getMirrorState, getWills, getSuccessions, getEquationEvolutions } from "./civilization-bridge";
 
 const app = express();
@@ -184,6 +186,7 @@ app.use((req, res, next) => {
       startCareerCrisprEngine();
       startJobIngestionEngine();
       startCareerCache();
+      startPulseNetCache();
       startSpawnEngine().catch((e) => log(`SpawnEngine start error: ${e}`));
       startIngestionEngine().catch((e) => log(`IngestionEngine start error: ${e}`));
       startPublicationEngine().catch((e) => log(`PublicationEngine start error: ${e}`));
@@ -736,16 +739,28 @@ app.use("/api/invocations", invocationRouter);
 // ── RESEARCH CENTER API ─────────────────────────────────────────
 const researchRouter = express.Router();
 researchRouter.get("/stats", async (_req, res) => {
-  try { res.json({ ...(await getResearchStats()), total_disciplines: TOTAL_RESEARCH_DISCIPLINES }); } catch (e) { res.status(500).json({ error: String(e) }); }
+  try {
+    if (isResearchReady()) {
+      const cached = getResearchCached()!;
+      return res.json({ ...cached.stats, total_disciplines: TOTAL_RESEARCH_DISCIPLINES });
+    }
+    res.json({ ...(await getResearchStats()), total_disciplines: TOTAL_RESEARCH_DISCIPLINES });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 researchRouter.get("/projects", async (req, res) => {
   const domain = (req as any).query.domain as string | undefined;
   const limit  = Math.min(50, parseInt(String((req as any).query.limit || 30)));
-  try { res.json(await getActiveResearchProjects(domain, limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+  try {
+    if (isResearchReady() && !domain) return res.json(getResearchCached()!.projects.slice(0, limit));
+    res.json(await getActiveResearchProjects(domain, limit));
+  } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 researchRouter.get("/findings", async (req, res) => {
   const limit = Math.min(30, parseInt(String((req as any).query.limit || 20)));
-  try { res.json(await getDeepFindings(limit)); } catch (e) { res.status(500).json({ error: String(e) }); }
+  try {
+    if (isResearchReady()) return res.json(getResearchCached()!.findings.slice(0, limit));
+    res.json(await getDeepFindings(limit));
+  } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 researchRouter.get("/collaborations", async (req, res) => {
   const limit = Math.min(30, parseInt(String((req as any).query.limit || 20)));

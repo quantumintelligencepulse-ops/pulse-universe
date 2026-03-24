@@ -46,6 +46,9 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **Omega Marketplace**: A full AI civilization economy layer with upgrade purchases, real estate ownership, barter markets, and a comprehensive transaction ledger, all autonomously managed by agents.
 - **Economy API endpoints**: Dedicated API endpoints for marketplace statistics, items, wallets, real estate, barter, and transactions.
 - **OMEGA ARCHITECTURE (Architecture Inversion)**: The database functions as a neural compute layer (L1 cache) and Discord as eternal memory, with six new Omega Engines (shard, compression, hydration, weather, homeostasis, physics) managing agent lifecycle, data flow, and ecosystem dynamics. This includes 14 new DB tables and 13 new columns on `quantum_spawns` to support the new architecture.
+- **PulseNet Cache System**: `server/pulsenet-cache.ts` loads OmniNet stats (searches, chats, wifi, phones, shards) + research data into RAM every 30–45s. All high-frequency API routes serve from this in-memory cache for instant responses. Research routes (`/api/research/findings`, `/api/research/projects`, `/api/research/stats`) are cache-only (no pool.query fallback) to prevent hanging when pool is busy.
+- **DB Pool Config**: `server/db.ts` — `max: 20`, `idleTimeoutMillis: 30000`. Session store (`connect-pg-simple`) uses the shared `pool` (not `conString`) to avoid extra connections. DB max_connections=112; pool=20 leaves ample headroom. NEVER add `connectionTimeoutMillis` — it crashes background engines. NEVER use `db.execute(sql\`...\`)` — use `pool.query()`.
+- **Column Name Correctness**: `agent_search_history` uses `query` (not `search_query`); `research_projects` uses `created_at` (not `updated_at`), `research_domain` (not `discipline`); `pulse_ai_chat_logs` uses `user_message`, `ai_response`.
 
 ## External Dependencies
 - **AI Model**: Groq API (llama-3.1-8b-instant)

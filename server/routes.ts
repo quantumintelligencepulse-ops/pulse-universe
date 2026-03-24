@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
+import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
 
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
 const _cache = new Map<string, { data: any; expires: number }>();
@@ -344,7 +345,7 @@ export async function registerRoutes(
 
   const PgSession = connectPgSimple(session);
   app.use(session({
-    store: new PgSession({ conString: process.env.DATABASE_URL, createTableIfMissing: true }),
+    store: new PgSession({ pool: pool, createTableIfMissing: true }),
     secret: process.env.SESSION_SECRET || "myaigpt-session-secret-fallback",
     resave: false,
     saveUninitialized: false,
@@ -9043,8 +9044,9 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   // ── OMNI-NET ENGINE — PulsePhone · Shard · WiFi · PulseAI · PulseBrowser ───
   app.get("/api/omni-net/stats", async (_req, res) => {
     try {
-      const { getOmniNetStats } = await import("./omni-net-engine");
-      res.json(await getOmniNetStats());
+      if (isOmniReady()) return res.json(getOmniCached());
+      const { getOmniNetStats: fallback } = await import("./omni-net-engine");
+      res.json(await fallback());
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
@@ -10031,6 +10033,28 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       { id: "jazz_cipher", name: "Jazz Cipher", genre: "Jazz", bpm: [120,140], key: "Fm", swing: 20, trademark: "ii-V-I progressions + brushed drums", palette: "#e879f9" },
       { id: "sovereign", name: "Sovereign Sound", genre: "Trap", bpm: [138,160], key: "F#m", swing: 3, trademark: "subatomic 808 + quantum melody", palette: "#7c3aed" },
     ]});
+  });
+
+  // ── RESEARCH ROUTES (PulseNetPage PulseLang Lab tab) ────────────────────────
+  app.get("/api/research/findings", (_req, res) => {
+    try {
+      if (isResearchReady()) return res.json(getResearchCached()!.findings);
+      res.json([]);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/research/projects", (_req, res) => {
+    try {
+      if (isResearchReady()) return res.json(getResearchCached()!.projects);
+      res.json([]);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/research/stats", (_req, res) => {
+    try {
+      if (isResearchReady()) return res.json(getResearchCached()!.stats);
+      res.json({ total_projects: 0, active: 0, completed: 0, total_disciplines: 0 });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
   // GET /api/intel/live-prices — Live price snapshot for News Hub market ticker
