@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown, Wrench, LayoutTemplate, Gauge, Sparkles } from "lucide-react";
+import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown, Wrench, LayoutTemplate, Gauge, Sparkles, Dna, RefreshCw } from "lucide-react";
 import type { PulseState } from "@/lib/pulselang/runtime";
 
 import { tokenize } from "@/lib/pulselang/tokenizer";
@@ -26,6 +26,7 @@ const TABS = [
   { id: "pulseai",    label: "🧠 PulseLang AI",   icon: BrainCircuit },
   { id: "dissection", label: "🔬 PulseLang Lab",  icon: FlaskConical },
   { id: "omninet",    label: "⚡ OmniNet Eq",     icon: Waves },
+  { id: "lang-evo",  label: "🧬 Lang Evolution", icon: Dna },
 ];
 
 // ── PROJECTION COLORS ─────────────────────────────────────────────────────────
@@ -192,6 +193,58 @@ const TERMINAL_GLYPHS = [
 
 const DEFAULT_PROGRAM = `⟦Ω₀⟧⟨Λ₁⟩{\n  ϕ₀:Σ₀\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))\n  ↧ϕ₀\n}`;
 
+// ── PULSESHELL v3.0 — FULL IDE ────────────────────────────────────────────────
+const GLYPH_CATEGORIES = [
+  {
+    label: "Vowel Pulses", color: "text-cyan-300",
+    glyphs: ["Ψ","Ω","Σ","Λ","Γ","Δ","Φ","Θ","Π"],
+  },
+  {
+    label: "Consonant Pulses", color: "text-yellow-300",
+    glyphs: ["κ","τ","γ","ϕ","µ","ξ","χ","ζ","η","ρ","β","α","σ","π","ν","λ","δ"],
+  },
+  {
+    label: "Operators", color: "text-rose-300",
+    glyphs: ["≔","↧","⊕","⊗","⊚","⊙","∴","∵","⋄","§","≈","⏲","⏱","⌛"],
+  },
+  {
+    label: "Brackets", color: "text-slate-300",
+    glyphs: ["⟦","⟧","⟨","⟩","{","}","(",")",";","⟁"],
+  },
+  {
+    label: "Subscripts", color: "text-blue-300",
+    glyphs: ["₀","₁","₂","₃","₄","₅","₆","₇","₈","₉"],
+  },
+  {
+    label: "Types", color: "text-violet-300",
+    glyphs: ["Σ₀","Σ₁","Σ₄","Σ₅","Σ₂₀","Σ₂₂","Σ₂₃","Σ₂₄","Σ₂₅"],
+  },
+  {
+    label: "Constructors", color: "text-emerald-300",
+    glyphs: ["Ψ₁","Ψ₂","Ψ₅","Ψ₆","Ψ₁₃","Ψ₁₉","Ψ₂₀","Ψ₂₁","Ψ₂₃","Ψ₂₄"],
+  },
+  {
+    label: "Atoms", color: "text-amber-300",
+    glyphs: ["κ₀","κ₁","κ₂","κ₃","κ₄","κ₅","κ₆","κ₇","κ₈","κ₉"],
+  },
+];
+
+const TERMINAL_MODE_LIST = [
+  { id:"standard", name:"Standard",    icon:"⟁",  color:"cyan",    starter:"⟦Ω₀⟧⟨Λ₁⟩{\n  ; Standard Pulse-Lang program\n  ϕ₀:Σ₀\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))\n  ↧ϕ₀\n}" },
+  { id:"agent",    name:"Agent Mode",  icon:"α",   color:"orange",  starter:"⟦Ω₁⟧⟨Λ₂⟩{\n  ; Agent spawn and signal program\n  ϕ₀:Σ₅\n  ϕ₀≔α(γ₀=τ₅(κ₅))\n  σ(γ₀=τ₁(κ₀))\n  ↧ϕ₀\n}" },
+  { id:"universe", name:"Universe",    icon:"⊚",   color:"violet",  starter:"⟦Ω₂⟧⟨Λ₃⟩{\n  ; Universe fork and expansion\n  ϕ₀:Σ₄\n  ϕ₀≔⊚(γ₀=τ₄(κ₄))\n  ↧ϕ₀\n}" },
+  { id:"social",   name:"Social Mode", icon:"δ~",  color:"pink",    starter:"⟦Ω₃⟧⟨Λ₄⟩{\n  ; Social post generator\n  ϕ₀:Σ₁₈\n  ϕ₀≔Ψ₁₈(γ₀=τ₁(κ₀))\n  ↧ϕ₀\n}" },
+  { id:"saas",     name:"SaaS Builder",icon:"🛠",  color:"emerald", starter:"⟦Ω₄⟧⟨Λ₅⟩{\n  ; SaaS product builder\n  ϕ₀:Σ₂₀\n  ϕ₁:Σ₂₂\n  ϕ₂:Σ₂₄\n  ϕ₀≔Ψ₂₀(γ₀=τ₁(κ₂))\n  ↧ϕ₀\n}" },
+  { id:"repl",     name:"REPL",        icon:"»",   color:"green",   starter:"Ψ₁(γ₀=τ₁(κ₀))" },
+];
+
+const TERMINAL_THEME_LIST = [
+  { id:"void",      name:"Void",      bg:"#050508",  border:"#1e293b", text:"#e2e8f0", accent:"#67e8f9", caret:"#67e8f9" },
+  { id:"sovereign", name:"Sovereign", bg:"#030712",  border:"#1d4ed8", text:"#bfdbfe", accent:"#60a5fa", caret:"#93c5fd" },
+  { id:"quantum",   name:"Quantum",   bg:"#042014",  border:"#059669", text:"#d1fae5", accent:"#34d399", caret:"#6ee7b7" },
+  { id:"cold",      name:"Cold",      bg:"#0c0f14",  border:"#475569", text:"#cbd5e1", accent:"#94a3b8", caret:"#e2e8f0" },
+];
+
 function PulseTerminalTab() {
   const [identity, setIdentity] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -207,12 +260,70 @@ function PulseTerminalTab() {
   const [showHistory, setShowHistory] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [autoFixCode, setAutoFixCode] = useState<string | null>(null);
+
+  // ─── v3.0 NEW STATE ────────────────────────────────────────────────────────
+  const [termMode, setTermMode] = useState("standard");
+  const [termTheme, setTermTheme] = useState("void");
+  const [copilotSuggestions, setCopilotSuggestions] = useState<{ suggestion: string; label: string; confidence: number }[]>([]);
+  const [copilotLoading, setCopilotLoading] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(true);
+  const [transpileOutput, setTranspileOutput] = useState<string | null>(null);
+  const [transpileTarget, setTranspileTarget] = useState<"js" | "python">("js");
+  const [showTranspile, setShowTranspile] = useState(false);
+  const [linterErrors, setLinterErrors] = useState<string[]>([]);
+  const [showGlyphs, setShowGlyphs] = useState(true);
+  const [activeGlyphCat, setActiveGlyphCat] = useState("Vowel Pulses");
+  const [replHistory, setReplHistory] = useState<{ input: string; output: string }[]>([]);
+  const [cmdHistory, setCmdHistory] = useState<string[]>([]);
+  const [historyIdx, setHistoryIdx] = useState(-1);
+  const copilotTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const outputRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
 
   const metrics = useMemo(() => computeMetrics(code), [code]);
   const highlighted = useMemo(() => highlightPulseLang(code), [code]);
+  const activeTheme = TERMINAL_THEME_LIST.find(t => t.id === termTheme) ?? TERMINAL_THEME_LIST[0];
+  const activeMode  = TERMINAL_MODE_LIST.find(m => m.id === termMode) ?? TERMINAL_MODE_LIST[0];
+
+  // ─── CoPilot: debounce 400ms, call after code change ─────────────────────
+  useEffect(() => {
+    if (!showCopilot || !code) { setCopilotSuggestions([]); return; }
+    if (copilotTimer.current) clearTimeout(copilotTimer.current);
+    copilotTimer.current = setTimeout(async () => {
+      setCopilotLoading(true);
+      try {
+        const cursor = textareaRef.current?.selectionStart ?? code.length;
+        const res = await fetch("/api/pulse-lang/copilot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, cursor, mode: termMode }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCopilotSuggestions(data.completions ?? []);
+        }
+      } catch { /* silent */ }
+      setCopilotLoading(false);
+    }, 400);
+    return () => { if (copilotTimer.current) clearTimeout(copilotTimer.current); };
+  }, [code, termMode, showCopilot]);
+
+  // ─── Basic linter ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const errs: string[] = [];
+    if (termMode !== "repl" && code.includes("ϕ") && !code.includes("↧")) {
+      errs.push("⚠ Missing ↧ return statement");
+    }
+    if (code.includes("≔") && !code.includes(":Σ")) {
+      errs.push("⚠ Assignment without type declaration (ϕN:Σ)");
+    }
+    if ((code.match(/⟦/g) || []).length !== (code.match(/⟧/g) || []).length) {
+      errs.push("⚠ Mismatched ⟦ ⟧ universe brackets");
+    }
+    setLinterErrors(errs);
+  }, [code, termMode]);
 
   const handleIdentify = useCallback(() => {
     setConfirmed(true);
@@ -278,11 +389,45 @@ function PulseTerminalTab() {
     });
   }, [code]);
 
+  const acceptCopilot = useCallback((suggestion: string) => {
+    const ta = textareaRef.current;
+    if (!ta) { setCode(prev => prev + suggestion); setCopilotSuggestions([]); return; }
+    const start = ta.selectionStart;
+    const newCode = code.slice(0, start) + suggestion + code.slice(start);
+    setCode(newCode);
+    setCopilotSuggestions([]);
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = start + suggestion.length;
+      ta.focus();
+    });
+  }, [code]);
+
+  const runTranspile = useCallback(async (target: "js" | "python") => {
+    setTranspileTarget(target);
+    setShowTranspile(true);
+    setTranspileOutput("Transpiling…");
+    try {
+      const res = await fetch("/api/pulse-lang/transpile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, target }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTranspileOutput(data.output ?? "No output");
+      } else {
+        setTranspileOutput("Transpile error");
+      }
+    } catch (e: any) {
+      setTranspileOutput("Error: " + e.message);
+    }
+  }, [code]);
+
   if (!confirmed) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
         <div className="text-center space-y-2">
-          <div className="text-4xl font-black font-mono text-cyan-400">⟁ PULSESHELL v1.0</div>
+          <div className="text-4xl font-black font-mono text-cyan-400">⟁ PULSESHELL v3.0 Ω</div>
           <div className="text-sm text-muted-foreground">SOVEREIGN MACHINE — IDENTITY REQUIRED</div>
         </div>
         <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 to-slate-950/60 p-6 w-full max-w-sm space-y-4">
@@ -323,214 +468,420 @@ function PulseTerminalTab() {
   }
 
   const projColor = projection ? (PROJ_COLORS[projection.color] ?? PROJ_COLORS.cyan) : "";
+  const modeColorMap: Record<string, string> = {
+    standard: "border-cyan-500/40 text-cyan-300 bg-cyan-500/10",
+    agent: "border-orange-500/40 text-orange-300 bg-orange-500/10",
+    universe: "border-violet-500/40 text-violet-300 bg-violet-500/10",
+    social: "border-pink-500/40 text-pink-300 bg-pink-500/10",
+    saas: "border-emerald-500/40 text-emerald-300 bg-emerald-500/10",
+    repl: "border-green-500/40 text-green-300 bg-green-500/10",
+  };
+  const modeInactiveMap: Record<string, string> = {
+    standard: "hover:text-cyan-400 hover:border-cyan-500/30",
+    agent: "hover:text-orange-400 hover:border-orange-500/30",
+    universe: "hover:text-violet-400 hover:border-violet-500/30",
+    social: "hover:text-pink-400 hover:border-pink-500/30",
+    saas: "hover:text-emerald-400 hover:border-emerald-500/30",
+    repl: "hover:text-green-400 hover:border-green-500/30",
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Ω₂ Shell header with live metrics */}
-      <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-950/80 to-cyan-950/30 p-4 font-mono">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-cyan-300 font-black text-sm">⟁ PulseShell v2.0 Ω ◈ AUTO CO-COMPILER ONLINE</div>
+    <div className="space-y-3">
+
+      {/* ── v3.0 HEADER ──────────────────────────────────────────────────────── */}
+      <div className="rounded-xl border font-mono overflow-hidden" style={{ borderColor: activeTheme.border, backgroundColor: activeTheme.bg + "ee" }}>
+        {/* Top bar: shell name + metrics */}
+        <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: activeTheme.border }}>
+          <div className="font-black text-sm" style={{ color: activeTheme.accent }}>
+            ⟁ PulseShell v3.0 Ω ◈ {activeMode.icon} {activeMode.name.toUpperCase()} MODE
+            {copilotLoading && <span className="ml-2 text-[10px] opacity-60 animate-pulse">CoPilot…</span>}
+          </div>
           <div className="flex items-center gap-2">
+            {/* Theme picker */}
+            {TERMINAL_THEME_LIST.map(th => (
+              <button
+                key={th.id}
+                data-testid={`button-theme-${th.id}`}
+                onClick={() => setTermTheme(th.id)}
+                title={th.name}
+                className={`w-3.5 h-3.5 rounded-full border-2 transition-transform ${termTheme === th.id ? "scale-125 border-white" : "border-transparent opacity-60 hover:opacity-100"}`}
+                style={{ backgroundColor: th.accent }}
+              />
+            ))}
+            <div className="w-px h-3 bg-white/10 mx-1" />
             <button
-              data-testid="button-toggle-templates"
-              onClick={() => setShowTemplates(v => !v)}
-              className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-colors ${showTemplates ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "bg-muted/50 border-border text-muted-foreground hover:text-amber-400 hover:border-amber-500/30"}`}
+              data-testid="button-toggle-copilot"
+              onClick={() => setShowCopilot(v => !v)}
+              className={`text-[10px] px-2 py-0.5 rounded border transition-colors font-bold ${showCopilot ? "border-cyan-500/40 text-cyan-300 bg-cyan-500/10" : "border-border text-muted-foreground"}`}
             >
-              <LayoutTemplate size={9} /> Templates
+              CoPilot {showCopilot ? "ON" : "OFF"}
             </button>
-            <div className="flex items-center gap-1.5 text-[10px] text-green-400">
+            <div className="flex items-center gap-1 text-[10px] text-green-400">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
               ONLINE
             </div>
           </div>
         </div>
-        <div className="text-[11px] text-cyan-600 mb-2">
-          ▸ Identity: <span className="text-cyan-400">{identity}</span> | Clearance: Ω₀ | Mode: Auto Co-Compiler
+
+        {/* Identity + live metrics */}
+        <div className="px-4 py-1.5 text-[10px] flex flex-wrap gap-x-4 gap-y-0.5" style={{ color: activeTheme.text + "80" }}>
+          <span>Identity: <span style={{ color: activeTheme.accent }}>{identity}</span></span>
+          <span>Clearance: Ω₀</span>
+          <span>Lines: <span style={{ color: activeTheme.accent }}>{metrics.lines}</span></span>
+          <span>Σ-types: <span style={{ color: activeTheme.accent }}>{metrics.sigmas}</span></span>
+          <span>Ψ-calls: <span style={{ color: activeTheme.accent }}>{metrics.psis}</span></span>
+          <span>ϕ-vars: <span style={{ color: activeTheme.accent }}>{metrics.phis}</span></span>
+          <span>Complexity: <span className={`font-bold ${metrics.complex >= 7 ? "text-rose-400" : metrics.complex >= 4 ? "text-amber-400" : "text-green-400"}`}>{metrics.complex}/10</span></span>
+          {metrics.agents && <span className="text-green-400">Agents: YES</span>}
+          {metrics.univs && <span className="text-violet-400">Universe: YES</span>}
+          {metrics.evol && <span className="text-rose-400">Evolution: ACTIVE</span>}
         </div>
-        {/* Ω₆ Live Code Metrics */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-mono border-t border-cyan-500/10 pt-2">
-          <span className="text-cyan-500/70">Lines: <span className="text-cyan-300">{metrics.lines}</span></span>
-          <span className="text-blue-500/70">Σ-types: <span className="text-blue-300">{metrics.sigmas}</span></span>
-          <span className="text-cyan-500/70">Ψ-calls: <span className="text-cyan-300">{metrics.psis}</span></span>
-          <span className="text-slate-400/70">ϕ-vars: <span className="text-slate-300">{metrics.phis}</span></span>
-          <span className="text-amber-500/70">Ω-mode: <span className="text-amber-300">Ω{metrics.omegaM}</span></span>
-          <span className={metrics.agents ? "text-green-500/70" : "text-muted-foreground/40"}>
-            Agents: <span className={metrics.agents ? "text-green-300" : ""}>{metrics.agents ? "YES" : "—"}</span>
-          </span>
-          <span className={metrics.univs ? "text-violet-500/70" : "text-muted-foreground/40"}>
-            Universe: <span className={metrics.univs ? "text-violet-300" : ""}>{metrics.univs ? "YES" : "—"}</span>
-          </span>
-          <span className={metrics.evol ? "text-rose-500/70" : "text-muted-foreground/40"}>
-            Evolution: <span className={metrics.evol ? "text-rose-300" : ""}>{metrics.evol ? "ACTIVE" : "—"}</span>
-          </span>
-          <span className="text-muted-foreground/70">Complexity: <span className={`font-bold ${metrics.complex >= 7 ? "text-rose-400" : metrics.complex >= 4 ? "text-amber-400" : "text-green-400"}`}>{metrics.complex}/10</span></span>
+
+        {/* Mode tabs */}
+        <div className="flex border-t gap-0.5 px-2 pt-1.5 pb-0.5" style={{ borderColor: activeTheme.border }}>
+          {TERMINAL_MODE_LIST.map(m => (
+            <button
+              key={m.id}
+              data-testid={`button-mode-${m.id}`}
+              onClick={() => { setTermMode(m.id); setCode(m.starter); setLog([]); setProjection(null); setError(null); setCopilotSuggestions([]); setTranspileOutput(null); }}
+              className={`text-[10px] px-2.5 py-1 rounded-t border font-mono font-bold transition-colors ${termMode === m.id ? modeColorMap[m.id] : `border-border text-muted-foreground bg-transparent ${modeInactiveMap[m.id]}`}`}
+            >
+              {m.icon} {m.name}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Ω₇ Template Library Panel */}
-      {showTemplates && (
-        <div className="rounded-xl border border-amber-500/30 bg-card overflow-hidden">
-          <div className="px-4 py-2.5 bg-amber-500/5 border-b border-amber-500/20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <LayoutTemplate size={13} className="text-amber-400" />
-              <span className="text-xs font-bold text-amber-300 font-mono">Template Library — Canonical PulseLang Programs</span>
-            </div>
-            <button onClick={() => setShowTemplates(false)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+      {/* ── LINTER ERRORS ────────────────────────────────────────────────────── */}
+      {linterErrors.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 space-y-0.5">
+          {linterErrors.map((e, i) => (
+            <div key={i} className="text-[11px] font-mono text-amber-300">{e}</div>
+          ))}
+        </div>
+      )}
+
+      {/* ── COPILOT SUGGESTIONS ──────────────────────────────────────────────── */}
+      {showCopilot && copilotSuggestions.length > 0 && (
+        <div className="rounded-lg border border-cyan-500/20 bg-black/80 overflow-hidden">
+          <div className="px-3 py-1.5 bg-cyan-950/30 border-b border-cyan-500/10 flex items-center justify-between">
+            <span className="text-[10px] font-bold font-mono text-cyan-400">⟁ CoPilot Suggestions — TAB to accept</span>
+            <button onClick={() => setCopilotSuggestions([])} className="text-[10px] text-muted-foreground hover:text-foreground">✕</button>
           </div>
-          <div className="p-3 space-y-3 max-h-[380px] overflow-y-auto">
-            {PULSE_TEMPLATES.map(cat => (
-              <div key={cat.category}>
-                <div className={`text-[10px] font-bold tracking-widest mb-1.5 px-1 ${cat.color.split(' ')[0]}`}>{cat.category}</div>
-                <div className="space-y-1">
-                  {cat.items.map((t, i) => (
-                    <button
-                      key={i}
-                      data-testid={`button-template-${cat.category.toLowerCase()}-${i}`}
-                      onClick={() => { setCode(t.code); setShowTemplates(false); setLog([]); setProjection(null); setError(null); }}
-                      className={`w-full text-left px-3 py-2 rounded-lg border text-[11px] font-mono hover:opacity-90 transition-all ${cat.color}`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div className="flex flex-col divide-y divide-border/30">
+            {copilotSuggestions.slice(0, 5).map((s, i) => (
+              <button
+                key={i}
+                data-testid={`button-copilot-${i}`}
+                onClick={() => acceptCopilot(s.suggestion)}
+                className="flex items-center gap-3 px-3 py-2 text-left hover:bg-cyan-500/5 transition-colors"
+              >
+                <span className="text-[10px] font-mono text-cyan-300/50 w-8 shrink-0">{Math.round(s.confidence * 100)}%</span>
+                <span className="text-[11px] font-mono text-cyan-200 truncate flex-1">{s.suggestion.slice(0, 60)}</span>
+                <span className="text-[10px] text-muted-foreground shrink-0">{s.label}</span>
+                {i === 0 && <span className="text-[9px] border border-cyan-500/30 text-cyan-400 px-1 rounded shrink-0">TAB</span>}
+              </button>
             ))}
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left: Input */}
+        {/* ── LEFT: EDITOR ─────────────────────────────────────────────────── */}
         <div className="space-y-3">
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border">
-              <span className="text-xs font-bold text-muted-foreground font-mono">PulseLang Source — PulseShell v2.0 Ω</span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  data-testid="button-load-from-ai"
-                  onClick={loadFromAI}
-                  className={`text-[10px] flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${loadedFromAI ? "bg-violet-500/30 border-violet-500/50 text-violet-300" : "bg-violet-500/10 border-violet-500/30 text-violet-400 hover:bg-violet-500/20"}`}
-                  title="Load the last program generated by PulseLang AI"
-                >
-                  <BrainCircuit size={9} /> {loadedFromAI ? "✓ Loaded!" : "← Load from AI"}
-                </button>
-                {programHistory.length > 0 && (
-                  <button
-                    data-testid="button-show-history"
-                    onClick={() => setShowHistory(v => !v)}
-                    className="text-[10px] px-2 py-0.5 rounded border border-border bg-muted/50 hover:bg-muted transition-colors text-muted-foreground"
-                  >
-                    History ({programHistory.length})
-                  </button>
-                )}
-                <button onClick={copyCode} data-testid="button-copy-code" className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 rounded bg-muted/50 hover:bg-muted transition-colors">
-                  {copied ? "✓ Copied" : "Copy"}
-                </button>
+
+          {/* Template panel */}
+          <div className="flex gap-1.5 flex-wrap">
+            <button
+              data-testid="button-toggle-templates"
+              onClick={() => setShowTemplates(v => !v)}
+              className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded border transition-colors font-mono ${showTemplates ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "bg-muted/50 border-border text-muted-foreground hover:text-amber-400"}`}
+            >
+              <LayoutTemplate size={9} /> Templates
+            </button>
+            <button
+              data-testid="button-load-from-ai"
+              onClick={loadFromAI}
+              className={`flex items-center gap-1 text-[10px] px-2.5 py-1 rounded border transition-colors font-mono ${loadedFromAI ? "bg-violet-500/20 border-violet-500/40 text-violet-300" : "bg-muted/50 border-border text-muted-foreground hover:text-violet-400"}`}
+            >
+              <BrainCircuit size={9} /> {loadedFromAI ? "✓ Loaded!" : "← AI Import"}
+            </button>
+            <button
+              data-testid="button-transpile-js"
+              onClick={() => runTranspile("js")}
+              className="flex items-center gap-1 text-[10px] px-2.5 py-1 rounded border border-border bg-muted/50 text-muted-foreground hover:text-yellow-400 hover:border-yellow-500/30 transition-colors font-mono"
+            >
+              ⇒ JS
+            </button>
+            <button
+              data-testid="button-transpile-python"
+              onClick={() => runTranspile("python")}
+              className="flex items-center gap-1 text-[10px] px-2.5 py-1 rounded border border-border bg-muted/50 text-muted-foreground hover:text-blue-400 hover:border-blue-500/30 transition-colors font-mono"
+            >
+              ⇒ Python
+            </button>
+            {programHistory.length > 0 && (
+              <button
+                data-testid="button-show-history"
+                onClick={() => setShowHistory(v => !v)}
+                className="text-[10px] px-2.5 py-1 rounded border border-border bg-muted/50 text-muted-foreground hover:bg-muted transition-colors font-mono"
+              >
+                History ({programHistory.length})
+              </button>
+            )}
+            <button onClick={copyCode} data-testid="button-copy-code" className="text-[10px] px-2.5 py-1 rounded border border-border bg-muted/50 text-muted-foreground hover:bg-muted transition-colors font-mono">
+              {copied ? "✓ Copied" : "Copy"}
+            </button>
+          </div>
+
+          {/* Template library */}
+          {showTemplates && (
+            <div className="rounded-xl border border-amber-500/30 bg-card overflow-hidden">
+              <div className="px-3 py-2 bg-amber-500/5 border-b border-amber-500/20 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-amber-300 font-mono">Template Library</span>
+                <button onClick={() => setShowTemplates(false)} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+              </div>
+              <div className="p-2.5 space-y-2.5 max-h-[260px] overflow-y-auto">
+                {PULSE_TEMPLATES.map(cat => (
+                  <div key={cat.category}>
+                    <div className={`text-[10px] font-bold tracking-widest mb-1 px-1 ${cat.color.split(' ')[0]}`}>{cat.category}</div>
+                    <div className="space-y-0.5">
+                      {cat.items.map((t, i) => (
+                        <button
+                          key={i}
+                          data-testid={`button-template-${cat.category.toLowerCase()}-${i}`}
+                          onClick={() => { setCode(t.code); setShowTemplates(false); setLog([]); setProjection(null); setError(null); }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded border text-[10px] font-mono hover:opacity-90 transition-all ${cat.color}`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
 
-            {/* Program history dropdown */}
-            {showHistory && programHistory.length > 0 && (
-              <div className="border-b border-border bg-black/40 max-h-[140px] overflow-y-auto">
-                {programHistory.map((p, i) => (
-                  <button
-                    key={i}
-                    data-testid={`button-history-${i}`}
-                    onClick={() => { setCode(p.code); setShowHistory(false); }}
-                    className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-cyan-300/70 hover:text-cyan-200 hover:bg-cyan-500/10 border-b border-border/40 last:border-0 truncate transition-colors"
-                  >
-                    {i + 1}. {p.label}
-                  </button>
-                ))}
+          {/* History dropdown */}
+          {showHistory && programHistory.length > 0 && (
+            <div className="rounded-lg border border-border bg-black/50 max-h-[130px] overflow-y-auto">
+              {programHistory.map((p, i) => (
+                <button
+                  key={i}
+                  data-testid={`button-history-${i}`}
+                  onClick={() => { setCode(p.code); setShowHistory(false); }}
+                  className="w-full text-left px-3 py-1.5 text-[11px] font-mono text-cyan-300/70 hover:text-cyan-200 hover:bg-cyan-500/10 border-b border-border/40 last:border-0 truncate transition-colors"
+                >
+                  {i + 1}. {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Syntax-highlighted editor */}
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: activeTheme.border }}>
+            <div className="px-3 py-1.5 border-b flex items-center justify-between" style={{ borderColor: activeTheme.border, backgroundColor: activeTheme.bg }}>
+              <span className="text-[10px] font-mono" style={{ color: activeTheme.accent + "99" }}>
+                PulseShell v3.0 · {activeMode.icon} {activeMode.name} · {termMode === "repl" ? "REPL mode" : "Program"}
+              </span>
+              <span className="text-[10px] font-mono" style={{ color: activeTheme.text + "40" }}>Ctrl+↵ run · Tab accept</span>
+            </div>
+
+            {/* REPL mode */}
+            {termMode === "repl" && (
+              <div className="border-b max-h-[120px] overflow-y-auto" style={{ borderColor: activeTheme.border, backgroundColor: activeTheme.bg + "cc" }}>
+                {replHistory.length === 0
+                  ? <div className="px-4 py-2 text-[10px] font-mono text-muted-foreground/40">REPL history will appear here…</div>
+                  : replHistory.map((h, i) => (
+                    <div key={i} className="border-b last:border-0 px-4 py-1.5 text-[11px] font-mono" style={{ borderColor: activeTheme.border + "40" }}>
+                      <div style={{ color: activeTheme.accent }}>» {h.input}</div>
+                      <div style={{ color: activeTheme.text + "80" }}>← {h.output}</div>
+                    </div>
+                  ))
+                }
               </div>
             )}
 
-            {/* Ω₂ Syntax-highlighted editor overlay */}
-            <div className="relative bg-black/70 overflow-hidden" style={{ minHeight: 220 }}>
-              {/* Read-only highlighted layer */}
+            <div className="relative overflow-hidden" style={{ minHeight: 220, backgroundColor: activeTheme.bg }}>
               <pre
                 ref={preRef}
                 aria-hidden
                 style={{
                   position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                  margin: 0, padding: "16px", fontFamily: "monospace", fontSize: "14px",
-                  lineHeight: "1.625", overflow: "hidden", whiteSpace: "pre-wrap",
-                  wordBreak: "break-all", pointerEvents: "none", color: "#e2e8f0",
+                  margin: 0, padding: "16px", fontFamily: "monospace", fontSize: "13px",
+                  lineHeight: "1.7", overflow: "hidden", whiteSpace: "pre-wrap",
+                  wordBreak: "break-all", pointerEvents: "none", color: activeTheme.text,
                 }}
                 dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
               />
-              {/* Invisible-text but caret-visible textarea on top */}
               <textarea
                 ref={textareaRef}
                 data-testid="textarea-pulselang-input"
                 style={{
                   position: "relative", zIndex: 1, width: "100%", minHeight: 220,
-                  padding: "16px", fontFamily: "monospace", fontSize: "14px",
-                  lineHeight: "1.625", resize: "vertical", background: "transparent",
-                  color: "transparent", caretColor: "#67e8f9",
+                  padding: "16px", fontFamily: "monospace", fontSize: "13px",
+                  lineHeight: "1.7", resize: "vertical", background: "transparent",
+                  color: "transparent", caretColor: activeTheme.caret,
                   border: "none", outline: "none", overflowY: "auto",
                 }}
                 value={code}
                 onChange={e => {
                   setCode(e.target.value);
-                  if (preRef.current) {
-                    preRef.current.style.height = e.target.style.height;
-                  }
+                  setHistoryIdx(-1);
+                  if (preRef.current) preRef.current.style.height = e.target.style.height;
                 }}
                 onKeyDown={e => {
-                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); execute(); }
+                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    if (termMode === "repl") {
+                      const expr = code.trim();
+                      try {
+                        const tokens = tokenize(expr);
+                        const parser = new Parser(tokens);
+                        const ast = parser.parse();
+                        const { result } = evaluate(ast);
+                        const proj = result ? project(result) : null;
+                        setReplHistory(prev => [...prev, { input: expr, output: proj ? proj.title : "no projection" }]);
+                      } catch (err: any) {
+                        setReplHistory(prev => [...prev, { input: expr, output: "ERR: " + err.message }]);
+                      }
+                      setCode("");
+                    } else {
+                      execute();
+                    }
+                  }
+                  // Tab to accept first CoPilot suggestion
+                  if (e.key === "Tab" && copilotSuggestions.length > 0) {
+                    e.preventDefault();
+                    acceptCopilot(copilotSuggestions[0].suggestion);
+                  }
+                  // ↑/↓ history navigation
+                  if (e.key === "ArrowUp" && cmdHistory.length > 0) {
+                    e.preventDefault();
+                    const idx = Math.min(historyIdx + 1, cmdHistory.length - 1);
+                    setHistoryIdx(idx);
+                    setCode(cmdHistory[idx]);
+                  }
+                  if (e.key === "ArrowDown" && historyIdx > 0) {
+                    e.preventDefault();
+                    const idx = historyIdx - 1;
+                    setHistoryIdx(idx);
+                    setCode(cmdHistory[idx]);
+                  }
                 }}
                 spellCheck={false}
               />
             </div>
-            <div className="px-3 py-2 border-t border-border bg-muted/20 flex items-center gap-2 flex-wrap">
+
+            {/* Editor toolbar */}
+            <div className="px-3 py-2 border-t flex items-center gap-2 flex-wrap" style={{ borderColor: activeTheme.border, backgroundColor: activeTheme.bg + "dd" }}>
               <button
                 data-testid="button-execute-pulse"
-                onClick={execute}
+                onClick={() => {
+                  if (termMode !== "repl") {
+                    setCmdHistory(prev => [code, ...prev.slice(0, 29)]);
+                    setHistoryIdx(-1);
+                  }
+                  execute();
+                }}
                 disabled={running}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                style={{ backgroundColor: activeTheme.accent + "22", borderWidth: 1, borderColor: activeTheme.accent + "55", color: activeTheme.accent }}
               >
-                <Play size={11} /> {running ? "EXECUTING…" : "▶ RUN PROGRAM"}
+                <Play size={11} /> {running ? "EXECUTING…" : "▶ RUN"}
               </button>
               <button
                 data-testid="button-reset-program"
-                onClick={() => { setCode(DEFAULT_PROGRAM); setLog([]); setProjection(null); setError(null); }}
+                onClick={() => { setCode(activeMode.starter); setLog([]); setProjection(null); setError(null); setTranspileOutput(null); setReplHistory([]); }}
                 className="text-[10px] px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/50 transition-colors"
               >
                 Reset
               </button>
-              <span className="text-[10px] text-muted-foreground">Ctrl+Enter to run · Load from AI pulls PulseMind programs</span>
+              {termMode !== "repl" && <span className="text-[10px] text-muted-foreground hidden sm:block">Ctrl+↵ run · Tab accept CoPilot · ↑↓ history</span>}
             </div>
           </div>
 
-          {/* Full v2.0 Glyph Quick-Insert bar */}
-          <div className="rounded-lg border border-border p-2.5 bg-card">
-            <div className="text-[10px] text-muted-foreground mb-2 font-mono font-bold">⟁ PulseLang v2.0 Ω Glyph Palette:</div>
-            <div className="flex flex-wrap gap-1">
-              {TERMINAL_GLYPHS.map(g => (
+          {/* ── CATEGORIZED GLYPH KEYBOARD ─────────────────────────────────── */}
+          {showGlyphs && (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/20">
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {GLYPH_CATEGORIES.map(cat => (
+                    <button
+                      key={cat.label}
+                      data-testid={`button-glyph-cat-${cat.label.toLowerCase().replace(/\s/g,"-")}`}
+                      onClick={() => setActiveGlyphCat(cat.label)}
+                      className={`text-[10px] px-2 py-0.5 rounded border font-mono whitespace-nowrap shrink-0 transition-colors ${activeGlyphCat === cat.label ? `${cat.color} border-current/30 bg-current/5` : "border-border text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
                 <button
-                  key={g}
-                  onClick={() => insertGlyph(g)}
-                  className="px-1.5 py-0.5 rounded border border-border text-[11px] font-mono text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-500/30 hover:text-cyan-200 transition-colors"
-                  title={`Insert ${g}`}
-                >
-                  {g}
-                </button>
-              ))}
+                  onClick={() => setShowGlyphs(false)}
+                  className="text-[10px] text-muted-foreground hover:text-foreground shrink-0 ml-2"
+                >✕</button>
+              </div>
+              <div className="p-2.5 flex flex-wrap gap-1">
+                {GLYPH_CATEGORIES.find(c => c.label === activeGlyphCat)?.glyphs.map(g => (
+                  <button
+                    key={g}
+                    data-testid={`button-glyph-${g}`}
+                    onClick={() => insertGlyph(g)}
+                    className={`px-1.5 py-0.5 rounded border border-border text-[12px] font-mono hover:bg-accent/10 hover:border-accent/30 transition-colors ${GLYPH_CATEGORIES.find(c => c.label === activeGlyphCat)?.color ?? "text-foreground"}`}
+                    title={`Insert ${g}`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+          {!showGlyphs && (
+            <button
+              onClick={() => setShowGlyphs(true)}
+              className="text-[10px] font-mono text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-1.5 w-full text-center hover:bg-muted/30 transition-colors"
+            >
+              ⟁ Show Glyph Keyboard (34 glyphs)
+            </button>
+          )}
         </div>
 
-        {/* Right: Output + Projection */}
+        {/* ── RIGHT: OUTPUT, TRANSPILE, PROJECTION ─────────────────────────── */}
         <div className="space-y-3">
-          {/* Output log */}
-          <div className="rounded-xl border border-border bg-black/60 overflow-hidden">
-            <div className="px-3 py-2 bg-muted/20 border-b border-border">
-              <span className="text-xs font-bold text-muted-foreground font-mono">── OUTPUT ──</span>
+
+          {/* Transpiler output */}
+          {showTranspile && transpileOutput && (
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: transpileTarget === "js" ? "#78350f" : "#1e3a5f" }}>
+              <div className="px-3 py-1.5 border-b flex items-center justify-between" style={{ borderColor: transpileTarget === "js" ? "#78350f" : "#1e3a5f", backgroundColor: transpileTarget === "js" ? "#1c1000" : "#00091a" }}>
+                <span className="text-[11px] font-bold font-mono" style={{ color: transpileTarget === "js" ? "#fbbf24" : "#60a5fa" }}>
+                  ⇒ {transpileTarget === "js" ? "JavaScript" : "Python"} (transpiled from Pulse-Lang)
+                </span>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(transpileOutput)}
+                    className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:bg-muted/50"
+                  >Copy</button>
+                  <button onClick={() => setShowTranspile(false)} className="text-[10px] text-muted-foreground hover:text-foreground">✕</button>
+                </div>
+              </div>
+              <pre className="p-3 text-[11px] font-mono max-h-[200px] overflow-auto whitespace-pre-wrap" style={{ color: transpileTarget === "js" ? "#fde68a" : "#bfdbfe" }}>
+                {transpileOutput}
+              </pre>
             </div>
-            <div ref={outputRef} className="p-3 font-mono text-[11px] min-h-[100px] max-h-[180px] overflow-y-auto space-y-0.5">
+          )}
+
+          {/* Execution output */}
+          <div className="rounded-xl border border-border bg-black/60 overflow-hidden">
+            <div className="px-3 py-1.5 bg-muted/20 border-b border-border flex items-center gap-2">
+              <span className="text-[11px] font-bold text-muted-foreground font-mono">── EXECUTION OUTPUT ──</span>
+              {error && <span className="text-[10px] text-rose-400">● ERROR</span>}
+              {!error && log.length > 0 && <span className="text-[10px] text-green-400">● OK</span>}
+            </div>
+            <div ref={outputRef} className="p-3 font-mono text-[11px] min-h-[90px] max-h-[180px] overflow-y-auto space-y-0.5">
               {log.length === 0 && !error && (
-                <div className="text-muted-foreground/40">Press EXECUTE to run a PulseLang program…</div>
+                <div className="text-muted-foreground/40">Press RUN to execute · CoPilot suggests as you type…</div>
               )}
               {log.map((line, i) => (
                 <div key={i} className={line.startsWith("  ✓") ? "text-green-400" : line.startsWith("  ⚠") ? "text-amber-400" : line.startsWith("⚠") ? "text-rose-400" : "text-cyan-300/70"}>
@@ -542,24 +893,21 @@ function PulseTerminalTab() {
                   <div className="text-rose-400">{error}</div>
                   {autoFixCode ? (
                     <div className="rounded border border-green-500/30 bg-green-950/20 p-2 space-y-1.5">
-                      <div className="text-[10px] text-green-400 font-bold font-mono">⟁ PulseMind Auto-Fix suggestion:</div>
+                      <div className="text-[10px] text-green-400 font-bold font-mono">⟁ PulseMind Auto-Fix:</div>
                       <pre className="text-[10px] text-green-300/80 font-mono whitespace-pre-wrap">{autoFixCode}</pre>
                       <button
                         data-testid="button-apply-autofix"
                         onClick={() => { setCode(autoFixCode); setAutoFixCode(null); setError(null); setLog([]); }}
                         className="text-[10px] px-3 py-1 rounded bg-green-500/20 border border-green-500/40 text-green-300 hover:bg-green-500/30 transition-colors font-bold"
-                      >
-                        ✓ Apply Fix
-                      </button>
+                      >✓ Apply Fix</button>
                       <button onClick={() => setAutoFixCode(null)} className="ml-2 text-[10px] text-muted-foreground underline">Dismiss</button>
                     </div>
                   ) : (
                     <button
                       data-testid="button-autofix"
                       onClick={async () => {
-                        const { generatePulseLangProgram } = await import("@/lib/pulselang/ai");
                         const res = await generatePulseLangProgram(`Fix this PulseLang error: ${error}\n\nThe broken program is:\n${code}\n\nReturn only the corrected PulseLang program.`, []);
-                        const fixed = res.programs?.[0] ?? res.programs?.[1] ?? null;
+                        const fixed = res.programs?.[0] ?? null;
                         setAutoFixCode(fixed);
                       }}
                       className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 transition-colors"
@@ -574,21 +922,24 @@ function PulseTerminalTab() {
 
           {/* Projection surface */}
           <div className="rounded-xl border border-border overflow-hidden">
-            <div className="px-3 py-2 bg-muted/20 border-b border-border">
-              <span className="text-xs font-bold text-muted-foreground font-mono">── PROJECTION SURFACE ──</span>
+            <div className="px-3 py-1.5 bg-muted/20 border-b border-border flex items-center justify-between">
+              <span className="text-[11px] font-bold text-muted-foreground font-mono">── PROJECTION SURFACE ──</span>
+              {projection && (
+                <span className="text-[10px] font-mono text-muted-foreground">{projection.worldClass}</span>
+              )}
             </div>
             {!projection ? (
-              <div className="p-8 text-center text-muted-foreground/40 text-sm font-mono min-h-[180px] flex items-center justify-center bg-black/40">
+              <div className="p-8 text-center text-muted-foreground/40 text-sm font-mono min-h-[160px] flex items-center justify-center bg-black/40">
                 No world-object projected yet
               </div>
             ) : (
-              <div className={`p-5 bg-gradient-to-br ${projColor} min-h-[180px]`}>
+              <div className={`p-5 bg-gradient-to-br ${projColor} min-h-[160px]`}>
                 <div className="text-2xl mb-1">{projection.icon}</div>
                 <div className="text-xs uppercase tracking-widest text-current/60 mb-1 font-mono">{projection.worldClass}</div>
                 <div className="text-lg font-black mb-2">{projection.title}</div>
                 <div className="text-sm text-current/80 leading-relaxed mb-3">{projection.body}</div>
                 <div className="flex items-center gap-2 text-[10px] font-mono text-current/50">
-                  <span>Content atoms: {projection.atoms.map(a => a.atomId).join(", ") || "none"}</span>
+                  <span>Atoms: {projection.atoms.map((a: any) => a.atomId).join(", ") || "none"}</span>
                   {projection.route && (
                     <a href={projection.route} className="ml-auto underline hover:text-current/80 transition-colors">
                       Navigate →
@@ -1791,6 +2142,200 @@ function TechEvolutionsTab() {
 }
 
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
+// ── Ω10: LIVING LANGUAGE EVOLUTION TAB ──────────────────────────────────────
+function LangEvoTab() {
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const { data: snap, isLoading, refetch } = useQuery<any>({
+    queryKey: ["/api/pulse-lang/evo/snapshot"],
+    refetchInterval: autoRefresh ? 30000 : false,
+  });
+  useQuery<any[]>({
+    queryKey: ["/api/pulse-lang/evo/lexicon"],
+    refetchInterval: autoRefresh ? 60000 : false,
+  });
+  const [forceRunning, setForceRunning] = useState(false);
+
+  const forceEvolve = async () => {
+    setForceRunning(true);
+    try {
+      await fetch("/api/pulse-lang/evo/force", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: 3 }),
+      });
+      await refetch();
+    } finally {
+      setForceRunning(false);
+    }
+  };
+
+  const impactColor: Record<string, string> = {
+    low:      "text-slate-400",
+    medium:   "text-amber-400",
+    high:     "text-cyan-400",
+    critical: "text-rose-400",
+  };
+  const eventTypeIcon: Record<string, string> = {
+    WORD_BORN:         "🌱",
+    WORD_CANONICAL:    "⭐",
+    WORD_DEPRECATED:   "💀",
+    GLYPH_COMBINED:    "⊕",
+    PHONEME_SHIFT:     "ρ",
+    DIALECT_SPLIT:     "⑂",
+    WORD_EVOLVED:      "🧬",
+    LEXICON_PURGE:     "🗑",
+    GRAMMAR_RULE_BORN: "📜",
+    GLYPH_RETIRED:     "🪦",
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <Activity size={18} className="animate-spin mr-2" /> Loading evolution engine…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-xl border border-cyan-500/20 bg-gradient-to-br from-cyan-950/30 to-slate-950/60 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-lg font-black text-cyan-300 font-mono">🧬 Living Language Evolution Engine — Ω10</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Pulse-Lang evolves autonomously · No human involvement · 34-glyph Γ alphabet · Words compete for survival</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAutoRefresh(v => !v)}
+              className={`text-[10px] px-2 py-1 rounded border font-mono transition-colors ${autoRefresh ? "border-green-500/40 text-green-300 bg-green-500/10" : "border-border text-muted-foreground"}`}
+            >
+              Auto {autoRefresh ? "ON" : "OFF"}
+            </button>
+            <button
+              onClick={forceEvolve}
+              disabled={forceRunning}
+              className="flex items-center gap-1 text-[10px] px-3 py-1 rounded border border-cyan-500/30 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors disabled:opacity-50 font-mono"
+            >
+              <RefreshCw size={9} className={forceRunning ? "animate-spin" : ""} />
+              Force Evolve ×3
+            </button>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Evolution Cycle",   value: snap?.cycle ?? 0,           color: "text-cyan-300" },
+            { label: "Active Words",      value: snap?.lexiconSize ?? 0,     color: "text-green-300" },
+            { label: "Canonical Words",   value: snap?.canonicalWords ?? 0,  color: "text-amber-300" },
+            { label: "Total Events",      value: snap?.totalEvents ?? 0,     color: "text-violet-300" },
+          ].map(s => (
+            <div key={s.label} className="rounded-lg border border-border bg-black/40 p-2.5 text-center">
+              <div className={`text-xl font-black font-mono ${s.color}`}>{s.value.toLocaleString()}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {snap?.newestWord && (
+          <div className="mt-3 flex flex-wrap gap-3 text-[11px] font-mono">
+            <span className="text-muted-foreground">Newest word: <span className="text-green-300">{snap.newestWord}</span></span>
+            <span className="text-muted-foreground">Most used: <span className="text-amber-300">{snap.mostFrequent}</span></span>
+            <span className="text-muted-foreground">Deprecated: <span className="text-rose-300">{snap.deprecatedWords}</span></span>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Recent Evolution Events */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="px-3 py-2 bg-muted/20 border-b border-border">
+            <span className="text-xs font-bold text-muted-foreground font-mono">── EVOLUTION EVENT LOG ── (live feed)</span>
+          </div>
+          <div className="divide-y divide-border/30 max-h-[400px] overflow-y-auto">
+            {(snap?.recentEvents ?? []).map((ev: any) => (
+              <div key={ev.id} className="px-3 py-2 hover:bg-muted/20 transition-colors">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-sm">{eventTypeIcon[ev.type] ?? "◈"}</span>
+                  <span className={`text-[10px] font-bold font-mono ${impactColor[ev.impact]}`}>{ev.type}</span>
+                  <span className="text-[10px] text-muted-foreground/50 ml-auto">C{ev.cycle}</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground/80 font-mono leading-relaxed pl-5">
+                  {ev.reason}
+                  {ev.newWord && <span className="text-cyan-400"> → {ev.newWord}</span>}
+                  {ev.newGlyph && !ev.newWord && <span className="text-violet-400"> → {ev.newGlyph}</span>}
+                </div>
+              </div>
+            ))}
+            {(!snap?.recentEvents?.length) && (
+              <div className="px-3 py-8 text-center text-muted-foreground/40 text-sm font-mono">
+                No events yet — language is awakening…
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Active Lexicon + Glyph Evolution */}
+        <div className="space-y-3">
+          {/* Glyph activity */}
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="px-3 py-2 bg-muted/20 border-b border-border">
+              <span className="text-xs font-bold text-muted-foreground font-mono">── GLYPH ACTIVITY — 34-Glyph Γ Alphabet ──</span>
+            </div>
+            <div className="p-3">
+              <div className="flex flex-wrap gap-1.5">
+                {(snap?.alphabetEvolution ?? []).map((g: any) => (
+                  <div
+                    key={g.glyph}
+                    title={`${g.glyph} — ${g.usageCount} uses — ${g.status}`}
+                    className={`px-2 py-1 rounded border font-mono text-[13px] font-bold transition-colors cursor-default ${
+                      g.status === "dominant" ? "border-cyan-500/50 text-cyan-300 bg-cyan-500/10" :
+                      g.status === "active"   ? "border-slate-500/30 text-slate-300 bg-slate-500/5" :
+                                                "border-slate-700/30 text-slate-500/40"
+                    }`}
+                  >
+                    {g.glyph}
+                    <span className="text-[8px] ml-0.5 opacity-60">{g.usageCount}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 flex gap-3 text-[10px] font-mono">
+                <span><span className="text-cyan-300">■</span> Dominant</span>
+                <span><span className="text-slate-300">■</span> Active</span>
+                <span><span className="text-slate-500">■</span> Dormant</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Top lexicon */}
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="px-3 py-2 bg-muted/20 border-b border-border">
+              <span className="text-xs font-bold text-muted-foreground font-mono">── TOP ACTIVE LEXICON ──</span>
+            </div>
+            <div className="divide-y divide-border/20 max-h-[220px] overflow-y-auto">
+              {(snap?.topLexicon ?? []).map((entry: any) => (
+                <div key={entry.word} className="flex items-center gap-2 px-3 py-1.5">
+                  <span className="text-[10px] font-mono text-muted-foreground/50 w-4 shrink-0">{entry.canonical ? "⭐" : "·"}</span>
+                  <span className="text-[11px] font-mono text-cyan-200 flex-1 truncate">{entry.word}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground shrink-0">{entry.glyph ?? "—"}</span>
+                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+                    <div
+                      className={`h-full rounded-full ${entry.canonical ? "bg-amber-400" : "bg-cyan-500"}`}
+                      style={{ width: `${Math.min(100, (entry.frequency / 100) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">{entry.frequency}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PulseNetPage() {
   const [tab, setTab] = useState("overview");
   const { data: stats, isLoading } = useQuery<any>({ queryKey: ["/api/omni-net/stats"] });
@@ -1869,6 +2414,7 @@ export default function PulseNetPage() {
           {tab === "pulseai"    && <PulseLangAITab />}
           {tab === "dissection" && <PulseLangLabTab />}
           {tab === "omninet"    && <OmniNetEqTab />}
+          {tab === "lang-evo"  && <LangEvoTab />}
         </>
       )}
     </div>

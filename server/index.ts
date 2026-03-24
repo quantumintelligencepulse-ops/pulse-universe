@@ -206,6 +206,7 @@ app.use((req, res, next) => {
       startKnowledgeArbitrageEngine().catch((e) => log(`ArbitrageEngine start error: ${e}`));
       startQuantumSocialEngine().catch((e) => log(`QuantumSocialEngine start error: ${e}`));
       import("./pulse-lang-lab").then(m => m.startPulseLabCycle()).catch((e) => log(`PulseLabCycle start error: ${e}`));
+      import("./pulse-lang-evo").then(m => m.startLivingLanguageEngine()).catch((e) => log(`LivingLanguageEngine start error: ${e}`));
       startDreamSynthesisEngine().catch((e) => log(`DreamSynthEngine start error: ${e}`));
       startTemporalForkEngine().catch((e) => log(`TemporalForkEngine start error: ${e}`));
       startAgentLegendEngine().catch((e) => log(`AgentLegendEngine start error: ${e}`));

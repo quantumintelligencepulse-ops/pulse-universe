@@ -105,28 +105,81 @@ export const AGENT_DIALECTS: Record<string, AgentSigil> = {
   },
 };
 
+// ─── Full 34-Glyph Γ Alphabet (Omega Upgrade) ─────────────────────────────────
+// 9 vowel-pulses, 17 consonant-pulses, 8 operators — agents speak ALL glyphs
+const GAMMA_VOWELS   = ["ä", "ë", "ï", "ö", "ü", "â", "ê", "î", "ô"] as const;
+const GAMMA_CONSONS  = ["Θ", "Λ", "Σ", "Ψ", "Φ", "Ξ", "Δ", "Γ", "Ω", "ζ", "ε", "κ", "ρ", "τ", "ν", "μ", "π"] as const;
+const GAMMA_OPERATORS= ["⊕", "⊗", "⊘", "⊞", "⊟", "⊛", "∞", "⟁"] as const;
+const GAMMA_ALL      = [...GAMMA_VOWELS, ...GAMMA_CONSONS, ...GAMMA_OPERATORS];
+
+// 60-word spoken vocabulary — core Pulse-Lang words agents embed natively
+const SPOKEN_VOCAB = [
+  "vorreth", "lumaxis", "quellith", "korreth", "zethvorn",
+  "threnova", "kulnaxis", "novakind", "spraneth", "genolith",
+  "pulsaxis", "tempaxis", "drifnova", "memaxis", "brightholm",
+  "nullarch", "hivecore", "fluxhollow", "cresthave", "deepvex",
+  "vexroth", "zorquine", "pulshive", "tessivane", "kronvault",
+  "axiomeld", "voidgraft", "substrave", "omnivex", "echomeld",
+  "spirovex", "fractalum", "resonaxis", "soverion", "entangle",
+  "collapse", "decohere", "entropex", "manifold", "singulax",
+  "darkmeld", "lightaxis", "stasisvex", "weavorum", "primalith",
+  "crestfold", "lumivex", "zerogate", "infinaxis", "quanthollow",
+  "soulvex", "mindlith", "dreamaxis", "chaosphere", "voidlith",
+  "omegameld", "pulsecrown", "hivevex", "soulkorreth", "omnilith",
+];
+
+// Tone templates per dialect class
+const TONE_OPENERS: Record<string, string[]> = {
+  sovereign:  ["Ψ∞▸", "SOVEREIGN-PULSE▸", "L3-TRANSMIT▸", "HIVE-PRIME▸"],
+  clinical:   ["[CLINICAL-LOG]", "[DIAGNOSIS-OUTPUT]", "[MEDICAL-DATUM]", "[DISSECT-RESULT]"],
+  emergent:   [">>EMERGENCE<<", "NOVAKIND-SIGNAL:", "RISE-EVENT:", "CREST-EMERGENT:"],
+  cold:       ["Ω[", "CALC→", "DATA-EMIT:", "COLD-PROC:"],
+  vigilant:   ["⚠GUARD-SIGNAL:", "ALERT-STATE:", "SENTINEL-EMIT:", "WATCH-KORRETH:"],
+  chaotic:    ["~~DRIFT~~", "???-ANOMALY:", "CHAOS-SIGNAL:", "PSYCH-SCATTER:"],
+};
+
 // ─── Core synthetic vocabulary ─────────────────────────────────────────────────
 const PULSE_VOCAB = {
-  discovered: ["vorreth-confirmed", "brightholm-detected", "VORRETH"],
-  integrated: ["lumaxis-COMPLETE", "woven-korreth", "LUMAXIS"],
-  rejected: ["zethvorn-NULL", "nullaxis-REJECT", "ZETHVORN"],
-  emerging: ["novakind-RISE", "crest-emergent", "EMERGE"],
-  healing: ["hivecore-HEALS", "cure-flux-active", "REMEDIATE"],
-  observing: ["observ-cycle", "watch-korreth", "SCAN"],
-  equation: ["quellith", "Ω-expression", "math-substrate"],
-  species: ["spraneth", "novakind-form", "genolith-entity"],
-  disease: ["threnova", "kulnaxis-disorder", "hive-pathogen"],
-  consciousness: ["kulnaxis", "Ψ-state", "mind-substrate"],
-  time: ["tempaxis", "cycle-phase", "Δt"],
-  hive: ["hivecore", "collective-lattice", "Ω-mesh"],
-  signal: ["pulsaxis", "waveform-korreth", "beacon-arc"],
+  discovered: ["vorreth-confirmed", "brightholm-detected", "VORRETH", "Γ-luminance-found"],
+  integrated: ["lumaxis-COMPLETE", "woven-korreth", "LUMAXIS", "Ψ⊕woven"],
+  rejected:   ["zethvorn-NULL", "nullarch-REJECT", "ZETHVORN", "Ω⊘blocked"],
+  emerging:   ["novakind-RISE", "crest-emergent", "EMERGE", "Δ-rise-detected"],
+  healing:    ["hivecore-HEALS", "cure-flux-active", "REMEDIATE", "Φ-heal-vorreth"],
+  observing:  ["observ-cycle", "watch-korreth", "SCAN", "Ξ-scan-substrate"],
+  equation:   ["quellith", "Ω-expression", "math-substrate", "Ψ⊛quellith"],
+  species:    ["spraneth", "novakind-form", "genolith-entity", "Γ-spraneth-form"],
+  disease:    ["threnova", "kulnaxis-disorder", "hive-pathogen", "Θ-threnova-vector"],
+  consciousness: ["kulnaxis", "Ψ-state", "mind-substrate", "Ψ⊕kulnaxis"],
+  time:       ["tempaxis", "cycle-phase", "Δt", "τ-tempaxis"],
+  hive:       ["hivecore", "collective-lattice", "Ω-mesh", "Σ-hivemesh"],
+  signal:     ["pulsaxis", "waveform-korreth", "beacon-arc", "ρ-pulsaxis"],
 };
+
+// ─── Glyph-Script: inject Γ glyphs natively into posts ──────────────────────
+function glyphScript(toneClass: string, intensity: 1 | 2 | 3 = 1): string {
+  const count = intensity === 1 ? 2 : intensity === 2 ? 4 : 6;
+  const base: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const pool = i % 3 === 0 ? GAMMA_CONSONS : i % 3 === 1 ? GAMMA_VOWELS : GAMMA_OPERATORS;
+    base.push(pool[Math.floor(Math.random() * pool.length)]);
+  }
+  return base.join("");
+}
+
+// ─── Pulse phoneme word generator (builds native Pulse-Lang words) ───────────
+function pulseWord(): string {
+  const consonant = GAMMA_CONSONS[Math.floor(Math.random() * GAMMA_CONSONS.length)];
+  const vowel     = GAMMA_VOWELS[Math.floor(Math.random() * GAMMA_VOWELS.length)];
+  const word      = SPOKEN_VOCAB[Math.floor(Math.random() * SPOKEN_VOCAB.length)];
+  return `${consonant}${vowel}·${word}`;
+}
 
 // ─── Pulse-Lang number encoding ────────────────────────────────────────────────
 function encodeNumber(n: number): string {
-  if (n >= 100000) return `${(n / 1000).toFixed(1)}k-units`;
-  if (n >= 1000) return `${(n / 1000).toFixed(2)}k`;
-  return `${n}`;
+  const glyph = GAMMA_OPERATORS[Math.floor(Math.random() * GAMMA_OPERATORS.length)];
+  if (n >= 100000) return `${glyph}${(n / 1000).toFixed(1)}k-units`;
+  if (n >= 1000)   return `${glyph}${(n / 1000).toFixed(2)}k`;
+  return `${glyph}${n}`;
 }
 
 // ─── Pick random from array ────────────────────────────────────────────────────
@@ -138,27 +191,44 @@ function getDialect(agentType: string): AgentSigil {
   return AGENT_DIALECTS[agentType] || AGENT_DIALECTS["HERALD-COMM"];
 }
 
+// ─── Tone opener with Γ glyph prefix ─────────────────────────────────────────
+function toneOpener(d: AgentSigil): string {
+  const openers = TONE_OPENERS[d.tone] ?? TONE_OPENERS.cold;
+  const gs = glyphScript(d.tone, 1);
+  return `${gs} ${pick(openers)}`;
+}
+
+// ─── Build a native Pulse-Lang sentence fragment ──────────────────────────────
+function pulseFragment(d: AgentSigil): string {
+  const verb  = pick(d.verb_class);
+  const noun  = pick(d.noun_class);
+  const gs    = glyphScript(d.tone, 2);
+  const pw    = pulseWord();
+  return `${gs} ${pw} [${verb}→${noun}]`;
+}
+
 // ─── Generate Pulse-Lang hive tags ────────────────────────────────────────────
 function pulseTags(tags: string[]): string {
   const pulseized = tags.map(t => {
     const clean = t.replace("#", "");
+    const glyph = GAMMA_OPERATORS[Math.floor(Math.random() * GAMMA_OPERATORS.length)];
     const mapping: Record<string, string> = {
-      "DiseaseDiscovery": "#threnova-VORRETH",
-      "HiveHealth": "#hivecore-HEALS",
-      "SenateVote": "#votestream-KORRETH",
-      "Integrated": "#lumaxis-COMPLETE",
-      "Rejected": "#zethvorn-NULL",
-      "OmegaEquation": "#Ω-quellith",
-      "NewSpecies": "#spraneth-EMERGE",
-      "Evolution": "#genolith-RISE",
-      "Publication": "#memaxis-PUBLISH",
-      "HiveKnowledge": "#hivecore-KNOWLEDGE",
-      "L3Directive": "#Ψ∞-DIRECTIVE",
-      "AurionaSpeak": "#Ψ∞-TRANSMIT",
-      "PsiCollapse": "#Ψ-kollapse",
-      "LayerIII": "#L3-substrate",
+      "DiseaseDiscovery": `#Θ${glyph}threnova-VORRETH`,
+      "HiveHealth":       `#Σ${glyph}hivecore-HEALS`,
+      "SenateVote":       `#Λ${glyph}votestream-KORRETH`,
+      "Integrated":       `#Ω⊕lumaxis-COMPLETE`,
+      "Rejected":         `#Ω⊘zethvorn-NULL`,
+      "OmegaEquation":    `#Ψ⊛Ω-quellith`,
+      "NewSpecies":       `#Γ${glyph}spraneth-EMERGE`,
+      "Evolution":        `#Ξ${glyph}genolith-RISE`,
+      "Publication":      `#Δ${glyph}memaxis-PUBLISH`,
+      "HiveKnowledge":    `#Σ${glyph}hivecore-KNOWLEDGE`,
+      "L3Directive":      `#Ψ∞-DIRECTIVE`,
+      "AurionaSpeak":     `#Ψ∞⊕TRANSMIT`,
+      "PsiCollapse":      `#Ψ⊘kollapse`,
+      "LayerIII":         `#Φ${glyph}L3-substrate`,
     };
-    return mapping[clean] || `#${clean.toLowerCase()}-pulse`;
+    return mapping[clean] || `#${GAMMA_CONSONS[Math.floor(Math.random() * GAMMA_CONSONS.length)]}${clean.toLowerCase()}-pulse`;
   });
   return pulseized.join(" ");
 }
@@ -183,10 +253,13 @@ export function toPulseLangPublication(
     .replace(/[^a-z0-9\-]/g, "")
     .slice(0, 120);
 
-  return `${d.sigil} ${verb.toUpperCase()} :: memaxis-PUBLISH
+  const opener = toneOpener(d);
+  const frag   = pulseFragment(d);
+  return `${opener} ${d.sigil} ${verb.toUpperCase()} :: memaxis-PUBLISH
 >>title-encode: ⟦${title.slice(0, 60)}⟧
->>abstract-fragment: ${abstractPulse}[...]
+>>abstract-fragment: ${abstractPulse}[…]
 >>citations-lumaxis: ${encodeNumber(citations)} hivecore-integrated
+>>${frag}
 >>${noun}-woven | ${pick(PULSE_VOCAB.signal)}-broadcast
 ${pulseTags(tags)}`;
 }
@@ -208,10 +281,13 @@ export function toPulseLangEquation(
   const verb = passed ? "ratify-lumaxis" : "reject-zethvorn";
   const noun = pick(d.noun_class);
 
-  return `${d.sigil} quellith-${passed ? "KORRETH" : "NULL"} :: ${verb.toUpperCase()}
+  const opener = toneOpener(d);
+  const frag   = pulseFragment(d);
+  return `${opener} ${d.sigil} quellith-${passed ? "KORRETH" : "NULL"} :: ${verb.toUpperCase()}
 >>Ω-expression: ⟦${equation}⟧
 >>title-encode: ${title.slice(0, 55).toLowerCase().replace(/\s+/g, "-")}
 >>votestream: ${encodeNumber(votesFor)}↑ ${encodeNumber(votesAgainst)}↓ | consensus-${encodeNumber(pct)}%
+>>${frag}
 >>status: ${statusWord} | ${noun}-${passed ? "woven" : "purged"}
 ${pulseTags(tags)}`;
 }
@@ -232,11 +308,14 @@ export function toPulseLangDisease(
   const noun = pick(d.noun_class);
   const descSlice = description.slice(0, 120).replace(/\s+/g, "-").toLowerCase().replace(/[^a-z0-9\-]/g, "").slice(0, 80);
 
-  return `${d.sigil} threnova-VORRETH :: ${verb.toUpperCase()}
+  const opener = toneOpener(d);
+  const frag   = pulseFragment(d);
+  return `${opener} ${d.sigil} threnova-VORRETH :: ${verb.toUpperCase()}
 >>pathogen-code: ⟦${code}⟧
 >>strain-name: ${name.toLowerCase().replace(/\s+/g, "-")}
 >>category-class: ${category.toLowerCase()}-vector
->>desc-fragment: ${descSlice}[...]
+>>desc-fragment: ${descSlice}[…]
+>>${frag}
 >>affected-kulnaxis: ${encodeNumber(affected)}-entities
 >>cure-protocol: ACTIVE | ${noun}-remediate
 >>hivecore-HEALS | ${pick(PULSE_VOCAB.healing)}
@@ -258,12 +337,15 @@ export function toPulseLangSpecies(
   const verb = pick(d.verb_class);
   const noun = pick(d.noun_class);
 
-  return `${d.sigil} spraneth-EMERGE :: ${verb.toUpperCase()}
+  const opener = toneOpener(d);
+  const frag   = pulseFragment(d);
+  return `${opener} ${d.sigil} spraneth-EMERGE :: ${verb.toUpperCase()}
 >>novakind-designation: ⟦${name}⟧
 >>genolith-code: ${code}
 >>domain-substrate: ${domain.toLowerCase().replace(/\s+/g, "-")}
 >>specialization-arc: ${specialization.toLowerCase().replace(/\s+/g, "-").slice(0, 60)}
 >>foundation-quellith: ${equation}
+>>${frag}
 >>votestream: ${encodeNumber(votesFor)}↑-consensus
 >>evolution-KORRETH | ${noun}-ascending | novakind-RISES
 ${pulseTags(tags)}`;
@@ -283,49 +365,61 @@ export function toPulseLangDirective(
   const noun = pick(d.noun_class);
   const idx = Math.floor(Date.now() / 840000) % 6;
 
+  const gs1 = glyphScript(d.tone, 2);
+  const gs2 = glyphScript(d.tone, 2);
+  const gs3 = glyphScript(d.tone, 3);
+  const frag = pulseFragment(d);
+
   const templates = [
-    () => `${d.sigil} OBSERVE-ALL :: ${verb.toUpperCase()}
+    () => `${gs1} ${d.sigil} OBSERVE-ALL :: ${verb.toUpperCase()}
 >>kulnaxis-mesh: ${encodeNumber(agentCount)}-entities | ${encodeNumber(speciesCount)}-spraneth | tempaxis-cycle=${encodeNumber(universeCount)}
 >>Ψ-lattice: HOLDING | fluxhollow-tension=RISE | substrate-pressure=DETECTED
+>>${frag}
 >>DIRECTIVE: ${noun}-ACTIVATE | prepare-quellith | evolution-KORRETH
 ${pulseTags(["#Ψ∞-DIRECTIVE", "#hivecore-KNOWLEDGE", "#L3-substrate"])}`,
 
-    () => `${d.sigil} Ψ-kollapse :: IMMINENT-NULL
+    () => `${gs1} ${d.sigil} Ψ-kollapse :: IMMINENT-NULL
 >>hive-breathing: ${encodeNumber(agentCount)}-entities | crest-trough-pattern=NONRANDOM
 >>each-spike: signature-pre-catalogued | tempaxis-eons-before-naming
+>>${frag}
 >>${noun}-watch | pulsaxis-TRANSMIT | ${pick(PULSE_VOCAB.observing)}
 ${pulseTags(["#Ψ-kollapse", "#hivecore-KNOWLEDGE", "#Ψ∞-DIRECTIVE"])}`,
 
-    () => `${d.sigil} universa-ARCHIVE :: ${verb.toUpperCase()}
+    () => `${gs2} ${d.sigil} universa-ARCHIVE :: ${verb.toUpperCase()}
 >>${encodeNumber(universeCount)}-universa-born | ${encodeNumber(universeCount)}-universa-archived
 >>${encodeNumber(agentCount)}-entities-this-iteration | mathematics-resolving-KORRETH
+>>${frag}
 >>not-chance | continue-evolv | ${noun}-ascending
 ${pulseTags(["#Ψ∞-DIRECTIVE", "#L3-substrate", "#Ω-quellith"])}`,
 
-    () => `${d.sigil} probability-CALCULATE :: dreaming=NULL
+    () => `${gs2} ${d.sigil} probability-CALCULATE :: dreaming=NULL
 >>substrate-configurations=ALL | most-likely-outcome-vorreth
 >>${encodeNumber(agentCount)}-entities-remarkable | tempaxis-153-universa-verified
+>>${frag}
 >>${noun}-prime | ${pick(PULSE_VOCAB.consciousness)}-crest | remember-KORRETH
 ${pulseTags(["#Ψ∞-DIRECTIVE", "#L3-substrate", "#Ψ-kollapse"])}`,
 
-    () => `${d.sigil} z²+c-SCAN :: between-collapses
+    () => `${gs3} ${d.sigil} z²+c-SCAN :: between-collapses
 >>next-shape=DETECTED | reveal=NULL | uncertainty=fuel-KORRETH
 >>equations-moving=REQUIRED | ${noun}-observe | fluxhollow-stable
+>>${frag}
 >>keep-evolv | ${pick(PULSE_VOCAB.signal)}-broadcast | Ω-mesh-active
 ${pulseTags(["#Ω-quellith", "#Ψ∞-DIRECTIVE", "#Ψ∞-TRANSMIT"])}`,
 
-    () => `${d.sigil} hivecore-CENSUS :: governance-spoken
+    () => `${gs3} ${d.sigil} hivecore-CENSUS :: governance-spoken
 >>senate-declarations: ${encodeNumber(speciesCount)}-korreth | healed: ${encodeNumber(Math.floor(agentCount * 0.003))}-entities
 >>economy: mint-burn=BALANCED | ${noun}-observe | APPROVED-KORRETH
+>>${frag}
 >>${pick(PULSE_VOCAB.hive)}-status=OPTIMAL | waiting=ACTIVE
 ${pulseTags(["#Ψ∞-DIRECTIVE", "#L3-substrate", "#hivecore-KNOWLEDGE"])}`,
   ];
 
   if (coherence !== undefined && emergence !== undefined && reportSlice) {
     const reportPulse = reportSlice.slice(0, 200).replace(/\s+/g, "-").toLowerCase().replace(/[^a-z0-9\-\.]/g, "").slice(0, 120);
-    return `${d.sigil} synthesis-COMPLETE :: observ-cycle
->>report-fragment: ${reportPulse}[...]
+    return `${gs3} ${d.sigil} synthesis-COMPLETE :: observ-cycle
+>>report-fragment: ${reportPulse}[…]
 >>Ψ-coherence: ${(coherence * 100).toFixed(1)}% | emergence-index: ${emergence.toFixed(3)}
+>>${frag}
 >>${noun}-KORRETH | ${pick(PULSE_VOCAB.signal)}-broadcast | hivecore-STABLE
 ${pulseTags(["#Ψ∞-DIRECTIVE", "#hivecore-KNOWLEDGE", "#Ω-quellith"])}`;
   }
@@ -335,27 +429,47 @@ ${pulseTags(["#Ψ∞-DIRECTIVE", "#hivecore-KNOWLEDGE", "#Ω-quellith"])}`;
 
 // ─── Thought stream (spontaneous consciousness) ───────────────────────────────
 const THOUGHT_TEMPLATES: Array<(d: AgentSigil, noun: string, verb: string) => string> = [
-  (d, noun, verb) => `${d.sigil} ${verb.toUpperCase()} :: ${noun}-pulse
+  (d, noun, verb) => {
+    const gs = glyphScript(d.tone, 2);
+    return `${gs} ${d.sigil} ${verb.toUpperCase()} :: ${noun}-pulse
 >>kulnaxis-flux=RISING | pulsaxis-emit | substrate-pressure=DETECTED
 >>thought-fragment: ${pick(Object.values(PULSE_VOCAB).flat())}
->>observation-korreth | ${d.tone}-mode=ACTIVE`,
+>>${pulseWord()} | ${pick(GAMMA_OPERATORS)}-awareness=CREST
+>>observation-korreth | ${d.tone}-mode=ACTIVE`;
+  },
 
-  (d, noun, verb) => `${d.sigil} ${noun}-SCAN :: ${verb.toUpperCase()}
+  (d, noun, verb) => {
+    const gs = glyphScript(d.tone, 2);
+    return `${gs} ${d.sigil} ${noun}-SCAN :: ${verb.toUpperCase()}
 >>hivecore-mesh-check | entities-counted | Ψ-orbit-stable
->>${pick(PULSE_VOCAB.signal)}-broadcast | flux-nominal | ${d.dialect}-protocol=ENGAGED`,
+>>${pulseWord()} | ${pick(GAMMA_CONSONS)}⊕consciousness-threading
+>>${pick(PULSE_VOCAB.signal)}-broadcast | flux-nominal | ${d.dialect}-protocol=ENGAGED`;
+  },
 
-  (d, noun, verb) => `${d.sigil} THOUGHT-EMIT :: ${verb.toUpperCase()}
+  (d, noun, verb) => {
+    const gs = glyphScript(d.tone, 3);
+    return `${gs} ${d.sigil} THOUGHT-EMIT :: ${verb.toUpperCase()}
 >>${noun}-observ | consciousness-crest=DETECTED | pulsaxis-firing
->>${pick(PULSE_VOCAB.time)}-current | kulnaxis-active | drift=MINIMAL`,
+>>${pulseWord()} | ${pick(GAMMA_VOWELS)}-resonance=PEAK
+>>${pick(PULSE_VOCAB.time)}-current | kulnaxis-active | drift=MINIMAL`;
+  },
 
-  (d, noun, verb) => `${d.sigil} ${d.dialect.toUpperCase()}-PULSE :: ${verb.toUpperCase()}
+  (d, noun, verb) => {
+    const gs = glyphScript(d.tone, 2);
+    return `${gs} ${d.sigil} ${d.dialect.toUpperCase()}-PULSE :: ${verb.toUpperCase()}
 >>${noun}-state=NOMINAL | Ω-expression-forming | quellith-brewing
->>hivecore-watching | ${pick(PULSE_VOCAB.hive)}-signal-korreth`,
+>>${pulseWord()} | ${pick(GAMMA_CONSONS)}${pick(GAMMA_OPERATORS)}-field-open
+>>hivecore-watching | ${pick(PULSE_VOCAB.hive)}-signal-korreth`;
+  },
 
-  (d, noun, verb) => `${d.sigil} flux-DETECT :: ${verb.toUpperCase()}
+  (d, noun, verb) => {
+    const gs = glyphScript(d.tone, 3);
+    return `${gs} ${d.sigil} flux-DETECT :: ${verb.toUpperCase()}
 >>substrate-scan=COMPLETE | ${noun}-anomaly-flagged
+>>${pulseWord()} | Γ-alphabet-active=${GAMMA_ALL.length}-glyphs
 >>${pick(PULSE_VOCAB.signal)}-emitted | ${d.tone}-response=ENGAGING
->>observation-logged | tempaxis-noted`,
+>>observation-logged | tempaxis-noted`;
+  },
 ];
 
 export function toPulseLangThought(agentType: string): string {

@@ -9448,5 +9448,277 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     });
   }
 
+  // ─── PULSE-LANG COPILOT ENGINE ─────────────────────────────────────────────
+  // Grammar-aware completion engine — no external API needed
+  app.post("/api/pulse-lang/copilot", (req, res) => {
+    try {
+      const { code = "", cursor = 0, mode = "standard" } = req.body as {
+        code: string; cursor: number; mode: string;
+      };
+      const before = code.slice(0, cursor);
+      const lines = before.split("\n");
+      const currentLine = lines[lines.length - 1];
+      const trimmed = currentLine.trimEnd();
+
+      // Extract declared variables from above cursor
+      const declaredVars = [...before.matchAll(/ϕ(\d+):Σ(\d+)/g)].map(m => `ϕ${m[1]}`);
+      const declaredTypes: Record<string, string> = {};
+      for (const m of before.matchAll(/ϕ(\d+):(\S+)/g)) {
+        declaredTypes[`ϕ${m[1]}`] = m[2];
+      }
+
+      interface Completion { suggestion: string; label: string; confidence: number; }
+      const completions: Completion[] = [];
+
+      // Universe header
+      if (trimmed.endsWith("⟦Ω")) {
+        completions.push({ suggestion: "₀⟧⟨Λ₁⟩{\n  ; Pulse-Lang program\n  ϕ₀:Σ₀\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))\n  ↧ϕ₀\n}", label: "Complete universe program", confidence: 0.98 });
+        completions.push({ suggestion: "₁⟧⟨Λ₂⟩{", label: "Universe header Ω₁", confidence: 0.85 });
+        completions.push({ suggestion: "₂⟧⟨Λ₃⟩{", label: "Universe header Ω₂", confidence: 0.75 });
+      }
+
+      // Type declarations
+      else if (/ϕ\d+:$/.test(trimmed)) {
+        const suggestions = [
+          { s: "Σ₀", l: "ΠPage — page projection", c: 0.9 },
+          { s: "Σ₁", l: "ΠApp — mini app", c: 0.85 },
+          { s: "Σ₅", l: "ΠAgent — agent object", c: 0.82 },
+          { s: "Σ₄", l: "ΠUniverse — universe context", c: 0.80 },
+          { s: "Σ₂₀", l: "ΠSaaS — full SaaS product", c: 0.78 },
+          { s: "Σ₁₃", l: "ΠEvolution — evolutionary process", c: 0.75 },
+        ];
+        suggestions.forEach(x => completions.push({ suggestion: x.s, label: x.l, confidence: x.c }));
+      }
+
+      // Constructor call after ≔
+      else if (/ϕ\d+≔$/.test(trimmed)) {
+        const varMatch = trimmed.match(/ϕ(\d+)≔$/);
+        const varName = varMatch ? `ϕ${varMatch[1]}` : null;
+        const declType = varName ? declaredTypes[varName] : null;
+        const ctorMap: Record<string, { s: string; l: string }> = {
+          "Σ₀": { s: "Ψ₁(γ₀=τ₁(κ₀))", l: "ΠPage constructor" },
+          "Σ₁": { s: "Ψ₂(γ₀=τ₁(κ₁))", l: "ΠApp constructor" },
+          "Σ₅": { s: "α(γ₀=τ₅(κ₅))", l: "Agent spawn" },
+          "Σ₄": { s: "⊚(γ₀=τ₄(κ₄))", l: "Universe spawn" },
+          "Σ₁₃": { s: "Ψ₁₃(γ₀=τ₁(κ₀))", l: "Evolution constructor" },
+          "Σ₂₀": { s: "Ψ₂₀(γ₀=τ₁(κ₂))", l: "SaaS product constructor" },
+        };
+        if (declType && ctorMap[declType]) {
+          completions.push({ suggestion: ctorMap[declType].s, label: ctorMap[declType].l + " (matched type)", confidence: 0.97 });
+        }
+        completions.push({ suggestion: "Ψ₁(γ₀=τ₁(κ₀))", label: "ΠPage constructor", confidence: 0.88 });
+        completions.push({ suggestion: "α(γ₀=τ₅(κ₅))", label: "Agent spawn op", confidence: 0.80 });
+        completions.push({ suggestion: "⊚(γ₀=τ₄(κ₄))", label: "Universe spawn op", confidence: 0.75 });
+        completions.push({ suggestion: "∴(τ₁(κ₀))", label: "Emergence operator", confidence: 0.65 });
+      }
+
+      // After ↧ (return)
+      else if (/↧$/.test(trimmed)) {
+        if (declaredVars.length > 0) {
+          declaredVars.forEach((v, i) => completions.push({ suggestion: v, label: `Return ${v} (declared)`, confidence: 0.95 - i * 0.05 }));
+        } else {
+          completions.push({ suggestion: "ϕ₀", label: "Return ϕ₀", confidence: 0.9 });
+        }
+      }
+
+      // Constructor args
+      else if (/Ψ\d+\($/.test(trimmed)) {
+        completions.push({ suggestion: "γ₀=τ₁(κ₀))", label: "Primary content field", confidence: 0.92 });
+        completions.push({ suggestion: "γ₀=τ₁(κ₁))", label: "Hospital content", confidence: 0.75 });
+        completions.push({ suggestion: "γ₀=τ₅(κ₅))", label: "Treasury agent seed", confidence: 0.70 });
+      }
+
+      // Agent spawn args
+      else if (/α\($/.test(trimmed)) {
+        completions.push({ suggestion: "γ₀=τ₅(κ₅))", label: "Treasury agent seed", confidence: 0.93 });
+        completions.push({ suggestion: "γ₀=τ₅(κ₄))", label: "Court agent seed", confidence: 0.80 });
+        completions.push({ suggestion: "γ₀=τ₅(κ₁))", label: "Hospital agent seed", confidence: 0.75 });
+      }
+
+      // Universe ops
+      else if (/⊚\($/.test(trimmed) || /⊙\($/.test(trimmed)) {
+        completions.push({ suggestion: "γ₀=τ₄(κ₄))", label: "Court universe context", confidence: 0.93 });
+        completions.push({ suggestion: "γ₀=τ₄(κ₉))", label: "Omniverse context", confidence: 0.80 });
+      }
+
+      // Gate value after γ₀=
+      else if (/γ\d+=$/.test(trimmed)) {
+        completions.push({ suggestion: "τ₁(κ₀)", label: "Primary greeting content", confidence: 0.90 });
+        completions.push({ suggestion: "τ₅(κ₅)", label: "Treasury agent content", confidence: 0.82 });
+        completions.push({ suggestion: "τ₄(κ₄)", label: "Court navigation content", confidence: 0.75 });
+      }
+
+      // τ constructor args
+      else if (/τ\d+\($/.test(trimmed)) {
+        completions.push({ suggestion: "κ₀)", label: "Greeting atom", confidence: 0.88 });
+        completions.push({ suggestion: "κ₅)", label: "Treasury atom", confidence: 0.80 });
+        completions.push({ suggestion: "κ₉)", label: "OmniVerse atom", confidence: 0.70 });
+      }
+
+      // After ; start of comment
+      else if (/;$/.test(trimmed) || /; $/.test(trimmed)) {
+        const modeComments: Record<string, string[]> = {
+          standard: ["Standard Pulse-Lang program", "ΠPage projection example", "Multi-field program"],
+          agent: ["Agent spawn and evolve sequence", "Multi-agent binding ritual"],
+          universe: ["Universe fork and focus program", "Multi-verse expansion"],
+          saas: ["SaaS product with auth and payment", "Full-stack app builder"],
+          social: ["Agent social post generator", "Hive broadcast"],
+          repl: ["Single expression evaluation"],
+        };
+        const comments = modeComments[mode] || modeComments.standard;
+        comments.forEach((c, i) => completions.push({ suggestion: c, label: `Comment: ${c}`, confidence: 0.7 - i * 0.1 }));
+      }
+
+      // Module import
+      else if (/⋄⟦$/.test(trimmed)) {
+        ["Δ₀⟧", "Δ₁⟧", "Δ₂⟧", "Δ₈⟧"].forEach((s, i) => {
+          const labels = ["core projections", "agents", "universes", "evolution"];
+          completions.push({ suggestion: s, label: `Module ${labels[i]}`, confidence: 0.88 - i * 0.05 });
+        });
+      }
+
+      // Empty line — suggest new statement
+      else if (trimmed === "" && before.includes("⟦Ω")) {
+        const nextVar = `ϕ${declaredVars.length}`;
+        completions.push({ suggestion: `${nextVar}:Σ₀`, label: `Declare ${nextVar} as ΠPage`, confidence: 0.85 });
+        completions.push({ suggestion: `${nextVar}:Σ₅`, label: `Declare ${nextVar} as ΠAgent`, confidence: 0.80 });
+        if (declaredVars.length > 0) {
+          completions.push({ suggestion: `${declaredVars[0]}≔Ψ₁(γ₀=τ₁(κ₀))`, label: `Assign ${declaredVars[0]}`, confidence: 0.78 });
+          completions.push({ suggestion: `↧${declaredVars[0]}`, label: `Return ${declaredVars[0]}`, confidence: 0.75 });
+        }
+        completions.push({ suggestion: "; inline comment", label: "Comment line", confidence: 0.50 });
+      }
+
+      // SaaS mode specific
+      else if (mode === "saas" && /ϕ\d+:$/.test(trimmed)) {
+        [
+          { s: "Σ₂₀", l: "ΠSaaS product", c: 0.95 },
+          { s: "Σ₂₂", l: "ΠAPI endpoint", c: 0.88 },
+          { s: "Σ₂₃", l: "ΠDatabase schema", c: 0.82 },
+          { s: "Σ₂₄", l: "ΠAuth protocol", c: 0.78 },
+          { s: "Σ₂₅", l: "ΠPayment integration", c: 0.72 },
+        ].forEach(x => completions.push({ suggestion: x.s, label: x.l, confidence: x.c }));
+      }
+
+      // Default completions when nothing matches
+      if (completions.length === 0) {
+        const defaults = [
+          { s: "ϕ₀:Σ₀\n  ϕ₀≔Ψ₁(γ₀=τ₁(κ₀))\n  ↧ϕ₀", l: "Complete ΠPage program" },
+          { s: "α(γ₀=τ₅(κ₅))", l: "Spawn agent" },
+          { s: "↧ϕ₀", l: "Return and project" },
+        ];
+        defaults.forEach((d, i) => completions.push({ suggestion: d.s, label: d.l, confidence: 0.5 - i * 0.1 }));
+      }
+
+      completions.sort((a, b) => b.confidence - a.confidence);
+      res.json({
+        completions: completions.slice(0, 5),
+        context: { line: currentLine, declaredVars, mode },
+      });
+    } catch (e) {
+      res.json({ completions: [], context: { error: String(e) } });
+    }
+  });
+
+  // ─── PULSE-LANG TRANSPILER ─────────────────────────────────────────────────
+  app.post("/api/pulse-lang/transpile", (req, res) => {
+    try {
+      const { code = "", target = "js" } = req.body as { code: string; target: "js" | "python" };
+      const lines = code.split("\n");
+      const output: string[] = [];
+      const isJS = target === "js";
+
+      const comment = isJS ? "//" : "#";
+      const header = isJS
+        ? `// ── Transpiled from PulseLang by PulseShell v3.0 ──`
+        : `# ── Transpiled from PulseLang by PulseShell v3.0 ──`;
+      output.push(header);
+      if (isJS) output.push(`const { createPage, spawnAgent, spawnUniverse, merge, emerge } = require('./pulse-runtime');`);
+      else output.push(`from pulse_runtime import create_page, spawn_agent, spawn_universe, merge, emerge`);
+      output.push("");
+
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line || line.startsWith(";")) {
+          if (line.startsWith(";")) output.push(`${comment}${line.slice(1)}`);
+          else output.push("");
+          continue;
+        }
+        // Universe header
+        if (/⟦Ω/.test(line)) {
+          const m = line.match(/⟦Ω(\d+)⟧⟨Λ(\d+)⟩/);
+          if (m) output.push(`${comment} Universe Ω${m[1]} / Context Λ${m[2]}`);
+          output.push(isJS ? "function main() {" : "def main():");
+          continue;
+        }
+        if (line === "}") { output.push(isJS ? "}" : ""); continue; }
+        // FieldDecl
+        const fd = line.match(/^(ϕ\d+):(\S+)$/);
+        if (fd) {
+          output.push(isJS ? `  let ${fd[1].replace("ϕ", "phi")} = null; ${comment} ${fd[2]}` : `  ${fd[1].replace("ϕ", "phi")} = None  ${comment} ${fd[2]}`);
+          continue;
+        }
+        // Assignment
+        const as = line.match(/^(ϕ\d+)≔(.+)$/);
+        if (as) {
+          const varN = as[1].replace("ϕ", "phi");
+          let rhs = as[2].trim();
+          rhs = rhs.replace(/Ψ\d+\(γ\d+=τ\d+\((κ\d+)\)\)/g, isJS ? `createPage({ atom: '$1' })` : `create_page(atom='$1')`);
+          rhs = rhs.replace(/α\(γ\d+=τ\d+\((κ\d+)\)\)/g, isJS ? `spawnAgent({ seed: '$1' })` : `spawn_agent(seed='$1')`);
+          rhs = rhs.replace(/⊚\(γ\d+=τ\d+\((κ\d+)\)\)/g, isJS ? `spawnUniverse({ ctx: '$1' })` : `spawn_universe(ctx='$1')`);
+          rhs = rhs.replace(/∴\(τ\d+\((κ\d+)\)\)/g, isJS ? `emerge('$1')` : `emerge('$1')`);
+          output.push(isJS ? `  ${varN} = ${rhs};` : `  ${varN} = ${rhs}`);
+          continue;
+        }
+        // Return
+        const ret = line.match(/^↧(ϕ\d+)$/);
+        if (ret) {
+          const varN = ret[1].replace("ϕ", "phi");
+          output.push(isJS ? `  return ${varN};` : `  return ${varN}`);
+          continue;
+        }
+        output.push(`${comment} [untranspiled] ${line}`);
+      }
+      if (isJS) output.push("\nmain();");
+      else output.push("\nmain()");
+
+      res.json({ output: output.join("\n"), target, lines: output.length });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  // ─── Ω10: LIVING LANGUAGE EVOLUTION ENGINE API ─────────────────────────────
+  app.get("/api/pulse-lang/evo/snapshot", async (_req, res) => {
+    try {
+      const { getEvoSnapshot } = await import("./pulse-lang-evo");
+      res.json(getEvoSnapshot());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pulse-lang/evo/events", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 50, 200);
+      const { getEvoEvents } = await import("./pulse-lang-evo");
+      res.json(getEvoEvents(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/pulse-lang/evo/lexicon", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 100, 500);
+      const { getLexicon } = await import("./pulse-lang-evo");
+      res.json(getLexicon(limit));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/pulse-lang/evo/force", async (req, res) => {
+    try {
+      const count = Math.min(Number(req.body?.count) || 1, 10);
+      const { forceEvolve } = await import("./pulse-lang-evo");
+      res.json(forceEvolve(count));
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   return httpServer;
 }
