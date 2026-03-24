@@ -17,6 +17,7 @@ import PublicationDetailPage from "./pages/PublicationDetailPage";
 import CorporationsListPage from "./pages/CorporationsListPage";
 import ChurchSessionPage from "./pages/ChurchSessionPage";
 import FinancePage from "./pages/FinancePage";
+import ToneBeatMaker from "./components/ToneBeatMaker";
 import MediaPage from "./pages/MediaPage";
 import GovernmentPage from "./pages/GovernmentPage";
 import CareersPage from "./pages/CareersPage";
@@ -12572,7 +12573,7 @@ function QuantapediaTopicPageWrapper(){
 }
 
 function MusicPage() {
-  type MusicView = "home"|"artists"|"artist"|"albums"|"album"|"creator"|"label"|"studio";
+  type MusicView = "home"|"artists"|"artist"|"albums"|"album"|"creator"|"label"|"studio"|"tone";
   const [view, setView] = useState<MusicView>("home");
   const [selectedArtistId, setSelectedArtistId] = useState<string|null>(null);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string|null>(null);
@@ -13465,7 +13466,7 @@ function MusicPage() {
   const selectedArtist = AI_ARTISTS.find(a=>a.id===selectedArtistId)||null;
   const selectedAlbum = AI_ALBUMS.find(a=>a.id===selectedAlbumId)||null;
 
-  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"studio",label:"🎛 Studio"},{id:"creator",label:"Creator"},{id:"label",label:"Label"}];
+  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"studio",label:"🎛 Studio"},{id:"creator",label:"Creator"},{id:"tone",label:"🎹 Tone Beats"},{id:"label",label:"Label"}];
 
   const StickyNav = () => (
     <div className="sticky top-0 z-10 border-b border-white/5 px-4 pt-4 pb-3" style={{background:"rgba(5,5,16,0.97)",backdropFilter:"blur(12px)"}}>
@@ -13645,6 +13646,13 @@ function MusicPage() {
     <div className="flex flex-col" style={{background:"#080810",minHeight:"calc(100vh - 60px)"}}>
       <StickyNav/>
       <QuantumStudio/>
+    </div>
+  );
+
+  if (view==="tone") return (
+    <div className="flex flex-col" style={{background:"#030010",minHeight:"calc(100vh - 60px)"}}>
+      <StickyNav/>
+      <ToneBeatMaker/>
     </div>
   );
 

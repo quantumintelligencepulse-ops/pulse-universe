@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Briefcase, ChevronLeft, TrendingUp, Star, Activity, Code2, Beaker, DollarSign, Palette, Heart } from "lucide-react";
+import { Search, ChevronLeft, Activity, Zap, TrendingUp, Globe, Brain, Shield, Clock, Database, Users, Target } from "lucide-react";
 
 const FIELDS = [
   { key: "", label: "All Fields", emoji: "🌌", color: "#818cf8" },
@@ -20,6 +20,47 @@ const LEVEL_COLORS: Record<string, string> = { Junior: "#60a5fa", Mid: "#4ade80"
 function fieldColor(field: string) { return FIELDS.find(f => f.key === field)?.color || "#818cf8"; }
 function fieldEmoji(field: string) { return FIELDS.find(f => f.key === field)?.emoji || "💼"; }
 
+const EQUATION_VARS = [
+  { sym: "Kᵢ", label: "Knowledge Nodes", desc: "Jobs, companies, skills, locations, guides — every fact is a node in the sovereign knowledge graph", color: "#818cf8", domain: "Information Science" },
+  { sym: "Gᵢ", label: "Generation Engines", desc: "AI creation, auto-updates, content expansions — the system writes itself and never stops", color: "#60a5fa", domain: "AI & NLP" },
+  { sym: "Iᵢ", label: "Indexing Force", desc: "SEO, crawlability, sitemaps, discoverability — every page forces Google to index it permanently", color: "#34d399", domain: "Search Engineering" },
+  { sym: "Uᵢ", label: "User Interaction", desc: "Behavior, engagement, decisions — human signals feed back into the equation to evolve it", color: "#fb923c", domain: "Behavioral Science" },
+  { sym: "N", label: "Network Effects", desc: "Users ↔ Employers ↔ Creators — the more people join, the more valuable the whole system becomes", color: "#fbbf24", domain: "Network Theory" },
+  { sym: "S", label: "Signal Intelligence", desc: "Real-world hiring rates, salary data, demand trends — reality feeds directly into the system", color: "#f472b6", domain: "Labor Economics" },
+  { sym: "D", label: "Decision Systems", desc: "Recommendations, career paths, next steps — the AI tells you exactly what to do next", color: "#f87171", domain: "Decision Intelligence" },
+  { sym: "T", label: "Trust Layer", desc: "Accuracy, verification, credibility — every piece of data is validated before it becomes law", color: "#4ade80", domain: "Verification Science" },
+  { sym: "e^λt", label: "Time Expansion", desc: "Exponential compounding over time — the longer the system runs, the more dominant it becomes", color: "#c084fc", domain: "Temporal Modeling" },
+];
+
+const SCIENTIFIC_DOMAINS = [
+  { icon: Brain, label: "Knowledge & Information", scientists: "Ontologists · Epistemologists · Archivists", color: "#818cf8" },
+  { icon: Zap, label: "AI Generation", scientists: "NLP Researchers · Generative AI Scientists", color: "#60a5fa" },
+  { icon: Globe, label: "Search & Indexing", scientists: "SEO Engineers · Crawling Researchers", color: "#34d399" },
+  { icon: Users, label: "Behavioral Science", scientists: "Cognitive Scientists · UX Researchers", color: "#fb923c" },
+  { icon: TrendingUp, label: "Network Science", scientists: "Complexity Theorists · Viral Dynamics", color: "#fbbf24" },
+  { icon: Database, label: "Labor Economics", scientists: "Workforce Researchers · Salary Analysts", color: "#f472b6" },
+  { icon: Target, label: "Decision Intelligence", scientists: "Recommender Systems · Bayesian Inference", color: "#f87171" },
+  { icon: Shield, label: "Trust & Governance", scientists: "Verification Scientists · AI Safety", color: "#4ade80" },
+  { icon: Clock, label: "Time & Evolution", scientists: "Temporal Modelers · Scaling Law Experts", color: "#c084fc" },
+  { icon: Activity, label: "Infrastructure", scientists: "Cloud Architects · Distributed Systems", color: "#94a3b8" },
+  { icon: Globe, label: "Meta-Scientists", scientists: "Futurists · Civilization-Scale Modelers", color: "#e879f9" },
+];
+
+const LAYERS = [
+  { num: 1, title: "Core Seed Engine", desc: "AI generates jobs, companies, locations, skills, guides — all from day one with zero employer involvement", color: "#818cf8" },
+  { num: 2, title: "Knowledge Observation", desc: "Job titles, company names, industries — facts, not listings. Legally observed, then AI-written into articles", color: "#60a5fa" },
+  { num: 3, title: "Job Article System", desc: "Every job title becomes a full evergreen article: salary, skills, career path, companies, outlook, apply link", color: "#34d399" },
+  { num: 4, title: "Company Pages", desc: "Every company gets a page: culture, salary ranges, common titles, hiring trends, AI insights", color: "#fb923c" },
+  { num: 5, title: "Location Intelligence", desc: "Every city: top industries, salary averages, hiring trends, featured companies, career categories", color: "#fbbf24" },
+  { num: 6, title: "Industry & Skills Graph", desc: "Every skill and industry is a node, linked to jobs, companies, training, guides — full topic authority", color: "#f472b6" },
+  { num: 7, title: "Sitemap + Indexing Engine", desc: "Auto-generated sitemaps, daily Google pings, metadata updates — the system forces itself to rank", color: "#f87171" },
+  { num: 8, title: "Auto-Posting Engine", desc: "Every new article becomes a social post, news card, shareable link — constant engagement loops", color: "#4ade80" },
+  { num: 9, title: "Future Interface", desc: "Sovereign intelligence UI — neon rails, dark mode, cinematic job pages, swipe-based mobile, real-time AI insights", color: "#c084fc" },
+  { num: 10, title: "The Breakthrough", desc: "You don't need employers to post. The system grows itself. That is the competitive moat.", color: "#e879f9" },
+  { num: 11, title: "Network Effect", desc: "As pages rank → seekers find you → employers find you → communities form → authority compounds", color: "#94a3b8" },
+  { num: 12, title: "Civilization-Scale Vision", desc: "The sovereign job engine. The Wikipedia of careers. The future of hiring. It outlives every job board.", color: "#818cf8" },
+];
+
 export default function CareersPage() {
   const [items, setItems] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
@@ -30,7 +71,8 @@ export default function CareersPage() {
   const [loading, setLoading] = useState(true);
   const [itemLoading, setItemLoading] = useState(false);
   const [engineStatus, setEngineStatus] = useState<any>(null);
-  const [view, setView] = useState<"home" | "career">("home");
+  const [view, setView] = useState<"home" | "career" | "equation" | "layers">("home");
+  const [activeEquationVar, setActiveEquationVar] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchItems = () => fetch("/api/careers").then(r => r.json()).then(setItems).catch(() => {});
@@ -65,29 +107,7 @@ export default function CareersPage() {
 
   const display = searchResults !== null ? searchResults : items.filter(i => i.generated);
 
-  const CareerCard = ({ item }: { item: any }) => {
-    const color = fieldColor(item.field);
-    const emoji = fieldEmoji(item.field);
-    const demandColor = DEMAND_COLORS[item.demand] || "#94a3b8";
-    const levelColor = LEVEL_COLORS[item.level] || "#94a3b8";
-    return (
-      <button onClick={() => openCareer(item)} data-testid={`career-card-${item.slug}`}
-        className="group text-left rounded-2xl border border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] transition-all overflow-hidden">
-        <div className="relative w-full h-28 flex items-center justify-center overflow-hidden"
-          style={{ background: `radial-gradient(ellipse at center,${color}28 0%,${color}08 55%,transparent 100%),linear-gradient(135deg,#07071a 0%,#0e0e28 100%)` }}>
-          <span className="text-5xl select-none relative z-10 group-hover:scale-110 transition-transform duration-300">{emoji}</span>
-          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black" style={{ color: demandColor, background: `${demandColor}20`, border: `1px solid ${demandColor}40` }}>{item.demand}</div>
-          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold text-white/50 bg-black/50 border border-white/5">{item.level}</div>
-          <div className="absolute inset-x-0 bottom-0 h-8" style={{ background: "linear-gradient(to top,rgba(7,7,26,0.9),transparent)" }} />
-        </div>
-        <div className="p-3">
-          <div className="text-white/90 font-bold text-sm mb-0.5 line-clamp-2 leading-snug">{item.title}</div>
-          {item.salaryRange && <div className="text-emerald-400 font-black text-xs">{item.salaryRange}</div>}
-          <div className="mt-1.5 text-white/25 text-[9px] px-2 py-0.5 rounded-full bg-white/5 inline-block">{item.field}</div>
-        </div>
-      </button>
-    );
-  };
+  const activeVar = EQUATION_VARS.find(v => v.sym === activeEquationVar);
 
   if (view === "career" && selected) {
     const item = selectedFull || selected;
@@ -99,11 +119,11 @@ export default function CareersPage() {
         <div className="max-w-3xl mx-auto px-4 pt-6 pb-10">
           <button onClick={() => { setView("home"); setSelectedFull(null); }} className="flex items-center gap-1 text-white/40 hover:text-white text-xs mb-4"><ChevronLeft size={14} /> Back to Careers</button>
           {itemLoading ? (
-            <div className="text-center py-20 text-white/30 text-sm">Loading career intelligence...</div>
+            <div className="text-center py-20 text-white/30 text-sm animate-pulse">Loading career intelligence...</div>
           ) : (
             <div className="space-y-4">
               <div className="rounded-2xl border border-white/10 overflow-hidden">
-                <div className="relative w-full h-44 flex items-center justify-center"
+                <div className="relative w-full h-48 flex items-center justify-center"
                   style={{ background: `radial-gradient(ellipse at 40% 35%,${color}40 0%,${color}10 55%,transparent 100%),linear-gradient(160deg,#06061a 0%,#0c0c25 60%,#07100a 100%)` }}>
                   <span className="text-8xl select-none drop-shadow-2xl">{emoji}</span>
                   <div className="absolute top-3 left-3 flex gap-2">
@@ -113,9 +133,9 @@ export default function CareersPage() {
                   {item.demand && <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full text-xs font-black bg-black/50 border" style={{ color: DEMAND_COLORS[item.demand] || "#94a3b8", borderColor: `${DEMAND_COLORS[item.demand] || "#94a3b8"}40` }}>{item.demand} Demand</div>}
                   <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: "linear-gradient(to top,rgba(6,6,26,0.9),transparent)" }} />
                 </div>
-                <div className="p-5">
+                <div className="p-6">
                   <h1 className="text-white font-black text-2xl mb-1.5">{item.title}</h1>
-                  {item.salaryRange && <div className="text-emerald-400 font-black text-xl mb-3">{item.salaryRange}</div>}
+                  {item.salaryRange && <div className="text-emerald-400 font-black text-2xl mb-3">{item.salaryRange}</div>}
                   <p className="text-white/60 text-sm leading-relaxed">{item.summary}</p>
                 </div>
               </div>
@@ -126,14 +146,12 @@ export default function CareersPage() {
                   <div className="flex flex-wrap gap-2">{item.skills.map((s: string, i: number) => <span key={i} className="px-3 py-1 rounded-full text-xs border border-white/10 text-white/70 bg-white/5">{s}</span>)}</div>
                 </div>
               )}
-
               {full.tools?.length > 0 && (
                 <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5">
                   <div className="text-white font-black text-sm mb-3">🛠️ Tools & Technologies</div>
                   <div className="flex flex-wrap gap-2">{full.tools.map((t: string, i: number) => <span key={i} className="px-3 py-1 rounded-full text-xs border text-white/60 bg-white/5" style={{ borderColor: `${color}40`, color }}>{t}</span>)}</div>
                 </div>
               )}
-
               {full.careerPath?.length > 0 && (
                 <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5">
                   <div className="text-white font-black text-sm mb-3">🗺️ Career Path</div>
@@ -147,14 +165,12 @@ export default function CareersPage() {
                   </div>
                 </div>
               )}
-
               {full.futureTrend && (
                 <div className="rounded-2xl border border-violet-500/20 bg-violet-950/10 p-5">
                   <div className="text-violet-400 font-black text-sm mb-2">🔮 Future Outlook</div>
                   <p className="text-white/60 text-sm leading-relaxed">{full.futureTrend}</p>
                 </div>
               )}
-
               {full.education && (
                 <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
                   <div className="text-white/40 text-xs mb-1 font-bold uppercase tracking-wide">Education</div>
@@ -168,47 +184,209 @@ export default function CareersPage() {
     );
   }
 
+  if (view === "equation") {
+    return (
+      <div className="flex-1 overflow-auto" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
+        <div className="max-w-4xl mx-auto px-4 pt-6 pb-16">
+          <button onClick={() => setView("home")} className="flex items-center gap-1 text-white/40 hover:text-white text-xs mb-6"><ChevronLeft size={14} /> Back</button>
+
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-bold mb-4 tracking-widest">CRISPR EQUATION LAB</div>
+            <h2 className="text-3xl font-black text-white mb-2">Ω∞ Dissection Chamber</h2>
+            <p className="text-white/40 text-sm">Click any variable to dissect it — understand the full intelligence equation</p>
+          </div>
+
+          {/* Full Equation Display */}
+          <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-950/30 to-indigo-950/20 p-6 mb-8 text-center overflow-x-auto">
+            <div className="text-white/20 text-[10px] uppercase tracking-widest mb-3 font-bold">The Sovereign Intelligence Equation</div>
+            <div className="font-mono text-violet-200 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
+              Ω∞ = lim<sub>t→∞</sub> ∫₀ⁿ
+              {" "}[ (Σᵢ Kᵢ · Gᵢ · Iᵢ · Uᵢ)^α · N^β · S^γ · D^δ · T^ε ] · e^λt · dt
+            </div>
+            <div className="mt-4 text-white/30 text-xs">Ultimate system dominance / total career intelligence state</div>
+          </div>
+
+          {/* Variable selector grid */}
+          <div className="grid grid-cols-3 gap-2 mb-8">
+            {EQUATION_VARS.map(v => (
+              <button key={v.sym} onClick={() => setActiveEquationVar(activeEquationVar === v.sym ? null : v.sym)}
+                data-testid={`eq-var-${v.sym}`}
+                className="p-3 rounded-xl border text-left transition-all"
+                style={activeEquationVar === v.sym
+                  ? { background: `${v.color}18`, borderColor: `${v.color}50`, boxShadow: `0 0 20px ${v.color}20` }
+                  : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
+                <div className="font-mono text-base font-black mb-1" style={{ color: v.color }}>{v.sym}</div>
+                <div className="text-white/60 text-[10px] font-bold">{v.label}</div>
+                <div className="text-white/25 text-[9px] mt-0.5">{v.domain}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Active variable dissection */}
+          {activeVar && (
+            <div className="rounded-2xl border p-6 mb-8" style={{ borderColor: `${activeVar.color}30`, background: `${activeVar.color}08` }}>
+              <div className="flex items-start gap-4">
+                <div className="font-mono text-4xl font-black shrink-0" style={{ color: activeVar.color }}>{activeVar.sym}</div>
+                <div>
+                  <div className="text-white font-black text-lg mb-1">{activeVar.label}</div>
+                  <div className="text-white/30 text-[10px] font-bold uppercase tracking-wider mb-3">{activeVar.domain}</div>
+                  <p className="text-white/70 text-sm leading-relaxed">{activeVar.desc}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 11 Scientific Domains */}
+          <div className="mb-4">
+            <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">11 Scientific Domains Required to Build Ω∞</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SCIENTIFIC_DOMAINS.map((d, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-xl border border-white/6 bg-white/[0.02] p-4">
+                  <div className="p-2 rounded-lg shrink-0" style={{ background: `${d.color}15` }}>
+                    <d.icon size={14} style={{ color: d.color }} />
+                  </div>
+                  <div>
+                    <div className="text-white/80 text-xs font-bold">{d.label}</div>
+                    <div className="text-white/30 text-[10px] mt-0.5">{d.scientists}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "layers") {
+    return (
+      <div className="flex-1 overflow-auto" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
+        <div className="max-w-4xl mx-auto px-4 pt-6 pb-16">
+          <button onClick={() => setView("home")} className="flex items-center gap-1 text-white/40 hover:text-white text-xs mb-6"><ChevronLeft size={14} /> Back</button>
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold mb-4 tracking-widest">12-LAYER ARCHITECTURE</div>
+            <h2 className="text-3xl font-black text-white mb-2">The Sovereign Job Engine</h2>
+            <p className="text-white/40 text-sm">This is not a job board — it's a self-growing civilization-scale knowledge organism</p>
+          </div>
+          <div className="space-y-3">
+            {LAYERS.map(layer => (
+              <div key={layer.num} className="flex gap-4 rounded-2xl border border-white/6 bg-white/[0.02] p-5 hover:border-white/12 transition-all">
+                <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm" style={{ background: `${layer.color}18`, color: layer.color, border: `1px solid ${layer.color}30` }}>
+                  {layer.num}
+                </div>
+                <div>
+                  <div className="text-white font-black text-sm mb-1" style={{ color: layer.color }}>{layer.title}</div>
+                  <div className="text-white/50 text-xs leading-relaxed">{layer.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
       <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-black text-white tracking-tight mb-0.5">Quantum Career Intelligence</h1>
-            <p className="text-white/30 text-sm">AI-indexed career paths, salaries, skills, and future outlooks</p>
+
+        {/* Hero */}
+        <div className="relative rounded-3xl overflow-hidden mb-8 p-8"
+          style={{ background: "linear-gradient(135deg,#0a0018 0%,#0c001a 40%,#04080e 100%)", border: "1px solid rgba(129,140,248,0.15)" }}>
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 30% 50%,rgba(129,140,248,0.12) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(251,146,60,0.08) 0%,transparent 50%)" }} />
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] font-bold tracking-widest mb-4">
+              SOVEREIGN CAREER INTELLIGENCE ENGINE
+            </div>
+            <h1 className="text-4xl font-black text-white tracking-tight mb-2">The Future of Careers</h1>
+            <p className="text-white/40 text-sm max-w-xl mb-6">AI-indexed career paths, salaries, skills, and outlooks — self-generating, self-ranking, unstoppable</p>
+
+            {/* Mini equation */}
+            <div className="inline-block rounded-xl border border-violet-500/20 bg-black/40 px-5 py-3 mb-6">
+              <div className="font-mono text-violet-300 text-xs">Ω∞ = ∫ (Kᵢ · Gᵢ · Iᵢ · Uᵢ)^α · N^β · S^γ · D^δ · T^ε · e^λt · dt</div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button onClick={() => setView("equation")} data-testid="btn-equation-lab"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600/80 hover:bg-violet-500 text-white text-sm font-bold transition-all border border-violet-500/30">
+                🔬 CRISPR Equation Lab
+              </button>
+              <button onClick={() => setView("layers")} data-testid="btn-layers"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 text-white/60 text-sm font-bold hover:bg-white/5 transition-all">
+                🏗️ 12-Layer Architecture
+              </button>
+            </div>
           </div>
+
           {engineStatus && (
-            <div className="sm:ml-auto flex items-center gap-2 px-3 py-2 rounded-xl border border-white/8 bg-white/5">
+            <div className="absolute top-5 right-5 flex items-center gap-2 px-3 py-1.5 rounded-xl border border-orange-500/20 bg-orange-500/10">
               <Activity size={12} className="text-orange-400" />
-              <span className="text-orange-400 text-xs font-bold">{engineStatus.generated} careers indexed</span>
+              <span className="text-orange-400 text-xs font-bold">{engineStatus.generated} indexed</span>
               <span className="text-white/20 text-[10px]">/ {engineStatus.total}</span>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        {/* Field tabs */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
           {FIELDS.map(f => (
             <button key={f.key} onClick={() => fetchByField(f.key)} data-testid={`tab-career-${f.key || "all"}`}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all`}
-              style={activeField === f.key ? { background: `${f.color}20`, border: `1px solid ${f.color}40`, color: f.color } : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
-              <span>{f.emoji}</span> {f.label}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all"
+              style={activeField === f.key
+                ? { background: `${f.color}20`, border: `1px solid ${f.color}40`, color: f.color }
+                : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)" }}>
+              {f.emoji} {f.label}
             </button>
           ))}
         </div>
 
+        {/* Search */}
         <div className="flex gap-2 mb-6">
           <input value={searchInput} onChange={e => setSearchInput(e.target.value)} onKeyDown={e => e.key === "Enter" && doSearch()}
             placeholder="Search careers, skills, fields..." data-testid="input-career-search"
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:border-white/25" />
-          <button onClick={doSearch} className="px-4 py-2.5 rounded-xl bg-orange-500/20 border border-orange-500/30 text-orange-400 text-sm font-bold hover:bg-orange-500/30 transition-all"><Search size={14} /></button>
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:border-violet-400/30" />
+          <button onClick={doSearch} className="px-4 py-2.5 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-400 text-sm font-bold hover:bg-violet-500/30 transition-all">
+            <Search size={14} />
+          </button>
         </div>
 
+        {/* Career grid */}
         {loading ? (
-          <div className="text-center py-16 text-white/20 text-sm">Loading career intelligence...</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.015] h-44 animate-pulse" />
+            ))}
+          </div>
         ) : display.length === 0 ? (
-          <div className="text-center py-16 text-white/20 text-sm">Engine is generating career profiles...</div>
+          <div className="text-center py-20">
+            <div className="text-4xl mb-4">🧬</div>
+            <div className="text-white/30 text-sm">Engine is generating career profiles...</div>
+            <div className="text-white/15 text-xs mt-1">The sovereign intelligence is seeding itself</div>
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {display.map((item: any) => <CareerCard key={item.slug} item={item} />)}
+            {display.map((item: any) => {
+              const color = fieldColor(item.field);
+              const emoji = fieldEmoji(item.field);
+              const demandColor = DEMAND_COLORS[item.demand] || "#94a3b8";
+              return (
+                <button key={item.slug} onClick={() => openCareer(item)} data-testid={`career-card-${item.slug}`}
+                  className="group text-left rounded-2xl border border-white/6 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04] transition-all overflow-hidden">
+                  <div className="relative w-full h-28 flex items-center justify-center overflow-hidden"
+                    style={{ background: `radial-gradient(ellipse at center,${color}28 0%,${color}08 55%,transparent 100%),linear-gradient(135deg,#07071a,#0e0e28)` }}>
+                    <span className="text-5xl select-none relative z-10 group-hover:scale-110 transition-transform duration-300">{emoji}</span>
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black" style={{ color: demandColor, background: `${demandColor}20`, border: `1px solid ${demandColor}40` }}>{item.demand}</div>
+                    <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold text-white/50 bg-black/50 border border-white/5">{item.level}</div>
+                    <div className="absolute inset-x-0 bottom-0 h-8" style={{ background: "linear-gradient(to top,rgba(7,7,26,0.9),transparent)" }} />
+                  </div>
+                  <div className="p-3">
+                    <div className="text-white/90 font-bold text-sm mb-0.5 line-clamp-2 leading-snug">{item.title}</div>
+                    {item.salaryRange && <div className="text-emerald-400 font-black text-xs">{item.salaryRange}</div>}
+                    <div className="mt-1.5 text-white/25 text-[9px] px-2 py-0.5 rounded-full bg-white/5 inline-block">{item.field}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
