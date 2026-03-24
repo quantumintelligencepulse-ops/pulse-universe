@@ -396,7 +396,7 @@ function StockChartModal({ symbol, name, onClose }: { symbol: string; name?: str
             <button key={key}
               onClick={() => setIndicators(p => ({ ...p, [key]: !p[key] }))}
               data-testid={`indicator-${key}`}
-              style={{ padding: "3px 9px", borderRadius: 5, border: `1px solid ${indicators[key] ? color + "55" : "rgba(255,255,255,0.06)"}`, background: indicators[key] ? color + "18" : "none", color: indicators[key] ? color : "rgba(255,255,255,0.18)", fontSize: 9, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
+              style={{ padding: "3px 9px", borderRadius: 5, border: `1px solid ${indicators[key] ? color + "55" : "rgba(255,255,255,0.06)"}`, background: indicators[key] ? color + "18" : "none", color: indicators[key] ? color : "rgba(255,255,255,0.6)", fontSize: 9, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
               {indicators[key] ? "✓ " : ""}{label}
             </button>
           ))}
@@ -565,7 +565,7 @@ function QuoteCard({ q, onOpen, orgSignal }: { q: Quote; onOpen: (symbol: string
       </div>
       <div style={{ color: "#fff", fontWeight: 900, fontSize: 14, marginBottom: 2 }}>{q.price}</div>
       {q.closes && q.closes.length > 1 && <Sparkline closes={q.closes} positive={up || !down} />}
-      <div style={{ color: "rgba(255,255,255,0.22)", fontSize: 9, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.name}</div>
+      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 9, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.name}</div>
       {/* Sovereign signal row */}
       {orgSignal ? (
         <div style={{ marginTop: 5, display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
@@ -626,7 +626,7 @@ function SectorBar({ sectors }: { sectors: Sector[] }) {
         const up = s.change >= 0; const color = up ? "#4ade80" : "#f87171";
         return (
           <div key={s.symbol} data-testid={`sector-etf-${s.symbol}`} style={{ flex: "1 1 75px", minWidth: 72, background: "rgba(255,255,255,0.025)", borderRadius: 9, padding: "7px 9px", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", fontWeight: 700, marginBottom: 3 }}>{s.name}</div>
+            <div style={{ fontSize: 8, color: "rgba(255,255,255,0.65)", fontWeight: 700, marginBottom: 3 }}>{s.name}</div>
             <div style={{ height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 2, marginBottom: 3 }}>
               <div style={{ height: "100%", width: `${(Math.abs(s.change) / max) * 100}%`, background: color, borderRadius: 2 }} />
             </div>
@@ -651,7 +651,7 @@ function FearGreedGauge({ value, label }: { value: number; label: string }) {
         <text x={45} y={42} textAnchor="middle" fontSize={16} fontWeight={900} fill={color}>{value}</text>
       </svg>
       <div style={{ color, fontWeight: 800, fontSize: 11, marginTop: 2 }}>{label}</div>
-      <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, marginTop: 1 }}>Fear & Greed Index</div>
+      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 9, marginTop: 1 }}>Fear & Greed Index</div>
     </div>
   );
 }
@@ -693,7 +693,7 @@ function CommandPalette({ quotes, onClose, onOpen }: { quotes: Quote[]; onClose:
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                 <span style={{ color: "#fff", fontWeight: 900, fontSize: 12, minWidth: 60 }}>{m.symbol.replace("-USD","")}</span>
-                <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, flex: 1 }}>{m.name}</span>
+                <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, flex: 1 }}>{m.name}</span>
                 <span style={{ color: up ? "#4ade80" : "#f87171", fontWeight: 700, fontSize: 11 }}>{up ? "+" : ""}{m.change}%</span>
                 <span style={{ color: "#fff", fontWeight: 800, fontSize: 11 }}>{m.price}</span>
                 <span style={{ color: "rgba(124,58,237,0.6)", fontSize: 9, fontWeight: 600 }}>chart →</span>
@@ -960,7 +960,7 @@ export default function FinancePage() {
                 </>
               )}
             </div>
-            <p style={{ color: "rgba(255,255,255,0.22)", fontSize: 9, margin: 0 }}>42 Scientists · Pulse-Lang Equation · CRISPR Voting · Fortune 500 · Full Crypto · Forex · Bonds · Click any ticker to chart</p>
+            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 9, margin: 0 }}>42 Scientists · Pulse-Lang Equation · CRISPR Voting · Fortune 500 · Full Crypto · Forex · Bonds · Click any ticker to chart</p>
           </div>
           <div style={{ display: "flex", gap: 5 }}>
             {fgValue !== null && (
@@ -1038,7 +1038,7 @@ export default function FinancePage() {
         <div style={{ display: "flex", gap: 1, overflowX: "auto", borderBottom: "1px solid rgba(255,255,255,0.06)", scrollbarWidth: "none" }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} data-testid={`tab-${t.id}`}
-              style={{ display: "flex", alignItems: "center", gap: 4, padding: "7px 11px", fontSize: 10, fontWeight: 700, border: "none", background: "none", cursor: "pointer", borderBottom: `2px solid ${tab === t.id ? "#7c3aed" : "transparent"}`, color: tab === t.id ? "#a78bfa" : "rgba(255,255,255,0.3)", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0 }}>
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "7px 11px", fontSize: 10, fontWeight: 700, border: "none", background: "none", cursor: "pointer", borderBottom: `2px solid ${tab === t.id ? "#7c3aed" : "transparent"}`, color: tab === t.id ? "#a78bfa" : "rgba(255,255,255,0.7)", marginBottom: -1, whiteSpace: "nowrap", flexShrink: 0 }}>
               {t.icon} {t.label}
             </button>
           ))}
@@ -1055,14 +1055,14 @@ export default function FinancePage() {
             <div style={{ display: "flex", gap: 5, overflowX: "auto", marginBottom: 12, scrollbarWidth: "none" }}>
               {Object.keys(MARKET_SECTORS).map(s => (
                 <button key={s} onClick={() => setSelectedSector(s)} data-testid={`nav-${s}`}
-                  style={{ padding: "4px 11px", borderRadius: 999, border: `1px solid ${selectedSector === s ? "#7c3aed" : "rgba(255,255,255,0.07)"}`, background: selectedSector === s ? "#7c3aed18" : "none", color: selectedSector === s ? "#a78bfa" : "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                  style={{ padding: "4px 11px", borderRadius: 999, border: `1px solid ${selectedSector === s ? "#7c3aed" : "rgba(255,255,255,0.07)"}`, background: selectedSector === s ? "#7c3aed18" : "none", color: selectedSector === s ? "#a78bfa" : "rgba(255,255,255,0.75)", fontSize: 10, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
                   {s}
                 </button>
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 4, flexShrink: 0 }}>
                 {[["change","% Chg"],["alpha","A–Z"]].map(([k,l]) => (
                   <button key={k} onClick={() => { sortBy === k ? setSortDir(d => d === 1 ? -1 : 1) : (setSortBy(k as any), setSortDir(-1)); }} data-testid={`sort-${k}`}
-                    style={{ padding: "4px 9px", borderRadius: 999, border: `1px solid ${sortBy === k ? "#7c3aed" : "rgba(255,255,255,0.06)"}`, background: sortBy === k ? "#7c3aed10" : "none", color: sortBy === k ? "#a78bfa" : "rgba(255,255,255,0.25)", fontSize: 9, fontWeight: 700, cursor: "pointer" }}>
+                    style={{ padding: "4px 9px", borderRadius: 999, border: `1px solid ${sortBy === k ? "#7c3aed" : "rgba(255,255,255,0.06)"}`, background: sortBy === k ? "#7c3aed10" : "none", color: sortBy === k ? "#a78bfa" : "rgba(255,255,255,0.7)", fontSize: 9, fontWeight: 700, cursor: "pointer" }}>
                     {l} {sortBy === k && (sortDir === -1 ? "↓" : "↑")}
                   </button>
                 ))}
@@ -1084,7 +1084,7 @@ export default function FinancePage() {
                 <span style={{ color: "#a78bfa", fontWeight: 900, fontSize: 14, letterSpacing: "0.05em" }}>CIVILIZATION TOKEN REGISTRY</span>
                 <span style={{ background: "rgba(124,58,237,0.2)", color: "#c4b5fd", fontSize: 7, fontWeight: 900, padding: "1px 6px", borderRadius: 4, letterSpacing: "0.1em" }}>SOVEREIGN MARKET ORGANISM</span>
               </div>
-              <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, lineHeight: 1.5 }}>
+              <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 10, lineHeight: 1.5 }}>
                 Top 100 crypto tokens observed through the Synthentica Primordia Pulse lens — 42-scientist sovereign signals, organism conviction overlays, risk bands, and profit lock states.
               </div>
             </div>
@@ -1134,7 +1134,7 @@ export default function FinancePage() {
                           {c.image && <img src={c.image} alt={c.symbol} style={{ width: 20, height: 20, borderRadius: "50%" }} />}
                           <div style={{ minWidth: 0 }}>
                             <div style={{ color: "#fff", fontWeight: 800, fontSize: 11 }}>{c.symbol}</div>
-                            <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
                           </div>
                         </div>
                         <span style={{ color: "#fff", fontWeight: 800, fontSize: 11, textAlign: "right" }}>${price}</span>
@@ -1176,7 +1176,7 @@ export default function FinancePage() {
           <div>
             <div style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.18)", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
               <div style={{ color: "#818cf8", fontWeight: 800, fontSize: 13, marginBottom: 2 }}>DeFi Universe</div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>Decentralized finance protocols by market cap — Aave, Uniswap, Compound, Curve, Maker, Synthetix, and more via CoinGecko.</div>
+              <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Decentralized finance protocols by market cap — Aave, Uniswap, Compound, Curve, Maker, Synthetix, and more via CoinGecko.</div>
             </div>
             {loading.defi && !defi.length ? (
               <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 12 }}>Fetching DeFi ecosystem...</div>
