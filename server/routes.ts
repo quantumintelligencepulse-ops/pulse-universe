@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
 const _cache = new Map<string, { data: any; expires: number }>();
@@ -6710,7 +6711,9 @@ ${(pubs.rows as any[]).map(p => {
     res.json(await storage.searchCareers(q, 20).catch(() => []));
   });
   app.get("/api/careers/field/:field", async (req, res) => {
-    res.json(await storage.getCareersByField(decodeURIComponent(req.params.field), 50).catch(() => []));
+    const field = decodeURIComponent(req.params.field);
+    if (isCacheReady()) return res.json(getCareersByFieldFromCache(field, 50));
+    res.json(await storage.getCareersByField(field, 50).catch(() => []));
   });
   app.get("/api/careers/:slug", async (req, res) => {
     const item = await storage.getCareer(req.params.slug).catch(() => null);
@@ -6719,6 +6722,7 @@ ${(pubs.rows as any[]).map(p => {
     res.json({ career: item });
   });
   app.get("/api/careers", async (req, res) => {
+    if (isCacheReady()) return res.json(getCareersFromCache(100));
     res.json(await storage.getAllCareers(100).catch(() => []));
   });
 

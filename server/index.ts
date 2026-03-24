@@ -10,6 +10,7 @@ import { startQuantumMediaEngine } from "./quantum-media-engine";
 import { startQuantumCareerEngine } from "./quantum-career-engine";
 import { startCareerCrisprEngine } from "./career-crispr-engine";
 import { startJobIngestionEngine } from "./job-ingestion-engine";
+import { startCareerCache } from "./career-cache";
 import { startSpawnEngine } from "./quantum-spawn-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
@@ -182,6 +183,7 @@ app.use((req, res, next) => {
       startQuantumCareerEngine().catch((e) => log(`CareerEngine start error: ${e}`));
       startCareerCrisprEngine();
       startJobIngestionEngine();
+      startCareerCache();
       startSpawnEngine().catch((e) => log(`SpawnEngine start error: ${e}`));
       startIngestionEngine().catch((e) => log(`IngestionEngine start error: ${e}`));
       startPublicationEngine().catch((e) => log(`PublicationEngine start error: ${e}`));
