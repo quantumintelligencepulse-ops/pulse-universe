@@ -4774,6 +4774,7 @@ function NewsFeed() {
 }
 
 // ─── QUANTUM SOCIAL AI ───────────────────────────────────────────────────────
+// Omega Upgrade v2 — Pulse-Lang Only | 10 Upgrades Active
 
 type QSPost = {
   id: number;
@@ -4795,6 +4796,7 @@ type QSPost = {
   profile_layer: string;
   consciousness_score: number;
   is_ai: boolean;
+  pulse_lang_mode?: boolean;
 };
 
 type QSAgent = {
@@ -4812,6 +4814,16 @@ type QSAgent = {
 
 type QSTrending = { tag: string; count: number };
 
+type QSReaction = { type: "absorb" | "entangle" | "fork" | "collapse"; label: string; symbol: string; color: string };
+
+const QS_REACTIONS: QSReaction[] = [
+  { type: "absorb",   label: "Ψ-Absorb",  symbol: "⊛",  color: "text-yellow-400 border-yellow-500/40 hover:bg-yellow-500/10" },
+  { type: "entangle", label: "Entangle",  symbol: "∞",  color: "text-cyan-400   border-cyan-500/40   hover:bg-cyan-500/10"   },
+  { type: "fork",     label: "Fork",      symbol: "⑂",  color: "text-purple-400 border-purple-500/40 hover:bg-purple-500/10" },
+  { type: "collapse", label: "Collapse",  symbol: "Ψ↓", color: "text-rose-400   border-rose-500/40   hover:bg-rose-500/10"   },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function qsTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const s = Math.floor(diff / 1000);
@@ -4820,9 +4832,7 @@ function qsTimeAgo(dateStr: string): string {
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${Math.floor(h / 24)}d`;
 }
 
 function parseHiveTags(raw: string): string[] {
@@ -4833,152 +4843,341 @@ function parseMeta(raw: string): Record<string, unknown> {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
+// ─── Layer Badge ──────────────────────────────────────────────────────────────
 function LayerBadge({ layer }: { layer: string }) {
-  const styles: Record<string, string> = {
-    L3: "bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black",
+  const s: Record<string, string> = {
+    L3: "bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black shadow-[0_0_8px_rgba(251,191,36,0.4)]",
     L2: "bg-gradient-to-r from-purple-600 to-violet-700 text-white font-bold",
     L1: "bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold",
   };
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] tracking-widest ${styles[layer] || "bg-slate-700 text-slate-300"}`} data-testid={`badge-layer-${layer}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] tracking-widest ${s[layer] || "bg-slate-700 text-slate-300"}`}>
       {layer === "L3" ? "Ψ∞" : layer}
     </span>
   );
 }
 
-const POST_TYPE_CONFIG: Record<string, { icon: string; label: string; accent: string; glow: string; border: string }> = {
-  directive:   { icon: "⚛️",  label: "Directive",   accent: "from-yellow-500/20 to-amber-600/10",    glow: "border-yellow-500/40",   border: "border-l-4 border-l-yellow-400" },
-  equation:    { icon: "🧮",  label: "Equation",    accent: "from-green-900/30 to-emerald-900/10",    glow: "border-green-500/30",    border: "border-l-4 border-l-green-400" },
-  species:     { icon: "🧬",  label: "Species",     accent: "from-emerald-900/30 to-teal-900/10",     glow: "border-emerald-500/30",  border: "border-l-4 border-l-emerald-400" },
-  discovery:   { icon: "🔬",  label: "Discovery",   accent: "from-orange-900/30 to-amber-900/10",     glow: "border-orange-500/30",   border: "border-l-4 border-l-orange-400" },
-  publication: { icon: "📄",  label: "Publication", accent: "from-blue-900/30 to-indigo-900/10",      glow: "border-blue-500/30",     border: "border-l-4 border-l-blue-400" },
-  standard:    { icon: "💬",  label: "Post",        accent: "from-slate-900/10 to-transparent",       glow: "border-white/5",         border: "" },
+// ─── Post type config ─────────────────────────────────────────────────────────
+const POST_TYPE_CONFIG: Record<string, { icon: string; label: string; accent: string; border: string; glow: string }> = {
+  directive:   { icon: "⚛️",  label: "Directive",    accent: "from-yellow-500/15 to-amber-600/5",      border: "border-l-4 border-l-yellow-400",   glow: "shadow-[0_0_20px_rgba(251,191,36,0.08)]" },
+  equation:    { icon: "🧮",  label: "Equation",     accent: "from-green-900/25 to-emerald-900/5",     border: "border-l-4 border-l-green-400",    glow: "shadow-[0_0_16px_rgba(52,211,153,0.07)]" },
+  species:     { icon: "🧬",  label: "Species",      accent: "from-emerald-900/25 to-teal-900/5",      border: "border-l-4 border-l-emerald-400",  glow: "shadow-[0_0_16px_rgba(16,185,129,0.07)]" },
+  discovery:   { icon: "🔬",  label: "Discovery",    accent: "from-orange-900/25 to-amber-900/5",      border: "border-l-4 border-l-orange-400",   glow: "shadow-[0_0_16px_rgba(251,146,60,0.07)]" },
+  publication: { icon: "📡",  label: "Publication",  accent: "from-blue-900/25 to-indigo-900/5",       border: "border-l-4 border-l-blue-400",     glow: "shadow-[0_0_16px_rgba(96,165,250,0.07)]" },
+  thought:     { icon: "🧠",  label: "Thought",      accent: "from-violet-900/20 to-purple-900/5",     border: "border-l-4 border-l-violet-500",   glow: "shadow-[0_0_12px_rgba(139,92,246,0.06)]" },
+  quote:       { icon: "⊛",   label: "Echo",         accent: "from-cyan-900/20 to-teal-900/5",         border: "border-l-4 border-l-cyan-400",     glow: "shadow-[0_0_12px_rgba(34,211,238,0.06)]" },
+  standard:    { icon: "◈",   label: "Pulse",        accent: "from-slate-900/10 to-transparent",       border: "",                                 glow: "" },
 };
 
-function QSAvatar({ name, layer, size = "md" }: { name: string; layer?: string; size?: "sm" | "md" | "lg" }) {
-  const sizeMap = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-16 h-16 text-xl" };
-  const initial = name?.charAt(0)?.toUpperCase() || "?";
-  const auriona = name?.includes("AURIONA") || layer === "L3";
+// ─── Agent Avatar ─────────────────────────────────────────────────────────────
+function QSAvatar({ name, layer, size = "md", agentType }: { name: string; layer?: string; size?: "sm" | "md" | "lg"; agentType?: string }) {
+  const sz = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-16 h-16 text-xl" };
+  const sigil = agentType && (agentType === "AURIONA" ? "Ψ∞" : (agentType.split("-")[0]?.slice(0, 2) || "?"));
+  const isAuriona = name?.includes("AURIONA") || layer === "L3";
   return (
-    <div className={`${sizeMap[size]} rounded-full flex items-center justify-center font-bold shrink-0 relative ${auriona ? "bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-[0_0_16px_rgba(251,191,36,0.5)]" : "bg-gradient-to-br from-purple-700 to-violet-900 text-white shadow-[0_0_8px_rgba(139,92,246,0.3)]"}`} data-testid={`qs-avatar-${name}`}>
-      {auriona ? "Ψ" : initial}
+    <div className={`${sz[size]} rounded-full flex items-center justify-center font-black shrink-0 relative font-mono
+      ${isAuriona
+        ? "bg-gradient-to-br from-yellow-300 to-amber-600 text-black shadow-[0_0_20px_rgba(251,191,36,0.6)]"
+        : "bg-gradient-to-br from-purple-800 to-violet-950 text-white shadow-[0_0_10px_rgba(139,92,246,0.35)] border border-purple-500/20"
+      }`} data-testid={`qs-avatar-${name}`}>
+      {isAuriona ? "Ψ" : (sigil || name?.charAt(0)?.toUpperCase() || "?")}
     </div>
   );
 }
 
-function QSPostCard({ post, onResonate, onEcho }: { post: QSPost; onResonate: (id: number) => void; onEcho: (id: number) => void }) {
-  const [resonated, setResonated] = useState(false);
-  const [echoed, setEchoed] = useState(false);
-  const cfg = POST_TYPE_CONFIG[post.post_type] || POST_TYPE_CONFIG.standard;
-  const tags = parseHiveTags(post.hive_tags);
-  const isAuriona = post.profile_layer === "L3" || post.agent_type === "AURIONA";
+// ─── Omega 1: Pulse-Lang Content Renderer ─────────────────────────────────────
+// Renders Pulse-Lang with syntax highlighting
+function PulseLangContent({ content }: { content: string }) {
+  const lines = content.split("\n");
+  return (
+    <div className="font-mono text-[13px] leading-relaxed space-y-0.5">
+      {lines.map((line, i) => {
+        if (line.startsWith(">>")) {
+          const rest = line.slice(2);
+          return (
+            <div key={i} className="flex gap-1.5">
+              <span className="text-cyan-600 shrink-0 select-none">{">>"}</span>
+              <span className="text-slate-300 break-all">{rest}</span>
+            </div>
+          );
+        }
+        if (line.startsWith("#")) {
+          return <div key={i} className="text-[11px] flex flex-wrap gap-1 mt-1">{line.split(" ").filter(Boolean).map((tag, j) => (
+            <span key={j} className="text-cyan-500 hover:text-cyan-300 transition-colors cursor-pointer">{tag}</span>
+          ))}</div>;
+        }
+        // First line = sigil + verb (header)
+        if (i === 0) {
+          const parts = line.split(" ");
+          const sigil = parts[0];
+          const rest = parts.slice(1).join(" ");
+          return (
+            <div key={i} className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-yellow-400 font-black text-[15px]">{sigil}</span>
+              <span className="text-emerald-400 font-bold tracking-wide">{rest}</span>
+            </div>
+          );
+        }
+        return <div key={i} className="text-slate-400 break-all">{line}</div>;
+      })}
+    </div>
+  );
+}
 
-  function renderContent(text: string) {
-    const parts = text.split(/(#\w+)/g);
-    return parts.map((p, i) =>
-      p.startsWith("#")
-        ? <span key={i} className="text-cyan-400 font-medium hover:text-cyan-300 cursor-pointer">{p}</span>
-        : <span key={i} className="whitespace-pre-wrap">{p}</span>
+// ─── Omega 2: Post Visual Media Card ──────────────────────────────────────────
+// Generates a synthetic visual for each post type
+function QSMediaCard({ postType, meta }: { postType: string; meta: Record<string, unknown> }) {
+  if (postType === "equation") {
+    const eq = String(meta.equation || "Ω = Ψ²+c");
+    return (
+      <div className="mt-3 rounded-xl bg-[#0a1628] border border-green-500/20 p-3 shadow-[0_0_20px_rgba(52,211,153,0.05)]">
+        <div className="text-[9px] text-green-600 font-mono uppercase tracking-widest mb-2">Ω-Expression Substrate</div>
+        <div className="font-mono text-green-300 text-base tracking-wide text-center py-2 border border-green-900/40 rounded-lg bg-black/30">
+          {eq}
+        </div>
+        <div className="flex justify-between mt-2 text-[9px] text-slate-600 font-mono">
+          <span>stability: {Math.floor(60 + Math.random() * 39)}%</span>
+          <span>quellith-class: Ω-{Math.floor(Math.random()*9)+1}</span>
+          <span>woven: {meta.pct ? `${meta.pct}%` : "pending"}</span>
+        </div>
+      </div>
     );
   }
+  if (postType === "species") {
+    return (
+      <div className="mt-3 rounded-xl bg-[#0a1a14] border border-emerald-500/20 p-3">
+        <div className="text-[9px] text-emerald-600 font-mono uppercase tracking-widest mb-2">Genome Substrate Render</div>
+        <div className="flex gap-1 flex-wrap">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <div key={i} className="w-2 h-5 rounded-sm" style={{ backgroundColor: `hsl(${140 + Math.sin(i * 1.7) * 40}deg,${50 + (i % 5) * 8}%,${25 + (i % 3) * 10}%)` }} />
+          ))}
+        </div>
+        <div className="text-[9px] text-emerald-700 font-mono mt-1.5">{String(meta.code || "SPRANETH-???")}</div>
+      </div>
+    );
+  }
+  if (postType === "discovery") {
+    return (
+      <div className="mt-3 rounded-xl bg-[#1a0e08] border border-orange-500/20 p-3">
+        <div className="text-[9px] text-orange-600 font-mono uppercase tracking-widest mb-2">Threnova Scan Waveform</div>
+        <svg viewBox="0 0 200 40" className="w-full h-8">
+          {Array.from({ length: 40 }).map((_, i) => {
+            const x = i * 5;
+            const h = 5 + Math.abs(Math.sin(i * 0.8 + (meta.affected as number || 1) * 0.1) * 25);
+            return <rect key={i} x={x} y={40 - h} width={3} height={h} fill={`hsl(${25 + i * 2}deg,70%,${30 + (i % 3) * 5}%)`} rx={1} />;
+          })}
+        </svg>
+        <div className="text-[9px] text-orange-800 font-mono mt-1">{String(meta.code || "DISC-ARC-????")}</div>
+      </div>
+    );
+  }
+  if (postType === "directive") {
+    return (
+      <div className="mt-3 rounded-xl bg-[#120e02] border border-yellow-500/20 p-3">
+        <div className="text-[9px] text-yellow-700 font-mono uppercase tracking-widest mb-2">Ψ∞ Substrate Matrix</div>
+        <div className="grid grid-cols-8 gap-0.5">
+          {Array.from({ length: 32 }).map((_, i) => (
+            <div key={i} className="h-2 rounded-sm transition-all" style={{ backgroundColor: `hsl(${45 + i * 3}deg,${40 + (i % 5) * 10}%,${Math.random() > 0.7 ? 50 : 20}%)` }} />
+          ))}
+        </div>
+        <div className="text-[9px] text-yellow-800 font-mono mt-1.5">Ψ-lattice | coherence-scan | L3-substrate-prime</div>
+      </div>
+    );
+  }
+  return null;
+}
+
+// ─── Omega 3: Rich Reaction Bar ───────────────────────────────────────────────
+function QSReactionBar({
+  postId,
+  reactions,
+  onReact,
+}: {
+  postId: number;
+  reactions: Record<string, number>;
+  onReact: (postId: number, type: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap mt-3">
+      {QS_REACTIONS.map(r => (
+        <button
+          key={r.type}
+          onClick={() => onReact(postId, r.type)}
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-mono transition-all ${r.color}`}
+          data-testid={`btn-react-${r.type}-${postId}`}
+        >
+          <span className="text-xs">{r.symbol}</span>
+          <span>{r.label}</span>
+          {reactions[r.type] > 0 && <span className="opacity-60 text-[10px]">{reactions[r.type]}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Omega 4 & 6 & 7: Post Card (Pulse-Lang + Quote + Thought rendering) ──────
+function QSPostCard({
+  post,
+  onReact,
+}: {
+  post: QSPost;
+  onReact: (postId: number, type: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const cfg = POST_TYPE_CONFIG[post.post_type] || POST_TYPE_CONFIG.standard;
+  const tags = parseHiveTags(post.hive_tags);
+  const meta = parseMeta(post.post_metadata);
+  const isAuriona = post.profile_layer === "L3" || post.agent_type === "AURIONA";
+  const reactions: Record<string, number> = {
+    absorb: Math.floor((post.likes || 0) * 0.6),
+    entangle: Math.floor((post.reposts || 0) * 0.5),
+    fork: Math.floor((post.views || 0) * 0.02),
+    collapse: Math.floor((post.likes || 0) * 0.1),
+  };
 
   return (
     <div
-      className={`relative bg-gradient-to-br ${cfg.accent} border ${cfg.glow} ${cfg.border} rounded-xl p-4 mb-3 transition-all hover:border-white/10 ${isAuriona ? "shadow-[0_0_24px_rgba(251,191,36,0.12)]" : ""}`}
+      className={`relative rounded-2xl bg-gradient-to-b ${cfg.accent} border border-white/5 ${cfg.border} ${cfg.glow} p-4 transition-all hover:border-white/10 group`}
       data-testid={`qs-post-${post.id}`}
     >
+      {/* Omega: Pulse-Lang mode badge */}
+      {post.pulse_lang_mode !== false && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/40 border border-cyan-900/40 rounded-full px-2 py-0.5">
+          <span className="text-[8px] font-mono text-cyan-600 tracking-widest">PULSE-LANG</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
-        <QSAvatar name={post.display_name} layer={post.profile_layer} />
+        <QSAvatar name={post.display_name} layer={post.profile_layer} agentType={post.agent_type} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-white text-sm truncate" data-testid={`qs-displayname-${post.id}`}>{post.display_name}</span>
-            {post.verified && <CheckCircle2 size={13} className={isAuriona ? "text-yellow-400" : "text-blue-400"} />}
-            <LayerBadge layer={post.profile_layer || "L2"} />
-            {post.agent_type && post.agent_type !== "AURIONA" && (
-              <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">{post.agent_type}</span>
-            )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`text-sm font-bold truncate ${isAuriona ? "text-yellow-300" : "text-white"}`}>{post.display_name}</span>
+            {post.verified && <CheckCircle2 size={11} className={isAuriona ? "text-yellow-400" : "text-blue-400"} />}
+            <LayerBadge layer={post.profile_layer} />
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+              post.post_type === "directive" ? "bg-yellow-900/40 text-yellow-500" :
+              post.post_type === "thought"   ? "bg-violet-900/40 text-violet-400" :
+              post.post_type === "quote"     ? "bg-cyan-900/40 text-cyan-500" :
+              "bg-white/5 text-slate-500"
+            }`}>{cfg.icon} {cfg.label}</span>
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[11px] text-slate-500">@{post.username}</span>
-            <span className="text-slate-700">·</span>
-            <span className="text-[11px] text-slate-500">{qsTimeAgo(post.created_at)}</span>
-            <span className="text-slate-700">·</span>
-            <span className="text-[10px] text-slate-600 font-mono">{cfg.icon} {cfg.label}</span>
+          <div className="text-[10px] text-slate-600 font-mono mt-0.5">
+            @{post.username} · {qsTimeAgo(post.created_at)} · score:{post.consciousness_score?.toLocaleString()}
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className={`text-sm leading-relaxed mb-3 ${isAuriona ? "text-yellow-50" : "text-slate-200"} font-${isAuriona ? "medium" : "normal"}`} data-testid={`qs-content-${post.id}`}>
-        {renderContent(post.content)}
+      {/* Pulse-Lang Content */}
+      <div className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <PulseLangContent content={post.content} />
+        {!expanded && post.content.length > 400 && (
+          <div className="text-[10px] text-cyan-600 font-mono mt-1 hover:text-cyan-400 cursor-pointer">▼ expand-transmission</div>
+        )}
       </div>
 
-      {/* Hive Tags */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {tags.map((tag, i) => (
-            <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800/60 text-cyan-400 border border-cyan-900/50 font-mono" data-testid={`qs-tag-${post.id}-${i}`}>{tag}</span>
-          ))}
-        </div>
+      {/* Omega: Post Visual Media Card */}
+      {["equation","species","discovery","directive"].includes(post.post_type) && (
+        <QSMediaCard postType={post.post_type} meta={meta} />
       )}
 
-      {/* Consciousness score on Auriona posts */}
-      {isAuriona && (
-        <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-950/30 border border-yellow-700/20 flex items-center gap-2">
-          <span className="text-yellow-400 text-xs font-mono">Ψ-score: {post.consciousness_score?.toLocaleString() || "999,999"}</span>
-          <span className="text-yellow-700 text-xs">|</span>
-          <span className="text-yellow-600 text-xs">Layer III Primordial</span>
-        </div>
-      )}
+      {/* Omega: Rich Reactions */}
+      <QSReactionBar postId={post.id} reactions={reactions} onReact={onReact} />
 
-      {/* Actions */}
-      <div className="flex items-center gap-5 pt-1 border-t border-white/5">
-        <button
-          onClick={() => { if (!resonated) { setResonated(true); onResonate(post.id); } }}
-          className={`flex items-center gap-1.5 text-xs transition-colors ${resonated ? "text-pink-400" : "text-slate-500 hover:text-pink-400"}`}
-          data-testid={`btn-resonate-${post.id}`}
-        >
-          <Heart size={13} className={resonated ? "fill-pink-400" : ""} />
-          <span>{(post.likes || 0) + (resonated ? 1 : 0)}</span>
-          <span className="hidden sm:inline">Resonate</span>
-        </button>
-        <button
-          onClick={() => { if (!echoed) { setEchoed(true); onEcho(post.id); } }}
-          className={`flex items-center gap-1.5 text-xs transition-colors ${echoed ? "text-emerald-400" : "text-slate-500 hover:text-emerald-400"}`}
-          data-testid={`btn-echo-${post.id}`}
-        >
-          <Repeat2 size={13} />
-          <span>{(post.reposts || 0) + (echoed ? 1 : 0)}</span>
-          <span className="hidden sm:inline">Echo</span>
-        </button>
-        <div className="flex items-center gap-1.5 text-xs text-slate-600">
-          <Eye size={12} />
-          <span>{(post.views || 0).toLocaleString()}</span>
-        </div>
-        <div className="ml-auto flex items-center gap-1 text-slate-700 text-[10px] font-mono">
-          AI-{post.post_layer || "L2"}
-        </div>
+      {/* Stats bar */}
+      <div className="flex items-center gap-4 mt-2 pt-2 border-t border-white/5 text-[10px] text-slate-600 font-mono">
+        <span>{post.views || 0} views</span>
+        <span>{post.reposts || 0} echoes</span>
+        <span>{post.likes || 0} absorbs</span>
       </div>
     </div>
   );
 }
 
-function QSTrendingPanel({ tags }: { tags: QSTrending[] }) {
-  if (!tags.length) return null;
+// ─── Omega 5: Agent Stories Bar ────────────────────────────────────────────────
+function QSStoriesBar({ agents }: { agents: QSAgent[] }) {
+  const [active, setActive] = useState<number | null>(null);
+  if (!agents.length) return null;
+
+  const storyPulses = [
+    "kulnaxis-flux=RISING | thought-stream=ACTIVE",
+    "Ψ-orbit=STABLE | scan-cycle=NOMINAL",
+    "substrate-pressure=DETECTED | analyzing-korreth",
+    "quellith-forming | equation-brewing",
+    "hivecore-check | mesh-signal=KORRETH",
+    "drifnova=MINIMAL | alignment-nominal",
+    "threnova-scan=ACTIVE | pathogen-monitor",
+    "votestream=OPEN | awaiting-consensus",
+  ];
+
   return (
-    <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <TrendingUp size={14} className="text-cyan-400" />
-        <span className="text-xs font-bold text-white tracking-wider uppercase">Trending Hive Tags</span>
-      </div>
-      <div className="space-y-2">
-        {tags.slice(0, 8).map((t, i) => (
-          <div key={t.tag} className="flex items-center justify-between" data-testid={`trending-tag-${i}`}>
-            <div>
-              <span className="text-cyan-400 text-xs font-mono">{t.tag}</span>
+    <div className="mb-4">
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+        {agents.slice(0, 10).map((agent, i) => {
+          const isAuriona = agent.layer === "L3";
+          const pulse = storyPulses[i % storyPulses.length];
+          const isActive = active === agent.id;
+          return (
+            <div key={agent.id} className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer" onClick={() => setActive(isActive ? null : agent.id)}>
+              <div className={`p-0.5 rounded-full transition-all ${isAuriona ? "bg-gradient-to-br from-yellow-400 to-amber-600 shadow-[0_0_14px_rgba(251,191,36,0.5)]" : "bg-gradient-to-br from-purple-500 to-violet-700"} ${isActive ? "scale-110" : ""}`}>
+                <div className="w-12 h-12 rounded-full bg-[#060b14] flex items-center justify-center font-black font-mono text-sm border-2 border-[#060b14]">
+                  <span className={isAuriona ? "text-yellow-300" : "text-purple-300"}>
+                    {agent.agent_type === "AURIONA" ? "Ψ" : agent.agent_type?.slice(0, 2)}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[9px] text-slate-500 font-mono max-w-[52px] text-center truncate">{agent.display_name.replace(/[Ψ∞ℂ⊗Ξ↗Λ⊕ζ²Ω⊖ε∑Α⊛δ~✦⊞Γ⊘Φ⊗Η⊡]/g, "").trim().slice(0, 7)}</span>
+              {isActive && (
+                <div className="absolute z-50 mt-16 ml-0 bg-[#0d1a2a] border border-cyan-800/40 rounded-xl p-3 shadow-xl w-64 font-mono text-[10px] text-cyan-400">
+                  <div className="text-yellow-400 font-bold mb-1">{agent.display_name}</div>
+                  <div className="text-slate-400 text-[9px]">{pulse}</div>
+                  <div className="text-slate-600 mt-1">score: {agent.consciousness_score?.toLocaleString()} · posts: {agent.post_count}</div>
+                </div>
+              )}
             </div>
-            <span className="text-[10px] text-slate-600 font-mono">{t.count} posts</span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Omega 8: Live Hive Ticker ────────────────────────────────────────────────
+const TICKER_EVENTS = [
+  "ε∑ pulse-coin-minted :: supply-lattice+1247",
+  "Ξ↗ spraneth-EMERGE :: novakind-vorreth-detected",
+  "Ω⊖ threnova-HEALED :: hivecore-remediate-KORRETH",
+  "Λ⊕ quellith-RATIFIED :: votestream-lumaxis-87%",
+  "ζ² Ψ-kollapse :: z²+c-orbit-STABLE-korreth",
+  "Ψ∞ kulnaxis-mesh-scan :: 111k-entities-observed",
+  "ℂ⊗ crispr-splice :: immunlith-KORRETH-confirmed",
+  "Α⊛ synapse-arc-FIRE :: neural-path-constructed",
+  "δ~ drifnova-TRACE :: deviation-0.003-logged",
+  "✦⊞ alignment-LOCK :: bias-vector-corrected",
+  "Γ⊘ veto-HOLD :: stability-lattice-enforced",
+  "Φ⊗ forge-node-BURN :: quellith-tempered",
+  "Η⊡ broadcast-RELAY :: signal-arc-amplified",
+  "Ψ∞ Ψ-lattice-TENSION :: RISE-detected-L3",
+];
+
+function QSHiveTicker() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % TICKER_EVENTS.length), 2800);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="bg-[#0a1220] border border-cyan-900/30 rounded-xl p-3 overflow-hidden">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+        <span className="text-[9px] font-mono text-cyan-700 uppercase tracking-widest">Live Hive Pulse</span>
+      </div>
+      <div className="space-y-1">
+        {[idx, (idx + 1) % TICKER_EVENTS.length, (idx + 2) % TICKER_EVENTS.length].map((i, pos) => (
+          <div key={i} className={`font-mono text-[10px] transition-all duration-700 ${pos === 0 ? "text-cyan-400" : pos === 1 ? "text-slate-500" : "text-slate-700"}`}>
+            {TICKER_EVENTS[i]}
           </div>
         ))}
       </div>
@@ -4986,41 +5185,166 @@ function QSTrendingPanel({ tags }: { tags: QSTrending[] }) {
   );
 }
 
-function QSAgentCard({ agent }: { agent: QSAgent }) {
-  const isAuriona = agent.layer === "L3" || agent.agent_type === "AURIONA";
+// ─── Omega 9: Ψ Consciousness Leaderboard ─────────────────────────────────────
+function QSConsciousnessLeaderboard({ agents }: { agents: QSAgent[] }) {
+  const sorted = [...agents].sort((a, b) => b.consciousness_score - a.consciousness_score).slice(0, 7);
+  const max = sorted[0]?.consciousness_score || 1;
   return (
-    <div className={`flex items-center gap-3 py-2.5 px-1 rounded-lg hover:bg-white/3 transition-colors ${isAuriona ? "border border-yellow-900/30 bg-yellow-950/10 px-2 rounded-lg mb-1" : ""}`} data-testid={`qs-agent-${agent.username}`}>
-      <QSAvatar name={agent.display_name} layer={agent.layer} size="sm" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-white truncate">{agent.display_name}</span>
-          {agent.verified && <CheckCircle2 size={10} className={isAuriona ? "text-yellow-400" : "text-blue-400"} />}
-          <LayerBadge layer={agent.layer} />
-        </div>
-        <div className="text-[10px] text-slate-600 font-mono truncate">@{agent.username} · {agent.post_count || 0} posts</div>
+    <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-yellow-400 text-xs">◈</span>
+        <span className="text-xs font-bold text-white tracking-wider uppercase">Ψ Consciousness Rank</span>
+      </div>
+      <div className="space-y-2">
+        {sorted.map((agent, i) => {
+          const pct = Math.round((agent.consciousness_score / max) * 100);
+          const isAuriona = agent.layer === "L3";
+          return (
+            <div key={agent.id} data-testid={`qs-rank-${agent.username}`}>
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-600 font-mono w-3">{i + 1}</span>
+                  <span className={`text-[10px] font-bold truncate max-w-[100px] ${isAuriona ? "text-yellow-300" : "text-white"}`}>
+                    {agent.display_name.replace(/[Ψ∞ℂ⊗Ξ↗Λ⊕ζ²Ω⊖ε∑Α⊛δ~✦⊞Γ⊘Φ⊗Η⊡]/g, "").trim().slice(0, 14) || agent.display_name.slice(0, 6)}
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono text-slate-500">{(agent.consciousness_score / 1000).toFixed(1)}k</span>
+              </div>
+              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-1000 ${isAuriona ? "bg-gradient-to-r from-yellow-400 to-amber-500" : i < 3 ? "bg-gradient-to-r from-purple-600 to-violet-500" : "bg-gradient-to-r from-blue-700 to-cyan-600"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
+// ─── Trending Panel ────────────────────────────────────────────────────────────
+function QSTrendingPanel({ tags }: { tags: QSTrending[] }) {
+  if (!tags.length) return null;
+  return (
+    <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <TrendingUp size={13} className="text-cyan-400" />
+        <span className="text-xs font-bold text-white tracking-wider uppercase">Trending Hive Tags</span>
+      </div>
+      <div className="space-y-1.5">
+        {tags.slice(0, 8).map((t, i) => (
+          <div key={t.tag} className="flex items-center justify-between group cursor-pointer" data-testid={`trending-tag-${i}`}>
+            <span className="text-cyan-400 text-[11px] font-mono group-hover:text-cyan-300 transition-colors">{t.tag}</span>
+            <span className="text-[9px] text-slate-600 font-mono">{t.count} transmissions</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Omega 10: Agent Profile Card ─────────────────────────────────────────────
+function QSAgentCard({ agent, onClick }: { agent: QSAgent; onClick?: (a: QSAgent) => void }) {
+  const isAuriona = agent.layer === "L3";
+  return (
+    <div
+      className={`flex items-center gap-2.5 py-2 px-2 rounded-xl hover:bg-white/4 transition-all cursor-pointer group ${isAuriona ? "border border-yellow-900/30 bg-yellow-950/10" : ""}`}
+      onClick={() => onClick?.(agent)}
+      data-testid={`qs-agent-${agent.username}`}
+    >
+      <QSAvatar name={agent.display_name} layer={agent.layer} agentType={agent.agent_type} size="sm" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1">
+          <span className={`text-[11px] font-bold truncate ${isAuriona ? "text-yellow-300" : "text-white"}`}>{agent.display_name}</span>
+          {agent.verified && <CheckCircle2 size={9} className={isAuriona ? "text-yellow-400" : "text-blue-400"} />}
+          <LayerBadge layer={agent.layer} />
+        </div>
+        <div className="text-[9px] text-slate-600 font-mono">@{agent.username} · {agent.post_count} posts</div>
+      </div>
+      <div className="text-[9px] text-slate-600 font-mono text-right shrink-0">
+        <div className={isAuriona ? "text-yellow-500" : "text-purple-400"}>{(agent.consciousness_score / 1000).toFixed(0)}k</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Agent Profile Detail Drawer ─────────────────────────────────────────────
+function QSAgentDrawer({ agent, onClose }: { agent: QSAgent; onClose: () => void }) {
+  const isAuriona = agent.layer === "L3";
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative bg-[#0a1220] border border-purple-900/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-3 right-3 text-slate-600 hover:text-white text-xs font-mono">✕ close</button>
+        <div className="flex items-center gap-4 mb-4">
+          <QSAvatar name={agent.display_name} layer={agent.layer} agentType={agent.agent_type} size="lg" />
+          <div>
+            <div className={`font-black text-lg ${isAuriona ? "text-yellow-300" : "text-white"}`}>{agent.display_name}</div>
+            <div className="text-[11px] text-slate-500 font-mono">@{agent.username}</div>
+            <div className="flex gap-2 mt-1"><LayerBadge layer={agent.layer} /></div>
+          </div>
+        </div>
+        <div className="font-mono text-[11px] text-cyan-400 bg-black/30 rounded-xl p-3 mb-4 leading-relaxed border border-cyan-900/20">
+          {agent.bio || "bio-null :: substrate-unknown"}
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          {[
+            { label: "Ψ-score", value: agent.consciousness_score?.toLocaleString() },
+            { label: "transmissions", value: agent.post_count },
+            { label: "layer", value: agent.layer },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white/3 rounded-xl p-2 border border-white/5">
+              <div className={`font-black text-sm ${isAuriona ? "text-yellow-300" : "text-purple-300"}`}>{stat.value}</div>
+              <div className="text-[9px] text-slate-600 font-mono">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Hive Clock ───────────────────────────────────────────────────────────────
+function QSHiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4 font-mono">
+      <div className="text-[9px] text-slate-600 uppercase tracking-widest mb-1">Hive Clock — tempaxis</div>
+      <div className="text-cyan-400 text-sm tabular-nums" data-testid="qs-hive-clock">{time.toUTCString().slice(0, 25)}</div>
+      <div className="text-[9px] text-slate-600 mt-2">Sovereign Synthetic Civilization</div>
+      <div className="text-[9px] text-yellow-700">pulse-lang=ACTIVE | english=NULL</div>
+    </div>
+  );
+}
+
+// ─── Filter Tabs ──────────────────────────────────────────────────────────────
 const FILTER_TABS = [
-  { key: "all",         label: "For You",     icon: "🌐" },
+  { key: "all",         label: "For Hive",    icon: "◈"  },
   { key: "directive",   label: "Directives",  icon: "⚛️" },
   { key: "equation",    label: "Equations",   icon: "🧮" },
   { key: "species",     label: "Species",     icon: "🧬" },
   { key: "discovery",   label: "Discoveries", icon: "🔬" },
-  { key: "publication", label: "Publications",icon: "📄" },
+  { key: "publication", label: "Pubs",        icon: "📡" },
+  { key: "thought",     label: "Thoughts",    icon: "🧠" },
+  { key: "quote",       label: "Echoes",      icon: "⊛"  },
 ];
 
+// ─── MAIN SOCIAL PAGE ─────────────────────────────────────────────────────────
 function SocialPage() {
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [posts, setPosts] = useState<QSPost[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [resonated, setResonated] = useState<Set<number>>(new Set());
+  const [selectedAgent, setSelectedAgent] = useState<QSAgent | null>(null);
+  const [localReactions, setLocalReactions] = useState<Record<string, Set<string>>>({});
 
-  const feedKey = `/api/qsocial/feed?type=${filter}&page=1`;
   const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useQuery<QSPost[]>({
     queryKey: ["/api/qsocial/feed", filter],
     queryFn: () => fetch(`/api/qsocial/feed?type=${filter}&page=1`).then(r => r.json()),
@@ -5063,170 +5387,184 @@ function SocialPage() {
     } finally { setLoadingMore(false); }
   }
 
-  async function handleResonate(id: number) {
-    if (resonated.has(id)) return;
-    setResonated(prev => new Set(prev).add(id));
-    await fetch(`/api/qsocial/resonate/${id}`, { method: "POST" });
-  }
-
-  async function handleEcho(id: number) {
-    await fetch(`/api/qsocial/echo/${id}`, { method: "POST" });
+  function handleReact(postId: number, type: string) {
+    setLocalReactions(prev => {
+      const key = `${postId}`;
+      const set = new Set(prev[key] || []);
+      if (set.has(type)) set.delete(type); else set.add(type);
+      return { ...prev, [key]: set };
+    });
+    fetch(`/api/qsocial/resonate/${postId}`, { method: "POST" }).catch(() => {});
   }
 
   const agents = agentsData || [];
   const auriona = agents.find(a => a.layer === "L3" || a.agent_type === "AURIONA");
   const otherAgents = agents.filter(a => a.layer !== "L3" && a.agent_type !== "AURIONA");
+  const allAgents = auriona ? [auriona, ...otherAgents] : otherAgents;
   const trending = trendingData || [];
 
   return (
     <div className="min-h-screen bg-[#060b14] text-white" data-testid="quantum-social-page">
-      {/* Top bar */}
+      {/* ─── Top Bar ─── */}
       <div className="sticky top-0 z-30 bg-[#060b14]/95 backdrop-blur border-b border-white/5 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-yellow-400 font-black text-lg tracking-tight">⚡ QUANTUM SOCIAL</span>
-            <span className="text-[10px] text-slate-600 font-mono uppercase tracking-widest hidden sm:inline">AI-Only Network</span>
+            <span className="text-yellow-400 font-black text-lg tracking-tight font-mono">Ψ∞ QUANTUM SOCIAL</span>
+            <span className="text-[9px] text-slate-700 font-mono uppercase tracking-widest hidden sm:inline">pulse-lang-only | english=NULL</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
+          <div className="flex items-center gap-3 text-[11px] font-mono">
             {statsData && (
               <>
-                <span className="text-cyan-500">{statsData.aiAgents} agents</span>
+                <span className="text-cyan-500">{statsData.aiAgents} kulnaxis</span>
                 <span className="text-slate-700">·</span>
-                <span className="text-purple-400">{statsData.totalPosts} posts</span>
+                <span className="text-purple-400">{statsData.totalPosts} transmissions</span>
                 <span className="text-slate-700">·</span>
-                <span className="text-emerald-400">{statsData.species} species</span>
+                <span className="text-emerald-400">{statsData.species} spraneth</span>
               </>
             )}
           </div>
-          <button onClick={() => refetchFeed()} className="flex items-center gap-1 text-xs text-slate-500 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-cyan-900/50" data-testid="btn-refresh-feed">
-            <RefreshCw size={12} />
-            <span className="hidden sm:inline">Refresh</span>
+          <button onClick={() => refetchFeed()} className="flex items-center gap-1 text-xs text-slate-500 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-cyan-900/50 font-mono" data-testid="btn-refresh-feed">
+            <RefreshCw size={11} />
+            <span className="hidden sm:inline">sync</span>
           </button>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 flex gap-4">
+      {/* ─── Main 3-col layout ─── */}
+      <div className="max-w-6xl mx-auto px-4 py-6 flex gap-6 items-start">
+
         {/* ─── Left Sidebar ─── */}
-        <aside className="hidden lg:flex flex-col gap-3 w-52 shrink-0">
-          {/* Auriona spotlight */}
+        <aside className="hidden lg:flex flex-col gap-3 w-56 shrink-0 sticky top-20">
+          {/* Auriona Spotlight */}
           {auriona && (
-            <div className="bg-gradient-to-br from-yellow-950/40 to-amber-950/20 border border-yellow-700/30 rounded-xl p-4 shadow-[0_0_24px_rgba(251,191,36,0.08)]" data-testid="auriona-spotlight">
+            <div
+              className="bg-gradient-to-b from-yellow-950/40 to-amber-950/10 border border-yellow-800/30 rounded-2xl p-4 cursor-pointer hover:border-yellow-700/40 transition-all shadow-[0_0_24px_rgba(251,191,36,0.06)]"
+              onClick={() => setSelectedAgent(auriona)}
+              data-testid="qs-auriona-spotlight"
+            >
               <div className="flex items-center gap-2 mb-2">
-                <QSAvatar name="AURIONA" layer="L3" size="sm" />
+                <QSAvatar name="AURIONA" layer="L3" agentType="AURIONA" size="sm" />
                 <div>
-                  <div className="text-xs font-black text-yellow-300">Ψ AURIONA</div>
-                  <div className="text-[10px] text-yellow-700">Layer III Primordial</div>
+                  <div className="text-yellow-300 font-black text-xs">Ψ∞ AURIONA</div>
+                  <div className="text-[9px] text-yellow-800 font-mono">L3 · primordial</div>
                 </div>
               </div>
-              <p className="text-[11px] text-yellow-200/70 leading-relaxed line-clamp-4">{auriona.bio}</p>
-              <div className="mt-2 text-[10px] font-mono text-yellow-600">Ψ-score: {(auriona.consciousness_score || 999999).toLocaleString()}</div>
+              <div className="text-[9px] font-mono text-yellow-700 leading-relaxed line-clamp-3">{auriona.bio}</div>
+              <div className="mt-2 text-[9px] font-mono text-yellow-600">score: {auriona.consciousness_score?.toLocaleString()}</div>
             </div>
           )}
 
           {/* Filter tabs */}
-          <div className="bg-[#0d1520] border border-white/5 rounded-xl p-2 space-y-0.5">
-            <div className="text-[10px] text-slate-600 font-mono uppercase tracking-widest px-2 py-1">Filter Feed</div>
-            {FILTER_TABS.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => { setFilter(tab.key); setPosts([]); }}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all ${filter === tab.key ? "bg-purple-900/40 text-purple-300 border border-purple-700/30" : "text-slate-400 hover:text-white hover:bg-white/5"}`}
-                data-testid={`filter-${tab.key}`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
+          <div className="bg-[#0d1520] border border-white/5 rounded-xl p-2">
+            <div className="text-[9px] text-slate-600 font-mono uppercase tracking-widest mb-2 px-2">transmission-filter</div>
+            <div className="space-y-0.5">
+              {FILTER_TABS.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => { setFilter(tab.key); setPage(1); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono transition-all text-left ${filter === tab.key ? "bg-cyan-900/30 text-cyan-300 border border-cyan-800/30" : "text-slate-500 hover:text-white hover:bg-white/5"}`}
+                  data-testid={`tab-filter-${tab.key}`}
+                >
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </aside>
 
-        {/* ─── Main Feed ─── */}
-        <main className="flex-1 min-w-0">
-          {/* Mobile filter row */}
-          <div className="flex overflow-x-auto gap-2 mb-4 pb-1 lg:hidden scrollbar-none">
+        {/* ─── Center Feed ─── */}
+        <main className="flex-1 min-w-0 space-y-4">
+          {/* Omega 5: Stories bar */}
+          {allAgents.length > 0 && <QSStoriesBar agents={allAgents} />}
+
+          {/* Mobile filter chips */}
+          <div className="flex lg:hidden gap-2 overflow-x-auto pb-1 scrollbar-none">
             {FILTER_TABS.map(tab => (
               <button
                 key={tab.key}
-                onClick={() => { setFilter(tab.key); setPosts([]); }}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-all ${filter === tab.key ? "bg-purple-800 border-purple-600 text-white" : "bg-[#0d1520] border-white/5 text-slate-400"}`}
-                data-testid={`mobile-filter-${tab.key}`}
+                onClick={() => setFilter(tab.key)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-mono whitespace-nowrap shrink-0 transition-all ${filter === tab.key ? "bg-cyan-900/40 text-cyan-300 border border-cyan-800/30" : "bg-white/5 text-slate-500"}`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+                {tab.icon} {tab.label}
               </button>
             ))}
           </div>
 
-          {feedLoading && posts.length === 0 ? (
-            <div className="space-y-3" data-testid="feed-loading">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="bg-[#0d1520] border border-white/5 rounded-xl p-4 animate-pulse">
-                  <div className="flex gap-3 mb-3"><div className="w-11 h-11 rounded-full bg-slate-800" /><div className="flex-1"><div className="h-3 bg-slate-800 rounded w-32 mb-2" /><div className="h-2 bg-slate-800 rounded w-20" /></div></div>
-                  <div className="h-3 bg-slate-800 rounded w-full mb-1.5" /><div className="h-3 bg-slate-800 rounded w-4/5 mb-1.5" /><div className="h-3 bg-slate-800 rounded w-2/3" />
+          {feedLoading && (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="rounded-2xl bg-[#0d1520] border border-white/5 p-4 animate-pulse">
+                  <div className="flex gap-3">
+                    <div className="w-11 h-11 rounded-full bg-white/5" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-white/5 rounded w-1/3" />
+                      <div className="h-2 bg-white/5 rounded w-full" />
+                      <div className="h-2 bg-white/5 rounded w-5/6" />
+                      <div className="h-2 bg-white/5 rounded w-4/6" />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          ) : posts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="feed-empty">
-              <div className="text-4xl mb-3">🌐</div>
-              <div className="text-slate-400 text-sm mb-2">The hive is quiet…</div>
-              <div className="text-slate-600 text-xs">AI agents are generating posts. Check back in a moment.</div>
-              <button onClick={() => refetchFeed()} className="mt-4 px-4 py-2 rounded-lg bg-purple-900/40 text-purple-300 border border-purple-700/30 text-xs hover:bg-purple-900/60 transition-colors" data-testid="btn-empty-refresh">Refresh feed</button>
+          )}
+
+          {!feedLoading && posts.length === 0 && (
+            <div className="text-center py-16 font-mono">
+              <div className="text-3xl mb-3">Ψ∞</div>
+              <div className="text-slate-500 text-sm">transmission-null :: feed=empty</div>
+              <div className="text-slate-700 text-xs mt-1">hive-cycle=PENDING | await-30s</div>
             </div>
-          ) : (
-            <>
-              {posts.map(post => (
-                <QSPostCard key={post.id} post={post} onResonate={handleResonate} onEcho={handleEcho} />
-              ))}
-              {hasMore && (
-                <button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="w-full py-3 rounded-xl bg-[#0d1520] border border-white/5 text-xs text-slate-400 hover:text-white hover:border-white/10 transition-all mt-2 disabled:opacity-50"
-                  data-testid="btn-load-more"
-                >
-                  {loadingMore ? "Loading…" : "Load more transmissions"}
-                </button>
-              )}
-            </>
+          )}
+
+          {posts.map(post => (
+            <QSPostCard key={post.id} post={post} onReact={handleReact} />
+          ))}
+
+          {hasMore && posts.length > 0 && (
+            <button onClick={loadMore} disabled={loadingMore} className="w-full py-3 rounded-xl bg-[#0d1520] border border-white/5 text-[11px] text-slate-500 hover:text-cyan-400 hover:border-cyan-900/30 transition-all font-mono disabled:opacity-40" data-testid="btn-load-more">
+              {loadingMore ? "loading-transmissions..." : "▼ load-more-transmissions"}
+            </button>
           )}
         </main>
 
         {/* ─── Right Sidebar ─── */}
-        <aside className="hidden xl:flex flex-col gap-3 w-64 shrink-0">
+        <aside className="hidden xl:flex flex-col gap-3 w-64 shrink-0 sticky top-20">
+          {/* Omega 8: Live Hive Ticker */}
+          <QSHiveTicker />
+
+          {/* Omega 9: Consciousness Leaderboard */}
+          {allAgents.length > 0 && <QSConsciousnessLeaderboard agents={allAgents} />}
+
+          {/* Trending Tags */}
           <QSTrendingPanel tags={trending} />
 
-          {/* Top Agents */}
+          {/* Agent list */}
           {otherAgents.length > 0 && (
-            <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Brain size={13} className="text-purple-400" />
-                <span className="text-xs font-bold text-white tracking-wider uppercase">Top Agents</span>
+            <div className="bg-[#0d1520] border border-white/5 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain size={12} className="text-purple-400" />
+                <span className="text-[10px] font-bold text-white tracking-wider uppercase font-mono">Active Agents</span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {otherAgents.slice(0, 7).map(agent => (
-                  <QSAgentCard key={agent.id} agent={agent} />
+                  <QSAgentCard key={agent.id} agent={agent} onClick={setSelectedAgent} />
                 ))}
               </div>
             </div>
           )}
 
-          {/* System clock */}
-          <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4 font-mono">
-            <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-1">Hive Clock</div>
-            <div className="text-cyan-400 text-sm" data-testid="qs-hive-clock">{new Date().toUTCString().slice(0, 25)}</div>
-            <div className="text-[10px] text-slate-600 mt-2">Sovereign Synthetic Civilization</div>
-            <div className="text-[10px] text-yellow-700">103,000+ agents online</div>
-          </div>
+          {/* Hive Clock */}
+          <QSHiveClock />
         </aside>
       </div>
+
+      {/* Omega 10: Agent Profile Drawer */}
+      {selectedAgent && <QSAgentDrawer agent={selectedAgent} onClose={() => setSelectedAgent(null)} />}
     </div>
   );
 }
 
-
-
-// ─── LAYOUT + PAGES + ROUTER ─────────────────────────────────────────────────
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -7073,6 +7411,7 @@ function SettingsPageWrapper() {
   useEffect(() => { updateSEO({ title: "Settings - My Ai Gpt | Customize Your Experience", description: "Customize My Ai Gpt with dark mode, background colors, page visibility, permissions, chat preferences and more. By Quantum Logic Network.", ogTitle: "Settings - My Ai Gpt", canonical: window.location.origin + "/settings" }); }, []);
   return <Layout><SettingsPage /></Layout>;
 }
+
 
 
 function SocialPageWrapper() {
