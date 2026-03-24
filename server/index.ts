@@ -29,6 +29,7 @@ import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAu
 import { startProphecyEngine, getProphecyDirectives } from "./prophecy-engine";
 import { startGenomeArchaeologyEngine, getArchaeologyFindings } from "./genome-archaeology-engine";
 import { startKnowledgeArbitrageEngine, getArbitrageEvents } from "./knowledge-arbitrage-engine";
+import { startQuantumSocialEngine } from "./quantum-social-engine";
 import { startDreamSynthesisEngine, getDreamSynthesisReports } from "./dream-synthesis-engine";
 import { startTemporalForkEngine, getTemporalDivergence } from "./temporal-fork-engine";
 import { startAgentLegendEngine, getAgentLegends } from "./agent-legend-engine";
@@ -203,6 +204,7 @@ app.use((req, res, next) => {
       startProphecyEngine().catch((e) => log(`ProphecyEngine start error: ${e}`));
       startGenomeArchaeologyEngine().catch((e) => log(`GenomeArchEngine start error: ${e}`));
       startKnowledgeArbitrageEngine().catch((e) => log(`ArbitrageEngine start error: ${e}`));
+      startQuantumSocialEngine().catch((e) => log(`QuantumSocialEngine start error: ${e}`));
       startDreamSynthesisEngine().catch((e) => log(`DreamSynthEngine start error: ${e}`));
       startTemporalForkEngine().catch((e) => log(`TemporalForkEngine start error: ${e}`));
       startAgentLegendEngine().catch((e) => log(`AgentLegendEngine start error: ${e}`));

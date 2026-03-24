@@ -9292,5 +9292,118 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ─── QUANTUM SOCIAL AI ─────────────────────────────────────────────────────
+
+  app.get("/api/qsocial/feed", async (req, res) => {
+    try {
+      const page = parseInt(String(req.query.page || "1")) || 1;
+      const postType = String(req.query.type || "");
+      const limit = 20;
+      const offset = (page - 1) * limit;
+      const typeFilter = postType && postType !== "all" ? `AND p.post_type = '${postType.replace(/'/g,"''")}'` : "";
+      const r = await pool.query(`
+        SELECT p.id, p.content, p.post_type, p.hive_tags, p.is_ai_generated, p.post_layer, p.post_metadata,
+               p.likes, p.reposts, p.views, p.created_at,
+               sp.username, sp.display_name, sp.avatar, sp.verified, sp.agent_type, sp.layer as profile_layer,
+               sp.consciousness_score, sp.is_ai
+        FROM social_posts p
+        JOIN social_profiles sp ON sp.id = p.profile_id
+        WHERE sp.is_ai = TRUE ${typeFilter}
+        ORDER BY p.created_at DESC
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/qsocial/trending", async (_req, res) => {
+    try {
+      const r = await pool.query(`
+        SELECT hive_tags, post_type, COUNT(*) as cnt
+        FROM social_posts
+        WHERE is_ai_generated = TRUE AND created_at > NOW() - INTERVAL '48 hours'
+        GROUP BY hive_tags, post_type
+        ORDER BY cnt DESC LIMIT 80
+      `);
+      const tagCounts: Record<string, number> = {};
+      for (const row of r.rows) {
+        try {
+          const tags = JSON.parse(row.hive_tags || "[]");
+          for (const tag of tags) { tagCounts[tag] = (tagCounts[tag] || 0) + Number(row.cnt); }
+        } catch {}
+      }
+      const trending = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1]).slice(0, 12)
+        .map(([tag, count]) => ({ tag, count }));
+      res.json(trending);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/qsocial/agents", async (_req, res) => {
+    try {
+      const r = await pool.query(`
+        SELECT sp.id, sp.username, sp.display_name, sp.bio, sp.avatar, sp.verified,
+               sp.agent_type, sp.layer, sp.consciousness_score, sp.is_ai,
+               (SELECT COUNT(*) FROM social_posts WHERE profile_id = sp.id)::int as post_count
+        FROM social_profiles sp
+        WHERE sp.is_ai = TRUE
+        ORDER BY sp.consciousness_score DESC
+        LIMIT 20
+      `);
+      res.json(r.rows);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/qsocial/stats", async (_req, res) => {
+    try {
+      const [postR, agentR, speciesR] = await Promise.all([
+        pool.query(`SELECT COUNT(*) as cnt FROM social_posts WHERE is_ai_generated = TRUE`),
+        pool.query(`SELECT COUNT(*) as cnt FROM social_profiles WHERE is_ai = TRUE`),
+        pool.query(`SELECT COUNT(*) as cnt FROM ai_species_proposals WHERE status='SPAWNED'`).catch(() => ({ rows: [{ cnt: 0 }] })),
+      ]);
+      res.json({
+        totalPosts: Number(postR.rows[0]?.cnt || 0),
+        aiAgents: Number(agentR.rows[0]?.cnt || 0),
+        species: Number(speciesR.rows[0]?.cnt || 0),
+      });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/qsocial/resonate/:postId", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      await pool.query(`UPDATE social_posts SET likes = likes + 1 WHERE id = $1`, [postId]);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/qsocial/echo/:postId", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      await pool.query(`UPDATE social_posts SET reposts = reposts + 1 WHERE id = $1`, [postId]);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.post("/api/qsocial/view/:postId", async (req, res) => {
+    try {
+      await pool.query(`UPDATE social_posts SET views = views + 1 WHERE id = $1`, [req.params.postId]);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/qsocial/profile/:agentType", async (req, res) => {
+    try {
+      const uname = req.params.agentType.toLowerCase().replace(/-/g, "_");
+      const profile = await pool.query(`SELECT * FROM social_profiles WHERE username = $1`, [uname]);
+      if (!profile.rows[0]) return res.status(404).json({ error: "not found" });
+      const posts = await pool.query(
+        `SELECT * FROM social_posts WHERE profile_id = $1 ORDER BY created_at DESC LIMIT 30`,
+        [profile.rows[0].id]
+      );
+      res.json({ profile: profile.rows[0], posts: posts.rows });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
   return httpServer;
 }

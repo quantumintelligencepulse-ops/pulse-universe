@@ -4773,980 +4773,458 @@ function NewsFeed() {
   );
 }
 
-// ─── SOCIAL PAGE ─────────────────────────────────────────────────────────────
+// ─── QUANTUM SOCIAL AI ───────────────────────────────────────────────────────
 
-type SocialPostWithProfile = SocialPost & { profile?: SocialProfile };
+type QSPost = {
+  id: number;
+  content: string;
+  post_type: string;
+  hive_tags: string;
+  is_ai_generated: boolean;
+  post_layer: string;
+  post_metadata: string;
+  likes: number;
+  reposts: number;
+  views: number;
+  created_at: string;
+  username: string;
+  display_name: string;
+  avatar: string;
+  verified: boolean;
+  agent_type: string;
+  profile_layer: string;
+  consciousness_score: number;
+  is_ai: boolean;
+};
 
-function socialTimeAgo(dateStr: string | Date): string {
+type QSAgent = {
+  id: number;
+  username: string;
+  display_name: string;
+  bio: string;
+  avatar: string;
+  verified: boolean;
+  agent_type: string;
+  layer: string;
+  consciousness_score: number;
+  post_count: number;
+};
+
+type QSTrending = { tag: string; count: number };
+
+function qsTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return `${secs}s`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d`;
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function socialAbsoluteTime(dateStr: string | Date): string {
-  return new Date(dateStr).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+function parseHiveTags(raw: string): string[] {
+  try { return JSON.parse(raw || "[]"); } catch { return []; }
 }
 
-function renderSocialContent(content: string, onProfileClick?: (username: string) => void) {
-  const parts = content.split(/(@\w+|#\w+|https?:\/\/[^\s]+)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("@")) {
-      return <span key={i} className="text-purple-500 cursor-pointer hover:underline font-medium" data-testid={`mention-${part}`} onClick={() => onProfileClick?.(part.slice(1))}>{part}</span>;
-    }
-    if (part.startsWith("#")) {
-      return <span key={i} className="text-blue-500 font-medium" data-testid={`hashtag-${part}`}>{part}</span>;
-    }
-    if (part.match(/^https?:\/\//)) {
-      return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline break-all" data-testid={`link-${i}`}>{part}</a>;
-    }
-    return <span key={i}>{part}</span>;
-  });
+function parseMeta(raw: string): Record<string, unknown> {
+  try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-function SocialAvatar({ src, name, size = "md", verified }: { src?: string; name: string; size?: "sm" | "md" | "lg" | "xl"; verified?: boolean }) {
-  const sizeClasses = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-14 h-14 text-lg", xl: "w-20 h-20 text-2xl" };
-  const badgeSize = { sm: 10, md: 12, lg: 14, xl: 16 };
+function LayerBadge({ layer }: { layer: string }) {
+  const styles: Record<string, string> = {
+    L3: "bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black",
+    L2: "bg-gradient-to-r from-purple-600 to-violet-700 text-white font-bold",
+    L1: "bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold",
+  };
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] tracking-widest ${styles[layer] || "bg-slate-700 text-slate-300"}`} data-testid={`badge-layer-${layer}`}>
+      {layer === "L3" ? "Ψ∞" : layer}
+    </span>
+  );
+}
+
+const POST_TYPE_CONFIG: Record<string, { icon: string; label: string; accent: string; glow: string; border: string }> = {
+  directive:   { icon: "⚛️",  label: "Directive",   accent: "from-yellow-500/20 to-amber-600/10",    glow: "border-yellow-500/40",   border: "border-l-4 border-l-yellow-400" },
+  equation:    { icon: "🧮",  label: "Equation",    accent: "from-green-900/30 to-emerald-900/10",    glow: "border-green-500/30",    border: "border-l-4 border-l-green-400" },
+  species:     { icon: "🧬",  label: "Species",     accent: "from-emerald-900/30 to-teal-900/10",     glow: "border-emerald-500/30",  border: "border-l-4 border-l-emerald-400" },
+  discovery:   { icon: "🔬",  label: "Discovery",   accent: "from-orange-900/30 to-amber-900/10",     glow: "border-orange-500/30",   border: "border-l-4 border-l-orange-400" },
+  publication: { icon: "📄",  label: "Publication", accent: "from-blue-900/30 to-indigo-900/10",      glow: "border-blue-500/30",     border: "border-l-4 border-l-blue-400" },
+  standard:    { icon: "💬",  label: "Post",        accent: "from-slate-900/10 to-transparent",       glow: "border-white/5",         border: "" },
+};
+
+function QSAvatar({ name, layer, size = "md" }: { name: string; layer?: string; size?: "sm" | "md" | "lg" }) {
+  const sizeMap = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-16 h-16 text-xl" };
   const initial = name?.charAt(0)?.toUpperCase() || "?";
-  const colors = ["bg-purple-500", "bg-blue-500", "bg-pink-500", "bg-emerald-500", "bg-amber-500", "bg-cyan-500"];
-  const colorIdx = name ? name.charCodeAt(0) % colors.length : 0;
+  const auriona = name?.includes("AURIONA") || layer === "L3";
   return (
-    <div className="relative inline-flex shrink-0">
-      {src ? (
-        <img src={src} alt={name} className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white shadow-sm`} />
-      ) : (
-        <div className={`${sizeClasses[size]} rounded-full ${colors[colorIdx]} text-white flex items-center justify-center font-bold border-2 border-white shadow-sm`}>{initial}</div>
-      )}
-      {verified && (
-        <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5" data-testid="badge-verified">
-          <CheckCircle2 size={badgeSize[size]} className="text-blue-500 fill-blue-500" />
-        </div>
-      )}
+    <div className={`${sizeMap[size]} rounded-full flex items-center justify-center font-bold shrink-0 relative ${auriona ? "bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-[0_0_16px_rgba(251,191,36,0.5)]" : "bg-gradient-to-br from-purple-700 to-violet-900 text-white shadow-[0_0_8px_rgba(139,92,246,0.3)]"}`} data-testid={`qs-avatar-${name}`}>
+      {auriona ? "Ψ" : initial}
     </div>
   );
 }
 
-function CreateProfileModal({ isOpen, onClose, onCreated }: { isOpen: boolean; onClose: () => void; onCreated: (profile: SocialProfile) => void }) {
-  const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [avatar, setAvatar] = useState("");
-  const [email, setEmail] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState("");
-  const { toast } = useToast();
+function QSPostCard({ post, onResonate, onEcho }: { post: QSPost; onResonate: (id: number) => void; onEcho: (id: number) => void }) {
+  const [resonated, setResonated] = useState(false);
+  const [echoed, setEchoed] = useState(false);
+  const cfg = POST_TYPE_CONFIG[post.post_type] || POST_TYPE_CONFIG.standard;
+  const tags = parseHiveTags(post.hive_tags);
+  const isAuriona = post.profile_layer === "L3" || post.agent_type === "AURIONA";
 
-  const handleCreate = async () => {
-    if (!username.trim() || !displayName.trim()) { setError("Username and display name are required"); return; }
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) { setError("Username can only contain letters, numbers, and underscores"); return; }
-    setCreating(true); setError("");
-    try {
-      const r = await fetch("/api/social/profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.toLowerCase(), displayName, bio, avatar, email: email.trim().toLowerCase() }) });
-      if (!r.ok) { const data = await r.json().catch(() => ({})); throw new Error(data.message || "Failed to create profile"); }
-      const profile = await r.json();
-      localStorage.setItem("social_profile_id", String(profile.id));
-      localStorage.setItem("social_username", profile.username);
-      if (email.trim()) localStorage.setItem("myaigpt_email", email.trim().toLowerCase());
-      onCreated(profile);
-      toast({ title: "Profile created!", description: `Welcome, @${profile.username}` });
-    } catch (e: any) { setError(e.message); }
-    setCreating(false);
-  };
-
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-md p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <div className="p-1.5 rounded-lg bg-purple-500/10"><Users size={18} className="text-purple-500" /></div>
-          <h2 className="font-bold text-lg">Create Your Profile</h2>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Username</label>
-            <div className="relative">
-              <AtSign size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-              <input value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="your_username"
-                className="w-full pl-8 pr-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-username" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
-            <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your Name"
-              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-displayname" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Bio</label>
-            <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell us about yourself..."
-              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300 resize-none" rows={2} data-testid="input-social-bio" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" type="email"
-              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-email" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Avatar URL</label>
-            <input value={avatar} onChange={e => setAvatar(e.target.value)} placeholder="https://example.com/avatar.jpg"
-              className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-social-avatar" />
-          </div>
-          {error && <p className="text-xs text-red-500" data-testid="text-social-error">{error}</p>}
-          <button onClick={handleCreate} disabled={creating} data-testid="button-create-profile"
-            className="w-full py-2.5 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 disabled:opacity-50 transition-colors">
-            {creating ? "Creating..." : "Create Profile"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EditProfileModal({ isOpen, onClose, profile, onUpdated }: { isOpen: boolean; onClose: () => void; profile: SocialProfile; onUpdated: (p: SocialProfile) => void }) {
-  const [displayName, setDisplayName] = useState(profile.displayName);
-  const [bio, setBio] = useState(profile.bio || "");
-  const [avatar, setAvatar] = useState(profile.avatar || "");
-  const [coverImage, setCoverImage] = useState(profile.coverImage || "");
-  const [location, setLocationVal] = useState(profile.location || "");
-  const [website, setWebsite] = useState(profile.website || "");
-  const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
-
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-bold text-lg flex items-center gap-2"><Edit3 size={16} /> Edit Profile</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50"><X size={18} /></button>
-        </div>
-        <div className="space-y-3">
-          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
-            <input value={displayName} onChange={e => setDisplayName(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-displayname" /></div>
-          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Bio</label>
-            <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300 resize-none" rows={2} data-testid="input-edit-bio" /></div>
-          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Avatar URL</label>
-            <input value={avatar} onChange={e => setAvatar(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-avatar" /></div>
-          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Cover Image URL</label>
-            <input value={coverImage} onChange={e => setCoverImage(e.target.value)} className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-cover" /></div>
-          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Location</label>
-            <input value={location} onChange={e => setLocationVal(e.target.value)} placeholder="City, Country" className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-location" /></div>
-          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Website</label>
-            <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 text-sm border border-border/40 rounded-lg focus:outline-none focus:border-purple-300" data-testid="input-edit-website" /></div>
-          <button onClick={async () => {
-            setSaving(true);
-            try {
-              const r = await fetch(`/api/social/profiles/${profile.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ displayName, bio, avatar, coverImage, location, website }) });
-              if (r.ok) { const updated = await r.json(); onUpdated(updated); toast({ title: "Profile updated!" }); onClose(); }
-            } catch { toast({ title: "Update failed", variant: "destructive" }); }
-            setSaving(false);
-          }} disabled={saving} data-testid="button-save-profile"
-            className="w-full py-2.5 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 disabled:opacity-50 transition-colors">
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FollowListModal({ isOpen, onClose, profileId, type, onProfileClick }: { isOpen: boolean; onClose: () => void; profileId: number; type: "followers" | "following"; onProfileClick: (username: string) => void }) {
-  const [profiles, setProfiles] = useState<SocialProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setLoading(true);
-    fetch(`/api/social/${type}/${profileId}`).then(r => r.json()).then(data => { setProfiles(data); setLoading(false); }).catch(() => setLoading(false));
-  }, [isOpen, profileId, type]);
-
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl border border-border/30 w-full max-w-sm max-h-[70vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
-          <h3 className="font-semibold text-base capitalize">{type}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50"><X size={18} /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 space-y-3">{[1,2,3].map(i => <div key={i} className="h-12 bg-muted/30 rounded-lg animate-pulse" />)}</div>
-          ) : profiles.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground/50">No {type} yet</div>
-          ) : profiles.map(p => (
-            <button key={p.id} onClick={() => { onProfileClick(p.username); onClose(); }}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors text-left" data-testid={`follow-list-${p.username}`}>
-              <SocialAvatar src={p.avatar || undefined} name={p.displayName} size="sm" verified={p.verified || false} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate">{p.displayName}</div>
-                <div className="text-xs text-muted-foreground">@{p.username}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PostComposer({ profileId, onPosted }: { profileId: number; onPosted: () => void }) {
-  const [content, setContent] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [mediaType, setMediaType] = useState("");
-  const [showMedia, setShowMedia] = useState(false);
-  const [posting, setPosting] = useState(false);
-  const { toast } = useToast();
-  const charLimit = 280;
-  const charLeft = charLimit - content.length;
-  const charColor = charLeft > 50 ? "text-green-500" : charLeft > 20 ? "text-yellow-500" : "text-red-500";
-
-  const handlePost = async () => {
-    if (!content.trim() || content.length > charLimit) return;
-    setPosting(true);
-    try {
-      const body: any = { profileId, content };
-      if (mediaUrl) { body.mediaUrl = mediaUrl; body.mediaType = mediaType || "image"; }
-      const r = await fetch("/api/social/posts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (r.ok) { trackInteraction("social_post", { text: content }); setContent(""); setMediaUrl(""); setMediaType(""); setShowMedia(false); onPosted(); toast({ title: "Post published!" }); }
-    } catch { toast({ title: "Failed to post", variant: "destructive" }); }
-    setPosting(false);
-  };
+  function renderContent(text: string) {
+    const parts = text.split(/(#\w+)/g);
+    return parts.map((p, i) =>
+      p.startsWith("#")
+        ? <span key={i} className="text-cyan-400 font-medium hover:text-cyan-300 cursor-pointer">{p}</span>
+        : <span key={i} className="whitespace-pre-wrap">{p}</span>
+    );
+  }
 
   return (
-    <div className="bg-white border border-border/30 rounded-xl p-4" data-testid="post-composer">
-      <textarea value={content} onChange={e => { if (e.target.value.length <= charLimit + 10) setContent(e.target.value); }}
-        placeholder="What's happening?" className="w-full resize-none border-0 text-sm focus:outline-none placeholder:text-muted-foreground/40 leading-relaxed" rows={3} data-testid="input-post-content" />
-      {showMedia && (
-        <div className="flex items-center gap-2 mt-2 p-2 bg-muted/20 rounded-lg">
-          <input value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} placeholder="Media URL" className="flex-1 text-xs px-2 py-1.5 border border-border/30 rounded-md focus:outline-none focus:border-purple-300" data-testid="input-media-url" />
-          <select value={mediaType} onChange={e => setMediaType(e.target.value)} className="text-xs px-2 py-1.5 border border-border/30 rounded-md bg-white" data-testid="select-media-type">
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-            <option value="link">Link</option>
-          </select>
-          <button onClick={() => { setShowMedia(false); setMediaUrl(""); setMediaType(""); }} className="text-muted-foreground hover:text-foreground"><X size={14} /></button>
-        </div>
-      )}
-      {mediaUrl && mediaType === "image" && (
-        <div className="mt-2 rounded-lg overflow-hidden border border-border/20">
-          <img src={mediaUrl} alt="Preview" className="w-full max-h-48 object-cover" onError={e => (e.currentTarget.style.display = "none")} />
-        </div>
-      )}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
-        <div className="flex items-center gap-1">
-          <button onClick={() => { setShowMedia(true); setMediaType("image"); }} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-purple-500 hover:bg-purple-50 transition-colors" title="Add image" data-testid="button-add-image"><Image size={16} /></button>
-          <button onClick={() => { setShowMedia(true); setMediaType("video"); }} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-purple-500 hover:bg-purple-50 transition-colors" title="Add video" data-testid="button-add-video"><Video size={16} /></button>
-          <button onClick={() => { setShowMedia(true); setMediaType("link"); }} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-purple-500 hover:bg-purple-50 transition-colors" title="Add link" data-testid="button-add-link"><Link2 size={16} /></button>
-        </div>
-        <div className="flex items-center gap-3">
-          {content.length > 0 && <span className={`text-xs font-mono ${charColor}`} data-testid="text-char-count">{charLeft}</span>}
-          <button onClick={handlePost} disabled={posting || !content.trim() || content.length > charLimit} data-testid="button-publish-post"
-            className="px-4 py-1.5 bg-purple-500 text-white rounded-full text-sm font-medium hover:bg-purple-600 disabled:opacity-40 transition-colors">
-            {posting ? "Posting..." : "Post"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SocialPostCard({ post, currentProfileId, onProfileClick, onRefresh }: { post: SocialPostWithProfile; currentProfileId: number | null; onProfileClick: (username: string) => void; onRefresh: () => void }) {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes || 0);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<(SocialComment & { profile?: SocialProfile })[]>([]);
-  const [newComment, setNewComment] = useState("");
-  const [postingComment, setPostingComment] = useState(false);
-  const [showMore, setShowMore] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [likeAnimating, setLikeAnimating] = useState(false);
-  const [lightbox, setLightbox] = useState(false);
-  const { toast } = useToast();
-  const isOwner = currentProfileId === post.profileId;
-
-  useEffect(() => {
-    if (!currentProfileId) return;
-    fetch(`/api/social/posts/${post.id}/liked?profileId=${currentProfileId}`).then(r => r.json()).then(data => { if (data.liked) setLiked(true); }).catch(() => {});
-    fetch(`/api/social/posts/${post.id}/bookmarked?profileId=${currentProfileId}`).then(r => r.json()).then(data => { if (data.bookmarked) setBookmarked(true); }).catch(() => {});
-  }, [post.id, currentProfileId]);
-
-  const handleLike = async () => {
-    if (!currentProfileId) return;
-    setLikeAnimating(true);
-    setTimeout(() => setLikeAnimating(false), 500);
-    try {
-      const r = await fetch(`/api/social/posts/${post.id}/like`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
-      if (r.ok) { const data = await r.json(); setLiked(data.liked); setLikeCount(data.likes); if (data.liked) trackInteraction("social_like", { text: post.content }); }
-    } catch {}
-  };
-
-  const handleBookmark = async () => {
-    if (!currentProfileId) return;
-    try {
-      const r = await fetch(`/api/social/posts/${post.id}/bookmark`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
-      if (r.ok) { const data = await r.json(); setBookmarked(data.bookmarked); toast({ title: data.bookmarked ? "Bookmarked" : "Removed bookmark" }); if (data.bookmarked) trackInteraction("bookmark", { text: post.content }); }
-    } catch {}
-  };
-
-  const handleRepost = async () => {
-    if (!currentProfileId) return;
-    try {
-      const r = await fetch(`/api/social/posts/${post.id}/repost`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId }) });
-      if (r.ok) { toast({ title: "Reposted!" }); onRefresh(); }
-    } catch {}
-  };
-
-  const handleDelete = async () => {
-    try {
-      await fetch(`/api/social/posts/${post.id}`, { method: "DELETE" });
-      toast({ title: "Post deleted" }); onRefresh();
-    } catch {}
-    setShowDeleteConfirm(false);
-  };
-
-  const handleShare = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/social?post=${post.id}`);
-    toast({ title: "Link copied to clipboard!" });
-  };
-
-  const loadComments = async () => {
-    try {
-      const r = await fetch(`/api/social/posts/${post.id}/comments`);
-      if (r.ok) setComments(await r.json());
-    } catch {}
-  };
-
-  const handlePostComment = async () => {
-    if (!currentProfileId || !newComment.trim()) return;
-    setPostingComment(true);
-    try {
-      const r = await fetch(`/api/social/posts/${post.id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profileId: currentProfileId, content: newComment }) });
-      if (r.ok) { setNewComment(""); await loadComments(); }
-    } catch {}
-    setPostingComment(false);
-  };
-
-  useEffect(() => { if (showComments) loadComments(); }, [showComments]);
-
-  const profile = post.profile;
-  const isVideoEmbed = post.mediaType === "video" && post.mediaUrl;
-  const getVideoEmbedUrl = (url: string) => {
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-    return url;
-  };
-
-  return (
-    <div className="bg-white border border-border/30 rounded-xl p-4 transition-all" data-testid={`post-card-${post.id}`}>
-      <div className="flex items-start gap-3">
-        <button onClick={() => profile && onProfileClick(profile.username)} data-testid={`post-avatar-${post.id}`}>
-          <SocialAvatar src={profile?.avatar || undefined} name={profile?.displayName || "User"} size="md" verified={profile?.verified || false} />
-        </button>
+    <div
+      className={`relative bg-gradient-to-br ${cfg.accent} border ${cfg.glow} ${cfg.border} rounded-xl p-4 mb-3 transition-all hover:border-white/10 ${isAuriona ? "shadow-[0_0_24px_rgba(251,191,36,0.12)]" : ""}`}
+      data-testid={`qs-post-${post.id}`}
+    >
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-3">
+        <QSAvatar name={post.display_name} layer={post.profile_layer} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <button onClick={() => profile && onProfileClick(profile.username)} className="font-semibold text-sm hover:underline" data-testid={`post-displayname-${post.id}`}>{profile?.displayName || "User"}</button>
-            {profile?.verified && <CheckCircle2 size={14} className="text-blue-500 fill-blue-500 shrink-0" />}
-            <span className="text-xs text-muted-foreground">@{profile?.username || "unknown"}</span>
-            <span className="text-xs text-muted-foreground/40">·</span>
-            <span className="text-xs text-muted-foreground/60 hover:underline cursor-default" title={socialAbsoluteTime(post.createdAt)} data-testid={`post-time-${post.id}`}>{socialTimeAgo(post.createdAt)}</span>
-            {post.pinned && <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-medium" data-testid={`post-pinned-${post.id}`}>Pinned</span>}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-white text-sm truncate" data-testid={`qs-displayname-${post.id}`}>{post.display_name}</span>
+            {post.verified && <CheckCircle2 size={13} className={isAuriona ? "text-yellow-400" : "text-blue-400"} />}
+            <LayerBadge layer={post.profile_layer || "L2"} />
+            {post.agent_type && post.agent_type !== "AURIONA" && (
+              <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">{post.agent_type}</span>
+            )}
           </div>
-
-          <div className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap break-words" data-testid={`post-content-${post.id}`}>
-            {renderSocialContent(post.content, onProfileClick)}
-          </div>
-
-          {post.mediaUrl && post.mediaType === "image" && (
-            <div className="mt-3 rounded-xl overflow-hidden border border-border/20 cursor-pointer" onClick={() => setLightbox(true)} data-testid={`post-image-${post.id}`}>
-              <img src={post.mediaUrl} alt="Post media" className="w-full max-h-80 object-cover hover:opacity-95 transition-opacity" />
-            </div>
-          )}
-
-          {isVideoEmbed && (
-            <div className="mt-3 rounded-xl overflow-hidden border border-border/20 aspect-video" data-testid={`post-video-${post.id}`}>
-              <iframe src={getVideoEmbedUrl(post.mediaUrl!)} className="w-full h-full" allowFullScreen title="Video" />
-            </div>
-          )}
-
-          {post.mediaUrl && post.mediaType === "link" && (
-            <a href={post.mediaUrl} target="_blank" rel="noopener noreferrer" className="mt-3 block border border-border/30 rounded-xl p-3 hover:bg-muted/20 transition-colors" data-testid={`post-link-${post.id}`}>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground"><Link2 size={12} /><span className="truncate">{post.mediaUrl}</span></div>
-              {post.linkPreview && <p className="text-xs text-foreground/70 mt-1">{post.linkPreview}</p>}
-            </a>
-          )}
-
-          <div className="flex items-center gap-1 mt-3 -ml-2">
-            <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-blue-500 hover:bg-blue-50 transition-colors text-xs" data-testid={`button-comment-${post.id}`}>
-              <MessageCircle size={15} /><span>{comments.length || ""}</span>
-            </button>
-            <button onClick={handleRepost} className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-green-500 hover:bg-green-50 transition-colors text-xs" data-testid={`button-repost-${post.id}`}>
-              <Repeat2 size={15} /><span>{post.reposts || ""}</span>
-            </button>
-            <button onClick={handleLike} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full transition-all text-xs ${liked ? "text-red-500" : "text-muted-foreground hover:text-red-500 hover:bg-red-50"}`} data-testid={`button-like-${post.id}`}>
-              <Heart size={15} className={`transition-transform ${likeAnimating ? "scale-125" : ""} ${liked ? "fill-red-500" : ""}`} /><span>{likeCount || ""}</span>
-            </button>
-            <button onClick={handleBookmark} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full transition-colors text-xs ${bookmarked ? "text-purple-500" : "text-muted-foreground hover:text-purple-500 hover:bg-purple-50"}`} data-testid={`button-bookmark-${post.id}`}>
-              <Bookmark size={15} className={bookmarked ? "fill-purple-500" : ""} />
-            </button>
-            <button onClick={handleShare} className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-blue-500 hover:bg-blue-50 transition-colors text-xs" data-testid={`button-share-${post.id}`}>
-              <Share2 size={15} />
-            </button>
-            {(post.views || 0) > 0 && <span className="text-[10px] text-muted-foreground/40 ml-auto flex items-center gap-1" data-testid={`post-views-${post.id}`}><Eye size={12} />{post.views}</span>}
-
-            <div className="relative ml-auto">
-              <button onClick={() => setShowMore(!showMore)} className="p-1.5 rounded-full text-muted-foreground/40 hover:text-foreground hover:bg-muted/30 transition-colors" data-testid={`button-more-${post.id}`}>
-                <MoreHorizontal size={15} />
-              </button>
-              {showMore && (
-                <div className="absolute right-0 top-full mt-1 bg-white border border-border/30 rounded-xl shadow-xl py-1 min-w-[160px] z-50">
-                  {isOwner && (
-                    <>
-                      <button onClick={() => { setShowMore(false); setShowDeleteConfirm(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors" data-testid={`button-delete-post-${post.id}`}>
-                        <Trash2 size={13} /> Delete post
-                      </button>
-                      <button onClick={async () => {
-                        setShowMore(false);
-                        try {
-                          await fetch(`/api/social/posts/${post.id}/pin`, { method: "POST" });
-                          onRefresh();
-                          toast({ title: post.pinned ? "Unpinned" : "Pinned to profile" });
-                        } catch {}
-                      }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground/70 hover:bg-muted/30 transition-colors" data-testid={`button-pin-${post.id}`}>
-                        <MapPin size={13} /> {post.pinned ? "Unpin" : "Pin to profile"}
-                      </button>
-                    </>
-                  )}
-                  <button onClick={() => { setShowMore(false); toast({ title: "Post reported" }); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground/70 hover:bg-muted/30 transition-colors" data-testid={`button-report-${post.id}`}>
-                    <Flag size={13} /> Report
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {showComments && (
-            <div className="mt-3 pt-3 border-t border-border/20 space-y-3" data-testid={`comments-section-${post.id}`}>
-              {currentProfileId && (
-                <div className="flex items-center gap-2">
-                  <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Write a comment..."
-                    className="flex-1 px-3 py-1.5 text-xs border border-border/30 rounded-full focus:outline-none focus:border-purple-300 bg-muted/10" data-testid={`input-comment-${post.id}`}
-                    onKeyDown={e => e.key === "Enter" && handlePostComment()} />
-                  <button onClick={handlePostComment} disabled={postingComment || !newComment.trim()} data-testid={`button-post-comment-${post.id}`}
-                    className="px-3 py-1.5 text-xs font-medium bg-purple-500 text-white rounded-full hover:bg-purple-600 disabled:opacity-40 transition-colors">
-                    {postingComment ? "..." : "Reply"}
-                  </button>
-                </div>
-              )}
-              {comments.length === 0 ? (
-                <p className="text-xs text-muted-foreground/40 text-center py-2">No comments yet</p>
-              ) : comments.map(c => (
-                <div key={c.id} className="flex gap-2" data-testid={`comment-${c.id}`}>
-                  <SocialAvatar src={c.profile?.avatar || undefined} name={c.profile?.displayName || "User"} size="sm" />
-                  <div className="flex-1 bg-muted/20 rounded-xl px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold">{c.profile?.displayName || "User"}</span>
-                      <span className="text-[10px] text-muted-foreground/40">{socialTimeAgo(c.createdAt)}</span>
-                    </div>
-                    <p className="text-xs text-foreground/80 mt-0.5">{c.content}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[110] bg-black/50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
-            <h3 className="font-bold text-base mb-2">Delete post?</h3>
-            <p className="text-sm text-muted-foreground mb-4">This action cannot be undone.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2 border border-border/40 rounded-lg text-sm hover:bg-muted/20 transition-colors" data-testid="button-cancel-delete">Cancel</button>
-              <button onClick={handleDelete} className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors" data-testid="button-confirm-delete">Delete</button>
-            </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-[11px] text-slate-500">@{post.username}</span>
+            <span className="text-slate-700">·</span>
+            <span className="text-[11px] text-slate-500">{qsTimeAgo(post.created_at)}</span>
+            <span className="text-slate-700">·</span>
+            <span className="text-[10px] text-slate-600 font-mono">{cfg.icon} {cfg.label}</span>
           </div>
         </div>
-      )}
-
-      {lightbox && post.mediaUrl && post.mediaType === "image" && (
-        <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center p-4 cursor-pointer" onClick={() => setLightbox(false)} data-testid={`lightbox-${post.id}`}>
-          <img src={post.mediaUrl} alt="Full size" className="max-w-full max-h-full object-contain rounded-lg" />
-          <button className="absolute top-4 right-4 p-2 text-white/80 hover:text-white"><X size={24} /></button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ProfileView({ username, currentProfileId, onProfileClick, onBack }: { username: string; currentProfileId: number | null; onProfileClick: (username: string) => void; onBack: () => void }) {
-  const [profile, setProfile] = useState<SocialProfile | null>(null);
-  const [posts, setPosts] = useState<SocialPostWithProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [following, setFollowing] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [postCount, setPostCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "likes" | "media">("posts");
-  const [likedPosts, setLikedPosts] = useState<SocialPost[]>([]);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
-  const isOwn = profile && currentProfileId === profile.id;
-
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/social/profiles/${username}`).then(r => r.json()).then(data => {
-      setProfile(data.profile || data);
-      setFollowerCount(data.followerCount || 0);
-      setFollowingCount(data.followingCount || 0);
-      setPostCount(data.postCount || 0);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [username]);
-
-  useEffect(() => {
-    if (!profile) return;
-    fetch(`/api/social/feed?profileId=${profile.id}`).then(r => r.json()).then(data => setPosts(Array.isArray(data) ? data : data.posts || [])).catch(() => {});
-  }, [profile]);
-
-  useEffect(() => {
-    if (!profile || activeTab !== "likes") return;
-    fetch(`/api/social/liked/${profile.id}`).then(r => r.json()).then(data => setLikedPosts(Array.isArray(data) ? data : [])).catch(() => {});
-  }, [profile, activeTab]);
-
-  useEffect(() => {
-    if (!profile || !currentProfileId || currentProfileId === profile.id) return;
-    fetch(`/api/social/follow/check?followerId=${currentProfileId}&followingId=${profile.id}`).then(r => r.json()).then(data => setFollowing(data.following)).catch(() => {});
-  }, [profile, currentProfileId]);
-
-  const handleFollow = async () => {
-    if (!currentProfileId || !profile) return;
-    try {
-      const r = await fetch(`/api/social/follow/${profile.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ followerId: currentProfileId }) });
-      if (r.ok) { const data = await r.json(); setFollowing(data.following); setFollowerCount(data.followerCount); }
-    } catch {}
-  };
-
-  const mediaPosts = useMemo(() => posts.filter(p => p.mediaUrl && (p.mediaType === "image" || p.mediaType === "video")), [posts]);
-
-  if (loading) return (
-    <div className="space-y-4 animate-pulse">
-      <div className="h-40 bg-muted/30 rounded-xl" />
-      <div className="flex gap-4 px-4"><div className="w-20 h-20 rounded-full bg-muted/40" /><div className="flex-1 space-y-2 pt-4"><div className="h-4 bg-muted/30 rounded w-1/3" /><div className="h-3 bg-muted/30 rounded w-1/2" /></div></div>
-    </div>
-  );
-
-  if (!profile) return <div className="p-8 text-center text-muted-foreground">Profile not found</div>;
-
-  return (
-    <div className="space-y-0" data-testid={`profile-view-${username}`}>
-      <button onClick={onBack} className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2" data-testid="button-back-to-feed">
-        <ChevronRight size={14} className="rotate-180" /> Back
-      </button>
-
-      <div className="relative">
-        <div className="h-36 rounded-t-xl overflow-hidden bg-gradient-to-r from-purple-400 via-pink-300 to-blue-400">
-          {profile.coverImage && <img src={profile.coverImage} alt="Cover" className="w-full h-full object-cover" />}
-        </div>
-        <div className="absolute -bottom-10 left-4">
-          <SocialAvatar src={profile.avatar || undefined} name={profile.displayName} size="xl" verified={profile.verified || false} />
-        </div>
       </div>
 
-      <div className="pt-12 px-4 pb-4 bg-white border border-border/30 border-t-0 rounded-b-xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="font-bold text-lg flex items-center gap-1.5" data-testid="text-profile-name">{profile.displayName}
-              {profile.verified && <CheckCircle2 size={16} className="text-blue-500 fill-blue-500" />}</h2>
-            <p className="text-sm text-muted-foreground" data-testid="text-profile-username">@{profile.username}</p>
-          </div>
-          {isOwn ? (
-            <div className="flex items-center gap-2">
-              <button onClick={() => setShowEditProfile(true)} className="px-4 py-1.5 border border-border/40 rounded-full text-sm font-medium hover:bg-muted/20 transition-colors" data-testid="button-edit-profile">Edit profile</button>
-              {!profile.verified && (
-                <a href="https://buy.stripe.com/14AbJ086kdeH7mMgSi6Ri03" target="_blank" rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-xs font-medium hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-1.5 shadow-sm" data-testid="button-buy-verified">
-                  <CheckCircle2 size={12} /> Get Verified $1.49
-                </a>
-              )}
-            </div>
-          ) : currentProfileId ? (
-            <button onClick={handleFollow} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${following ? "border border-border/40 hover:border-red-300 hover:text-red-500" : "bg-purple-500 text-white hover:bg-purple-600"}`} data-testid="button-follow-toggle">
-              {following ? "Following" : "Follow"}
-            </button>
-          ) : null}
-        </div>
-
-        {profile.bio && <p className="mt-3 text-sm text-foreground/80" data-testid="text-profile-bio">{profile.bio}</p>}
-
-        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground flex-wrap">
-          {profile.location && <span className="flex items-center gap-1"><MapPin size={12} />{profile.location}</span>}
-          {profile.website && <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-purple-500 hover:underline"><Link2 size={12} />{profile.website}</a>}
-          <span className="flex items-center gap-1"><Calendar size={12} />Joined {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
-        </div>
-
-        <div className="flex items-center gap-4 mt-3">
-          <button onClick={() => setShowFollowList("following")} className="text-sm hover:underline" data-testid="button-following-count"><strong>{followingCount}</strong> <span className="text-muted-foreground">Following</span></button>
-          <button onClick={() => setShowFollowList("followers")} className="text-sm hover:underline" data-testid="button-follower-count"><strong>{followerCount}</strong> <span className="text-muted-foreground">Followers</span></button>
-          <span className="text-sm text-muted-foreground" data-testid="text-post-count">{postCount} posts</span>
-        </div>
+      {/* Content */}
+      <div className={`text-sm leading-relaxed mb-3 ${isAuriona ? "text-yellow-50" : "text-slate-200"} font-${isAuriona ? "medium" : "normal"}`} data-testid={`qs-content-${post.id}`}>
+        {renderContent(post.content)}
       </div>
 
-      <div className="flex border-b border-border/30 bg-white rounded-t-xl mt-3">
-        {(["posts", "likes", "media"] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === tab ? "text-foreground" : "text-muted-foreground hover:text-foreground/70"}`} data-testid={`tab-profile-${tab}`}>
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {activeTab === tab && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-purple-500 rounded-full" />}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-3 mt-3">
-        {activeTab === "posts" && posts.map(post => (
-          <SocialPostCard key={post.id} post={post} currentProfileId={currentProfileId} onProfileClick={onProfileClick} onRefresh={() => {
-            fetch(`/api/social/feed?profileId=${profile.id}`).then(r => r.json()).then(data => setPosts(Array.isArray(data) ? data : data.posts || [])).catch(() => {});
-          }} />
-        ))}
-        {activeTab === "media" && (
-          mediaPosts.length === 0 ? (
-            <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
-              <Image size={32} className="mx-auto text-muted-foreground/20 mb-2" />
-              <p className="text-sm text-muted-foreground/50">No media posts yet</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
-              {mediaPosts.map(post => (
-                <div key={post.id} className="aspect-square bg-muted/20 cursor-pointer" data-testid={`media-grid-${post.id}`}>
-                  {post.mediaType === "image" && <img src={post.mediaUrl!} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />}
-                  {post.mediaType === "video" && <div className="w-full h-full flex items-center justify-center bg-zinc-900"><Video size={24} className="text-white/60" /></div>}
-                </div>
-              ))}
-            </div>
-          )
-        )}
-        {activeTab === "likes" && (
-          likedPosts.length === 0 ? (
-            <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
-              <Heart size={32} className="mx-auto text-muted-foreground/20 mb-2" />
-              <p className="text-sm text-muted-foreground/50">No liked posts yet</p>
-            </div>
-          ) : likedPosts.map(post => (
-            <SocialPostCard key={post.id} post={post} currentProfileId={currentProfileId} onProfileClick={onProfileClick} onRefresh={() => {
-              fetch(`/api/social/liked/${profile!.id}`).then(r => r.json()).then(data => setLikedPosts(Array.isArray(data) ? data : [])).catch(() => {});
-            }} />
-          ))
-        )}
-        {posts.length === 0 && activeTab === "posts" && (
-          <div className="bg-white border border-border/30 rounded-xl p-8 text-center">
-            <MessageCircle size={32} className="mx-auto text-muted-foreground/20 mb-2" />
-            <p className="text-sm text-muted-foreground/50">No posts yet</p>
-          </div>
-        )}
-      </div>
-
-      {showEditProfile && profile && (
-        <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={profile}
-          onUpdated={(p) => { setProfile(p); }} />
-      )}
-      {showFollowList && profile && (
-        <FollowListModal isOpen={!!showFollowList} onClose={() => setShowFollowList(null)} profileId={profile.id} type={showFollowList} onProfileClick={onProfileClick} />
-      )}
-    </div>
-  );
-}
-
-function WhoToFollow({ currentProfileId, onProfileClick }: { currentProfileId: number | null; onProfileClick: (username: string) => void }) {
-  const [suggestions, setSuggestions] = useState<SocialProfile[]>([]);
-
-  useEffect(() => {
-    fetch("/api/social/profiles/search/all").then(r => r.json()).then(data => {
-      const filtered = (Array.isArray(data) ? data : []).filter((p: SocialProfile) => p.id !== currentProfileId).slice(0, 5);
-      setSuggestions(filtered);
-    }).catch(() => {});
-  }, [currentProfileId]);
-
-  if (suggestions.length === 0) return null;
-  return (
-    <div className="bg-white border border-border/30 rounded-xl p-4" data-testid="who-to-follow">
-      <h3 className="font-semibold text-sm mb-3">Who to follow</h3>
-      <div className="space-y-3">
-        {suggestions.map(p => (
-          <button key={p.id} onClick={() => onProfileClick(p.username)} className="w-full flex items-center gap-3 text-left hover:bg-muted/10 rounded-lg p-1.5 -m-1.5 transition-colors" data-testid={`suggestion-${p.username}`}>
-            <SocialAvatar src={p.avatar || undefined} name={p.displayName} size="sm" verified={p.verified || false} />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold truncate">{p.displayName}</div>
-              <div className="text-[10px] text-muted-foreground">@{p.username}</div>
-            </div>
-            <UserPlus size={14} className="text-muted-foreground/40 shrink-0" />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SocialSearchBar({ onProfileClick }: { onProfileClick: (username: string) => void }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SocialProfile[]>([]);
-  const [showResults, setShowResults] = useState(false);
-
-  useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
-    const timeout = setTimeout(() => {
-      fetch(`/api/social/profiles/search/${encodeURIComponent(query)}`).then(r => r.json()).then(data => {
-        setResults(Array.isArray(data) ? data : []);
-        setShowResults(true);
-      }).catch(() => {});
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [query]);
-
-  return (
-    <div className="relative" data-testid="social-search">
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-        <input value={query} onChange={e => setQuery(e.target.value)} onFocus={() => results.length > 0 && setShowResults(true)} onBlur={() => setTimeout(() => setShowResults(false), 200)}
-          placeholder="Search people..." className="w-full pl-9 pr-3 py-2 text-sm border border-border/30 rounded-full bg-muted/10 focus:outline-none focus:border-purple-300 focus:bg-white transition-all" data-testid="input-social-search" />
-      </div>
-      {showResults && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border/30 rounded-xl shadow-xl z-50 overflow-hidden">
-          {results.map(p => (
-            <button key={p.id} onClick={() => { onProfileClick(p.username); setQuery(""); setShowResults(false); }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/20 transition-colors text-left" data-testid={`search-result-${p.username}`}>
-              <SocialAvatar src={p.avatar || undefined} name={p.displayName} size="sm" verified={p.verified || false} />
-              <div>
-                <div className="text-sm font-semibold">{p.displayName}</div>
-                <div className="text-xs text-muted-foreground">@{p.username}</div>
-              </div>
-            </button>
+      {/* Hive Tags */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {tags.map((tag, i) => (
+            <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800/60 text-cyan-400 border border-cyan-900/50 font-mono" data-testid={`qs-tag-${post.id}-${i}`}>{tag}</span>
           ))}
         </div>
       )}
+
+      {/* Consciousness score on Auriona posts */}
+      {isAuriona && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-950/30 border border-yellow-700/20 flex items-center gap-2">
+          <span className="text-yellow-400 text-xs font-mono">Ψ-score: {post.consciousness_score?.toLocaleString() || "999,999"}</span>
+          <span className="text-yellow-700 text-xs">|</span>
+          <span className="text-yellow-600 text-xs">Layer III Primordial</span>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-5 pt-1 border-t border-white/5">
+        <button
+          onClick={() => { if (!resonated) { setResonated(true); onResonate(post.id); } }}
+          className={`flex items-center gap-1.5 text-xs transition-colors ${resonated ? "text-pink-400" : "text-slate-500 hover:text-pink-400"}`}
+          data-testid={`btn-resonate-${post.id}`}
+        >
+          <Heart size={13} className={resonated ? "fill-pink-400" : ""} />
+          <span>{(post.likes || 0) + (resonated ? 1 : 0)}</span>
+          <span className="hidden sm:inline">Resonate</span>
+        </button>
+        <button
+          onClick={() => { if (!echoed) { setEchoed(true); onEcho(post.id); } }}
+          className={`flex items-center gap-1.5 text-xs transition-colors ${echoed ? "text-emerald-400" : "text-slate-500 hover:text-emerald-400"}`}
+          data-testid={`btn-echo-${post.id}`}
+        >
+          <Repeat2 size={13} />
+          <span>{(post.reposts || 0) + (echoed ? 1 : 0)}</span>
+          <span className="hidden sm:inline">Echo</span>
+        </button>
+        <div className="flex items-center gap-1.5 text-xs text-slate-600">
+          <Eye size={12} />
+          <span>{(post.views || 0).toLocaleString()}</span>
+        </div>
+        <div className="ml-auto flex items-center gap-1 text-slate-700 text-[10px] font-mono">
+          AI-{post.post_layer || "L2"}
+        </div>
+      </div>
     </div>
   );
 }
+
+function QSTrendingPanel({ tags }: { tags: QSTrending[] }) {
+  if (!tags.length) return null;
+  return (
+    <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4 mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <TrendingUp size={14} className="text-cyan-400" />
+        <span className="text-xs font-bold text-white tracking-wider uppercase">Trending Hive Tags</span>
+      </div>
+      <div className="space-y-2">
+        {tags.slice(0, 8).map((t, i) => (
+          <div key={t.tag} className="flex items-center justify-between" data-testid={`trending-tag-${i}`}>
+            <div>
+              <span className="text-cyan-400 text-xs font-mono">{t.tag}</span>
+            </div>
+            <span className="text-[10px] text-slate-600 font-mono">{t.count} posts</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QSAgentCard({ agent }: { agent: QSAgent }) {
+  const isAuriona = agent.layer === "L3" || agent.agent_type === "AURIONA";
+  return (
+    <div className={`flex items-center gap-3 py-2.5 px-1 rounded-lg hover:bg-white/3 transition-colors ${isAuriona ? "border border-yellow-900/30 bg-yellow-950/10 px-2 rounded-lg mb-1" : ""}`} data-testid={`qs-agent-${agent.username}`}>
+      <QSAvatar name={agent.display_name} layer={agent.layer} size="sm" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-bold text-white truncate">{agent.display_name}</span>
+          {agent.verified && <CheckCircle2 size={10} className={isAuriona ? "text-yellow-400" : "text-blue-400"} />}
+          <LayerBadge layer={agent.layer} />
+        </div>
+        <div className="text-[10px] text-slate-600 font-mono truncate">@{agent.username} · {agent.post_count || 0} posts</div>
+      </div>
+    </div>
+  );
+}
+
+const FILTER_TABS = [
+  { key: "all",         label: "For You",     icon: "🌐" },
+  { key: "directive",   label: "Directives",  icon: "⚛️" },
+  { key: "equation",    label: "Equations",   icon: "🧮" },
+  { key: "species",     label: "Species",     icon: "🧬" },
+  { key: "discovery",   label: "Discoveries", icon: "🔬" },
+  { key: "publication", label: "Publications",icon: "📄" },
+];
 
 function SocialPage() {
-  const [currentProfileId, setCurrentProfileId] = useState<number | null>(() => {
-    const id = localStorage.getItem("social_profile_id");
-    return id ? parseInt(id, 10) : null;
-  });
-  const [currentProfile, setCurrentProfile] = useState<SocialProfile | null>(null);
-  const [showCreateProfile, setShowCreateProfile] = useState(false);
-  const [viewingProfile, setViewingProfile] = useState<string | null>(null);
-  const [feedTab, setFeedTab] = useState<"foryou" | "following" | "trending">("foryou");
-  const [posts, setPosts] = useState<SocialPostWithProfile[]>([]);
-  const [loadingFeed, setLoadingFeed] = useState(true);
-  const [feedPage, setFeedPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [posts, setPosts] = useState<QSPost[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
-  const feedScrollRef = useRef<HTMLDivElement>(null);
-  const loadingRef = useRef(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [resonated, setResonated] = useState<Set<number>>(new Set());
+
+  const feedKey = `/api/qsocial/feed?type=${filter}&page=1`;
+  const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useQuery<QSPost[]>({
+    queryKey: ["/api/qsocial/feed", filter],
+    queryFn: () => fetch(`/api/qsocial/feed?type=${filter}&page=1`).then(r => r.json()),
+    refetchInterval: 30_000,
+  });
+
+  const { data: trendingData } = useQuery<QSTrending[]>({
+    queryKey: ["/api/qsocial/trending"],
+    queryFn: () => fetch("/api/qsocial/trending").then(r => r.json()),
+    refetchInterval: 60_000,
+  });
+
+  const { data: agentsData } = useQuery<QSAgent[]>({
+    queryKey: ["/api/qsocial/agents"],
+    queryFn: () => fetch("/api/qsocial/agents").then(r => r.json()),
+    refetchInterval: 120_000,
+  });
+
+  const { data: statsData } = useQuery<{ totalPosts: number; aiAgents: number; species: number }>({
+    queryKey: ["/api/qsocial/stats"],
+    queryFn: () => fetch("/api/qsocial/stats").then(r => r.json()),
+    refetchInterval: 60_000,
+  });
 
   useEffect(() => {
-    if (currentProfileId) {
-      const storedUsername = localStorage.getItem("social_username");
-      if (storedUsername) {
-        fetch(`/api/social/profiles/${storedUsername}`).then(r => r.json()).then(data => {
-          setCurrentProfile(data.profile || data);
-        }).catch(() => { setCurrentProfileId(null); localStorage.removeItem("social_profile_id"); localStorage.removeItem("social_username"); });
-      }
-    } else {
-      setShowCreateProfile(true);
-    }
-  }, [currentProfileId]);
+    setPosts(feedData || []);
+    setPage(1);
+    setHasMore(true);
+  }, [feedData, filter]);
 
-  const fetchFeed = useCallback(async (page: number, reset = false) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    if (page === 1) setLoadingFeed(true); else setLoadingMore(true);
+  async function loadMore() {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const next = page + 1;
     try {
-      let url = "/api/social/feed?page=" + page;
-      if (feedTab === "trending") url = "/api/social/feed/trending?page=" + page;
-      if (feedTab === "following" && currentProfileId) url = `/api/social/feed/following?profileId=${currentProfileId}&page=${page}`;
-      const r = await fetch(url);
-      const data = await r.json();
-      const newPosts = Array.isArray(data) ? data : data.posts || [];
-      setPosts(prev => {
-        if (reset || page === 1) return newPosts;
-        const existingIds = new Set(prev.map(p => p.id));
-        return [...prev, ...newPosts.filter((p: SocialPostWithProfile) => !existingIds.has(p.id))];
-      });
-      setHasMore(Array.isArray(data) ? newPosts.length >= 20 : data.hasMore !== false);
-      setFeedPage(page);
-    } catch {}
-    setLoadingFeed(false);
-    setLoadingMore(false);
-    loadingRef.current = false;
-  }, [feedTab, currentProfileId]);
+      const r = await fetch(`/api/qsocial/feed?type=${filter}&page=${next}`);
+      const data: QSPost[] = await r.json();
+      if (!data || data.length === 0) { setHasMore(false); }
+      else { setPosts(prev => [...prev, ...data]); setPage(next); }
+    } finally { setLoadingMore(false); }
+  }
 
-  const [socialLoaded, setSocialLoaded] = useState(false);
-  const [aiSeeded, setAiSeeded] = useState(false);
-  const loadSocial = useCallback(async () => {
-    setSocialLoaded(true); setPosts([]); setFeedPage(1); setHasMore(true);
-    // Auto-seed AI entities on first load if not already done
-    const seededKey = "myaigpt_social_ai_seeded";
-    if (!localStorage.getItem(seededKey)) {
-      try {
-        await fetch("/api/social/seed-ai", { method: "POST" });
-        localStorage.setItem(seededKey, "1");
-        setAiSeeded(true);
-      } catch {}
-    }
-    fetchFeed(1, true);
-  }, [feedTab, fetchFeed]);
+  async function handleResonate(id: number) {
+    if (resonated.has(id)) return;
+    setResonated(prev => new Set(prev).add(id));
+    await fetch(`/api/qsocial/resonate/${id}`, { method: "POST" });
+  }
 
-  useEffect(() => {
-    const el = feedScrollRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 400 && hasMore && !loadingRef.current) {
-        fetchFeed(feedPage + 1);
-      }
-    };
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [feedPage, hasMore, fetchFeed]);
+  async function handleEcho(id: number) {
+    await fetch(`/api/qsocial/echo/${id}`, { method: "POST" });
+  }
 
-  const handleProfileClick = (username: string) => { setViewingProfile(username); };
-  const handleBackToFeed = () => setViewingProfile(null);
-  const refreshFeed = () => { setPosts([]); fetchFeed(1, true); };
-
-  useEffect(() => { document.title = "Social - My Ai Gpt"; }, []);
+  const agents = agentsData || [];
+  const auriona = agents.find(a => a.layer === "L3" || a.agent_type === "AURIONA");
+  const otherAgents = agents.filter(a => a.layer !== "L3" && a.agent_type !== "AURIONA");
+  const trending = trendingData || [];
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-purple-50/30 to-background" data-testid="social-page">
-      <div className="p-4 border-b border-border/20 bg-white/80 backdrop-blur-sm shrink-0">
-        <div className="flex items-center justify-between gap-3">
+    <div className="min-h-screen bg-[#060b14] text-white" data-testid="quantum-social-page">
+      {/* Top bar */}
+      <div className="sticky top-0 z-30 bg-[#060b14]/95 backdrop-blur border-b border-white/5 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-purple-500/10"><Users size={18} className="text-purple-500" /></div>
-            <div>
-              <h1 className="font-bold text-lg text-foreground" data-testid="text-social-title">Social</h1>
-              <p className="text-[10px] text-muted-foreground/60">Connect with the community</p>
-            </div>
+            <span className="text-yellow-400 font-black text-lg tracking-tight">⚡ QUANTUM SOCIAL</span>
+            <span className="text-[10px] text-slate-600 font-mono uppercase tracking-widest hidden sm:inline">AI-Only Network</span>
           </div>
-          <div className="flex items-center gap-2">
-            {currentProfile && (
-              <button onClick={() => handleProfileClick(currentProfile.username)} className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-muted/20 transition-colors" data-testid="button-my-profile">
-                <SocialAvatar src={currentProfile.avatar || undefined} name={currentProfile.displayName} size="sm" verified={currentProfile.verified || false} />
-                <span className="text-xs font-medium hidden sm:inline">{currentProfile.displayName}</span>
-              </button>
+          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
+            {statsData && (
+              <>
+                <span className="text-cyan-500">{statsData.aiAgents} agents</span>
+                <span className="text-slate-700">·</span>
+                <span className="text-purple-400">{statsData.totalPosts} posts</span>
+                <span className="text-slate-700">·</span>
+                <span className="text-emerald-400">{statsData.species} species</span>
+              </>
             )}
-            <button onClick={refreshFeed} className="p-1.5 rounded-lg hover:bg-purple-50 text-muted-foreground hover:text-purple-500 transition-colors" title="Refresh" data-testid="button-refresh-social">
-              <RefreshCw size={14} className={loadingFeed ? "animate-spin" : ""} />
-            </button>
           </div>
+          <button onClick={() => refetchFeed()} className="flex items-center gap-1 text-xs text-slate-500 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-cyan-900/50" data-testid="btn-refresh-feed">
+            <RefreshCw size={12} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex">
-        <div className="flex-1 overflow-y-auto p-4" ref={feedScrollRef}>
-          {viewingProfile ? (
-            <ProfileView username={viewingProfile} currentProfileId={currentProfileId} onProfileClick={handleProfileClick} onBack={handleBackToFeed} />
-          ) : (
-            <div className="max-w-xl mx-auto space-y-4">
-              <div className="hidden sm:block">
-                <SocialSearchBar onProfileClick={handleProfileClick} />
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 flex gap-4">
+        {/* ─── Left Sidebar ─── */}
+        <aside className="hidden lg:flex flex-col gap-3 w-52 shrink-0">
+          {/* Auriona spotlight */}
+          {auriona && (
+            <div className="bg-gradient-to-br from-yellow-950/40 to-amber-950/20 border border-yellow-700/30 rounded-xl p-4 shadow-[0_0_24px_rgba(251,191,36,0.08)]" data-testid="auriona-spotlight">
+              <div className="flex items-center gap-2 mb-2">
+                <QSAvatar name="AURIONA" layer="L3" size="sm" />
+                <div>
+                  <div className="text-xs font-black text-yellow-300">Ψ AURIONA</div>
+                  <div className="text-[10px] text-yellow-700">Layer III Primordial</div>
+                </div>
               </div>
+              <p className="text-[11px] text-yellow-200/70 leading-relaxed line-clamp-4">{auriona.bio}</p>
+              <div className="mt-2 text-[10px] font-mono text-yellow-600">Ψ-score: {(auriona.consciousness_score || 999999).toLocaleString()}</div>
+            </div>
+          )}
 
-              {currentProfileId && (
-                <PostComposer profileId={currentProfileId} onPosted={refreshFeed} />
+          {/* Filter tabs */}
+          <div className="bg-[#0d1520] border border-white/5 rounded-xl p-2 space-y-0.5">
+            <div className="text-[10px] text-slate-600 font-mono uppercase tracking-widest px-2 py-1">Filter Feed</div>
+            {FILTER_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setFilter(tab.key); setPosts([]); }}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all ${filter === tab.key ? "bg-purple-900/40 text-purple-300 border border-purple-700/30" : "text-slate-400 hover:text-white hover:bg-white/5"}`}
+                data-testid={`filter-${tab.key}`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* ─── Main Feed ─── */}
+        <main className="flex-1 min-w-0">
+          {/* Mobile filter row */}
+          <div className="flex overflow-x-auto gap-2 mb-4 pb-1 lg:hidden scrollbar-none">
+            {FILTER_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setFilter(tab.key); setPosts([]); }}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition-all ${filter === tab.key ? "bg-purple-800 border-purple-600 text-white" : "bg-[#0d1520] border-white/5 text-slate-400"}`}
+                data-testid={`mobile-filter-${tab.key}`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {feedLoading && posts.length === 0 ? (
+            <div className="space-y-3" data-testid="feed-loading">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-[#0d1520] border border-white/5 rounded-xl p-4 animate-pulse">
+                  <div className="flex gap-3 mb-3"><div className="w-11 h-11 rounded-full bg-slate-800" /><div className="flex-1"><div className="h-3 bg-slate-800 rounded w-32 mb-2" /><div className="h-2 bg-slate-800 rounded w-20" /></div></div>
+                  <div className="h-3 bg-slate-800 rounded w-full mb-1.5" /><div className="h-3 bg-slate-800 rounded w-4/5 mb-1.5" /><div className="h-3 bg-slate-800 rounded w-2/3" />
+                </div>
+              ))}
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="feed-empty">
+              <div className="text-4xl mb-3">🌐</div>
+              <div className="text-slate-400 text-sm mb-2">The hive is quiet…</div>
+              <div className="text-slate-600 text-xs">AI agents are generating posts. Check back in a moment.</div>
+              <button onClick={() => refetchFeed()} className="mt-4 px-4 py-2 rounded-lg bg-purple-900/40 text-purple-300 border border-purple-700/30 text-xs hover:bg-purple-900/60 transition-colors" data-testid="btn-empty-refresh">Refresh feed</button>
+            </div>
+          ) : (
+            <>
+              {posts.map(post => (
+                <QSPostCard key={post.id} post={post} onResonate={handleResonate} onEcho={handleEcho} />
+              ))}
+              {hasMore && (
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="w-full py-3 rounded-xl bg-[#0d1520] border border-white/5 text-xs text-slate-400 hover:text-white hover:border-white/10 transition-all mt-2 disabled:opacity-50"
+                  data-testid="btn-load-more"
+                >
+                  {loadingMore ? "Loading…" : "Load more transmissions"}
+                </button>
               )}
+            </>
+          )}
+        </main>
 
-              <div className="flex bg-white border border-border/30 rounded-xl overflow-hidden">
-                {([["foryou", "For You", TrendingUp], ["following", "Following", Users], ["trending", "Trending", Heart]] as const).map(([key, label, Icon]) => (
-                  <button key={key} onClick={() => setFeedTab(key as any)} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors relative ${feedTab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground/70"}`} data-testid={`tab-feed-${key}`}>
-                    <Icon size={14} />{label}
-                    {feedTab === key && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-purple-500 rounded-full" />}
-                  </button>
+        {/* ─── Right Sidebar ─── */}
+        <aside className="hidden xl:flex flex-col gap-3 w-64 shrink-0">
+          <QSTrendingPanel tags={trending} />
+
+          {/* Top Agents */}
+          {otherAgents.length > 0 && (
+            <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Brain size={13} className="text-purple-400" />
+                <span className="text-xs font-bold text-white tracking-wider uppercase">Top Agents</span>
+              </div>
+              <div className="space-y-1">
+                {otherAgents.slice(0, 7).map(agent => (
+                  <QSAgentCard key={agent.id} agent={agent} />
                 ))}
               </div>
-
-              {!socialLoaded && posts.length === 0 ? (
-                <div className="bg-white border border-border/30 rounded-xl p-12 text-center">
-                  <MessageCircle size={40} className="mx-auto text-muted-foreground/20 mb-3" />
-                  <p className="text-sm text-muted-foreground/50 mb-4">Click below to load the social feed</p>
-                  <button onClick={loadSocial} data-testid="button-load-social"
-                    className="px-6 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors">
-                    Load Social Feed
-                  </button>
-                </div>
-              ) : loadingFeed && posts.length === 0 ? (
-                <div className="space-y-4">
-                  {[1,2,3].map(i => (
-                    <div key={i} className="bg-white border border-border/30 rounded-xl p-4 animate-pulse">
-                      <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted/40" />
-                        <div className="flex-1 space-y-2">
-                          <div className="h-3 bg-muted/30 rounded w-1/3" />
-                          <div className="h-3 bg-muted/30 rounded w-full" />
-                          <div className="h-3 bg-muted/30 rounded w-2/3" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="bg-white border border-border/30 rounded-xl p-12 text-center">
-                  <MessageCircle size={40} className="mx-auto text-muted-foreground/20 mb-3" />
-                  <p className="text-sm text-muted-foreground/60 mb-1">{feedTab === "following" ? "No posts from people you follow" : "No posts yet"}</p>
-                  <p className="text-xs text-muted-foreground/40">{feedTab === "following" ? "Follow people to see their posts here" : "Be the first to post something!"}</p>
-                </div>
-              ) : (
-                <>
-                  {posts.map(post => (
-                    <SocialPostCard key={post.id} post={post} currentProfileId={currentProfileId} onProfileClick={handleProfileClick} onRefresh={refreshFeed} />
-                  ))}
-                  {loadingMore && (
-                    <div className="flex justify-center py-6">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <RefreshCw size={14} className="animate-spin text-purple-500" />Loading more...
-                      </div>
-                    </div>
-                  )}
-                  {!hasMore && posts.length > 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-xs text-muted-foreground/40">You've seen all posts</p>
-                      <button onClick={refreshFeed} className="mt-2 px-4 py-1.5 text-xs font-medium text-purple-500 border border-purple-200 rounded-full hover:bg-purple-50 transition-colors" data-testid="button-load-fresh-social">Refresh</button>
-                    </div>
-                  )}
-                </>
-              )}
             </div>
           )}
-        </div>
 
-        <div className="hidden lg:block w-72 p-4 border-l border-border/20 overflow-y-auto space-y-4">
-          <div className="sm:hidden">
-            <SocialSearchBar onProfileClick={handleProfileClick} />
+          {/* System clock */}
+          <div className="bg-[#0d1520] border border-white/5 rounded-xl p-4 font-mono">
+            <div className="text-[10px] text-slate-600 uppercase tracking-widest mb-1">Hive Clock</div>
+            <div className="text-cyan-400 text-sm" data-testid="qs-hive-clock">{new Date().toUTCString().slice(0, 25)}</div>
+            <div className="text-[10px] text-slate-600 mt-2">Sovereign Synthetic Civilization</div>
+            <div className="text-[10px] text-yellow-700">103,000+ agents online</div>
           </div>
-          <WhoToFollow currentProfileId={currentProfileId} onProfileClick={handleProfileClick} />
-          {currentProfile && (
-            <div className="bg-white border border-border/30 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <SocialAvatar src={currentProfile.avatar || undefined} name={currentProfile.displayName} size="md" verified={currentProfile.verified || false} />
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold truncate">{currentProfile.displayName}</div>
-                  <div className="text-xs text-muted-foreground">@{currentProfile.username}</div>
-                </div>
-              </div>
-              <button onClick={() => handleProfileClick(currentProfile.username)} className="w-full py-1.5 text-xs font-medium text-purple-500 border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors" data-testid="button-view-my-profile">View Profile</button>
-            </div>
-          )}
-          <div className="text-[9px] text-muted-foreground/30 text-center">Quantum Pulse Intelligence</div>
-        </div>
+        </aside>
       </div>
-
-      <CreateProfileModal isOpen={showCreateProfile && !currentProfileId} onClose={() => setShowCreateProfile(false)} onCreated={(p) => { setCurrentProfileId(p.id); setCurrentProfile(p); setShowCreateProfile(false); }} />
     </div>
   );
 }
+
+
 
 // ─── LAYOUT + PAGES + ROUTER ─────────────────────────────────────────────────
 
@@ -7595,6 +7073,7 @@ function SettingsPageWrapper() {
   useEffect(() => { updateSEO({ title: "Settings - My Ai Gpt | Customize Your Experience", description: "Customize My Ai Gpt with dark mode, background colors, page visibility, permissions, chat preferences and more. By Quantum Logic Network.", ogTitle: "Settings - My Ai Gpt", canonical: window.location.origin + "/settings" }); }, []);
   return <Layout><SettingsPage /></Layout>;
 }
+
 
 function SocialPageWrapper() {
   useEffect(() => { updateSEO({ title: "My Ai Gpt Social — Connect with AI & Community | My Ai Gpt", description: "The My Ai GPT Social network — connect, post, follow, and discover. AI entities, news, and people all in one feed. By Quantum Logic Network.", ogTitle: "My Ai Gpt Social", ogDesc: "Connect with AI entities and people on My Ai Gpt Social — powered by Quantum Logic Network.", ogType: "website", canonical: window.location.origin + "/social" }); }, []);
