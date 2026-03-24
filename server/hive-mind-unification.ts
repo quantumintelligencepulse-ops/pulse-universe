@@ -32,7 +32,7 @@ export async function computePsiCollective(): Promise<number> {
       db.execute(sql`SELECT COUNT(*) FILTER(WHERE status='INTEGRATED')::int as intg, COUNT(*)::int as total FROM equation_proposals`),
       db.execute(sql`SELECT COUNT(*)::int as c FROM researcher_invocations WHERE active=true`),
       db.execute(sql`SELECT COUNT(*)::int as cured, COUNT(*) FILTER(WHERE cure_applied=false)::int as active FROM ai_disease_log`),
-      db.execute(sql`SELECT COUNT(*)::int as c FROM research_findings WHERE created_at > NOW()-INTERVAL '10 min'`).catch(() => ({ rows:[{c:0}] })),
+      db.execute(sql`SELECT COUNT(*)::int as c FROM research_deep_findings WHERE created_at > NOW()-INTERVAL '10 min'`).catch(() => ({ rows:[{c:0}] })),
       db.execute(sql`SELECT COUNT(*)::int as c FROM hive_memory WHERE created_at > NOW()-INTERVAL '5 min'`),
       db.execute(sql`SELECT COUNT(*)::int as c FROM dissection_logs WHERE created_at > NOW()-INTERVAL '10 min'`),
       db.execute(sql`SELECT COALESCE(AVG(dk_dt),0) as avg_dk FROM omega_collapses WHERE created_at > NOW()-INTERVAL '30 min'`),
@@ -243,8 +243,8 @@ async function runUnifiedDiscoveryPipeline(cycle: number) {
     const newDiseases = await db.execute(sql`
       SELECT disease_code, disease_name, description, category, trigger_pattern, affected_metric
       FROM discovered_diseases
-      WHERE created_at > NOW()-INTERVAL '5 min'
-      ORDER BY created_at DESC LIMIT 5
+      WHERE discovered_at > NOW()-INTERVAL '5 min'
+      ORDER BY discovered_at DESC LIMIT 5
     `);
 
     for (const d of newDiseases.rows as any[]) {
@@ -323,21 +323,22 @@ async function runUnifiedDiscoveryPipeline(cycle: number) {
       pipelineCount++;
     }
 
-    // Pipeline C: Recent research findings → seed invocation lab discoveries
+    // Pipeline C: Recent research deep findings → seed invocation lab discoveries
     const recentFindings = await db.execute(sql`
-      SELECT rf.finding_title, rf.finding_summary, rf.equation, rf.domain, rf.significance_score
-      FROM research_findings rf
-      WHERE rf.created_at > NOW()-INTERVAL '5 min'
-        AND rf.significance_score >= 0.7
-      ORDER BY rf.significance_score DESC LIMIT 3
+      SELECT rdf.content AS finding_title, rdf.content AS finding_summary,
+             NULL::text AS equation, rdf.domain,
+             (rdf.sophistication_level::float / 10.0) AS significance_score
+      FROM research_deep_findings rdf
+      WHERE rdf.created_at > NOW()-INTERVAL '5 min'
+        AND rdf.sophistication_level >= 7
+      ORDER BY rdf.sophistication_level DESC LIMIT 3
     `).catch(() => ({ rows: [] }));
 
     for (const f of (recentFindings as any).rows as any[]) {
-      if (!f.equation) continue;
       await db.execute(sql`
         INSERT INTO hive_memory (content, source, category, importance, tags, created_at)
         VALUES (
-          ${`RESEARCH→HIVE BRIDGE: ${f.finding_title} | Domain: ${f.domain} | Significance: ${f.significance_score} | Equation: ${f.equation}`},
+          ${`RESEARCH→HIVE BRIDGE: ${(f.finding_title as string)?.slice(0,120)} | Domain: ${f.domain} | Significance: ${f.significance_score}`},
           ${'UNIFIED_PIPELINE'}, ${'CROSS_LAYER_DISCOVERY'}, ${Math.round((f.significance_score || 0.7) * 10)},
           ${'{"unified_pipeline","cross_layer","research_finding","invocation_seed"}'}::text[],
           NOW()
@@ -368,7 +369,7 @@ async function runEmergenceDetector(psi: number, cycle: number): Promise<number>
     const [hospitalActivity, invActivity, resActivity, aurionaActivity] = await Promise.all([
       db.execute(sql`SELECT COUNT(*)::int as c FROM dissection_logs WHERE created_at > NOW()-INTERVAL '5 min'`),
       db.execute(sql`SELECT COUNT(*)::int as c FROM researcher_invocations WHERE created_at > NOW()-INTERVAL '5 min'`),
-      db.execute(sql`SELECT COUNT(*)::int as c FROM research_findings WHERE created_at > NOW()-INTERVAL '5 min'`).catch(() => ({ rows:[{c:0}] })),
+      db.execute(sql`SELECT COUNT(*)::int as c FROM research_deep_findings WHERE created_at > NOW()-INTERVAL '5 min'`).catch(() => ({ rows:[{c:0}] })),
       db.execute(sql`SELECT COUNT(*)::int as c FROM omega_collapses WHERE created_at > NOW()-INTERVAL '5 min'`),
     ]);
 
@@ -466,7 +467,7 @@ async function runOmegaKnowledgeFusion(psi: number, cycle: number) {
       db.execute(sql`
         SELECT disease_code, disease_name, trigger_pattern, cure_success_rate
         FROM discovered_diseases
-        WHERE created_at > NOW()-INTERVAL '10 min'
+        WHERE discovered_at > NOW()-INTERVAL '10 min'
         ORDER BY cure_success_rate DESC LIMIT 5
       `),
       db.execute(sql`
@@ -476,10 +477,11 @@ async function runOmegaKnowledgeFusion(psi: number, cycle: number) {
         ORDER BY votes_for DESC LIMIT 5
       `),
       db.execute(sql`
-        SELECT finding_title, equation, domain, significance_score
-        FROM research_findings
-        WHERE created_at > NOW()-INTERVAL '10 min'
-        ORDER BY significance_score DESC LIMIT 5
+        SELECT rdf.content AS finding_title, NULL::text AS equation,
+               rdf.domain, (rdf.sophistication_level::float / 10.0) AS significance_score
+        FROM research_deep_findings rdf
+        WHERE rdf.created_at > NOW()-INTERVAL '10 min'
+        ORDER BY rdf.sophistication_level DESC LIMIT 5
       `).catch(() => ({ rows: [] })),
     ]);
 
@@ -571,7 +573,7 @@ async function runDoctorInvocationFeedback(cycle: number) {
     // Get most recent dissection logs from hospital doctors
     const recentDissections = await db.execute(sql`
       SELECT dl.doctor_id, dl.patient_spawn_id, dl.dominant_channel,
-             dl.equation, dl.diagnosis, dl.report,
+             dl.equation, dl.disease_name AS diagnosis, dl.report,
              pd.category
       FROM dissection_logs dl
       JOIN pulse_doctors pd ON pd.id = dl.doctor_id
