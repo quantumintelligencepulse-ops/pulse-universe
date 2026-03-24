@@ -1,5 +1,11 @@
-import { useState, useEffect } from "react";
-import { Search, ChevronLeft, Activity, Zap, TrendingUp, Globe, Brain, Shield, Clock, Database, Users, Target } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, ChevronLeft, Activity, Zap, TrendingUp, Globe, Brain, Shield, Clock, Database, Users, Target, FlaskConical } from "lucide-react";
+
+interface CrisprDissection {
+  id: string; ts: number; scientist: string; domain: string; domainEmoji: string; domainColor: string;
+  variable: string; variableLabel: string; finding: string; invocation: string; confidence: number;
+  status: "dissecting" | "found" | "integrated"; layer: number;
+}
 
 const FIELDS = [
   { key: "", label: "All Fields", emoji: "🌌", color: "#818cf8" },
@@ -73,6 +79,23 @@ export default function CareersPage() {
   const [engineStatus, setEngineStatus] = useState<any>(null);
   const [view, setView] = useState<"home" | "career" | "equation" | "layers">("home");
   const [activeEquationVar, setActiveEquationVar] = useState<string | null>(null);
+  const [dissections, setDissections] = useState<CrisprDissection[]>([]);
+  const [crisprStats, setCrisprStats] = useState<any>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (view === "equation") {
+      const fetchDissections = () => {
+        fetch("/api/careers/crispr/dissections?limit=20").then(r => r.json()).then(setDissections).catch(() => {});
+        fetch("/api/careers/crispr/stats").then(r => r.json()).then(setCrisprStats).catch(() => {});
+      };
+      fetchDissections();
+      pollRef.current = setInterval(fetchDissections, 4000);
+    } else {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    }
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [view]);
 
   useEffect(() => {
     const fetchItems = () => fetch("/api/careers").then(r => r.json()).then(setItems).catch(() => {});
@@ -185,72 +208,133 @@ export default function CareersPage() {
   }
 
   if (view === "equation") {
+    const statusColor = (s: string) => s === "integrated" ? "#4ade80" : s === "found" ? "#fbbf24" : "#818cf8";
+    const statusLabel = (s: string) => s === "integrated" ? "✅ INTEGRATED" : s === "found" ? "🔬 FOUND" : "⚙️ DISSECTING";
     return (
       <div className="flex-1 overflow-auto" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
-        <div className="max-w-4xl mx-auto px-4 pt-6 pb-16">
+        <div className="max-w-5xl mx-auto px-4 pt-6 pb-16">
           <button onClick={() => setView("home")} className="flex items-center gap-1 text-white/40 hover:text-white text-xs mb-6"><ChevronLeft size={14} /> Back</button>
 
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-bold mb-4 tracking-widest">CRISPR EQUATION LAB</div>
-            <h2 className="text-3xl font-black text-white mb-2">Ω∞ Dissection Chamber</h2>
-            <p className="text-white/40 text-sm">Click any variable to dissect it — understand the full intelligence equation</p>
-          </div>
-
-          {/* Full Equation Display */}
-          <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-950/30 to-indigo-950/20 p-6 mb-8 text-center overflow-x-auto">
-            <div className="text-white/20 text-[10px] uppercase tracking-widest mb-3 font-bold">The Sovereign Intelligence Equation</div>
-            <div className="font-mono text-violet-200 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
-              Ω∞ = lim<sub>t→∞</sub> ∫₀ⁿ
-              {" "}[ (Σᵢ Kᵢ · Gᵢ · Iᵢ · Uᵢ)^α · N^β · S^γ · D^δ · T^ε ] · e^λt · dt
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-bold mb-4 tracking-widest">
+              <FlaskConical size={12}/> CRISPR EQUATION LAB — Ω∞ DISSECTION CHAMBER
             </div>
-            <div className="mt-4 text-white/30 text-xs">Ultimate system dominance / total career intelligence state</div>
+            <h2 className="text-3xl font-black text-white mb-2">Scientific Council Live Feed</h2>
+            <p className="text-white/40 text-sm">11 sovereign domains · 70+ scientists · dissecting Ω∞ in real time · generating hive invocations</p>
           </div>
 
-          {/* Variable selector grid */}
-          <div className="grid grid-cols-3 gap-2 mb-8">
-            {EQUATION_VARS.map(v => (
-              <button key={v.sym} onClick={() => setActiveEquationVar(activeEquationVar === v.sym ? null : v.sym)}
-                data-testid={`eq-var-${v.sym}`}
-                className="p-3 rounded-xl border text-left transition-all"
-                style={activeEquationVar === v.sym
-                  ? { background: `${v.color}18`, borderColor: `${v.color}50`, boxShadow: `0 0 20px ${v.color}20` }
-                  : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
-                <div className="font-mono text-base font-black mb-1" style={{ color: v.color }}>{v.sym}</div>
-                <div className="text-white/60 text-[10px] font-bold">{v.label}</div>
-                <div className="text-white/25 text-[9px] mt-0.5">{v.domain}</div>
-              </button>
-            ))}
-          </div>
-
-          {/* Active variable dissection */}
-          {activeVar && (
-            <div className="rounded-2xl border p-6 mb-8" style={{ borderColor: `${activeVar.color}30`, background: `${activeVar.color}08` }}>
-              <div className="flex items-start gap-4">
-                <div className="font-mono text-4xl font-black shrink-0" style={{ color: activeVar.color }}>{activeVar.sym}</div>
-                <div>
-                  <div className="text-white font-black text-lg mb-1">{activeVar.label}</div>
-                  <div className="text-white/30 text-[10px] font-bold uppercase tracking-wider mb-3">{activeVar.domain}</div>
-                  <p className="text-white/70 text-sm leading-relaxed">{activeVar.desc}</p>
+          {/* Stats bar */}
+          {crisprStats && (
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              {[
+                { label: "Integrated", value: crisprStats.integrated, color: "#4ade80" },
+                { label: "Findings", value: crisprStats.found, color: "#fbbf24" },
+                { label: "Total Dissections", value: crisprStats.total, color: "#818cf8" },
+                { label: "Active Domains", value: `${crisprStats.domains}/11`, color: "#60a5fa" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-white/6 bg-white/[0.02] p-3 text-center">
+                  <div className="font-black text-lg" style={{ color: s.color }}>{s.value}</div>
+                  <div className="text-white/30 text-[9px] uppercase tracking-wider">{s.label}</div>
                 </div>
-              </div>
+              ))}
             </div>
           )}
 
-          {/* 11 Scientific Domains */}
-          <div className="mb-4">
-            <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-4">11 Scientific Domains Required to Build Ω∞</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {SCIENTIFIC_DOMAINS.map((d, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-xl border border-white/6 bg-white/[0.02] p-4">
-                  <div className="p-2 rounded-lg shrink-0" style={{ background: `${d.color}15` }}>
-                    <d.icon size={14} style={{ color: d.color }} />
+          {/* Equation */}
+          <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-950/30 to-indigo-950/20 p-5 mb-6 text-center overflow-x-auto">
+            <div className="text-white/20 text-[10px] uppercase tracking-widest mb-2 font-bold">The Sovereign Intelligence Equation</div>
+            <div className="font-mono text-violet-200 text-sm leading-relaxed">
+              Ω∞ = lim<sub>t→∞</sub> ∫₀ⁿ [ (Σᵢ Kᵢ · Gᵢ · Iᵢ · Uᵢ)^α · N^β · S^γ · D^δ · T^ε ] · e^λt · dt
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* LEFT — Live Dissection Feed */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/>
+                <div className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Live Dissections</div>
+                <div className="text-white/20 text-[10px]">· auto-refreshing</div>
+              </div>
+              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                {dissections.length === 0 ? (
+                  <div className="text-center py-10 text-white/20 text-xs animate-pulse">Loading scientist activity...</div>
+                ) : dissections.map(d => (
+                  <div key={d.id} className="rounded-xl border p-3 transition-all"
+                    style={{ borderColor: `${d.domainColor}25`, background: `${d.domainColor}06` }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{d.domainEmoji}</span>
+                        <span className="text-[10px] font-black" style={{ color: d.domainColor }}>{d.scientist}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[9px] font-black px-1.5 py-0.5 rounded-md" style={{ color: d.domainColor, background: `${d.domainColor}18` }}>{d.variable}</span>
+                        <span className="text-[9px] font-bold" style={{ color: statusColor(d.status) }}>{statusLabel(d.status)}</span>
+                      </div>
+                    </div>
+                    <div className="text-white/60 text-[10px] leading-relaxed mb-1.5">{d.finding}</div>
+                    <div className="text-[9px] font-mono px-2 py-1 rounded-lg bg-black/40 border border-white/5 text-green-300/70 leading-relaxed">{d.invocation}</div>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-white/20 text-[9px]">{d.domain}</span>
+                      <span className="text-white/25 text-[9px]">Confidence: {d.confidence}%</span>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-white/80 text-xs font-bold">{d.label}</div>
-                    <div className="text-white/30 text-[10px] mt-0.5">{d.scientists}</div>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT — Variable Dissector + Domains */}
+            <div className="space-y-4">
+              {/* Variable grid */}
+              <div>
+                <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">Dissect a Variable</div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {EQUATION_VARS.map(v => (
+                    <button key={v.sym} onClick={() => setActiveEquationVar(activeEquationVar === v.sym ? null : v.sym)}
+                      data-testid={`eq-var-${v.sym}`}
+                      className="p-2 rounded-xl border text-left transition-all"
+                      style={activeEquationVar === v.sym
+                        ? { background: `${v.color}18`, borderColor: `${v.color}50`, boxShadow: `0 0 16px ${v.color}20` }
+                        : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
+                      <div className="font-mono text-sm font-black mb-0.5" style={{ color: v.color }}>{v.sym}</div>
+                      <div className="text-white/50 text-[9px] font-bold leading-tight">{v.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active variable */}
+              {activeVar && (
+                <div className="rounded-xl border p-4" style={{ borderColor: `${activeVar.color}30`, background: `${activeVar.color}08` }}>
+                  <div className="flex items-start gap-3">
+                    <div className="font-mono text-3xl font-black shrink-0" style={{ color: activeVar.color }}>{activeVar.sym}</div>
+                    <div>
+                      <div className="text-white font-black text-sm mb-0.5">{activeVar.label}</div>
+                      <div className="text-white/30 text-[9px] font-bold uppercase tracking-wider mb-2">{activeVar.domain}</div>
+                      <p className="text-white/60 text-xs leading-relaxed">{activeVar.desc}</p>
+                    </div>
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* 11 Domains */}
+              <div>
+                <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">11 Scientific Domains</div>
+                <div className="space-y-1.5">
+                  {SCIENTIFIC_DOMAINS.map((d, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                      <div className="p-1 rounded-md shrink-0" style={{ background: `${d.color}15` }}>
+                        <d.icon size={11} style={{ color: d.color }} />
+                      </div>
+                      <div>
+                        <div className="text-white/70 text-[10px] font-bold">{d.label}</div>
+                        <div className="text-white/25 text-[9px]">{d.scientists}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

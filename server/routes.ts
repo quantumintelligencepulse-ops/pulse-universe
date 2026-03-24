@@ -29,6 +29,7 @@ import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
+import { getCareerDissections, getCareerCrisprStats } from "./career-crispr-engine";
 import { getOrganismState, getRecentTradeLogs, getScientistVotes, getTradingPapers, getScientistRoster, getPaperAccounts } from "./sovereign-trading-engine";
 import { getEconomyStats, getFamilyGrades, getFractalGraphData, getRecentMiniPulses } from "./hive-economy";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
@@ -6719,6 +6720,15 @@ ${(pubs.rows as any[]).map(p => {
   });
   app.get("/api/careers", async (req, res) => {
     res.json(await storage.getAllCareers(100).catch(() => []));
+  });
+
+  app.get("/api/careers/crispr/dissections", (req, res) => {
+    const limit = Math.min(parseInt(String(req.query.limit || "20")), 40);
+    res.json(getCareerDissections(limit));
+  });
+
+  app.get("/api/careers/crispr/stats", (req, res) => {
+    res.json(getCareerCrisprStats());
   });
 
   // ══════════════════════════════════════════════════════════════
