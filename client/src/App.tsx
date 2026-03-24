@@ -1375,7 +1375,7 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 80)}px`;
     }
   }, [value]);
 
@@ -1434,7 +1434,7 @@ function ChatInput({ onSend, disabled, placeholder, isCoder }: { onSend: (msg: s
         )}
         <textarea ref={textareaRef} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={handleKey} onPaste={handlePaste}
           placeholder={placeholder} disabled={disabled} data-testid="input-message"
-          className="w-full max-h-[200px] min-h-[44px] bg-transparent border-0 resize-none py-2.5 pl-3 pr-20 focus:ring-0 focus:outline-none scrollbar-hide text-base leading-relaxed placeholder:text-muted-foreground/50"
+          className="w-full max-h-[80px] min-h-[36px] bg-transparent border-0 resize-none py-2 pl-3 pr-20 focus:ring-0 focus:outline-none scrollbar-hide text-sm leading-relaxed placeholder:text-muted-foreground/50"
           rows={1} />
         <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
           {charCount > 0 && <span className="text-[10px] text-muted-foreground/40 tabular-nums">{charCount}{inputSettings.showWordCount && wordCount > 0 ? ` · ${wordCount}w` : ""}</span>}
@@ -1838,7 +1838,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
         <div className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/30 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isCoder ? <Code2 size={14} className="text-blue-500" /> : <MessageSquare size={14} className="text-muted-foreground" />}
-            <span className="text-sm font-medium text-foreground/80 truncate max-w-[200px]">{isCoder ? "My Ai Coder" : "My Ai Gpt"}</span>
+            <span className="text-sm font-medium text-foreground/80 truncate max-w-[200px]">{isCoder ? "My Ai Coder" : "My Ai GPT Chat"}</span>
             <span className="text-xs text-muted-foreground/40">{messages.length} msgs</span>
             {isCoder && allCodeBlocks.length > 0 && (
               <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">{allCodeBlocks.length} code blocks</span>
@@ -1883,7 +1883,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
               <img src={logo} alt="My Ai" className="w-full h-full object-cover rounded-xl" />
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight mb-2" data-testid="text-welcome-title">
-              {isCoder ? "My Ai Coder" : "My Ai Gpt"}
+              {isCoder ? "My Ai Coder" : "My Ai GPT Chat"}
             </h1>
             <p className="text-muted-foreground max-w-lg mb-2" data-testid="text-welcome-subtitle">
               {isCoder ? "The world's most elite S-class programming assistant. I write, debug, optimize, test, and deploy code in 30+ languages." : "Your world-class intelligent assistant. Ask me anything."}
@@ -2111,7 +2111,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           <Link href="/" className="flex items-center gap-2" data-testid="link-home">
             <img src={logo} alt="My Ai Gpt" className={`w-7 h-7 rounded-full shadow-sm bg-white ${aiMode ? "ring-1 ring-violet-500/40 shadow-violet-500/20" : ""}`} />
             <div className="leading-none">
-              <span className={`font-bold text-sm block ${aiMode ? "text-violet-100" : "text-foreground"}`}>My Ai Gpt</span>
+              <span className={`font-bold text-sm block ${aiMode ? "text-violet-100" : "text-foreground"}`}>My Ai GPT Chat</span>
               <span className={`text-[9px] ${aiMode ? "text-violet-400/60" : "text-muted-foreground/60"}`}>{aiMode ? "⬡ AI Universe Active" : "Beta Release 1"}</span>
             </div>
           </Link>
@@ -2125,7 +2125,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           <Link href="/" data-testid="link-general-chat"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/" ? "bg-primary/10" : "bg-muted/50"}`}><MessageSquare size={14} className={location === "/" ? "text-primary" : ""} /></div>
-            <span className="flex-1">My Ai Gpt</span>
+            <span className="flex-1">My Ai GPT Chat</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
           {!appSettings.hiddenPages.includes("coder") && (
