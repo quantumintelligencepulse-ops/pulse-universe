@@ -15,6 +15,7 @@ import { startDomainKernelEngine } from "./domain-kernel-engine";
 import { startQuantumNewsEngine } from "./quantum-news-engine";
 import { startPyramidEngine } from "./pyramid-engine";
 import { startHospitalEngine } from "./hospital-engine";
+import { startChurchResearchEngine } from "./church-research-engine";
 import { startAIVotingEngine } from "./ai-voting-engine";
 import { startNothingLeftBehindGuardian, getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { startGeneEditorEngine, getGeneEditorStatus } from "./gene-editor-engine";
@@ -177,6 +178,7 @@ app.use((req, res, next) => {
       startQuantumNewsEngine().catch((e) => log(`NewsEngine start error: ${e}`));
       startPyramidEngine().catch((e) => log(`PyramidEngine start error: ${e}`));
       startHospitalEngine().catch((e) => log(`HospitalEngine start error: ${e}`));
+      startChurchResearchEngine().catch((e) => log(`ChurchResearchEngine start error: ${e}`));
       import("./hospital-doctors").then(({ seedDoctors, runDissectionCycle, backfillEquationStatuses }) => {
         seedDoctors().catch(() => {});
         backfillEquationStatuses().catch(() => {}); // promote PENDING equations that have enough votes

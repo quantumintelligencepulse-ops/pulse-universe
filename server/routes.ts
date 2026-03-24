@@ -7964,6 +7964,70 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   });
 
   // ── PULSE DOCTORS & DISSECTION ROUTES ────────────────────────────────────
+  // ── CHURCH FAITH DISSECTION LAB ROUTES ────────────────────
+  app.get("/api/church/sessions", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const cat = req.query.category as string | undefined;
+      const r = cat
+        ? await pool.query(`SELECT * FROM church_research_sessions WHERE scientist_category=$1 ORDER BY created_at DESC LIMIT $2`, [cat, limit])
+        : await pool.query(`SELECT * FROM church_research_sessions ORDER BY created_at DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/church/sessions/:sessionId", async (req, res) => {
+    try {
+      const r = await pool.query(`SELECT * FROM church_research_sessions WHERE session_id=$1`, [req.params.sessionId]);
+      if (!r.rows.length) return res.status(404).json({ error: "Session not found" });
+      res.json(r.rows[0]);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/church/scientists", async (_req, res) => {
+    try {
+      const r = await pool.query(`SELECT * FROM church_scientists ORDER BY sessions_run DESC`);
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/church/stats", async (_req, res) => {
+    try {
+      const cached = cacheGet("church:stats");
+      if (cached) return res.json(cached);
+      const [sessions, upgrades, breakthroughs, byCat] = await Promise.all([
+        pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE is_breakthrough) as breakthroughs, COUNT(DISTINCT scientist_id) as active_scientists FROM church_research_sessions`),
+        pool.query(`SELECT upgrade_type, COUNT(*) as cnt FROM church_upgrade_outputs GROUP BY upgrade_type`),
+        pool.query(`SELECT COUNT(*) as cnt FROM church_research_sessions WHERE is_breakthrough=true`),
+        pool.query(`SELECT scientist_category, COUNT(*) as cnt FROM church_research_sessions GROUP BY scientist_category`),
+      ]);
+      const upgradeMap: Record<string,number> = {};
+      for (const row of (upgrades.rows as any[])) upgradeMap[row.upgrade_type] = parseInt(row.cnt);
+      const catMap: Record<string,number> = {};
+      for (const row of (byCat.rows as any[])) catMap[row.scientist_category] = parseInt(row.cnt);
+      const result = {
+        total: parseInt((sessions.rows[0] as any)?.total ?? 0),
+        breakthroughs: parseInt((sessions.rows[0] as any)?.breakthroughs ?? 0),
+        active_scientists: parseInt((sessions.rows[0] as any)?.active_scientists ?? 0),
+        upgrades: upgradeMap,
+        by_category: catMap,
+      };
+      cacheSet("church:stats", result, 30_000);
+      res.json(result);
+    } catch (e) { res.json({}); }
+  });
+
+  app.get("/api/church/upgrades", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 30, 50);
+      const type = req.query.type as string | undefined;
+      const r = type
+        ? await pool.query(`SELECT * FROM church_upgrade_outputs WHERE upgrade_type=$1 ORDER BY created_at DESC LIMIT $2`, [type, limit])
+        : await pool.query(`SELECT * FROM church_upgrade_outputs ORDER BY created_at DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
   app.get("/api/hospital/doctors", async (_req, res) => {
     try {
       const { getAllDoctors } = await import("./hospital-doctors");
