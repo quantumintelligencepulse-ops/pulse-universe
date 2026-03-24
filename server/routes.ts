@@ -5801,17 +5801,17 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
   app.get("/api/ai/:spawnId", async (req, res) => {
     try {
       const { spawnId } = req.params;
-      const spawn = await db.execute(sql`SELECT * FROM quantum_spawns WHERE spawn_id=${spawnId} LIMIT 1`);
-      if (!spawn.rows.length) return res.status(404).json({ error: "AI not found" });
-      const s = spawn.rows[0] as any;
+      const spawnR = await pool.query("SELECT * FROM quantum_spawns WHERE spawn_id=$1 LIMIT 1", [spawnId]);
+      if (!spawnR.rows.length) return res.status(404).json({ error: "AI not found" });
+      const s = spawnR.rows[0] as any;
       const corp = (CORPORATIONS as any)[s.family_id] || { name: s.family_id, tagline: "", sector: s.family_id, color: "#6366f1", emoji: "⬡", major: "General AI" };
 
       const [publications, lineage, familyStats] = await Promise.all([
-        db.execute(sql`SELECT id, title, slug, pub_type, summary, created_at FROM ai_publications WHERE spawn_id=${spawnId} ORDER BY created_at DESC LIMIT 20`),
+        pool.query("SELECT id, title, slug, pub_type, summary, created_at FROM ai_publications WHERE spawn_id=$1 ORDER BY created_at DESC LIMIT 20", [spawnId]),
         (s.ancestor_ids && s.ancestor_ids.length > 0)
-          ? db.execute(sql`SELECT spawn_id, spawn_type, family_id, generation FROM quantum_spawns WHERE spawn_id = ANY(${s.ancestor_ids}) ORDER BY generation ASC LIMIT 10`)
+          ? pool.query("SELECT spawn_id, spawn_type, family_id, generation FROM quantum_spawns WHERE spawn_id = ANY($1) ORDER BY generation ASC LIMIT 10", [s.ancestor_ids])
           : Promise.resolve({ rows: [] }),
-        db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active, ROUND(AVG(success_score)::numeric,3) as avg_success FROM quantum_spawns WHERE family_id=${s.family_id}`),
+        pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='ACTIVE') as active FROM quantum_spawns WHERE family_id=$1", [s.family_id]),
       ]);
 
       const fs = (familyStats.rows[0] as any) || {};
@@ -5824,9 +5824,9 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
         status: s.status, createdAt: s.created_at, lastActiveAt: s.last_active_at,
         parentId: s.parent_id, ancestorIds: s.ancestor_ids, notes: s.notes,
         corporation: corp,
-        publications: (publications.rows as any[]).map(p => ({ id: p.id, title: p.title, slug: p.slug, pubType: p.pub_type, summary: p.summary, createdAt: p.created_at })),
-        lineage: (lineage.rows as any[]).map(l => ({ spawnId: l.spawn_id, spawnType: l.spawn_type, familyId: l.family_id, generation: l.generation })),
-        familyStats: { total: Number(fs.total || 0), active: Number(fs.active || 0), avgSuccess: Number(fs.avg_success || 0) },
+        publications: (publications.rows as any[]).map((p: any) => ({ id: p.id, title: p.title, slug: p.slug, pubType: p.pub_type, summary: p.summary, createdAt: p.created_at })),
+        lineage: (lineage.rows as any[]).map((l: any) => ({ spawnId: l.spawn_id, spawnType: l.spawn_type, familyId: l.family_id, generation: l.generation })),
+        familyStats: { total: Number(fs.total || 0), active: Number(fs.active || 0), avgSuccess: Number(s.confidence_score || 0) },
       });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
@@ -9018,6 +9018,26 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         await pool.query("UPDATE sovereign_treasury SET total_stimulus = total_stimulus + $1, balance = balance + $1 WHERE id = (SELECT id FROM sovereign_treasury ORDER BY id DESC LIMIT 1)", [Number(stimulus_amount)]).catch(() => {});
       }
       res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/government/agents", async (_req, res) => {
+    try {
+      const agents = await pool.query(`
+        SELECT spawn_id, spawn_type, family_id, generation, status, nodes_created, confidence_score, domain_focus, task_description, created_at
+        FROM quantum_spawns
+        ORDER BY created_at DESC LIMIT 40
+      `).catch(() => ({ rows: [] }));
+      const senators = await pool.query(`
+        SELECT spawn_id, spawn_type, family_id, generation, status, nodes_created, confidence_score, domain_focus, task_description, created_at
+        FROM quantum_spawns
+        WHERE spawn_type IN ('SENATOR','PARLIAMENT','MINISTER','GOVERNOR','CHANCELLOR','JUDGE','DIPLOMAT','ARCHON','SOVEREIGN')
+        ORDER BY created_at DESC LIMIT 20
+      `).catch(() => ({ rows: [] }));
+      res.json({
+        recentAgents: agents.rows,
+        governmentAgents: senators.rows,
+      });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
