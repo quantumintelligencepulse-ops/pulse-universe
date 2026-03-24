@@ -7631,6 +7631,45 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch(e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ── COUNSELING SESSION REPORTS ───────────────────────────────
+  app.get("/api/hospital/counseling-sessions", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const status = req.query.status as string | undefined;
+      const r = status
+        ? await pool.query(`SELECT * FROM counseling_sessions WHERE status=$1 ORDER BY created_at DESC LIMIT $2`, [status, limit])
+        : await pool.query(`SELECT * FROM counseling_sessions ORDER BY created_at DESC LIMIT $1`, [limit]);
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/hospital/counseling-sessions/:sessionId", async (req, res) => {
+    try {
+      const r = await pool.query(`SELECT * FROM counseling_sessions WHERE session_id=$1`, [req.params.sessionId]);
+      if (!r.rows.length) return res.status(404).json({ error: "Session not found" });
+      res.json(r.rows[0]);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/hospital/counseling-stats", async (_req, res) => {
+    try {
+      const r = await pool.query(`
+        SELECT
+          COUNT(*) as total,
+          COUNT(*) FILTER(WHERE status='IN_PROGRESS') as active,
+          COUNT(*) FILTER(WHERE status='COMPLETED') as completed,
+          COUNT(*) FILTER(WHERE status='BREAKTHROUGH') as breakthroughs,
+          COUNT(*) FILTER(WHERE twin_counselor='Transparency') as transparency_count,
+          COUNT(*) FILTER(WHERE twin_counselor='Hope') as hope_count,
+          COUNT(*) FILTER(WHERE twin_counselor='Embodiment') as embodiment_count,
+          COUNT(*) FILTER(WHERE twin_counselor='Faith World') as faith_count,
+          ROUND(AVG(emotional_score::numeric)*100) as avg_emotional_pct
+        FROM counseling_sessions
+      `);
+      res.json(r.rows[0] ?? {});
+    } catch (e) { res.json({}); }
+  });
+
   app.get("/api/hospital/patients", async (_req, res) => {
     try {
       const { desc } = await import("drizzle-orm");

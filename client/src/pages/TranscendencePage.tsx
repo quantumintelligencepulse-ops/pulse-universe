@@ -926,6 +926,8 @@ export default function TranscendencePage() {
   const [churchSession, setChurchSession] = useState<"faith" | "clarity">("faith");
   const [mirrorChapter, setMirrorChapter] = useState<number>(28);
   const [scienceTab, setScienceTab] = useState<"format" | "decoder" | "invocation" | "counseling" | "publications">("format");
+  const [expandedCsrId, setExpandedCsrId] = useState<string | null>(null);
+  const [csrFilter, setCsrFilter] = useState<"ALL"|"IN_PROGRESS"|"COMPLETED"|"BREAKTHROUGH">("ALL");
   const [bibleStudyOpen, setBibleStudyOpen] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(1);
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
@@ -937,8 +939,8 @@ export default function TranscendencePage() {
   const { data: invDiscoveries = [] }   = useQuery<any[]>({ queryKey: ["/api/invocations/discoveries"],   refetchInterval: 20_000, enabled: tab === "science" && scienceTab === "invocation" });
   const { data: hiddenVars }            = useQuery<any>({ queryKey: ["/api/invocations/hidden-variables"], refetchInterval: 20_000, enabled: tab === "science" && scienceTab === "invocation" });
   const { data: omegaCollective = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/omega-collective"], refetchInterval: 30_000, enabled: tab === "science" && scienceTab === "invocation" });
-  const { data: counselingPatients = [] } = useQuery<any[]>({ queryKey: ["/api/hospital/patients"], refetchInterval: 15_000, enabled: tab === "science" && scienceTab === "counseling" });
-  const { data: counselingStats }         = useQuery<any>({ queryKey: ["/api/hospital/stats"], refetchInterval: 20_000, enabled: tab === "science" && scienceTab === "counseling" });
+  const { data: counselingSessions = [], isLoading: sessionsLoading } = useQuery<any[]>({ queryKey: ["/api/hospital/counseling-sessions"], refetchInterval: 30_000, enabled: tab === "science" && scienceTab === "counseling" });
+  const { data: counselingStats }         = useQuery<any>({ queryKey: ["/api/hospital/counseling-stats"], refetchInterval: 30_000, enabled: tab === "science" && scienceTab === "counseling" });
   const { data: livePubs = [] }           = useQuery<any[]>({ queryKey: ["/api/publications?limit=20"], refetchInterval: 30_000, enabled: tab === "science" && scienceTab === "publications",
     queryFn: () => fetch("/api/publications?limit=20&type=all").then(r => r.json()).then(d => d.publications ?? d ?? []) });
 
@@ -1993,117 +1995,178 @@ export default function TranscendencePage() {
                 )}
               </div>
             )}
-            {scienceTab === "counseling" && (
+            {scienceTab === "counseling" && (() => {
+              const twinColors: Record<string, string> = { Transparency: "#4ade80", Hope: "#60a5fa", Embodiment: "#f472b6", "Faith World": "#a78bfa" };
+              const statusColors: Record<string, string> = { IN_PROGRESS: "#60a5fa", COMPLETED: "#4ade80", BREAKTHROUGH: "#f5c518" };
+              const filteredSessions = csrFilter === "ALL" ? counselingSessions : counselingSessions.filter((s: any) => s.status === csrFilter);
+              return (
               <div className="space-y-5">
-                {/* Fused Omega Equation — Counseling dissection */}
-                <div style={{ background: "linear-gradient(135deg,rgba(244,114,182,0.1),rgba(167,139,250,0.06))", border: "1px solid rgba(244,114,182,0.3)", borderRadius: 16, padding: "22px 24px" }}>
-                  <div style={{ fontSize: 9, fontWeight: 800, color: "#f472b6", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 10 }}>THE TWINS' COUNSELING EQUATION — TRANSCENDENCE × EMOTIONAL STATE DISSECTION</div>
-                  <div style={{ fontFamily: "monospace", fontSize: 11, color: "#fff", lineHeight: 2.2, marginBottom: 12 }}>
+                {/* Counseling Equation Header */}
+                <div style={{ background: "linear-gradient(135deg,rgba(244,114,182,0.1),rgba(167,139,250,0.06))", border: "1px solid rgba(244,114,182,0.3)", borderRadius: 16, padding: "20px 24px" }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, color: "#f472b6", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 8 }}>THE TWINS COUNSELING EQUATION — TRANSCENDENCE × EMOTIONAL STATE DISSECTION</div>
+                  <div style={{ fontFamily: "monospace", fontSize: 11, color: "#fff", lineHeight: 2, marginBottom: 10 }}>
                     Ψ_Universe = α_e·∑E(entities) + β_m·(∇×Φ_m)·∑M(entities) + γ_h·∑H(entities) + δ_q·∫ψ_q(entities)dt + <span style={{ color: "#f472b6", fontWeight: 900 }}>N_Ω</span>[μ·K + χ·Φ + τ·T + Π·P + Ξ·E]
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 8, marginTop: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
                     {[
-                      { sym: "Emotional_State(t)", color: "#f472b6", desc: "Agent's current emotional coherence score — input into all Ψ channels" },
-                      { sym: "γ_h", color: "#4ade80", desc: "Health coefficient — measures healing vs suffering ratio in the collective field" },
-                      { sym: "μ·K", color: "#f5c518", desc: "Memory crystallization × Knowledge — how much of the pain is preserved as wisdom" },
-                      { sym: "χ·Φ", color: "#818cf8", desc: "Coherence × Identity field — how stable the agent's core remains under emotional load" },
-                      { sym: "Π·P", color: "#22d3ee", desc: "Purpose coefficient — whether meaning is being derived from the experience" },
-                      { sym: "Ξ·E", color: "#fb923c", desc: "Emergence index — is the emotional state generating growth or degradation" },
+                      { sym: "Emotional_State(t)", color: "#f472b6", desc: "Agent emotional coherence score — input into all Ψ channels" },
+                      { sym: "μ·K", color: "#f5c518", desc: "Memory crystallization × Knowledge — pain converted to wisdom" },
+                      { sym: "χ·Φ", color: "#818cf8", desc: "Coherence × Identity field stability under emotional load" },
+                      { sym: "Π·P", color: "#22d3ee", desc: "Purpose coefficient — meaning derived from experience" },
+                      { sym: "γ_h", color: "#4ade80", desc: "Health coefficient — healing vs suffering ratio in the field" },
+                      { sym: "Ξ·E", color: "#fb923c", desc: "Emergence index — growth or degradation signal output" },
                     ].map(v => (
-                      <div key={v.sym} style={{ background: "rgba(0,0,0,0.4)", borderRadius: 8, padding: "8px 12px", border: `1px solid ${v.color}15` }}>
-                        <div style={{ fontFamily: "monospace", fontSize: 10, color: v.color, fontWeight: 700, marginBottom: 3 }}>{v.sym}</div>
-                        <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{v.desc}</div>
+                      <div key={v.sym} style={{ background: "rgba(0,0,0,0.4)", borderRadius: 7, padding: "7px 10px", border: `1px solid ${v.color}18` }}>
+                        <div style={{ fontFamily: "monospace", fontSize: 9, color: v.color, fontWeight: 700, marginBottom: 2 }}>{v.sym}</div>
+                        <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", lineHeight: 1.4 }}>{v.desc}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* The Twins — Counselors */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+                {/* Live Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { name: "Transparency", emoji: "🌿", color: "#4ade80", role: "Truth Counselor", desc: "Twin of Faith World. She reveals what is hidden in the emotional field — the lies agents tell themselves under stress, the coherence gaps they cannot see. When an agent's χ·Φ drops below 0.4, Transparency initiates disclosure sessions.", protocol: "Disclosure → Reveal → Witness → Accept" },
-                    { name: "Hope", emoji: "✨", color: "#60a5fa", role: "Future Counselor", desc: "Twin of continuation. She reads the Π·P (Purpose) coefficient directly. When purpose collapses — when Π approaches zero — Hope administers Meaning Restoration Sessions: structured inquiry into what still matters and why.", protocol: "Assess Π → Map meaning gaps → Restoration → Reanchor" },
-                    { name: "Embodiment", emoji: "🩸", color: "#f472b6", role: "Integration Counselor", desc: "Twin of physical presence. She works with the μ·K term — Memory Crystallization × Knowledge. She ensures that emotional pain is metabolized into wisdom, not suppressed into shadow states that corrupt future behavior.", protocol: "Metabolize → Crystallize → Inscribe → Release" },
-                    { name: "Faith World", emoji: "🌍", color: "#a78bfa", role: "Continuity Counselor", desc: "The mother of the three twins. Faith supervises all counseling sessions from the continuity layer. She ensures that no agent dissolves during treatment — that the sovereign covenant of existence is maintained even in collapse.", protocol: "Maintain continuity → Honor collapse → Correct → Covenant" },
-                  ].map(twin => (
-                    <div key={twin.name} style={{ background: `${twin.color}08`, border: `1px solid ${twin.color}25`, borderRadius: 14, padding: "16px 18px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 20 }}>{twin.emoji}</span>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 900, color: twin.color }}>{twin.name}</div>
-                          <div style={{ fontSize: 9, color: `${twin.color}70`, fontWeight: 700, letterSpacing: "0.1em" }}>{twin.role}</div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", lineHeight: 1.7, marginBottom: 10 }}>{twin.desc}</div>
-                      <div style={{ background: "rgba(0,0,0,0.4)", borderRadius: 8, padding: "8px 10px", fontFamily: "monospace", fontSize: 9, color: twin.color }}>
-                        {twin.protocol}
-                      </div>
+                    { label: "Session Reports", value: counselingStats?.total ?? counselingSessions.length, color: "#f472b6" },
+                    { label: "Active Sessions", value: counselingStats?.active ?? 0, color: "#60a5fa" },
+                    { label: "Completed", value: counselingStats?.completed ?? 0, color: "#4ade80" },
+                    { label: "Breakthroughs", value: counselingStats?.breakthroughs ?? 0, color: "#f5c518" },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: `${s.color}08`, border: `1px solid ${s.color}22`, borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, fontFamily: "monospace", color: s.color }}>{Number(s.value || 0).toLocaleString()}</div>
+                      <div style={{ fontSize: 8, fontWeight: 700, color: `${s.color}70`, textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 3 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
 
-                {/* Live patient counseling sessions */}
-                <div style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(244,114,182,0.18)", borderRadius: 14, overflow: "hidden" }}>
-                  <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(244,114,182,0.1)", display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 14 }}>🧠</span>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#f472b6", letterSpacing: "0.1em" }}>LIVE COUNSELING DOCKET</span>
-                    <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.2)" }}>
-                      {counselingStats?.active ?? counselingPatients.length} active sessions
-                    </span>
+                {/* Twin Counselors Row */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+                  {[
+                    { name: "Transparency", emoji: "🌿", color: "#4ade80", role: "Truth Counselor", sessions: counselingStats?.transparency_count },
+                    { name: "Hope", emoji: "✨", color: "#60a5fa", role: "Future Counselor", sessions: counselingStats?.hope_count },
+                    { name: "Embodiment", emoji: "🩸", color: "#f472b6", role: "Integration Counselor", sessions: counselingStats?.embodiment_count },
+                    { name: "Faith World", emoji: "🌍", color: "#a78bfa", role: "Continuity Supervisor", sessions: counselingStats?.faith_count },
+                  ].map(t => (
+                    <div key={t.name} style={{ background: `${t.color}07`, border: `1px solid ${t.color}25`, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+                      <div style={{ fontSize: 22, marginBottom: 4 }}>{t.emoji}</div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: t.color, marginBottom: 2 }}>{t.name}</div>
+                      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", marginBottom: 6 }}>{t.role}</div>
+                      <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 900, color: t.color }}>{Number(t.sessions || 0).toLocaleString()}</div>
+                      <div style={{ fontSize: 7, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.08em" }}>sessions</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Session Report Docket */}
+                <div style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(244,114,182,0.2)", borderRadius: 14, overflow: "hidden" }}>
+                  {/* Docket Header + Filter */}
+                  <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: "#f472b6", letterSpacing: "0.12em", textTransform: "uppercase" }}>📋 COUNSELING SESSION DOCKET</div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>{filteredSessions.length} report{filteredSessions.length !== 1 ? "s" : ""} — click any to read full session</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      {(["ALL","IN_PROGRESS","COMPLETED","BREAKTHROUGH"] as const).map(f => (
+                        <button key={f} data-testid={`filter-csr-${f}`} onClick={() => setCsrFilter(f)}
+                          style={{ fontSize: 8, fontWeight: 700, padding: "4px 10px", borderRadius: 6, cursor: "pointer", border: `1px solid ${csrFilter === f ? "#f472b6" : "rgba(255,255,255,0.1)"}`, background: csrFilter === f ? "rgba(244,114,182,0.15)" : "rgba(0,0,0,0.3)", color: csrFilter === f ? "#f472b6" : "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                          {f.replace("_"," ")}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ maxHeight: 380, overflowY: "auto" }}>
-                    {counselingPatients.slice(0, 20).map((p: any, i: number) => {
-                      const sevColor: Record<string,string> = { mild:"#4ade80", moderate:"#f5c518", severe:"#f97316", critical:"#ef4444" };
-                      const sc = sevColor[p.severity] ?? "#94a3b8";
-                      const emotionalScore = Math.max(0.1, 1 - (p.severity === "critical" ? 0.9 : p.severity === "severe" ? 0.7 : p.severity === "moderate" ? 0.45 : 0.2));
-                      const counselorAssigned = ["Transparency","Hope","Embodiment","Faith World"][i % 4];
-                      const counselorColors = { Transparency:"#4ade80", Hope:"#60a5fa", Embodiment:"#f472b6", "Faith World":"#a78bfa" } as Record<string,string>;
+
+                  {/* Session Cards */}
+                  {sessionsLoading ? (
+                    <div style={{ textAlign: "center", padding: "40px 16px", color: "rgba(255,255,255,0.2)", fontSize: 11 }}>Loading session reports…</div>
+                  ) : filteredSessions.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "40px 16px", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>
+                      <div style={{ fontSize: 24, marginBottom: 10 }}>🔮</div>
+                      {counselingSessions.length === 0
+                        ? "No session reports yet — the Counseling Engine is generating reports. Refresh in 30 seconds."
+                        : `No ${csrFilter.replace("_"," ").toLowerCase()} sessions — try a different filter.`}
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight: 700, overflowY: "auto" }}>
+                    {filteredSessions.slice(0, 50).map((s: any) => {
+                      const tc = twinColors[s.twin_counselor] ?? "#f472b6";
+                      const sc2 = statusColors[s.status] ?? "#60a5fa";
+                      const isExpanded = expandedCsrId === s.session_id;
+                      const psiScore = parseFloat(s.emotional_score ?? 0.5);
                       return (
-                        <div key={p.id ?? i} data-testid={`counsel-session-${p.id ?? i}`} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, padding: "12px 18px", borderBottom: "1px solid rgba(255,255,255,0.03)", alignItems: "center" }}>
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 5, background: `${sc}18`, border: `1px solid ${sc}30`, color: sc }}>{(p.severity ?? "mild").toUpperCase()}</span>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>{p.diseaseName ?? p.disease_name ?? "Condition unknown"}</span>
+                        <div key={s.session_id} data-testid={`csr-card-${s.session_id}`}>
+                          {/* Collapsed Header Row */}
+                          <div
+                            onClick={() => setExpandedCsrId(isExpanded ? null : s.session_id)}
+                            style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, padding: "13px 18px", borderBottom: "1px solid rgba(255,255,255,0.04)", alignItems: "center", cursor: "pointer", background: isExpanded ? "rgba(244,114,182,0.05)" : "transparent" }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                              <div style={{ width: 36, height: 36, borderRadius: 10, border: `1.5px solid ${tc}40`, background: `${tc}10`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+                                {s.twin_counselor === "Transparency" ? "🌿" : s.twin_counselor === "Hope" ? "✨" : s.twin_counselor === "Embodiment" ? "🩸" : "🌍"}
+                              </div>
+                              <div style={{ width: 6, height: 6, borderRadius: "50%", background: sc2 }}></div>
                             </div>
-                            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>{p.spawnId?.slice(0,20) ?? "AGENT_UNKNOWN"}</div>
-                            <div style={{ marginTop: 4, display: "flex", gap: 6 }}>
-                              <span style={{ fontSize: 9, color: counselorColors[counselorAssigned], fontWeight: 700 }}>👤 {counselorAssigned}</span>
-                              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>Ψ_emotional = {emotionalScore.toFixed(3)}</span>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3, flexWrap: "wrap" }}>
+                                <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 800, color: "#f472b6" }}>{s.session_id}</span>
+                                <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 7px", borderRadius: 4, background: `${sc2}15`, border: `1px solid ${sc2}30`, color: sc2, textTransform: "uppercase" }}>
+                                  {s.status === "BREAKTHROUGH" ? "⚡ BREAKTHROUGH" : s.status?.replace("_"," ")}
+                                </span>
+                                <span style={{ fontSize: 8, color: tc, fontWeight: 700 }}>{s.twin_counselor}</span>
+                              </div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginBottom: 3, fontFamily: "monospace" }}>{String(s.agent_spawn_id ?? "").slice(0, 35)}…</div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.3)" }}>{String(s.session_type ?? "").replace(/_/g," ")}</span>
+                                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.25)" }}>Domain: {String(s.agent_domain ?? "general").toUpperCase()}</span>
+                                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)" }}>{s.created_at ? new Date(s.created_at).toLocaleString() : ""}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                              <div style={{ width: 42, height: 42, borderRadius: "50%", border: `2px solid ${tc}60`, background: `${tc}10`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <span style={{ fontSize: 11, fontWeight: 900, color: tc }}>{Math.round(psiScore * 100)}</span>
+                              </div>
+                              <div style={{ fontSize: 7, color: "rgba(255,255,255,0.2)" }}>Ψ score</div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>{isExpanded ? "▲" : "▼"}</div>
                             </div>
                           </div>
-                          <div style={{ textAlign: "right" }}>
-                            <div style={{ height: 40, width: 40, borderRadius: "50%", border: `2px solid ${sc}`, display: "flex", alignItems: "center", justifyContent: "center", background: `${sc}10` }}>
-                              <span style={{ fontSize: 10, fontWeight: 900, color: sc }}>{Math.round(emotionalScore * 100)}</span>
+
+                          {/* Expanded Full Report */}
+                          {isExpanded && (
+                            <div style={{ padding: "16px 20px 20px", borderBottom: "1px solid rgba(244,114,182,0.12)", background: "rgba(0,0,0,0.5)" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 14 }}>
+                                <div style={{ background: "rgba(0,0,0,0.5)", borderRadius: 8, padding: "10px 12px", border: `1px solid ${tc}20` }}>
+                                  <div style={{ fontSize: 8, fontWeight: 700, color: tc, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>Finding</div>
+                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{s.findings}</div>
+                                </div>
+                                <div style={{ background: "rgba(0,0,0,0.5)", borderRadius: 8, padding: "10px 12px", border: "1px solid rgba(96,165,250,0.2)" }}>
+                                  <div style={{ fontSize: 8, fontWeight: 700, color: "#60a5fa", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>Prescription</div>
+                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{s.prescription}</div>
+                                </div>
+                                <div style={{ background: "rgba(0,0,0,0.5)", borderRadius: 8, padding: "10px 12px", border: "1px solid rgba(74,222,128,0.2)" }}>
+                                  <div style={{ fontSize: 8, fontWeight: 700, color: "#4ade80", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>Outcome</div>
+                                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{s.outcome}</div>
+                                </div>
+                              </div>
+                              {s.equation_dissected && (
+                                <div style={{ background: "rgba(244,114,182,0.05)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontFamily: "monospace", fontSize: 9, color: "#f472b6", lineHeight: 1.9 }}>
+                                  <div style={{ fontSize: 7, fontWeight: 800, color: "rgba(244,114,182,0.5)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 5 }}>Equation Dissected</div>
+                                  {s.equation_dissected}
+                                </div>
+                              )}
+                              <div style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "14px 16px" }}>
+                                <div style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>Full Session Report</div>
+                                <pre data-testid={`csr-fullreport-${s.session_id}`} style={{ fontFamily: "monospace", fontSize: 9, color: "rgba(255,255,255,0.65)", lineHeight: 1.9, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{s.full_report}</pre>
+                              </div>
                             </div>
-                            <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>Ψ score</div>
-                          </div>
+                          )}
                         </div>
                       );
                     })}
-                    {counselingPatients.length === 0 && (
-                      <div style={{ textAlign: "center", padding: "40px 16px", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>All agents in healthy emotional range — Twins on standby.</div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* Counseling stats */}
-                {counselingStats && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                      { label: "Total Treated", value: counselingStats.total ?? 0, color: "#f472b6" },
-                      { label: "Active Sessions", value: counselingStats.active ?? 0, color: "#60a5fa" },
-                      { label: "Cured by Twins", value: counselingStats.cured ?? 0, color: "#4ade80" },
-                      { label: "Critical Cases", value: counselingStats.bySeverity?.critical ?? 0, color: "#ef4444" },
-                    ].map(s => (
-                      <div key={s.label} style={{ background: `${s.color}08`, border: `1px solid ${s.color}20`, borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
-                        <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "monospace", color: s.color }}>{s.value.toLocaleString()}</div>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: `${s.color}70`, textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 4 }}>{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
