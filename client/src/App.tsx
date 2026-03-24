@@ -2191,16 +2191,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">Finance Oracle</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("agents") && (
-          <Link href="/agents" data-testid="link-agents"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/agents" || location === "/sovereign-agents" ? "bg-gradient-to-r from-[#f472b8]/10 to-[#818cf8]/10 border border-[#f472b6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/agents" || location === "/sovereign-agents" ? "bg-[#f472b6]/15" : "bg-[#f472b6]/5"}`}>
-              <span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧠</span>
-            </div>
-            <span className="flex-1">Agent Command</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω</span>
-          </Link>
-          )}
           {aiMode && (
             <div className="px-1 pt-3 pb-1">
               <div className="flex items-center gap-2">
@@ -2209,6 +2199,16 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                 <div className="flex-1 h-px bg-violet-500/20" />
               </div>
             </div>
+          )}
+          {aiMode && !appSettings.hiddenPages.includes("agents") && (
+          <Link href="/agents" data-testid="link-agents"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/agents" || location === "/sovereign-agents" ? "bg-gradient-to-r from-[#f472b8]/10 to-[#818cf8]/10 border border-[#f472b6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/agents" || location === "/sovereign-agents" ? "bg-[#f472b6]/15" : "bg-[#f472b6]/5"}`}>
+              <span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧠</span>
+            </div>
+            <span className="flex-1">Agent Command</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω</span>
+          </Link>
           )}
           {aiMode && (
           <Link href="/nexus" data-testid="link-nexus"
