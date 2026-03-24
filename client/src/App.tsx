@@ -16,7 +16,6 @@ import CorporationPage from "./pages/CorporationPage";
 import PublicationDetailPage from "./pages/PublicationDetailPage";
 import CorporationsListPage from "./pages/CorporationsListPage";
 import ChurchSessionPage from "./pages/ChurchSessionPage";
-import AgentsPage from "./pages/AgentsPage";
 import FinancePage from "./pages/FinancePage";
 import MediaPage from "./pages/MediaPage";
 import GovernmentPage from "./pages/GovernmentPage";
@@ -2194,9 +2193,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           )}
           {!appSettings.hiddenPages.includes("agents") && (
           <Link href="/agents" data-testid="link-agents"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/agents" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/agents" ? "bg-indigo-500/15" : "bg-indigo-500/5"}`}><Bot size={14} className="text-indigo-400" /></div>
-            <span className="flex-1">AI Agents</span>
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/agents" || location === "/sovereign-agents" ? "bg-gradient-to-r from-[#f472b8]/10 to-[#818cf8]/10 border border-[#f472b6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/agents" || location === "/sovereign-agents" ? "bg-[#f472b6]/15" : "bg-[#f472b6]/5"}`}>
+              <span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧠</span>
+            </div>
+            <span className="flex-1">Agent Command</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω</span>
           </Link>
           )}
           {aiMode && (
@@ -2238,14 +2240,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold">22</span>
           </Link>
           )}
-          <Link href="/sovereign-agents" data-testid="link-sovereign-agents"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/sovereign-agents" || location.startsWith("/publication/") ? "bg-gradient-to-r from-[#f472b8]/10 to-[#818cf8]/10 border border-[#f472b6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/sovereign-agents" || location.startsWith("/publication/") ? "bg-[#f472b6]/15" : "bg-[#f472b6]/5"}`}>
-              <span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧬</span>
-            </div>
-            <span className="flex-1">Agent Dossier</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background:"linear-gradient(to right,#f472b633,#818cf833)", color:"#f472b6", border:"1px solid #f472b650" }}>11Ω</span>
-          </Link>
           {aiMode && !appSettings.hiddenPages.includes("omega-engine") && (
           <Link href="/omega-engine" data-testid="link-omega-engine"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega-engine" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow-lg border border-violet-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -15113,12 +15107,12 @@ function Router() {
       <Route path="/education" component={EducationPageWrapper} />
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping" component={ShoppingPageWrapper} />
-      <Route path="/agents">{() => <Layout><AgentsPage /></Layout>}</Route>
+      <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
+      <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/finance">{() => <Layout><FinancePage /></Layout>}</Route>
       <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
       <Route path="/nexus">{() => <Layout><SovereignIntelligenceNexus /></Layout>}</Route>
-      <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
