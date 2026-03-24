@@ -1080,6 +1080,24 @@ function MetricsBtn({ code, language }: { code: string; language: string }) {
   );
 }
 
+// ─── FORGE STORE — live code bridge between AI Chat and Forge Editor ─────────
+const _FORGE: { code: string; lang: string; v: number; listeners: Set<() => void> } = {
+  code: "", lang: "javascript", v: 0, listeners: new Set()
+};
+function useForgeStore() {
+  const [, setV] = useState(_FORGE.v);
+  useEffect(() => {
+    const cb = () => setV(n => n + 1);
+    _FORGE.listeners.add(cb);
+    return () => { _FORGE.listeners.delete(cb); };
+  }, []);
+  const inject = useCallback((code: string, lang: string) => {
+    _FORGE.code = code; _FORGE.lang = lang; _FORGE.v++;
+    _FORGE.listeners.forEach(cb => cb());
+  }, []);
+  return { code: _FORGE.code, lang: _FORGE.lang, v: _FORGE.v, inject };
+}
+
 // ─── ENHANCED CODE BLOCK (#7-#15 combined) ───────────────────────────────────
 
 function OpenInPlaygroundBtn({ code, language }: { code: string; language: string }) {
@@ -1088,9 +1106,11 @@ function OpenInPlaygroundBtn({ code, language }: { code: string; language: strin
     <button onClick={() => {
       sessionStorage.setItem("playground_code", code);
       sessionStorage.setItem("playground_lang", language);
-      setLocation("/code");
-    }} data-testid="button-open-playground" className="p-1 rounded hover:bg-white/10 transition-colors" title="Open in Playground">
-      <SquareTerminal size={14} className="text-blue-400" />
+      _FORGE.code = code; _FORGE.lang = language; _FORGE.v++;
+      _FORGE.listeners.forEach(cb => cb());
+      setLocation("/coder");
+    }} data-testid="button-open-playground" className="p-1 rounded hover:bg-white/10 transition-colors" title="Send to Forge Editor">
+      <SquareTerminal size={14} className="text-emerald-400" />
     </button>
   );
 }
@@ -1774,6 +1794,15 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
     }
   }, [chatId, messages, qc, toast]);
 
+  useEffect(() => {
+    const listener = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.msg) handleSend(detail.msg);
+    };
+    window.addEventListener("forge:ask", listener);
+    return () => window.removeEventListener("forge:ask", listener);
+  }, [handleSend]);
+
   const handleExport = useCallback(async () => {
     if (!chatId) return;
     try {
@@ -2100,19 +2129,15 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
           {!appSettings.hiddenPages.includes("coder") && (
-          <Link href="/coder" data-testid="link-coder-chat"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/coder" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-blue-500/15" : "bg-blue-500/5"}`}><Code2 size={14} className="text-blue-600" /></div>
-            <span className="flex-1">My Ai Coder</span>
-            <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
-          </Link>
-          )}
-          {!appSettings.hiddenPages.includes("playground") && (
-          <Link href="/playground" data-testid="link-playground"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/playground" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/playground" ? "bg-emerald-500/15" : "bg-emerald-500/5"}`}><SquareTerminal size={14} className="text-emerald-600" /></div>
-            <span className="flex-1">Playground</span>
-            <span className="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold opacity-80">IDE</span>
+          <Link href="/coder" data-testid="link-forge-ide"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/coder" || location === "/playground" ? "bg-gradient-to-r from-blue-950 to-emerald-950 text-white shadow-lg font-semibold border border-blue-500/30" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/coder" || location === "/playground" ? "bg-white/15" : "bg-blue-500/8"}`}>
+              <span className="text-[14px]">⚡</span>
+            </div>
+            <span className="flex-1">Quantum Forge IDE</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black">FREE</span>
+            </div>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("feed") && (
@@ -2121,14 +2146,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
             <span className="flex-1">News Hub</span>
             <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">LIVE<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
-          </Link>
-          )}
-          {!appSettings.hiddenPages.includes("social") && (
-          <Link href="/social" data-testid="link-social"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/social" || location.startsWith("/social") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/social" || location.startsWith("/social") ? "bg-purple-500/15" : "bg-purple-500/5"}`}><Users size={14} className="text-purple-600" /></div>
-            <span className="flex-1">Social</span>
-            <span className="text-[9px] bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("games") && (
@@ -2228,6 +2245,16 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Pulse Universe</span>
             <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black" style={{ animation: "pulse 2s ease-in-out infinite" }}>LIVE</span>
+          </Link>
+          )}
+          {aiMode && !appSettings.hiddenPages.includes("social") && (
+          <Link href="/social" data-testid="link-social-l2"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/social" || location.startsWith("/social") ? "bg-gradient-to-r from-purple-950 to-fuchsia-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/social" || location.startsWith("/social") ? "bg-white/15" : "bg-purple-600/8"}`}>
+              <span className="text-[14px]">Ψ∞</span>
+            </div>
+            <span className="flex-1">Quantum Social</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "linear-gradient(135deg,#a855f722,#e879f922)", color: "#c084fc", border: "1px solid #a855f740" }}>AI-ONLY</span>
           </Link>
           )}
           {aiMode && (
@@ -2530,6 +2557,16 @@ const PG_LANGUAGES = [
   { id: "php", name: "PHP", icon: Code2, color: "text-indigo-400", canRun: true },
   { id: "sql", name: "SQL", icon: Database, color: "text-cyan-400", canRun: false },
   { id: "json", name: "JSON", icon: Brackets, color: "text-yellow-300", canRun: false },
+  { id: "kotlin", name: "Kotlin", icon: Zap, color: "text-purple-400", canRun: true },
+  { id: "swift", name: "Swift", icon: Zap, color: "text-orange-400", canRun: true },
+  { id: "r", name: "R", icon: Cpu, color: "text-blue-400", canRun: true },
+  { id: "lua", name: "Lua", icon: Code2, color: "text-sky-400", canRun: true },
+  { id: "dart", name: "Dart", icon: Zap, color: "text-cyan-500", canRun: true },
+  { id: "scala", name: "Scala", icon: Package, color: "text-red-400", canRun: true },
+  { id: "haskell", name: "Haskell", icon: Cpu, color: "text-violet-400", canRun: true },
+  { id: "elixir", name: "Elixir", icon: Sparkles, color: "text-purple-500", canRun: true },
+  { id: "julia", name: "Julia", icon: Sparkles, color: "text-emerald-400", canRun: true },
+  { id: "shell", name: "Shell", icon: Terminal, color: "text-green-400", canRun: true },
 ];
 
 const STARTER_CODE: Record<string, string> = {
@@ -2592,6 +2629,19 @@ function CodePlayground() {
   const defaultLang = pgAppSettings.defaultPlaygroundLang || "javascript";
   const [lang, setLang] = useState(defaultLang);
   const [code, setCode] = useState(STARTER_CODE[defaultLang as keyof typeof STARTER_CODE] || STARTER_CODE.javascript);
+  const { v: forgeV, code: forgeCode, lang: forgeLang } = useForgeStore();
+  const lastForgeV = useRef(-1);
+  useEffect(() => {
+    if (forgeV > 0 && forgeV !== lastForgeV.current && forgeCode) {
+      lastForgeV.current = forgeV;
+      setCode(forgeCode);
+      const validLang = PG_LANGUAGES.find(l => l.id === forgeLang);
+      if (validLang) setLang(forgeLang);
+      setOutput(["✓ Code injected from AI Chat. Press ▶ Run to execute."]);
+      setShowPreview(false);
+      setReviewResult(null);
+    }
+  }, [forgeV, forgeCode, forgeLang]);
   const [output, setOutput] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -3332,6 +3382,15 @@ ${brokenCode.substring(0, 2000)}
         <button onClick={activeProject ? saveFileToProject : handleSave} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Save"><Download size={13} /></button>
         <button onClick={() => setShowSharePlayground(true)} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Share" data-testid="button-share-playground"><Share2 size={13} /></button>
         <button onClick={() => { setCode(""); setOutput([]); }} className="p-1 rounded-lg hover:bg-muted/50 text-muted-foreground shrink-0" title="Clear"><Eraser size={13} /></button>
+
+        <div className="h-4 w-px bg-border/20 shrink-0" />
+        <button onClick={() => {
+          const msg = `Here is my ${lang} code — please review it, suggest improvements, and fix any bugs:\n\`\`\`${lang}\n${code.substring(0, 3000)}\n\`\`\``;
+          sessionStorage.setItem("forge_ask_code", msg);
+          window.dispatchEvent(new CustomEvent("forge:ask", { detail: { msg } }));
+        }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all shrink-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 hover:from-blue-500/20 hover:to-indigo-500/20 border border-blue-300/30" title="Ask AI to review this code" data-testid="button-ask-ai">
+          <MessageSquare size={10} />Ask AI
+        </button>
       </div>
       <ShareModal isOpen={showSharePlayground} onClose={() => setShowSharePlayground(false)} title="Share Playground" shareUrl={`${window.location.origin}/code`} shareText="Built in My Ai Coder Playground!" shareType="playground" />
 
@@ -5704,6 +5763,7 @@ function SocialPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-yellow-400 font-black text-lg tracking-tight font-mono">Ψ∞ QUANTUM SOCIAL</span>
+            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full font-mono" style={{ background: "linear-gradient(135deg,#a855f720,#7c3aed20)", color: "#c084fc", border: "1px solid #a855f740" }}>LAYER 2 · AI-ONLY</span>
             <span className="text-[9px] text-slate-700 font-mono uppercase tracking-widest hidden sm:inline">pulse-lang-only | english=NULL</span>
           </div>
           <div className="flex items-center gap-3 text-[11px] font-mono">
@@ -5882,13 +5942,97 @@ function HomePage() {
   useEffect(() => { updateSEO({ title: "My Ai Gpt - AI Chat Assistant That Learns You | by Quantum Logic Network", description: "Chat with My Ai Gpt, your AI best friend that learns your interests. Ask anything, get personalized answers. Free AI chat powered by Quantum Pulse Intelligence. By Quantum Logic Network.", ogTitle: "My Ai Gpt - AI Chat Assistant | Quantum Logic Network", ogDesc: "Your AI best friend that learns you. Chat about anything. Free, personalized, intelligent.", ogType: "website", canonical: window.location.origin + "/", keywords: "AI chat, AI assistant, chatbot, Quantum Logic Network, My Ai Gpt, free AI, personalized AI, Quantum Pulse Intelligence, GPT chat, AI companion, smart assistant", author: "Quantum Logic Network", articleSection: "Artificial Intelligence", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Gpt - AI Chat", "description": "AI Chat Assistant that learns your interests", "url": window.location.origin + "/", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "author": { "@type": "Person", "name": "Quantum Logic Network" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }] } } }); }, []);
   return <Layout><ChatInterface defaultType="general" /></Layout>;
 }
+// ─── QUANTUM FORGE IDE ─ Fused AI Coder + Playground · Surpasses Replit ──────
+function QuantumForgeIDE() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [splitPos, setSplitPos] = useState(38);
+  const [isDragging, setIsDragging] = useState(false);
+  const [forgeView, setForgeView] = useState<"split"|"chat"|"editor">("split");
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    const onMove = (ev: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newPos = Math.max(22, Math.min(72, ((ev.clientX - rect.left) / rect.width) * 100));
+      setSplitPos(newPos);
+    };
+    const onUp = () => {
+      setIsDragging(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [splitPos]);
+
+  return (
+    <div data-testid="quantum-forge-ide" className="flex flex-col h-full overflow-hidden">
+      {/* ── Top forge bar ── */}
+      <div className="flex items-center gap-2 px-3 py-1 border-b border-blue-500/20 bg-gradient-to-r from-blue-950/40 via-slate-900/60 to-emerald-950/40 shrink-0">
+        <span className="text-[11px] font-black tracking-wider bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">⚡ QUANTUM FORGE IDE</span>
+        <span className="text-[8px] text-slate-500 font-mono hidden sm:inline">AI × 26 languages × run × terminal × packages · surpasses replit · 100% free</span>
+        <div className="flex-1" />
+        <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5">
+          <button onClick={() => setForgeView("chat")} className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${forgeView === "chat" ? "bg-blue-500 text-white" : "text-slate-400 hover:text-white"}`} title="AI Chat only">🤖 Chat</button>
+          <button onClick={() => setForgeView("split")} className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${forgeView === "split" ? "bg-gradient-to-r from-blue-500 to-emerald-500 text-white" : "text-slate-400 hover:text-white"}`} title="Split view">⚡ Split</button>
+          <button onClick={() => setForgeView("editor")} className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${forgeView === "editor" ? "bg-emerald-500 text-white" : "text-slate-400 hover:text-white"}`} title="Editor only">💻 Editor</button>
+        </div>
+        <div className="text-[8px] text-blue-500/40 font-mono hidden md:block">← drag divider to resize →</div>
+      </div>
+
+      {/* ── Main split pane ── */}
+      <div ref={containerRef} className="flex flex-1 overflow-hidden min-h-0" style={{ cursor: isDragging ? "col-resize" : "default" }}>
+        {/* Left: AI Chat */}
+        {forgeView !== "editor" && (
+          <div style={{ width: forgeView === "chat" ? "100%" : `${splitPos}%` }} className="flex flex-col min-w-0 overflow-hidden border-r border-blue-500/20">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-950/30 border-b border-blue-500/15 shrink-0">
+              <span className="text-[9px] font-black text-blue-400 tracking-wider">🤖 AI CODING ASSISTANT</span>
+              <span className="text-[8px] text-blue-600/50 font-mono hidden lg:inline">∞ context · auto-inject code → editor · forge:ask wired</span>
+            </div>
+            <div className="flex-1 overflow-hidden min-h-0">
+              <ChatInterface defaultType="coder" />
+            </div>
+          </div>
+        )}
+
+        {/* Drag divider */}
+        {forgeView === "split" && (
+          <div
+            onMouseDown={handleDragStart}
+            className="w-1.5 bg-blue-500/10 hover:bg-blue-400/40 cursor-col-resize flex-shrink-0 transition-colors relative group flex items-center justify-center"
+            title="Drag to resize"
+          >
+            <div className="w-0.5 h-10 rounded-full bg-blue-500/30 group-hover:bg-blue-400/80 group-hover:h-16 transition-all" />
+          </div>
+        )}
+
+        {/* Right: Code Editor (Playground) */}
+        {forgeView !== "chat" && (
+          <div style={{ width: forgeView === "editor" ? "100%" : `${100 - splitPos}%` }} className="flex flex-col min-w-0 overflow-hidden">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-950/30 border-b border-emerald-500/15 shrink-0">
+              <span className="text-[9px] font-black text-emerald-400 tracking-wider">💻 QUANTUM FORGE EDITOR</span>
+              <span className="text-[8px] text-emerald-600/50 font-mono hidden lg:inline">26 langs · run · terminal · packages · AI-fix · performance profiler</span>
+            </div>
+            <div className="flex-1 overflow-hidden min-h-0">
+              <CodePlayground />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CoderPage() {
-  useEffect(() => { updateSEO({ title: "My Ai Coder - AI Programming Assistant | Write Code with AI | My Ai Gpt", description: "Write code with AI assistance. My Ai Coder helps you debug, refactor, and build in any programming language. Python, JavaScript, TypeScript, Java, C++, Go, Rust and more. By Quantum Logic Network.", ogTitle: "My Ai Coder - AI Programming Assistant", ogDesc: "AI-powered coding assistant for any language. Debug, refactor, build faster.", ogType: "website", canonical: window.location.origin + "/coder", keywords: "AI coding assistant, code helper, programming AI, debug code, refactor code, Quantum Logic Network, Python AI, JavaScript AI, code generation, AI programmer", author: "Quantum Logic Network", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "My Ai Coder", "description": "AI-powered programming assistant", "url": window.location.origin + "/coder", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "AI Coder", "item": window.location.origin + "/coder" }] } } }); }, []);
-  return <Layout><ChatInterface defaultType="coder" /></Layout>;
+  useEffect(() => { updateSEO({ title: "Quantum Forge IDE - AI Coder + Playground | Surpasses Replit | My Ai Gpt", description: "The most powerful free online IDE. AI coding assistant + 26-language playground in one split-pane workspace. Write longer, run faster, debug smarter. Surpasses Replit. By Quantum Logic Network.", ogTitle: "Quantum Forge IDE - Free AI Coding + Playground", ogDesc: "AI Coder fused with 26-language Playground. Free, unlimited, surpasses any IDE.", ogType: "website", canonical: window.location.origin + "/coder", keywords: "AI IDE, quantum forge, free online IDE, AI coding, code playground, surpasses replit, 26 languages, code execution, AI coder, programming", author: "Quantum Logic Network" }); }, []);
+  return <Layout><QuantumForgeIDE /></Layout>;
 }
 function PlaygroundPage() {
-  useEffect(() => { updateSEO({ title: "Code Playground - Write & Run Code in 30+ Languages Online Free | My Ai Gpt", description: "Free online code playground IDE by Quantum Logic Network. Write, run, and share code in JavaScript, Python, TypeScript, HTML/CSS, Java, C++, Go, Rust, Ruby, PHP, Swift, Kotlin and 20+ more languages with real-time preview and AI assistance.", ogTitle: "Code Playground - 30+ Languages Free Online IDE", ogDesc: "Free online IDE with 30+ languages. Write JavaScript, Python, TypeScript, HTML, and more with real-time preview.", ogType: "website", canonical: window.location.origin + "/code", keywords: "online code editor, free IDE, code playground, JavaScript editor, Python editor, online compiler, run code online, free coding, code runner, Quantum Logic Network, programming playground, HTML CSS editor, TypeScript playground", author: "Quantum Logic Network", articleSection: "Programming", jsonLd: { "@context": "https://schema.org", "@type": "WebPage", "name": "Code Playground", "description": "Write and run code in 30+ languages", "url": window.location.origin + "/code", "isPartOf": { "@type": "WebApplication", "name": "My Ai Gpt" }, "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" }, { "@type": "ListItem", "position": 2, "name": "Code Playground", "item": window.location.origin + "/code" }] } } }); }, []);
-  return <Layout><CodePlayground /></Layout>;
+  const [, setLocation] = useLocation();
+  useEffect(() => { setLocation("/coder"); }, [setLocation]);
+  return null;
 }
 function FeedPage() {
   useEffect(() => { updateSEO({ title: "My Ai Gpt News Hub - World Class AI News | Quantum Logic Network", description: "Read AI-written world news across every category — Technology, Finance, Science, Sports, Health, Energy, Government, Culture and more. Powered by the Omega News System by Quantum Logic Network.", ogTitle: "My Ai Gpt News Hub - Live AI News", ogDesc: "World-class AI-written news across every topic. Updated constantly. Powered by Quantum Logic Network.", ogType: "website", canonical: window.location.origin + "/feed", keywords: "AI news, world news, technology news, science news, finance news, AI written news, My Ai Gpt news, Quantum Logic Network, breaking news, industry news" }); }, []);
