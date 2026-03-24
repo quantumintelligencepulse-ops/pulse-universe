@@ -136,7 +136,7 @@ export default function CareersPage() {
     const item = selectedFull || selected;
     const color = fieldColor(item.field);
     const emoji = fieldEmoji(item.field);
-    const full: any = item.fullEntry || {};
+    const full: any = (() => { try { return typeof item.fullEntry === "string" ? JSON.parse(item.fullEntry) : (item.fullEntry || {}); } catch { return {}; } })();
     return (
       <div className="flex-1 overflow-auto" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
         <div className="max-w-3xl mx-auto px-4 pt-6 pb-10">
@@ -198,6 +198,30 @@ export default function CareersPage() {
                 <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
                   <div className="text-white/40 text-xs mb-1 font-bold uppercase tracking-wide">Education</div>
                   <div className="text-white/70 text-sm">{full.education}</div>
+                </div>
+              )}
+
+              {/* Apply button */}
+              {full.applyUrl && (
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-5">
+                  <div className="text-emerald-400 font-black text-sm mb-1">🚀 Ready to Apply?</div>
+                  <p className="text-white/40 text-xs mb-4">{full.whyApply || "This role is actively sourced — apply now before it closes."}</p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <a href={full.applyUrl} target="_blank" rel="noopener noreferrer"
+                      data-testid="career-apply-link"
+                      className="flex-1 text-center py-3 px-6 rounded-xl font-black text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition-all">
+                      {full.applyLabel || "Apply Now"} →
+                    </a>
+                    {full.source && (
+                      <div className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-white/10 text-white/40 text-xs">
+                        <span>via</span>
+                        <span className="font-bold text-white/60">{full.source}</span>
+                      </div>
+                    )}
+                  </div>
+                  {full.location && (
+                    <div className="mt-3 text-white/30 text-xs">📍 {full.location} · Posted {full.postedAt ? new Date(full.postedAt).toLocaleDateString() : "recently"}</div>
+                  )}
                 </div>
               )}
             </div>
