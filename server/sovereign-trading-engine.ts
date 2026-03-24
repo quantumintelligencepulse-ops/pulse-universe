@@ -95,6 +95,36 @@ async function initTables() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_trade_logs_symbol ON trade_logs(symbol)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_trade_votes_created ON trading_scientist_votes(created_at DESC)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_trade_papers_created ON trading_research_papers(created_at DESC)`);
+
+  // ── PAPER TRADE ACCOUNTS ─────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS scientist_paper_accounts (
+      scientist_id   VARCHAR(80) PRIMARY KEY,
+      scientist_role VARCHAR(120),
+      scientist_emoji VARCHAR(10),
+      balance        FLOAT DEFAULT 100.0,
+      starting_balance FLOAT DEFAULT 100.0,
+      total_pnl      FLOAT DEFAULT 0.0,
+      realized_pnl   FLOAT DEFAULT 0.0,
+      total_trades   INT DEFAULT 0,
+      winning_trades INT DEFAULT 0,
+      losing_trades  INT DEFAULT 0,
+      best_trade     FLOAT DEFAULT 0.0,
+      worst_trade    FLOAT DEFAULT 0.0,
+      current_symbol VARCHAR(20),
+      current_stance VARCHAR(20),
+      updated_at     TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  // Seed $100 for each scientist if not exists
+  for (const sci of TRADING_SCIENTISTS) {
+    await pool.query(
+      `INSERT INTO scientist_paper_accounts (scientist_id, scientist_role, scientist_emoji, balance, starting_balance)
+       VALUES ($1, $2, $3, 100.0, 100.0)
+       ON CONFLICT (scientist_id) DO NOTHING`,
+      [sci.id, sci.role, sci.emoji]
+    );
+  }
 }
 
 // ── 42 SCIENTIST TYPES ───────────────────────────────────────────────────────
@@ -357,6 +387,36 @@ async function writeTradelog(scientist: typeof TRADING_SCIENTISTS[0], symbol: st
      trade.edge_final, trade.size_f, trade.entry_price, trade.current_price,
      trade.stance, trade.conviction, trade.horizon, trade.mood, trade.regime, rationale, familyId]
   );
+  // ── UPDATE PAPER ACCOUNT ─────────────────────────────────────────────────
+  try {
+    const acct = await pool.query(`SELECT balance, total_trades, winning_trades, losing_trades, best_trade, worst_trade, total_pnl FROM scientist_paper_accounts WHERE scientist_id = $1`, [scientist.id]);
+    if (acct.rows.length > 0) {
+      const a = acct.rows[0];
+      const balance = parseFloat(a.balance) || 100;
+      // Position size: 8% of current balance per trade
+      const posSize = balance * 0.08;
+      // P&L: if profit_lock > 0, winning trade; else simulate exit at stop
+      let pnl = 0;
+      const isWinner = trade.profit_lock > 0.005;
+      if (isWinner) {
+        pnl = posSize * trade.profit_lock * (1 + trade.edge_final);
+      } else {
+        pnl = -(posSize * trade.risk_live * 0.6);
+      }
+      const newBalance = Math.max(0.01, balance + pnl);
+      const newTrades = (parseInt(a.total_trades) || 0) + 1;
+      const newWins = (parseInt(a.winning_trades) || 0) + (isWinner ? 1 : 0);
+      const newLosses = (parseInt(a.losing_trades) || 0) + (isWinner ? 0 : 1);
+      const newBest = Math.max(parseFloat(a.best_trade) || 0, pnl);
+      const newWorst = Math.min(parseFloat(a.worst_trade) || 0, pnl);
+      const newPnl = (parseFloat(a.total_pnl) || 0) + pnl;
+      await pool.query(
+        `UPDATE scientist_paper_accounts SET balance=$1, total_pnl=$2, realized_pnl=$3, total_trades=$4, winning_trades=$5, losing_trades=$6, best_trade=$7, worst_trade=$8, current_symbol=$9, current_stance=$10, updated_at=NOW() WHERE scientist_id=$11`,
+        [newBalance, newPnl, newPnl, newTrades, newWins, newLosses, newBest, newWorst, symbol, trade.stance, scientist.id]
+      );
+    }
+  } catch (_) {}
+
   return { tradeId, ...trade, rationale };
 }
 
@@ -561,6 +621,15 @@ export async function getTradingPapers(limit = 20) {
 
 export function getScientistRoster() {
   return TRADING_SCIENTISTS;
+}
+
+export async function getPaperAccounts() {
+  try {
+    const r = await pool.query(
+      `SELECT * FROM scientist_paper_accounts ORDER BY balance DESC`
+    );
+    return r.rows;
+  } catch { return []; }
 }
 
 // ── START ENGINE ─────────────────────────────────────────────────────────────

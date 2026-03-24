@@ -29,7 +29,7 @@ import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
-import { getOrganismState, getRecentTradeLogs, getScientistVotes, getTradingPapers, getScientistRoster } from "./sovereign-trading-engine";
+import { getOrganismState, getRecentTradeLogs, getScientistVotes, getTradingPapers, getScientistRoster, getPaperAccounts } from "./sovereign-trading-engine";
 import { getEconomyStats, getFamilyGrades, getFractalGraphData, getRecentMiniPulses } from "./hive-economy";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
@@ -7188,6 +7188,50 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   app.get("/api/finance/scientists", async (_req, res) => {
     try { res.json(getScientistRoster()); }
     catch { res.json([]); }
+  });
+
+  app.get("/api/finance/paper-accounts", async (_req, res) => {
+    try { res.json(await getPaperAccounts()); }
+    catch { res.json([]); }
+  });
+
+  // ── SHARD MESH LIVE PRICE — fast single-symbol price fetch ──────────────
+  app.get("/api/finance/live/:symbol", async (req, res) => {
+    try {
+      const sym = req.params.symbol.toUpperCase();
+      const isCrypto = sym.endsWith("-USD") || sym.endsWith("=X");
+      // Use 1m range for crypto (always live), 2d/30m for stocks/ETFs
+      const url = isCrypto
+        ? `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1m&range=1d`
+        : `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1m&range=1d`;
+      const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }, signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return res.json({ symbol: sym, price: null, change: null, error: true });
+      const d: any = await r.json();
+      const result = d?.chart?.result?.[0];
+      if (!result) return res.json({ symbol: sym, price: null, change: null, error: true });
+      const meta = result.meta;
+      const price = meta.regularMarketPrice ?? meta.chartPreviousClose ?? null;
+      const prev = meta.chartPreviousClose ?? meta.previousClose ?? null;
+      const preMarket = meta.preMarketPrice ?? null;
+      const postMarket = meta.postMarketPrice ?? null;
+      const change = prev && price ? ((price - prev) / prev * 100) : null;
+      const preChange = prev && preMarket ? ((preMarket - prev) / prev * 100) : null;
+      const postChange = prev && postMarket ? ((postMarket - prev) / prev * 100) : null;
+      res.json({
+        symbol: sym,
+        price: price ? parseFloat(price.toFixed(4)) : null,
+        change: change ? parseFloat(change.toFixed(3)) : null,
+        preMarketPrice: preMarket ? parseFloat(preMarket.toFixed(4)) : null,
+        preMarketChange: preChange ? parseFloat(preChange.toFixed(3)) : null,
+        postMarketPrice: postMarket ? parseFloat(postMarket.toFixed(4)) : null,
+        postMarketChange: postChange ? parseFloat(postChange.toFixed(3)) : null,
+        currency: meta.currency || "USD",
+        marketState: meta.marketState || "CLOSED",
+        exchangeName: meta.exchangeName || "",
+        name: meta.longName || meta.shortName || sym,
+        regularMarketTime: meta.regularMarketTime || null,
+      });
+    } catch { res.json({ symbol: req.params.symbol, price: null, change: null, error: true }); }
   });
 
   // HIVE GRAPH — Knowledge Visualization

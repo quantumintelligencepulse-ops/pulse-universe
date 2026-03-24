@@ -2,6 +2,26 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries, CrosshairMode, LineStyle, ColorType } from "lightweight-charts";
 import { RefreshCw, Search, X, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Gauge, CandlestickChart, LineChart, Dna, Star, Bell, Settings, ChevronLeft, ChevronRight, FlaskConical, BookOpen, Activity, Zap, Brain, Layers } from "lucide-react";
 
+// ── Market Status (crypto = always live, stocks = session-aware) ──
+function getMarketStatus(symbol: string): { status: string; color: string; live: boolean; badge: string } {
+  const isCrypto = symbol.endsWith("-USD") || symbol.endsWith("=X");
+  if (isCrypto) return { status: "LIVE 24/7 · CRYPTO", color: "#4ade80", live: true, badge: "LIVE" };
+  try {
+    const now = new Date();
+    const etOpts: Intl.DateTimeFormatOptions = { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false, weekday: "short" };
+    const parts = new Intl.DateTimeFormat("en-US", etOpts).formatToParts(now);
+    const h = parseInt(parts.find(p=>p.type==="hour")?.value||"0");
+    const m = parseInt(parts.find(p=>p.type==="minute")?.value||"0");
+    const day = parts.find(p=>p.type==="weekday")?.value||"";
+    const mins = h * 60 + m;
+    if (day === "Sat" || day === "Sun") return { status: "Closed · Weekend", color: "rgba(255,255,255,0.25)", live: false, badge: "CLOSED" };
+    if (mins >= 240 && mins < 570)  return { status: "Pre-Market LIVE", color: "#fbbf24", live: true, badge: "PRE" };
+    if (mins >= 570 && mins < 960)  return { status: "Market Open · NYSE/NASDAQ", color: "#4ade80", live: true, badge: "LIVE" };
+    if (mins >= 960 && mins < 1200) return { status: "After-Hours LIVE", color: "#60a5fa", live: true, badge: "AH" };
+    return { status: "Market Closed", color: "rgba(255,255,255,0.25)", live: false, badge: "CLOSED" };
+  } catch { return { status: "Market Data", color: "rgba(255,255,255,0.3)", live: false, badge: "—" }; }
+}
+
 // ── Symbol universes ─────────────────────────────────────────────
 const MARKET_SECTORS: Record<string, string[]> = {
   "Tech":       ["AAPL","MSFT","NVDA","GOOGL","META","TSLA","AMD","ADBE","CRM","ORCL","QCOM","INTC","AMZN"],
@@ -233,7 +253,7 @@ const SCIENTIST_CARDS = [
 ];
 
 // ── Scientist ID Cards Panel ──────────────────────────────────────
-function ScientistCardsPanel({ tradeLogs, onClose, onSelectSymbol }: { tradeLogs: any[]; onClose: () => void; onSelectSymbol: (sym: string, name: string) => void }) {
+function ScientistCardsPanel({ tradeLogs, paperAccounts, onClose, onSelectSymbol }: { tradeLogs: any[]; paperAccounts: any[]; onClose: () => void; onSelectSymbol: (sym: string, name: string) => void }) {
   const [search, setSearch] = useState("");
   const filtered = search ? SCIENTIST_CARDS.filter(s => s.role.toLowerCase().includes(search.toLowerCase()) || s.domain.toLowerCase().includes(search.toLowerCase()) || s.id.includes(search.toUpperCase())) : SCIENTIST_CARDS;
   return (
@@ -263,6 +283,10 @@ function ScientistCardsPanel({ tradeLogs, onClose, onSelectSymbol }: { tradeLogs
           {filtered.map(s => {
             const currentTrade = tradeLogs.find(t => t.scientist_id === s.id || t.scientist_role === s.role);
             const isLong = currentTrade?.stance === "LONG" || currentTrade?.stance === "HOLD-LONG";
+            const acct = paperAccounts.find((a:any) => a.scientist_id === s.id);
+            const bal = acct ? parseFloat(acct.balance) : null;
+            const pnl = acct ? parseFloat(acct.total_pnl) : 0;
+            const wr = acct && acct.total_trades > 0 ? Math.round((acct.winning_trades / acct.total_trades) * 100) : null;
             return (
               <div key={s.id} style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:"12px", borderTop:`2px solid ${currentTrade ? (isLong ? "#4ade80" : "#f87171") : "#7c3aed"}` }}>
                 {/* ID card header */}
@@ -273,11 +297,19 @@ function ScientistCardsPanel({ tradeLogs, onClose, onSelectSymbol }: { tradeLogs
                     <div style={{ color:"#a78bfa", fontWeight:700, fontSize:9, fontFamily:"monospace" }}>ID: {s.id}</div>
                     <div style={{ color:"rgba(255,255,255,0.4)", fontSize:8 }}>Domain: {s.domain}</div>
                   </div>
-                  {currentTrade && (
-                    <div style={{ fontSize:7, fontWeight:900, padding:"2px 5px", borderRadius:3, background:isLong?"rgba(74,222,128,0.15)":"rgba(248,113,113,0.15)", color:isLong?"#4ade80":"#f87171", whiteSpace:"nowrap" }}>
-                      {currentTrade.stance} {currentTrade.symbol}
-                    </div>
-                  )}
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3 }}>
+                    {currentTrade && (
+                      <div style={{ fontSize:7, fontWeight:900, padding:"2px 5px", borderRadius:3, background:isLong?"rgba(74,222,128,0.15)":"rgba(248,113,113,0.15)", color:isLong?"#4ade80":"#f87171", whiteSpace:"nowrap" }}>
+                        {currentTrade.stance} {currentTrade.symbol}
+                      </div>
+                    )}
+                    {bal!=null && (
+                      <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end" }}>
+                        <span style={{ fontSize:9, fontWeight:900, color:bal>=100?"#4ade80":"#f87171" }}>${bal.toFixed(2)}</span>
+                        <span style={{ fontSize:6.5, color:"rgba(255,255,255,0.3)" }}>{pnl>=0?"+":""}{pnl.toFixed(2)} PnL · {wr!=null?`${wr}% WR`:""}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Specialization */}
@@ -647,6 +679,8 @@ export default function FinancePage() {
   const [tradeLogs, setTradeLogs] = useState<any[]>([]);
   const [tradingPapers, setTradingPapers] = useState<any[]>([]);
   const [scientistVotes, setScientistVotes] = useState<any[]>([]);
+  const [paperAccounts, setPaperAccounts] = useState<any[]>([]);
+  const [livePrice, setLivePrice] = useState<any>(null);
   const [sparklines, setSparklines] = useState<Record<string,number[]>>({});
   const [loading, setLoading] = useState<Record<string,boolean>>({});
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -713,18 +747,41 @@ export default function FinancePage() {
     try { const data:CryptoTop[]=await fetch(`/api/finance/crypto/top?page=1`).then(r=>r.json()).catch(()=>[]); setCryptoTop(data); } catch {}
   },[]);
 
+  const fetchPaperAccounts=useCallback(async()=>{
+    try { setPaperAccounts(await fetch("/api/finance/paper-accounts").then(r=>r.json()).catch(()=>[])); } catch {}
+  },[]);
+
+  // ── Shard mesh: fast live price for selected symbol ───────────────────
+  const fetchLivePrice=useCallback(async(sym:string)=>{
+    try {
+      const d=await fetch(`/api/finance/live/${encodeURIComponent(sym)}`).then(r=>r.json()).catch(()=>null);
+      if(d&&!d.error) setLivePrice(d);
+    } catch {}
+  },[]);
+
   useEffect(()=>{
     fetchBatch(INDEX_SYMBOLS,setIndices,"indices");
     fetchBatch(ALL_STOCKS,setStocks,"stocks");
     fetchBatch(CRYPTO_SYMBOLS,setCrypto,"crypto");
     fetchBatch(REALESTATE_SYMBOLS,setRealestate,"realestate");
     fetch("/api/finance/feargreed").then(r=>r.json()).then(setFearGreed).catch(()=>{});
-    fetchOrganism(); fetchTradeLogs(); fetchPapers(); fetchVotes();
+    fetchOrganism(); fetchTradeLogs(); fetchPapers(); fetchVotes(); fetchPaperAccounts();
     setLastUpdate(new Date());
     setTimeout(()=>fetchSparklines([...INDEX_SYMBOLS,"AAPL","MSFT","NVDA","TSLA","GOOGL","META","AMZN","AMD","JPM","GS","BTC-USD","ETH-USD"]),3000);
     const id=setInterval(()=>{ fetchBatch(INDEX_SYMBOLS,setIndices,"indices"); fetchOrganism(); setLastUpdate(new Date()); },60000);
-    return ()=>clearInterval(id);
+    const paId=setInterval(fetchPaperAccounts, 30000);
+    return ()=>{ clearInterval(id); clearInterval(paId); };
   },[]);
+
+  // ── Shard mesh: live price polling per selected symbol ────────────────
+  useEffect(()=>{
+    setLivePrice(null);
+    fetchLivePrice(selectedSymbol);
+    const isCrypto=selectedSymbol.endsWith("-USD")||selectedSymbol.endsWith("=X");
+    const interval=isCrypto?8000:15000;
+    const id=setInterval(()=>fetchLivePrice(selectedSymbol),interval);
+    return ()=>clearInterval(id);
+  },[selectedSymbol]);
 
   useEffect(()=>{
     if (watchFilter==="CRYPTO"&&cryptoTop.length===0) fetchCryptoTop();
@@ -822,7 +879,7 @@ export default function FinancePage() {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", background:"#040008", overflow:"hidden", minHeight:0 }}>
       {paletteOpen && <CommandPalette quotes={allQuotes} onClose={()=>setPaletteOpen(false)} onOpen={(s,n)=>{ selectSymbol(s,n); setPaletteOpen(false); }}/>}
-      {showScientistCards && <ScientistCardsPanel tradeLogs={tradeLogs} onClose={()=>setShowScientistCards(false)} onSelectSymbol={selectSymbol}/>}
+      {showScientistCards && <ScientistCardsPanel tradeLogs={tradeLogs} paperAccounts={paperAccounts} onClose={()=>setShowScientistCards(false)} onSelectSymbol={selectSymbol}/>}
 
       {/* ── Top status bar ── */}
       <div style={{ height:36, display:"flex", alignItems:"center", padding:"0 10px", gap:6, borderBottom:"1px solid rgba(255,255,255,0.06)", background:"#030009", flexShrink:0, overflowX:"auto", scrollbarWidth:"none" }}>
@@ -993,16 +1050,23 @@ export default function FinancePage() {
             </div>
             {selectedQuote ? (
               <>
-                <div style={{ fontSize:26, fontWeight:900, color:parseFloat(selectedQuote.change)>=0?"#4ade80":"#f87171", letterSpacing:"-0.02em", lineHeight:1.1, marginBottom:1 }}>
-                  {selectedSymbol.endsWith("-USD")?"":"$"}{selectedQuote.price}
+                <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+                  <div style={{ fontSize:26, fontWeight:900, color:parseFloat(selectedQuote.change)>=0?"#4ade80":"#f87171", letterSpacing:"-0.02em", lineHeight:1.1, marginBottom:1 }}>
+                    {selectedSymbol.endsWith("-USD")?"":"$"}{livePrice?.price!=null?livePrice.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:selectedSymbol.endsWith("-USD")?2:2}):selectedQuote.price}
+                  </div>
+                  {livePrice?.price!=null&&<span style={{ fontSize:7, color:"#4ade80", fontWeight:800, padding:"1px 4px", borderRadius:3, background:"rgba(74,222,128,0.1)", letterSpacing:0.5 }}>LIVE</span>}
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:2 }}>
-                  {parseFloat(selectedQuote.change)>=0?<ChevronUp size={11} color="#4ade80"/>:<ChevronDown size={11} color="#f87171"/>}
-                  <span style={{ color:parseFloat(selectedQuote.change)>=0?"#4ade80":"#f87171", fontWeight:700, fontSize:11 }}>{parseFloat(selectedQuote.change)>=0?"+":""}{selectedQuote.change}%</span>
+                  {(livePrice?.change??parseFloat(selectedQuote.change))>=0?<ChevronUp size={11} color="#4ade80"/>:<ChevronDown size={11} color="#f87171"/>}
+                  <span style={{ color:(livePrice?.change??parseFloat(selectedQuote.change))>=0?"#4ade80":"#f87171", fontWeight:700, fontSize:11 }}>
+                    {(livePrice?.change??parseFloat(selectedQuote.change))>=0?"+":""}{(livePrice?.change??parseFloat(selectedQuote.change)).toFixed(2)}%
+                  </span>
+                  {livePrice?.preMarketPrice&&<span style={{ fontSize:7, color:"#fbbf24", marginLeft:4 }}>Pre: ${livePrice.preMarketPrice} ({livePrice.preMarketChange?.toFixed(2)}%)</span>}
+                  {livePrice?.postMarketPrice&&<span style={{ fontSize:7, color:"#60a5fa", marginLeft:4 }}>AH: ${livePrice.postMarketPrice} ({livePrice.postMarketChange?.toFixed(2)}%)</span>}
                 </div>
               </>
             ) : <div style={{ fontSize:22, color:"rgba(255,255,255,0.3)", fontWeight:900, marginBottom:4 }}>—</div>}
-            <div style={{ color:"rgba(255,255,255,0.25)", fontSize:8.5 }}>Closed {new Date().toLocaleDateString("en-US",{month:"numeric",day:"numeric",year:"numeric"})} EDT</div>
+            {(()=>{const ms=getMarketStatus(selectedSymbol);return(<span style={{color:ms.color,fontSize:8.5,fontWeight:ms.live?700:400,letterSpacing:0.5}}>{ms.live&&<span style={{display:"inline-block",width:5,height:5,borderRadius:"50%",background:ms.color,boxShadow:`0 0 6px ${ms.color}`,marginRight:4,verticalAlign:"middle"}}/>}{ms.status}</span>);})()}
             {/* Action icons */}
             <div style={{ display:"flex", gap:5, marginTop:7 }}>
               {[<Star size={11}/>,<Bell size={11}/>,<BarChart3 size={11}/>,<Activity size={11}/>].map((icon,i)=>(
@@ -1186,6 +1250,30 @@ export default function FinancePage() {
                     </pre>
                   </div>
                 </div>
+
+                {/* Paper Accounts Leaderboard */}
+                {paperAccounts.length>0 && (
+                  <div style={{ padding:"7px 12px", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ fontSize:8.5, fontWeight:800, color:"#34d399", marginBottom:6 }}>💰 SCIENTIST PAPER ACCOUNTS LEADERBOARD</div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:"1px 8px", alignItems:"center" }}>
+                      {paperAccounts.slice(0,10).map((a:any,i:number)=>{
+                        const bal=parseFloat(a.balance)||100;
+                        const pnl=parseFloat(a.total_pnl)||0;
+                        const wr=a.total_trades>0?Math.round((a.winning_trades/a.total_trades)*100):0;
+                        return (
+                          <div key={a.scientist_id} style={{ display:"contents" }}>
+                            <span style={{ fontSize:7, color:"rgba(255,255,255,0.6)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                              <span style={{ color:"rgba(255,255,255,0.25)", marginRight:3 }}>#{i+1}</span>
+                              {a.scientist_name||`Scientist ${a.scientist_id}`}
+                            </span>
+                            <span style={{ fontSize:7.5, fontWeight:800, color:bal>=100?"#4ade80":"#f87171", textAlign:"right" }}>${bal.toFixed(2)}</span>
+                            <span style={{ fontSize:6.5, color:"rgba(255,255,255,0.3)", textAlign:"right" }}>{wr}%W · {a.total_trades||0}T</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Active CRISPR votes */}
                 {scientistVotes.length>0 && (
