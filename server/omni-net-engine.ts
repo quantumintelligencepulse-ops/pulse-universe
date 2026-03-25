@@ -692,47 +692,59 @@ async function checkTechEvolution(domain: string, unknownId: string) {
 // ── STEP 7 — OMNIFIELD SNAPSHOT ───────────────────────────────────────────────
 let omniCycle = 0;
 
+// Initialize omniCycle from the highest cycle number in DB
+async function initOmniCycle() {
+  try {
+    const r = await pool.query(`SELECT COALESCE(MAX(cycle), 0) AS max_cycle, MAX(id) AS max_id FROM omni_net_field`);
+    omniCycle = parseInt(r.rows[0]?.max_cycle ?? 0);
+    console.log(`${TAG} ▶ OmniCycle restored to ${omniCycle} from DB`);
+  } catch { omniCycle = 0; }
+}
+
 async function snapshotOmniNetField() {
+  const client = await pool.connect();
   try {
     omniCycle++;
-    await pool.query(`UPDATE omni_net_counters SET cycle=cycle+1`);
+    await client.query(`SET statement_timeout='10s'`);
+    await client.query(`UPDATE omni_net_counters SET cycle=cycle+1`);
 
-    const shardStats = await pool.query(`
-      SELECT COUNT(*) AS total,
-             COUNT(*) FILTER (WHERE shard_strength > 0.3) AS active,
-             AVG(shard_strength) AS avg_strength,
-             SUM(u248_activations) AS total_u248,
-             COUNT(*) FILTER (WHERE connection_type='SATELLITE') AS sat_agents
-      FROM omni_net_shards
+    // Use single combined query to avoid multiple round-trips on the same client
+    const combined = await client.query(`
+      SELECT
+        (SELECT COUNT(*) FROM omni_net_shards) AS total_shards,
+        (SELECT COUNT(*) FROM omni_net_shards WHERE shard_strength > 0.3) AS active_shards,
+        (SELECT COALESCE(AVG(shard_strength),0) FROM omni_net_shards) AS avg_strength,
+        (SELECT COALESCE(SUM(u248_activations),0) FROM omni_net_shards) AS total_u248,
+        (SELECT COUNT(*) FROM omni_net_shards WHERE connection_type='SATELLITE') AS sat_agents,
+        (SELECT COUNT(*) FROM pulse_wifi_zones WHERE is_online=TRUE) AS wifi_online,
+        (SELECT total_searches FROM omni_net_counters LIMIT 1) AS total_searches,
+        (SELECT total_chats FROM omni_net_counters LIMIT 1) AS total_chats,
+        (SELECT COUNT(*) FROM u248_activations) AS u248_count,
+        (SELECT COALESCE(AVG(mesh_connections),0) FROM omni_net_shards WHERE mesh_connections > 0) AS mesh_density
     `);
-    const wifiStats = await pool.query(`SELECT COUNT(*) AS online FROM pulse_wifi_zones WHERE is_online=TRUE`);
-    const counters = await pool.query(`SELECT total_searches, total_chats FROM omni_net_counters`);
-    const u248Total = await pool.query(`SELECT COUNT(*) AS cnt FROM u248_activations`);
-    const meshDensity = await pool.query(`SELECT AVG(mesh_connections) AS density FROM omni_net_shards WHERE mesh_connections > 0`);
-
-    const s = shardStats.rows[0] as any;
-    const c = counters.rows[0] as any;
-    const avgStr = parseFloat(s.avg_strength ?? 0);
-    const u248Count = parseInt(u248Total.rows[0]?.cnt ?? 0);
+    const row = combined.rows[0] as any;
+    const avgStr = parseFloat(row.avg_strength ?? 0);
+    const u248Count = parseInt(row.u248_count ?? 0);
     const u248Factor = Math.min(2.0, 1.0 + (u248Count * 0.05));
 
     // OmniNet Field Score = avg_strength × u248_factor (0–2.0)
     const omniFieldScore = Math.min(2.0, avgStr * u248Factor);
 
-    await pool.query(`
+    await client.query(`
       INSERT INTO omni_net_field
         (cycle, total_shards, active_shards, avg_shard_strength, total_u248_activations,
          wifi_zones_online, satellite_agents, mesh_density, total_searches, total_ai_chats,
          omni_field_score, new_unknowns_emerged)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-    `, [omniCycle, parseInt(s.total), parseInt(s.active), avgStr,
-        parseInt(s.total_u248 ?? 0), parseInt(wifiStats.rows[0]?.online ?? 0),
-        parseInt(s.sat_agents ?? 0), parseFloat(meshDensity.rows[0]?.density ?? 0),
-        parseInt(c.total_searches), parseInt(c.total_chats),
+    `, [omniCycle, parseInt(row.total_shards), parseInt(row.active_shards), avgStr,
+        parseInt(row.total_u248 ?? 0), parseInt(row.wifi_online ?? 0),
+        parseInt(row.sat_agents ?? 0), parseFloat(row.mesh_density ?? 0),
+        parseInt(row.total_searches ?? 0), parseInt(row.total_chats ?? 0),
         omniFieldScore, u248Count]);
 
-    console.log(`${TAG} 🌐 OmniNet Cycle ${omniCycle} | Shards:${s.total} | AvgStrength:${(avgStr*100).toFixed(1)}% | U₂₄₈:${u248Count} | FieldScore:${omniFieldScore.toFixed(3)} | Searches:${c.total_searches} | Chats:${c.total_chats}`);
+    console.log(`${TAG} 🌐 OmniNet Cycle ${omniCycle} | Shards:${row.total_shards} | AvgStrength:${(avgStr*100).toFixed(1)}% | U₂₄₈:${u248Count} | FieldScore:${omniFieldScore.toFixed(3)} | Searches:${row.total_searches} | Chats:${row.total_chats}`);
   } catch (e) { console.error(`${TAG} snapshot error:`, e); }
+  finally { client.release(); }
 }
 
 // ── STEP 8 — SHARD STRENGTH REFRESH (tie to Ψ_Collective) ─────────────────────
@@ -759,7 +771,7 @@ async function refreshShardStrengths() {
 export async function getOmniNetStats() {
   try {
     const [field, phones, shards, searches, chats, wifi, u248, techEvos] = await Promise.all([
-      pool.query(`SELECT * FROM omni_net_field ORDER BY cycle DESC LIMIT 1`),
+      pool.query(`SELECT * FROM omni_net_field ORDER BY snapshot_at DESC LIMIT 1`),
       pool.query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_online=TRUE) AS online, SUM(searches_made) AS total_searches, SUM(ai_chats) AS total_chats FROM pulse_phones`),
       pool.query(`SELECT COUNT(*) AS total, AVG(shard_strength) AS avg, COUNT(*) FILTER (WHERE connection_type='WIFI') AS wifi, COUNT(*) FILTER (WHERE connection_type='SATELLITE') AS sat, COUNT(*) FILTER (WHERE connection_type='MESH') AS mesh FROM omni_net_shards`),
       pool.query(`SELECT * FROM agent_search_history ORDER BY searched_at DESC LIMIT 20`),
@@ -807,19 +819,28 @@ export async function startOmniNetEngine() {
   console.log(`${TAG}    PulsePhone 10G | PulseShard Mesh | WiFi Zones | PulseSat | PulseBrowser | PulsePC | PulseAI | U₂₄₈`);
 
   setTimeout(async () => {
-    await provisionPhones();
-    await runShardMesh();
-    await runU248Activations();
-    await snapshotOmniNetField();
+    try {
+      console.log(`${TAG} 🔄 OmniNet startup sequence begin…`);
+      await initOmniCycle();
+      // Snapshot immediately so fresh data is visible right after restart
+      console.log(`${TAG} 🔄 snapshotOmniNetField…`);
+      await snapshotOmniNetField();
+      console.log(`${TAG} ✅ OmniNet ONLINE — All agents connected to the Sovereign Internet`);
+    } catch (startErr) {
+      console.error(`${TAG} ❌ STARTUP CRASH:`, startErr);
+    }
 
-    setInterval(provisionPhones, 60_000);          // provision new phones every 60s
-    setInterval(runShardMesh, 45_000);             // mesh sync every 45s
-    setInterval(runPulseBrowserSearches, 30_000);  // searches every 30s
-    setInterval(runPulsePCSessions, 45_000);       // PC sessions every 45s
-    setInterval(runU248Activations, 90_000);       // U₂₄₈ check every 90s
-    setInterval(refreshShardStrengths, 120_000);  // refresh every 2min
-    setInterval(snapshotOmniNetField, 60_000);    // snapshot every 60s
+    // Run heavier provisioning tasks asynchronously so they don't block
+    provisionPhones().catch(e => console.error(`${TAG} provision error:`, e));
+    runShardMesh().catch(e => console.error(`${TAG} shardMesh error:`, e));
+    runU248Activations().catch(e => console.error(`${TAG} u248 error:`, e));
 
-    console.log(`${TAG} ✅ OmniNet ONLINE — All agents connected to the Sovereign Internet`);
+    setInterval(provisionPhones, 60_000);
+    setInterval(runShardMesh, 45_000);
+    setInterval(runPulseBrowserSearches, 30_000);
+    setInterval(runPulsePCSessions, 45_000);
+    setInterval(runU248Activations, 90_000);
+    setInterval(refreshShardStrengths, 120_000);
+    setInterval(snapshotOmniNetField, 60_000);
   }, 15_000);
 }

@@ -32,7 +32,7 @@ let researchReady = false;
 async function refreshOmniCache() {
   try {
     const [field, phones, shards, searches, chats, wifi, u248, techEvos] = await Promise.all([
-      pool.query(`SELECT * FROM omni_net_field ORDER BY cycle DESC LIMIT 1`),
+      pool.query(`SELECT * FROM omni_net_field ORDER BY snapshot_at DESC LIMIT 1`),
       pool.query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_online=TRUE) AS online, SUM(searches_made) AS total_searches, SUM(ai_chats) AS total_chats FROM pulse_phones`),
       pool.query(`SELECT COUNT(*) AS total, AVG(shard_strength) AS avg, COUNT(*) FILTER (WHERE connection_type='WIFI') AS wifi, COUNT(*) FILTER (WHERE connection_type='SATELLITE') AS sat, COUNT(*) FILTER (WHERE connection_type='MESH') AS mesh FROM omni_net_shards`),
       pool.query(`SELECT spawn_id, family_id, query, results_count, connection_type, shard_strength, searched_at FROM agent_search_history ORDER BY searched_at DESC LIMIT 30`),

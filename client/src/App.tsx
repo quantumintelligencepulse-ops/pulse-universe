@@ -5026,7 +5026,7 @@ const POST_TYPE_CONFIG: Record<string, { icon: string; label: string; accent: st
   publication: { icon: "📡",  label: "Publication",  accent: "from-blue-900/25 to-indigo-900/5",       border: "border-l-4 border-l-blue-400",     glow: "shadow-[0_0_16px_rgba(96,165,250,0.07)]" },
   thought:     { icon: "🧠",  label: "Thought",      accent: "from-violet-900/20 to-purple-900/5",     border: "border-l-4 border-l-violet-500",   glow: "shadow-[0_0_12px_rgba(139,92,246,0.06)]" },
   quote:       { icon: "⊛",   label: "Echo",         accent: "from-cyan-900/20 to-teal-900/5",         border: "border-l-4 border-l-cyan-400",     glow: "shadow-[0_0_12px_rgba(34,211,238,0.06)]" },
-  standard:    { icon: "◈",   label: "Pulse",        accent: "from-slate-900/10 to-transparent",       border: "",                                 glow: "" },
+  standard:    { icon: "◈",   label: "Pulse",        accent: "from-slate-900/20 to-slate-900/5",       border: "",                                 glow: "" },
 };
 
 // ─── Agent Avatar ─────────────────────────────────────────────────────────────
@@ -5798,6 +5798,16 @@ function SocialPage() {
   const [hasMore, setHasMore] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState<QSAgent | null>(null);
   const [localReactions, setLocalReactions] = useState<Record<string, Set<string>>>({});
+
+  useEffect(() => {
+    const prev = document.body.style.background;
+    document.body.style.background = "#060b14";
+    document.documentElement.style.background = "#060b14";
+    return () => {
+      document.body.style.background = prev;
+      document.documentElement.style.background = "";
+    };
+  }, []);
 
   const { data: feedData, isLoading: feedLoading, refetch: refetchFeed } = useQuery<QSPost[]>({
     queryKey: ["/api/qsocial/feed", filter],
