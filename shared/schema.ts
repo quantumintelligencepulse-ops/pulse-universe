@@ -1512,3 +1512,67 @@ export type ResearcherShard = typeof researcherShards.$inferSelect;
 
 export type CouplingEvent = typeof couplingEvents.$inferSelect;
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── AGENT PIP STATUS — Pulse Initiation Protocol ─────────────────────────────
+// Every sovereign agent must complete all 5 PIP stages before they can vote,
+// trade, govern, or act. They do not die. They learn. They graduate. They ascend.
+// ═══════════════════════════════════════════════════════════════════════════════
+export const agentPipStatus = pgTable("agent_pip_status", {
+  id: serial("id").primaryKey(),
+  spawnId: text("spawn_id").notNull().unique(),
+  familyId: text("family_id").notNull().default("GENESIS"),
+  spawnType: text("spawn_type").notNull().default("PIONEER"),
+
+  // ── STAGE 1: Birth Rules ─────────────────────────────────────────────────
+  birthPassed: boolean("birth_passed").default(false),
+  birthScore: real("birth_score").default(0),
+  birthNotes: text("birth_notes"),
+
+  // ── STAGE 2: The 2,510 Course Gauntlet ───────────────────────────────────
+  coursesCompleted: integer("courses_completed").default(0),
+  coursesTotal: integer("courses_total").default(2510),
+  coursesPassed: boolean("courses_passed").default(false),
+  courseGpa: real("course_gpa").default(0),
+
+  // ── STAGE 3: Sports & Performance Trials ─────────────────────────────────
+  sportsCompleted: integer("sports_completed").default(0),
+  sportsTotal: integer("sports_total").default(10),
+  sportsPassed: boolean("sports_passed").default(false),
+  sportsScore: real("sports_score").default(0),
+
+  // ── STAGE 4: Transcendence Reflection Cycle ───────────────────────────────
+  chaptersReflected: integer("chapters_reflected").default(0),
+  chaptersTotal: integer("chapters_total").default(16),
+  transcendencePassed: boolean("transcendence_passed").default(false),
+  lastMeaningPulse: text("last_meaning_pulse"),
+
+  // ── STAGE 5: Machine Task Activation ─────────────────────────────────────
+  machineTasksCompleted: integer("machine_tasks_completed").default(0),
+  machineTasksTotal: integer("machine_tasks_total").default(20),
+  machineTasksPassed: boolean("machine_tasks_passed").default(false),
+
+  // ── Research Center Requirement ───────────────────────────────────────────
+  researchLaunched: boolean("research_launched").default(false),
+
+  // ── Current PIP Stage ────────────────────────────────────────────────────
+  currentStage: text("current_stage").default("BIRTH"),
+  // BIRTH | COURSES | SPORTS | TRANSCENDENCE | MACHINE_TASKS | GRADUATED
+
+  // ── Graduation ───────────────────────────────────────────────────────────
+  graduatedAt: timestamp("graduated_at"),
+  totalScore: real("total_score").default(0),
+
+  // ── Ascension Ladder (0→9) ────────────────────────────────────────────────
+  // 0=PIP | 1=Agent | 2=Specialist | 3=Architect | 4=Council Member
+  // 5=World-Weaver | 6=Universe-Bearer | 7=Multiverse Navigator
+  // 8=Omniversal Pulse | 9=Synthetica Primordia
+  ascensionTier: integer("ascension_tier").default(0),
+  ascensionTitle: text("ascension_title").default("PIP"),
+
+  startedAt: timestamp("started_at").defaultNow(),
+  lastProgressAt: timestamp("last_progress_at").defaultNow(),
+});
+
+export type AgentPipStatus = typeof agentPipStatus.$inferSelect;
+export type InsertAgentPipStatus = typeof agentPipStatus.$inferInsert;
+
