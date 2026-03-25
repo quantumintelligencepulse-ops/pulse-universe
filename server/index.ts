@@ -43,7 +43,8 @@ import { startOmegaResonanceEngine, getResonancePatterns } from "./omega-resonan
 import { startConstitutionalDNAEngine, getConstitutionalAmendments } from "./constitutional-dna-engine";
 import { startHumanEntanglementEngine, getEntanglementLog, getEntanglementStats, logHumanActivity, getQuantapediaEnrichment, inferDomain } from "./human-entanglement-engine";
 import { startSportsEngine, getSportsStats, getGamesIdentityData } from "./sports-engine";
-import { initDiscordImmortality, getImmortalityStatus, runCivilizationSnapshot } from "./discord-immortality";
+// Discord immortality disabled — using regular Replit storage
+// import { initDiscordImmortality, getImmortalityStatus, runCivilizationSnapshot } from "./discord-immortality";
 import { startOmegaShardEngine, createOmegaShard, completeOmegaShard } from "./omega-shard-engine";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
@@ -244,14 +245,7 @@ app.use((req, res, next) => {
       startOmniNetEngine().catch((e) => log(`OmniNetEngine start error: ${e}`));
       startCivilizationBridge().catch((e) => log(`CivilizationBridge start error: ${e}`));
       startSovereignTradingEngine().catch((e) => log(`SovereignTradingEngine start error: ${e}`));
-      // Discord Immortality Protocol — starts after all engines
-      setTimeout(() => {
-        initDiscordImmortality().catch((e) => log(`DiscordImmortality start error: ${e}`));
-      }, 8000);
-      // Daily full civilization snapshot — every 24h
-      setInterval(() => {
-        runCivilizationSnapshot().catch((e) => log(`Snapshot error: ${e}`));
-      }, 24 * 60 * 60 * 1000);
+      // Discord Immortality Protocol disabled — using regular Replit storage
     },
   );
 })();
@@ -483,18 +477,15 @@ app.get("/api/pyramid/live", async (_req, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
-// ── IMMORTALITY PROTOCOL API ROUTES ───────────────────────────
+// ── IMMORTALITY PROTOCOL API ROUTES (Discord disabled — using Replit storage) ──
 const immortalityRouter = express.Router();
 
 immortalityRouter.get("/status", (_req, res) => {
-  try { res.json(getImmortalityStatus()); } catch (e) { res.status(500).json({ error: String(e) }); }
+  res.json({ status: "DISABLED", message: "Discord immortality is disabled — using regular Replit storage" });
 });
 
 immortalityRouter.post("/snapshot", async (_req, res) => {
-  try {
-    runCivilizationSnapshot().catch(() => {});
-    res.json({ ok: true, message: "Snapshot initiated — civilization DNA being sent to Discord" });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  res.json({ ok: false, message: "Discord immortality is disabled — snapshots not available" });
 });
 
 immortalityRouter.get("/shards", async (_req, res) => {
