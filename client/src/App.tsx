@@ -26,6 +26,7 @@ const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
+const UniverseEnginePage = lazy(() => import("./pages/UniverseEnginePage"));
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -16396,6 +16397,7 @@ function Router() {
       <Route path="/hospital">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
       <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
       <Route path="/auriona/temporal">{() => <TemporalObservatoryPage />}</Route>
+      <Route path="/auriona/universe-engine">{() => <UniverseEnginePage />}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/government">{() => <Layout><GovernmentPage /></Layout>}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>

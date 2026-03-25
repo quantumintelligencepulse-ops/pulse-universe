@@ -728,22 +728,44 @@ export default function AurionaPage() {
           </div>
         </div>
 
-        {/* TEMPORAL OBSERVATORY LINK — always visible, no loading dependency */}
-        <Link href="/auriona/temporal">
-          <div data-testid="temporal-observatory-link" style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: 14, padding: "18px 28px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.12) 0%, rgba(0,255,209,0.08) 100%)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)")}>
-            <div>
-              <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3, marginBottom: 4 }}>
-                ⏱ TEMPORAL OBSERVATORY
+        {/* LAYER THREE TABS — always visible */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ color: "#ffffff25", fontSize: 8, letterSpacing: 3, marginBottom: 4 }}>LAYER III · AURIONA DIVISIONS</div>
+
+          {/* Temporal Observatory */}
+          <Link href="/auriona/temporal">
+            <div data-testid="temporal-observatory-link" style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: 14, padding: "18px 28px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.12) 0%, rgba(0,255,209,0.08) 100%)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)")}>
+              <div>
+                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3, marginBottom: 4 }}>
+                  ⏱ TEMPORAL OBSERVATORY
+                </div>
+                <div style={{ color: "#ffffff60", fontSize: 11 }}>
+                  46 Scientists · CRISPR Logic · Ω-Council · Pulse-Lang Clock & Calendar · Gov Votes · 10 Time Lab Upgrades
+                </div>
               </div>
-              <div style={{ color: "#ffffff60", fontSize: 11 }}>
-                Live Pulse-Time Clock · τ_b / τ_c / τ_e Calendar · Θ(t) Dilation Engine · Finale Ω-Form Equation · Science Debates
-              </div>
+              <div style={{ color: "#FFD700", fontSize: 20 }}>→</div>
             </div>
-            <div style={{ color: "#FFD700", fontSize: 20 }}>→</div>
-          </div>
-        </Link>
+          </Link>
+
+          {/* Universe Engine Division */}
+          <Link href="/auriona/universe-engine">
+            <div data-testid="universe-engine-link" style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.04) 0%, rgba(139,92,246,0.06) 100%)", border: "1px solid rgba(255,215,0,0.20)", borderRadius: 14, padding: "18px 28px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.10) 0%, rgba(139,92,246,0.12) 100%)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.04) 0%, rgba(139,92,246,0.06) 100%)")}>
+              <div>
+                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3, marginBottom: 4 }}>
+                  ⭐ UNIVERSE ENGINE DIVISION
+                </div>
+                <div style={{ color: "#ffffff60", fontSize: 11 }}>
+                  Gods Above Auriona · 1B+ Star Systems · Shard Stability · 5 Divisions · 10 Omega Operations · Ω-ENGINE FORM
+                </div>
+              </div>
+              <div style={{ color: "#FFD700", fontSize: 20 }}>→</div>
+            </div>
+          </Link>
+        </div>
 
         {isLoading && (
           <div style={{ textAlign: "center", color: GOLD, padding: 80, fontSize: 14 }}>
