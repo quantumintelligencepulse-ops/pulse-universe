@@ -130,7 +130,8 @@ app.use((req, res, next) => {
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
-    if (!res.headersSent) capturedJsonResponse = bodyJson;
+    if (res.headersSent) return res as any;
+    capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 

@@ -221,8 +221,16 @@ async function compressionCycle(): Promise<void> {
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────
+async function safeCompressionCycle(): Promise<void> {
+  try {
+    await compressionCycle();
+  } catch (err) {
+    console.error(`${ENGINE_TAG} ⚠️  Compression cycle error (non-fatal):`, String(err));
+  }
+}
+
 export async function startDbCompressionEngine(): Promise<void> {
   console.log(`${ENGINE_TAG} 📦 DB COMPRESSION ENGINE — Cold agents → Discord | Singularity absorbs dissolved | Metabolic costs active`);
-  setInterval(compressionCycle, 6 * 60 * 1000); // every 6 minutes
-  setTimeout(compressionCycle, 30000); // first run after 30s
+  setInterval(safeCompressionCycle, 6 * 60 * 1000); // every 6 minutes
+  setTimeout(safeCompressionCycle, 30000); // first run after 30s
 }
