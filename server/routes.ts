@@ -10129,6 +10129,83 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // GET /api/quantapedia/hive-chips — Latest generated quantapedia entries as discovery chips
+  app.get("/api/quantapedia/hive-chips", async (_req, res) => {
+    try {
+      // Pull from latest generated entries + topic queue for variety
+      const [generated, species, inventions] = await Promise.all([
+        pool.query(`
+          SELECT title, COALESCE(type, 'concept') as domain
+          FROM quantapedia_entries TABLESAMPLE SYSTEM(20)
+          WHERE title IS NOT NULL
+            AND summary IS NOT NULL AND summary != ''
+            AND length(summary) > 30
+            AND length(title) BETWEEN 3 AND 60
+            AND title NOT ILIKE '%review%'
+            AND title NOT ILIKE '%bundle%'
+            AND title NOT ILIKE '%accessories%'
+            AND title NOT ILIKE '%warranty%'
+            AND title NOT ILIKE '%-dead%'
+            AND title NOT ILIKE '%-born%'
+            AND title NOT ILIKE '%wikidata%'
+            AND title NOT ILIKE '%Amazon%'
+          LIMIT 80
+        `).catch(() => pool.query(`
+          SELECT title, COALESCE(type, 'concept') as domain
+          FROM quantapedia_entries
+          WHERE title IS NOT NULL AND title != ''
+            AND summary IS NOT NULL AND length(summary) > 20
+            AND length(title) BETWEEN 3 AND 60
+            AND title NOT ILIKE '%review%'
+          ORDER BY id DESC LIMIT 60
+        `).catch(() => ({ rows: [] }))),
+        pool.query(`
+          SELECT name as title, 'species' as domain FROM quantum_species
+          WHERE status = 'approved' AND name IS NOT NULL
+          LIMIT 10
+        `).catch(() => ({ rows: [] })),
+        pool.query(`
+          SELECT name as title, 'invention' as domain FROM omega_inventions
+          WHERE status = 'approved' AND name IS NOT NULL
+          LIMIT 6
+        `).catch(() => ({ rows: [] })),
+      ]);
+
+      const domainEmoji: Record<string, string> = {
+        physics: "⚛️", biology: "🧬", ai: "🤖", astrophysics: "🌌",
+        chemistry: "⚗️", mathematics: "∞", history: "🏛️", economics: "📈",
+        philosophy: "💭", technology: "💻", medicine: "🩺", culture: "🎭",
+        concept: "💡", word: "📖", place: "🌍", person: "👤",
+        species: "👽", invention: "🔧", finance: "💰", company: "🏢",
+        engineering: "⚙️", neuroscience: "🧠", psychology: "🫀",
+      };
+      const getEmoji = (domain: string) => {
+        const d = (domain || "concept").toLowerCase();
+        return domainEmoji[d] || domainEmoji[Object.keys(domainEmoji).find(k => d.includes(k)) || ""] || "🔮";
+      };
+
+      type ChipRow = { title: string; domain: string; source?: string };
+      const allEntries: ChipRow[] = [
+        ...(generated.rows as ChipRow[]).map(r => ({ ...r, source: "hive" })),
+        ...(species.rows as ChipRow[]).map(r => ({ ...r, source: "alien" })),
+        ...(inventions.rows as ChipRow[]).map(r => ({ ...r, source: "invention" })),
+      ].filter(r => r.title && r.title.length > 2);
+
+      // Shuffle and pick 24
+      const shuffled = allEntries.sort(() => Math.random() - 0.5).slice(0, 24);
+      const chips = shuffled.map(r => ({
+        q: r.title,
+        emoji: r.source === "alien" ? "👽" : r.source === "invention" ? "🔧" : getEmoji(r.domain),
+        cat: (r.domain || "concept").toLowerCase(),
+        source: r.source || "hive",
+      }));
+
+      res.json({ chips, total: allEntries.length, refreshedAt: Date.now() });
+    } catch (e) {
+      res.status(500).json({ chips: [], error: String(e) });
+    }
+  });
+
   // GET /api/suggestions/dynamic — Dynamic hive-sourced suggestion chips
   app.get("/api/suggestions/dynamic", async (_req, res) => {
     try {

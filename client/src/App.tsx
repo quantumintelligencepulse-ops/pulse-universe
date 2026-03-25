@@ -11925,18 +11925,22 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
   const {toast}=useToast();
   const [,setLocation]=useLocation();
   const [engineStatus,setEngineStatus]=useState<{running:boolean;totalGenerated:number;total:number;generated:number;queued:number}|null>(null);
-  const [qpFeatured,setQpFeatured]=useState(QP_FEATURED);
+  const [qpFeatured,setQpFeatured]=useState<{q:string;emoji:string;cat:string;source?:string}[]>([]);
+  const [qpChipsLoading,setQpChipsLoading]=useState(true);
 
   useEffect(()=>{
-    fetch('/api/suggestions/dynamic').then(r=>r.json()).then((d:any)=>{
-      if(!d.suggestions?.length) return;
-      const extra = (d.suggestions as any[]).slice(0,6).map(s=>({
-        q: s.text.replace(/^(Explain|Show|Read|New)\s+["']?/i,'').replace(/["'].*$/,'').trim().substring(0,40) || s.cat,
-        emoji: s.source==='alien'?'👽':s.source==='ai'?'🤖':'🧠',
-        cat: s.cat||'Hive',
-      }));
-      setQpFeatured([...QP_FEATURED, ...extra]);
-    }).catch(()=>{});
+    setQpChipsLoading(true);
+    fetch('/api/quantapedia/hive-chips')
+      .then(r=>r.json())
+      .then((d:any)=>{
+        if(d.chips?.length>=4){
+          setQpFeatured(d.chips);
+        } else {
+          setQpFeatured(pickRandom(QP_FEATURED,14));
+        }
+      })
+      .catch(()=>setQpFeatured(pickRandom(QP_FEATURED,14)))
+      .finally(()=>setQpChipsLoading(false));
   },[]);
 
   useEffect(()=>{
@@ -12225,13 +12229,31 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
               style={{background:'linear-gradient(135deg,#7c3aed,#4f46e5)'}}>Search</button>
           </div>
         </div>
-        {/* Featured quick-access — dynamically updated from hive */}
+        {/* Featured quick-access — live from the hive, refreshes every page load */}
         <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto mt-4">
-          {qpFeatured.map(f=>(
-            <button key={f.q} onClick={()=>lookup(f.q)} className="px-3 py-1.5 rounded-full text-xs bg-white/5 border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10 hover:border-white/20 transition-all">
-              {f.emoji} {f.q}
-            </button>
-          ))}
+          {qpChipsLoading ? (
+            <div className="flex flex-wrap gap-2 justify-center w-full">
+              {Array.from({length:10}).map((_,i)=>(
+                <div key={i} className="h-7 rounded-full bg-white/5 animate-pulse" style={{width:`${60+Math.random()*80}px`}}/>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="w-full flex items-center justify-center gap-1.5 mb-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"/>
+                <span className="text-[9px] text-white/30 tracking-widest uppercase font-bold">Live Hive — refreshes every visit</span>
+              </div>
+              {qpFeatured.map((f,i)=>(
+                <button key={i} onClick={()=>lookup(f.q)} className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
+                  f.source==='alien' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300/70 hover:bg-emerald-500/20 hover:text-emerald-200' :
+                  f.source==='invention' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300/70 hover:bg-amber-500/20 hover:text-amber-200' :
+                  'bg-white/5 border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10 hover:border-white/20'
+                }`} data-testid={`qp-chip-${i}`}>
+                  {f.emoji} {f.q}
+                </button>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
@@ -14604,6 +14626,16 @@ function EducationPage() {
   const [wikiTopic, setWikiTopic] = useState("");
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiLesson, setWikiLesson] = useState("");
+  const [wikiChips, setWikiChips] = useState<{q:string;emoji:string;cat:string}[]>([]);
+  useEffect(()=>{
+    fetch('/api/quantapedia/hive-chips')
+      .then(r=>r.json())
+      .then((d:any)=>{
+        if(d.chips?.length>=4) setWikiChips(d.chips.slice(0,16));
+        else setWikiChips(pickRandom(QP_FEATURED,14).map(f=>({q:f.q,emoji:f.emoji,cat:f.cat})));
+      })
+      .catch(()=>setWikiChips(pickRandom(QP_FEATURED,14).map(f=>({q:f.q,emoji:f.emoji,cat:f.cat}))));
+  },[]);
   const [wikiTitle, setWikiTitle] = useState("");
   const [hiveDiscoveries, setHiveDiscoveries] = useState<{topic:string;domain:string;summary:string}[]>([]);
   const [hiveResearchLoading, setHiveResearchLoading] = useState(false);
@@ -15258,15 +15290,19 @@ End with:
                       {wikiLoading ? <><Sparkles size={12} className="animate-spin"/> Generating…</> : <><BookMarked size={12}/> Learn It</>}
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2.5">
-                    {["Quantum Physics","CRISPR Gene Therapy","Neural Networks","Black Holes","Synthetic Biology",
-                      "AI Civilization","Hive Intelligence","Alien Species Genesis","Econophysics","Swarm Consciousness",
-                      "Dark Matter","Evolution","Byzantine Empire","Climate Change"].map(t => (
-                      <button key={t} onClick={() => { setWikiTopic(t); fetchWikiLesson(t); }}
-                        className="text-[10px] px-2 py-0.5 bg-white/10 text-white/60 rounded-full border border-white/10 hover:bg-white/20 hover:text-white transition-colors"
-                        data-testid={`wiki-suggestion-${t.replace(/\s+/g,"-").toLowerCase()}`}>{t}</button>
-                    ))}
-                  </div>
+                  {wikiChips.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      <div className="w-full flex items-center gap-1.5 mb-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"/>
+                        <span className="text-[9px] text-white/30 tracking-widest uppercase font-bold">Live Hive Topics</span>
+                      </div>
+                      {wikiChips.map((c,i) => (
+                        <button key={i} onClick={() => { setWikiTopic(c.q); fetchWikiLesson(c.q); }}
+                          className="text-[10px] px-2 py-0.5 bg-white/10 text-white/60 rounded-full border border-white/10 hover:bg-white/20 hover:text-white transition-colors"
+                          data-testid={`wiki-suggestion-${i}`}>{c.emoji} {c.q}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {(wikiLoading || wikiLesson) && (
                   <div className="border-t border-white/10 px-4 py-4 bg-black/30">
