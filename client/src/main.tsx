@@ -73,8 +73,19 @@ class GlobalErrorBoundary extends Component<
   }
 }
 
-createRoot(document.getElementById("root")!).render(
+const root = document.getElementById("root")!;
+
+createRoot(root).render(
   <GlobalErrorBoundary>
     <App />
   </GlobalErrorBoundary>
 );
+
+// Remove the boot loader once React has painted the first frame
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    if (typeof (window as any).__removeBootLoader === "function") {
+      (window as any).__removeBootLoader();
+    }
+  });
+});
