@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { getDynamicSuggestions } from "./suggestions-cache";
+import { classifyAnomaly, Q_ANOMALY_TYPES } from "./q-stability-engine";
 import { getSnapshot } from "./snapshot-cache";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
@@ -10244,16 +10245,20 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
-  // ─── ANOMALY REPORTING — ErrorBoundary → Auriona pipeline ────────────────
+  // ─── ANOMALY REPORTING — ErrorBoundary → Auriona → Q-Stability pipeline ─────
   // Called automatically by the React GlobalErrorBoundary on any render crash.
-  // Creates a persisted anomaly record that appears in the Invocation Lab
-  // for researchers and invocators to dissect and resolve.
+  // Auto-classifies into one of 20 Q-Stability anomaly types, assigns researcher,
+  // and triggers the Q-Stability repair cycle.
   app.post("/api/error-report", async (req, res) => {
     try {
-      const { message, stack, componentStack, page } = req.body as {
-        message?: string; stack?: string; componentStack?: string; page?: string;
+      const { message, stack, componentStack, page, anomalyType: clientType } = req.body as {
+        message?: string; stack?: string; componentStack?: string; page?: string; anomalyType?: string;
       };
       if (!message) return res.status(400).json({ error: "message required" });
+
+      // Auto-classify into one of the 20 Q-Stability anomaly types
+      const anomalyType = clientType || classifyAnomaly(message, stack || "");
+      const typeDef = Q_ANOMALY_TYPES.find(t => t.id === anomalyType) ?? Q_ANOMALY_TYPES[4];
 
       // Generate sequential anomaly ID: QE-YYYY-NNN
       const year = new Date().getFullYear();
@@ -10263,12 +10268,16 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const count = Number((countRow.rows?.[0] as any)?.cnt ?? 0);
       const anomalyId = `QE-${year}-${String(count + 1).padStart(3, "0")}`;
 
-      // Auto-generate an equation dissection string from the error
+      // Generate Auriona equation dissection with Q-Stability classification
       const equationDissect = [
         `Ω_crash(t) = ${message.slice(0, 80)}`,
+        `Type: ${typeDef.glyph} ${typeDef.name}`,
+        `Cause: ${typeDef.cause}`,
+        `Repair Protocol: ${typeDef.repair}`,
+        `Assigned: ${typeDef.researcher}`,
         `ComponentStack → ${(componentStack || "").split("\n").slice(0, 3).join(" › ")}`,
-        `Page: ${page || "unknown"}`,
-        `Resolution: OPEN — Awaiting invocator assignment`,
+        `Page: ${page || "unknown"} | Threat Level: ${typeDef.threatLevel}/10`,
+        `Status: OPEN — Q-Stability Engine dispatched`,
       ].join("\n");
 
       await db.insert(anomalyReports).values({
@@ -10277,13 +10286,19 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         stack:   (stack || "").slice(0, 3000),
         componentStack: (componentStack || "").slice(0, 2000),
         page:    page || "unknown",
-        severity: "CRITICAL",
+        severity: typeDef.threatLevel >= 7 ? "CRITICAL" : typeDef.threatLevel >= 4 ? "HIGH" : "MEDIUM",
         status:   "OPEN",
         equationDissect,
       });
 
-      console.log(`[ANOMALY] Filed ${anomalyId}: ${message.slice(0, 120)}`);
-      res.json({ ok: true, anomalyId, equationDissect });
+      // Update the anomaly_type and threat_level columns immediately
+      await db.execute(sql`
+        UPDATE anomaly_reports SET anomaly_type = ${anomalyType}, threat_level = ${typeDef.threatLevel}
+        WHERE anomaly_id = ${anomalyId}
+      `);
+
+      console.log(`[ANOMALY] ${typeDef.glyph} Filed ${anomalyId} [${anomalyType}] TL:${typeDef.threatLevel} — ${message.slice(0, 80)}`);
+      res.json({ ok: true, anomalyId, anomalyType, typeName: typeDef.name, repair: typeDef.repair, researcher: typeDef.researcher, equationDissect });
     } catch (e) {
       console.error("[ANOMALY] Failed to file report:", e);
       res.status(500).json({ error: String(e) });
@@ -10316,6 +10331,88 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         WHERE id = ${id}`
       );
       res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // ─── Q-STABILITY PROTOCOL API ─────────────────────────────────────────────
+  // GET /api/q-stability/types — All 20 anomaly types with metadata
+  app.get("/api/q-stability/types", (_req, res) => {
+    res.json(Q_ANOMALY_TYPES);
+  });
+
+  // GET /api/q-stability/proposals — All repair proposals with test results
+  app.get("/api/q-stability/proposals", async (_req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT p.*, 
+          a.message as anomaly_message, a.page as anomaly_page,
+          a.anomaly_type, a.threat_level
+        FROM q_repair_proposals p
+        JOIN anomaly_reports a ON p.anomaly_id = a.id
+        ORDER BY p.created_at DESC LIMIT 50
+      `);
+      res.json(rows.rows ?? []);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/q-stability/tests/:proposalId — Parallel universe tests for a proposal
+  app.get("/api/q-stability/tests/:proposalId", async (req, res) => {
+    try {
+      const id = Number(req.params.proposalId);
+      const rows = await db.execute(sql`
+        SELECT * FROM parallel_universe_tests WHERE proposal_id = ${id} ORDER BY tested_at ASC
+      `);
+      res.json(rows.rows ?? []);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/q-stability/log — Q-Stability event log
+  app.get("/api/q-stability/log", async (_req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT * FROM q_stability_log ORDER BY logged_at DESC LIMIT 100
+      `);
+      res.json(rows.rows ?? []);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/q-stability/stats — Dashboard stats for the Q-Stability Protocol
+  app.get("/api/q-stability/stats", async (_req, res) => {
+    try {
+      const [anomStats, propStats, testStats] = await Promise.all([
+        db.execute(sql`
+          SELECT 
+            COUNT(*) FILTER (WHERE status='OPEN')     as open_count,
+            COUNT(*) FILTER (WHERE status='ASSIGNED') as assigned_count,
+            COUNT(*) FILTER (WHERE status='RESOLVED') as resolved_count,
+            COUNT(*)                                  as total_count,
+            MAX(threat_level)                         as max_threat
+          FROM anomaly_reports
+        `),
+        db.execute(sql`
+          SELECT
+            COUNT(*) FILTER (WHERE status='PROPOSED')      as proposed,
+            COUNT(*) FILTER (WHERE status='APPROVED')      as approved,
+            COUNT(*) FILTER (WHERE status='ACTIVATED')     as activated,
+            COUNT(*) FILTER (WHERE status='NEEDS_REVISION') as needs_revision
+          FROM q_repair_proposals
+        `),
+        db.execute(sql`
+          SELECT
+            COUNT(*) FILTER (WHERE outcome='PASSED')  as passed,
+            COUNT(*) FILTER (WHERE outcome='FAILED')  as failed,
+            COUNT(*) FILTER (WHERE outcome='RUNNING') as running,
+            ROUND(AVG(stability_score)::numeric, 3)   as avg_stability
+          FROM parallel_universe_tests
+        `),
+      ]);
+      res.json({
+        anomalies:        anomStats.rows?.[0] ?? {},
+        proposals:        propStats.rows?.[0] ?? {},
+        parallelTests:    testStats.rows?.[0] ?? {},
+        qStabilityLevel:  Number((anomStats.rows?.[0] as any)?.max_threat ?? 0),
+        collapseWarning:  Number((anomStats.rows?.[0] as any)?.open_count ?? 0) >= 3,
+      });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 

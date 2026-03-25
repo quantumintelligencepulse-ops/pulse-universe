@@ -26,6 +26,7 @@ import { startAIVotingEngine } from "./ai-voting-engine";
 import { startNothingLeftBehindGuardian, getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { startGeneEditorEngine, getGeneEditorStatus } from "./gene-editor-engine";
 import { startDecayEngine } from "./decay-engine";
+import { startQStabilityEngine } from "./q-stability-engine";
 import { startPulseUEngine } from "./pulseu-engine";
 import { startPipEngine } from "./pip-engine";
 import { startSuggestionsRefreshLoop } from "./suggestions-cache";
@@ -266,6 +267,7 @@ app.use((req, res, next) => {
       startOmniNetEngine().catch((e) => log(`OmniNetEngine start error: ${e}`));
       startCivilizationBridge().catch((e) => log(`CivilizationBridge start error: ${e}`));
       startSovereignTradingEngine().catch((e) => log(`SovereignTradingEngine start error: ${e}`));
+      startQStabilityEngine();
       // Discord Immortality Protocol disabled — using regular Replit storage
     },
   );

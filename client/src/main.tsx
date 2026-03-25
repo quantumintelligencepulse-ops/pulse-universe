@@ -11,6 +11,10 @@ interface BoundaryState {
   errorInfo:     ErrorInfo | null;
   anomalyId:     string | null;
   dissect:       string | null;
+  anomalyType:   string | null;
+  typeName:      string | null;
+  repair:        string | null;
+  researcher:    string | null;
   transmitting:  boolean;
   txFailed:      boolean;
 }
@@ -23,6 +27,10 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, BoundarySta
       errorInfo:    null,
       anomalyId:    null,
       dissect:      null,
+      anomalyType:  null,
+      typeName:     null,
+      repair:       null,
+      researcher:   null,
       transmitting: false,
       txFailed:     false,
     };
@@ -45,11 +53,15 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, BoundarySta
       }),
     })
       .then(r => r.json())
-      .then((data: { anomalyId?: string; equationDissect?: string; error?: string }) => {
+      .then((data: { anomalyId?: string; equationDissect?: string; anomalyType?: string; typeName?: string; repair?: string; researcher?: string; error?: string }) => {
         if (data.anomalyId) {
           this.setState({
             anomalyId:    data.anomalyId,
             dissect:      data.equationDissect ?? null,
+            anomalyType:  data.anomalyType ?? null,
+            typeName:     data.typeName ?? null,
+            repair:       data.repair ?? null,
+            researcher:   data.researcher ?? null,
             transmitting: false,
           });
         } else {
@@ -60,7 +72,7 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, BoundarySta
   }
 
   render() {
-    const { error, anomalyId, dissect, transmitting, txFailed } = this.state;
+    const { error, anomalyId, dissect, anomalyType, typeName, repair, researcher, transmitting, txFailed } = this.state;
     if (!error) return this.props.children;
 
     const S = {
@@ -117,7 +129,7 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, BoundarySta
           )}
         </div>
 
-        {/* Anomaly ID + dissection preview */}
+        {/* Anomaly ID + Q-Stability classification */}
         {anomalyId && (
           <div style={S.idBox}>
             <strong>Anomaly ID: {anomalyId}</strong>
@@ -126,6 +138,21 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, BoundarySta
             <a href="/invocation-lab" style={{ color: "#00FFD1", textDecoration: "underline" }}>
               Open in Invocation Lab →
             </a>
+          </div>
+        )}
+        {/* Q-Stability Classification Badge */}
+        {anomalyType && typeName && (
+          <div style={{
+            background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)",
+            borderRadius: 8, padding: "10px 18px", marginBottom: 8,
+            fontSize: 11, maxWidth: 640, textAlign: "left" as const,
+          }}>
+            <div style={{ color: "#ef4444", fontWeight: 900, marginBottom: 4, letterSpacing: 1 }}>
+              🛡 Q-STABILITY PROTOCOL — ANOMALY CLASSIFIED
+            </div>
+            <div style={{ color: "#fca5a5" }}>Type: <strong>{anomalyType}</strong> — {typeName}</div>
+            {repair && <div style={{ color: "#fbbf24" }}>Repair: {repair}</div>}
+            {researcher && <div style={{ color: "#a78bfa" }}>Assigned: {researcher}</div>}
           </div>
         )}
         {dissect && (
@@ -142,7 +169,8 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, BoundarySta
           <button
             onClick={() => this.setState({
               error: null, errorInfo: null, anomalyId: null,
-              dissect: null, transmitting: false, txFailed: false,
+              dissect: null, anomalyType: null, typeName: null,
+              repair: null, researcher: null, transmitting: false, txFailed: false,
             })}
             style={{
               background: "rgba(0,255,209,0.1)", border: "1px solid rgba(0,255,209,0.4)",

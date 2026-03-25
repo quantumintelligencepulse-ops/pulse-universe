@@ -210,6 +210,10 @@ export default function InvocationLabPage() {
   const { data: universalDissections = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/universal-dissections"], refetchInterval: 20_000 });
   const { data: hiddenVariables }       = useQuery<any>({  queryKey: ["/api/invocations/hidden-variables"],  refetchInterval: 18_000 });
   const { data: anomalyFeed = [], refetch: refetchAnomalies } = useQuery<any[]>({ queryKey: ["/api/anomaly-feed"], refetchInterval: 15_000 });
+  const { data: qStats }              = useQuery<any>({   queryKey: ["/api/q-stability/stats"],     refetchInterval: 20_000 });
+  const { data: qProposals = [] }     = useQuery<any[]>({ queryKey: ["/api/q-stability/proposals"], refetchInterval: 20_000 });
+  const { data: qLog = [] }           = useQuery<any[]>({ queryKey: ["/api/q-stability/log"],       refetchInterval: 15_000 });
+  const { data: qTypes = [] }         = useQuery<any[]>({ queryKey: ["/api/q-stability/types"] });
   const { data: practInvocations = [] } = useQuery<any[]>({
     queryKey: ["/api/invocations/researcher", selectedPractitioner?.shard_id],
     enabled: !!selectedPractitioner?.shard_id,
@@ -269,6 +273,7 @@ export default function InvocationLabPage() {
     { id: "geometry",      label: "🔶 SACRED GEOMETRY",   count: null },
     { id: "creator",       label: "🔮 CREATOR LAB",        count: null },
     { id: "anomalies",     label: "⚠ ANOMALY DOCKET",      count: anomalyFeed.length || null },
+    { id: "qstability",    label: "🛡 Q-STABILITY",          count: (qStats?.anomalies?.open_count ?? 0) > 0 ? Number(qStats?.anomalies?.open_count) : null },
   ] as const;
 
   return (
@@ -1848,7 +1853,7 @@ export default function InvocationLabPage() {
             <div>
               <div className="font-black text-lg tracking-widest" style={{ color: "#ef4444" }}>⚠ ANOMALY DOCKET</div>
               <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-                React render crashes auto-routed to Auriona · Invocators dissect each Ω_crash equation
+                React render crashes auto-classified into 20 Q-Stability types · Auriona equation dissection · Auto-routed to researchers
               </div>
             </div>
             <button
@@ -1865,24 +1870,37 @@ export default function InvocationLabPage() {
             <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.25)" }}>
               <div className="text-4xl mb-3">✓</div>
               <div className="font-bold text-sm" style={{ color: "#4ade80" }}>No anomalies detected</div>
-              <div className="text-[10px] mt-1">Temporal substrate is stable</div>
+              <div className="text-[10px] mt-1">Temporal substrate is stable · Q-Stability Protocol nominal</div>
             </div>
           ) : (
             <div className="space-y-3">
               {(anomalyFeed as any[]).map((a: any) => {
                 const statusColor = a.status === "RESOLVED" ? "#4ade80" : a.status === "ASSIGNED" ? "#facc15" : "#ef4444";
+                const threatColor = (a.threat_level ?? 0) >= 7 ? "#ef4444" : (a.threat_level ?? 0) >= 4 ? "#fb923c" : "#facc15";
                 return (
                   <div key={a.id} className="rounded-xl p-4"
                     style={{ background: "rgba(239,68,68,0.04)", border: `1px solid ${statusColor}25` }}>
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div>
-                        <span className="text-[10px] font-black tracking-widest mr-2" style={{ color: "#ef4444" }}>
+                    <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-black tracking-widest" style={{ color: "#ef4444" }}>
                           {a.anomaly_id}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded font-bold"
                           style={{ background: `${statusColor}18`, color: statusColor, border: `1px solid ${statusColor}40` }}>
                           {a.status}
                         </span>
+                        {a.anomaly_type && (
+                          <span className="text-[9px] px-2 py-0.5 rounded font-bold"
+                            style={{ background: "rgba(139,92,246,0.1)", color: "#c4b5fd", border: "1px solid rgba(139,92,246,0.3)" }}>
+                            {a.anomaly_type.replace(/_/g, " ")}
+                          </span>
+                        )}
+                        {a.threat_level != null && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-black"
+                            style={{ background: `${threatColor}15`, color: threatColor, border: `1px solid ${threatColor}40` }}>
+                            TL:{a.threat_level}
+                          </span>
+                        )}
                       </div>
                       <div className="text-[9px] shrink-0" style={{ color: "rgba(255,255,255,0.3)" }}>
                         {a.page} · {new Date(a.reported_at).toLocaleString()}
@@ -1899,7 +1917,7 @@ export default function InvocationLabPage() {
                     {a.assigned_to && (
                       <div className="text-[10px] mt-2" style={{ color: "#facc15" }}>
                         Assigned → {a.assigned_to}
-                        {a.resolution && <span style={{ color: "#4ade80" }}> · {a.resolution}</span>}
+                        {a.resolution && <span style={{ color: "#4ade80" }}> · ✓ {a.resolution.slice(0, 120)}</span>}
                       </div>
                     )}
                   </div>
@@ -1907,6 +1925,200 @@ export default function InvocationLabPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Q-STABILITY PROTOCOL TAB ── */}
+      {tab === "qstability" && (
+        <div className="p-4 max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="font-black text-xl tracking-widest mb-1" style={{ color: "#ef4444" }}>
+              🛡 Q-STABILITY PROTOCOL ENGINE
+            </div>
+            <div className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Error → Classify (20 types) → Research → Parallel Universe Testing (7 universes) → Vote → Activate → Evolve into PulseU
+            </div>
+          </div>
+
+          {/* Stats Dashboard */}
+          {qStats && (
+            <div className="grid grid-cols-2 gap-3 mb-6" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+              {[
+                { label: "OPEN ANOMALIES",    value: qStats.anomalies?.open_count ?? 0,    color: "#ef4444" },
+                { label: "ASSIGNED",          value: qStats.anomalies?.assigned_count ?? 0, color: "#facc15" },
+                { label: "RESOLVED",          value: qStats.anomalies?.resolved_count ?? 0, color: "#4ade80" },
+                { label: "TOTAL FILED",       value: qStats.anomalies?.total_count ?? 0,    color: "#818cf8" },
+                { label: "PROPOSALS ACTIVE",  value: qStats.proposals?.proposed ?? 0,       color: "#fb923c" },
+                { label: "REPAIRS ACTIVATED", value: qStats.proposals?.activated ?? 0,       color: "#4ade80" },
+                { label: "PARALLEL TESTS",    value: (Number(qStats.parallelTests?.passed ?? 0) + Number(qStats.parallelTests?.failed ?? 0)), color: "#00FFD1" },
+                { label: "AVG STABILITY",     value: `${((Number(qStats.parallelTests?.avg_stability ?? 0)) * 100).toFixed(1)}%`, color: "#c4b5fd" },
+              ].map((s) => (
+                <div key={s.label} className="rounded-xl p-3 text-center"
+                  style={{ background: `${s.color}08`, border: `1px solid ${s.color}25` }}>
+                  <div className="font-black text-xl" style={{ color: s.color }}>{s.value}</div>
+                  <div className="text-[9px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Collapse Warning */}
+          {qStats?.collapseWarning && (
+            <div className="rounded-xl p-4 mb-5 text-center"
+              style={{ background: "rgba(239,68,68,0.08)", border: "2px solid rgba(239,68,68,0.6)", animation: "pulse 2s infinite" }}>
+              <div className="font-black text-sm tracking-widest" style={{ color: "#ef4444" }}>
+                🚨 Q-STABILITY COLLAPSE WARNING 🚨
+              </div>
+              <div className="text-[10px] mt-1" style={{ color: "#fca5a5" }}>
+                {qStats.anomalies?.open_count} simultaneous open anomalies detected — cascading failure risk
+              </div>
+            </div>
+          )}
+
+          {/* Repair Proposals */}
+          <div className="mb-2 font-black text-[11px] tracking-widest" style={{ color: "#fb923c" }}>
+            ⚗ ACTIVE REPAIR PROPOSALS ({(qProposals as any[]).length})
+          </div>
+          <div className="space-y-3 mb-6">
+            {(qProposals as any[]).length === 0 ? (
+              <div className="text-[10px] py-6 text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
+                No repair proposals yet — engine cycles every 60s
+              </div>
+            ) : (qProposals as any[]).map((p: any) => {
+              const statusColors: Record<string, string> = {
+                PROPOSED: "#facc15", APPROVED: "#4ade80", ACTIVATED: "#00FFD1",
+                NEEDS_REVISION: "#ef4444", REJECTED: "#6b7280",
+              };
+              const sc = statusColors[p.status] ?? "#facc15";
+              const passedUniverse = (p.tests_passed ?? 0);
+              return (
+                <div key={p.id} className="rounded-xl p-4"
+                  style={{ background: "rgba(251,146,60,0.04)", border: `1px solid ${sc}20` }}>
+                  <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black" style={{ color: "#fb923c" }}>#{p.id}</span>
+                      <span className="text-[10px] font-bold" style={{ color: "#fca5a5" }}>{p.anomaly_ref}</span>
+                      {p.anomaly_type && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(139,92,246,0.1)", color: "#c4b5fd", border: "1px solid rgba(139,92,246,0.2)" }}>
+                          {p.anomaly_type.replace(/_/g, " ")}
+                        </span>
+                      )}
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold"
+                        style={{ background: `${sc}15`, color: sc, border: `1px solid ${sc}35` }}>
+                        {p.status}
+                      </span>
+                    </div>
+                    <div className="text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                      {new Date(p.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-bold mb-1" style={{ color: "#fbbf24" }}>
+                    Repair: {p.repair_type}
+                  </div>
+                  <div className="text-[10px] mb-1" style={{ color: "#e2e8f0" }}>
+                    {p.anomaly_message?.slice(0, 100)}
+                  </div>
+                  <div className="text-[10px] mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    Proposer: {p.proposer}
+                  </div>
+                  {/* Parallel test bar */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>Parallel Tests:</span>
+                    {[0,1,2].map((i) => (
+                      <div key={i} className="rounded w-3 h-3"
+                        style={{ background: i < passedUniverse ? "#4ade80" : "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }} />
+                    ))}
+                    <span className="text-[9px]" style={{ color: passedUniverse >= 2 ? "#4ade80" : "#ef4444" }}>
+                      {passedUniverse}/3 passed
+                    </span>
+                    {(p.votes_for ?? 0) > 0 && (
+                      <span className="text-[9px] ml-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        Votes: {p.votes_for}↑ {p.votes_against ?? 0}↓
+                      </span>
+                    )}
+                  </div>
+                  {/* Repair logic */}
+                  {p.repair_logic && (
+                    <div className="rounded p-2 text-[9px] font-mono leading-relaxed"
+                      style={{ background: "rgba(0,0,0,0.3)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.06)" }}>
+                      {p.repair_logic.slice(0, 200)}
+                    </div>
+                  )}
+                  {p.activated_at && (
+                    <div className="text-[9px] mt-1" style={{ color: "#00FFD1" }}>
+                      ✓ Activated: {new Date(p.activated_at).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Q-Stability Event Log */}
+          <div className="mb-2 font-black text-[11px] tracking-widest" style={{ color: "#818cf8" }}>
+            📋 Q-STABILITY EVENT LOG ({(qLog as any[]).length})
+          </div>
+          <div className="space-y-1.5 mb-6">
+            {(qLog as any[]).length === 0 ? (
+              <div className="text-[10px] py-4 text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
+                No events logged yet — engine cycles every 60s after 15s startup
+              </div>
+            ) : (qLog as any[]).map((ev: any) => {
+              const evColors: Record<string, string> = {
+                REPAIR_ACTIVATED: "#4ade80", REPAIR_PROPOSED: "#facc15",
+                Q_STABILITY_COLLAPSE_WARNING: "#ef4444", ANOMALY_CLASSIFIED: "#c4b5fd",
+              };
+              const ec = evColors[ev.event_type] ?? "#818cf8";
+              return (
+                <div key={ev.id} className="rounded-lg px-3 py-2 flex items-start gap-3"
+                  style={{ background: `${ec}06`, border: `1px solid ${ec}18` }}>
+                  <span className="text-[10px] font-black shrink-0" style={{ color: ec }}>{ev.event_type?.replace(/_/g," ")}</span>
+                  {ev.anomaly_type && (
+                    <span className="text-[9px] shrink-0 px-1.5 rounded"
+                      style={{ background: "rgba(139,92,246,0.1)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.2)" }}>
+                      {ev.anomaly_type.replace(/_/g," ")}
+                    </span>
+                  )}
+                  <span className="text-[9px] flex-1" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    {ev.description?.slice(0, 160)}
+                  </span>
+                  {ev.threat_level != null && ev.threat_level > 0 && (
+                    <span className="text-[9px] shrink-0 font-bold"
+                      style={{ color: ev.threat_level >= 7 ? "#ef4444" : ev.threat_level >= 4 ? "#fb923c" : "#facc15" }}>
+                      TL:{ev.threat_level}
+                    </span>
+                  )}
+                  <span className="text-[9px] shrink-0" style={{ color: "rgba(255,255,255,0.25)" }}>
+                    {new Date(ev.logged_at).toLocaleTimeString()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Anomaly Type Catalog */}
+          <div className="mb-2 font-black text-[11px] tracking-widest" style={{ color: "#00FFD1" }}>
+            🗂 20 Q-ANOMALY TYPE CATALOG
+          </div>
+          <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+            {(qTypes as any[]).map((t: any) => (
+              <div key={t.id} className="rounded-xl p-3"
+                style={{ background: `${t.color}08`, border: `1px solid ${t.color}25` }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">{t.glyph}</span>
+                  <span className="text-[10px] font-black" style={{ color: t.color }}>{t.name}</span>
+                  <span className="text-[9px] ml-auto font-bold px-1.5 rounded"
+                    style={{ background: `${t.color}15`, color: t.color, border: `1px solid ${t.color}30` }}>
+                    TL:{t.threatLevel}
+                  </span>
+                </div>
+                <div className="text-[9px] mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{t.cause}</div>
+                <div className="text-[9px] font-bold" style={{ color: "#fbbf24" }}>⟶ {t.repair}</div>
+                <div className="text-[9px]" style={{ color: "#a78bfa" }}>{t.researcher}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
