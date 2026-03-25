@@ -511,6 +511,7 @@ async function issueInnovationGrants() {
       INSERT INTO innovation_grants
         (grant_id, category, title, description, bonus_pc, deadline_cycle, status)
       VALUES ($1,$2,$3,$4,$5,$6,'OPEN')
+      ON CONFLICT (grant_id) DO NOTHING
     `, [grantId, template.cat, template.title, template.desc, template.bonus, currentCycle + 20]);
     console.log(`${TAG} 📣 Auriona Grant issued: ${grantId} — "${template.title}" (+${template.bonus} PC)`);
   } catch (e) { console.error(`${TAG} grant error:`, e); }
