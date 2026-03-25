@@ -24,22 +24,34 @@ function getMarketStatus(symbol: string): { status: string; color: string; live:
 
 // ── Symbol universes ─────────────────────────────────────────────
 const MARKET_SECTORS: Record<string, string[]> = {
-  "Tech":       ["AAPL","MSFT","NVDA","GOOGL","META","TSLA","AMD","ADBE","CRM","ORCL","QCOM","INTC","AMZN"],
-  "Finance":    ["JPM","BAC","WFC","GS","V","MA","AXP","C","MS","BLK","SCHW","PGR","CB"],
-  "Healthcare": ["LLY","UNH","JNJ","ABBV","MRK","TMO","ABT","DHR","PFE","CVS","BMY","ISRG"],
-  "Energy":     ["XOM","CVX","COP","SLB","EOG","MPC","VLO","PSX","OXY","KMI"],
-  "Consumer":   ["WMT","HD","MCD","COST","NKE","SBUX","TGT","PG","KO","PEP","LOW","TJX"],
-  "Industrial": ["CAT","GE","HON","RTX","UPS","FDX","DE","LMT","NOC","GD","EMR","ETN"],
-  "Comm/Media": ["NFLX","DIS","T","VZ","CMCSA","SNAP","UBER","PINS","SPOT","WBD"],
-  "Materials":  ["LIN","APD","ECL","SHW","NEM","FCX","NUE","VMC","MLM","CF"],
-  "Utilities":  ["NEE","DUK","SO","AEP","EXC","XEL","SRE","D","ED"],
+  "Tech":           ["AAPL","MSFT","NVDA","GOOGL","META","TSLA","AMD","ADBE","CRM","ORCL","QCOM","INTC","AMZN","INTU","NOW","SNPS","CDNS","FTNT","ANSS"],
+  "AI & Cloud":     ["PLTR","AI","SNOW","DDOG","NET","CRWD","S","ZS","PANW","OKTA","MDB","GTLB","CFLT","PATH","ASAN","DOCN","HCP"],
+  "Semiconductors": ["AVGO","TSM","ASML","MU","LRCX","AMAT","KLAC","MRVL","TXN","ON","STM","MPWR","ENTG","COHR","SMCI"],
+  "Finance":        ["JPM","BAC","WFC","GS","V","MA","AXP","C","MS","BLK","SCHW","PGR","CB","MET","AIG","ALL","TRV","ICE","CME","NDAQ"],
+  "Fintech":        ["PYPL","SQ","COIN","HOOD","SOFI","NU","AFRM","LC","UPST","OPEN","SMAR"],
+  "Healthcare":     ["LLY","UNH","JNJ","ABBV","MRK","TMO","ABT","DHR","PFE","CVS","BMY","ISRG","REGN","GILD","BIIB","VRTX","ZBH","BSX","EW","HOLX"],
+  "Energy":         ["XOM","CVX","COP","SLB","EOG","MPC","VLO","PSX","OXY","KMI","HAL","DVN","FANG","MRO","APA","PR","SM","CTRA"],
+  "Consumer":       ["WMT","HD","MCD","COST","NKE","SBUX","TGT","PG","KO","PEP","LOW","TJX","AMZN","BABA","JD","PDD","EBAY","ETSY","W","RH"],
+  "Automotive/EV":  ["TSLA","GM","F","RIVN","LCID","NIO","XPEV","LI","STLA","TM","HMC","NKLA","GOEV","BLNK","CHPT","EVGO"],
+  "Industrial":     ["CAT","GE","HON","RTX","UPS","FDX","DE","LMT","NOC","GD","EMR","ETN","MMM","ROK","PH","ITW","CARR","OTIS","CPRT","CTAS"],
+  "Comm/Media":     ["NFLX","DIS","T","VZ","CMCSA","SNAP","UBER","PINS","SPOT","WBD","PARA","FOX","LUMN","SIRI","IACI","FUBO","ROKU","MTCH"],
+  "Materials":      ["LIN","APD","ECL","SHW","NEM","FCX","NUE","VMC","MLM","CF","MOS","ALB","BALL","PKG","IP","WRK","OI","FMC"],
+  "Utilities":      ["NEE","DUK","SO","AEP","EXC","XEL","SRE","D","ED","AWK","WEC","ES","ETR","PPL","EIX","FE","AES","NRG"],
+  "REITs":          ["AMT","PLD","EQIX","CCI","DLR","PSA","O","WELL","SPG","AVB","EQR","INVH","MAA","VNQ","IIPR","COLD","CUBE","NLY","AGNC"],
+  "Biotech":        ["MRNA","BNTX","ARKG","EXAS","ILMN","PACB","TWST","NTLA","BEAM","CRSP","EDIT","BLUE","FATE","KYMR"],
 };
 const ALL_STOCKS = Object.values(MARKET_SECTORS).flat();
-const CRYPTO_SYMBOLS = ["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD","DOGE-USD","AVAX-USD","LINK-USD","LTC-USD","DOT-USD","MATIC-USD"];
+const CRYPTO_SYMBOLS = [
+  "BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD","DOGE-USD","AVAX-USD",
+  "LINK-USD","LTC-USD","DOT-USD","MATIC-USD","SHIB-USD","TRX-USD","NEAR-USD","ATOM-USD",
+  "ALGO-USD","XLM-USD","HBAR-USD","VET-USD","ICP-USD","FIL-USD","SAND-USD","MANA-USD",
+  "APE-USD","CHZ-USD","GALA-USD","ENJ-USD","CRV-USD","AAVE-USD","UNI-USD","SUSHI-USD",
+  "COMP-USD","MKR-USD","SNX-USD","YFI-USD","BAL-USD","INCH-USD","ZRX-USD","OMG-USD",
+];
 const REALESTATE_SYMBOLS = ["VNQ","IYR","XLRE","AMT","PLD","EQIX","CCI","DLR","PSA","O","WELL","SPG","AVB","EQR","INVH","MAA"];
-const INDEX_SYMBOLS = ["SPY","QQQ","DIA","IWM","^VIX"];
-const NASDAQ_SET = new Set(["AAPL","MSFT","NVDA","GOOGL","META","TSLA","AMD","ADBE","CRM","ORCL","QCOM","AMZN","INTC","NFLX","CMCSA","COST","SBUX","ISRG"]);
-const ETF_SET = new Set(["SPY","QQQ","DIA","IWM","VNQ","IYR","XLRE","XLK","XLF","XLV","XLE","XLI","XLC","XLY","XLP","XLB","XLU"]);
+const INDEX_SYMBOLS = ["SPY","QQQ","DIA","IWM","^VIX","^GSPC","^DJI","^IXIC","^RUT","XLK","XLF","XLV","XLE","XLI","XLC","XLY","XLP","XLB","XLU","GLD","SLV","USO","TLT","HYG","BND"];
+const NASDAQ_SET = new Set(["AAPL","MSFT","NVDA","GOOGL","META","TSLA","AMD","ADBE","CRM","ORCL","QCOM","AMZN","INTC","NFLX","CMCSA","COST","SBUX","ISRG","PLTR","SNOW","DDOG","NET","CRWD","PANW","MDB","RIVN"]);
+const ETF_SET = new Set(["SPY","QQQ","DIA","IWM","VNQ","IYR","XLRE","XLK","XLF","XLV","XLE","XLI","XLC","XLY","XLP","XLB","XLU","GLD","SLV","USO","TLT","HYG","BND","ARKG"]);
 
 type Quote = { symbol: string; price: string; change: string; name: string; currency?: string; closes?: number[] };
 type Sector = { symbol: string; name: string; price: string; change: number };
@@ -700,6 +712,7 @@ export default function FinancePage() {
   const [watchTab, setWatchTab] = useState<"watchlist"|"recently">("watchlist");
   const [recentSymbols, setRecentSymbols] = useState<{symbol:string;name:string}[]>([]);
   const [showScientistCards, setShowScientistCards] = useState(false);
+  const [detailMode, setDetailMode] = useState(false);
 
   // AI Trade / Paper Trade
   const [aiTradeMode, setAiTradeMode] = useState(false);
@@ -734,7 +747,7 @@ export default function FinancePage() {
   },[]);
 
   const fetchTradeLogs=useCallback(async()=>{
-    try { setTradeLogs(await fetch("/api/finance/trade-logs?limit=80").then(r=>r.json()).catch(()=>[])); } catch {}
+    try { const d=await fetch("/api/finance/trade-logs?limit=80").then(r=>r.json()).catch(()=>[]); setTradeLogs(Array.isArray(d)?d:[]); } catch {}
   },[]);
 
   const fetchPapers=useCallback(async()=>{
@@ -817,8 +830,9 @@ export default function FinancePage() {
     return ()=>window.removeEventListener("keydown",handler);
   },[]);
 
-  const selectSymbol=useCallback((symbol:string,name:string)=>{
+  const selectSymbol=useCallback((symbol:string,name:string,fullscreen=true)=>{
     setSelectedSymbol(symbol); setSelectedName(name);
+    if (fullscreen) setDetailMode(true);
     setRecentSymbols(p=>{ const f=p.filter(r=>r.symbol!==symbol); return [{symbol,name},...f].slice(0,20); });
   },[]);
 
@@ -892,6 +906,107 @@ export default function FinancePage() {
     <div style={{ flex:1, display:"flex", flexDirection:"column", background:"#040008", overflow:"hidden", minHeight:0 }}>
       {paletteOpen && <CommandPalette quotes={allQuotes} onClose={()=>setPaletteOpen(false)} onOpen={(s,n)=>{ selectSymbol(s,n); setPaletteOpen(false); }}/>}
       {showScientistCards && <ScientistCardsPanel tradeLogs={tradeLogs} paperAccounts={paperAccounts} onClose={()=>setShowScientistCards(false)} onSelectSymbol={selectSymbol}/>}
+
+      {/* ── FULLSCREEN STOCK DETAIL (Robinhood / Webull style) ── */}
+      {detailMode && (()=>{
+        const lp=livePrices[selectedSymbol];
+        const dp=lp?.price!=null?lp.price:(parseFloat(selectedQuote?.price||"0")||null);
+        const dc=lp?.change!=null?lp.change:(parseFloat(selectedQuote?.change||"0")||0);
+        const isCrypto=selectedSymbol.endsWith("-USD");
+        const fmtP=(p:number)=>isCrypto?p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:6}):p.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+        const up=dc>=0; const ex=getExchange(selectedSymbol);
+        const ms=getMarketStatus(selectedSymbol);
+        const cleanSym=selectedSymbol.replace("-USD","").replace("^","");
+        const orgSig=orgSignalMap[selectedSymbol]??orgSignalMap[cleanSym];
+        return (
+          <div style={{ position:"fixed", inset:0, zIndex:9000, background:"#04000a", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+            {/* ── Topbar ── */}
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)", background:"rgba(4,0,10,0.95)", backdropFilter:"blur(12px)", flexShrink:0 }}>
+              <button onClick={()=>setDetailMode(false)} data-testid="btn-detail-back" style={{ display:"flex", alignItems:"center", gap:5, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"6px 12px", color:"rgba(255,255,255,0.7)", cursor:"pointer", fontSize:13, fontWeight:700 }}>
+                <ChevronLeft size={15}/> Back
+              </button>
+              <div style={{ display:"flex", alignItems:"center", gap:8, flex:1, minWidth:0 }}>
+                <span style={{ color:"#fff", fontWeight:900, fontSize:20, letterSpacing:"-0.02em" }}>{cleanSym}</span>
+                <span style={{ fontSize:9, fontWeight:800, padding:"2px 6px", borderRadius:4, background:ex==="NASDAQ"?"rgba(99,102,241,0.2)":ex==="CRYPTO"?"rgba(251,191,36,0.15)":ex==="ETF"?"rgba(52,211,153,0.12)":"rgba(255,255,255,0.07)", color:ex==="NASDAQ"?"#818cf8":ex==="CRYPTO"?"#fbbf24":ex==="ETF"?"#34d399":"rgba(255,255,255,0.55)" }}>{ex}</span>
+                <span style={{ color:"rgba(255,255,255,0.45)", fontSize:12, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{selectedName}</span>
+              </div>
+              {/* Market status */}
+              <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
+                {ms.live&&<span style={{ width:6, height:6, borderRadius:"50%", background:ms.color, boxShadow:`0 0 8px ${ms.color}`, display:"inline-block" }}/>}
+                <span style={{ color:ms.color, fontSize:9, fontWeight:700 }}>{ms.status}</span>
+              </div>
+              <button onClick={()=>setPaletteOpen(true)} style={{ display:"flex", alignItems:"center", gap:4, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:7, padding:"5px 10px", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontSize:9 }}>
+                <Search size={10}/> Search
+              </button>
+            </div>
+
+            {/* ── Price Header ── */}
+            <div style={{ padding:"14px 20px 10px", borderBottom:"1px solid rgba(255,255,255,0.04)", flexShrink:0, background:"#04000a" }}>
+              <div style={{ display:"flex", alignItems:"baseline", gap:12, flexWrap:"wrap" }}>
+                <span style={{ fontSize:40, fontWeight:900, color:up?"#4ade80":"#f87171", letterSpacing:"-0.03em", lineHeight:1 }}>
+                  {!isCrypto&&"$"}{dp!=null?fmtP(dp):"—"}
+                </span>
+                {lp?.price!=null&&<span style={{ fontSize:9, color:"#4ade80", fontWeight:800, padding:"2px 8px", borderRadius:4, background:"rgba(74,222,128,0.12)", letterSpacing:0.8 }}>● LIVE</span>}
+                <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                  {up?<ChevronUp size={16} color="#4ade80"/>:<ChevronDown size={16} color="#f87171"/>}
+                  <span style={{ fontSize:18, fontWeight:800, color:up?"#4ade80":"#f87171" }}>{up?"+":""}{dc.toFixed(2)}%</span>
+                </div>
+                {orgSig&&(
+                  <span style={{ fontSize:10, padding:"3px 8px", borderRadius:5, fontWeight:800, background:orgSig.stance?.includes("LONG")?"rgba(74,222,128,0.12)":"rgba(248,113,113,0.12)", color:orgSig.stance?.includes("LONG")?"#4ade80":"#f87171", border:`1px solid ${orgSig.stance?.includes("LONG")?"rgba(74,222,128,0.2)":"rgba(248,113,113,0.2)"}` }}>
+                    {orgSig.scientist_emoji} AI: {orgSig.stance} · {orgSig.conviction}%
+                  </span>
+                )}
+              </div>
+              {lp?.preMarketPrice&&<div style={{ fontSize:10, color:"#fbbf24", marginTop:4 }}>Pre-Market: ${lp.preMarketPrice.toFixed(2)} ({(lp.preMarketChange??0)>=0?"+":""}{(lp.preMarketChange??0).toFixed(2)}%)</div>}
+              {lp?.postMarketPrice&&<div style={{ fontSize:10, color:"#60a5fa", marginTop:4 }}>After-Hours: ${lp.postMarketPrice.toFixed(2)} ({(lp.postMarketChange??0)>=0?"+":""}{(lp.postMarketChange??0).toFixed(2)}%)</div>}
+            </div>
+
+            {/* ── Full-width Chart (fills remaining space) ── */}
+            <div style={{ flex:1, display:"flex", flexDirection:"column", minHeight:0, overflow:"hidden" }}>
+              <EmbeddedChart
+                symbol={selectedSymbol} name={selectedName}
+                orgSignal={orgSig}
+                onDataLoad={setSelectedChartData}
+                watchlistOpen={false} onToggleWatchlist={undefined}
+                aiTradeMode={aiTradeMode} paperTradeMode={paperTradeMode}
+                tradeMarkers={tradeMarkersForSymbol} paperTrades={paperTradesForSymbol}
+              />
+            </div>
+
+            {/* ── Stats strip ── */}
+            <div style={{ display:"flex", gap:0, borderTop:"1px solid rgba(255,255,255,0.05)", background:"#04000a", flexShrink:0, overflowX:"auto", scrollbarWidth:"none" }}>
+              {[
+                ["Open", selectedChartData?.open?.toFixed(2)??"—"],
+                ["Prev Close", selectedChartData?.price?.toFixed(2)??"—"],
+                ["High", selectedChartData?.high?.toFixed(2)??"—"],
+                ["Low", selectedChartData?.low?.toFixed(2)??"—"],
+                ["Volume", fmtVol(selectedChartData?.volume??0)],
+                ["Avg Vol", avgVol],
+                ["52Wk H", w52h!=="—"?`$${w52h}`:"—"],
+                ["52Wk L", w52l!=="—"?`$${w52l}`:"—"],
+              ].map(([label,val])=>(
+                <div key={label} style={{ flex:"0 0 auto", padding:"8px 16px", borderRight:"1px solid rgba(255,255,255,0.04)", textAlign:"center" }}>
+                  <div style={{ color:"rgba(255,255,255,0.35)", fontSize:9, fontWeight:600, marginBottom:2, whiteSpace:"nowrap" }}>{label}</div>
+                  <div style={{ color:"#fff", fontWeight:800, fontSize:11, whiteSpace:"nowrap" }}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Buy / Sell bar ── */}
+            <div style={{ display:"flex", gap:10, padding:"10px 16px", borderTop:"1px solid rgba(255,255,255,0.06)", background:"rgba(4,0,10,0.95)", flexShrink:0 }}>
+              <button style={{ flex:1, padding:"12px", borderRadius:10, background:"rgba(74,222,128,0.15)", border:"1px solid rgba(74,222,128,0.3)", color:"#4ade80", fontWeight:900, fontSize:14, cursor:"pointer", letterSpacing:"0.05em" }}>
+                BUY {cleanSym}
+              </button>
+              <button style={{ flex:1, padding:"12px", borderRadius:10, background:"rgba(248,113,113,0.12)", border:"1px solid rgba(248,113,113,0.25)", color:"#f87171", fontWeight:900, fontSize:14, cursor:"pointer", letterSpacing:"0.05em" }}>
+                SELL {cleanSym}
+              </button>
+              <button onClick={()=>{ setRightTab("pulseai"); setPulseAIActive(true); fetchTradeLogs(); setDetailMode(false); }} style={{ padding:"12px 16px", borderRadius:10, background:"rgba(124,58,237,0.12)", border:"1px solid rgba(124,58,237,0.25)", color:"#a78bfa", fontWeight:800, fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
+                ⚡ Pulse AI
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Top status bar ── */}
       <div style={{ height:36, display:"flex", alignItems:"center", padding:"0 10px", gap:6, borderBottom:"1px solid rgba(255,255,255,0.06)", background:"#030009", flexShrink:0, overflowX:"auto", scrollbarWidth:"none" }}>
