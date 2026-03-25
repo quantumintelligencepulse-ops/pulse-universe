@@ -730,8 +730,8 @@ export default function FinancePage() {
 
   const fetchBatch=useCallback(async(syms:string[],setter:(d:Quote[])=>void,key:string)=>{
     setLoad(key,true);
-    try { setter(await fetch(`/api/finance/batch?symbols=${syms.join(",")}`).then(r=>r.json()).catch(()=>[])); }
-    finally { setLoad(key,false); }
+    try { const d=await fetch(`/api/finance/batch?symbols=${syms.join(",")}`).then(r=>r.json()).catch(()=>[]); setter(Array.isArray(d)?d:[]); }
+    catch {} finally { setLoad(key,false); }
   },[]);
 
   const fetchSparklines=useCallback(async(syms:string[])=>{
@@ -751,19 +751,19 @@ export default function FinancePage() {
   },[]);
 
   const fetchPapers=useCallback(async()=>{
-    try { setTradingPapers(await fetch("/api/finance/trading-papers?limit=20").then(r=>r.json()).catch(()=>[])); } catch {}
+    try { const d=await fetch("/api/finance/trading-papers?limit=20").then(r=>r.json()).catch(()=>[]); setTradingPapers(Array.isArray(d)?d:[]); } catch {}
   },[]);
 
   const fetchVotes=useCallback(async()=>{
-    try { setScientistVotes(await fetch("/api/finance/scientist-votes?limit=30").then(r=>r.json()).catch(()=>[])); } catch {}
+    try { const d=await fetch("/api/finance/scientist-votes?limit=30").then(r=>r.json()).catch(()=>[]); setScientistVotes(Array.isArray(d)?d:[]); } catch {}
   },[]);
 
   const fetchCryptoTop=useCallback(async()=>{
-    try { const data:CryptoTop[]=await fetch(`/api/finance/crypto/top?page=1`).then(r=>r.json()).catch(()=>[]); setCryptoTop(data); } catch {}
+    try { const d=await fetch(`/api/finance/crypto/top?page=1`).then(r=>r.json()).catch(()=>[]); setCryptoTop(Array.isArray(d)?d:[]); } catch {}
   },[]);
 
   const fetchPaperAccounts=useCallback(async()=>{
-    try { setPaperAccounts(await fetch("/api/finance/paper-accounts").then(r=>r.json()).catch(()=>[])); } catch {}
+    try { const d=await fetch("/api/finance/paper-accounts").then(r=>r.json()).catch(()=>[]); setPaperAccounts(Array.isArray(d)?d:[]); } catch {}
   },[]);
 
   useEffect(()=>{
@@ -771,7 +771,7 @@ export default function FinancePage() {
     fetchBatch(ALL_STOCKS,setStocks,"stocks");
     fetchBatch(CRYPTO_SYMBOLS,setCrypto,"crypto");
     fetchBatch(REALESTATE_SYMBOLS,setRealestate,"realestate");
-    fetch("/api/finance/feargreed").then(r=>r.json()).then(setFearGreed).catch(()=>{});
+    fetch("/api/finance/feargreed").then(r=>r.json()).then(d=>setFearGreed(Array.isArray(d)?d:[])).catch(()=>{});
     fetchOrganism(); fetchTradeLogs(); fetchPapers(); fetchVotes(); fetchPaperAccounts();
     setLastUpdate(new Date());
     setTimeout(()=>fetchSparklines([...INDEX_SYMBOLS,"AAPL","MSFT","NVDA","TSLA","GOOGL","META","AMZN","AMD","JPM","GS","BTC-USD","ETH-USD"]),3000);
@@ -841,7 +841,7 @@ export default function FinancePage() {
     let items:Quote[]=[];
     if (watchFilter==="STOCKS") items=stocks;
     else if (watchFilter==="CRYPTO") {
-      const cryptoTopMapped=cryptoTop.slice(0,30).map(c=>({symbol:`${c.symbol.toUpperCase()}-USD`,price:c.price.toFixed(4),change:c.change24h,name:c.name}));
+      const cryptoTopMapped=cryptoTop.slice(0,30).map(c=>({symbol:`${c.symbol.toUpperCase()}-USD`,price:(c.price??0).toFixed(4),change:c.change24h??0,name:c.name}));
       const seen=new Set(crypto.map(c=>c.symbol));
       items=[...crypto,...cryptoTopMapped.filter(c=>!seen.has(c.symbol))];
     }
