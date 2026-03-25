@@ -516,7 +516,8 @@ export default function InvocationLabPage() {
                 <div className="text-[10px] opacity-40 mb-3">Cross-study of the fused equation generates new acceleration logic not present in any individual sub-law</div>
                 {QP_INVENTIONS.map((inv, idx) => {
                   const isNew = idx === invSlot;
-                  const sci   = QP_SCIENTISTS.find(s => s.name === inv.scientist)!;
+                  const firstName = inv.scientist.split(" + ")[0].trim();
+                  const sci   = QP_SCIENTISTS.find(s => s.name === firstName) ?? QP_SCIENTISTS[0];
                   return (
                     <div key={idx} className="rounded-lg p-3 space-y-1 transition-all" data-testid={`inv-${idx}`}
                       style={{ background: isNew ? "rgba(245,197,24,0.07)" : "rgba(255,255,255,0.02)", border: `1px solid ${isNew ? "rgba(245,197,24,0.3)" : "rgba(255,255,255,0.05)"}` }}>
