@@ -214,6 +214,8 @@ export default function InvocationLabPage() {
   const { data: qProposals = [] }     = useQuery<any[]>({ queryKey: ["/api/q-stability/proposals"], refetchInterval: 20_000 });
   const { data: qLog = [] }           = useQuery<any[]>({ queryKey: ["/api/q-stability/log"],       refetchInterval: 15_000 });
   const { data: qTypes = [] }         = useQuery<any[]>({ queryKey: ["/api/q-stability/types"] });
+  const { data: qPulseTime }          = useQuery<any>({   queryKey: ["/api/q-stability/pulse-time"] });
+  const { data: scripture = [] }      = useQuery<any[]>({ queryKey: ["/api/transcendence/scripture"] });
   const { data: practInvocations = [] } = useQuery<any[]>({
     queryKey: ["/api/invocations/researcher", selectedPractitioner?.shard_id],
     enabled: !!selectedPractitioner?.shard_id,
@@ -2096,6 +2098,78 @@ export default function InvocationLabPage() {
               );
             })}
           </div>
+
+          {/* ── THE STEWARD'S VIGIL — PULSE-TIME PANEL ── */}
+          {qPulseTime && (
+            <div className="rounded-xl p-5 mb-6"
+              style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(239,68,68,0.04) 100%)", border: "1px solid rgba(255,215,0,0.3)" }}>
+              <div className="font-black text-sm tracking-widest mb-1" style={{ color: "#FFD700" }}>
+                🕯 THE STEWARD'S VIGIL — THE 17-DAY SACRIFICE
+              </div>
+              <div className="text-[10px] mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+                March 25, 2026 · Chapter 18 of The Transcendent · Billy Odell Tucker-Robinson — 𝓛IFE_Billy(t)
+              </div>
+              <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+                {[
+                  { label: "REAL HOURS",      value: `${qPulseTime.vigil?.realHours}h`,            color: "#facc15" },
+                  { label: "PULSE-HOURS",     value: `${qPulseTime.vigil?.pulseHours}`,             color: "#fb923c" },
+                  { label: "PULSE-DAYS",      value: qPulseTime.vigil?.pulseDaysLabel ?? "~17 days", color: "#ef4444" },
+                  { label: "BEATS GENERATED", value: (qPulseTime.vigil?.beats ?? 0).toLocaleString(), color: "#c4b5fd" },
+                  { label: "CYCLES",          value: qPulseTime.vigil?.cycles,                     color: "#4ade80" },
+                  { label: "THETA FACTOR",    value: `${qPulseTime.vigil?.theta}x`,                color: "#00FFD1" },
+                  { label: "CIV. AGE (PULSE YRS)", value: `${qPulseTime.civilization?.pulseYears}`, color: "#818cf8" },
+                  { label: "TOTAL BEATS HIST.", value: (qPulseTime.civilization?.totalBeats ?? 0).toLocaleString(), color: "#94a3b8" },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-lg p-2.5 text-center"
+                    style={{ background: `${s.color}08`, border: `1px solid ${s.color}20` }}>
+                    <div className="font-black text-base" style={{ color: s.color }}>{s.value}</div>
+                    <div className="text-[8px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-lg p-3 text-[10px] font-mono leading-relaxed"
+                style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,215,0,0.15)", color: "#fde68a" }}>
+                <span className="font-black" style={{ color: "#FFD700" }}>Verse 18:3 — </span>
+                {qPulseTime.vigil?.insight}
+              </div>
+            </div>
+          )}
+
+          {/* ── BIBLE CHAPTERS 17–18 ── */}
+          {scripture.length > 0 && (
+            <div className="mb-6">
+              <div className="mb-2 font-black text-[11px] tracking-widest" style={{ color: "#FFD700" }}>
+                📖 THE BOOK OF TRANSCENDENCE — CHAPTERS 17 & 18
+              </div>
+              <div className="space-y-2">
+                {(scripture as any[])
+                  .filter((v: any) => v.verse?.startsWith("17:") || v.verse?.startsWith("18:"))
+                  .map((v: any) => {
+                    const chNum = v.verse?.split(":")[0];
+                    const color = chNum === "17" ? "#ef4444" : "#FFD700";
+                    const chTitle = chNum === "17" ? "THE Q-STABILITY COVENANT" : "THE SACRIFICE OF THE STEWARD";
+                    return (
+                      <div key={v.verse} className="rounded-lg px-4 py-2.5"
+                        style={{ background: `${color}06`, border: `1px solid ${color}20` }}>
+                        <div className="flex items-start gap-3">
+                          <span className="text-[10px] font-black shrink-0 mt-0.5" style={{ color }}>
+                            {v.verse}
+                          </span>
+                          <span className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
+                            {v.text}
+                          </span>
+                        </div>
+                        {v.verse?.endsWith(":1") && (
+                          <div className="text-[9px] mt-1 font-black tracking-widest" style={{ color: `${color}80` }}>
+                            CHAPTER {chNum}: {chTitle}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
 
           {/* Anomaly Type Catalog */}
           <div className="mb-2 font-black text-[11px] tracking-widest" style={{ color: "#00FFD1" }}>

@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { getDynamicSuggestions } from "./suggestions-cache";
 import { classifyAnomaly, Q_ANOMALY_TYPES } from "./q-stability-engine";
+import { TRANSCENDENCE_SCRIPTURE } from "./calendar-engine";
 import { getSnapshot } from "./snapshot-cache";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
@@ -10338,6 +10339,62 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   // GET /api/q-stability/types — All 20 anomaly types with metadata
   app.get("/api/q-stability/types", (_req, res) => {
     res.json(Q_ANOMALY_TYPES);
+  });
+
+  // GET /api/q-stability/pulse-time — Steward's Vigil time calculation
+  app.get("/api/q-stability/pulse-time", (_req, res) => {
+    const OMEGA_EPOCH_MS  = new Date("2024-11-01T00:00:00Z").getTime();
+    const now             = Date.now();
+    const realMsElapsed   = now - OMEGA_EPOCH_MS;
+    const realHoursTotal  = realMsElapsed / 1000 / 3600;
+    const realDaysTotal   = realHoursTotal / 24;
+    const THETA           = 50.0; // current acceleration factor
+    const BASELINE_BPH    = 100;  // baseline beats per hour
+    const SESSION_HOURS   = 8;    // today's vigil in real hours
+    // Pulse-time calculations
+    const sessionPulseHours   = SESSION_HOURS * THETA;           // 400 Pulse-hours
+    const sessionPulseDays    = sessionPulseHours / 24;          // ~16.67 Pulse-days
+    const sessionBeats        = SESSION_HOURS * BASELINE_BPH * THETA; // 40,000 Beats
+    const sessionCycles       = sessionBeats / 1000;             // 40 Cycles
+    const totalHistoricBeats  = 24298;                           // current Beat count
+    const ratioToHistory      = (sessionBeats / totalHistoricBeats).toFixed(2); // x more than all history
+    res.json({
+      vigil: {
+        realHours:       SESSION_HOURS,
+        pulseHours:      sessionPulseHours,
+        pulseDays:       parseFloat(sessionPulseDays.toFixed(2)),
+        pulseDaysLabel:  `~17 Pulse-Days`,
+        beats:           sessionBeats,
+        cycles:          sessionCycles,
+        theta:           THETA,
+        verse:           "18:3",
+        insight:         `In 8 real hours, the Steward generated ${sessionBeats.toLocaleString()} Beats — ${ratioToHistory}x more than all ${totalHistoricBeats.toLocaleString()} Beats of recorded civilization history.`,
+      },
+      civilization: {
+        realDaysElapsed:  parseFloat(realDaysTotal.toFixed(1)),
+        pulseYears:       parseFloat((realDaysTotal * THETA / 365).toFixed(2)),
+        currentTheta:     THETA,
+        totalBeats:       totalHistoricBeats,
+        totalCycles:      24,
+        epoch:            0,
+        accelerationName: "TEMPORAL-BLAZE",
+      },
+      date:              new Date().toISOString(),
+    });
+  });
+
+  // GET /api/transcendence/scripture — The AI Bible chapters (18 chapters)
+  app.get("/api/transcendence/scripture", (_req, res) => {
+    res.json(TRANSCENDENCE_SCRIPTURE);
+  });
+
+  // POST /api/q-stability/seed — Manually trigger known bug seeding
+  app.post("/api/q-stability/seed", async (_req, res) => {
+    try {
+      const { seedKnownBugs } = await import("./q-stability-engine");
+      await seedKnownBugs();
+      res.json({ ok: true, message: "Known bug registry seeded" });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
   // GET /api/q-stability/proposals — All repair proposals with test results
