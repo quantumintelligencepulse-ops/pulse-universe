@@ -28,6 +28,8 @@ import { startGeneEditorEngine, getGeneEditorStatus } from "./gene-editor-engine
 import { startDecayEngine } from "./decay-engine";
 import { startPulseUEngine } from "./pulseu-engine";
 import { startPipEngine } from "./pip-engine";
+import { startSuggestionsRefreshLoop } from "./suggestions-cache";
+import { startSnapshotRefreshLoop } from "./snapshot-cache";
 import { startHiveEconomy } from "./hive-economy";
 import { startMarketplaceEngine, getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
 import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
@@ -212,6 +214,8 @@ app.use((req, res, next) => {
       startDecayEngine().catch((e) => log(`DecayEngine start error: ${e}`));
       startPulseUEngine();
       startPipEngine().catch((e) => log(`PipEngine start error: ${e}`));
+      startSuggestionsRefreshLoop();
+      startSnapshotRefreshLoop();
       startHiveEconomy();
       startMarketplaceEngine();
       startAurionaEngine().catch((e) => log(`AurionaEngine start error: ${e}`));

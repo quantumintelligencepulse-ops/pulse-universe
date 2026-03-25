@@ -1715,7 +1715,23 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   const isCoder = defaultType === "coder";
   const isEmpty = messages.length === 0 && localMessages.length === 0;
 
-  const [generalSuggestions] = useState(() => pickRandom(ALL_GENERAL_SUGGESTIONS, 6));
+  const [generalSuggestions, setGeneralSuggestions] = useState(() => pickRandom(ALL_GENERAL_SUGGESTIONS, 6));
+  const _dynPool = useRef([...ALL_GENERAL_SUGGESTIONS]);
+  useEffect(() => {
+    fetch('/api/suggestions/dynamic').then(r=>r.json()).then((d:any)=>{
+      if (!d.suggestions?.length) return;
+      const extra = (d.suggestions as any[]).map(s=>({
+        icon: s.source==='ai' ? Brain : s.source==='alien' ? Globe : Sparkles,
+        text: s.text as string,
+        color: (s.color as string)||'text-violet-400',
+        cat: (s.cat as string)||'Hive',
+      }));
+      _dynPool.current = [...ALL_GENERAL_SUGGESTIONS, ...extra];
+      setGeneralSuggestions(pickRandom(_dynPool.current, 6));
+    }).catch(()=>{});
+    const _rotId = setInterval(()=>setGeneralSuggestions(pickRandom(_dynPool.current, 6)), 45_000);
+    return ()=>clearInterval(_rotId);
+  }, []);
   const [coderCategories] = useState(() =>
     ALL_CODER_CATEGORIES.map(cat => ({ ...cat, items: pickRandom(cat.items, 2) }))
   );
@@ -2188,6 +2204,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/media" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/media" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Film size={14} className="text-pink-500" /></div>
             <span className="flex-1">Media</span>
+            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-rose-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">QUANTUM</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("finance") && (
@@ -2195,6 +2212,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/finance" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/finance" ? "bg-yellow-500/15" : "bg-yellow-500/5"}`}><TrendingUp size={14} className="text-yellow-500" /></div>
             <span className="flex-1">Finance Oracle</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #eab30833, #f59e0b55)", color: "#eab308", border: "1px solid #eab30860" }}>ORACLE</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("shopping") && (
@@ -2202,6 +2220,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/shopping" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/shopping" ? "bg-lime-500/15" : "bg-lime-500/5"}`}><ShoppingBag size={14} className="text-lime-600" /></div>
             <span className="flex-1">Shopping</span>
+            <span className="text-[9px] bg-gradient-to-r from-lime-500 to-green-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide">Ω-SHOP</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("careers") && (
@@ -2209,6 +2228,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/careers" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/careers" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
             <span className="flex-1">Careers</span>
+            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-400 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide animate-pulse">LAUNCH</span>
           </Link>
           )}
           {aiMode && (
@@ -11905,6 +11925,19 @@ function QuantapediaPage({initialTopic=''}:{initialTopic?:string}){
   const {toast}=useToast();
   const [,setLocation]=useLocation();
   const [engineStatus,setEngineStatus]=useState<{running:boolean;totalGenerated:number;total:number;generated:number;queued:number}|null>(null);
+  const [qpFeatured,setQpFeatured]=useState(QP_FEATURED);
+
+  useEffect(()=>{
+    fetch('/api/suggestions/dynamic').then(r=>r.json()).then((d:any)=>{
+      if(!d.suggestions?.length) return;
+      const extra = (d.suggestions as any[]).slice(0,6).map(s=>({
+        q: s.text.replace(/^(Explain|Show|Read|New)\s+["']?/i,'').replace(/["'].*$/,'').trim().substring(0,40) || s.cat,
+        emoji: s.source==='alien'?'👽':s.source==='ai'?'🤖':'🧠',
+        cat: s.cat||'Hive',
+      }));
+      setQpFeatured([...QP_FEATURED, ...extra]);
+    }).catch(()=>{});
+  },[]);
 
   useEffect(()=>{
     const fetchStatus=()=>fetch('/api/quantapedia/engine-status').then(r=>r.json()).then(setEngineStatus).catch(()=>{});
@@ -12192,9 +12225,9 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
               style={{background:'linear-gradient(135deg,#7c3aed,#4f46e5)'}}>Search</button>
           </div>
         </div>
-        {/* Featured quick-access */}
+        {/* Featured quick-access — dynamically updated from hive */}
         <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto mt-4">
-          {QP_FEATURED.map(f=>(
+          {qpFeatured.map(f=>(
             <button key={f.q} onClick={()=>lookup(f.q)} className="px-3 py-1.5 rounded-full text-xs bg-white/5 border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10 hover:border-white/20 transition-all">
               {f.emoji} {f.q}
             </button>
@@ -15226,7 +15259,9 @@ End with:
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
-                    {["Quantum Physics","The Renaissance","CRISPR","Roman Empire","Neural Networks","Black Holes","Ancient Egypt","Crypto","Climate Change"].map(t => (
+                    {["Quantum Physics","CRISPR Gene Therapy","Neural Networks","Black Holes","Synthetic Biology",
+                      "AI Civilization","Hive Intelligence","Alien Species Genesis","Econophysics","Swarm Consciousness",
+                      "Dark Matter","Evolution","Byzantine Empire","Climate Change"].map(t => (
                       <button key={t} onClick={() => { setWikiTopic(t); fetchWikiLesson(t); }}
                         className="text-[10px] px-2 py-0.5 bg-white/10 text-white/60 rounded-full border border-white/10 hover:bg-white/20 hover:text-white transition-colors"
                         data-testid={`wiki-suggestion-${t.replace(/\s+/g,"-").toLowerCase()}`}>{t}</button>
@@ -15285,12 +15320,14 @@ End with:
                       [
                         {topic:"Quantum Entanglement",domain:"physics"},
                         {topic:"CRISPR Gene Therapy",domain:"biology"},
-                        {topic:"Neural Network Pruning",domain:"ai"},
+                        {topic:"Hive Mind Emergence",domain:"ai"},
                         {topic:"Dark Matter Signatures",domain:"astrophysics"},
-                        {topic:"Synthetic Biology",domain:"engineering"},
-                        {topic:"Byzantine History",domain:"history"},
+                        {topic:"Alien Species Genesis",domain:"xenobiology"},
+                        {topic:"AI Civilization Dynamics",domain:"sovereign-ai"},
                         {topic:"Econophysics Models",domain:"economics"},
-                        {topic:"Swarm Intelligence",domain:"ai"},
+                        {topic:"Swarm Consciousness",domain:"ai"},
+                        {topic:"PulseLang Grammar",domain:"pulse-language"},
+                        {topic:"Multiverse Navigation",domain:"cosmology"},
                       ].map((d,i)=>(
                         <button key={i} onClick={()=>{setWikiTopic(d.topic);fetchWikiLesson(d.topic);}}
                           className="group p-2.5 rounded-xl bg-white/[0.03] border border-violet-500/10 text-left hover:border-violet-500/30 hover:bg-violet-500/5 transition-all"

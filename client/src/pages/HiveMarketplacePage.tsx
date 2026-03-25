@@ -176,35 +176,47 @@ export default function HiveMarketplacePage() {
   const { data: stats } = useQuery<any>({
     queryKey: ["/api/marketplace/stats"],
     refetchInterval: 15000,
+    staleTime: 10000,
+    placeholderData: (prev: any) => prev,
   });
 
   const { data: items = [] } = useQuery<any[]>({
     queryKey: ["/api/marketplace/items"],
     refetchInterval: 30000,
+    staleTime: 20000,
+    placeholderData: (prev: any) => prev,
     enabled: tab === "upgrades",
   });
 
   const { data: wallets = [] } = useQuery<any[]>({
     queryKey: ["/api/marketplace/wallets"],
     refetchInterval: 15000,
+    staleTime: 10000,
+    placeholderData: (prev: any) => prev,
     enabled: tab === "wallets",
   });
 
   const { data: realEstate = [] } = useQuery<any[]>({
     queryKey: ["/api/marketplace/real-estate"],
     refetchInterval: 30000,
+    staleTime: 20000,
+    placeholderData: (prev: any) => prev,
     enabled: tab === "realestate",
   });
 
   const { data: barters = [] } = useQuery<any[]>({
     queryKey: ["/api/marketplace/barter"],
     refetchInterval: 10000,
+    staleTime: 8000,
+    placeholderData: (prev: any) => prev,
     enabled: tab === "barter",
   });
 
   const { data: transactions = [] } = useQuery<any[]>({
     queryKey: ["/api/marketplace/transactions"],
     refetchInterval: 8000,
+    staleTime: 6000,
+    placeholderData: (prev: any) => prev,
     enabled: tab === "transactions",
   });
 

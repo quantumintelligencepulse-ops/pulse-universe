@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import { getDynamicSuggestions } from "./suggestions-cache";
+import { getSnapshot } from "./snapshot-cache";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
 
@@ -10119,12 +10121,28 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
         ORDER BY last_updated DESC
         LIMIT 100
       `).catch(() => ({ rows: [] }));
-      // Deduplicate to latest per symbol
       const map = new Map<string, any>();
       for (const row of result.rows as any[]) {
         if (!map.has(row.symbol)) map.set(row.symbol, row);
       }
       res.json({ prices: [...map.values()] });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/suggestions/dynamic — Dynamic hive-sourced suggestion chips
+  app.get("/api/suggestions/dynamic", async (_req, res) => {
+    try {
+      const suggestions = await getDynamicSuggestions();
+      res.json({ suggestions, refreshedAt: Date.now() });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // GET /api/snapshot/:page — Pre-loaded page snapshots for instant load
+  app.get("/api/snapshot/:page", async (req, res) => {
+    try {
+      const page = req.params.page;
+      const data = await getSnapshot(page);
+      res.json({ page, data, cachedAt: Date.now() });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
