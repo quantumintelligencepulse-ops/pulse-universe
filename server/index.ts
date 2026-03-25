@@ -103,6 +103,19 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ALIVE", ts: new Date().toISOString(), protocol: "Ω-IMMORTALITY-V1" });
 });
 
+// ── API TIMEOUT GUARD — prevents user requests from hanging behind engine queries ──
+app.use("/api", (req, res, next) => {
+  const TIMEOUT_MS = 10_000;
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(503).json({ error: "Request timeout — hive engines are busy. Please retry." });
+    }
+  }, TIMEOUT_MS);
+  res.on("finish", () => clearTimeout(timer));
+  res.on("close", () => clearTimeout(timer));
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

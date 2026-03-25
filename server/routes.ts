@@ -397,9 +397,14 @@ export async function registerRoutes(
   app.get("/api/auth/me", async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const cKey = `auth:me:${userId}`;
+    const hit = cacheGet(cKey);
+    if (hit) return res.json(hit);
     const user = await storage.getUserById(userId);
     if (!user) return res.status(401).json({ message: "User not found" });
-    res.json({ id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever });
+    const result = { id: user.id, email: user.email, displayName: user.displayName, isPro: user.isPro, isFreeForever: user.isFreeForever };
+    cacheSet(cKey, result, 60_000);
+    res.json(result);
   });
 
   app.post("/api/auth/logout", (req, res) => {
@@ -2723,7 +2728,12 @@ ${entries}
   app.get(api.chats.list.path, async (req, res) => {
     const userId = getSessionUserId(req);
     if (!userId) return res.json([]);
-    res.json(await storage.getChatsByUser(userId));
+    const cKey = `chats:list:${userId}`;
+    const hit = cacheGet(cKey);
+    if (hit) return res.json(hit);
+    const chats = await storage.getChatsByUser(userId);
+    cacheSet(cKey, chats, 20_000);
+    res.json(chats);
   });
 
   app.post(api.chats.create.path, async (req, res) => {
@@ -2787,10 +2797,17 @@ ${entries}
   app.get("/api/stats", async (req, res) => {
     const userId = getSessionUserId(req);
     if (!userId) return res.json({ chatCount: 0, messageCount: 0, codeFiles: 0 });
-    const chatCount = await storage.getChatCountByUser(userId);
-    const messageCount = await storage.getMessageCountByUser(userId);
+    const cKey = `stats:${userId}`;
+    const hit = cacheGet(cKey);
+    if (hit) return res.json(hit);
+    const [chatCount, messageCount] = await Promise.all([
+      storage.getChatCountByUser(userId),
+      storage.getMessageCountByUser(userId),
+    ]);
     const codeFiles = fs.existsSync(CODES_DIR) ? fs.readdirSync(CODES_DIR).length : 0;
-    res.json({ chatCount, messageCount, codeFiles });
+    const result = { chatCount, messageCount, codeFiles };
+    cacheSet(cKey, result, 30_000);
+    res.json(result);
   });
 
   app.get(api.messages.list.path, async (req, res) => {
@@ -5015,9 +5032,13 @@ If you have live data provided in this prompt, USE IT and present it confidently
 
   app.get("/api/quantapedia/engine-status", async (_req, res) => {
     try {
+      const hit = cacheGet("qp:engine-status");
+      if (hit) return res.json(hit);
       const { getEngineStatus } = await import("./quantapedia-engine");
       const stats = await storage.getQuantapediaStats();
-      res.json({ ...getEngineStatus(), ...stats });
+      const result = { ...getEngineStatus(), ...stats };
+      cacheSet("qp:engine-status", result, 15_000);
+      res.json(result);
     } catch (e) {
       res.json({ running: false, total: 0, generated: 0, queued: 0 });
     }

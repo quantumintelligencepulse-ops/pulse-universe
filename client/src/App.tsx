@@ -377,11 +377,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const refresh = useCallback(async () => {
+    // Max 4 seconds before we give up waiting and unblock the UI
+    const controller = new AbortController();
+    const timeout = setTimeout(() => { controller.abort(); }, 4000);
     try {
-      const r = await fetch("/api/auth/me", { credentials: "include" });
+      const r = await fetch("/api/auth/me", { credentials: "include", signal: controller.signal });
       if (r.ok) { const u = await r.json(); setUser(u); localStorage.setItem("myaigpt_email", u.email); if (u.isPro || u.isFreeForever) { localStorage.setItem("myaigpt_pro", "true"); localStorage.setItem("myaigpt_msg_count", "0"); } }
       else { setUser(null); }
-    } catch { setUser(null); } finally { setLoading(false); }
+    } catch { setUser(null); } finally { clearTimeout(timeout); setLoading(false); }
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
   const login = useCallback(async (email: string, password: string) => {
