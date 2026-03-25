@@ -62,6 +62,7 @@ import { startOmegaPhysicsEngine, getOmegaInvocation } from "./omega-physics-eng
 import { startBusinessEngine, getBusinessStats, getTopBusinesses, getPendingLoans } from "./hive-business-engine";
 import { startAIChildEngine, getChildStats, getActiveChildren } from "./ai-child-engine";
 import { startInvocationLab, getInvocationDiscoveries, getActiveInvocations, getInvocationStats, getResearcherInvocations, getAllPractitioners, getOmegaCollective, getCrossTeachingFeed, getUniversalState, getUniversalDissections, getHiddenVariableStates, getHiddenVariableHistory } from "./auriona-invocation-lab";
+import { startQuantumDissectionEngine, getQuantumEquationManifest } from "./quantum-dissection-engine";
 import { startHiveMindUnification, getHiveMindStatus, getAurionaDirectives, getEmergenceEvents, getOmegaFusionHistory, getPsiCollective, getOmegaCoefficient } from "./hive-mind-unification";
 import { startInventionEngine, getInventionStats, getPatentsByAgent } from "./invention-engine";
 import { startOmniNetEngine, getOmniNetStats, getAgentNetProfile } from "./omni-net-engine";
@@ -313,6 +314,7 @@ app.use((req, res, next) => {
       startCivilizationBridge().catch((e) => log(`CivilizationBridge start error: ${e}`));
       startSovereignTradingEngine().catch((e) => log(`SovereignTradingEngine start error: ${e}`));
       startQStabilityEngine();
+      startQuantumDissectionEngine(); // Feeds all 20 quantum equations → equation_proposals → AI vote pipeline
       // Discord Immortality Protocol disabled — using regular Replit storage
     },
   );

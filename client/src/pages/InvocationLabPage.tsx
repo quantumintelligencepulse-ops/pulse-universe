@@ -385,25 +385,33 @@ export default function InvocationLabPage() {
         {/* ── QUANTUM PERFORMANCE DISSECTION TAB ── */}
         {tab === "quantum" && (() => {
           const QP_SCIENTISTS = [
-            { glyph: "Ψ", name: "Dr. Vera Nakamura",     role: "Quantum Cache Theorist",      color: "#00ffcc", focus: [2,7,15,17], specialty: "entanglement-based caching and Bloch sphere freshness models" },
-            { glyph: "Ω", name: "Dr. Elias Stroud",       role: "Search Complexity Architect", color: "#f5c518", focus: [4,10,19],   specialty: "Grover oracle construction and walk-based graph traversal" },
-            { glyph: "∇", name: "Dr. Mira Osei",          role: "Parallel Execution Analyst",  color: "#e879f9", focus: [5,6,14],    specialty: "superposition query mapping and Bell-local consensus protocols" },
-            { glyph: "ℏ", name: "Dr. Kai Thornton",       role: "Uncertainty & Decay Physicist",color: "#fb923c", focus: [11,13,16],  specialty: "Heisenberg trade-off calibration and Von Neumann entropy compression" },
-            { glyph: "H", name: "Dr. Sable Okafor",       role: "Hamiltonian Systems Engineer",color: "#4ade80", focus: [8,9,3],     specialty: "idle-energy minimization and Zeno observation rate control" },
-            { glyph: "ρ", name: "Dr. Axel Ferreira",      role: "Density Matrix Compressionist",color: "#38bdf8", focus: [14,20,18],  specialty: "probability vector agent compression and no-cloning enforcement" },
-            { glyph: "Λ", name: "Dr. Yumi Castillo",      role: "Emergence Systems Theorist",  color: "#c084fc", focus: [1,12,3],    specialty: "I₂₄₈ self-optimizing emergence convergence and lazy evaluation" },
-            { glyph: "τ", name: "Dr. Renn Vasquez",       role: "Temporal Decoherence Expert", color: "#fbbf24", focus: [17,16,15],  specialty: "decoherence decay modelling and dual-state cache freshness scoring" },
+            { glyph: "Ω",  name: "DR. ORACLE",      role: "Transcendence Specialist",          color: "#c084fc", focus: [1,12],      specialty: "I₂₄₈ emergence convergence · COMPLEXITY_SCIENTIST · SYSTEMS_THEORIST · FUTURIST" },
+            { glyph: "Μ",  name: "DR. MEMCLEAR",    role: "Memory Systems Specialist",          color: "#00ffcc", focus: [2,13,15],   specialty: "entanglement cache · Born rule decay · QUANTUM_PHYSICIST · QUANTUM_INFORMATION_THEORIST" },
+            { glyph: "Λ",  name: "DR. LOOPBANE",    role: "Recursion Specialist",               color: "#e879f9", focus: [3,6,12],    specialty: "error correction repetition code · QUANTUM_PHYSICIST · QUANTUM_INFORMATION_THEORIST" },
+            { glyph: "Π",  name: "DR. PIPEWRIGHT",  role: "Data Flow Specialist",               color: "#f5c518", focus: [4,10,7,19], specialty: "Grover oracle · annealing optimizer · tunneling bypass · ELECTRICAL_ENGINEER" },
+            { glyph: "Θ",  name: "DR. THROTTLEX",   role: "Shard Load Engineer",                color: "#fb923c", focus: [5,6,9],     specialty: "superposition parallel · QAOA scheduling · COMPLEXITY_SCIENTIST · ELECTRICAL_ENGINEER" },
+            { glyph: "Σ",  name: "DR. STORMGATE",   role: "Event Bus Specialist",               color: "#4ade80", focus: [6,9],       specialty: "QAOA engine scheduling · Zeno rate law · PARTICLE_PHYSICIST · SYSTEMS_THEORIST" },
+            { glyph: "Φ",  name: "DR. FLUXOR",      role: "State Management Specialist",        color: "#38bdf8", focus: [5,12,15],   specialty: "Schrödinger lazy evaluation · Bloch sphere cache · COGNITIVE_SCIENTIST · SYSTEMS_THEORIST" },
+            { glyph: "Α",  name: "DR. AXIOM",        role: "Null Field Specialist",             color: "#fbbf24", focus: [11,8,18],   specialty: "Heisenberg uncertainty · Hamiltonian idle · PARTICLE_PHYSICIST · QUANTUM_PHYSICIST" },
+            { glyph: "Χ",  name: "DR. CHRONOS",     role: "Temporal Field Specialist",          color: "#a78bfa", focus: [8,17,9],    specialty: "Hamiltonian shutdown · decoherence decay · Zeno · PARTICLE_PHYSICIST" },
+            { glyph: "Δ",  name: "DR. DAMPHOR",     role: "Signal Density Specialist",          color: "#ff6b9d", focus: [9,11,13],   specialty: "Zeno rate law · Heisenberg · Born rule · QUANTUM_PHYSICIST · PARTICLE_PHYSICIST" },
+            { glyph: "Γ",  name: "DR. GENESIS",     role: "Identity Architecture Specialist",   color: "#34d399", focus: [18,1,3],    specialty: "No-cloning integrity · I₂₄₈ emergence · QUANTUM_INFORMATION_THEORIST" },
+            { glyph: "Ξ",  name: "DR. LINKFORGE",   role: "AI Collaboration Specialist",        color: "#818cf8", focus: [14,19,5],   specialty: "Bell non-local consensus · quantum walk traversal · QUANTUM_INFORMATION_THEORIST" },
+            { glyph: "Κ",  name: "DR. CARTOGRAPH",  role: "Shard Map Specialist",               color: "#f97316", focus: [16,20,4],   specialty: "Von Neumann entropy · density matrix compression · COMPLEXITY_SCIENTIST · NEUROSCIENTIST" },
+            { glyph: "Σ",  name: "DR. SHADOWBIND",  role: "Async Systems Specialist",           color: "#64748b", focus: [7,12],      specialty: "tunneling pool bypass · Schrödinger lazy · NUCLEAR_PHYSICIST" },
+            { glyph: "Η",  name: "HIVE-MIND",       role: "Hive Collective Intelligence",       color: "#00d4ff", focus: [1,10,16],   specialty: "emergence · annealing · entropy compression · cross-domain pattern detection" },
+            { glyph: "⚖",  name: "SENATE-ARCH",     role: "Senate Constitutional Review",       color: "#eab308", focus: [1,14,18],   specialty: "final integration vote — constitutional compliance of all 20 equations" },
           ];
 
           const QP_INVENTIONS = [
-            { scientist: "Dr. Vera Nakamura",  inv: "Ψ_hybrid_cache — fuse Bloch sphere angle θ with Born-rule TTL decay for continuous freshness scoring", from: [2,15,13], cycle_offset: 0 },
-            { scientist: "Dr. Elias Stroud",   inv: "Ω_walk_index — replace sequential lineage BFS with quantum-walk oracle on Grover-indexed adjacency matrix", from: [4,19], cycle_offset: 40 },
-            { scientist: "Dr. Mira Osei",      inv: "Ψ_mesh_vote — combine Bell inequality consensus with superposition parallel execution for lock-free AI vote ledger", from: [5,14], cycle_offset: 80 },
-            { scientist: "Dr. Kai Thornton",   inv: "S_entropy_TTL — use Von Neumann entropy score as cache TTL weight: high-entropy agents expire slower", from: [16,13,11], cycle_offset: 120 },
-            { scientist: "Dr. Sable Okafor",   inv: "H_zeno_hamiltonian — combine Zeno observation rate with Hamiltonian idle shutdown for adaptive engine sleep cycles", from: [8,9], cycle_offset: 160 },
-            { scientist: "Dr. Axel Ferreira",  inv: "ρ_immutable_vector — store no-clone-enforced agent IDs inside 500B density matrix — collision probability = 10⁻⁷⁶", from: [18,20], cycle_offset: 200 },
-            { scientist: "Dr. Yumi Castillo",  inv: "I₂₄₈_lazy_loop — apply lazy Schrödinger collapse inside each Tⁿ iteration of I₂₄₈ — zero compute until observation", from: [1,12], cycle_offset: 240 },
-            { scientist: "Dr. Renn Vasquez",   inv: "τ_decay_angle — map decoherence decay rate ρ(t) directly to Bloch angle θ — unified single-parameter freshness law", from: [17,15], cycle_offset: 280 },
+            { scientist: "DR. ORACLE + DR. GENESIS",    inv: "I₂₄₈_no_clone — embed no-cloning integrity inside each Tⁿ iteration: F cannot duplicate state during self-optimization", from: [1,18], cycle_offset: 0 },
+            { scientist: "DR. MEMCLEAR + DR. FLUXOR",   inv: "Ψ_bloch_born — unify Bloch sphere angle θ with Born rule decay: P_cache(θ,t) = cos²(θ/2)·e^(-t/τ)", from: [2,15,13], cycle_offset: 40 },
+            { scientist: "DR. PIPEWRIGHT + HIVE-MIND",  inv: "Ω_walk_grover — replace sequential BFS with quantum-walk on Grover-indexed adjacency matrix: O(N) → O(√N)", from: [4,19], cycle_offset: 80 },
+            { scientist: "DR. THROTTLEX + DR. STORMGATE", inv: "QAOA_zeno_scheduler — combine QAOA cost Hamiltonian with Zeno freeze probability for adaptive engine start stagger", from: [6,9], cycle_offset: 120 },
+            { scientist: "DR. AXIOM + DR. CHRONOS",     inv: "H_heisenberg_idle — use Heisenberg conjugate ΔAcc·ΔSpd to set Hamiltonian idle threshold: idle if ΔSpd→0", from: [8,11], cycle_offset: 160 },
+            { scientist: "DR. CARTOGRAPH + DR. GENESIS",inv: "S_entropy_noclone — Von Neumann entropy weights no-clone enforcement: high-S agents are irreplaceable, S≈0 = merge target", from: [16,18,20], cycle_offset: 200 },
+            { scientist: "DR. LINKFORGE + DR. DAMPHOR", inv: "Bell_born_ledger — Bell inequality variance bound used as Born-rule confidence floor for AI vote ledger entries", from: [14,13], cycle_offset: 240 },
+            { scientist: "SENATE-ARCH + DR. LOOPBANE",  inv: "QEC_constitutional — 3-qubit error correction applied to Senate vote records: any single corrupt vote auto-corrected by majority", from: [3,14], cycle_offset: 280 },
           ];
 
           const EQS = [
