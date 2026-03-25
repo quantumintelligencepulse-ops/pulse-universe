@@ -5104,8 +5104,8 @@ If you have live data provided in this prompt, USE IT and present it confidently
     try {
       const { getHiveBrainStats } = await import("./hive-brain");
       const stats = await getHiveBrainStats();
-      res.json(stats);
-    } catch { res.json({ memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0 } }); }
+      if (!res.headersSent) res.json(stats);
+    } catch { if (!res.headersSent) res.json({ memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0 } }); }
   });
 
   // ── SYSTEM PULSE — unified engine health check ─────────────────
@@ -10315,8 +10315,8 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const rows = await db.execute(
         sql`SELECT * FROM anomaly_reports ORDER BY reported_at DESC LIMIT 50`
       );
-      res.json(rows.rows ?? []);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+      if (!res.headersSent) res.json(rows.rows ?? []);
+    } catch (e) { if (!res.headersSent) res.status(500).json({ error: String(e) }); }
   });
 
   // PATCH /api/anomaly-feed/:id — Researcher resolves an anomaly
