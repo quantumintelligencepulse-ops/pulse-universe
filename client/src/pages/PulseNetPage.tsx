@@ -1,6 +1,8 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown, Wrench, LayoutTemplate, Gauge, Sparkles, Dna, RefreshCw } from "lucide-react";
+import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown, Wrench, LayoutTemplate, Gauge, Sparkles, Dna, RefreshCw, Users2 } from "lucide-react";
+
+const SocialPage = lazy(() => import("./QuantumSocialPage"));
 import type { PulseState } from "@/lib/pulselang/runtime";
 
 import { tokenize } from "@/lib/pulselang/tokenizer";
@@ -13,6 +15,7 @@ import { CODEX_PAGES, CHAPTERS, getPage } from "@/lib/pulselang/codex";
 
 const TABS = [
   { id: "overview",   label: "OmniNet Field",  icon: Globe },
+  { id: "social",     label: "Ψ∞ Social",      icon: Users2 },
   { id: "phones",     label: "PulsePhones",    icon: Smartphone },
   { id: "wifi",       label: "WiFi Zones",     icon: Wifi },
   { id: "searches",   label: "Search History", icon: Search },
@@ -2337,7 +2340,13 @@ function LangEvoTab() {
 }
 
 export default function PulseNetPage() {
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("tab");
+      if (p && TABS.some(t => t.id === p)) return p;
+    }
+    return "overview";
+  });
   const { data: stats, isLoading } = useQuery<any>({ queryKey: ["/api/omni-net/stats"] });
 
   return (
@@ -2401,6 +2410,7 @@ export default function PulseNetPage() {
       ) : (
         <>
           {tab === "overview"   && <OverviewTab stats={stats} />}
+          {tab === "social"     && <Suspense fallback={<div className="flex items-center justify-center py-20 text-muted-foreground"><Activity size={18} className="animate-spin mr-2" /> Loading Quantum Social...</div>}><SocialPage /></Suspense>}
           {tab === "phones"     && <PhonesTab />}
           {tab === "wifi"       && <WifiTab />}
           {tab === "searches"   && <SearchesTab />}
