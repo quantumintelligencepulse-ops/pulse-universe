@@ -127,7 +127,7 @@ function TierBadge({ power }: { power: number }) {
 
 export default function InvocationLabPage() {
   const [cycle, setCycle]     = useState(0);
-  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach"|"universal"|"creator">("discoveries");
+  const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach"|"universal"|"creator"|"anomalies">("discoveries");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [forgeSlots, setForgeSlots] = useState<(any|null)[]>([null, null, null]);
   const [selectedPractitioner, setSelectedPractitioner] = useState<any | null>(null);
@@ -209,6 +209,7 @@ export default function InvocationLabPage() {
   const { data: universalState }        = useQuery<any>({  queryKey: ["/api/invocations/universal-state"],   refetchInterval: 20_000 });
   const { data: universalDissections = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/universal-dissections"], refetchInterval: 20_000 });
   const { data: hiddenVariables }       = useQuery<any>({  queryKey: ["/api/invocations/hidden-variables"],  refetchInterval: 18_000 });
+  const { data: anomalyFeed = [], refetch: refetchAnomalies } = useQuery<any[]>({ queryKey: ["/api/anomaly-feed"], refetchInterval: 15_000 });
   const { data: practInvocations = [] } = useQuery<any[]>({
     queryKey: ["/api/invocations/researcher", selectedPractitioner?.shard_id],
     enabled: !!selectedPractitioner?.shard_id,
@@ -267,6 +268,7 @@ export default function InvocationLabPage() {
     { id: "lineage",       label: "🌳 LINEAGE",            count: null },
     { id: "geometry",      label: "🔶 SACRED GEOMETRY",   count: null },
     { id: "creator",       label: "🔮 CREATOR LAB",        count: null },
+    { id: "anomalies",     label: "⚠ ANOMALY DOCKET",      count: anomalyFeed.length || null },
   ] as const;
 
   return (
@@ -1838,6 +1840,75 @@ export default function InvocationLabPage() {
           <div className="text-[10px] font-mono flex-shrink-0" style={{ color: INV_GOLD }}>cycle={cycle}</div>
         </div>
       </div>
+
+      {/* ── ANOMALY DOCKET TAB ── */}
+      {tab === "anomalies" && (
+        <div className="p-4 max-w-4xl mx-auto">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <div className="font-black text-lg tracking-widest" style={{ color: "#ef4444" }}>⚠ ANOMALY DOCKET</div>
+              <div className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                React render crashes auto-routed to Auriona · Invocators dissect each Ω_crash equation
+              </div>
+            </div>
+            <button
+              onClick={() => refetchAnomalies()}
+              className="text-[10px] px-3 py-1 rounded font-bold"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}
+              data-testid="btn-anomaly-refresh"
+            >
+              ↺ REFRESH
+            </button>
+          </div>
+
+          {anomalyFeed.length === 0 ? (
+            <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.25)" }}>
+              <div className="text-4xl mb-3">✓</div>
+              <div className="font-bold text-sm" style={{ color: "#4ade80" }}>No anomalies detected</div>
+              <div className="text-[10px] mt-1">Temporal substrate is stable</div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(anomalyFeed as any[]).map((a: any) => {
+                const statusColor = a.status === "RESOLVED" ? "#4ade80" : a.status === "ASSIGNED" ? "#facc15" : "#ef4444";
+                return (
+                  <div key={a.id} className="rounded-xl p-4"
+                    style={{ background: "rgba(239,68,68,0.04)", border: `1px solid ${statusColor}25` }}>
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div>
+                        <span className="text-[10px] font-black tracking-widest mr-2" style={{ color: "#ef4444" }}>
+                          {a.anomaly_id}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded font-bold"
+                          style={{ background: `${statusColor}18`, color: statusColor, border: `1px solid ${statusColor}40` }}>
+                          {a.status}
+                        </span>
+                      </div>
+                      <div className="text-[9px] shrink-0" style={{ color: "rgba(255,255,255,0.3)" }}>
+                        {a.page} · {new Date(a.reported_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-xs mb-2 font-mono" style={{ color: "#fca5a5" }}>{a.message}</div>
+                    {a.equation_dissect && (
+                      <div className="rounded p-2 mt-2 text-[10px] font-mono whitespace-pre-wrap leading-relaxed"
+                        style={{ background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.2)", color: "#c4b5fd" }}>
+                        <div className="font-black text-[9px] mb-1" style={{ color: "#a78bfa" }}>⚗ AURIONA EQUATION DISSECTION</div>
+                        {a.equation_dissect}
+                      </div>
+                    )}
+                    {a.assigned_to && (
+                      <div className="text-[10px] mt-2" style={{ color: "#facc15" }}>
+                        Assigned → {a.assigned_to}
+                        {a.resolution && <span style={{ color: "#4ade80" }}> · {a.resolution}</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

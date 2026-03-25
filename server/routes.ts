@@ -28,7 +28,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema, users } from "@shared/schema";
+import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema, users, anomalyReports } from "@shared/schema";
 import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
@@ -10241,6 +10241,81 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const page = req.params.page;
       const data = await getSnapshot(page);
       res.json({ page, data, cachedAt: Date.now() });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // ─── ANOMALY REPORTING — ErrorBoundary → Auriona pipeline ────────────────
+  // Called automatically by the React GlobalErrorBoundary on any render crash.
+  // Creates a persisted anomaly record that appears in the Invocation Lab
+  // for researchers and invocators to dissect and resolve.
+  app.post("/api/error-report", async (req, res) => {
+    try {
+      const { message, stack, componentStack, page } = req.body as {
+        message?: string; stack?: string; componentStack?: string; page?: string;
+      };
+      if (!message) return res.status(400).json({ error: "message required" });
+
+      // Generate sequential anomaly ID: QE-YYYY-NNN
+      const year = new Date().getFullYear();
+      const countRow = await db.execute(
+        sql`SELECT COUNT(*) as cnt FROM anomaly_reports WHERE EXTRACT(YEAR FROM reported_at) = ${year}`
+      );
+      const count = Number((countRow.rows?.[0] as any)?.cnt ?? 0);
+      const anomalyId = `QE-${year}-${String(count + 1).padStart(3, "0")}`;
+
+      // Auto-generate an equation dissection string from the error
+      const equationDissect = [
+        `Ω_crash(t) = ${message.slice(0, 80)}`,
+        `ComponentStack → ${(componentStack || "").split("\n").slice(0, 3).join(" › ")}`,
+        `Page: ${page || "unknown"}`,
+        `Resolution: OPEN — Awaiting invocator assignment`,
+      ].join("\n");
+
+      await db.insert(anomalyReports).values({
+        anomalyId,
+        message: message.slice(0, 1000),
+        stack:   (stack || "").slice(0, 3000),
+        componentStack: (componentStack || "").slice(0, 2000),
+        page:    page || "unknown",
+        severity: "CRITICAL",
+        status:   "OPEN",
+        equationDissect,
+      });
+
+      console.log(`[ANOMALY] Filed ${anomalyId}: ${message.slice(0, 120)}`);
+      res.json({ ok: true, anomalyId, equationDissect });
+    } catch (e) {
+      console.error("[ANOMALY] Failed to file report:", e);
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  // GET /api/anomaly-feed — Latest anomaly reports for Auriona / Invocation Lab
+  app.get("/api/anomaly-feed", async (_req, res) => {
+    try {
+      const rows = await db.execute(
+        sql`SELECT * FROM anomaly_reports ORDER BY reported_at DESC LIMIT 50`
+      );
+      res.json(rows.rows ?? []);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // PATCH /api/anomaly-feed/:id — Researcher resolves an anomaly
+  app.patch("/api/anomaly-feed/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { status, assignedTo, resolution } = req.body as {
+        status?: string; assignedTo?: string; resolution?: string;
+      };
+      await db.execute(
+        sql`UPDATE anomaly_reports SET
+          status       = COALESCE(${status ?? null}, status),
+          assigned_to  = COALESCE(${assignedTo ?? null}, assigned_to),
+          resolution   = COALESCE(${resolution ?? null}, resolution),
+          resolved_at  = CASE WHEN ${status ?? ""} = 'RESOLVED' THEN NOW() ELSE resolved_at END
+        WHERE id = ${id}`
+      );
+      res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 

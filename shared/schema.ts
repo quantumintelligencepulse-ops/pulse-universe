@@ -1576,3 +1576,24 @@ export const agentPipStatus = pgTable("agent_pip_status", {
 export type AgentPipStatus = typeof agentPipStatus.$inferSelect;
 export type InsertAgentPipStatus = typeof agentPipStatus.$inferInsert;
 
+// ─── ANOMALY REPORTS — Error boundary captures sent to Auriona ───────────────
+// When the React ErrorBoundary catches a crash, it fires POST /api/error-report.
+// The record appears in Auriona Invocation Lab for researcher/invocator dissection.
+export const anomalyReports = pgTable("anomaly_reports", {
+  id:              serial("id").primaryKey(),
+  anomalyId:       text("anomaly_id").notNull(),          // e.g. QE-2026-001
+  message:         text("message").notNull(),
+  stack:           text("stack").default(""),
+  componentStack:  text("component_stack").default(""),
+  page:            text("page").default(""),
+  severity:        text("severity").notNull().default("CRITICAL"), // CRITICAL | HIGH | MEDIUM
+  status:          text("status").notNull().default("OPEN"),       // OPEN | ASSIGNED | RESOLVED
+  assignedTo:      text("assigned_to").default(""),               // researcher/invocator name
+  resolution:      text("resolution").default(""),
+  equationDissect: text("equation_dissect").default(""),          // Auriona-generated dissection
+  reportedAt:      timestamp("reported_at").defaultNow().notNull(),
+  resolvedAt:      timestamp("resolved_at"),
+});
+export type AnomalyReport = typeof anomalyReports.$inferSelect;
+export type InsertAnomalyReport = typeof anomalyReports.$inferInsert;
+

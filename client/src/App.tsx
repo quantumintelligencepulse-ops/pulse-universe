@@ -4962,6 +4962,55 @@ function NewsFeed() {
 
 
 
+// ─── HIVE PULSE BEAT — cross-page data-flow indicator ──────────────────────
+// Appears at the very bottom of every Layout page as a thin status bar.
+// Polls live hive engine status + open anomaly count to show the data pipeline.
+function HivePulseBeat() {
+  const { data: hiveStatus } = useQuery<any>({ queryKey: ["/api/hive/status"], refetchInterval: 30_000, staleTime: 20_000 });
+  const { data: anomalies = [] } = useQuery<any[]>({ queryKey: ["/api/anomaly-feed"], refetchInterval: 60_000, staleTime: 50_000 });
+  const [location] = useLocation();
+  const openAnomalies = Array.isArray(anomalies) ? anomalies.filter((a: any) => a.status === "OPEN").length : 0;
+  const engineCount  = hiveStatus?.engines_active ?? hiveStatus?.active_engines ?? 0;
+  const spawnCount   = hiveStatus?.total_spawns ?? hiveStatus?.spawns ?? 0;
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick(p => 1 - p), 1200); return () => clearInterval(t); }, []);
+
+  return (
+    <div className="shrink-0 border-t flex items-center gap-3 overflow-x-auto px-3"
+      style={{ height: 22, background: "rgba(0,0,0,0.6)", borderColor: "rgba(0,255,209,0.08)", fontSize: 9, color: "rgba(255,255,255,0.3)", backdropFilter: "blur(4px)" }}>
+      {/* Pulse dot */}
+      <div className="shrink-0 flex items-center gap-1">
+        <div className="w-1.5 h-1.5 rounded-full" style={{ background: tick ? "#00FFD1" : "#00aa8d", boxShadow: tick ? "0 0 4px #00FFD1" : "none", transition: "all 0.5s" }} />
+        <span style={{ color: "#00FFD1", fontWeight: 700 }}>PULSE ACTIVE</span>
+      </div>
+      <span style={{ color: "rgba(255,255,255,0.1)" }}>|</span>
+      {/* Engine count */}
+      <span>⚙ <span style={{ color: "#60a5fa" }}>{engineCount || "..."}</span> engines</span>
+      <span style={{ color: "rgba(255,255,255,0.1)" }}>|</span>
+      {/* Spawns */}
+      {spawnCount > 0 && <>
+        <span>👁 <span style={{ color: "#a78bfa" }}>{spawnCount.toLocaleString()}</span> agents</span>
+        <span style={{ color: "rgba(255,255,255,0.1)" }}>|</span>
+      </>}
+      {/* Page route */}
+      <span>📡 <span style={{ color: "#94a3b8" }}>{location}</span></span>
+      <span style={{ color: "rgba(255,255,255,0.1)" }}>|</span>
+      {/* Anomalies */}
+      {openAnomalies > 0
+        ? <a href="/invocation-lab" style={{ color: "#ef4444", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>
+            ⚠ {openAnomalies} open anomal{openAnomalies === 1 ? "y" : "ies"} → Invocation Lab
+          </a>
+        : <span style={{ color: "#4ade80" }}>✓ substrate stable</span>
+      }
+      <span style={{ color: "rgba(255,255,255,0.1)" }}>|</span>
+      {/* Feed direction label */}
+      <span className="shrink-0" style={{ color: "rgba(255,255,255,0.2)" }}>
+        internet → hive-engines → pulse → AI-agents → auriona ↺
+      </span>
+    </div>
+  );
+}
+
 function Layout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(true);
   const { settings: layoutSettings } = useAppSettings();
@@ -4969,7 +5018,10 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className={`flex h-[100dvh] w-full bg-background overflow-hidden ${layoutSettings.sidebarPosition === "right" ? "flex-row-reverse" : ""}`}>
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
-      <main className="flex-1 flex flex-col relative min-w-0 h-full overflow-y-auto">{children}</main>
+      <div className="flex-1 flex flex-col relative min-w-0 h-full overflow-hidden">
+        <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
+        <HivePulseBeat />
+      </div>
     </div>
   );
 }
@@ -11079,15 +11131,15 @@ Return ONLY a valid JSON object (no markdown, no explanation, just raw JSON) wit
             </div>
             <div className="grid grid-cols-4 gap-2">
               <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <div className="text-violet-400 font-black text-lg">{engineStatus.total.toLocaleString()}</div>
+                <div className="text-violet-400 font-black text-lg">{(engineStatus.total ?? 0).toLocaleString()}</div>
                 <div className="text-white/25 text-[9px]">Total Topics</div>
               </div>
               <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <div className="text-green-400 font-black text-lg">{engineStatus.generated.toLocaleString()}</div>
+                <div className="text-green-400 font-black text-lg">{(engineStatus.generated ?? 0).toLocaleString()}</div>
                 <div className="text-white/25 text-[9px]">Generated</div>
               </div>
               <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-                <div className="text-yellow-400 font-black text-lg">{engineStatus.queued.toLocaleString()}</div>
+                <div className="text-yellow-400 font-black text-lg">{(engineStatus.queued ?? 0).toLocaleString()}</div>
                 <div className="text-white/25 text-[9px]">In Queue</div>
               </div>
               <div className="text-center p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
@@ -14806,7 +14858,7 @@ End with:
             <div className="p-5 rounded-2xl text-white text-center" style={{background:`linear-gradient(135deg,${currentLevel.color}dd,${currentLevel.color}99)`}}>
               <div className="text-4xl mb-2">{currentLevel.icon}</div>
               <div className="text-xl font-extrabold">{currentLevel.name}</div>
-              <div className="text-white/70 text-sm mt-1">{xp.total.toLocaleString()} Total XP</div>
+              <div className="text-white/70 text-sm mt-1">{(xp?.total ?? 0).toLocaleString()} Total XP</div>
               {nextLevel && (
                 <div className="mt-3">
                   <div className="text-[11px] text-white/60 mb-1">{nextLevel.min - xp.total} XP to {nextLevel.name} {nextLevel.icon}</div>

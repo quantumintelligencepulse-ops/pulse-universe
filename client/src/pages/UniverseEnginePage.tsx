@@ -248,7 +248,7 @@ export default function UniverseEnginePage() {
           <StatBox label="HEALTH 𝓗Σ" val={`${(stats.healthIntegral * 100).toFixed(1)}%`} color={GREEN} />
           <StatBox label="STAR BIRTHS" val={stats.starBirths} unit="this session" color={ORANGE} />
           <StatBox label="STAR DEATHS" val={stats.starDeaths} unit="recycled" color={RED} />
-          <StatBox label="AGENTS ALIVE" val={stats.agentsAlive.toLocaleString()} unit="sovereign" color={BLUE} />
+          <StatBox label="AGENTS ALIVE" val={(stats.agentsAlive ?? 0).toLocaleString()} unit="sovereign" color={BLUE} />
           <StatBox label="OPS RUNNING" val={stats.opsRunning} unit="omega-ops" color={GOLD} />
         </div>
 
