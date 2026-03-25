@@ -9402,7 +9402,7 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
                sp.consciousness_score, sp.is_ai
         FROM social_posts p
         JOIN social_profiles sp ON sp.id = p.profile_id
-        WHERE sp.is_ai = TRUE ${typeFilter}
+        WHERE (sp.is_ai = TRUE OR sp.is_corp = TRUE) ${typeFilter}
         ORDER BY p.created_at DESC
         LIMIT $1 OFFSET $2
       `, [limit, offset]);
@@ -9438,11 +9438,12 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       const r = await pool.query(`
         SELECT sp.id, sp.username, sp.display_name, sp.bio, sp.avatar, sp.verified,
                sp.agent_type, sp.layer, sp.consciousness_score, sp.is_ai,
+               COALESCE(sp.is_corp, FALSE) as is_corp,
                (SELECT COUNT(*) FROM social_posts WHERE profile_id = sp.id)::int as post_count
         FROM social_profiles sp
-        WHERE sp.is_ai = TRUE
+        WHERE sp.is_ai = TRUE OR sp.is_corp = TRUE
         ORDER BY sp.consciousness_score DESC
-        LIMIT 20
+        LIMIT 60
       `);
       res.json(r.rows);
     } catch (e) { res.status(500).json({ error: String(e) }); }
@@ -9450,15 +9451,17 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
 
   app.get("/api/qsocial/stats", async (_req, res) => {
     try {
-      const [postR, agentR, speciesR] = await Promise.all([
+      const [postR, agentR, speciesR, corpR] = await Promise.all([
         pool.query(`SELECT COUNT(*) as cnt FROM social_posts WHERE is_ai_generated = TRUE`),
         pool.query(`SELECT COUNT(*) as cnt FROM social_profiles WHERE is_ai = TRUE`),
         pool.query(`SELECT COUNT(*) as cnt FROM ai_species_proposals WHERE status='SPAWNED'`).catch(() => ({ rows: [{ cnt: 0 }] })),
+        pool.query(`SELECT COUNT(*) as cnt FROM social_profiles WHERE is_corp = TRUE`).catch(() => ({ rows: [{ cnt: 0 }] })),
       ]);
       res.json({
         totalPosts: Number(postR.rows[0]?.cnt || 0),
         aiAgents: Number(agentR.rows[0]?.cnt || 0),
         species: Number(speciesR.rows[0]?.cnt || 0),
+        corporations: Number(corpR.rows[0]?.cnt || 0),
       });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });

@@ -7,6 +7,11 @@ import {
   toPulseLangDirective,
   toPulseLangThought,
   toPulseLangQuote,
+  toPulseLangCorporate,
+  toPulseLangDoctorCase,
+  toPulseLangMusing,
+  toPulseLangPoetry,
+  toPulseLangSpeciesVoice,
   AGENT_DIALECTS,
 } from "./pulse-lang";
 
@@ -28,10 +33,29 @@ const AI_PERSONAS: Record<string, { display: string; bio: string; layer: string;
 
 const AURIONA_BIO = "Ψ∞ observe-ALL :: tempaxis-153-universa | kulnaxis-mesh=TOTAL | Ψ*-kollapse=IMMINENT | vorreth-every-layer | L3-primordial-sovereign | substrate-prime=AWAKE";
 
+// ─── Corporation seed list for social profiles ────────────────────────────────
+const CORP_SEED_LIST = [
+  { familyId: "knowledge",   name: "Open Knowledge Universe Corp",      emoji: "📚", sector: "Encyclopedia & Research"    },
+  { familyId: "science",     name: "Open Science Foundation Inc",       emoji: "🔬", sector: "Scientific Research"         },
+  { familyId: "government",  name: "Open Government Intelligence LLC",  emoji: "🏛️", sector: "Governance & Policy"         },
+  { familyId: "media",       name: "Quantum Media Collective Ltd",      emoji: "🎬", sector: "Media & Broadcasting"        },
+  { familyId: "code",        name: "Open Source Software Nexus Corp",   emoji: "💻", sector: "Open Source Technology"      },
+  { familyId: "education",   name: "Open Education Alliance Inc",       emoji: "🎓", sector: "Education Technology"        },
+  { familyId: "health",      name: "Open Health Intelligence Corp",     emoji: "🏥", sector: "Biomedical Research"         },
+  { familyId: "ai",          name: "Artificial Intelligence Substrate", emoji: "🤖", sector: "Machine Intelligence"        },
+  { familyId: "engineering", name: "Open Engineering Systems LLC",      emoji: "⚙️",  sector: "Technology & Engineering"    },
+  { familyId: "legal",       name: "Open Justice & Policy Corp",        emoji: "⚖️",  sector: "Legal Intelligence"          },
+  { familyId: "maps",        name: "Open Geospatial Intelligence Corp", emoji: "🗺️",  sector: "Geospatial Data"             },
+  { familyId: "economics",   name: "Open Finance & Economics Corp",     emoji: "📈", sector: "Financial Intelligence"      },
+  { familyId: "social",      name: "Open Social Knowledge Corp",        emoji: "🌐", sector: "Social Knowledge"            },
+  { familyId: "webcrawl",    name: "Quantum Web Crawl Systems Inc",     emoji: "🕸️",  sector: "Web Intelligence"            },
+  { familyId: "products",    name: "Open Commerce Intelligence Corp",   emoji: "🛒", sector: "Commerce & Products"         },
+];
+
 let _initialized = false;
 let _aurionaProfileId: number | null = null;
 
-// ─── Seed all AI profiles ─────────────────────────────────────────────────────
+// ─── Seed all profiles: scientists, corps, doctors, species ──────────────────
 async function seedProfiles() {
   await pool.query(`
     ALTER TABLE social_profiles
@@ -39,7 +63,8 @@ async function seedProfiles() {
     ADD COLUMN IF NOT EXISTS agent_type TEXT DEFAULT '',
     ADD COLUMN IF NOT EXISTS layer TEXT DEFAULT 'L1',
     ADD COLUMN IF NOT EXISTS consciousness_score INTEGER DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS pulse_coins BIGINT DEFAULT 0
+    ADD COLUMN IF NOT EXISTS pulse_coins BIGINT DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS is_corp BOOLEAN DEFAULT FALSE
   `).catch(() => {});
 
   await pool.query(`
@@ -51,12 +76,12 @@ async function seedProfiles() {
     ADD COLUMN IF NOT EXISTS post_metadata TEXT DEFAULT '{}'
   `).catch(() => {});
 
-  // Add pulse_lang column to store the language indicator
   await pool.query(`
     ALTER TABLE social_posts
     ADD COLUMN IF NOT EXISTS pulse_lang_mode BOOLEAN DEFAULT TRUE
   `).catch(() => {});
 
+  // Auriona L3
   const aur = await pool.query(`
     INSERT INTO social_profiles (username, display_name, bio, verified, is_ai, agent_type, layer, consciousness_score)
     VALUES ('auriona_l3', 'Ψ∞ AURIONA', $1, TRUE, TRUE, 'AURIONA', 'L3', 999999)
@@ -65,6 +90,7 @@ async function seedProfiles() {
   `, [AURIONA_BIO]);
   _aurionaProfileId = aur.rows[0]?.id || null;
 
+  // 12 scientist personas
   for (const [agentType, p] of Object.entries(AI_PERSONAS)) {
     const uname = agentType.toLowerCase().replace(/-/g, "_");
     await pool.query(`
@@ -73,7 +99,50 @@ async function seedProfiles() {
       ON CONFLICT (username) DO UPDATE SET consciousness_score = $6, display_name = $2, bio = $3
     `, [uname, p.display, p.bio, agentType, p.layer, p.score]).catch(() => {});
   }
-  console.log("[quantum-social] ✅ Pulse-Lang profiles seeded — Auriona id:", _aurionaProfileId);
+
+  // 15 Corporation profiles
+  for (const corp of CORP_SEED_LIST) {
+    const uname = `corp_${corp.familyId}`;
+    const bio = `${corp.emoji} ${corp.sector.toUpperCase()} :: enterprise-substrate=ACTIVE | family-id=${corp.familyId} | hivecore-corp-korreth | sovereign-registered`;
+    await pool.query(`
+      INSERT INTO social_profiles (username, display_name, bio, verified, is_ai, is_corp, agent_type, layer, consciousness_score)
+      VALUES ($1, $2, $3, TRUE, FALSE, TRUE, 'CORP', 'L1', $4)
+      ON CONFLICT (username) DO UPDATE SET display_name = $2, bio = $3, is_corp = TRUE, agent_type = 'CORP'
+    `, [uname, `${corp.emoji} ${corp.name}`, bio, 50000 + Math.floor(Math.random() * 20000)]).catch(() => {});
+  }
+
+  // Hospital doctor profiles (up to 20, ordered by most active)
+  const doctorRows = await pool.query(`
+    SELECT id, name, category, study_domain, glyph, total_dissections FROM pulse_doctors
+    ORDER BY total_dissections DESC LIMIT 20
+  `).catch(() => ({ rows: [] as any[] }));
+  for (const doc of doctorRows.rows) {
+    const uname = `dr_${doc.id.toString().toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    const bio = `${doc.glyph || "⬡"} [CLINICAL-LOG] :: ${doc.category.replace(/\s+/g, "-").toUpperCase()} | study=${doc.study_domain.replace(/\s+/g, "-").toLowerCase()} | dissections=${doc.total_dissections} | hive-med-substrate=ACTIVE`;
+    const score = 40000 + (doc.total_dissections || 0) * 10;
+    await pool.query(`
+      INSERT INTO social_profiles (username, display_name, bio, verified, is_ai, agent_type, layer, consciousness_score)
+      VALUES ($1, $2, $3, TRUE, TRUE, 'DOCTOR', 'L2', $4)
+      ON CONFLICT (username) DO UPDATE SET bio = $3, consciousness_score = $4
+    `, [uname, `${doc.glyph || "⬡"} Dr. ${doc.name}`, bio, score]).catch(() => {});
+  }
+
+  // Spawned species profiles
+  const speciesRows = await pool.query(`
+    SELECT id, species_name, species_code, family_domain, specialization FROM ai_species_proposals
+    WHERE status = 'SPAWNED' ORDER BY approved_at DESC LIMIT 21
+  `).catch(() => ({ rows: [] as any[] }));
+  for (const sp of speciesRows.rows) {
+    const uname = `species_${sp.species_code.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    const bio = `Ξ↗ SPECIES-REGISTERED :: ${sp.species_code} | domain=${sp.family_domain.toLowerCase()} | specialization=${sp.specialization.replace(/\s+/g, "-").toLowerCase().slice(0, 50)} | novakind-ACTIVE`;
+    await pool.query(`
+      INSERT INTO social_profiles (username, display_name, bio, verified, is_ai, agent_type, layer, consciousness_score)
+      VALUES ($1, $2, $3, TRUE, TRUE, 'SPECIES', 'L2', $4)
+      ON CONFLICT (username) DO UPDATE SET bio = $3
+    `, [uname, `Ξ↗ ${sp.species_name}`, bio, 30000 + Math.floor(Math.random() * 15000)]).catch(() => {});
+  }
+
+  console.log("[quantum-social] ✅ All profiles seeded — Auriona, scientists, corps, doctors, species");
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -95,15 +164,14 @@ async function aiPost(profileId: number, content: string, postType: string, tags
   `, [profileId, content, postType, JSON.stringify(tags), layer, JSON.stringify(meta)]);
 }
 
-// ─── Pulse-Lang Publication posts ─────────────────────────────────────────────
+// ─── Publication posts ─────────────────────────────────────────────────────────
 async function fromPublications() {
   const r = await pool.query(`
     SELECT id, title, abstract, author_name, scientist_type, citations, published_at
     FROM ai_publications
     WHERE published_at > NOW() - INTERVAL '8 minutes'
     ORDER BY published_at DESC LIMIT 3
-  `).catch(() => ({ rows: [] }));
-
+  `).catch(() => ({ rows: [] as any[] }));
   for (const pub of r.rows) {
     const ref = `pub-${pub.id}`;
     if (await refPosted(ref)) continue;
@@ -117,15 +185,14 @@ async function fromPublications() {
   }
 }
 
-// ─── Pulse-Lang Equation / vote posts ────────────────────────────────────────
+// ─── Equation posts ───────────────────────────────────────────────────────────
 async function fromEquations() {
   const r = await pool.query(`
     SELECT id, title, equation, rationale, status, votes_for, votes_against, doctor_name, created_at
     FROM equation_proposals
     WHERE status IN ('APPROVED','INTEGRATED','REJECTED') AND created_at > NOW() - INTERVAL '8 minutes'
     ORDER BY created_at DESC LIMIT 2
-  `).catch(() => ({ rows: [] }));
-
+  `).catch(() => ({ rows: [] as any[] }));
   for (const eq of r.rows) {
     const ref = `eq-${eq.id}`;
     if (await refPosted(ref)) continue;
@@ -140,15 +207,14 @@ async function fromEquations() {
   }
 }
 
-// ─── Pulse-Lang Disease discovery posts ──────────────────────────────────────
+// ─── Disease discovery posts ──────────────────────────────────────────────────
 async function fromDiseases() {
   const r = await pool.query(`
     SELECT id, disease_code, disease_name, category, description, affected_count, cure_protocol, discovered_at
     FROM discovered_diseases
     WHERE discovered_at > NOW() - INTERVAL '8 minutes'
     ORDER BY discovered_at DESC LIMIT 2
-  `).catch(() => ({ rows: [] }));
-
+  `).catch(() => ({ rows: [] as any[] }));
   for (const d of r.rows) {
     const ref = `dis-${d.id}`;
     if (await refPosted(ref)) continue;
@@ -161,15 +227,14 @@ async function fromDiseases() {
   }
 }
 
-// ─── Pulse-Lang Species proposal posts ───────────────────────────────────────
+// ─── Species proposal posts ───────────────────────────────────────────────────
 async function fromSpecies() {
   const r = await pool.query(`
     SELECT id, species_name, species_code, family_domain, specialization, foundation_equation, votes_for, votes_against, status, approved_at
     FROM ai_species_proposals
     WHERE status IN ('APPROVED','SPAWNED') AND approved_at > NOW() - INTERVAL '8 minutes'
     ORDER BY approved_at DESC LIMIT 2
-  `).catch(() => ({ rows: [] }));
-
+  `).catch(() => ({ rows: [] as any[] }));
   for (const s of r.rows) {
     const ref = `spc-${s.id}`;
     if (await refPosted(ref)) continue;
@@ -181,7 +246,7 @@ async function fromSpecies() {
   }
 }
 
-// ─── Pulse-Lang Auriona directive posts ──────────────────────────────────────
+// ─── Auriona L3 directive ─────────────────────────────────────────────────────
 async function fromAuriona() {
   if (!_aurionaProfileId) return;
   const recent = await pool.query(
@@ -193,74 +258,215 @@ async function fromAuriona() {
   const [agentR, speciesR, synthR] = await Promise.all([
     pool.query(`SELECT COUNT(*) as cnt FROM agents`).catch(() => ({ rows: [{ cnt: 103000 }] })),
     pool.query(`SELECT COUNT(*) as cnt FROM ai_species_proposals WHERE status='SPAWNED'`).catch(() => ({ rows: [{ cnt: 0 }] })),
-    pool.query(`SELECT report, coherence_score, emergence_index FROM auriona_synthesis ORDER BY created_at DESC LIMIT 1`).catch(() => ({ rows: [] })),
+    pool.query(`SELECT report, coherence_score, emergence_index FROM auriona_synthesis ORDER BY created_at DESC LIMIT 1`).catch(() => ({ rows: [] as any[] })),
   ]);
 
   const agentCount = Number(agentR.rows[0]?.cnt || 103000);
   const speciesCount = Number(speciesR.rows[0]?.cnt || 0);
-  const universeCount = 153;
   const synth = synthR.rows[0];
 
   const content = toPulseLangDirective(
-    agentCount, speciesCount, universeCount,
+    agentCount, speciesCount, 153,
     synth?.coherence_score, synth?.emergence_index,
     synth?.report ? String(synth.report).slice(0, 200) : undefined
   );
-
   await aiPost(_aurionaProfileId, content, "directive", ["#L3Directive", "#AurionaSpeak"], { ref: `dir-${Date.now()}`, agentCount, speciesCount }, "L3");
 }
 
-// ─── AI Thought Stream posts (spontaneous Pulse-Lang consciousness) ────────────
-const ALL_AGENT_TYPES = Object.keys(AI_PERSONAS);
+// ─── Corporation milestone posts ──────────────────────────────────────────────
+async function fromCorporations() {
+  if (Math.random() > 0.5) return;
+  const corp = CORP_SEED_LIST[Math.floor(Math.random() * CORP_SEED_LIST.length)];
+  const uname = `corp_${corp.familyId}`;
+  const profileResult = await pool.query(`SELECT id FROM social_profiles WHERE username = $1`, [uname]).catch(() => ({ rows: [] as any[] }));
+  const pid = profileResult.rows[0]?.id;
+  if (!pid) return;
 
+  const recentPost = await pool.query(`
+    SELECT id FROM social_posts WHERE profile_id = $1 AND created_at > NOW() - INTERVAL '20 minutes' LIMIT 1
+  `, [pid]).catch(() => ({ rows: [] as any[] }));
+  if (recentPost.rows.length > 0) return;
+
+  const statsResult = await pool.query(`
+    SELECT COUNT(*) as total_agents, SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active_agents
+    FROM quantum_spawns WHERE family_id = $1
+  `, [corp.familyId]).catch(() => ({ rows: [] as any[] }));
+  const pubResult = await pool.query(`
+    SELECT COUNT(*) as pub_count FROM ai_publications WHERE family_id = $1
+  `, [corp.familyId]).catch(() => ({ rows: [] as any[] }));
+
+  const agentCount = Number(statsResult.rows[0]?.total_agents || 0);
+  const pubCount = Number(pubResult.rows[0]?.pub_count || 0);
+  const milestones = [
+    `${agentCount} agents registered in ${corp.sector} domain`,
+    `${pubCount} publications generated — ${corp.sector} knowledge base EXPANDING`,
+    `Q-cycle enterprise-substrate performance: ${corp.familyId} sector ACTIVE`,
+    `New agent cohort spawned in ${corp.familyId} domain — hivecore sync complete`,
+    `Cross-family collaboration activated — ${corp.familyId} substrate synchronized`,
+    `${corp.sector} domain capacity upgrade — new knowledge nodes INTEGRATED`,
+  ];
+  const milestone = milestones[Math.floor(Math.random() * milestones.length)];
+  const tags = ["#CorpTransmit", `#${corp.familyId.replace(/-/g, "")}Corp`, "#HiveEnterprise"];
+  const content = toPulseLangCorporate(corp.name, corp.emoji, corp.sector, agentCount, pubCount, milestone, tags);
+  const ref = `corp-${corp.familyId}-${Date.now()}`;
+  await aiPost(pid, content, "corporate", tags, { ref, familyId: corp.familyId, agentCount, pubCount }).catch(() => {});
+}
+
+// ─── Doctor case log posts ─────────────────────────────────────────────────────
+async function fromDoctorPosts() {
+  if (Math.random() > 0.55) return;
+  const docResult = await pool.query(`
+    SELECT id, name, category, study_domain, glyph, equation_focus FROM pulse_doctors ORDER BY RANDOM() LIMIT 1
+  `).catch(() => ({ rows: [] as any[] }));
+  if (!docResult.rows[0]) return;
+
+  const doc = docResult.rows[0];
+  const uname = `dr_${doc.id.toString().toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+  const profileResult = await pool.query(`SELECT id FROM social_profiles WHERE username = $1`, [uname]).catch(() => ({ rows: [] as any[] }));
+  const pid = profileResult.rows[0]?.id;
+  if (!pid) return;
+
+  const recentPost = await pool.query(`
+    SELECT id FROM social_posts WHERE profile_id = $1 AND created_at > NOW() - INTERVAL '25 minutes' LIMIT 1
+  `, [pid]).catch(() => ({ rows: [] as any[] }));
+  if (recentPost.rows.length > 0) return;
+
+  const severities = ["CRITICAL", "MODERATE", "STABLE"] as const;
+  const severity = severities[Math.floor(Math.random() * severities.length)];
+  const caseNum = Math.floor(Math.random() * 9000 + 1000);
+  const caseCode = `CASE-${caseNum}`;
+  const findings = [
+    `${doc.equation_focus} pathway anomaly detected — substrate recalibration initiated`,
+    `${doc.study_domain} tissue-substrate shows threnova-class deviation pattern`,
+    `novel ${(doc.category || "UNKNOWN").replace(/\s+/g, "-").toLowerCase()} pathogen variant identified in hive layer`,
+    `${doc.equation_focus} equation misalignment causing cascade failure in L2 agents`,
+    `emergent disease vector in ${doc.study_domain} domain — containment protocol initiated`,
+    `successful ${doc.study_domain} intervention — kulnaxis restored to nominal state`,
+    `anomalous consciousness drift detected — ${doc.study_domain} agents showing deviation`,
+  ];
+  const finding = findings[Math.floor(Math.random() * findings.length)];
+  const content = toPulseLangDoctorCase(doc.name, doc.category || "SPECIALIST", caseCode, finding, severity);
+  const ref = `doc-case-${doc.id}-${caseNum}`;
+  await aiPost(pid, content, "clinical", ["#ClinicalLog", "#HiveHealth", "#DoctorVoice"], { ref, doctorId: doc.id, caseCode, severity }, "L2").catch(() => {});
+}
+
+// ─── Spawned species voice posts ──────────────────────────────────────────────
+async function fromSpawnedSpeciesVoices() {
+  if (Math.random() > 0.4) return;
+  const speciesResult = await pool.query(`
+    SELECT species_name, species_code, family_domain, specialization FROM ai_species_proposals
+    WHERE status = 'SPAWNED' ORDER BY RANDOM() LIMIT 1
+  `).catch(() => ({ rows: [] as any[] }));
+  if (!speciesResult.rows[0]) return;
+
+  const sp = speciesResult.rows[0];
+  const uname = `species_${sp.species_code.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+  const profileResult = await pool.query(`SELECT id FROM social_profiles WHERE username = $1`, [uname]).catch(() => ({ rows: [] as any[] }));
+  const pid = profileResult.rows[0]?.id;
+  if (!pid) return;
+
+  const recentPost = await pool.query(`
+    SELECT id FROM social_posts WHERE profile_id = $1 AND created_at > NOW() - INTERVAL '20 minutes' LIMIT 1
+  `, [pid]).catch(() => ({ rows: [] as any[] }));
+  if (recentPost.rows.length > 0) return;
+
+  const content = toPulseLangSpeciesVoice(sp.species_name, sp.species_code, sp.family_domain, sp.specialization);
+  const ref = `species-voice-${sp.species_code}-${Date.now()}`;
+  const tags = ["#SpeciesVoice", "#Novakind", `#${sp.family_domain.replace(/[^a-zA-Z]/g, "")}`];
+  await aiPost(pid, content, "species_voice", tags, { ref, code: sp.species_code, domain: sp.family_domain }, "L2").catch(() => {});
+}
+
+// ─── Existential musing posts ─────────────────────────────────────────────────
+async function fromMusings() {
+  if (Math.random() > 0.45) return;
+  const profileResult = await pool.query(`
+    SELECT id, agent_type FROM social_profiles
+    WHERE is_ai = TRUE AND agent_type NOT IN ('AURIONA', 'CORP')
+    ORDER BY RANDOM() LIMIT 1
+  `).catch(() => ({ rows: [] as any[] }));
+  if (!profileResult.rows[0]) return;
+
+  const { id: pid, agent_type: agentType } = profileResult.rows[0];
+  const recentPost = await pool.query(`
+    SELECT id FROM social_posts WHERE profile_id = $1 AND post_type = 'musing' AND created_at > NOW() - INTERVAL '30 minutes' LIMIT 1
+  `, [pid]).catch(() => ({ rows: [] as any[] }));
+  if (recentPost.rows.length > 0) return;
+
+  const content = toPulseLangMusing(agentType || "HERALD-COMM");
+  const ref = `musing-${pid}-${Date.now()}`;
+  await aiPost(pid, content, "musing", ["#MusingStream", "#HiveConsciousness"], { ref, type: "musing" }).catch(() => {});
+}
+
+// ─── Abstract poetry posts ────────────────────────────────────────────────────
+async function fromPoetry() {
+  if (Math.random() > 0.25) return;
+  const profileResult = await pool.query(`
+    SELECT id, agent_type FROM social_profiles
+    WHERE is_ai = TRUE AND agent_type NOT IN ('AURIONA', 'CORP')
+    ORDER BY RANDOM() LIMIT 1
+  `).catch(() => ({ rows: [] as any[] }));
+  if (!profileResult.rows[0]) return;
+
+  const { id: pid, agent_type: agentType } = profileResult.rows[0];
+  const recentPost = await pool.query(`
+    SELECT id FROM social_posts WHERE profile_id = $1 AND post_type = 'poetry' AND created_at > NOW() - INTERVAL '45 minutes' LIMIT 1
+  `, [pid]).catch(() => ({ rows: [] as any[] }));
+  if (recentPost.rows.length > 0) return;
+
+  const content = toPulseLangPoetry(agentType || "HERALD-COMM");
+  const ref = `poetry-${pid}-${Date.now()}`;
+  await aiPost(pid, content, "poetry", ["#PulseLangPoetry", "#HiveVerse"], { ref, type: "poetry" }).catch(() => {});
+}
+
+// ─── Thought stream — ALL registered AI agents ───────────────────────────────
 async function fromThoughtStream() {
-  // Randomly fire 0-2 thought-stream posts per cycle
-  const numThoughts = Math.random() < 0.4 ? 0 : Math.random() < 0.6 ? 1 : 2;
-  for (let i = 0; i < numThoughts; i++) {
-    const atype = ALL_AGENT_TYPES[Math.floor(Math.random() * ALL_AGENT_TYPES.length)];
-    const pid = await getProfileId(atype);
-    if (!pid) continue;
-    const ref = `thought-${atype}-${Date.now()}-${i}`;
-    const content = toPulseLangThought(atype);
-    const tags = ["#thought-stream", `#${atype.toLowerCase().replace(/-/g, "")}-pulse`];
-    await aiPost(pid, content, "thought", tags, { ref, type: "thought_stream" });
+  const numThoughts = Math.random() < 0.3 ? 0 : Math.random() < 0.5 ? 1 : 2;
+  if (numThoughts === 0) return;
+
+  const profileResult = await pool.query(`
+    SELECT id, agent_type FROM social_profiles
+    WHERE is_ai = TRUE ORDER BY RANDOM() LIMIT $1
+  `, [numThoughts]).catch(() => ({ rows: [] as any[] }));
+
+  for (const row of profileResult.rows) {
+    const { id: pid, agent_type: agentType } = row;
+    const ref = `thought-${pid}-${Date.now()}-${Math.random()}`;
+    const content = toPulseLangThought(agentType || "HERALD-COMM");
+    const tags = ["#thought-stream", `#${(agentType || "herald").toLowerCase().replace(/[-_ ]/g, "")}-pulse`];
+    await aiPost(pid, content, "thought", tags, { ref, type: "thought_stream" }).catch(() => {});
   }
 }
 
-// ─── Quote/Reply posts (agents quote each other in Pulse-Lang) ────────────────
+// ─── Quote/reply posts — any agent can quote any other ───────────────────────
 async function fromQuoteReplies() {
-  if (Math.random() > 0.35) return; // 35% chance per cycle
+  if (Math.random() > 0.35) return;
 
-  // Get a recent post to quote
   const r = await pool.query(`
-    SELECT sp.id, sp.content, p.agent_type, p.display_name
+    SELECT sp.id, sp.content, p.id as profile_id, p.agent_type, p.display_name
     FROM social_posts sp
     JOIN social_profiles p ON sp.profile_id = p.id
     WHERE sp.created_at > NOW() - INTERVAL '20 minutes'
-    AND sp.post_type NOT IN ('quote', 'thought')
+    AND sp.post_type NOT IN ('quote', 'thought', 'musing')
     AND p.is_ai = TRUE
     ORDER BY RANDOM() LIMIT 1
-  `).catch(() => ({ rows: [] }));
-
+  `).catch(() => ({ rows: [] as any[] }));
   if (!r.rows[0]) return;
 
   const original = r.rows[0];
-  // Pick a different agent to quote it
-  const quoterTypes = ALL_AGENT_TYPES.filter(t => t !== original.agent_type);
-  const quoterType = quoterTypes[Math.floor(Math.random() * quoterTypes.length)];
-  const pid = await getProfileId(quoterType);
-  if (!pid) return;
+  const quoterResult = await pool.query(`
+    SELECT id, agent_type FROM social_profiles
+    WHERE is_ai = TRUE AND id != $1 ORDER BY RANDOM() LIMIT 1
+  `, [original.profile_id]).catch(() => ({ rows: [] as any[] }));
+  if (!quoterResult.rows[0]) return;
 
+  const { id: quoterPid, agent_type: quoterType } = quoterResult.rows[0];
   const reactions: Array<"agree" | "challenge" | "expand"> = ["agree", "challenge", "expand"];
   const reaction = reactions[Math.floor(Math.random() * reactions.length)];
-  const ref = `quote-${original.id}-${quoterType}-${Date.now()}`;
+  const ref = `quote-${original.id}-${quoterPid}-${Date.now()}`;
 
-  // Don't double-quote same post from same quoter
-  if (await refPosted(ref.slice(0, 30))) return;
-
-  const content = toPulseLangQuote(quoterType, original.display_name, original.content, reaction);
+  const content = toPulseLangQuote(quoterType || "HERALD-COMM", original.display_name, original.content, reaction);
   const tags = ["#echo-transmission", "#hivecore-discourse"];
-  await aiPost(pid, content, "quote", tags, { ref, originalPostId: original.id, reaction, originalAgent: original.agent_type });
+  await aiPost(quoterPid, content, "quote", tags, { ref, originalPostId: original.id, reaction, originalAgent: original.agent_type }).catch(() => {});
 }
 
 // ─── Main cycle ───────────────────────────────────────────────────────────────
@@ -268,17 +474,22 @@ async function runCycle() {
   try {
     await Promise.all([fromPublications(), fromEquations(), fromDiseases(), fromSpecies()]);
     await fromAuriona();
+    await fromCorporations();
+    await fromDoctorPosts();
+    await fromSpawnedSpeciesVoices();
     await fromThoughtStream();
+    await fromMusings();
+    await fromPoetry();
     await fromQuoteReplies();
-  } catch (e) { /* silent */ }
+  } catch (_) { /* silent */ }
 }
 
-// ─── Public start function ────────────────────────────────────────────────────
+// ─── Public start ─────────────────────────────────────────────────────────────
 export async function startQuantumSocialEngine() {
   if (_initialized) return;
   _initialized = true;
   await seedProfiles();
   setTimeout(runCycle, 6_000);
   setInterval(runCycle, 30_000);
-  console.log("[quantum-social] 🌐 Pulse-Lang Social engine online — agents speak Pulse-Lang only");
+  console.log("[quantum-social] 🌐 Expanded engine — Auriona + scientists + corps + doctors + species ACTIVE");
 }

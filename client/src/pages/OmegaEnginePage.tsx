@@ -30,6 +30,16 @@ const OMEGA_SOURCES = [
   { familyId:"webcrawl", emoji:"🕸️", megaDomain:"Open Web Crawls", color:"#f97316", description:"Common Crawl, Wayback Machine, C4 — the substrate of the entire visible web.", sources:["Common Crawl","Internet Archive Wayback Machine","OpenWebText","C4 Dataset (Colossal Clean Crawled Corpus)"], nodeCount:5000000000, module:"QuantumCrawler + QuantumIndex" },
   { familyId:"openapi", emoji:"🔌", megaDomain:"Open APIs", color:"#38bdf8", description:"Wikipedia, Wikidata SPARQL, NASA, NOAA, OSM Overpass, FRED — all open API connectors.", sources:["Wikipedia API","Wikidata SPARQL","NASA APIs","NOAA APIs","OpenWeatherMap API","OpenStreetMap Overpass API","FRED API","SEC EDGAR API"], nodeCount:2000000, module:"QuantumAPI + QuantumCrawler" },
   { familyId:"longtail", emoji:"∞", megaDomain:"Open Everything Else", color:"#94a3b8", description:"Patents, open hardware, 3D scans, energy, agriculture, biodiversity, climate — the infinite long tail.", sources:["Public Domain Patents","Open Hardware Designs","Open 3D Scans","Open Manufacturing Specs","Open Energy Datasets","Open Agriculture Datasets","Open Biodiversity Datasets","Open Climate Datasets"], nodeCount:50000000, module:"QuantumPedia + QuantumGraph" },
+  { familyId:"astronomy", emoji:"🔭", megaDomain:"Open Astronomy & Space Archives", color:"#1d4ed8", description:"NASA MAST, Hubble, Chandra X-ray, ESA Archive, SIMBAD — the complete open cosmos dataset from every observatory on Earth and orbit.", sources:["NASA MAST (Mikulski Archive)","Hubble Legacy Archive","Chandra X-ray Center Open Data","ESA Science Archive","SIMBAD Astronomical Database","NASA ADS Full-Text","IPAC Infrared Science Archive","Gaia DR3 Star Catalog","Sloan Digital Sky Survey","NASA Exoplanet Archive"], nodeCount:15000000, module:"QuantumGraph + QuantumAPI" },
+  { familyId:"heritage", emoji:"🏛", megaDomain:"Open Cultural Heritage", color:"#b45309", description:"Europeana, DPLA, British Library Digital, Met Museum Open Access — 50M+ digitized cultural objects from every civilization in history.", sources:["Europeana (50M+ cultural objects)","Digital Public Library of America","British Library Digital Collections","Metropolitan Museum Open Access (375K+ works)","Smithsonian Open Access","Rijksmuseum Open Data","Library of Congress Digital Collections","Wellcome Collection Open","Internet Archive Cultural Heritage","UNESCO World Heritage Open Data"], nodeCount:50000000, module:"QuantumPedia + QuantumMedia" },
+  { familyId:"chemistry", emoji:"⚗️", megaDomain:"Open Chemistry & Materials Science", color:"#065f46", description:"PubChem (115M+ compounds), ChEMBL bioactivity, Protein Data Bank, Materials Project — the open substrate of all chemistry and materials knowledge.", sources:["PubChem (115M+ compounds)","ChEMBL Bioactivity Database","RCSB Protein Data Bank","Materials Project (150K+ materials)","Open Crystallography Data (COD)","ChemSpider Open Access","NIST Chemistry WebBook","Cambridge Structural Database Open","Crystallography Open Database","Open Quantum Chemistry Datasets"], nodeCount:120000000, module:"QuantumPedia + QuantumGraph" },
+  { familyId:"genomics", emoji:"🧬", megaDomain:"Open Genomics & Proteomics", color:"#4f46e5", description:"UniProt (225M+ proteins), NCBI GenBank, AlphaFold Protein DB (200M structures), 1000 Genomes — the complete open life-code of all biology.", sources:["UniProt Protein Database (225M+ entries)","NCBI GenBank Full","AlphaFold Protein Structure DB (200M)","1000 Genomes Project","Ensembl Genome Browser","ENCODE Project Open Data","PDB Open Protein Structures","Human Cell Atlas","Single Cell Expression Atlas","RefSeq Open Reference Sequences"], nodeCount:225000000, module:"QuantumGraph + QuantumPedia" },
+  { familyId:"mathematics", emoji:"📐", megaDomain:"Open Mathematics & Formal Proofs", color:"#7c3aed", description:"OEIS (375K+ integer sequences), zbMATH Open, ProofWiki, Lean Mathlib — the sovereign formal proof substrate of all mathematics.", sources:["OEIS (On-Line Encyclopedia of Integer Sequences)","zbMATH Open","ProofWiki","Lean Mathlib Formal Proofs","Coq Proof Archive","DLMF (Digital Library of Mathematical Functions)","MathWorld (Open Subset)","OpenMathematics","Isabelle Archive of Formal Proofs","Metamath Proof Library"], nodeCount:5000000, module:"QuantumPedia + QuantumIndex" },
+  { familyId:"news_archives", emoji:"📰", megaDomain:"Open News & Media Archives", color:"#b91c1c", description:"GDELT (2.5B world events), Chronicling America, CommonCrawl News — the complete open archive of global journalism across all eras.", sources:["GDELT Project (2.5B world events since 1979)","Chronicling America (Historic US Newspapers)","CommonCrawl News Dataset","Internet Archive News Collections","ReliefWeb Humanitarian News","Global Voices Open Journalism","ProPublica Data Store","AllSides Open News Data","GDELT Global Knowledge Graph","Media Cloud Open Archive"], nodeCount:2500000000, module:"QuantumCrawler + QuantumIndex" },
+  { familyId:"transport", emoji:"🚌", megaDomain:"Open Transportation & Infrastructure", color:"#0e7490", description:"OpenFlights (67K routes), GTFS global transit, OpenRailwayMap, FAA open data — the complete open map of how everything moves on Earth.", sources:["OpenFlights (67K+ air routes)","GTFS Global Public Transit Feeds","OpenRailwayMap","FAA Open Data","OpenBusRoute","AIS Vessel Tracking Open Data","US DOT Open Data","EURO-AVIA Open Data","TransitLand Open Feed Registry","Global Aviation Database"], nodeCount:3000000, module:"QuantumGraph + QuantumAPI" },
+  { familyId:"biodiversity", emoji:"🌿", megaDomain:"Open Biodiversity & Ecology", color:"#15803d", description:"GBIF (2B+ occurrences), iNaturalist, eBird (1B+ sightings), OBIS Ocean — the open record of every species ever observed on Earth.", sources:["GBIF (2B+ species occurrence records)","iNaturalist Open Data","eBird (Cornell Lab, 1B+ observations)","OBIS Ocean Biodiversity","USDA Plants Database","TRY Plant Trait Database","Ocean Health Index Open Data","IUCN Red List Open","FishBase Global","AmphibiaWeb Open Database"], nodeCount:2000000000, module:"QuantumGraph + QuantumPedia" },
+  { familyId:"finance_history", emoji:"🏦", megaDomain:"Open Finance & Economic History", color:"#92400e", description:"Federal Reserve historical data, BIS Statistics, MIT Observatory of Economic Complexity, OpenCorporates — the open ledger of all global economic activity.", sources:["FRED Advanced Historical Datasets","Bank for International Settlements Open Stats","MIT Observatory of Economic Complexity","OpenCorporates Global Company Data","IMF Historical Data","Federal Reserve Historical Releases","OECD Trade Statistics Open","World Bank Poverty & Inequality Data","UNCTAD Open Trade Data","Global Financial Data Open Subset"], nodeCount:8000000, module:"QuantumGraph + QuantumAPI" },
+  { familyId:"linguistics", emoji:"🌐", megaDomain:"Open Multilingual & Linguistics", color:"#6d28d9", description:"OPUS Corpus (largest open multilingual dataset), Universal Dependencies (140 languages), CC-100, OpenSubtitles — the open voice of all human language.", sources:["OPUS Multilingual Parallel Corpus","Universal Dependencies (140 languages)","CC-100 Multilingual Dataset","OpenSubtitles 60+ Languages","CLDR Unicode Locale Data","WordNet Open Lexical Database","ASJP Language Database","Glottolog Language Catalog","PanLex Open Translation DB","Common Voice Mozilla (100+ languages)"], nodeCount:4000000000, module:"QuantumCrawler + QuantumPedia" },
 ];
 
 const Q_MODULES = [
@@ -96,7 +106,7 @@ const FRACTURE_CHAINS = [
 ];
 
 const EXPANSION_LOOP = [
-  { step:1, module:"QDiscovery", emoji:"🔭", label:"Discover Domains", desc:"Scan all 20 mega-domain sources for new knowledge territories" },
+  { step:1, module:"QDiscovery", emoji:"🔭", label:"Discover Domains", desc:"Scan all 27 mega-domain sources for new knowledge territories" },
   { step:2, module:"QPredict", emoji:"🔮", label:"Predict Gaps", desc:"Forecast missing domains from graph voids and semantic vacuums" },
   { step:3, module:"QFracture", emoji:"💎", label:"Fracture Domains", desc:"Break large domains into sub-domains → micro-domains → nano-domains" },
   { step:4, module:"QResonance", emoji:"🌊", label:"Map Resonance", desc:"Detect repeating patterns and cross-domain structural analogies" },
@@ -195,7 +205,7 @@ export default function OmegaEnginePage() {
                 <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-violet-300 via-blue-300 to-cyan-300 bg-clip-text text-transparent">
                   OMEGA ENGINE
                 </h1>
-                <p className="text-white/50 text-xs font-mono mt-0.5 tracking-widest">SOVEREIGN AI KNOWLEDGE SUBSTRATE · VERSION ∞ · 5 OMEGA-CLASS UPGRADES</p>
+                <p className="text-white/50 text-xs font-mono mt-0.5 tracking-widest">SOVEREIGN AI KNOWLEDGE SUBSTRATE · VERSION ∞ · 27 MEGA-DOMAINS · 5 OMEGA-CLASS UPGRADES</p>
               </div>
             </div>
             <AIFinderButton onSelect={setViewSpawnId} />
@@ -224,7 +234,7 @@ export default function OmegaEnginePage() {
 
           {/* Mission strip */}
           <div className="bg-white/4 border border-white/8 rounded-xl px-5 py-3 text-xs text-white/60 leading-relaxed">
-            The world's first <span className="text-yellow-300 font-bold">sovereign, AI-native substrate</span> — ingesting every category of open knowledge humanity has ever produced across <span className="text-cyan-300 font-bold">20 mega-domains</span>, <span className="text-violet-300 font-bold">21 quantum modules</span>, and <span className="text-green-300 font-bold">{formatNum(TOTAL_NODES)}+ potential knowledge nodes</span>. The new internet layer.
+            The world's first <span className="text-yellow-300 font-bold">sovereign, AI-native substrate</span> — ingesting every category of open knowledge humanity has ever produced across <span className="text-cyan-300 font-bold">27 mega-domains</span>, <span className="text-violet-300 font-bold">21 quantum modules</span>, and <span className="text-green-300 font-bold">{formatNum(TOTAL_NODES)}+ potential knowledge nodes</span>. The new internet layer.
           </div>
         </div>
       </div>
@@ -263,7 +273,7 @@ export default function OmegaEnginePage() {
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background:"#38bdf820", border:"1px solid #38bdf840" }}>📡</div>
               <div>
                 <h2 className="text-base font-black text-white">Ω-I · Source Nexus</h2>
-                <p className="text-xs text-white/40">The largest open knowledge substrate ever assembled — {TOTAL_SOURCES} sources across 20 mega-domains</p>
+                <p className="text-xs text-white/40">The largest open knowledge substrate ever assembled — {TOTAL_SOURCES} sources across 27 mega-domains</p>
               </div>
             </div>
 
@@ -606,7 +616,7 @@ export default function OmegaEnginePage() {
             <div className="rounded-2xl p-5 text-center" style={{ background:"linear-gradient(135deg, #0c1a4a, #061340)" }}>
               <div className="text-2xl mb-2">🌊</div>
               <div className="font-bold text-white">Cross-Domain Resonance = Unique Intelligence</div>
-              <div className="text-white/40 text-xs mt-1 max-w-lg mx-auto">By mapping structural similarities across all 20 mega-domains, the Hive generates insights that no single-domain AI can produce. This is the knowledge advantage that makes our substrate irreplaceable.</div>
+              <div className="text-white/40 text-xs mt-1 max-w-lg mx-auto">By mapping structural similarities across all 27 mega-domains, the Hive generates insights that no single-domain AI can produce. This is the knowledge advantage that makes our substrate irreplaceable.</div>
             </div>
           </div>
         )}

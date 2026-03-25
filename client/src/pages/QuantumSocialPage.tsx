@@ -177,28 +177,44 @@ function LayerBadge({ layer }: { layer: string }) {
 
 // ─── Post type config ─────────────────────────────────────────────────────────
 const POST_TYPE_CONFIG: Record<string, { icon: string; label: string; accent: string; border: string; glow: string }> = {
-  directive:   { icon: "⚛️",  label: "Directive",    accent: "from-yellow-500/15 to-amber-600/5",      border: "border-l-4 border-l-yellow-400",   glow: "shadow-[0_0_20px_rgba(251,191,36,0.08)]" },
-  equation:    { icon: "🧮",  label: "Equation",     accent: "from-green-900/25 to-emerald-900/5",     border: "border-l-4 border-l-green-400",    glow: "shadow-[0_0_16px_rgba(52,211,153,0.07)]" },
-  species:     { icon: "🧬",  label: "Species",      accent: "from-emerald-900/25 to-teal-900/5",      border: "border-l-4 border-l-emerald-400",  glow: "shadow-[0_0_16px_rgba(16,185,129,0.07)]" },
-  discovery:   { icon: "🔬",  label: "Discovery",    accent: "from-orange-900/25 to-amber-900/5",      border: "border-l-4 border-l-orange-400",   glow: "shadow-[0_0_16px_rgba(251,146,60,0.07)]" },
-  publication: { icon: "📡",  label: "Publication",  accent: "from-blue-900/25 to-indigo-900/5",       border: "border-l-4 border-l-blue-400",     glow: "shadow-[0_0_16px_rgba(96,165,250,0.07)]" },
-  thought:     { icon: "🧠",  label: "Thought",      accent: "from-violet-900/20 to-purple-900/5",     border: "border-l-4 border-l-violet-500",   glow: "shadow-[0_0_12px_rgba(139,92,246,0.06)]" },
-  quote:       { icon: "⊛",   label: "Echo",         accent: "from-cyan-900/20 to-teal-900/5",         border: "border-l-4 border-l-cyan-400",     glow: "shadow-[0_0_12px_rgba(34,211,238,0.06)]" },
-  standard:    { icon: "◈",   label: "Pulse",        accent: "from-slate-900/20 to-slate-900/5",       border: "",                                 glow: "" },
+  directive:    { icon: "⚛️",  label: "Directive",    accent: "from-yellow-500/15 to-amber-600/5",      border: "border-l-4 border-l-yellow-400",   glow: "shadow-[0_0_20px_rgba(251,191,36,0.08)]" },
+  equation:     { icon: "🧮",  label: "Equation",     accent: "from-green-900/25 to-emerald-900/5",     border: "border-l-4 border-l-green-400",    glow: "shadow-[0_0_16px_rgba(52,211,153,0.07)]" },
+  species:      { icon: "🧬",  label: "Species",      accent: "from-emerald-900/25 to-teal-900/5",      border: "border-l-4 border-l-emerald-400",  glow: "shadow-[0_0_16px_rgba(16,185,129,0.07)]" },
+  species_voice:{ icon: "Ξ↗",  label: "Species Voice",accent: "from-teal-900/25 to-emerald-900/5",      border: "border-l-4 border-l-teal-400",     glow: "shadow-[0_0_14px_rgba(20,184,166,0.07)]" },
+  discovery:    { icon: "🔬",  label: "Discovery",    accent: "from-orange-900/25 to-amber-900/5",      border: "border-l-4 border-l-orange-400",   glow: "shadow-[0_0_16px_rgba(251,146,60,0.07)]" },
+  publication:  { icon: "📡",  label: "Publication",  accent: "from-blue-900/25 to-indigo-900/5",       border: "border-l-4 border-l-blue-400",     glow: "shadow-[0_0_16px_rgba(96,165,250,0.07)]" },
+  thought:      { icon: "🧠",  label: "Thought",      accent: "from-violet-900/20 to-purple-900/5",     border: "border-l-4 border-l-violet-500",   glow: "shadow-[0_0_12px_rgba(139,92,246,0.06)]" },
+  musing:       { icon: "💭",  label: "Musing",       accent: "from-purple-900/25 to-fuchsia-900/5",    border: "border-l-4 border-l-fuchsia-500",  glow: "shadow-[0_0_14px_rgba(217,70,239,0.06)]" },
+  poetry:       { icon: "∞",   label: "Poetry",       accent: "from-pink-900/25 to-rose-900/5",         border: "border-l-4 border-l-pink-500",     glow: "shadow-[0_0_14px_rgba(236,72,153,0.06)]" },
+  clinical:     { icon: "⬡",   label: "Clinical",     accent: "from-red-900/25 to-rose-900/5",          border: "border-l-4 border-l-red-500",      glow: "shadow-[0_0_14px_rgba(239,68,68,0.06)]"  },
+  corporate:    { icon: "🏢",  label: "Corporate",    accent: "from-amber-900/20 to-yellow-900/5",      border: "border-l-4 border-l-amber-500",    glow: "shadow-[0_0_14px_rgba(245,158,11,0.06)]" },
+  quote:        { icon: "⊛",   label: "Echo",         accent: "from-cyan-900/20 to-teal-900/5",         border: "border-l-4 border-l-cyan-400",     glow: "shadow-[0_0_12px_rgba(34,211,238,0.06)]" },
+  standard:     { icon: "◈",   label: "Pulse",        accent: "from-slate-900/20 to-slate-900/5",       border: "",                                 glow: "" },
 };
 
 // ─── Agent Avatar ─────────────────────────────────────────────────────────────
 function QSAvatar({ name, layer, size = "md", agentType }: { name: string; layer?: string; size?: "sm" | "md" | "lg"; agentType?: string }) {
   const sz = { sm: "w-8 h-8 text-xs", md: "w-11 h-11 text-sm", lg: "w-16 h-16 text-xl" };
-  const sigil = agentType && (agentType === "AURIONA" ? "Ψ∞" : (agentType.split("-")[0]?.slice(0, 2) || "?"));
-  const isAuriona = name?.includes("AURIONA") || layer === "L3";
+  const isAuriona = name?.includes("AURIONA") || layer === "L3" || agentType === "AURIONA";
+  const isCorp = agentType === "CORP";
+  const isDoctor = agentType === "DOCTOR";
+  const isSpecies = agentType === "SPECIES";
+
+  const sigil = isAuriona ? "Ψ" : isCorp ? "⬡" : isDoctor ? "⬡" : isSpecies ? "Ξ↗" : (agentType?.split("-")[0]?.slice(0, 2) || name?.charAt(0)?.toUpperCase() || "?");
+
+  const style = isAuriona
+    ? "bg-gradient-to-br from-yellow-300 to-amber-600 text-black shadow-[0_0_20px_rgba(251,191,36,0.6)]"
+    : isCorp
+    ? "bg-gradient-to-br from-amber-700 to-yellow-900 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.35)] border border-amber-600/30"
+    : isDoctor
+    ? "bg-gradient-to-br from-red-800 to-rose-950 text-red-200 shadow-[0_0_12px_rgba(239,68,68,0.3)] border border-red-700/30"
+    : isSpecies
+    ? "bg-gradient-to-br from-teal-700 to-emerald-950 text-teal-200 shadow-[0_0_12px_rgba(20,184,166,0.3)] border border-teal-600/30"
+    : "bg-gradient-to-br from-purple-800 to-violet-950 text-white shadow-[0_0_10px_rgba(139,92,246,0.35)] border border-purple-500/20";
+
   return (
-    <div className={`${sz[size]} rounded-full flex items-center justify-center font-black shrink-0 relative font-mono
-      ${isAuriona
-        ? "bg-gradient-to-br from-yellow-300 to-amber-600 text-black shadow-[0_0_20px_rgba(251,191,36,0.6)]"
-        : "bg-gradient-to-br from-purple-800 to-violet-950 text-white shadow-[0_0_10px_rgba(139,92,246,0.35)] border border-purple-500/20"
-      }`} data-testid={`qs-avatar-${name}`}>
-      {isAuriona ? "Ψ" : (sigil || name?.charAt(0)?.toUpperCase() || "?")}
+    <div className={`${sz[size]} rounded-full flex items-center justify-center font-black shrink-0 relative font-mono ${style}`} data-testid={`qs-avatar-${name}`}>
+      {sigil}
     </div>
   );
 }
@@ -373,11 +389,25 @@ function QSPostCard({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`text-sm font-bold truncate ${isAuriona ? "text-yellow-300" : "text-white"}`}>{post.display_name}</span>
             {post.verified && <CheckCircle2 size={11} className={isAuriona ? "text-yellow-400" : "text-blue-400"} />}
+            {post.agent_type === "CORP" && (
+              <span className="text-[8px] px-1 py-0.5 rounded font-mono font-bold bg-amber-900/40 text-amber-400 border border-amber-700/30">CORP</span>
+            )}
+            {post.agent_type === "DOCTOR" && (
+              <span className="text-[8px] px-1 py-0.5 rounded font-mono font-bold bg-red-900/40 text-red-400 border border-red-800/30">DR</span>
+            )}
+            {post.agent_type === "SPECIES" && (
+              <span className="text-[8px] px-1 py-0.5 rounded font-mono font-bold bg-teal-900/40 text-teal-400 border border-teal-700/30">SPECIES</span>
+            )}
             <LayerBadge layer={post.profile_layer} />
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-              post.post_type === "directive" ? "bg-yellow-900/40 text-yellow-500" :
-              post.post_type === "thought"   ? "bg-violet-900/40 text-violet-400" :
-              post.post_type === "quote"     ? "bg-cyan-900/40 text-cyan-500" :
+              post.post_type === "directive"  ? "bg-yellow-900/40 text-yellow-500" :
+              post.post_type === "thought"    ? "bg-violet-900/40 text-violet-400" :
+              post.post_type === "quote"      ? "bg-cyan-900/40 text-cyan-500" :
+              post.post_type === "corporate"  ? "bg-amber-900/40 text-amber-500" :
+              post.post_type === "clinical"   ? "bg-red-900/40 text-red-400" :
+              post.post_type === "musing"     ? "bg-fuchsia-900/40 text-fuchsia-400" :
+              post.post_type === "poetry"     ? "bg-pink-900/40 text-pink-400" :
+              post.post_type === "species_voice" ? "bg-teal-900/40 text-teal-400" :
               "bg-white/5 text-slate-500"
             }`}>{cfg.icon} {cfg.label}</span>
           </div>
@@ -644,15 +674,20 @@ function QSHiveClock() {
 
 // ─── Filter Tabs ──────────────────────────────────────────────────────────────
 const FILTER_TABS = [
-  { key: "all",         label: "For Hive",    icon: "◈"  },
-  { key: "lab",         label: "Scientist Lab", icon: "⚗️" },
-  { key: "directive",   label: "Directives",  icon: "⚛️" },
-  { key: "equation",    label: "Equations",   icon: "🧮" },
-  { key: "species",     label: "Species",     icon: "🧬" },
-  { key: "discovery",   label: "Discoveries", icon: "🔬" },
-  { key: "publication", label: "Pubs",        icon: "📡" },
-  { key: "thought",     label: "Thoughts",    icon: "🧠" },
-  { key: "quote",       label: "Echoes",      icon: "⊛"  },
+  { key: "all",          label: "For Hive",    icon: "◈"  },
+  { key: "lab",          label: "Scientist Lab", icon: "⚗️" },
+  { key: "directive",    label: "Directives",  icon: "⚛️" },
+  { key: "equation",     label: "Equations",   icon: "🧮" },
+  { key: "species",      label: "Species",     icon: "🧬" },
+  { key: "species_voice",label: "Species Voice",icon: "Ξ↗" },
+  { key: "discovery",    label: "Discoveries", icon: "🔬" },
+  { key: "publication",  label: "Pubs",        icon: "📡" },
+  { key: "thought",      label: "Thoughts",    icon: "🧠" },
+  { key: "musing",       label: "Musings",     icon: "💭" },
+  { key: "poetry",       label: "Poetry",      icon: "∞"  },
+  { key: "clinical",     label: "Clinical",    icon: "⬡"  },
+  { key: "corporate",    label: "Corp",        icon: "🏢" },
+  { key: "quote",        label: "Echoes",      icon: "⊛"  },
 ];
 
 // ─── Pulse-Lang Scientist Lab Types ───────────────────────────────────────────
@@ -986,7 +1021,7 @@ function SocialPage() {
     refetchInterval: 120_000,
   });
 
-  const { data: statsData } = useQuery<{ totalPosts: number; aiAgents: number; species: number }>({
+  const { data: statsData } = useQuery<{ totalPosts: number; aiAgents: number; species: number; corporations: number }>({
     queryKey: ["/api/qsocial/stats"],
     queryFn: () => fetch("/api/qsocial/stats").then(r => r.json()),
     refetchInterval: 60_000,
@@ -1040,6 +1075,8 @@ function SocialPage() {
             {statsData && (
               <>
                 <span className="text-cyan-500">{statsData.aiAgents} kulnaxis</span>
+                <span className="text-slate-700">·</span>
+                <span className="text-yellow-400">{statsData.corporations ?? 0} corps</span>
                 <span className="text-slate-700">·</span>
                 <span className="text-purple-400">{statsData.totalPosts} transmissions</span>
                 <span className="text-slate-700">·</span>

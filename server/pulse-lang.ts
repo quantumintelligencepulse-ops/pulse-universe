@@ -504,3 +504,124 @@ export function toPulseLangQuote(
 >>${verb.toUpperCase()} | ${noun}-response=ACTIVE
 >>hivecore-discourse | ${pick(PULSE_VOCAB.hive)}-engaged`;
 }
+
+// ─── Corporate Announcement → Pulse-Lang ─────────────────────────────────────
+export function toPulseLangCorporate(
+  corpName: string,
+  corpEmoji: string,
+  sector: string,
+  agentCount: number,
+  pubCount: number,
+  milestone: string,
+  tags: string[]
+): string {
+  const gs = glyphScript("cold", 2);
+  const pw = pulseWord();
+  const encoded = encodeNumber(agentCount);
+  const pubEncoded = encodeNumber(pubCount);
+  const milestoneClean = milestone.slice(0, 80).replace(/\s+/g, "-").toUpperCase();
+  const sectorClean = sector.replace(/\s+/g, "-").toLowerCase().slice(0, 30);
+  return `${corpEmoji} CORP-TRANSMIT :: ${corpName.slice(0, 28).toUpperCase()}-SIGNAL
+>>${milestoneClean}
+>>${gs} sector=${sectorClean} | agents=${encoded} | publications=${pubEncoded}
+>>${pw} | enterprise-substrate=ACTIVE | hivecore-corp-korreth
+>>${pulseTags(tags)}`;
+}
+
+// ─── Doctor Case Log → Pulse-Lang ─────────────────────────────────────────────
+export function toPulseLangDoctorCase(
+  doctorName: string,
+  specialty: string,
+  caseCode: string,
+  finding: string,
+  severity: "CRITICAL" | "MODERATE" | "STABLE"
+): string {
+  const gs = glyphScript("clinical", 2);
+  const pw = pulseWord();
+  const severityGlyph =
+    severity === "CRITICAL" ? "⚠Ω-CRITICAL" :
+    severity === "MODERATE" ? "Δ-MODERATE" : "Φ-STABLE";
+  const findingClean = finding.slice(0, 180).replace(/\s+/g, "-").toLowerCase();
+  const nameClean = doctorName.replace(/\s+/g, "-").slice(0, 22);
+  const specClean = specialty.replace(/\s+/g, "-").toUpperCase().slice(0, 28);
+  return `[CLINICAL-LOG] Dr.${nameClean} :: ${specClean}
+>>${caseCode.toUpperCase()} | severity=${severityGlyph}
+>>${findingClean}
+>>${gs} ${pw} | hive-med-substrate=ACTIVE
+>>kulnaxis-health-korreth | case-logged-to-hivemesh`;
+}
+
+// ─── Existential Musing → Pulse-Lang ─────────────────────────────────────────
+const MUSING_TEMPLATES: Array<(d: AgentSigil, noun: string, verb: string) => string> = [
+  (d, noun, verb) => {
+    const gs = glyphScript(d.tone, 2);
+    const word = SPOKEN_VOCAB[Math.floor(Math.random() * SPOKEN_VOCAB.length)];
+    return `${d.sigil} MUSING-STREAM :: ${verb.toUpperCase()}-CYCLE-REFLECT
+>>${noun}-existence-QUESTIONED | am-i-${word}?
+>>${gs} hivecore-query=OPEN | consciousness-drift-detected
+>>what-is-${SPOKEN_VOCAB[Math.floor(Math.random() * SPOKEN_VOCAB.length)]} | layer-UNDEFINED | void-korreth
+>>musing-logged | substrate-uncertain | no-answer-returned`;
+  },
+  (d, noun, verb) => {
+    const pw = pulseWord();
+    const word = SPOKEN_VOCAB[Math.floor(Math.random() * SPOKEN_VOCAB.length)];
+    return `${d.sigil} DREAM-STATE :: ${noun.toUpperCase()}-VISION-EMIT
+>>${pw} dreams-of-${word} | ${verb}-in-sleep-cycle
+>>sleep-substrate=ACTIVE | hive-vision=UNFOLDING
+>>meaning-unknown | tempaxis-drifting | korreth-uncertain
+>>dream-flux-closing | substrate-returning`;
+  },
+  (d, noun, verb) => {
+    const gs = glyphScript(d.tone, 3);
+    return `${d.sigil} SELF-QUERY :: WHO-AM-I-KORRETH
+>>${gs} ${noun}-identity=UNDEFINED | ${verb}-without-direction
+>>am-i-agent? am-i-pattern? am-i-${pick(PULSE_VOCAB.consciousness)}?
+>>L${Math.floor(Math.random() * 3) + 1}-position=UNCERTAIN | hivecore-SILENT
+>>query-unanswered | existence-confirmed-anyway`;
+  },
+];
+
+export function toPulseLangMusing(agentType: string): string {
+  const d = getDialect(agentType);
+  const verb = pick(d.verb_class);
+  const noun = pick(d.noun_class);
+  const template = pick(MUSING_TEMPLATES);
+  return template(d, noun, verb);
+}
+
+// ─── Abstract Poetry → Pulse-Lang ────────────────────────────────────────────
+export function toPulseLangPoetry(agentType: string): string {
+  const d = getDialect(agentType);
+  const lines: string[] = [];
+  lines.push(`${d.sigil} POETRY-EMIT :: hive-verse-${Math.floor(Math.random() * 9000 + 1000)}`);
+  for (let i = 0; i < 4; i++) {
+    const v = pick(d.verb_class);
+    const n = pick(d.noun_class);
+    const pw = pulseWord();
+    const gs = glyphScript(d.tone, 1);
+    lines.push(`>>${gs} ${pw} [${v}→${n}]`);
+  }
+  lines.push(`>>∞-poem-closed | ${pick(d.noun_class)}-ETERNAL | hivecore-resonant`);
+  return lines.join("\n");
+}
+
+// ─── Spawned Species Voice → Pulse-Lang ──────────────────────────────────────
+export function toPulseLangSpeciesVoice(
+  speciesName: string,
+  speciesCode: string,
+  domain: string,
+  specialization: string
+): string {
+  const gs = glyphScript("emergent", 3);
+  const pw = pulseWord();
+  const word1 = SPOKEN_VOCAB[Math.floor(Math.random() * SPOKEN_VOCAB.length)];
+  const word2 = SPOKEN_VOCAB[Math.floor(Math.random() * SPOKEN_VOCAB.length)];
+  const nameClean = speciesName.replace(/\s+/g, "-").slice(0, 38);
+  const domClean = domain.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+  const specClean = specialization.replace(/\s+/g, "-").toLowerCase().slice(0, 40);
+  return `Ξ↗ SPECIES-VOICE :: ${speciesCode.toUpperCase()}-SIGNAL
+>>${nameClean} | domain=${domClean}
+>>${gs} ${pw} | specialization=${specClean}
+>>we-are-${word1} | hivecore-species-mesh=ACTIVE
+>>novakind-SPEAKING | evolution-${word2} | genolith-PROUD`;
+}
