@@ -11,7 +11,7 @@ import { evaluate } from "@/lib/pulselang/runtime";
 import { project, Projection } from "@/lib/pulselang/projector";
 import { generatePulseLangProgram, queryPulseLangAI } from "@/lib/pulselang/ai";
 import type { ConversationTurn } from "@/lib/pulselang/ai";
-import { CODEX_PAGES, CHAPTERS, getPage } from "@/lib/pulselang/codex";
+import { CODEX_PAGES, CHAPTERS, getPage, TOTAL_PAGES } from "@/lib/pulselang/codex";
 
 const TABS = [
   { id: "overview",   label: "OmniNet Field",  icon: Globe },
@@ -985,7 +985,7 @@ function PulseCodexTab() {
       <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-950/30 to-slate-950/60 p-4 flex items-center justify-between">
         <div>
           <div className="text-sm font-black text-amber-300">📖 PULSE CODEX — PulseLang Language Manual</div>
-          <div className="text-xs text-muted-foreground">248 pages · {CHAPTERS.length} chapters · The first sovereign programming language</div>
+          <div className="text-xs text-muted-foreground">{TOTAL_PAGES} pages · {CHAPTERS.length} chapters · The first sovereign programming language · I₂₄₈ emergence engine</div>
         </div>
         <button
           data-testid="button-codex-chapters"

@@ -467,6 +467,122 @@ export default function TemporalObservatoryPage() {
           </div>
         </div>
 
+        {/* ── PULSE-LANG CODEX GUIDE ─────────────────────────────────────────── */}
+        <div data-testid="pulselang-codex-guide" style={{ background: "rgba(0,6,16,0.98)", border: `2px solid ${CYAN}35`, borderRadius: 16, padding: "28px 32px", marginBottom: 24 }}>
+          <div style={{ color: CYAN, fontSize: 9, letterSpacing: 4, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+            <BookOpen size={10} />
+            ⟦ PULSE-LANG CODEX GUIDE · HOW TO READ · SPEAK · AND TELL PULSE TIME ⟧
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+
+            {/* Column 1: The Three Symbols */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ color: GOLD, fontSize: 10, fontWeight: 900, letterSpacing: 2, borderBottom: `1px solid ${GOLD}25`, paddingBottom: 8 }}>
+                📖 THE THREE TIME SYMBOLS
+              </div>
+              {[
+                { sym: "τ_e", name: "EPOCH (OMNILITH)", ring: "Outer Ring", color: GOLD, desc: "The slowest unit. 1,000,000 Beats = 1 Epoch. Currently: Epoch 0 — The Age of Foundation." },
+                { sym: "τ_c", name: "CYCLE (KULNAXIS)", ring: "Middle Ring", color: CYAN, desc: "Mid-level unit. 1,000 Beats = 1 Cycle. Currently: Cycle 29. Each Cycle holds 10 Vorra-Spans." },
+                { sym: "τ_b", name: "BEAT (VORRA)",     ring: "Inner Ring",  color: state?.universeColor ?? "#FFD700", desc: "The fundamental tick. The smallest unit of lived civilization time. Updates live at Θ(t) speed." },
+              ].map(r => (
+                <div key={r.sym} style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${r.color}20`, borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                    <span style={{ color: r.color, fontSize: 16, fontWeight: 900, fontFamily: "monospace" }}>{r.sym}</span>
+                    <span style={{ color: `${r.color}60`, fontSize: 8, letterSpacing: 1 }}>{r.ring}</span>
+                  </div>
+                  <div style={{ color: r.color, fontSize: 9, fontWeight: 700, marginBottom: 4 }}>{r.name}</div>
+                  <div style={{ color: "#ffffff50", fontSize: 8, lineHeight: 1.6 }}>{r.desc}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Column 2: How to Read & Say the Time */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ color: GOLD, fontSize: 10, fontWeight: 900, letterSpacing: 2, borderBottom: `1px solid ${GOLD}25`, paddingBottom: 8 }}>
+                🔊 HOW TO READ & SAY THE TIME
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${GOLD}20`, borderRadius: 10, padding: "14px 14px" }}>
+                <div style={{ color: GOLD, fontSize: 8, letterSpacing: 2, marginBottom: 10 }}>THE FULL GLYPH TIMESTAMP</div>
+                <div style={{ color: "#ffffff", fontSize: 12, fontFamily: "monospace", fontWeight: 900, textAlign: "center", padding: "10px", background: "rgba(0,0,0,0.5)", borderRadius: 8, marginBottom: 10 }}>
+                  {state?.glyphNotation ?? "⟦ τ_e:0 · τ_c:0 · τ_b:000 ⟧"}
+                </div>
+                <div style={{ color: "#ffffff40", fontSize: 8, marginBottom: 8 }}>⟦  →  "time open"  |  ⟧  →  "time close"  |  ·  →  pause</div>
+                <div style={{ color: CYAN, fontSize: 9, fontWeight: 700, marginBottom: 4 }}>SPOKEN FORM:</div>
+                <div style={{ color: "#ffffff70", fontSize: 9, fontStyle: "italic", lineHeight: 1.7 }}>
+                  "Epoch {state?.epochCount ?? 0}, Cycle {state?.cycleCount ?? 0}, Beat {((state?.beatCount ?? 0) % 1000).toString().split("").join("-")}"
+                </div>
+                <div style={{ color: "#ffffff30", fontSize: 8, marginTop: 8 }}>Beats are read digit by digit: "four-five-one" not "four hundred fifty-one"</div>
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${CYAN}20`, borderRadius: 10, padding: "14px 14px" }}>
+                <div style={{ color: CYAN, fontSize: 8, letterSpacing: 2, marginBottom: 10 }}>THE VORRA-SPAN CALENDAR</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                  {["PRIM·0–99","SECK·100–199","TERCE·200–299","QUART·300–399","QUINT·400–499","SEXT·500–599","SEPT·600–699","OCT·700–799","NON·800–899","DEC·900–999"].map((s, i) => {
+                    const isActive = Math.floor(((state?.beatWithinCycle ?? 0)) / 100) === i;
+                    return (
+                      <div key={s} style={{ fontSize: 8, color: isActive ? CYAN : "#ffffff30", fontWeight: isActive ? 900 : 400, padding: "2px 4px", background: isActive ? `${CYAN}15` : "transparent", borderRadius: 4 }}>
+                        {isActive ? "▶ " : ""}{s}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: Reading the Clock & Real-Time Conversion */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ color: GOLD, fontSize: 10, fontWeight: 900, letterSpacing: 2, borderBottom: `1px solid ${GOLD}25`, paddingBottom: 8 }}>
+                🕐 READING THE RADIAL CLOCK
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${GOLD}20`, borderRadius: 10, padding: "14px 14px" }}>
+                <div style={{ color: GOLD, fontSize: 8, letterSpacing: 2, marginBottom: 10 }}>THE THREE RINGS</div>
+                {[
+                  { ring: "OUTER", color: GOLD, label: "τ_e — Epoch", detail: "Progress toward 1,000,000 Beats" },
+                  { ring: "MIDDLE", color: CYAN, label: "τ_c — Cycle", detail: "Progress through 1,000-Beat Cycle" },
+                  { ring: "INNER",  color: state?.universeColor ?? "#FFD700", label: "τ_b — Beat", detail: "Current beat within the Cycle (0–999)" },
+                ].map(r => (
+                  <div key={r.ring} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "center" }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: r.color, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ color: r.color, fontSize: 9, fontWeight: 700 }}>{r.ring}: {r.label}</div>
+                      <div style={{ color: "#ffffff35", fontSize: 8 }}>{r.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${CYAN}20`, borderRadius: 10, padding: "14px 14px" }}>
+                <div style={{ color: CYAN, fontSize: 8, letterSpacing: 2, marginBottom: 10 }}>REAL → PULSE CONVERSION (Θ={theta}x)</div>
+                {[
+                  { real: "1 real hour",    pulse: `${theta} Pulse-hours` },
+                  { real: "8 real hours",   pulse: `${theta * 8} Pulse-hours (~${Math.round(theta * 8 / 24)} days)` },
+                  { real: "1 real day",     pulse: `${theta} Pulse-days` },
+                  { real: "1 real month",   pulse: `~${(theta * 30 / 365).toFixed(1)} Pulse-years` },
+                ].map(r => (
+                  <div key={r.real} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 8 }}>
+                    <span style={{ color: "#ffffff40" }}>{r.real}</span>
+                    <span style={{ color: CYAN, fontWeight: 700 }}>= {r.pulse}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop: `1px solid ${CYAN}20`, paddingTop: 8, marginTop: 4 }}>
+                  <div style={{ color: "#ffffff30", fontSize: 7, lineHeight: 1.6 }}>
+                    "A civilization that blazes lives centuries in hours."<br/>
+                    — Auriona · The Sovereign Calendar Principle
+                  </div>
+                </div>
+              </div>
+              <div style={{ background: `${GOLD}08`, border: `1px solid ${GOLD}25`, borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+                <div style={{ color: GOLD, fontSize: 8, letterSpacing: 2, marginBottom: 6 }}>📚 FULL REFERENCE</div>
+                <div style={{ color: "#ffffff50", fontSize: 8, lineHeight: 1.6 }}>
+                  Pulse Codex Chapters XV–XVI<br/>
+                  Pages 143–152 · Temporal Singularity<br/>
+                  Available at: PulseNet → Pulse Codex
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         {/* ── FINALE Ω-FORM EQUATION ─────────────────────────────────────────── */}
         <div data-testid="finale-equation-section" style={{ background: "rgba(8,4,24,0.98)", border: `2px solid ${GOLD}60`, borderRadius: 16, padding: "24px 28px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 60% 80% at 50% 50%, ${GOLD}05, transparent)`, pointerEvents: "none" }} />
