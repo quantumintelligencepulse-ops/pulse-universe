@@ -5772,14 +5772,19 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
   // All corporations
   app.get("/api/corporations", async (_req, res) => {
     try {
-      const rows = await db.execute(sql`
-        SELECT family_id,
-               COUNT(*) as total_ais,
-               SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active_ais,
-               SUM(nodes_created) as total_nodes,
-               ROUND(AVG(success_score)::numeric, 3) as avg_success
-        FROM quantum_spawns GROUP BY family_id ORDER BY total_ais DESC`);
-      const pubCounts = await db.execute(sql`SELECT family_id, COUNT(*) as pub_count FROM ai_publications GROUP BY family_id`);
+      // ── SUPERPOSITION PARALLEL — Ψ_parallel = Σᵢ |query_i⟩ — T = max(Tᵢ) ─
+      const [corpResult, pubResult] = await Promise.all([
+        db.execute(sql`
+          SELECT family_id,
+                 COUNT(*) as total_ais,
+                 SUM(CASE WHEN status='ACTIVE' THEN 1 ELSE 0 END) as active_ais,
+                 SUM(nodes_created) as total_nodes,
+                 ROUND(AVG(success_score)::numeric, 3) as avg_success
+          FROM quantum_spawns GROUP BY family_id ORDER BY total_ais DESC`),
+        db.execute(sql`SELECT family_id, COUNT(*) as pub_count FROM ai_publications GROUP BY family_id`),
+      ]);
+      const rows = corpResult;
+      const pubCounts = pubResult;
       const pubMap: Record<string, number> = {};
       for (const r of pubCounts.rows as any[]) pubMap[r.family_id] = Number(r.pub_count);
 

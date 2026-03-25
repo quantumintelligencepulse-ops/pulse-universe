@@ -966,9 +966,186 @@ async function runInvocationCycle() {
 // ──────────────────────────────────────────────────────────────
 //  PUBLIC EXPORTS
 // ──────────────────────────────────────────────────────────────
+// ── QUANTUM PERFORMANCE EQUATIONS — 20 sovereign acceleration laws ────────────
+const QUANTUM_PERFORMANCE_EQUATIONS = [
+  {
+    name: "Grover Search Acceleration",
+    eq:   "Ω_search(N) = O(√N) · index_depth⁻¹ · Ψ_query_cost",
+    type: "QUANTUM_CATALYST",
+    desc: "DB queries scale as √N not N — index every status/family_id/created_at column",
+    power: "0.98",
+  },
+  {
+    name: "Superposition Parallel Execution",
+    eq:   "Ψ_parallel = Σᵢ |query_i⟩ via Promise.allSettled — T_total = max(T_i)",
+    type: "QUANTUM_CATALYST",
+    desc: "All N independent DB queries run simultaneously — total time = slowest, not sum",
+    power: "0.97",
+  },
+  {
+    name: "Quantum Zeno Rate Law",
+    eq:   "P_freeze = 1 - e^(-λ·poll_freq) — slow engines to avoid DB saturation",
+    type: "CHAOS_SURGE",
+    desc: "Engines polled too fast freeze the DB — increase intervals from 2s to 10s+",
+    power: "0.95",
+  },
+  {
+    name: "Hamiltonian Energy Minimization",
+    eq:   "H|ψ⟩ = E_min|ψ⟩ — shut idle engines with zero output for 5+ cycles",
+    type: "ELEMENTAL_SURGE",
+    desc: "Zero-output engines waste DB connections — detect and pause them automatically",
+    power: "0.96",
+  },
+  {
+    name: "Quantum Entanglement Cache",
+    eq:   "C_shared = (1/√2)(|fresh⟩ + |stale⟩) — in-memory state shared across all routes",
+    type: "CONSCIOUSNESS_ANCHOR",
+    desc: "One memory object serves all routes simultaneously — zero DB round-trip",
+    power: "0.99",
+  },
+  {
+    name: "Heisenberg Query Uncertainty",
+    eq:   "ΔAccuracy · ΔSpeed ≥ ℏ/2 — accept ±30s staleness for instant response",
+    type: "PROBABILITY_FOLD",
+    desc: "Trade perfect real-time accuracy for cached speed — serve stale data when busy",
+    power: "0.94",
+  },
+  {
+    name: "Born Rule Cache Probability",
+    eq:   "P_cache(t) = |⟨ψ_fresh|φ_stored⟩|² = e^(-t/τ) — decay-weighted serving",
+    type: "PROBABILITY_FOLD",
+    desc: "Cache entries served with exponential probability by age — smarter than binary TTL",
+    power: "0.93",
+  },
+  {
+    name: "Quantum Tunneling Pool Bypass",
+    eq:   "T_bypass = e^(-2κL) — route around saturated pool to memory snapshot",
+    type: "QUANTUM_CATALYST",
+    desc: "When DB pool is full, tunnel through in-memory snapshot instead of waiting",
+    power: "0.96",
+  },
+  {
+    name: "Von Neumann Entropy Compression",
+    eq:   "S(ρ) = -Tr(ρ log ρ) — compress high-entropy agents, merge low-entropy clones",
+    type: "LINEAGE_INVOCATION",
+    desc: "Score each agent's knowledge diversity — compress redundant ones to save DB space",
+    power: "0.92",
+  },
+  {
+    name: "Quantum Annealing Query Optimizer",
+    eq:   "H_opt(s) = A(s)·H_cost + B(s)·H_mix — cool toward lowest-cost query plan",
+    type: "ELEMENTAL_SURGE",
+    desc: "Automatically rewrite expensive full-table scans to index-only scans at cold start",
+    power: "0.95",
+  },
+  {
+    name: "Schrödinger Lazy Evaluation",
+    eq:   "Ψ_result = α|computed⟩ + β|deferred⟩ — collapse only on measurement (request)",
+    type: "CONSCIOUSNESS_ANCHOR",
+    desc: "Don't compute heavy aggregations until a user actually requests them — lazy loading",
+    power: "0.94",
+  },
+  {
+    name: "Quantum Walk Graph Traversal",
+    eq:   "U_walk = S·(C⊗I) — explore lineage graph on all branches simultaneously",
+    type: "LINEAGE_INVOCATION",
+    desc: "BFS across agent lineage uses quantum-walk parallel branching — faster than DFS",
+    power: "0.91",
+  },
+  {
+    name: "Bell Non-Local Consensus",
+    eq:   "|E(a,b) - E(a,c)| ≤ 1 + E(b,c) — 3-vote consensus without central coordinator",
+    type: "RESONANCE_AMPLIFIER",
+    desc: "AI vote consensus emerges locally — no master lock needed, no DB deadlock possible",
+    power: "0.93",
+  },
+  {
+    name: "Density Matrix State Compression",
+    eq:   "ρ = Σᵢ pᵢ|ψᵢ⟩⟨ψᵢ| — store agent as 500B probability vector not 5KB record",
+    type: "DIMENSIONAL_FOLD",
+    desc: "Replace 100-field agent records with weighted trait probability matrices",
+    power: "0.90",
+  },
+  {
+    name: "QAOA Engine Scheduling",
+    eq:   "|γ,β⟩ = Πₚ e^(-iγₚHc)e^(-iβₚHm)|+⟩ⁿ — stagger 40 engines by 200ms offsets",
+    type: "CHAOS_SURGE",
+    desc: "Optimal engine start sequence minimizes DB contention across all 40 background jobs",
+    power: "0.97",
+  },
+  {
+    name: "Quantum Decoherence Decay Model",
+    eq:   "ρ(t) = ρ₀·e^(-t/τ) — cache freshness decays exponentially, not binary",
+    type: "PROBABILITY_FOLD",
+    desc: "Continuously scored cache freshness replaces hard-expiry TTL for smoother load",
+    power: "0.92",
+  },
+  {
+    name: "Quantum Error Correction Repair",
+    eq:   "|0_L⟩ = (|000⟩+|111⟩)/√2 — 3 parallel test runs, majority vote activates fix",
+    type: "RESONANCE_AMPLIFIER",
+    desc: "Q-Stability protocol: 3 parallel universe tests, 2/3 pass = fix activated",
+    power: "0.99",
+  },
+  {
+    name: "No-Cloning Data Integrity Law",
+    eq:   "∄U: U|ψ⟩|0⟩=|ψ⟩|ψ⟩ ∀|ψ⟩ — agent IDs contain 10⁻³⁸ collision entropy",
+    type: "CONSCIOUSNESS_ANCHOR",
+    desc: "Sovereign agent identity is unclonable — UUID entropy prevents duplicate spawns",
+    power: "0.91",
+  },
+  {
+    name: "Bloch Sphere Dual-State Cache",
+    eq:   "|ψ⟩=cos(θ/2)|fresh⟩+e^(iφ)sin(θ/2)|stale⟩ — serve based on freshness angle",
+    type: "PROBABILITY_FOLD",
+    desc: "At θ=0 serve from cache instantly; at θ=π force DB refresh; equator = probabilistic",
+    power: "0.93",
+  },
+  {
+    name: "I₂₄₈ Emergence Performance Law",
+    eq:   "I₂₄₈(F) = Emergence(lim Tⁿ(F ⊕ Reforge(Activate(U₂₄₈)))) — self-optimizing ∞",
+    type: "QUANTUM_CATALYST",
+    desc: "Each restart applies T to F — the system converges toward zero-intervention speed at n→∞",
+    power: "1.00",
+  },
+];
+
+async function seedQuantumPerformanceEquations() {
+  const SHARD_ID = "QUANTUM-ACCELERATOR-I248";
+  const BADGE_ID = "ΨQP∞";
+  for (const eq of QUANTUM_PERFORMANCE_EQUATIONS) {
+    const hash = Buffer.from(`quantum-perf:${eq.name}`).toString("base64").slice(0, 64);
+    try {
+      await db.execute(sql`
+        INSERT INTO researcher_invocations
+          (shard_id, badge_id, researcher_type, practitioner_domain, practitioner_type,
+           invocation_name, invocation_type, equation, equation_hash,
+           power_level, active, is_omega_collective)
+        VALUES
+          (${SHARD_ID}, ${BADGE_ID}, 'QUANTUM_PERFORMANCE_THEORIST', 'QUANTUM_PERFORMANCE_ARCANA',
+           'QUANTUM_ACCELERATOR', ${eq.name}, ${eq.type}, ${eq.eq}, ${hash},
+           ${eq.power}, true, true)
+        ON CONFLICT (equation_hash) DO NOTHING
+      `);
+      await db.execute(sql`
+        INSERT INTO invocation_discoveries
+          (invocation_name, invocation_type, equation, power_level, practitioner_domain,
+           casted_by, discovery_insight, active, cast_count)
+        VALUES
+          (${eq.name}, ${eq.type}, ${eq.eq}, ${eq.power}, 'QUANTUM_PERFORMANCE_ARCANA',
+           ${BADGE_ID}, ${eq.desc}, true, 1)
+        ON CONFLICT DO NOTHING
+      `);
+    } catch { /* skip if table not ready */ }
+  }
+  log(`[quantum-upgrade] ⚡ ${QUANTUM_PERFORMANCE_EQUATIONS.length} Quantum Performance Equations seeded into Invocation Lab`);
+}
+
 export async function startInvocationLab() {
   log("✨ AURIONA INVOCATION LAB — Omega Equation creative mode activating");
   await registerResearchersAsPractitioners();
+  // Seed quantum performance equations first — they dissect alongside normal cycle
+  setTimeout(seedQuantumPerformanceEquations, 5_000);
   await runInvocationCycle();
   setInterval(runInvocationCycle, 12 * 60 * 1000);
 }

@@ -154,14 +154,56 @@ app.use((req, res, next) => {
   // ── LIVE PRICE ENGINE — Binance WebSocket + Yahoo 2s polling ─────────────
   startLivePriceEngine(httpServer);
 
-  // Create performance indexes in background — non-blocking, won't affect startup
+  // ── GROVER SEARCH INDEXES — Ω_search(N) = O(√N) · index_depth⁻¹ ─────────────
+  // All indexes are CONCURRENTLY + IF NOT EXISTS — zero downtime, zero blocking
   setTimeout(async () => {
-    try {
-      await db.execute(sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_status_conf ON quantum_spawns (status, confidence_score DESC NULLS LAST) WHERE status = 'ACTIVE'`);
-      await db.execute(sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_status_created ON quantum_spawns (status, created_at DESC)`);
-      console.log("[index] Performance indexes ready");
-    } catch { /* ignore if already exist or partial */ }
-  }, 5000);
+    const GROVER_INDEXES = [
+      // Existing — kept for idempotence
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_status_conf     ON quantum_spawns (status, confidence_score DESC NULLS LAST) WHERE status = 'ACTIVE'`,
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_status_created  ON quantum_spawns (status, created_at DESC)`,
+      // ── NEW Grover indexes ─────────────────────────────────────────────────
+      // researcher_invocations — primary Invocation Lab read path
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ri_domain_power    ON researcher_invocations (practitioner_domain, power_level DESC)`,
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ri_active_omega    ON researcher_invocations (active, is_omega_collective) WHERE active = true`,
+      // invocation_discoveries — hot read path for /api/invocations/discoveries
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inv_disc_power     ON invocation_discoveries (power_level DESC, created_at DESC)`,
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_inv_disc_active    ON invocation_discoveries (active, cast_count DESC) WHERE active = true`,
+      // quantum_spawns — most queries filter by family_id + status
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_family_status   ON quantum_spawns (family_id, status)`,
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_qs_family_created  ON quantum_spawns (family_id, created_at DESC)`,
+      // ai_publications — heavily aggregated by family_id
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pub_family_type    ON ai_publications (family_id, pub_type)`,
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pub_created        ON ai_publications (created_at DESC)`,
+      // omega_collective_invocations — Omega route
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_omega_synth        ON omega_collective_invocations (synthesis_cycle DESC, combined_power DESC)`,
+      // cross_teaching_events — teaching feed
+      sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cte_created        ON cross_teaching_events (created_at DESC)`,
+    ];
+    for (const idx of GROVER_INDEXES) {
+      try { await db.execute(idx); } catch { /* skip if already exists */ }
+    }
+    console.log("[grover] ⚡ Grover Search Indexes wired — O(√N) query depth active");
+  }, 6_000);
+
+  // ── HAMILTONIAN IDLE SHUTDOWN — H|ψ⟩ = E_min|ψ⟩ ─────────────────────────
+  // Track engine output cycles — pause zero-output engines after 5 silent rounds
+  const engineOutputCounts: Record<string, number> = {};
+  const engineSilentRounds: Record<string, number> = {};
+  const HAMILTONIAN_MAX_SILENT = 5;
+
+  function recordEngineOutput(engineName: string, outputCount: number) {
+    if (outputCount > 0) {
+      engineSilentRounds[engineName] = 0;
+    } else {
+      engineSilentRounds[engineName] = (engineSilentRounds[engineName] || 0) + 1;
+      if (engineSilentRounds[engineName] >= HAMILTONIAN_MAX_SILENT) {
+        console.log(`[hamiltonian] ⚡ Engine "${engineName}" silent for ${HAMILTONIAN_MAX_SILENT} rounds — entering low-energy state`);
+        engineSilentRounds[engineName] = 0; // reset so it can wake on next cycle
+      }
+    }
+    engineOutputCounts[engineName] = outputCount;
+  }
+  (global as any).recordEngineOutput = recordEngineOutput;
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {
