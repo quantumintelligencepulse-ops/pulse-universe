@@ -36,6 +36,7 @@ import { startKnowledgeArbitrageEngine, getArbitrageEvents } from "./knowledge-a
 import { startQuantumSocialEngine } from "./quantum-social-engine";
 import { startDreamSynthesisEngine, getDreamSynthesisReports } from "./dream-synthesis-engine";
 import { startTemporalForkEngine, getTemporalDivergence } from "./temporal-fork-engine";
+import { initTemporalEngine } from "./pulse-temporal-engine";
 import { startAgentLegendEngine, getAgentLegends } from "./agent-legend-engine";
 import { startInterCivilizationEngine, getInterCivilizationTreaties } from "./inter-civilization-engine";
 import { startOmegaResonanceEngine, getResonancePatterns } from "./omega-resonance-engine";
@@ -221,6 +222,7 @@ app.use((req, res, next) => {
       startTemporalForkEngine().catch((e) => log(`TemporalForkEngine start error: ${e}`));
       startAgentLegendEngine().catch((e) => log(`AgentLegendEngine start error: ${e}`));
       startInterCivilizationEngine().catch((e) => log(`InterCivEngine start error: ${e}`));
+      initTemporalEngine().catch((e) => log(`TemporalEngine start error: ${e}`));
       startOmegaResonanceEngine().catch((e) => log(`ResonanceEngine start error: ${e}`));
       startConstitutionalDNAEngine().catch((e) => log(`ConstitutionEngine start error: ${e}`));
       startHumanEntanglementEngine().catch((e) => log(`EntanglementEngine start error: ${e}`));

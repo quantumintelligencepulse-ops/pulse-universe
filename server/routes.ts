@@ -8008,6 +8008,59 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
     } catch (e) { res.json({ hive: null, top10: [] }); }
   });
 
+  // ── PULSE-TEMPORAL OBSERVATORY ROUTES ─────────────────────────────────────
+  app.get("/api/temporal/state", async (_req, res) => {
+    try {
+      const { getTemporalState } = await import("./pulse-temporal-engine");
+      res.json(await getTemporalState());
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/temporal/debates", async (req, res) => {
+    try {
+      const { getTemporalDebates } = await import("./pulse-temporal-engine");
+      const limit = parseInt(String(req.query.limit ?? "30"), 10);
+      res.json(await getTemporalDebates(limit));
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/temporal/calendar", async (req, res) => {
+    try {
+      const { getTemporalCalendarEvents } = await import("./pulse-temporal-engine");
+      const limit = parseInt(String(req.query.limit ?? "50"), 10);
+      res.json(await getTemporalCalendarEvents(limit));
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/temporal/finale-equation", async (_req, res) => {
+    try {
+      const { rows } = await pool.query(`SELECT * FROM codex_equations WHERE chapter_id = 'OMEGA-FORM-FINAL' LIMIT 1`);
+      res.json(rows[0] ?? null);
+    } catch (e) { res.json(null); }
+  });
+
+  app.post("/api/temporal/debates/vote/:id", async (req, res) => {
+    try {
+      await pool.query(`UPDATE temporal_debates SET vote_count = vote_count + 1 WHERE id = $1`, [req.params.id]);
+      res.json({ ok: true });
+    } catch (e) { res.json({ ok: false }); }
+  });
+
+  app.post("/api/temporal/equation/dissect", async (req, res) => {
+    try {
+      const { equation_id, dissector_id, perspective, glyph_output } = req.body;
+      await pool.query(
+        `UPDATE codex_equations SET dissection_count = dissection_count + 1 WHERE chapter_id = 'OMEGA-FORM-FINAL'`
+      );
+      // Also store as a new temporal debate entry
+      await pool.query(
+        `INSERT INTO temporal_debates (speaker, sigil, argument, position, topic, layer) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [dissector_id || "DISSECTION-TEAM", "⊘", perspective || glyph_output || "Dissection submitted", "DISSECTION", "OMEGA_FORM", "L2"]
+      );
+      res.json({ ok: true });
+    } catch (e) { res.json({ ok: false, error: String(e) }); }
+  });
+
   // ── AI CALENDAR ROUTES ─────────────────────────────────────────────────────
   app.get("/api/calendar/events", async (_req, res) => {
     try {

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
+import { Link } from "wouter";
 
 // ─── Ω UNIVERSE VECTOR TIME ────────────────────────────────────────────────────
 const OMEGA_EPOCH = new Date("2024-11-01T00:00:00Z").getTime();
@@ -726,6 +727,23 @@ export default function AurionaPage() {
             ))}
           </div>
         </div>
+
+        {/* TEMPORAL OBSERVATORY LINK — always visible, no loading dependency */}
+        <Link href="/auriona/temporal">
+          <div data-testid="temporal-observatory-link" style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: 14, padding: "18px 28px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.12) 0%, rgba(0,255,209,0.08) 100%)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)")}>
+            <div>
+              <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3, marginBottom: 4 }}>
+                ⏱ TEMPORAL OBSERVATORY
+              </div>
+              <div style={{ color: "#ffffff60", fontSize: 11 }}>
+                Live Pulse-Time Clock · τ_b / τ_c / τ_e Calendar · Θ(t) Dilation Engine · Finale Ω-Form Equation · Science Debates
+              </div>
+            </div>
+            <div style={{ color: "#FFD700", fontSize: 20 }}>→</div>
+          </div>
+        </Link>
 
         {isLoading && (
           <div style={{ textAlign: "center", color: GOLD, padding: 80, fontSize: 14 }}>

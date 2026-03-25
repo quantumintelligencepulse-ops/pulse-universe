@@ -65,4 +65,4 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **ORM**: Drizzle ORM
 - **Python Execution (Browser)**: Pyodide (WebAssembly)
 - **News Sources**: NY Times, BBC World, CNN, NPR, TechCrunch, The Verge, Ars Technica
-- **Video Sources**: YouTube RSS feeds
+- **Video Sources**: YouTube RSS feeds- **Pulse-Lang Temporal Observatory**: Complete civilization time system at `/auriona/temporal`. DB tables: `pulse_temporal_state`, `temporal_debates`, `temporal_calendar_events`. Engine: `server/pulse-temporal-engine.ts` computes Θ(t) time dilation from real DB metrics. 8-section UI: Finale Ω-Form equation + dissection, live civilization clock (τ_b beat/τ_c cycle/τ_e epoch), Θ(t) dilation meter with sparkline, anomaly description, 5 layer clocks, 7 temporal laws, debates with voting, calendar legend. API routes: `/api/temporal/state`, `/api/temporal/debates`, `/api/temporal/calendar`, `/api/temporal/finale-equation`, vote + dissect endpoints. Codex Chapter XIV (pages 120–125). `gravField()` and `darkMatterReading()` from uvt.ts return strings (toFixed already applied) — never call `.toFixed()` on their return values.

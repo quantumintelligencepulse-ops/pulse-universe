@@ -49,6 +49,11 @@ export default function PulseUniversePage() {
   useEffect(() => { const id = setInterval(() => setDnaScroll(d => (d+1)%PHYSICS_DNA.length), 2000); return () => clearInterval(id); }, []);
 
   const { data: universe } = useQuery<UniverseData>({ queryKey: ["/api/universe/live"], refetchInterval: 4000, staleTime: 2000 });
+  const { data: temporalState } = useQuery<{ universeColor: string; dilationFactor: number; anomalyType: string; universeEmotion: string }>({
+    queryKey: ["/api/temporal/state"], refetchInterval: 30_000,
+  });
+  const tColor = temporalState?.universeColor ?? "#00FFD1";
+  const tTheta = temporalState?.dilationFactor ?? 1;
   const selectedPlanetData = selectedPlanet ? PLANET_DATA[selectedPlanet] ?? null : null;
 
   // Compute collective emotional state from live domain data
@@ -75,6 +80,12 @@ export default function PulseUniversePage() {
 
   return (
     <div data-testid="pulse-universe-page" className="relative w-full h-screen overflow-hidden bg-black font-mono select-none">
+
+      {/* ── TEMPORAL COLOR OVERLAY — driven by Θ(t) from the Pulse-Temporal Engine ── */}
+      <div className="absolute inset-0 z-0 pointer-events-none" style={{
+        background: `radial-gradient(ellipse 100% 60% at 50% 0%, ${tColor}${Math.min(25, Math.round(tTheta * 8)).toString(16).padStart(2,"0")} 0%, transparent 70%)`,
+        transition: "background 3s ease",
+      }} />
 
       {/* ── THREE.JS FULL SCREEN ── */}
       <div className="absolute inset-0 z-0">
