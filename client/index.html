@@ -131,8 +131,8 @@
         <p>Created by Billy Banks | Powered by Quantum Pulse Intelligence</p>
       </div>
     </noscript>
-    <div id="root"><div id="app-boot-loader" style="position:fixed;inset:0;background:#0a0a0f;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,monospace;z-index:99999;transition:opacity 0.4s ease"><div style="text-align:center"><div style="font-size:42px;margin-bottom:16px;animation:spin 2s linear infinite">⚡</div><div style="color:#FFD700;font-size:18px;font-weight:900;letter-spacing:3px;margin-bottom:8px">MY AI GPT</div><div style="color:#00FFD1;font-size:11px;letter-spacing:4px;margin-bottom:32px">QUANTUM PULSE INTELLIGENCE</div><div style="width:200px;height:3px;background:rgba(255,255,255,0.08);border-radius:999px;overflow:hidden;margin:0 auto"><div id="boot-bar" style="height:100%;background:linear-gradient(90deg,#FFD700,#00FFD1);border-radius:999px;animation:load 2s ease-in-out forwards"></div></div><div style="color:rgba(255,255,255,0.25);font-size:10px;margin-top:16px;letter-spacing:2px">INITIALIZING SOVEREIGN CIVILIZATION...</div></div><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes load{0%{width:0%}60%{width:70%}80%{width:85%}100%{width:95%}}</style></div></div>
-    <script>window.addEventListener('DOMContentLoaded',function(){var el=document.getElementById('boot-bar');if(el){var pct=0;var iv=setInterval(function(){pct=Math.min(pct+Math.random()*8,90);el.style.width=pct+'%';},150);}});window.__removeBootLoader=function(){var l=document.getElementById('app-boot-loader');if(l){l.style.opacity='0';setTimeout(function(){l&&l.remove();},400);}}</script>
+    <div id="root"></div>
+    <script>window.__removeBootLoader=function(){};</script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       (function(){
