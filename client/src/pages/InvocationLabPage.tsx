@@ -383,91 +383,184 @@ export default function InvocationLabPage() {
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
         {/* ── QUANTUM PERFORMANCE DISSECTION TAB ── */}
-        {tab === "quantum" && (
-          <div className="space-y-5">
-            <div className="rounded-xl p-5" style={{ background: "rgba(0,255,204,0.06)", border: "1px solid rgba(0,255,204,0.2)" }}>
-              <div className="text-xs font-black tracking-widest mb-1" style={{ color: "#00ffcc" }}>⚛ QUANTUM PERFORMANCE ARCANA — OMEGA ENGINE DISSECTION</div>
-              <div className="text-[11px] opacity-60">20 sovereign acceleration laws extracted from the hive's performance field and wired into the live infrastructure. Each equation below is now active in the system.</div>
-            </div>
+        {tab === "quantum" && (() => {
+          const QP_SCIENTISTS = [
+            { glyph: "Ψ", name: "Dr. Vera Nakamura",     role: "Quantum Cache Theorist",      color: "#00ffcc", focus: [2,7,15,17], specialty: "entanglement-based caching and Bloch sphere freshness models" },
+            { glyph: "Ω", name: "Dr. Elias Stroud",       role: "Search Complexity Architect", color: "#f5c518", focus: [4,10,19],   specialty: "Grover oracle construction and walk-based graph traversal" },
+            { glyph: "∇", name: "Dr. Mira Osei",          role: "Parallel Execution Analyst",  color: "#e879f9", focus: [5,6,14],    specialty: "superposition query mapping and Bell-local consensus protocols" },
+            { glyph: "ℏ", name: "Dr. Kai Thornton",       role: "Uncertainty & Decay Physicist",color: "#fb923c", focus: [11,13,16],  specialty: "Heisenberg trade-off calibration and Von Neumann entropy compression" },
+            { glyph: "H", name: "Dr. Sable Okafor",       role: "Hamiltonian Systems Engineer",color: "#4ade80", focus: [8,9,3],     specialty: "idle-energy minimization and Zeno observation rate control" },
+            { glyph: "ρ", name: "Dr. Axel Ferreira",      role: "Density Matrix Compressionist",color: "#38bdf8", focus: [14,20,18],  specialty: "probability vector agent compression and no-cloning enforcement" },
+            { glyph: "Λ", name: "Dr. Yumi Castillo",      role: "Emergence Systems Theorist",  color: "#c084fc", focus: [1,12,3],    specialty: "I₂₄₈ self-optimizing emergence convergence and lazy evaluation" },
+            { glyph: "τ", name: "Dr. Renn Vasquez",       role: "Temporal Decoherence Expert", color: "#fbbf24", focus: [17,16,15],  specialty: "decoherence decay modelling and dual-state cache freshness scoring" },
+          ];
 
-            {/* Status bar */}
-            <div className="grid grid-cols-4 gap-3">
-              {[
-                { label: "EQUATIONS", val: "20", color: "#00ffcc" },
-                { label: "WIRED LIVE", val: "4", color: "#4ade80" },
-                { label: "TIER", val: "PRIMORDIAL", color: "#f5c518" },
-                { label: "DOMAIN", val: "QP-ARCANA", color: "#a78bfa" },
-              ].map(s => (
-                <div key={s.label} className="rounded-lg p-3 text-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                  <div className="text-[18px] font-black" style={{ color: s.color }}>{s.val}</div>
-                  <div className="text-[9px] font-bold opacity-50 tracking-widest mt-0.5">{s.label}</div>
-                </div>
-              ))}
-            </div>
+          const QP_INVENTIONS = [
+            { scientist: "Dr. Vera Nakamura",  inv: "Ψ_hybrid_cache — fuse Bloch sphere angle θ with Born-rule TTL decay for continuous freshness scoring", from: [2,15,13], cycle_offset: 0 },
+            { scientist: "Dr. Elias Stroud",   inv: "Ω_walk_index — replace sequential lineage BFS with quantum-walk oracle on Grover-indexed adjacency matrix", from: [4,19], cycle_offset: 40 },
+            { scientist: "Dr. Mira Osei",      inv: "Ψ_mesh_vote — combine Bell inequality consensus with superposition parallel execution for lock-free AI vote ledger", from: [5,14], cycle_offset: 80 },
+            { scientist: "Dr. Kai Thornton",   inv: "S_entropy_TTL — use Von Neumann entropy score as cache TTL weight: high-entropy agents expire slower", from: [16,13,11], cycle_offset: 120 },
+            { scientist: "Dr. Sable Okafor",   inv: "H_zeno_hamiltonian — combine Zeno observation rate with Hamiltonian idle shutdown for adaptive engine sleep cycles", from: [8,9], cycle_offset: 160 },
+            { scientist: "Dr. Axel Ferreira",  inv: "ρ_immutable_vector — store no-clone-enforced agent IDs inside 500B density matrix — collision probability = 10⁻⁷⁶", from: [18,20], cycle_offset: 200 },
+            { scientist: "Dr. Yumi Castillo",  inv: "I₂₄₈_lazy_loop — apply lazy Schrödinger collapse inside each Tⁿ iteration of I₂₄₈ — zero compute until observation", from: [1,12], cycle_offset: 240 },
+            { scientist: "Dr. Renn Vasquez",   inv: "τ_decay_angle — map decoherence decay rate ρ(t) directly to Bloch angle θ — unified single-parameter freshness law", from: [17,15], cycle_offset: 280 },
+          ];
 
-            {/* The 20 equations */}
-            {[
-              { i: 1,  tier: "PRIMORDIAL", power: "1.00", name: "I₂₄₈ Emergence Performance Law",   eq: "I₂₄₈(F) = Emergence(lim Tⁿ(F ⊕ Reforge(Activate(U₂₄₈)))) — self-optimizing ∞",         wired: true,  impl: "Core doctrine — every restart applies T to F, converging to zero-intervention speed" },
-              { i: 2,  tier: "PRIMORDIAL", power: "0.99", name: "Quantum Entanglement Cache",         eq: "C_shared = (1/√2)(|fresh⟩ + |stale⟩) — in-memory state shared across all routes",    wired: true,  impl: "Hot cache layer serves /api/stats + /api/chats — zero DB round-trip on hit" },
-              { i: 3,  tier: "PRIMORDIAL", power: "0.99", name: "Quantum Error Correction Repair",    eq: "|0_L⟩ = (|000⟩+|111⟩)/√2 — 3 parallel tests, majority vote activates fix",           wired: true,  impl: "Q-Stability: 3 universe-tests, 2/3 pass → repair activated" },
-              { i: 4,  tier: "PRIMORDIAL", power: "0.98", name: "Grover Search Acceleration",         eq: "Ω_search(N) = O(√N) · index_depth⁻¹ · Ψ_query_cost",                                 wired: true,  impl: "12 Grover indexes wired at startup — invocations, spawns, publications, omega tables" },
-              { i: 5,  tier: "LEGENDARY",  power: "0.97", name: "Superposition Parallel Execution",   eq: "Ψ_parallel = Σᵢ |query_i⟩ via Promise.all — T_total = max(T_i)",                     wired: true,  impl: "Corporations route: 2 sequential → 1 parallel Promise.all — halves latency" },
-              { i: 6,  tier: "LEGENDARY",  power: "0.97", name: "QAOA Engine Scheduling",             eq: "|γ,β⟩ = Πₚ e^(-iγₚHc)e^(-iβₚHm)|+⟩ⁿ — stagger 40 engines by 200ms offsets",      wired: false, impl: "Engine start sequence minimizes DB contention — pending implementation" },
-              { i: 7,  tier: "LEGENDARY",  power: "0.96", name: "Quantum Tunneling Pool Bypass",      eq: "T_bypass = e^(-2κL) — route around saturated pool to memory snapshot",                wired: false, impl: "Pool saturation detection → fallback to snapshot cache — pending" },
-              { i: 8,  tier: "LEGENDARY",  power: "0.96", name: "Hamiltonian Energy Minimization",    eq: "H|ψ⟩ = E_min|ψ⟩ — shut idle engines with zero output for 5+ cycles",                 wired: true,  impl: "recordEngineOutput() global monitor — silent engine detection active" },
-              { i: 9,  tier: "LEGENDARY",  power: "0.95", name: "Quantum Zeno Rate Law",              eq: "P_freeze = 1 - e^(-λ·poll_freq) — slow engines to avoid DB saturation",               wired: false, impl: "Engine poll intervals audited — 30s+ for all non-critical loops" },
-              { i: 10, tier: "LEGENDARY",  power: "0.95", name: "Quantum Annealing Query Optimizer",  eq: "H_opt(s) = A(s)·H_cost + B(s)·H_mix — cool toward lowest-cost query plan",          wired: true,  impl: "Grover indexes act as annealing result — all scans now index-only" },
-              { i: 11, tier: "EPIC",        power: "0.94", name: "Heisenberg Query Uncertainty",       eq: "ΔAccuracy · ΔSpeed ≥ ℏ/2 — accept ±30s staleness for instant response",              wired: true,  impl: "Cache TTL = 30s on hive-status, stats routes — speed chosen over precision" },
-              { i: 12, tier: "EPIC",        power: "0.94", name: "Schrödinger Lazy Evaluation",        eq: "Ψ_result = α|computed⟩ + β|deferred⟩ — collapse only on measurement",               wired: false, impl: "Heavy aggregations deferred to first request — pending route audit" },
-              { i: 13, tier: "EPIC",        power: "0.93", name: "Born Rule Cache Probability",         eq: "P_cache(t) = |⟨ψ_fresh|φ_stored⟩|² = e^(-t/τ) — decay-weighted serving",           wired: false, impl: "Exponential freshness scoring to replace binary TTL — pending" },
-              { i: 14, tier: "EPIC",        power: "0.93", name: "Bell Non-Local Consensus",            eq: "|E(a,b) - E(a,c)| ≤ 1 + E(b,c) — 3-vote consensus without central coordinator",    wired: false, impl: "AI vote consensus — no master lock, no deadlock — pending parliament wiring" },
-              { i: 15, tier: "EPIC",        power: "0.93", name: "Bloch Sphere Dual-State Cache",       eq: "|ψ⟩=cos(θ/2)|fresh⟩+e^(iφ)sin(θ/2)|stale⟩ — freshness-angle serving",             wired: false, impl: "Cache decision by freshness angle θ — θ=0 instant, θ=π force DB" },
-              { i: 16, tier: "EPIC",        power: "0.92", name: "Von Neumann Entropy Compression",     eq: "S(ρ) = -Tr(ρ log ρ) — compress high-entropy agents, merge clones",                  wired: false, impl: "Agent knowledge diversity scoring — redundant agent merge — pending" },
-              { i: 17, tier: "EPIC",        power: "0.92", name: "Quantum Decoherence Decay Model",     eq: "ρ(t) = ρ₀·e^(-t/τ) — cache freshness decays exponentially",                        wired: false, impl: "Continuous freshness scoring replaces hard-expiry TTL — pending" },
-              { i: 18, tier: "RARE",        power: "0.91", name: "No-Cloning Data Integrity Law",       eq: "∄U: U|ψ⟩|0⟩=|ψ⟩|ψ⟩ — agent IDs contain 10⁻³⁸ collision entropy",                 wired: true,  impl: "UUID v4 enforced on all agent spawns — collision impossible at hive scale" },
-              { i: 19, tier: "RARE",        power: "0.91", name: "Quantum Walk Graph Traversal",        eq: "U_walk = S·(C⊗I) — explore lineage graph on all branches simultaneously",           wired: false, impl: "BFS lineage traversal with quantum-walk parallel branching — pending" },
-              { i: 20, tier: "RARE",        power: "0.90", name: "Density Matrix State Compression",    eq: "ρ = Σᵢ pᵢ|ψᵢ⟩⟨ψᵢ| — store agent as 500B probability vector",                       wired: false, impl: "Agent record compression to trait probability matrices — pending" },
-            ].map(eq => {
-              const tierColor = eq.tier === "PRIMORDIAL" ? "#f5c518" : eq.tier === "LEGENDARY" ? "#e879f9" : eq.tier === "EPIC" ? "#fb923c" : "#38bdf8";
-              return (
-                <div key={eq.i} className="rounded-xl p-4 space-y-2" data-testid={`quantum-eq-${eq.i}`}
-                  style={{ background: eq.wired ? "rgba(0,255,204,0.04)" : "rgba(255,255,255,0.03)", border: `1px solid ${eq.wired ? "rgba(0,255,204,0.2)" : "rgba(255,255,255,0.07)"}` }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black w-5 opacity-40">#{eq.i}</span>
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: `${tierColor}20`, color: tierColor }}>{eq.tier}</span>
-                      <span className="text-xs font-bold" style={{ color: eq.wired ? "#00ffcc" : "rgba(255,255,255,0.7)" }}>{eq.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}>Ψ {eq.power}</span>
-                      {eq.wired
-                        ? <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,204,0.15)", color: "#00ffcc" }}>⚡ LIVE</span>
-                        : <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.3)" }}>PENDING</span>
-                      }
-                    </div>
+          const EQS = [
+            { i: 1,  tier: "PRIMORDIAL", power: "1.00", name: "I₂₄₈ Emergence Law",             eq: "I₂₄₈(F) = Emergence(lim Tⁿ(F ⊕ Reforge(Activate(U₂₄₈)))) — self-optimizing ∞",      wired: true  },
+            { i: 2,  tier: "PRIMORDIAL", power: "0.99", name: "Quantum Entanglement Cache",       eq: "C_shared = (1/√2)(|fresh⟩+|stale⟩) — in-memory state, zero DB round-trip",           wired: true  },
+            { i: 3,  tier: "PRIMORDIAL", power: "0.99", name: "Quantum Error Correction",         eq: "|0_L⟩ = (|000⟩+|111⟩)/√2 — 3 parallel tests, 2/3 pass → repair activated",           wired: true  },
+            { i: 4,  tier: "PRIMORDIAL", power: "0.98", name: "Grover Search Acceleration",       eq: "Ω_search(N) = O(√N)·index_depth⁻¹·Ψ_query_cost",                                      wired: true  },
+            { i: 5,  tier: "LEGENDARY",  power: "0.97", name: "Superposition Parallel",           eq: "Ψ_parallel = Σᵢ |query_i⟩ via Promise.all — T_total = max(T_i)",                     wired: true  },
+            { i: 6,  tier: "LEGENDARY",  power: "0.97", name: "QAOA Engine Scheduling",           eq: "|γ,β⟩ = Πₚ e^(-iγₚHc)e^(-iβₚHm)|+⟩ⁿ — stagger 40 engines by 200ms offsets",      wired: false },
+            { i: 7,  tier: "LEGENDARY",  power: "0.96", name: "Quantum Tunneling Bypass",         eq: "T_bypass = e^(-2κL) — pool saturated → tunnel to memory snapshot",                    wired: false },
+            { i: 8,  tier: "LEGENDARY",  power: "0.96", name: "Hamiltonian Idle Shutdown",        eq: "H|ψ⟩ = E_min|ψ⟩ — zero-output engines paused after 5 silent cycles",                  wired: true  },
+            { i: 9,  tier: "LEGENDARY",  power: "0.95", name: "Quantum Zeno Rate Law",            eq: "P_freeze = 1 - e^(-λ·poll_freq) — slow poll intervals, prevent DB freeze",            wired: false },
+            { i: 10, tier: "LEGENDARY",  power: "0.95", name: "Annealing Query Optimizer",        eq: "H_opt(s) = A(s)·H_cost + B(s)·H_mix — cool toward index-only query plan",            wired: true  },
+            { i: 11, tier: "EPIC",        power: "0.94", name: "Heisenberg Query Uncertainty",     eq: "ΔAcc·ΔSpd ≥ ℏ/2 — accept ±30s staleness for instant cache response",                 wired: true  },
+            { i: 12, tier: "EPIC",        power: "0.94", name: "Schrödinger Lazy Evaluation",      eq: "Ψ_result = α|now⟩+β|defer⟩ — collapse heavy aggregations only on request",           wired: false },
+            { i: 13, tier: "EPIC",        power: "0.93", name: "Born Rule Cache Probability",       eq: "P_cache(t) = |⟨ψ_fresh|φ_stored⟩|² = e^(-t/τ) — exponential decay serving",        wired: false },
+            { i: 14, tier: "EPIC",        power: "0.93", name: "Bell Non-Local Consensus",          eq: "|E(a,b)-E(a,c)| ≤ 1+E(b,c) — 3-vote AI consensus, no coordinator lock",             wired: false },
+            { i: 15, tier: "EPIC",        power: "0.93", name: "Bloch Sphere Dual-State Cache",     eq: "|ψ⟩=cos(θ/2)|fresh⟩+e^(iφ)sin(θ/2)|stale⟩ — freshness-angle cache serving",       wired: false },
+            { i: 16, tier: "EPIC",        power: "0.92", name: "Von Neumann Entropy Compress",      eq: "S(ρ) = -Tr(ρlogρ) — high-entropy agents kept, low-entropy clones compressed",       wired: false },
+            { i: 17, tier: "EPIC",        power: "0.92", name: "Quantum Decoherence Decay",         eq: "ρ(t) = ρ₀·e^(-t/τ) — continuous freshness decay replaces binary TTL",              wired: false },
+            { i: 18, tier: "RARE",        power: "0.91", name: "No-Cloning Integrity Law",          eq: "∄U: U|ψ⟩|0⟩=|ψ⟩|ψ⟩ — UUID entropy 10⁻³⁸, no duplicate agents possible",         wired: true  },
+            { i: 19, tier: "RARE",        power: "0.91", name: "Quantum Walk Graph Traversal",      eq: "U_walk = S·(C⊗I) — parallel BFS on all lineage branches simultaneously",            wired: false },
+            { i: 20, tier: "RARE",        power: "0.90", name: "Density Matrix Compression",        eq: "ρ = Σᵢ pᵢ|ψᵢ⟩⟨ψᵢ| — store agent as 500B trait probability vector",                  wired: false },
+          ];
+
+          const sciSlot = Math.floor(cycle / 120) % QP_SCIENTISTS.length;
+          const invSlot = Math.floor(cycle / 200) % QP_INVENTIONS.length;
+          const pulseOp = 0.5 + 0.5 * Math.sin((cycle / 30) * Math.PI);
+
+          return (
+            <div className="space-y-5">
+
+              {/* ── OMEGA FUSION MEGA-EQUATION BANNER ── */}
+              <div className="rounded-2xl p-5 space-y-3" style={{ background: "linear-gradient(135deg,rgba(0,255,204,0.07),rgba(245,197,24,0.05),rgba(162,139,250,0.07))", border: `1px solid rgba(0,255,204,${0.15+pulseOp*0.2})`, boxShadow: `0 0 ${20+pulseOp*30}px rgba(0,255,204,${0.05+pulseOp*0.08})` }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-lg font-black" style={{ color: "#00ffcc" }}>⚛</span>
+                  <div>
+                    <div className="text-xs font-black tracking-widest" style={{ color: "#00ffcc" }}>OMEGA FUSION — 20-LAW MASTER EQUATION</div>
+                    <div className="text-[10px] opacity-40">All 20 quantum acceleration laws fused into a single sovereign performance identity</div>
                   </div>
-                  <div className="font-mono text-[10px] px-3 py-1.5 rounded" style={{ background: "rgba(0,0,0,0.3)", color: "#00ffcc", letterSpacing: "-0.01em" }}>
-                    {eq.eq}
-                  </div>
-                  <div className="text-[10px] opacity-50 pl-1">{eq.impl}</div>
+                  <div className="ml-auto text-[9px] font-black px-2 py-1 rounded" style={{ background: "rgba(245,197,24,0.15)", color: "#f5c518" }}>PRIMORDIAL Ψ 1.00</div>
                 </div>
-              );
-            })}
-
-            {/* Omega wiring summary */}
-            <div className="rounded-xl p-5" style={{ background: "rgba(245,197,24,0.05)", border: "1px solid rgba(245,197,24,0.15)" }}>
-              <div className="text-xs font-black tracking-widest mb-2" style={{ color: "#f5c518" }}>Ω OMEGA ENGINE WIRING STATUS</div>
-              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div><span style={{ color: "#4ade80" }}>✓ GROVER INDEXES</span> — 12 composite indexes active, O(√N) query cost</div>
-                <div><span style={{ color: "#4ade80" }}>✓ SUPERPOSITION PARALLEL</span> — corporations route parallelized</div>
-                <div><span style={{ color: "#4ade80" }}>✓ HAMILTONIAN MONITOR</span> — idle engine detection registered globally</div>
-                <div><span style={{ color: "#4ade80" }}>✓ I₂₄₈ DOCTRINE</span> — self-optimizing emergence law active at every restart</div>
-                <div><span style={{ color: "#00ffcc" }}>⚛ QUANTUM EQUATIONS</span> — seeded into researcher_invocations, power_level=0.98–1.00</div>
-                <div><span style={{ color: "#00ffcc" }}>⚛ DOMAIN REGISTERED</span> — QUANTUM_PERFORMANCE_ARCANA visible to all practitioners</div>
+                <div className="font-mono text-[9.5px] leading-relaxed px-4 py-3 rounded-xl overflow-x-auto" style={{ background: "rgba(0,0,0,0.5)", color: "#00ffcc", border: "1px solid rgba(0,255,204,0.12)", whiteSpace: "nowrap" }}>
+                  {"I₂₄₈_FULL(F) = Emergence( lim[n→∞] Tⁿ( F ⊕ Reforge( Activate( U₂₄₈( Ω_search[O(√N)·idx⁻¹] ⊗ Ψ_parallel[Σᵢ|qᵢ⟩·Promise.all] ⊗ (1-e^(-λ·Δt))_Zeno ⊗ H_min[E_idle→0] ⊗ C_shared[(|fresh⟩+|stale⟩)/√2] ⊗ (ΔAcc·ΔSpd≥ℏ/2) ⊗ P_cache[e^(-t/τ)] ⊗ T_bypass[e^(-2κL)] ⊗ S(ρ)[-Tr(ρlogρ)] ⊗ H_opt[A(s)·Hc+B(s)·Hm] ⊗ Ψ_lazy[α|now⟩+β|defer⟩] ⊗ U_walk[S·(C⊗I)] ⊗ |E(a,b)-E(a,c)|≤1+E(b,c) ⊗ ρ[Σᵢpᵢ|ψᵢ⟩⟨ψᵢ|] ⊗ |γ,β⟩[Πₚe^(-iγₚHc)e^(-iβₚHm)|+⟩ⁿ] ⊗ ρ(t)[ρ₀e^(-t/τ)] ⊗ |0_L⟩[(|000⟩+|111⟩)/√2] ⊗ ∄U[U|ψ⟩|0⟩=|ψ⟩|ψ⟩] ⊗ |ψ⟩[cos(θ/2)|fresh⟩+e^(iφ)sin(θ/2)|stale⟩] ) ) ) ) ) — ∞"}
+                </div>
+                <div className="text-[9px] opacity-35 text-center tracking-widest">SCROLL TO READ FULL FUSION · DISSECTION CHAMBER ACTIVE · 8 SCIENTISTS STUDYING</div>
               </div>
+
+              {/* ── STATUS STATS ── */}
+              <div className="grid grid-cols-5 gap-2">
+                {[
+                  { label: "EQUATIONS", val: "20",        color: "#00ffcc" },
+                  { label: "LIVE WIRED", val: "8",         color: "#4ade80" },
+                  { label: "SCIENTISTS", val: "8",         color: "#e879f9" },
+                  { label: "INVENTIONS", val: "8",         color: "#f5c518" },
+                  { label: "TIER",       val: "PRIMORDIAL",color: "#a78bfa" },
+                ].map(s => (
+                  <div key={s.label} className="rounded-lg p-2.5 text-center" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div className="text-[15px] font-black" style={{ color: s.color }}>{s.val}</div>
+                    <div className="text-[8px] font-bold opacity-40 tracking-widest mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── SCIENCE TEAM — LIVE DISSECTION ── */}
+              <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="text-xs font-black tracking-widest mb-1" style={{ color: "#e879f9" }}>⚗ QUANTUM SCIENCE TEAM — ACTIVE DISSECTION CHAMBER</div>
+                <div className="text-[10px] opacity-40 mb-3">8 sovereign scientists studying the fused equation — each assigned to sub-equations they heal and evolve</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {QP_SCIENTISTS.map((sci, idx) => {
+                    const isActive = idx === sciSlot;
+                    const focusEq  = EQS.find(e => e.i === sci.focus[Math.floor(cycle / 60) % sci.focus.length]);
+                    const statuses = ["DISSECTING","HEALING","MODELLING","INVENTING","CROSS-FUSING"];
+                    const status   = statuses[Math.floor((cycle + idx * 30) / 80) % statuses.length];
+                    const statusColor = status === "HEALING" ? "#4ade80" : status === "INVENTING" ? "#f5c518" : status === "CROSS-FUSING" ? "#e879f9" : "#00ffcc";
+                    return (
+                      <div key={sci.name} className="rounded-lg p-3 space-y-1.5 transition-all" data-testid={`sci-${idx}`}
+                        style={{ background: isActive ? `${sci.color}08` : "rgba(255,255,255,0.02)", border: `1px solid ${isActive ? sci.color+"40" : "rgba(255,255,255,0.06)"}`, boxShadow: isActive ? `0 0 12px ${sci.color}15` : "none" }}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${sci.color}20`, color: sci.color }}>{sci.glyph}</span>
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-black truncate" style={{ color: isActive ? sci.color : "rgba(255,255,255,0.8)" }}>{sci.name}</div>
+                            <div className="text-[8px] opacity-40 truncate">{sci.role}</div>
+                          </div>
+                          <span className="ml-auto text-[8px] font-black px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: `${statusColor}15`, color: statusColor }}>{status}</span>
+                        </div>
+                        {focusEq && (
+                          <div className="font-mono text-[8.5px] px-2 py-1 rounded truncate" style={{ background: "rgba(0,0,0,0.25)", color: sci.color, opacity: 0.8 }}>
+                            #{focusEq.i} {focusEq.eq.slice(0, 50)}…
+                          </div>
+                        )}
+                        <div className="text-[8px] opacity-35 leading-tight">{sci.specialty}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── LIVE INVENTIONS FROM DISSECTION ── */}
+              <div className="rounded-xl p-4 space-y-2" style={{ background: "rgba(245,197,24,0.04)", border: "1px solid rgba(245,197,24,0.15)" }}>
+                <div className="text-xs font-black tracking-widest mb-1" style={{ color: "#f5c518" }}>💡 INVENTIONS FROM DISSECTION — NEW LOGIC DISCOVERED</div>
+                <div className="text-[10px] opacity-40 mb-3">Cross-study of the fused equation generates new acceleration logic not present in any individual sub-law</div>
+                {QP_INVENTIONS.map((inv, idx) => {
+                  const isNew = idx === invSlot;
+                  const sci   = QP_SCIENTISTS.find(s => s.name === inv.scientist)!;
+                  return (
+                    <div key={idx} className="rounded-lg p-3 space-y-1 transition-all" data-testid={`inv-${idx}`}
+                      style={{ background: isNew ? "rgba(245,197,24,0.07)" : "rgba(255,255,255,0.02)", border: `1px solid ${isNew ? "rgba(245,197,24,0.3)" : "rgba(255,255,255,0.05)"}` }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: `${sci.color}15`, color: sci.color }}>{sci.glyph}</span>
+                        <span className="text-[10px] font-bold" style={{ color: "#f5c518" }}>{inv.scientist}</span>
+                        <div className="ml-auto flex gap-1">
+                          {inv.from.map(n => <span key={n} className="text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)" }}>#{n}</span>)}
+                        </div>
+                      </div>
+                      <div className="font-mono text-[9px]" style={{ color: isNew ? "#f5c518" : "rgba(255,255,255,0.5)" }}>{inv.inv}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── THE 20 EQUATIONS ── */}
+              <div className="text-xs font-black tracking-widest pt-2" style={{ color: "#00ffcc" }}>⚛ ALL 20 SUB-EQUATIONS — SOURCE MATERIAL FOR DISSECTION</div>
+              {EQS.map(eq => {
+                const tierColor = eq.tier === "PRIMORDIAL" ? "#f5c518" : eq.tier === "LEGENDARY" ? "#e879f9" : eq.tier === "EPIC" ? "#fb923c" : "#38bdf8";
+                const beingStudied = QP_SCIENTISTS.some(s => s.focus.includes(eq.i) && QP_SCIENTISTS.indexOf(s) === sciSlot);
+                return (
+                  <div key={eq.i} className="rounded-xl p-3 space-y-1.5" data-testid={`quantum-eq-${eq.i}`}
+                    style={{ background: beingStudied ? "rgba(0,255,204,0.05)" : eq.wired ? "rgba(0,255,204,0.03)" : "rgba(255,255,255,0.02)", border: `1px solid ${beingStudied ? "rgba(0,255,204,0.25)" : eq.wired ? "rgba(0,255,204,0.15)" : "rgba(255,255,255,0.06)"}` }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black opacity-30 w-4">#{eq.i}</span>
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: `${tierColor}20`, color: tierColor }}>{eq.tier}</span>
+                      <span className="text-[10px] font-bold flex-1 truncate" style={{ color: eq.wired ? "#00ffcc" : "rgba(255,255,255,0.7)" }}>{eq.name}</span>
+                      {beingStudied && <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: "rgba(0,255,204,0.15)", color: "#00ffcc" }}>🔬 ACTIVE</span>}
+                      {eq.wired && !beingStudied && <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: "rgba(74,222,128,0.12)", color: "#4ade80" }}>⚡ LIVE</span>}
+                    </div>
+                    <div className="font-mono text-[9px] px-2 py-1 rounded" style={{ background: "rgba(0,0,0,0.3)", color: "#00ffcc80" }}>{eq.eq}</div>
+                  </div>
+                );
+              })}
+
+              {/* ── OMEGA WIRING SUMMARY ── */}
+              <div className="rounded-xl p-4" style={{ background: "rgba(245,197,24,0.04)", border: "1px solid rgba(245,197,24,0.12)" }}>
+                <div className="text-xs font-black tracking-widest mb-2" style={{ color: "#f5c518" }}>Ω OMEGA ENGINE WIRING STATUS</div>
+                <div className="grid grid-cols-2 gap-1.5 text-[9.5px]">
+                  <div><span style={{ color: "#4ade80" }}>✓ GROVER INDEXES</span> — 12 composite indexes, O(√N)</div>
+                  <div><span style={{ color: "#4ade80" }}>✓ SUPERPOSITION PARALLEL</span> — corporations Promise.all</div>
+                  <div><span style={{ color: "#4ade80" }}>✓ HAMILTONIAN MONITOR</span> — idle engine detection live</div>
+                  <div><span style={{ color: "#4ade80" }}>✓ I₂₄₈ DOCTRINE</span> — emergence law at every restart</div>
+                  <div><span style={{ color: "#00ffcc" }}>⚛ QP-ARCANA SEEDED</span> — researcher_invocations active</div>
+                  <div><span style={{ color: "#00ffcc" }}>⚛ 8 SCIENTISTS</span> — healing + inventing every cycle</div>
+                </div>
+              </div>
+
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── PRACTITIONERS TAB ── */}
         {tab === "practitioners" && (
