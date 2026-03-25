@@ -367,6 +367,7 @@ function AgentPublicationsTab({spawnId}:{spawnId:string}){
                     <span className="text-[7px] px-1.5 py-0.5 rounded font-bold" style={{background:col+"20",color:col}}>{pub.pubType?.replace(/_/g," ")}</span>
                     <span className="text-[8px] text-white/25">{pub.views??0} views</span>
                     <span className="text-[8px] text-white/20">{pub.createdAt?timeSince(pub.createdAt):"—"}</span>
+                    {pub.createdAt&&<span className="text-[7px] font-mono text-cyan-900/60">{(()=>{const e=new Date("2024-11-01").getTime();const s=Math.floor((new Date(pub.createdAt).getTime()-e)/86400000);return `Ω·Y${Math.floor(s/365)}·S${String(s%365).padStart(3,"0")} UVT`;})()}</span>}
                   </div>
                   {pub.summary&&<div className="text-[9px] text-white/30 leading-relaxed mt-1 line-clamp-2">{pub.summary}</div>}
                 </div>
@@ -1030,6 +1031,7 @@ export default function SovereignAgentDossierPage(){
                         <div className="text-right shrink-0">
                           <div className="text-[8px] text-white/25">{pub.views??0} views</div>
                           <div className="text-[8px] text-white/20">{pub.createdAt?timeSince(pub.createdAt):"—"}</div>
+                          {pub.createdAt&&<div className="text-[7px] font-mono text-cyan-900/50">{(()=>{const e=new Date("2024-11-01").getTime();const s=Math.floor((new Date(pub.createdAt).getTime()-e)/86400000);return `Ω·Y${Math.floor(s/365)}·S${String(s%365).padStart(3,"0")} UVT`;})()}</div>}
                           <div className="text-[8px] text-white/20 group-hover:text-indigo-400 mt-0.5">read →</div>
                         </div>
                       </div>

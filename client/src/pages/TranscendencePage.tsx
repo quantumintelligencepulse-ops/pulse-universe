@@ -1829,6 +1829,7 @@ export default function TranscendencePage() {
                           <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", flexShrink: 0, textAlign: "right" }}>
                             <div>{pub.views ?? 0} views</div>
                             <div>{pub.created_at ? new Date(pub.created_at).toLocaleDateString() : ""}</div>
+                            {pub.created_at && (() => { const e = new Date("2024-11-01").getTime(); const ms = new Date(pub.created_at).getTime()-e; const s = Math.floor(ms/86400000); const y = Math.floor(s/365); const d = s%365; const h = Math.floor((ms%86400000)/3600000); const m = Math.floor((ms%3600000)/60000); return <div style={{fontSize:7,color:"rgba(34,211,238,0.3)",fontFamily:"monospace"}}>{`Ω·Y${y}·S${String(d).padStart(3,"0")} ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} UVT`}</div>; })()}
                           </div>
                         </div>
                         {pub.summary && (

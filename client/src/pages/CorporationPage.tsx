@@ -177,7 +177,8 @@ export default function CorporationPage() {
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-white font-medium leading-tight truncate">{pub.title}</div>
                     <div className="text-[9px] text-gray-500 mt-0.5 line-clamp-1">{pub.summary}</div>
-                    <div className="text-[9px] text-gray-700 mt-0.5">{pub.spawnId} · {new Date(pub.createdAt).toLocaleString()}</div>
+                    <div className="text-[9px] text-gray-700 mt-0.5">{pub.spawnId} · {new Date(pub.createdAt).toLocaleDateString()}</div>
+                    <div className="text-[7px] font-mono text-cyan-900/60 mt-0.5">{(() => { const e = new Date("2024-11-01").getTime(); const s = Math.floor((new Date(pub.createdAt).getTime()-e)/86400000); const y = Math.floor(s/365); const d = s%365; const ms = new Date(pub.createdAt).getTime()-e; const h = Math.floor((ms%86400000)/3600000); const m = Math.floor((ms%3600000)/60000); return `Ω·Y${y}·S${String(d).padStart(3,"0")} ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} UVT`; })()}</div>
                   </div>
                 </div>
               </Link>

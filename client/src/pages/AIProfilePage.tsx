@@ -510,6 +510,7 @@ export default function AIProfilePage() {
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[8px] text-white/25 uppercase tracking-wide">{pub.pubType.replace("_", " ")}</span>
                           <span className="text-[8px] text-white/20">{new Date(pub.createdAt).toLocaleDateString()}</span>
+                          <span className="text-[7px] font-mono text-cyan-900 border border-cyan-900/20 rounded px-1">{(() => { const e = new Date("2024-11-01").getTime(); const s = Math.floor((new Date(pub.createdAt).getTime()-e)/86400000); const y = Math.floor(s/365); const d = s%365; return `Ω·Y${y}·S${String(d).padStart(3,"0")} UVT`; })()}</span>
                         </div>
                       </div>
                     </div>

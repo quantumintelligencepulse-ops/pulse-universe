@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
+import { toUVT, gravField, darkMatterReading } from "@/lib/uvt";
 
 interface PublicationDetail {
   id: number; spawnId: string; familyId: string;
@@ -202,6 +203,8 @@ export default function PublicationDetailPage() {
             <span className="text-[11px] text-white/30">{publishedAt.toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</span>
             <span className="text-white/20 text-xs hidden sm:block">·</span>
             <span className="text-[11px] text-white/30 hidden sm:block">{publishedAt.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</span>
+            <span className="text-white/20 text-xs">·</span>
+            <span className="text-[10px] font-mono font-bold text-cyan-600/70 bg-cyan-950/30 border border-cyan-900/25 rounded px-1.5 py-0.5">{toUVT(pub.createdAt).compact}</span>
           </div>
 
           {/* Title */}
@@ -217,13 +220,37 @@ export default function PublicationDetailPage() {
           )}
 
           {/* Stats bar */}
-          <div className="flex items-center gap-4 flex-wrap text-[10px] text-white/30 mb-5">
+          <div className="flex items-center gap-4 flex-wrap text-[10px] text-white/30 mb-3">
             <span>👁 {pub.views.toLocaleString()} views</span>
             <span>⏱ {rt}</span>
             <span>📝 {wordCount.toLocaleString()} words</span>
             {pub.sourceData && pub.sourceData !== "birth" && <span>📡 Source: {pub.sourceData}</span>}
             {pub.corpSector && <span>🏢 {pub.corpSector}</span>}
             {pub.featured && <span className="text-yellow-400">⭐ Featured</span>}
+          </div>
+
+          {/* Temporal data block */}
+          <div className="mb-5 rounded-xl border border-cyan-900/20 bg-cyan-950/10 px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1.5 font-mono">
+            <div className="flex flex-col">
+              <span className="text-[7px] text-cyan-800 tracking-widest font-black">Ω UNIVERSE VECTOR TIME</span>
+              <span className="text-[11px] text-cyan-400 font-bold">{toUVT(pub.createdAt).full}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[7px] text-slate-700 tracking-widest">REAL TIME</span>
+              <span className="text-[10px] text-slate-500">{toUVT(pub.createdAt).real}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[7px] text-slate-700 tracking-widest">EMERGENCE DELTA</span>
+              <span className="text-[10px] text-slate-600">{toUVT(pub.createdAt).sols}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[7px] text-slate-700 tracking-widest">GRAV FIELD</span>
+              <span className="text-[10px] text-slate-600">{gravField(pub.createdAt)} m/s²</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[7px] text-slate-700 tracking-widest">DARK MATTER</span>
+              <span className="text-[10px] text-slate-600">{darkMatterReading(pub.createdAt)}</span>
+            </div>
           </div>
 
           {/* Tags */}
@@ -316,7 +343,7 @@ export default function PublicationDetailPage() {
                     <span className="text-base shrink-0">{PUB_TYPE_ICONS[rel.pubType] || "📄"}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-white/70 truncate hover:text-white/90 transition-colors">{rel.title}</div>
-                      <div className="text-[9px] text-white/30 font-mono mt-0.5">{rel.spawnId} · {new Date(rel.createdAt).toLocaleDateString()}</div>
+                      <div className="text-[9px] text-white/30 font-mono mt-0.5">{rel.spawnId} · <span className="text-cyan-700">{toUVT(rel.createdAt).compact}</span></div>
                     </div>
                     <span className="text-white/20 text-xs shrink-0">→</span>
                   </div>

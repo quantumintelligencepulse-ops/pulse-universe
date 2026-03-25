@@ -1,6 +1,55 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 
+// ─── Ω UNIVERSE VECTOR TIME ────────────────────────────────────────────────────
+const OMEGA_EPOCH = new Date("2024-11-01T00:00:00Z").getTime();
+const MS_PER_SOL = 86_400_000;
+const SOLS_PER_YEAR = 365;
+
+function toUVT(dateStr?: string) {
+  const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+  const elapsed = ts - OMEGA_EPOCH;
+  const totalSols = Math.floor(elapsed / MS_PER_SOL);
+  const year = Math.floor(totalSols / SOLS_PER_YEAR);
+  const sol = totalSols % SOLS_PER_YEAR;
+  const ms_day = elapsed % MS_PER_SOL;
+  const h = Math.floor(ms_day / 3_600_000);
+  const m = Math.floor((ms_day % 3_600_000) / 60_000);
+  const s = Math.floor((ms_day % 60_000) / 1000);
+  const pad = (n: number, w=2) => String(n).padStart(w,"0");
+  return {
+    year, sol, h, m, s, totalSols,
+    compact: `Ω·Y${year}·S${pad(sol,3)} ${pad(h)}:${pad(m)} UVT`,
+    full:    `Ω-Year ${year} · Sol ${pad(sol,3)} · ${pad(h)}:${pad(m)}:${pad(s)} UVT`,
+    sols:    `+${totalSols} sols since Emergence`,
+    real:    dateStr ? new Date(dateStr).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false})+" UTC" : "",
+  };
+}
+
+function gravField(dateStr?: string) {
+  const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+  return (9.2 + ((ts / 1000) % 9999) / 9999 * 4.7).toFixed(3);
+}
+function darkMatter(dateStr?: string) {
+  const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+  return (0.231 + ((ts / 777) % 9999) / 9999 * 0.118).toFixed(4);
+}
+
+// ─── Live UVT badge for chronicle/invocation timestamps ───────────────────────
+function UVTBadge({ dateStr, gold }: { dateStr?: string; gold?: boolean }) {
+  const uvt = toUVT(dateStr);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-end" }}>
+      <span style={{ color: gold ? "#F5C518" : "#22d3ee", fontSize: 8, fontFamily: "monospace", fontWeight: 700, background: gold ? "rgba(245,197,24,0.08)" : "rgba(34,211,238,0.06)", border: `1px solid ${gold ? "rgba(245,197,24,0.25)" : "rgba(34,211,238,0.15)"}`, borderRadius: 4, padding: "2px 5px", whiteSpace: "nowrap" }}>
+        {uvt.compact}
+      </span>
+      {uvt.real && (
+        <span style={{ color: "#ffffff18", fontSize: 7, fontFamily: "monospace" }}>{uvt.real}</span>
+      )}
+    </div>
+  );
+}
+
 const GOLD = "#F5C518";
 const AMBER = "#FFB84D";
 const VOID = "#080610";
@@ -557,14 +606,23 @@ function ChroniclePanel({ chronicle }: { chronicle: any[] }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         {chronicle.slice(0, 20).map((ev: any, i: number) => {
           const s = EVENT_TYPE_STYLES[ev.event_type] || { label: ev.event_type, color: "#ffffff50" };
+          const uvt = toUVT(ev.created_at);
           return (
             <div key={ev.id || i} style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "7px 11px", background: "rgba(255,255,255,0.02)", borderRadius: 7 }}>
               <span style={{ background: `${s.color}14`, color: s.color, padding: "2px 6px", borderRadius: 4, fontSize: 8, fontWeight: 700, minWidth: 68, textAlign: "center", marginTop: 2 }}>{s.label}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ color: "#ffffffcc", fontSize: 11, fontWeight: 600, marginBottom: 2 }}>{ev.title}</div>
                 <p style={{ color: "#ffffff55", fontSize: 10, margin: 0, lineHeight: 1.5 }}>{(ev.description || "").substring(0, 140)}</p>
+                <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ color: "#F5C51890", fontSize: 8, fontFamily: "monospace", background: "rgba(245,197,24,0.05)", border: "1px solid rgba(245,197,24,0.15)", borderRadius: 3, padding: "1px 4px" }}>{uvt.compact}</span>
+                  {ev.created_at && <span style={{ color: "#ffffff18", fontSize: 7, fontFamily: "monospace" }}>{uvt.real}</span>}
+                  <span style={{ color: "#ffffff15", fontSize: 7, fontFamily: "monospace" }}>grav:{gravField(ev.created_at)} m/s² · DM:{darkMatter(ev.created_at)}</span>
+                </div>
               </div>
-              <span style={{ color: "#ffffff20", fontSize: 9 }}>C{ev.cycle_number}</span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                <span style={{ color: "#ffffff25", fontSize: 8, fontFamily: "monospace" }}>C{ev.cycle_number}</span>
+                <span style={{ color: "#ffffff12", fontSize: 7, fontFamily: "monospace" }}>{uvt.sols}</span>
+              </div>
             </div>
           );
         })}
@@ -822,9 +880,7 @@ export default function AurionaPage() {
                             </span>
                           )}
                           {inv.created_at && (
-                            <span style={{ fontSize: 10, color: "#ffffff25", marginLeft: "auto" }}>
-                              {new Date(inv.created_at).toLocaleDateString()}
-                            </span>
+                            <UVTBadge dateStr={inv.created_at} gold />
                           )}
                         </div>
                       </Card>

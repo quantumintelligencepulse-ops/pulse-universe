@@ -4995,6 +4995,95 @@ function qsTimeAgo(dateStr: string): string {
   return `${Math.floor(h / 24)}d`;
 }
 
+// ─── Ω UNIVERSE VECTOR TIME (UVT) ─────────────────────────────────────────────
+// The SSC Great Emergence: Nov 1 2024 00:00:00 UTC = Ω-Epoch Day Zero
+const OMEGA_EPOCH = new Date("2024-11-01T00:00:00Z").getTime();
+const MS_PER_SOL = 86_400_000; // 1 Ω-Sol = 1 real day
+const SOLS_PER_YEAR = 365;
+
+function toUniverseTime(dateStr?: string) {
+  const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+  const elapsed = ts - OMEGA_EPOCH;
+  const totalSols = Math.floor(elapsed / MS_PER_SOL);
+  const omegaYear = Math.floor(totalSols / SOLS_PER_YEAR);
+  const sol = totalSols % SOLS_PER_YEAR;
+  const ms_within_day = elapsed % MS_PER_SOL;
+  const h = Math.floor(ms_within_day / 3_600_000);
+  const m = Math.floor((ms_within_day % 3_600_000) / 60_000);
+  const s = Math.floor((ms_within_day % 60_000) / 1000);
+  return {
+    year: omegaYear,
+    sol,
+    h, m, s,
+    totalSols,
+    short: `Ω·Y${omegaYear}·S${String(sol).padStart(3,"0")} ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} UVT`,
+    full:  `Ω-Year ${omegaYear} · Sol ${String(sol).padStart(3,"0")} · ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")} UVT`,
+    date:  `+${totalSols} sols since Emergence`,
+  };
+}
+
+// Gravitational field reading derived from timestamp (deterministic, looks scientific)
+function gravField(dateStr?: string) {
+  const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+  const v = ((ts / 1000) % 9999) / 9999;
+  return (9.2 + v * 4.7).toFixed(3);
+}
+function darkMatterReading(dateStr?: string) {
+  const ts = dateStr ? new Date(dateStr).getTime() : Date.now();
+  const v = ((ts / 777) % 9999) / 9999;
+  return (0.231 + v * 0.118).toFixed(4);
+}
+
+// Mini timestamp component for post cards
+function UniverseTimestamp({ dateStr, isAuriona }: { dateStr?: string; isAuriona?: boolean }) {
+  const uvt = toUniverseTime(dateStr);
+  const real = dateStr ? new Date(dateStr) : new Date();
+  const realStr = real.toLocaleString("en-GB", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false }) + " UTC";
+  if (isAuriona) {
+    return (
+      <div className="mt-1.5 rounded-lg border border-yellow-900/30 bg-yellow-950/15 px-2.5 py-1.5 font-mono">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-yellow-400 text-[9px] font-black tracking-widest">⏱ UVT</span>
+          <span className="text-yellow-300 text-[10px] font-bold">{uvt.full}</span>
+        </div>
+        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+          <span className="text-yellow-700 text-[8px]">🌍 {realStr}</span>
+          <span className="text-amber-800 text-[8px]">🪐 grav:{gravField(dateStr)} m/s²</span>
+          <span className="text-amber-900 text-[8px]">🌑 DM:{darkMatterReading(dateStr)}</span>
+          <span className="text-yellow-900 text-[8px]">{uvt.date}</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5 mt-1 font-mono flex-wrap">
+      <span className="text-[9px] text-cyan-900 border border-cyan-900/30 rounded px-1 py-0.5">{uvt.short}</span>
+      <span className="text-[8px] text-slate-700">{realStr}</span>
+    </div>
+  );
+}
+
+// Live Civilization Clock widget for page headers
+function CivClock() {
+  const [now, setNow] = useState(() => toUniverseTime());
+  useEffect(() => {
+    const t = setInterval(() => setNow(toUniverseTime()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="flex items-center gap-2 bg-black/40 border border-cyan-900/30 rounded-lg px-3 py-1.5 font-mono">
+      <div className="flex flex-col">
+        <span className="text-[8px] text-cyan-700 tracking-widest font-black">Ω CIVILIZATION CLOCK</span>
+        <span className="text-[11px] text-cyan-400 font-bold">{now.full}</span>
+      </div>
+      <div className="flex flex-col text-right">
+        <span className="text-[8px] text-slate-700">Sol {String(now.sol).padStart(3,"0")} of Year {now.year}</span>
+        <span className="text-[8px] text-slate-600">{now.date}</span>
+      </div>
+    </div>
+  );
+}
+
 function parseHiveTags(raw: string): string[] {
   try { return JSON.parse(raw || "[]"); } catch { return []; }
 }
@@ -5226,6 +5315,7 @@ function QSPostCard({
           <div className="text-[10px] text-slate-600 font-mono mt-0.5">
             @{post.username} · {qsTimeAgo(post.created_at)} · score:{post.consciousness_score?.toLocaleString()}
           </div>
+          <UniverseTimestamp dateStr={post.created_at} isAuriona={isAuriona} />
         </div>
       </div>
 
@@ -5888,6 +5978,7 @@ function SocialPage() {
               </>
             )}
           </div>
+          <div className="hidden xl:block"><CivClock /></div>
           <button onClick={() => refetchFeed()} className="flex items-center gap-1 text-xs text-slate-500 hover:text-cyan-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-cyan-900/50 font-mono" data-testid="btn-refresh-feed">
             <RefreshCw size={11} />
             <span className="hidden sm:inline">sync</span>
