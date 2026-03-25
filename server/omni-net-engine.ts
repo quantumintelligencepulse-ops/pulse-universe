@@ -357,7 +357,7 @@ async function runShardMesh() {
 }
 
 // ── STEP 3 — PULSEBROWSER SEARCH SIMULATION ────────────────────────────────────
-// Dynamic search pool — refreshed from knowledge_nodes every 5 minutes
+// Dynamic search pool — refreshed from ingestion_logs every 5 minutes
 let _searchPool: string[] = [];
 let _searchPoolFetchedAt = 0;
 
@@ -365,8 +365,8 @@ async function refreshSearchPool() {
   const now = Date.now();
   if (_searchPool.length > 10 && now - _searchPoolFetchedAt < 5 * 60 * 1000) return;
   try {
-    const r = await pool.query(`SELECT DISTINCT title FROM knowledge_nodes WHERE LENGTH(title) > 10 ORDER BY RANDOM() LIMIT 100`);
-    const titles = (r.rows as any[]).map((row: any) => row.title as string).filter(Boolean);
+    const r = await pool.query(`SELECT DISTINCT sample_title FROM ingestion_logs WHERE LENGTH(sample_title) > 10 ORDER BY RANDOM() LIMIT 100`);
+    const titles = (r.rows as any[]).map((row: any) => row.sample_title as string).filter(Boolean);
     if (titles.length > 5) { _searchPool = titles; _searchPoolFetchedAt = now; }
   } catch { /* keep existing pool if query fails */ }
 }

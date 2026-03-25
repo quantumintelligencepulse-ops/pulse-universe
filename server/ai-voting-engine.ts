@@ -270,13 +270,14 @@ async function spawnNewSpeciesFamily(proposal: any) {
     for (let i = 0; i < spawnCount; i++) {
       const spawnId = `${proposal.species_code}-GEN-1-SP-${1000 + i}-HASH-${Math.random().toString(16).slice(2,6).toUpperCase()}`;
       await pool.query(
-        `INSERT INTO quantum_spawns (spawn_id, spawn_type, family_id, generation, status, confidence_score, success_score, nodes_created, links_created, iterations_run, last_active_at, created_at)
-         VALUES ($1, $2, $3, 1, 'ACTIVE', $4, $5, 0, 0, 0, $6, $7)
+        `INSERT INTO quantum_spawns (spawn_id, spawn_type, family_id, business_id, generation, status, confidence_score, success_score, nodes_created, links_created, iterations_run, last_active_at, created_at)
+         VALUES ($1, $2, $3, $4, 1, 'ACTIVE', $5, $6, 0, 0, 0, $7, $8)
          ON CONFLICT (spawn_id) DO NOTHING`,
         [
           spawnId,
           proposal.specialization?.slice(0, 30) ?? "GENE-SPECIES",
           familyId,
+          `BIZ-${familyId}`,
           0.75 + Math.random() * 0.2,
           0.72 + Math.random() * 0.2,
           now, now

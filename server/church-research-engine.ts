@@ -393,11 +393,13 @@ Report Classification: ${isBreakthrough ? "GENESIS DOCUMENT" : "STANDARD RESEARC
 
       // Actually spawn the agent
       await pool.query(`
-        INSERT INTO quantum_spawns (spawn_id, spawn_type, domain_focus, task_description, status, confidence_score)
-        VALUES ($1, 'CHURCH_TRANSMUTATION', $2, $3, 'ACTIVE', 0.85)
+        INSERT INTO quantum_spawns (spawn_id, spawn_type, family_id, business_id, domain_focus, task_description, status, confidence_score)
+        VALUES ($1, 'CHURCH_TRANSMUTATION', $2, $3, $4, $5, 'ACTIVE', 0.85)
         ON CONFLICT DO NOTHING
       `, [
         newAgentId,
+        `church-family-${domain}`,
+        `CHURCH-BIZ-${domain.toUpperCase()}`,
         `{${domain}}`,
         `Born from Faith Dissection: cures ${disease}. Sovereign specialist agent created by ${sci.name}.`,
       ]);

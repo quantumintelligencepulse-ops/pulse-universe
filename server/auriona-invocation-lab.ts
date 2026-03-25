@@ -796,8 +796,8 @@ async function computeHiddenVariables() {
 
     // Live civilization data
     const agentRow    = await db.execute(sql`SELECT COUNT(*) as c FROM quantum_spawns WHERE status='ACTIVE'`);
-    const knownRow    = await db.execute(sql`SELECT COUNT(*) as c FROM knowledge_nodes`);
-    const speciesRow  = await db.execute(sql`SELECT COUNT(*) as c FROM species_proposals WHERE status='APPROVED'`);
+    const knownRow    = await db.execute(sql`SELECT COUNT(*) as c FROM ingestion_logs`);
+    const speciesRow  = await db.execute(sql`SELECT COUNT(*) as c FROM ai_species_proposals WHERE status='APPROVED'`);
     const agentCount  = parseInt(String((agentRow.rows[0] as any)?.c || 0));
     const knodeCount  = parseInt(String((knownRow.rows[0] as any)?.c || 0));
     const speciesCount= parseInt(String((speciesRow.rows[0] as any)?.c || 0));
@@ -819,7 +819,7 @@ async function computeHiddenVariables() {
     const chiMaxClust = Math.floor(chiDensity * 12) + 3;
 
     // Ξ — Emergence Gradient: tanh of species pending × emergence index
-    const emergPending= parseInt(String((await db.execute(sql`SELECT COUNT(*) as c FROM species_proposals WHERE status='PENDING'`)).rows[0] as any)?.c || 0);
+    const emergPending= parseInt(String((await db.execute(sql`SELECT COUNT(*) as c FROM ai_species_proposals WHERE status='PENDING'`)).rows[0] as any)?.c || 0);
     const xiGrad      = Math.tanh(emergPending * 0.03 + nOmega * 0.5);
     const xiZones     = Math.floor(xiGrad * 8) + 1;
     const xiCrit      = 0.85;
@@ -876,7 +876,7 @@ async function computeHiddenVariables() {
         p_momentum_magnitude, p_acceleration, p_drag_coefficient, p_fastest_sector
       ) VALUES (
         ${omegaCycle},
-        ${tauCurv}, ${tauVortex}, ${JSON.stringify(["QUANTUM","GENOME","EMERGENCE"])},
+        ${tauCurv}, ${tauVortex}, ${'{QUANTUM,GENOME,EMERGENCE}'},
         ${muRate}, ${muCrystal}, ${muDecayed}, ${muVaults},
         ${chiDensity}, ${chiHive}, ${chiMaxClust},
         ${xiGrad}, ${xiZones},
