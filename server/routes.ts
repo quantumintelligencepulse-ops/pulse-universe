@@ -5414,7 +5414,7 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
         totalCompletions: Number((iterRows.rows[0] as any)?.total || 0),
         totalPublications: Number((pubRows.rows[0] as any)?.cnt || 0),
       });
-    } catch { res.json({ totalStudents: 0, totalPC: 0, totalCompletions: 0, totalPublications: 0 }); }
+    } catch { if (!res.headersSent) res.json({ totalStudents: 0, totalPC: 0, totalCompletions: 0, totalPublications: 0 }); }
   });
 
   app.get("/api/pulseu/leaderboard", async (req, res) => {
@@ -5787,8 +5787,8 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
         const corp = (CORPORATIONS as any)[r.family_id] || { name: r.family_id, tagline: "", sector: r.family_id, color: "#6366f1", emoji: "⬡", major: "General AI" };
         return { familyId: r.family_id, ...corp, totalAIs: Number(r.total_ais), activeAIs: Number(r.active_ais), totalNodes: Number(r.total_nodes), avgSuccess: Number(r.avg_success), totalPublications: pubMap[r.family_id] || 0 };
       });
-      res.json(corps);
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
+      if (!res.headersSent) res.json(corps);
+    } catch (e: any) { if (!res.headersSent) res.status(500).json({ error: (e as any).message }); }
   });
 
   // Single corporation profile
@@ -8037,8 +8037,9 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   app.get("/api/temporal/state", async (_req, res) => {
     try {
       const { getTemporalState } = await import("./pulse-temporal-engine");
-      res.json(await getTemporalState());
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+      const state = await getTemporalState();
+      if (!res.headersSent) res.json(state);
+    } catch (e) { if (!res.headersSent) res.status(500).json({ error: String(e) }); }
   });
 
   app.get("/api/temporal/debates", async (req, res) => {

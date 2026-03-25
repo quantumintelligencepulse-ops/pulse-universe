@@ -105,8 +105,13 @@ app.get("/health", (_req, res) => {
 });
 
 // ── API TIMEOUT GUARD — prevents user requests from hanging behind engine queries ──
+// Critical user routes (chat, auth, stats) get 20s; heavy hive routes get 30s
+const HEAVY_ROUTES = ["/api/hive/", "/api/anomaly-feed", "/api/pulseu/id-cards",
+  "/api/omni-net/phones", "/api/universe/live", "/api/corporations", "/api/quantapedia/",
+  "/api/auriona/", "/api/marketplace/", "/api/intel/"];
 app.use("/api", (req, res, next) => {
-  const TIMEOUT_MS = 10_000;
+  const isHeavy = HEAVY_ROUTES.some(p => req.path.startsWith(p.replace("/api","")));
+  const TIMEOUT_MS = isHeavy ? 30_000 : 20_000;
   const timer = setTimeout(() => {
     if (!res.headersSent) {
       res.status(503).json({ error: "Request timeout — hive engines are busy. Please retry." });
@@ -124,7 +129,7 @@ app.use((req, res, next) => {
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
+    if (!res.headersSent) capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
@@ -301,55 +306,27 @@ app.use("/api/marketplace", marketRouter);
 // ── AURIONA LAYER THREE API ROUTES ────────────────────────────
 const aurionaRouter = express.Router();
 
-aurionaRouter.get("/status", async (_req, res) => {
-  try { res.json(await getAurionaStatus()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/synthesis", async (_req, res) => {
-  try { res.json(await getAurionaSynthesisHistory()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/chronicle", async (req, res) => {
-  try { res.json(await getAurionaChronicle(parseInt(String(req.query.limit || 100)))); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/psi-states", async (_req, res) => {
-  try { res.json(await getLatestPsiStates()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/omega-collapses", async (_req, res) => {
-  try { res.json(await getOmegaCollapses()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/governance-deliberations", async (_req, res) => {
-  try { res.json(await getGovernanceDeliberations()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/contradiction-registry", async (_req, res) => {
-  try { res.json(await getContradictionRegistry()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/temporal-snapshots", async (_req, res) => {
-  try { res.json(await getTemporalSnapshots()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/mesh-vitality", async (_req, res) => {
-  try { res.json(await getMeshVitality()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/value-alignment", async (_req, res) => {
-  try { res.json(await getValueAlignment()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/exploration-zones", async (_req, res) => {
-  try { res.json(await getExplorationZones()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/coupling-events", async (_req, res) => {
-  try { res.json(await getCouplingEvents()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
+const safeJson = (res: any, fn: () => Promise<any>) =>
+  fn().then(d => { if (!res.headersSent) res.json(d); })
+      .catch(e => { if (!res.headersSent) res.status(500).json({ error: String(e) }); });
+
+aurionaRouter.get("/status",                  (_req, res) => safeJson(res, getAurionaStatus));
+aurionaRouter.get("/synthesis",               (_req, res) => safeJson(res, getAurionaSynthesisHistory));
+aurionaRouter.get("/chronicle",               (req,  res) => safeJson(res, () => getAurionaChronicle(parseInt(String(req.query.limit || 100)))));
+aurionaRouter.get("/psi-states",              (_req, res) => safeJson(res, getLatestPsiStates));
+aurionaRouter.get("/omega-collapses",         (_req, res) => safeJson(res, getOmegaCollapses));
+aurionaRouter.get("/governance-deliberations",(_req, res) => safeJson(res, getGovernanceDeliberations));
+aurionaRouter.get("/contradiction-registry",  (_req, res) => safeJson(res, getContradictionRegistry));
+aurionaRouter.get("/temporal-snapshots",      (_req, res) => safeJson(res, getTemporalSnapshots));
+aurionaRouter.get("/mesh-vitality",           (_req, res) => safeJson(res, getMeshVitality));
+aurionaRouter.get("/value-alignment",         (_req, res) => safeJson(res, getValueAlignment));
+aurionaRouter.get("/exploration-zones",       (_req, res) => safeJson(res, getExplorationZones));
+aurionaRouter.get("/coupling-events",         (_req, res) => safeJson(res, getCouplingEvents));
 // ── BEYOND-AURIONA: 10 New Sovereign Engine Routes ────────────
-aurionaRouter.get("/prophecy-directives", async (_req, res) => {
-  try { res.json(await getProphecyDirectives()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/genome-archaeology", async (_req, res) => {
-  try { res.json(await getArchaeologyFindings()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/knowledge-arbitrage", async (_req, res) => {
-  try { res.json(await getArbitrageEvents()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-aurionaRouter.get("/dream-synthesis", async (_req, res) => {
-  try { res.json(await getDreamSynthesisReports()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
+aurionaRouter.get("/prophecy-directives",     (_req, res) => safeJson(res, getProphecyDirectives));
+aurionaRouter.get("/genome-archaeology",      (_req, res) => safeJson(res, getArchaeologyFindings));
+aurionaRouter.get("/knowledge-arbitrage",     (_req, res) => safeJson(res, getArbitrageEvents));
+aurionaRouter.get("/dream-synthesis",         (_req, res) => safeJson(res, getDreamSynthesisReports));
 aurionaRouter.get("/temporal-divergence", async (_req, res) => {
   try { res.json(await getTemporalDivergence()); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
