@@ -16,12 +16,18 @@ export const pool = new Pool({
   max: 25,
   idleTimeoutMillis: 30000,
 });
+pool.on('error', (err) => {
+  console.error('[pool] idle client error (main):', err.message);
+});
 
 // Priority pool — for user-facing API storage queries
 export const priorityPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 5,
   idleTimeoutMillis: 15000,
+});
+priorityPool.on('error', (err) => {
+  console.error('[pool] idle client error (priority):', err.message);
 });
 
 // Session pool — DEDICATED to express-session only.
@@ -31,6 +37,9 @@ export const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 3,
   idleTimeoutMillis: 60000,
+});
+sessionPool.on('error', (err) => {
+  console.error('[pool] idle client error (session):', err.message);
 });
 
 export const db = drizzle(pool, { schema });

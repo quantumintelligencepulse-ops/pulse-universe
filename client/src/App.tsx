@@ -2058,8 +2058,9 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   };
 
   const filteredChats = useMemo(() => {
-    if (!searchQuery) return chats;
-    return chats.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    const list = Array.isArray(chats) ? chats : [];
+    if (!searchQuery) return list;
+    return list.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [chats, searchQuery]);
 
   const groupedChats = useMemo(() => {
