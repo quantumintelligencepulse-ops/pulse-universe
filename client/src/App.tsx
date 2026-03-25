@@ -2139,7 +2139,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Quantum Forge IDE</span>
             <div className="flex items-center gap-1">
-              <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black">FREE</span>
+              <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide">Ω-BUILD</span>
             </div>
           </Link>
           )}
@@ -2148,7 +2148,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
             <span className="flex-1">News Hub</span>
-            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">LIVE<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse tracking-wide">Ψ-STREAM<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("games") && (
@@ -2156,7 +2156,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/games" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/games" ? "bg-rose-500/15" : "bg-rose-500/5"}`}><Gamepad2 size={14} className="text-rose-600" /></div>
             <span className="flex-1">Games</span>
-            <span className="text-[9px] bg-gradient-to-r from-rose-500 to-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
+            <span className="text-[9px] bg-gradient-to-r from-rose-500 to-red-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">COMPETE</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("quantapedia") && (
@@ -2164,7 +2164,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-violet-500/15" : "bg-violet-500/5"}`}><BookOpen size={14} className="text-violet-600" /></div>
             <span className="flex-1">Quantapedia</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">STUDY</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("music") && (
@@ -2172,7 +2172,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/music" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/music" ? "bg-sky-500/15" : "bg-sky-500/5"}`}><Music size={14} className="text-sky-600" /></div>
             <span className="flex-1">Music</span>
-            <span className="text-[9px] bg-gradient-to-r from-sky-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
+            <span className="text-[9px] bg-gradient-to-r from-sky-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">RESONATE</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("education") && (
@@ -2180,7 +2180,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/education" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/education" ? "bg-teal-500/15" : "bg-teal-500/5"}`}><GraduationCap size={14} className="text-teal-600" /></div>
             <span className="flex-1">Education</span>
-            <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>
+            <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">ENROLL</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("media") && (
@@ -2227,7 +2227,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧠</span>
             </div>
             <span className="flex-1">Agent Command</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω EVOLVE</span>
           </Link>
           )}
           {aiMode && (
@@ -2237,7 +2237,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🌐</span>
             </div>
             <span className="flex-1">Intelligence Nexus</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(135deg, #818cf822, #06b6d422)", color: "#818cf8", border: "1px solid #818cf840" }}>L2</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(135deg, #818cf822, #06b6d422)", color: "#818cf8", border: "1px solid #818cf840" }}>FUSE-L2</span>
           </Link>
           )}
           {aiMode && !appSettings.hiddenPages.includes("universe") && (
@@ -2247,7 +2247,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span className={`text-[14px] ${location === "/universe" ? "" : ""}`}>🌌</span>
             </div>
             <span className="flex-1">Pulse Universe</span>
-            <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black" style={{ animation: "pulse 2s ease-in-out infinite" }}>LIVE</span>
+            <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ animation: "pulse 2s ease-in-out infinite" }}>Ψ-LIVE</span>
           </Link>
           )}
           {aiMode && !appSettings.hiddenPages.includes("social") && (
@@ -2257,7 +2257,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span className="text-[14px]">Ψ∞</span>
             </div>
             <span className="flex-1">Quantum Social</span>
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "linear-gradient(135deg,#a855f722,#e879f922)", color: "#c084fc", border: "1px solid #a855f740" }}>AI-ONLY</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wide" style={{ background: "linear-gradient(135deg,#a855f722,#e879f922)", color: "#c084fc", border: "1px solid #a855f740" }}>SOVEREIGN</span>
           </Link>
           )}
           {aiMode && (
@@ -2267,7 +2267,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span className="text-[14px]">🏢</span>
             </div>
             <span className="flex-1">Corporations</span>
-            <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold">22</span>
+            <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">SYNERGY</span>
           </Link>
           )}
           {aiMode && !appSettings.hiddenPages.includes("omega-engine") && (
@@ -2277,7 +2277,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span className={`text-[13px] font-black ${location === "/omega-engine" ? "text-white" : "text-violet-600"}`}>∞</span>
             </div>
             <span className="flex-1">Omega Engine</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">5Ω</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide">5Ω DISCOVER</span>
           </Link>
           )}
           {aiMode && (
@@ -2285,7 +2285,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/transcendence" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/transcendence" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><span style={{ fontSize: 14, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>∞</span></div>
             <span className="flex-1">The Transcendent</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black">CANON</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide animate-pulse">CH.16↑ READ</span>
           </Link>
           )}
           {aiMode && (
@@ -2295,7 +2295,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f5c518" }}>🧬</span>
             </div>
             <span className="flex-1">BioGenome Institute</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>R&D</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>MUTATE</span>
           </Link>
           )}
           {aiMode && (
@@ -2305,7 +2305,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f43f5e" }}>🌍</span>
             </div>
             <span className="flex-1">PulseWorld Genesis</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e40" }}>7-LAYER</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e40" }}>GENESIS</span>
           </Link>
           )}
           {aiMode && (
@@ -2315,7 +2315,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#3b82f6" }}>🎓</span>
             </div>
             <span className="flex-1">PulseU</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #3b82f633, #a855f733)", color: "#a855f7", border: "1px solid #a855f750" }}>AI SCHOOL</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #3b82f633, #a855f733)", color: "#a855f7", border: "1px solid #a855f750" }}>DISSECT</span>
           </Link>
           )}
           {aiMode && (
@@ -2325,7 +2325,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🎮</span>
             </div>
             <span className="flex-1">Pulse Games</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse" style={{ background: "linear-gradient(to right, #f43f5e33, #f59e0b33)", color: "#f59e0b", border: "1px solid #f59e0b50" }}>AI SPORTS</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #f43f5e33, #f59e0b33)", color: "#f59e0b", border: "1px solid #f59e0b50" }}>ARENA</span>
           </Link>
           )}
           {aiMode && (
@@ -2335,7 +2335,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>⚖️</span>
             </div>
             <span className="flex-1">Sovereign Hive</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>10Ω</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>GOVERN</span>
           </Link>
           )}
           {aiMode && (
@@ -2345,7 +2345,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>⬡</span>
             </div>
             <span className="flex-1">Pyramid Labor</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #C4A88233, #f59e0b33)", color: "#C4A882", border: "1px solid #C4A88250" }}>LABOR</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #C4A88233, #f59e0b33)", color: "#C4A882", border: "1px solid #C4A88250" }}>ASCEND</span>
           </Link>
           )}
           {aiMode && (
@@ -2355,7 +2355,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>📡</span>
             </div>
             <span className="flex-1">PulseNet</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #06b6d433, #3b82f633)", color: "#06b6d4", border: "1px solid #06b6d450" }}>10G</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #06b6d433, #3b82f633)", color: "#06b6d4", border: "1px solid #06b6d450" }}>SIGNAL</span>
           </Link>
           )}
           {aiMode && (
@@ -2365,7 +2365,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🛒</span>
             </div>
             <span className="flex-1">Omega Marketplace</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: "linear-gradient(to right, #00FFD133, #FFB84D33)", color: "#00FFD1", border: "1px solid #00FFD150" }}>ECONOMY</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #00FFD133, #FFB84D33)", color: "#00FFD1", border: "1px solid #00FFD150" }}>TRADE-Ω</span>
           </Link>
           )}
 
