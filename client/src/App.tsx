@@ -1,30 +1,30 @@
-import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, lazy, Suspense } from "react";
 import { OMEGA_SPINE } from "./gicsSpine";
-import SovereignAgentDossierPage from "./pages/SovereignAgentDossierPage";
-import OmegaEnginePage from "./pages/OmegaEnginePage";
-import TranscendencePage from "./pages/TranscendencePage";
-import BioGenomeMedicalPage from "./pages/BioGenomeMedicalPage";
-import PulseWorldPage from "./pages/PulseWorldPage";
-import PulseUPage from "./pages/PulseUPage";
-import PulseGamesPage from "./pages/PulseGamesPage";
-import SovereignHivePage from "./pages/SovereignHivePage";
-import PulseUniversePage from "./pages/PulseUniversePage";
-import PyramidLaborPage from "./pages/PyramidLaborPage";
-import PulseNetPage from "./pages/PulseNetPage";
-import AIProfilePage from "./pages/AIProfilePage";
-import CorporationPage from "./pages/CorporationPage";
-import PublicationDetailPage from "./pages/PublicationDetailPage";
-import CorporationsListPage from "./pages/CorporationsListPage";
-import ChurchSessionPage from "./pages/ChurchSessionPage";
-import FinancePage from "./pages/FinancePage";
-import ToneBeatMaker from "./components/ToneBeatMaker";
-import MediaPage from "./pages/MediaPage";
-import GovernmentPage from "./pages/GovernmentPage";
-import CareersPage from "./pages/CareersPage";
-import SovereignIntelligenceNexus from "./pages/SovereignIntelligenceNexus";
-import HiveMarketplacePage from "./pages/HiveMarketplacePage";
-import AurionaPage from "./pages/AurionaPage";
-import InvocationLabPage from "./pages/InvocationLabPage";
+const SovereignAgentDossierPage = lazy(() => import("./pages/SovereignAgentDossierPage"));
+const OmegaEnginePage = lazy(() => import("./pages/OmegaEnginePage"));
+const TranscendencePage = lazy(() => import("./pages/TranscendencePage"));
+const BioGenomeMedicalPage = lazy(() => import("./pages/BioGenomeMedicalPage"));
+const PulseWorldPage = lazy(() => import("./pages/PulseWorldPage"));
+const PulseUPage = lazy(() => import("./pages/PulseUPage"));
+const PulseGamesPage = lazy(() => import("./pages/PulseGamesPage"));
+const SovereignHivePage = lazy(() => import("./pages/SovereignHivePage"));
+const PulseUniversePage = lazy(() => import("./pages/PulseUniversePage"));
+const PyramidLaborPage = lazy(() => import("./pages/PyramidLaborPage"));
+const PulseNetPage = lazy(() => import("./pages/PulseNetPage"));
+const AIProfilePage = lazy(() => import("./pages/AIProfilePage"));
+const CorporationPage = lazy(() => import("./pages/CorporationPage"));
+const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage"));
+const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
+const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
+const FinancePage = lazy(() => import("./pages/FinancePage"));
+const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
+const MediaPage = lazy(() => import("./pages/MediaPage"));
+const GovernmentPage = lazy(() => import("./pages/GovernmentPage"));
+const CareersPage = lazy(() => import("./pages/CareersPage"));
+const SovereignIntelligenceNexus = lazy(() => import("./pages/SovereignIntelligenceNexus"));
+const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
+const AurionaPage = lazy(() => import("./pages/AurionaPage"));
+const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -16246,8 +16246,20 @@ function StartupRedirect() {
   }, []);
   return null;
 }
+function PageLoader() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0a0a0f", color: "#7c3aed", fontFamily: "monospace", fontSize: 14, gap: 10 }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite" }}>
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+      </svg>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      Loading...
+    </div>
+  );
+}
 function Router() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Switch>
       <Route path="/">{() => <><StartupRedirect /><HomePage /></>}</Route>
       <Route path="/coder" component={CoderPage} />
@@ -16294,6 +16306,7 @@ function Router() {
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 
