@@ -3,6 +3,23 @@ import { Component, type ReactNode, type ErrorInfo } from "react";
 import App from "./App";
 import "./index.css";
 
+// ─── SUPPRESS VITE HMR NON-ERROR EXCEPTIONS IN REPLIT ──────────────────────────
+// Vite's HMR WebSocket in Replit's proxied environment throws empty objects {}
+// (non-Error values) as unhandled rejections when the WS reconnects.  These are
+// benign dev-server artefacts — swallow them so the app is never marked as crashed.
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (evt) => {
+    if (!(evt.reason instanceof Error)) {
+      evt.preventDefault();
+    }
+  });
+  const _origOnError = window.onerror;
+  window.onerror = (msg, src, line, col, err) => {
+    if (err === null || err === undefined || !(err instanceof Error)) return true;
+    return _origOnError ? _origOnError.call(window, msg, src, line, col, err) : false;
+  };
+}
+
 // ─── GLOBAL ERROR BOUNDARY ─────────────────────────────────────────────────────
 // Catches ANY React render crash, persists it to the anomaly_reports table via
 // POST /api/error-report, and routes it to Auriona + Invocation Lab.
