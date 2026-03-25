@@ -19,7 +19,7 @@ function cacheSet(key: string, data: any, ttlMs: number) {
 
 import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY } from "./transcendence";
 import { ALL_FAMILIES, FAMILY_MAP, CORPORATIONS_FROM_FAMILIES } from "./omega-families";
-import { db, pool } from "./db";
+import { db, pool, sessionPool } from "./db";
 import { sql } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -347,7 +347,7 @@ export async function registerRoutes(
 
   const PgSession = connectPgSimple(session);
   app.use(session({
-    store: new PgSession({ pool: pool, createTableIfMissing: true }),
+    store: new PgSession({ pool: sessionPool, createTableIfMissing: true }),
     secret: process.env.SESSION_SECRET || "myaigpt-session-secret-fallback",
     resave: false,
     saveUninitialized: false,

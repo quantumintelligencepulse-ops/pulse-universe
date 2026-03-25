@@ -10,20 +10,27 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Main shared pool — used by all engines + routes
-// Increased max connections for the 40+ concurrent background engines
+// Main shared pool — used by all background engines
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 25,
   idleTimeoutMillis: 30000,
 });
 
-// Priority pool — for user-facing API routes only
-// Kept small and separate so user requests always have available connections
+// Priority pool — for user-facing API storage queries
 export const priorityPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 5,
   idleTimeoutMillis: 15000,
+});
+
+// Session pool — DEDICATED to express-session only.
+// NEVER shared with background engines. This ensures login/auth
+// always works even when the main pool is fully saturated.
+export const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 3,
+  idleTimeoutMillis: 60000,
 });
 
 export const db = drizzle(pool, { schema });
