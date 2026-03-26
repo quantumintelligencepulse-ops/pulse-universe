@@ -17,9 +17,7 @@ const CorporationPage = lazy(() => import("./pages/CorporationPage"));
 const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage"));
 const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
-const FinancePage = lazy(() => import("./pages/FinancePage"));
 const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
-const MediaPage = lazy(() => import("./pages/MediaPage"));
 const GovernmentPage = lazy(() => import("./pages/GovernmentPage"));
 const CareersPage = lazy(() => import("./pages/CareersPage"));
 const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
@@ -2203,22 +2201,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">ENROLL</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("media") && (
-          <Link href="/media" data-testid="link-media"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/media" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/media" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Film size={14} className="text-pink-500" /></div>
-            <span className="flex-1">Media</span>
-            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-rose-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">QUANTUM</span>
-          </Link>
-          )}
-          {!appSettings.hiddenPages.includes("finance") && (
-          <Link href="/finance" data-testid="link-finance"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/finance" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/finance" ? "bg-yellow-500/15" : "bg-yellow-500/5"}`}><TrendingUp size={14} className="text-yellow-500" /></div>
-            <span className="flex-1">Finance Oracle</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #eab30833, #f59e0b55)", color: "#eab308", border: "1px solid #eab30860" }}>ORACLE</span>
-          </Link>
-          )}
           {!appSettings.hiddenPages.includes("shopping") && (
           <Link href="/shopping" data-testid="link-shopping"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/shopping" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -2384,6 +2366,20 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           )}
 
           {/* ── AURIONA — Layer Three Portal ────────────────── */}
+          {aiMode && (
+          <div className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm opacity-50 cursor-default select-none" data-testid="btn-finance-soon">
+            <div className="p-1 rounded-lg bg-yellow-500/5"><TrendingUp size={14} className="text-yellow-500/60" /></div>
+            <span className="flex-1 text-foreground/40">Finance Oracle</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "rgba(234,179,8,0.08)", color: "rgba(234,179,8,0.5)", border: "1px solid rgba(234,179,8,0.2)" }}>SOON</span>
+          </div>
+          )}
+          {aiMode && (
+          <div className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm opacity-50 cursor-default select-none" data-testid="btn-media-soon">
+            <div className="p-1 rounded-lg bg-pink-500/5"><Film size={14} className="text-pink-500/60" /></div>
+            <span className="flex-1 text-foreground/40">Media</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "rgba(236,72,153,0.08)", color: "rgba(236,72,153,0.5)", border: "1px solid rgba(236,72,153,0.2)" }}>SOON</span>
+          </div>
+          )}
           {aiMode && (
             <div className="px-1 pt-4 pb-1">
               <div className="flex items-center gap-2">
@@ -15301,8 +15297,6 @@ function Router() {
       <Route path="/shopping" component={ShoppingPageWrapper} />
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
-      <Route path="/finance">{() => <Layout><FinancePage /></Layout>}</Route>
-      <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
