@@ -2482,18 +2482,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
 
-          {/* ── COMING SOON — Finance Oracle & Media (bottom cluster) ── */}
-          <div className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm opacity-60 cursor-default select-none" data-testid="btn-finance-soon">
-            <div className="p-1 rounded-lg bg-yellow-500/5"><TrendingUp size={14} className="text-yellow-500/50" /></div>
-            <span className="flex-1 text-foreground/35">Finance Oracle</span>
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-wider animate-pulse" style={{ background: "rgba(234,179,8,0.12)", color: "rgba(234,179,8,0.7)", border: "1px solid rgba(234,179,8,0.3)" }}>SOON</span>
-          </div>
-          <div className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm opacity-60 cursor-default select-none" data-testid="btn-media-soon">
-            <div className="p-1 rounded-lg bg-pink-500/5"><Film size={14} className="text-pink-500/50" /></div>
-            <span className="flex-1 text-foreground/35">Media</span>
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-wider animate-pulse" style={{ background: "rgba(236,72,153,0.12)", color: "rgba(236,72,153,0.7)", border: "1px solid rgba(236,72,153,0.3)" }}>SOON</span>
-          </div>
-
           {/* ── AURIONA CREATED PAGES — dynamic pages Auriona built ── */}
           {aurionaPagesList.length > 0 && (
             <div className="px-1 pt-3 pb-1">
