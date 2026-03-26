@@ -4327,13 +4327,14 @@ function NewsFeed() {
       }
       const r = await fetch(feedUrl);
       const data: FeedResponse = await r.json();
+      const safeArticles = Array.isArray(data.articles) ? data.articles : [];
       setArticles(prev => {
-        if (reset || p === 1) return data.articles;
+        if (reset || p === 1) return safeArticles;
         const ids = new Set(prev.map(a => a.id));
-        return [...prev, ...data.articles.filter(a => !ids.has(a.id))];
+        return [...prev, ...safeArticles.filter(a => !ids.has(a.id))];
       });
       setHasMore(data.hasMore ?? false);
-      setTotal(data.total ?? data.articles.length);
+      setTotal(data.total ?? safeArticles.length);
       setPage(p);
       if (p === 1) setLastRefreshed(new Date());
     } catch {}
