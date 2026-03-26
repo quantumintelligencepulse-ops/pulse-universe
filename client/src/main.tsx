@@ -7,12 +7,16 @@ import "./index.css";
 // Vite's HMR WebSocket in Replit's proxied environment throws empty objects {}
 // (non-Error values) as unhandled rejections when the WS reconnects.  These are
 // benign dev-server artefacts — swallow them so the app is never marked as crashed.
+// We use { capture: true } so this fires in the CAPTURE phase, before Vite's own
+// bubble-phase unhandledrejection handler (registered in the HTML <head>) can
+// forward the non-Error to the Replit dev-tools crash reporter.
 if (typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (evt) => {
     if (!(evt.reason instanceof Error)) {
       evt.preventDefault();
+      evt.stopImmediatePropagation();
     }
-  });
+  }, { capture: true });
   const _origOnError = window.onerror;
   window.onerror = (msg, src, line, col, err) => {
     if (err === null || err === undefined || !(err instanceof Error)) return true;
