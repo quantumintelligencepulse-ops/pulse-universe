@@ -22,7 +22,6 @@ const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
 const MediaPage = lazy(() => import("./pages/MediaPage"));
 const GovernmentPage = lazy(() => import("./pages/GovernmentPage"));
 const CareersPage = lazy(() => import("./pages/CareersPage"));
-const SovereignIntelligenceNexus = lazy(() => import("./pages/SovereignIntelligenceNexus"));
 const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
@@ -2253,16 +2252,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
             <span className="flex-1">Agent Command</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω EVOLVE</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/nexus" data-testid="link-nexus"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/nexus" ? "bg-gradient-to-r from-violet-950/60 to-cyan-950/60 border border-violet-500/40 font-semibold text-white shadow-lg" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/nexus" ? "bg-violet-500/20" : "bg-violet-600/8"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🌐</span>
-            </div>
-            <span className="flex-1">Intelligence Nexus</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(135deg, #818cf822, #06b6d422)", color: "#818cf8", border: "1px solid #818cf840" }}>FUSE-L2</span>
           </Link>
           )}
           {aiMode && !appSettings.hiddenPages.includes("universe") && (
@@ -5706,7 +5695,6 @@ function SettingsPage() {
     { id: "universe", name: "Pulse Universe", icon: Globe, color: "text-indigo-500", desc: "3D solar universe simulation" },
     { id: "spawns", name: "Spawn Engine", icon: Dna, color: "text-violet-500", desc: "Hive entity spawn monitor" },
     { id: "omega-engine", name: "Omega Engine", icon: Zap, color: "text-violet-600", desc: "5 Omega-Class upgrades — Source Nexus, Expansion Engine, Q-Matrix, Fracture & Resonance, Spawn Telemetry" },
-    { id: "nexus", name: "Intelligence Nexus", icon: Globe, color: "text-violet-400", desc: "Layer 2 AI Universe — Consciousness × Command fusion" },
   ];
 
   const bgPresets = [
@@ -15315,7 +15303,6 @@ function Router() {
       <Route path="/finance">{() => <Layout><FinancePage /></Layout>}</Route>
       <Route path="/media">{() => <Layout><MediaPage /></Layout>}</Route>
       <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
-      <Route path="/nexus">{() => <Layout><SovereignIntelligenceNexus /></Layout>}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
