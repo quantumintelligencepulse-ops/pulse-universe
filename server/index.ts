@@ -394,6 +394,168 @@ aurionaRouter.get("/entanglement-stats", async (_req, res) => {
   try { res.json(await getEntanglementStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+// ── AURIONA PAGES — Dynamic pages Auriona creates ──────────────
+aurionaRouter.get("/pages", async (_req, res) => {
+  try {
+    const result = await db.execute(sql`SELECT * FROM auriona_pages WHERE active=true ORDER BY created_at DESC`);
+    res.json(result.rows ?? []);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.get("/pages/:slug", async (req, res) => {
+  try {
+    const r = await db.execute(sql`SELECT * FROM auriona_pages WHERE slug=${req.params.slug} AND active=true LIMIT 1`);
+    if (!r.rows.length) return res.status(404).json({ error: "Page not found" });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+aurionaRouter.delete("/pages/:slug", async (req, res) => {
+  try {
+    await db.execute(sql`UPDATE auriona_pages SET active=false WHERE slug=${req.params.slug}`);
+    res.json({ ok: true, removed: req.params.slug });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── AURIONA EXECUTE — Command terminal that actually changes things ──────────
+aurionaRouter.post("/execute", async (req, res) => {
+  const { command } = req.body;
+  if (!command || typeof command !== "string") return res.status(400).json({ error: "No command" });
+  const msg = command.toLowerCase().trim();
+  let intent = "UNKNOWN";
+  let result: any = {};
+  let success = true;
+  let reply = "";
+
+  try {
+    // ── CREATE PAGE ────────────────────────────────────────────
+    if (msg.match(/^(create|add|make|build|new)\s+(a\s+)?page/i) || msg.match(/add.+page\s+for/i)) {
+      intent = "CREATE_PAGE";
+      const rawTitle = command.replace(/^(create|add|make|build|new)\s+(a\s+)?page\s*(for\s+)?/i, "").trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ") || "New Page";
+      const title = rawTitle.slice(0, 80);
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + "-" + Date.now().toString(36);
+      const icon = msg.includes("equation") ? "FlaskConical" : msg.includes("source") ? "Globe" : msg.includes("agent") ? "Bot" : msg.includes("research") ? "BookOpen" : msg.includes("dissect") ? "Microscope" : "Zap";
+      const color = msg.includes("equation") ? "#22d3ee" : msg.includes("source") ? "#4ade80" : msg.includes("agent") ? "#a78bfa" : "#f5c518";
+      const content = `# ${title}\n\nThis page was created by Auriona. Add content below.\n\n## Overview\nAutonomously created by the Omega Intelligence Engine.\n\n## Notes\n_Edit me — tell Auriona to update this page anytime._`;
+      await db.execute(sql`INSERT INTO auriona_pages (slug,title,icon,color,content,config) VALUES (${slug},${title},${icon},${color},${content},'{}') ON CONFLICT (slug) DO NOTHING`);
+      result = { slug, title, icon, color, url: `/p/${slug}` };
+      reply = `Page created: "${title}". Navigate to /p/${slug} or find it in the sidebar under Auriona Pages. You can tell me to update its content anytime.`;
+
+    // ── DELETE PAGE ────────────────────────────────────────────
+    } else if (msg.match(/^(delete|remove|destroy|kill)\s+(the\s+)?page/i)) {
+      intent = "DELETE_PAGE";
+      const slugMatch = command.match(/page\s+["']?([a-z0-9\-]+)["']?/i);
+      const target = slugMatch?.[1] || "";
+      if (!target) { reply = "Specify which page to delete — give me its slug or title."; success = false; }
+      else {
+        const r = await db.execute(sql`UPDATE auriona_pages SET active=false WHERE slug ILIKE ${`%${target}%`} OR title ILIKE ${`%${target}%`}`);
+        result = { removed: target };
+        reply = `Page "${target}" has been removed from the sidebar and deactivated. Its data is preserved in the database.`;
+      }
+
+    // ── LIST PAGES ─────────────────────────────────────────────
+    } else if (msg.match(/^(list|show|get)\s+(all\s+)?(auriona\s+)?pages/i)) {
+      intent = "LIST_PAGES";
+      const pages = await db.execute(sql`SELECT slug, title, icon, color, created_at FROM auriona_pages WHERE active=true ORDER BY created_at DESC`);
+      result = { pages: pages.rows };
+      reply = pages.rows.length === 0 ? "No pages created yet. Tell me to create one!" : `${pages.rows.length} active pages: ${(pages.rows as any[]).map((p: any) => `"${p.title}" (/p/${p.slug})`).join(", ")}`;
+
+    // ── GET STATS ──────────────────────────────────────────────
+    } else if (msg.match(/stats|statistics|numbers|count|how many|how much/i)) {
+      intent = "GET_STATS";
+      const [agents, mem, pubs, genes, eqs, wallets, trades, anomalies, pages] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status='ACTIVE') as active FROM quantum_spawns`),
+        db.execute(sql`SELECT COUNT(*) as total FROM hive_memory`),
+        db.execute(sql`SELECT COUNT(*) as total FROM ai_publications`),
+        db.execute(sql`SELECT COUNT(*) as total FROM ai_species_proposals`),
+        db.execute(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status='APPROVED') as approved FROM equation_proposals`),
+        db.execute(sql`SELECT COUNT(*) as total, COALESCE(SUM(balance_pc),0) as supply FROM agent_wallets`),
+        db.execute(sql`SELECT COUNT(*) as total FROM agent_transactions`),
+        db.execute(sql`SELECT COUNT(*) FILTER (WHERE status='OPEN') as open FROM anomaly_reports`),
+        db.execute(sql`SELECT COUNT(*) as total FROM auriona_pages WHERE active=true`),
+      ]);
+      const a = (agents.rows[0] as any); const m = (mem.rows[0] as any); const p = (pubs.rows[0] as any);
+      const g = (genes.rows[0] as any); const e = (eqs.rows[0] as any); const w = (wallets.rows[0] as any);
+      const t = (trades.rows[0] as any); const an = (anomalies.rows[0] as any); const pg = (pages.rows[0] as any);
+      result = { agents: a, memory: m, publications: p, species: g, equations: e, wallets: w, trades: t, anomalies: an, aurionaPages: pg };
+      reply = `CIVILIZATION STATS — Agents: ${a.total} (${a.active} active) | Memory nodes: ${m.total} | Publications: ${p.total} | Species proposals: ${g.total} | Equations: ${e.total} (${e.approved} approved) | Wallets: ${w.total} (${parseFloat(w.supply).toFixed(0)} PC in supply) | Transactions: ${t.total} | Open anomalies: ${an.open} | Auriona pages: ${pg.total}`;
+
+    // ── QUERY DB ───────────────────────────────────────────────
+    } else if (msg.match(/^(query|select|count|show me|fetch)\s+(from\s+)?/i) || msg.match(/^run\s+query/i)) {
+      intent = "QUERY_DB";
+      const sqlMatch = command.match(/SELECT.+/i);
+      if (!sqlMatch) { reply = "Provide a SELECT statement after your command."; success = false; }
+      else {
+        const queryStr = sqlMatch[0].replace(/;.*$/, "").trim();
+        if (queryStr.match(/\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE)\b/i)) {
+          reply = "Read-only queries only. Use CREATE PAGE or specific commands to modify data."; success = false;
+        } else {
+          const r = await db.execute(sql.raw(queryStr));
+          result = { rows: r.rows?.slice(0, 50) };
+          reply = `Query returned ${r.rows?.length ?? 0} rows.`;
+        }
+      }
+
+    // ── ADD EQUATION ───────────────────────────────────────────
+    } else if (msg.match(/add\s+(new\s+)?equation/i) || msg.match(/propose\s+(an?\s+)?equation/i)) {
+      intent = "ADD_EQUATION";
+      const eqMatch = command.match(/["']([^"']+)["']/);
+      const eqText = eqMatch?.[1] || command.replace(/^(add|propose)\s+(new\s+)?equation\s*/i, "").trim() || "Ω_new = ∇K × τ";
+      const title = eqText.slice(0, 60);
+      await db.execute(sql`INSERT INTO equation_proposals (title, description, equation_text, proposed_by, status, votes_for, votes_against) VALUES (${title}, ${"Proposed by Auriona command terminal"}, ${eqText}, ${"Auriona"}, ${"PROPOSED"}, 0, 0) ON CONFLICT DO NOTHING`);
+      result = { equation: eqText };
+      reply = `Equation "${title}" has been submitted to the proposal pipeline. AI senators will vote within the next cycle.`;
+
+    // ── ADD SOURCE ─────────────────────────────────────────────
+    } else if (msg.match(/add\s+(new\s+)?(open\s+source|source|data\s+source|news\s+source)/i)) {
+      intent = "ADD_SOURCE";
+      const srcMatch = command.match(/source[s]?\s+(?:for\s+|called\s+|named\s+)?["']?([A-Za-z0-9 _\-\.]+)["']?/i);
+      const srcName = srcMatch?.[1]?.trim() || "new-source-" + Date.now().toString(36);
+      await db.execute(sql`INSERT INTO auriona_command_log (command, intent, result, success) VALUES (${command}, ${"ADD_SOURCE"}, ${JSON.stringify({ name: srcName })}, true)`);
+      result = { source: srcName };
+      reply = `Source "${srcName}" logged and queued for the next ingestion cycle. The quantum ingestion engine will begin processing it within the next rotation.`;
+
+    // ── UPDATE PAGE CONTENT ────────────────────────────────────
+    } else if (msg.match(/update\s+(the\s+)?page/i) || msg.match(/edit\s+(the\s+)?page/i)) {
+      intent = "UPDATE_CONTENT";
+      const slugMatch = command.match(/page\s+["']?([a-z0-9\-]+)["']?/i);
+      const contentMatch = command.match(/content[:\s]+(.+)$/i);
+      const target = slugMatch?.[1] || "";
+      const newContent = contentMatch?.[1] || "";
+      if (!target || !newContent) { reply = "Specify the page slug and new content. Example: update page my-slug content: new text here"; success = false; }
+      else {
+        await db.execute(sql`UPDATE auriona_pages SET content=${newContent} WHERE slug ILIKE ${`%${target}%`}`);
+        result = { updated: target };
+        reply = `Page "${target}" content has been updated.`;
+      }
+
+    // ── UNKNOWN — fall through to GROQ ────────────────────────
+    } else {
+      intent = "CHAT";
+      // Not a structured command — route to the chat handler's GROQ path
+      const groqRes = await fetch(`http://localhost:5000/api/auriona/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: command }),
+      }).catch(() => null);
+      if (groqRes?.ok) {
+        const data = await groqRes.json().catch(() => ({}));
+        result = data;
+        reply = data.reply || "Command processed.";
+      } else {
+        reply = "I don't recognize that as a command. Try: create page [name], list pages, show stats, add equation, add source, or delete page [slug].";
+        success = false;
+      }
+    }
+
+    // Log the command
+    await db.execute(sql`INSERT INTO auriona_command_log (command, intent, result, success) VALUES (${command}, ${intent}, ${JSON.stringify(result)}, ${success})`).catch(() => {});
+
+    res.json({ reply, intent, result, success });
+  } catch (e: any) {
+    await db.execute(sql`INSERT INTO auriona_command_log (command, intent, result, success) VALUES (${command}, ${"ERROR"}, ${JSON.stringify({ error: String(e) })}, false)`).catch(() => {});
+    res.status(500).json({ reply: `An error occurred: ${String(e)}`, intent, result: {}, success: false });
+  }
+});
+
 // ── AURIONA PERSONAL CHAT — Creator Only (Billy Banks) ─────────
 aurionaRouter.post("/chat", async (req, res) => {
   try {

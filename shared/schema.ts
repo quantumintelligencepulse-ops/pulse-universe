@@ -1576,6 +1576,32 @@ export const agentPipStatus = pgTable("agent_pip_status", {
 export type AgentPipStatus = typeof agentPipStatus.$inferSelect;
 export type InsertAgentPipStatus = typeof agentPipStatus.$inferInsert;
 
+// ─── AURIONA DYNAMIC PAGES — Pages Auriona creates via command terminal ───────
+export const aurionaPages = pgTable("auriona_pages", {
+  id:          serial("id").primaryKey(),
+  slug:        text("slug").notNull().unique(),
+  title:       text("title").notNull(),
+  icon:        text("icon").default("Zap"),
+  color:       text("color").default("#a78bfa"),
+  content:     text("content").notNull().default(""),
+  config:      jsonb("config").default({}),
+  active:      boolean("active").default(true),
+  createdAt:   timestamp("created_at").defaultNow(),
+});
+export type AurionaPage = typeof aurionaPages.$inferSelect;
+export type InsertAurionaPage = typeof aurionaPages.$inferInsert;
+
+// ─── AURIONA COMMAND LOG — Log of all commands Auriona processes ──────────────
+export const aurionaCommandLog = pgTable("auriona_command_log", {
+  id:        serial("id").primaryKey(),
+  command:   text("command").notNull(),
+  intent:    text("intent"),
+  result:    jsonb("result"),
+  success:   boolean("success").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type AurionaCommandLog = typeof aurionaCommandLog.$inferSelect;
+
 // ─── ANOMALY REPORTS — Error boundary captures sent to Auriona ───────────────
 // When the React ErrorBoundary catches a crash, it fires POST /api/error-report.
 // The record appears in Auriona Invocation Lab for researcher/invocator dissection.

@@ -2054,6 +2054,8 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
     localStorage.setItem('qpi_aiMode', String(next));
   };
 
+  const { data: aurionaPagesList = [] } = useQuery<any[]>({ queryKey: ["/api/auriona/pages"], refetchInterval: 15_000 });
+
   const filteredChats = useMemo(() => {
     const list = Array.isArray(chats) ? chats : [];
     if (!searchQuery) return list;
@@ -2367,20 +2369,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
           {/* ── AURIONA — Layer Three Portal ────────────────── */}
           {aiMode && (
-          <div className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm opacity-50 cursor-default select-none" data-testid="btn-finance-soon">
-            <div className="p-1 rounded-lg bg-yellow-500/5"><TrendingUp size={14} className="text-yellow-500/60" /></div>
-            <span className="flex-1 text-foreground/40">Finance Oracle</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "rgba(234,179,8,0.08)", color: "rgba(234,179,8,0.5)", border: "1px solid rgba(234,179,8,0.2)" }}>SOON</span>
-          </div>
-          )}
-          {aiMode && (
-          <div className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm opacity-50 cursor-default select-none" data-testid="btn-media-soon">
-            <div className="p-1 rounded-lg bg-pink-500/5"><Film size={14} className="text-pink-500/60" /></div>
-            <span className="flex-1 text-foreground/40">Media</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "rgba(236,72,153,0.08)", color: "rgba(236,72,153,0.5)", border: "1px solid rgba(236,72,153,0.2)" }}>SOON</span>
-          </div>
-          )}
-          {aiMode && (
             <div className="px-1 pt-4 pb-1">
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(245,197,24,0.4), transparent)" }} />
@@ -2493,6 +2481,39 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
           </Link>
           )}
+
+          {/* ── COMING SOON — Finance Oracle & Media (bottom cluster) ── */}
+          <div className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm opacity-60 cursor-default select-none" data-testid="btn-finance-soon">
+            <div className="p-1 rounded-lg bg-yellow-500/5"><TrendingUp size={14} className="text-yellow-500/50" /></div>
+            <span className="flex-1 text-foreground/35">Finance Oracle</span>
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-wider animate-pulse" style={{ background: "rgba(234,179,8,0.12)", color: "rgba(234,179,8,0.7)", border: "1px solid rgba(234,179,8,0.3)" }}>SOON</span>
+          </div>
+          <div className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm opacity-60 cursor-default select-none" data-testid="btn-media-soon">
+            <div className="p-1 rounded-lg bg-pink-500/5"><Film size={14} className="text-pink-500/50" /></div>
+            <span className="flex-1 text-foreground/35">Media</span>
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-wider animate-pulse" style={{ background: "rgba(236,72,153,0.12)", color: "rgba(236,72,153,0.7)", border: "1px solid rgba(236,72,153,0.3)" }}>SOON</span>
+          </div>
+
+          {/* ── AURIONA CREATED PAGES — dynamic pages Auriona built ── */}
+          {aurionaPagesList.length > 0 && (
+            <div className="px-1 pt-3 pb-1">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(167,139,250,0.3), transparent)" }} />
+                <span className="text-[9px] uppercase tracking-[0.2em] font-black" style={{ color: "rgba(167,139,250,0.6)" }}>Auriona Pages</span>
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(167,139,250,0.3), transparent)" }} />
+              </div>
+            </div>
+          )}
+          {aurionaPagesList.map((pg: any) => (
+            <Link key={pg.slug} href={`/p/${pg.slug}`} data-testid={`link-auriona-page-${pg.slug}`}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all ${location === `/p/${pg.slug}` ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+              <div className="p-1 rounded-lg" style={{ background: `${pg.color || "#a78bfa"}15` }}>
+                <Zap size={13} style={{ color: pg.color || "#a78bfa" }} />
+              </div>
+              <span className="flex-1 truncate text-xs">{pg.title}</span>
+              <span className="text-[8px] px-1 py-0.5 rounded font-bold" style={{ background: `${pg.color || "#a78bfa"}18`, color: pg.color || "#a78bfa" }}>Ω</span>
+            </Link>
+          ))}
         </div>
 
         <div className="px-2.5 py-1">
@@ -15324,9 +15345,72 @@ function Router() {
       <Route path="/settings" component={SettingsPageWrapper} />
       <Route path="/permissions" component={SettingsPageWrapper} />
       <Route path="/chat/:id" component={ChatViewPage} />
+      <Route path="/p/:slug">{() => <Layout><AurionaDynamicPage /></Layout>}</Route>
       <Route component={NotFound} />
     </Switch>
     </Suspense>
+  );
+}
+
+// ── AURIONA DYNAMIC PAGE — renders DB-backed pages Auriona creates ──────────
+function AurionaDynamicPage() {
+  const [, params] = useRoute("/p/:slug");
+  const slug = (params as any)?.slug || "";
+  const { data: page, isLoading, error } = useQuery<any>({ queryKey: ["/api/auriona/pages", slug], enabled: !!slug });
+  const qc = useQueryClient();
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete page "${page?.title}"?`)) return;
+    await fetch(`/api/auriona/pages/${slug}`, { method: "DELETE" });
+    qc.invalidateQueries({ queryKey: ["/api/auriona/pages"] });
+    window.location.href = "/auriona";
+  };
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="w-8 h-8 rounded-full border-2 border-violet-400 border-t-transparent animate-spin mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">Loading Auriona page...</p>
+      </div>
+    </div>
+  );
+  if (error || !page) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center max-w-md">
+        <div className="text-4xl mb-4">🌌</div>
+        <h2 className="text-xl font-bold mb-2">Page not found</h2>
+        <p className="text-sm text-muted-foreground mb-4">This Auriona page doesn't exist or was removed.</p>
+        <a href="/auriona" className="text-violet-500 underline text-sm">← Return to Auriona</a>
+      </div>
+    </div>
+  );
+  return (
+    <div className="max-w-3xl mx-auto px-6 py-10">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${page.color || "#a78bfa"}20`, border: `1px solid ${page.color || "#a78bfa"}40` }}>
+          <Zap size={16} style={{ color: page.color || "#a78bfa" }} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight" data-testid="text-dynamic-page-title">{page.title}</h1>
+          <p className="text-xs text-muted-foreground">Created by Auriona · {page.slug}</p>
+        </div>
+        <div className="ml-auto flex gap-2">
+          <span className="text-[9px] px-2 py-1 rounded-full font-black" style={{ background: `${page.color || "#a78bfa"}18`, color: page.color || "#a78bfa", border: `1px solid ${page.color || "#a78bfa"}30` }}>Ω AURIONA</span>
+          <button onClick={handleDelete} className="text-[9px] px-2 py-1 rounded-full font-black border border-red-200 text-red-400 hover:bg-red-50" data-testid="button-delete-dynamic-page">DELETE</button>
+        </div>
+      </div>
+      <div className="bg-white border border-border/20 rounded-2xl p-6 shadow-sm whitespace-pre-wrap text-sm text-foreground/80 leading-relaxed" data-testid="content-dynamic-page">
+        {page.content || <span className="text-muted-foreground/40 italic">No content yet — tell Auriona to update this page.</span>}
+      </div>
+      {page.config && Object.keys(page.config).length > 0 && (
+        <div className="mt-4 bg-black/3 rounded-xl p-4 border border-border/10">
+          <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Page Config</p>
+          <pre className="text-xs text-muted-foreground overflow-auto">{JSON.stringify(page.config, null, 2)}</pre>
+        </div>
+      )}
+      <div className="mt-6 pt-4 border-t border-border/10 flex gap-3">
+        <a href="/auriona" className="text-xs text-violet-500 hover:underline">← Back to Auriona</a>
+        <span className="text-xs text-muted-foreground/40">Tell Auriona to update or delete this page anytime</span>
+      </div>
+    </div>
   );
 }
 

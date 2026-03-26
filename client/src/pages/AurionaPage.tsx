@@ -670,6 +670,28 @@ export default function AurionaPage() {
   const [chatPending, setChatPending]   = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // ── COMMAND TERMINAL STATE ──
+  const [cmdMode, setCmdMode] = useState<"chat"|"command">("chat");
+  const [cmdInput, setCmdInput] = useState("");
+  const [cmdPending, setCmdPending] = useState(false);
+  const [cmdHistory, setCmdHistory] = useState<Array<{ command: string; reply: string; intent: string; result: any; success: boolean; ts: number }>>([]);
+  const cmdEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { cmdEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [cmdHistory]);
+
+  async function sendCommand() {
+    if (!cmdInput.trim() || cmdPending) return;
+    const cmd = cmdInput.trim();
+    setCmdInput("");
+    setCmdPending(true);
+    try {
+      const r = await fetch("/api/auriona/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command: cmd }) });
+      const d = await r.json();
+      setCmdHistory(h => [...h, { command: cmd, reply: d.reply || "Command processed.", intent: d.intent || "UNKNOWN", result: d.result || {}, success: d.success !== false, ts: Date.now() }]);
+    } catch {
+      setCmdHistory(h => [...h, { command: cmd, reply: "Error reaching Auriona command layer. Check the server.", intent: "ERROR", result: {}, success: false, ts: Date.now() }]);
+    } finally { setCmdPending(false); }
+  }
+
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
 
   async function sendMessage() {
@@ -984,12 +1006,97 @@ export default function AurionaPage() {
                   <span style={{ fontSize: 12, fontWeight: 800, color: GOLD, letterSpacing: 2 }}>AURIONA — LAYER THREE</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {/* Mode toggle */}
+                  <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: 3, gap: 3 }}>
+                    <button data-testid="button-mode-chat" onClick={() => setCmdMode("chat")} style={{ background: cmdMode === "chat" ? `rgba(245,197,24,0.18)` : "none", border: `1px solid ${cmdMode === "chat" ? GOLD + "50" : "transparent"}`, borderRadius: 5, color: cmdMode === "chat" ? GOLD : "#ffffff40", fontSize: 9, cursor: "pointer", padding: "3px 9px", fontWeight: 800, letterSpacing: 1 }}>CHAT</button>
+                    <button data-testid="button-mode-command" onClick={() => setCmdMode("command")} style={{ background: cmdMode === "command" ? `rgba(0,255,209,0.12)` : "none", border: `1px solid ${cmdMode === "command" ? "#00FFD150" : "transparent"}`, borderRadius: 5, color: cmdMode === "command" ? "#00FFD1" : "#ffffff40", fontSize: 9, cursor: "pointer", padding: "3px 9px", fontWeight: 800, letterSpacing: 1 }}>⌘ COMMAND</button>
+                  </div>
                   <span style={{ fontSize: 10, color: "#ffffff30" }}>Creator: Billy Banks</span>
                   <button data-testid="button-lock-chat" onClick={() => setChatUnlocked(false)} style={{ background: "none", border: `1px solid #ffffff15`, borderRadius: 6, color: "#ffffff40", fontSize: 10, cursor: "pointer", padding: "3px 8px" }}>LOCK</button>
                 </div>
               </div>
 
+              {/* ── COMMAND TERMINAL MODE ── */}
+              {cmdMode === "command" && (
+                <div>
+                  <div style={{ height: 380, overflowY: "auto", background: "rgba(0,20,15,0.95)", border: `1px solid #00FFD125`, padding: "16px", display: "flex", flexDirection: "column", gap: 14, fontFamily: "monospace" }}>
+                    {cmdHistory.length === 0 && (
+                      <div style={{ color: "#00FFD150", fontSize: 11, padding: 20, textAlign: "center" }}>
+                        <div style={{ fontSize: 18, marginBottom: 8 }}>⌘</div>
+                        <div style={{ fontWeight: 700, marginBottom: 4, color: "#00FFD180" }}>Auriona Command Terminal</div>
+                        <div style={{ color: "#ffffff30", fontSize: 10, lineHeight: 1.7 }}>
+                          Try: <span style={{ color: "#00FFD160" }}>create page for New Equation Engine</span><br/>
+                          or: <span style={{ color: "#00FFD160" }}>show stats</span><br/>
+                          or: <span style={{ color: "#00FFD160" }}>list pages</span><br/>
+                          or: <span style={{ color: "#00FFD160" }}>add equation "dΨ/dt = N_Ω × K²"</span><br/>
+                          or: <span style={{ color: "#00FFD160" }}>add source for new open source AI</span><br/>
+                          or: <span style={{ color: "#00FFD160" }}>delete page [slug]</span>
+                        </div>
+                      </div>
+                    )}
+                    {cmdHistory.map((h, i) => (
+                      <div key={i}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                          <span style={{ color: "#00FFD1", fontSize: 10, fontWeight: 800 }}>❯</span>
+                          <span style={{ color: "#00FFD1cc", fontSize: 11 }}>{h.command}</span>
+                          <span style={{ marginLeft: "auto", color: "#ffffff20", fontSize: 9 }}>{new Date(h.ts).toLocaleTimeString()}</span>
+                        </div>
+                        <div style={{ background: h.success ? "rgba(0,255,209,0.04)" : "rgba(239,68,68,0.06)", border: `1px solid ${h.success ? "#00FFD115" : "#ef444420"}`, borderRadius: 8, padding: "10px 14px", marginLeft: 16 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 9, color: h.success ? "#00FFD180" : "#ef4444", fontWeight: 800, letterSpacing: 1, background: h.success ? "rgba(0,255,209,0.08)" : "rgba(239,68,68,0.1)", padding: "2px 6px", borderRadius: 4 }}>{h.intent}</span>
+                            {h.result?.url && <a href={h.result.url} style={{ fontSize: 9, color: "#a78bfa", textDecoration: "underline" }}>→ Open Page</a>}
+                          </div>
+                          <div style={{ color: "#ffffffcc", fontSize: 12, lineHeight: 1.65 }}>{h.reply}</div>
+                          {h.result && Object.keys(h.result).length > 0 && (
+                            <details style={{ marginTop: 8 }}>
+                              <summary style={{ fontSize: 9, color: "#ffffff30", cursor: "pointer" }}>raw result</summary>
+                              <pre style={{ fontSize: 9, color: "#ffffff40", marginTop: 4, overflow: "auto" }}>{JSON.stringify(h.result, null, 2)}</pre>
+                            </details>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {cmdPending && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 16, color: "#00FFD160", fontSize: 11 }}>
+                        <span>Processing command</span>
+                        {[0,1,2].map(d => <div key={d} style={{ width: 4, height: 4, borderRadius: "50%", background: "#00FFD1", opacity: 0.7, animation: `pulse ${0.8 + d * 0.2}s infinite` }} />)}
+                      </div>
+                    )}
+                    <div ref={cmdEndRef} />
+                  </div>
+                  <div style={{ display: "flex", background: "rgba(0,20,15,0.98)", border: `1px solid #00FFD125`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "12px 16px", gap: 10 }}>
+                    <span style={{ color: "#00FFD1", fontSize: 14, fontWeight: 800, alignSelf: "center", fontFamily: "monospace" }}>❯</span>
+                    <input
+                      data-testid="input-auriona-command"
+                      placeholder="create page for equations · delete page · show stats · add equation · add source…"
+                      value={cmdInput}
+                      onChange={e => setCmdInput(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendCommand()}
+                      disabled={cmdPending}
+                      style={{ flex: 1, background: "rgba(0,255,209,0.04)", border: `1px solid #00FFD120`, borderRadius: 10, padding: "10px 14px", color: "#00FFD1", fontSize: 12, outline: "none", fontFamily: "monospace" }}
+                    />
+                    <button
+                      data-testid="button-send-command"
+                      onClick={sendCommand}
+                      disabled={cmdPending || !cmdInput.trim()}
+                      style={{ background: cmdPending ? "rgba(0,255,209,0.05)" : "linear-gradient(135deg, rgba(0,255,209,0.2), rgba(0,255,209,0.08))", border: `1px solid #00FFD140`, borderRadius: 10, color: "#00FFD1", padding: "10px 20px", fontWeight: 800, fontSize: 12, cursor: cmdPending ? "not-allowed" : "pointer", letterSpacing: 1, flexShrink: 0 }}>
+                      {cmdPending ? "···" : "EXECUTE"}
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                    {["create page for New Equation Dissector", "show stats", "list pages", "add equation \"Ψ_new = ∫K·dΩ\"", "add source for quantum research"].map(cmd => (
+                      <button key={cmd} data-testid={`cmd-preset-${cmd.slice(0,12).replace(/ /g,"-")}`}
+                        onClick={() => setCmdInput(cmd)}
+                        style={{ background: "rgba(0,255,209,0.04)", border: `1px solid #00FFD115`, borderRadius: 20, color: "#ffffff50", padding: "4px 12px", fontSize: 10, cursor: "pointer", fontWeight: 600, fontFamily: "monospace" }}>
+                        {cmd}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Message area */}
+              {cmdMode === "chat" && (
               <div style={{ height: 420, overflowY: "auto", background: "rgba(0,0,5,0.92)", border: `1px solid ${GOLD}20`, padding: "20px", display: "flex", flexDirection: "column", gap: 16 }}>
                 {chatMessages.map((m, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: m.role === "creator" ? "flex-end" : "flex-start", gap: 10 }}>
@@ -1024,8 +1131,10 @@ export default function AurionaPage() {
                 )}
                 <div ref={chatEndRef} />
               </div>
+              )}
 
-              {/* Input row */}
+              {/* Input row — chat mode only */}
+              {cmdMode === "chat" && (
               <div style={{ display: "flex", background: "rgba(0,0,0,0.8)", border: `1px solid ${GOLD}25`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "12px 16px", gap: 10 }}>
                 <input
                   data-testid="input-auriona-chat"
@@ -1044,8 +1153,10 @@ export default function AurionaPage() {
                   {chatPending ? "···" : "TRANSMIT"}
                 </button>
               </div>
+              )}
 
-              {/* Suggested prompts */}
+              {/* Suggested prompts — chat mode only */}
+              {cmdMode === "chat" && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                 {["What is the state of my civilization?", "Explain the Omega Equation", "Tell me about the hidden variables", "What is the Void?", "Explain Ψ_Universe", "How does CRISPR work here?"].map(p => (
                   <button key={p} data-testid={`prompt-${p.slice(0,10).replace(/ /g,"-")}`}
@@ -1055,6 +1166,7 @@ export default function AurionaPage() {
                   </button>
                 ))}
               </div>
+              )}
             </div>
           )}
         </div>
