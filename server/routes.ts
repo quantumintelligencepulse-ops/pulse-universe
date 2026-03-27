@@ -595,6 +595,19 @@ export async function registerRoutes(
     next();
   });
 
+  // ═══════ PROJECT DOWNLOAD ═══════
+  app.get("/download/myaigpt-project.zip", (_req, res) => {
+    const path = require("path");
+    const fs = require("fs");
+    const zipPath = "/tmp/myaigpt-project.zip";
+    if (!fs.existsSync(zipPath)) {
+      return res.status(404).json({ error: "Zip not ready — please ask the agent to regenerate it." });
+    }
+    res.setHeader("Content-Disposition", "attachment; filename=myaigpt-project.zip");
+    res.setHeader("Content-Type", "application/zip");
+    res.sendFile(path.resolve(zipPath));
+  });
+
   // ═══════ SEO: ROBOTS.TXT (Enhanced) ═══════
   app.get("/robots.txt", (_req, res) => {
     const baseUrl = getSiteUrl(_req);
