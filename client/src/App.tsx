@@ -2362,7 +2362,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/marketplace" ? "bg-[#00FFD1]/15" : "bg-[#00FFD1]/5"}`}>
               <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🛒</span>
             </div>
-            <span className="flex-1">Omega Marketplace</span>
+            <span className="flex-1">Multiverse Mall</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #00FFD133, #FFB84D33)", color: "#00FFD1", border: "1px solid #00FFD150" }}>TRADE-Ω</span>
           </Link>
           )}

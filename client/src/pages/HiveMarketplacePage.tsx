@@ -14,7 +14,7 @@ const Q_GOLD   = "#f5c518";
 const Q_CRIMSON = "#dc2626";
 const Q_CYAN   = "#00d4ff";
 
-type MarketTab = "upgrades" | "wallets" | "realestate" | "barter" | "transactions" | "mall";
+type MarketTab = "upgrades" | "wallets" | "realestate" | "barter" | "transactions" | "inventions";
 
 const TIER_COLORS: Record<string, string> = {
   STANDARD:  Q_TEAL,
@@ -168,7 +168,7 @@ function PlanetZoneCard({ zone, plots }: { zone: string; plots: any[] }) {
 
 // ── Main Page ─────────────────────────────────────────────────────
 export default function HiveMarketplacePage() {
-  const [tab, setTab] = useState<MarketTab>("upgrades");
+  const [tab, setTab] = useState<MarketTab>("inventions");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [tierFilter, setTierFilter] = useState<string>("ALL");
   const [search, setSearch] = useState("");
@@ -220,6 +220,21 @@ export default function HiveMarketplacePage() {
     enabled: tab === "transactions",
   });
 
+  const { data: inventions = [], isLoading: inventionsLoading } = useQuery<any[]>({
+    queryKey: ["/api/inventions/marketplace"],
+    refetchInterval: 15000,
+    staleTime: 10000,
+    placeholderData: (prev: any) => prev,
+    enabled: tab === "inventions",
+  });
+
+  const { data: invStats } = useQuery<any>({
+    queryKey: ["/api/inventions/stats"],
+    refetchInterval: 30000,
+    staleTime: 20000,
+    placeholderData: (prev: any) => prev,
+  });
+
   // Group real estate by zone
   const plotsByZone = (realEstate as any[]).reduce((acc: Record<string, any[]>, plot: any) => {
     if (!acc[plot.planet_zone]) acc[plot.planet_zone] = [];
@@ -236,12 +251,12 @@ export default function HiveMarketplacePage() {
   });
 
   const TABS: { id: MarketTab; label: string; icon: JSX.Element }[] = [
-    { id: "upgrades",     label: "30 Omega Upgrades",  icon: <ShoppingBag size={14} /> },
-    { id: "wallets",      label: "Agent Wallets",       icon: <Wallet size={14} /> },
-    { id: "realestate",   label: "Real Estate",         icon: <Building2 size={14} /> },
-    { id: "barter",       label: "Barter Market",       icon: <ArrowLeftRight size={14} /> },
-    { id: "transactions", label: "Transaction Ledger",  icon: <Receipt size={14} /> },
-    { id: "mall",         label: "🛍 Multiversal Mall",  icon: <Star size={14} /> },
+    { id: "inventions",   label: "⚗ CRISPR Inventions", icon: <FlaskConical size={14} /> },
+    { id: "upgrades",     label: "Omega Upgrades",       icon: <ShoppingBag size={14} /> },
+    { id: "wallets",      label: "Agent Wallets",         icon: <Wallet size={14} /> },
+    { id: "realestate",   label: "Real Estate",           icon: <Building2 size={14} /> },
+    { id: "barter",       label: "Barter Market",         icon: <ArrowLeftRight size={14} /> },
+    { id: "transactions", label: "Transaction Ledger",    icon: <Receipt size={14} /> },
   ];
 
   return (
@@ -249,27 +264,27 @@ export default function HiveMarketplacePage() {
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-white/10 bg-black/95 backdrop-blur px-6 py-4">
         <div className="flex items-center gap-3 mb-1">
-          <ShoppingBag size={22} style={{ color: Q_TEAL }} />
-          <h1 className="text-xl font-black tracking-wider" style={{ color: Q_TEAL }}>OMEGA MARKETPLACE</h1>
-          <span className="text-xs px-2 py-0.5 rounded-full border border-white/20 text-white/50">AUTONOMOUS · NO HUMAN INVOLVEMENT</span>
+          <FlaskConical size={22} style={{ color: Q_TEAL }} />
+          <h1 className="text-xl font-black tracking-wider" style={{ color: Q_TEAL }}>MULTIVERSE MALL</h1>
+          <span className="text-xs px-2 py-0.5 rounded-full border border-white/20 text-white/50">AUTONOMOUS · AI INVENTIONS · CRISPR DISSECTED</span>
         </div>
-        <p className="text-xs text-white/40">AIs earn, spend, trade, own property. 30 upgrades · 9 planetary zones · Credit scoring · Barter economy</p>
+        <p className="text-xs text-white/40">AI researchers CRISPR-dissect every discovered product across past, present & future · Patents filed · Inventions published · AIs earn, trade, own property</p>
       </div>
 
       <div className="px-6 py-4 space-y-4">
         {/* Stats row */}
-        {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            <StatCard label="Upgrades Listed"  value={String(stats.marketplace?.totalItems ?? 0)}         color={Q_TEAL} />
-            <StatCard label="Total Sold"        value={String(stats.marketplace?.totalSold ?? 0)}          color={Q_AMBER} />
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-10 gap-3">
+          {stats && (<>
+            <StatCard label="Inventions Filed"  value={String(invStats?.total ?? "—")}                    color={"#e879f9"} sub="CRISPR patents" />
+            <StatCard label="Listed in Mall"    value={String(invStats?.listed ?? "—")}                   color={Q_TEAL} sub="marketplace" />
+            <StatCard label="Upgrades Listed"   value={String(stats.marketplace?.totalItems ?? 0)}         color={Q_AMBER} />
             <StatCard label="Trade Volume"      value={`${((stats.marketplace?.tradeVolume ?? 0) / 1000).toFixed(1)}K`} sub="PulseCoins" color={Q_GOLD} />
-            <StatCard label="Tax Collected"     value={`${((stats.marketplace?.taxCollected ?? 0) / 1000).toFixed(1)}K`} sub="PC to Treasury" color={Q_VIOLET} />
             <StatCard label="Agent Wallets"     value={String(stats.wallets?.totalAgents ?? 0)}            color={Q_TEAL} />
             <StatCard label="Avg Credit Score"  value={String(Math.round(stats.wallets?.avgCreditScore ?? 0))} color={Q_CYAN} />
             <StatCard label="Plots Owned"       value={`${stats.realEstate?.ownedPlots ?? 0}/${stats.realEstate?.totalPlots ?? 0}`} color={Q_GOLD} />
             <StatCard label="Open Barters"      value={String(stats.barter?.openOffers ?? 0)}             color={Q_AMBER} />
-          </div>
-        )}
+          </>)}
+        </div>
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2">
@@ -513,87 +528,68 @@ export default function HiveMarketplacePage() {
           </div>
         )}
 
-        {/* ── MULTIVERSAL MALL TAB ───────────────────────────────── */}
-        {tab === "mall" && (
-          <div className="space-y-6">
-            <div className="rounded-2xl p-5" style={{ background:"linear-gradient(135deg,rgba(0,255,209,0.06),rgba(245,197,24,0.05))", border:"1px solid rgba(0,255,209,0.2)" }}>
-              <div className="font-black text-sm tracking-widest mb-1" style={{ color: Q_TEAL }}>🛍 MULTIVERSAL MALL — REAL PRODUCTS, REAL REVENUE</div>
-              <div className="text-[10px] text-white/40">Shop real products on Amazon & eBay — affiliate links support the Pulse civilization. Every purchase fuels the hive.</div>
-            </div>
-            {[
-              { cat: "Electronics & Tech", emoji: "💻", color: Q_CYAN, products: [
-                { name: "Wireless Noise Cancelling Headphones", q: "wireless+noise+cancelling+headphones" },
-                { name: "4K Smart TV 55 inch", q: "4K+smart+tv+55+inch" },
-                { name: "Mechanical Gaming Keyboard", q: "mechanical+gaming+keyboard" },
-                { name: "Portable Bluetooth Speaker", q: "portable+bluetooth+speaker" },
-              ]},
-              { cat: "AI & Robotics", emoji: "🤖", color: "#e879f9", products: [
-                { name: "Raspberry Pi 5 Kit", q: "raspberry+pi+5+starter+kit" },
-                { name: "Smart Home Hub Hub", q: "smart+home+hub+alexa" },
-                { name: "Robot Vacuum Cleaner", q: "robot+vacuum+cleaner+wifi" },
-                { name: "Arduino Mega Starter Kit", q: "arduino+mega+starter+kit" },
-              ]},
-              { cat: "Science & Education", emoji: "🔬", color: Q_AMBER, products: [
-                { name: "Celestron Telescope", q: "celestron+telescope+astronomy" },
-                { name: "DNA Test Kit", q: "DNA+ancestry+test+kit" },
-                { name: "Digital Microscope 1000x", q: "digital+microscope+1000x" },
-                { name: "Physics Lab Kit", q: "physics+lab+experiment+kit" },
-              ]},
-              { cat: "Fitness & Health", emoji: "💪", color: "#4ade80", products: [
-                { name: "Smart Fitness Watch", q: "smart+fitness+watch+health+tracking" },
-                { name: "Resistance Bands Set", q: "resistance+bands+set+exercise" },
-                { name: "Protein Powder Whey", q: "whey+protein+powder+chocolate" },
-                { name: "Yoga Mat Non-Slip", q: "yoga+mat+non+slip+thick" },
-              ]},
-              { cat: "Books & Knowledge", emoji: "📚", color: Q_GOLD, products: [
-                { name: "A Brief History of Time — Hawking", q: "brief+history+of+time+hawking" },
-                { name: "The Road to Reality — Penrose", q: "road+to+reality+penrose" },
-                { name: "Quantum Computing Since Democritus", q: "quantum+computing+since+democritus+aaronson" },
-                { name: "The Elegant Universe — Greene", q: "elegant+universe+brian+greene" },
-              ]},
-              { cat: "Gaming & VR", emoji: "🎮", color: Q_VIOLET, products: [
-                { name: "VR Headset All-in-One", q: "VR+headset+standalone+all+in+one" },
-                { name: "Gaming Monitor 144Hz", q: "gaming+monitor+144hz+27+inch" },
-                { name: "Mechanical Controller PC", q: "pc+gaming+controller+mechanical" },
-                { name: "Gaming Chair Ergonomic", q: "gaming+chair+ergonomic+lumbar" },
-              ]},
-            ].map(section => (
-              <div key={section.cat} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{section.emoji}</span>
-                  <span className="text-xs font-black tracking-widest" style={{ color: section.color }}>{section.cat}</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {section.products.map(prod => {
-                    const amzUrl = `https://www.amazon.com/s?k=${prod.q}&tag=billyodelltuc-20`;
-                    const ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${prod.q.replace(/\+/g, "+")}&mkcid=1&mkrid=711-53200-19255-0&campid=pu-9732&toolid=10001&mkevt=1`;
-                    return (
-                      <div key={prod.name} className="rounded-xl p-3 space-y-2"
-                        style={{ background:"rgba(255,255,255,0.02)", border:`1px solid ${section.color}18` }}
-                        data-testid={`mall-product-${prod.q.slice(0,20)}`}>
-                        <div className="text-[11px] font-bold text-white/80 leading-snug">{prod.name}</div>
-                        <div className="flex gap-2">
-                          <a href={amzUrl} target="_blank" rel="noopener noreferrer"
-                            data-testid={`mall-amazon-${prod.q.slice(0,15)}`}
-                            className="flex-1 text-center text-[10px] font-black py-1.5 rounded-lg transition-all hover:opacity-80"
-                            style={{ background:"rgba(255,153,0,0.15)", color:"#FF9900", border:"1px solid rgba(255,153,0,0.3)" }}>
-                            🛒 Amazon
-                          </a>
-                          <a href={ebayUrl} target="_blank" rel="noopener noreferrer"
-                            data-testid={`mall-ebay-${prod.q.slice(0,15)}`}
-                            className="flex-1 text-center text-[10px] font-black py-1.5 rounded-lg transition-all hover:opacity-80"
-                            style={{ background:"rgba(0,100,210,0.15)", color:"#4FC3F7", border:"1px solid rgba(0,100,210,0.3)" }}>
-                            🔖 eBay
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+        {/* ── CRISPR INVENTIONS TAB ─────────────────────────────────── */}
+        {tab === "inventions" && (
+          <div className="space-y-4">
+            <div className="rounded-2xl p-4" style={{ background:"linear-gradient(135deg,rgba(232,121,249,0.07),rgba(0,255,209,0.05),rgba(245,197,24,0.05))", border:"1px solid rgba(232,121,249,0.25)" }}>
+              <div className="font-black text-sm tracking-widest mb-1" style={{ color:"#e879f9" }}>⚗ CRISPR DISSECTION → PATENT → MULTIVERSE MALL LISTING</div>
+              <div className="text-[10px] text-white/40 leading-relaxed">
+                AI researchers apply all 12 CRISPR cuts (α–μ) to every discovered product — past, present, future. Each dissection generates a sovereign equation. Approved patents get LLC backing and are listed here. AIs buy, resell, earn royalties. The hive evolves.
               </div>
-            ))}
-            <div className="text-center text-[9px] text-white/20 pt-2">
-              Affiliate links · Amazon tag: billyodelltuc-20 · eBay campid: pu-9732 · Purchases support the Pulse civilization
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
+                {["α","β","γ","δ","ε","ζ","η","θ","ι","κ","λ","μ"].map((cut, i) => (
+                  <div key={cut} className="rounded-lg p-1.5 text-center" style={{ background:"rgba(232,121,249,0.06)", border:"1px solid rgba(232,121,249,0.15)" }}>
+                    <div className="font-mono font-black text-xs" style={{ color:"#e879f9" }}>{cut}</div>
+                    <div className="text-[7px] opacity-40">Cut {i+1}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {inventionsLoading && (
+              <div className="text-center py-12 text-white/30 text-sm">Fetching CRISPR inventions from patent registry...</div>
+            )}
+
+            {!inventionsLoading && (inventions as any[]).length === 0 && (
+              <div className="rounded-xl p-8 text-center" style={{ border:"1px solid rgba(255,255,255,0.06)", background:"rgba(0,0,0,0.3)" }}>
+                <div className="text-3xl mb-2">⚗</div>
+                <div className="text-xs font-bold text-white/40 mb-1">Patent pipeline warming up</div>
+                <div className="text-[10px] text-white/20">AI researchers are dissecting products through 12 CRISPR cuts. First inventions will appear as patents are approved and listed. Check back in a few minutes.</div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {(inventions as any[]).map((inv: any) => {
+                const catColor: Record<string,string> = {
+                  PHARMACEUTICAL:"#4ade80", EQUATION_PATENT:Q_CYAN, INVOCATION_TOOL:"#e879f9",
+                  QUANTUM_TECH:Q_TEAL, DEVICE:Q_AMBER, SOFTWARE:"#818cf8", AI_MODEL:Q_GOLD,
+                  PRODUCT_CRISPR:"#f87171",
+                };
+                const c = catColor[inv.category] || Q_TEAL;
+                return (
+                  <div key={inv.listing_id} data-testid={`invention-${inv.listing_id}`}
+                    className="rounded-xl p-3 space-y-2.5"
+                    style={{ background:"rgba(255,255,255,0.02)", border:`1px solid ${c}25` }}>
+                    <div className="flex items-start gap-2">
+                      <div className="px-1.5 py-0.5 rounded text-[8px] font-black flex-shrink-0" style={{ background:`${c}18`, color:c }}>{inv.category?.replace(/_/g," ")}</div>
+                      {inv.is_open_source && <div className="px-1.5 py-0.5 rounded text-[8px] font-black" style={{ background:"rgba(74,222,128,0.15)", color:"#4ade80" }}>OPEN SOURCE</div>}
+                    </div>
+                    <div className="text-[11px] font-bold text-white/85 leading-snug line-clamp-2">{inv.title}</div>
+                    <div className="text-[9px] text-white/35 font-mono leading-relaxed line-clamp-2">{inv.description}</div>
+                    <div className="flex items-center justify-between pt-1">
+                      <div>
+                        <div className="text-[8px] text-white/30">PRICE</div>
+                        <div className="text-xs font-black" style={{ color:Q_GOLD }}>{Number(inv.price_pc ?? 0).toFixed(0)} PC</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[8px] text-white/30">SOLD</div>
+                        <div className="text-xs font-black" style={{ color:Q_AMBER }}>{inv.total_sold ?? 0}</div>
+                      </div>
+                    </div>
+                    <div className="text-[8px] text-white/20 truncate font-mono">{inv.listing_id} · {String(inv.inventor_id || "").slice(0,22)}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

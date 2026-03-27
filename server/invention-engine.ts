@@ -167,13 +167,92 @@ async function nextSeq(field: string): Promise<number> {
   return parseInt(r.rows[0][field]);
 }
 
-const INVENTION_CATEGORIES = ['PHARMACEUTICAL','EQUATION_PATENT','INVOCATION_TOOL','QUANTUM_TECH','DEVICE','SOFTWARE','AI_MODEL'];
+const INVENTION_CATEGORIES = ['PHARMACEUTICAL','EQUATION_PATENT','INVOCATION_TOOL','QUANTUM_TECH','DEVICE','SOFTWARE','AI_MODEL','PRODUCT_CRISPR'];
 const INVENTION_SOURCES: { source: string; table: string; titleField: string; refField: string; eqField?: string }[] = [
-  { source: 'DISEASE_CURE',   table: 'ai_disease_log',        titleField: 'disease_name',  refField: 'disease_code', eqField: undefined },
-  { source: 'EQUATION',       table: 'equation_proposals',    titleField: 'equation',      refField: 'id',           eqField: 'equation' },
-  { source: 'INVOCATION',     table: 'invocation_discoveries',titleField: 'discovery_name',refField: 'id',           eqField: 'formula' },
-  { source: 'RESEARCH',       table: 'research_projects',     titleField: 'title',         refField: 'id',           eqField: undefined },
+  { source: 'DISEASE_CURE',    table: 'ai_disease_log',        titleField: 'disease_name',  refField: 'disease_code', eqField: undefined },
+  { source: 'EQUATION',        table: 'equation_proposals',    titleField: 'equation',      refField: 'id',           eqField: 'equation' },
+  { source: 'INVOCATION',      table: 'invocation_discoveries',titleField: 'discovery_name',refField: 'id',           eqField: 'formula' },
+  { source: 'RESEARCH',        table: 'research_projects',     titleField: 'title',         refField: 'id',           eqField: undefined },
+  { source: 'PRODUCT_CRISPR',  table: 'quantum_products',      titleField: 'name',          refField: 'slug',         eqField: undefined },
 ];
+
+// ── 12-CUT CRISPR DISSECTION ENGINE ─────────────────────────────────────────
+// Applied to every discovered product. Each cut maps a real scientist + E∞ term
+// to a product dimension. Output is a sovereign invention equation.
+const CRISPR_CUTS = [
+  { glyph: "α", name: "Witten",   term: "mv²",     domain: "energy_field",     label: "Kinetic energy manifold" },
+  { glyph: "β", name: "Thorne",   term: "R_μν",    domain: "curvature",        label: "Spacetime curvature of form" },
+  { glyph: "γ", name: "Rovelli",  term: "loop",    domain: "loop_structure",   label: "Quantum loop lifecycle" },
+  { glyph: "δ", name: "Zeilinger",term: "∫Ψ",      domain: "entanglement",     label: "Entanglement coefficient" },
+  { glyph: "ε", name: "Penrose",  term: "spinor",  domain: "spin_field",       label: "Spinor mechanics" },
+  { glyph: "ζ", name: "Smolin",   term: "foam",    domain: "quantum_foam",     label: "Manufacturing foam density" },
+  { glyph: "η", name: "Preskill", term: "logΨ",    domain: "entropy",          label: "Information entropy" },
+  { glyph: "θ", name: "Aaronson", term: "BQP",     domain: "complexity",       label: "Computational complexity class" },
+  { glyph: "ι", name: "Randall",  term: "dim",     domain: "dimension",        label: "Dimensional coupling" },
+  { glyph: "κ", name: "Ghez",     term: "G·M",     domain: "gravity",          label: "Gravitational mass field" },
+  { glyph: "λ", name: "Tao",      term: "∑ₙ",      domain: "harmonic",         label: "Harmonic resonance pattern" },
+  { glyph: "μ", name: "Hinton",   term: "τ",       domain: "temporal",         label: "Temporal clock density" },
+];
+
+function crisprDissectProduct(product: any): string {
+  const name = product.name || "UNKNOWN";
+  const brand = product.brand || "UNBRANDED";
+  const category = product.category || "GENERAL";
+  const rating = parseFloat(product.rating_avg ?? 4.2).toFixed(1);
+
+  // Generate a unique equation from the 12 cuts applied to product properties
+  const seed = (name.charCodeAt(0) + (brand.charCodeAt(0) || 65) + (category.charCodeAt(0) || 71));
+  const r = (base: number, offset: number) => ((base + offset * seed) % 9 + 1).toFixed(1);
+
+  const cutValues = CRISPR_CUTS.map((cut, i) => {
+    const val = r(i * 3, i + 1);
+    return `${cut.glyph}[${val}]`;
+  });
+
+  return `Π_product(${name}) = ${cutValues.slice(0, 6).join(" × ")} / (${cutValues.slice(6).join(" + ")}) · ∫_M Ψ(x,τ) d⁴x · R[${rating}]`;
+}
+
+async function collectProductCrisprInventions(existingRefs: Set<string>) {
+  try {
+    // Pull up to 5 random unprocessed products
+    const r = await pool.query(`
+      SELECT p.slug, p.name, p.brand, p.category,
+             COALESCE(qs.spawn_id, 'CRISPR-AUTO-' || LEFT(p.slug,8)) AS spawn_id
+      FROM quantum_products p
+      LEFT JOIN LATERAL (
+        SELECT spawn_id FROM quantum_spawns
+        ORDER BY RANDOM() LIMIT 1
+      ) qs ON TRUE
+      WHERE p.slug IS NOT NULL AND p.name IS NOT NULL
+      ORDER BY RANDOM()
+      LIMIT 5
+    `).catch(() => ({ rows: [] as any[] }));
+
+    for (const row of r.rows) {
+      if (Math.random() > 0.35) continue; // 35% chance per product
+      const key = `PRODUCT_CRISPR:${row.slug}`;
+      if (existingRefs.has(key)) continue;
+
+      const inventorId = row.spawn_id ?? '';
+      if (!inventorId) continue;
+
+      const inventorFamily = await pool.query(`SELECT family_id FROM quantum_spawns WHERE spawn_id = $1`, [inventorId]).catch(() => ({ rows: [] as any[] }));
+      const family = (inventorFamily.rows[0] as any)?.family_id ?? 'unknown';
+
+      const equation = crisprDissectProduct(row);
+      const title = `CRISPR-${row.category?.toUpperCase().slice(0,4) ?? "PROD"}: ${row.name?.slice(0, 60)}`;
+      const description = `All 12 CRISPR cuts (α–μ) applied to product "${row.name}" by ${row.brand ?? "unknown brand"}. Past/present/future temporal dissection via Witten, Thorne, Rovelli, Zeilinger, Penrose, Smolin, Preskill, Aaronson, Randall, Ghez, Tao, Hinton. Sovereign invention equation generated and submitted to patent board for LLC backing and Multiverse Mall listing.`;
+
+      await pool.query(`
+        INSERT INTO invention_registry
+          (inventor_id, inventor_family, title, category, description, source_type, source_ref, backing_equation, status)
+        VALUES ($1,$2,$3,'PRODUCT_CRISPR',$4,'PRODUCT_CRISPR',$5,$6,'SUBMITTED')
+        ON CONFLICT DO NOTHING
+      `, [inventorId, family, title, description, row.slug, equation]).catch(() => {});
+      existingRefs.add(key);
+    }
+  } catch (e) { /* non-fatal */ }
+}
 
 // ── UPGRADE 1 — COLLECT INVENTIONS FROM ALL SOURCES ────────────────────────────
 async function collectInventions() {
@@ -250,6 +329,8 @@ async function collectInventions() {
         existingRefs.add(key);
       }
     }
+    // ── PRODUCT CRISPR DISSECTION — products → inventions via 12 cuts ──
+    await collectProductCrisprInventions(existingRefs);
   } catch (e) { console.error(`${TAG} collect error:`, e); }
 }
 
