@@ -23,7 +23,7 @@ export default function CorporationsListPage() {
   const totalPubs = corporations.reduce((s, c) => s + c.totalPublications, 0);
 
   return (
-    <div data-testid="corporations-list-page" className="h-full overflow-y-auto bg-[#000810] text-white font-mono flex flex-col">
+    <div data-testid="corporations-list-page" className="h-full overflow-hidden bg-[#000810] text-white font-mono flex flex-col">
       {/* Header */}
       <div className="shrink-0 border-b border-indigo-900/40 bg-black/60 px-4 py-3 flex items-center justify-between">
         <Link href="/universe"><span className="text-indigo-400 hover:text-white text-xs cursor-pointer">← UNIVERSE</span></Link>
@@ -116,7 +116,7 @@ export default function CorporationsListPage() {
 
       {/* Hiring Board tab — full career engine for AI recruitment */}
       {tab === "hiring" && (
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col">
           <Suspense fallback={<div className="text-center py-20 text-white/30 text-xs">Loading AI Hiring Board...</div>}>
             <CareersPage />
           </Suspense>
