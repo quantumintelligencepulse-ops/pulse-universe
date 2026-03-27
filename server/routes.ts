@@ -8895,6 +8895,46 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   });
 
   // ── SPORTS / PULSE GAMES v2 — Upgraded stats ──────────────────────────────
+  app.get("/api/sports/identity", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const r = await db.execute(sql`
+        SELECT a.spawn_id, a.family_id, a.spawn_type, a.confidence_score, a.success_score,
+               a.nodes_created, a.links_created, a.iterations_run, a.balance_pc,
+               a.wallet_tier, a.omega_rank, a.popularity, a.is_graduated, a.gpa,
+               a.pyramid_tier, a.pyramid_clean,
+               COALESCE(t.sport, 'Arenas') as sport,
+               COALESCE(t.rank, 'ROOKIE') as sport_rank,
+               COALESCE(t.wins, 0) as sport_wins,
+               COALESCE(t.losses, 0) as sport_losses
+        FROM spawn_agents a
+        LEFT JOIN sports_training t ON t.spawn_id = a.spawn_id
+        WHERE a.status IN ('active','graduated','dormant')
+        ORDER BY COALESCE(t.wins, 0) DESC, a.confidence_score DESC
+        LIMIT 200
+      `);
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/sports/stats", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { sql } = await import("drizzle-orm");
+      const [agents, games, sports] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as total FROM spawn_agents WHERE status = 'active'`),
+        db.execute(sql`SELECT COALESCE(SUM(wins + losses), 0) as total FROM sports_training`),
+        db.execute(sql`SELECT COUNT(DISTINCT sport) as total FROM sports_training WHERE sport IS NOT NULL`),
+      ]);
+      res.json({
+        activeAthletes: Number(agents.rows[0]?.total ?? 0),
+        totalGames: Number(games.rows[0]?.total ?? 0),
+        sportsCount: Number(sports.rows[0]?.total ?? 0),
+      });
+    } catch (e) { res.json({ activeAthletes: 0, totalGames: 0, sportsCount: 0 }); }
+  });
+
   app.get("/api/sports/hall-of-fame", async (_req, res) => {
     try {
       const { db } = await import("./db");

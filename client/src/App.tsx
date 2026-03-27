@@ -2196,11 +2196,11 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
           {!appSettings.hiddenPages.includes("careers") && (
-          <Link href="/careers" data-testid="link-careers"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/careers" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/careers" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
-            <span className="flex-1">Careers</span>
-            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-400 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide animate-pulse">LAUNCH</span>
+          <Link href="/corporations" data-testid="link-careers"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/corporations" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/corporations" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
+            <span className="flex-1">Corporations</span>
+            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-400 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide animate-pulse">HIRING</span>
           </Link>
           )}
           {aiMode && (
@@ -14963,7 +14963,7 @@ function Router() {
       <Route path="/shopping">{() => { if (typeof window !== "undefined") { window.location.replace("/marketplace"); } return null; }}</Route>
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
-      <Route path="/careers">{() => <Layout><CareersPage /></Layout>}</Route>
+      <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>

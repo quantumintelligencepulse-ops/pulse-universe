@@ -487,31 +487,6 @@ export default function CareersPage() {
           )}
         </div>
 
-        {/* Live Job Board */}
-        <div className="rounded-2xl border border-blue-500/20 bg-blue-950/10 p-5 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            <div className="text-white font-black text-sm">🌐 Live Job Board — Every Major Hiring Platform</div>
-            <div className="ml-auto text-[10px] px-2 py-0.5 rounded-full border border-blue-500/30 text-blue-400 font-bold">CONTINUOUSLY UPDATED</div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-            {JOB_SITES.map(site => (
-              <a key={site.name} href={site.url("software engineer")} target="_blank" rel="noopener noreferrer"
-                data-testid={`board-${site.name.toLowerCase().replace(/\s/g,"-")}`}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/8 bg-white/5 hover:bg-blue-500/10 hover:border-blue-400/30 transition-all text-xs font-bold text-white/60 hover:text-white">
-                <span className="text-base leading-none">{site.logo}</span>
-                <div className="flex-1">
-                  <div className="font-bold">{site.name}</div>
-                </div>
-                <ExternalLink size={10} className="opacity-30" />
-              </a>
-            ))}
-          </div>
-          <div className="text-[10px] text-white/20 text-center">
-            Click any job title card below → get live search links for that exact role across all boards
-          </div>
-        </div>
-
         {/* Field tabs */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
           {FIELDS.map(f => (
