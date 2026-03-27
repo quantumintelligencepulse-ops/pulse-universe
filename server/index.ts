@@ -9,6 +9,7 @@ import { startHiveBrain } from "./hive-brain";
 import { startQuantumMediaEngine } from "./quantum-media-engine";
 import { startQuantumCareerEngine } from "./quantum-career-engine";
 import { startCareerCrisprEngine } from "./career-crispr-engine";
+import { startCareerJobFeed } from "./career-job-feed";
 import { startJobIngestionEngine } from "./job-ingestion-engine";
 import { startCareerCache } from "./career-cache";
 import { startPulseNetCache } from "./pulsenet-cache";
@@ -261,6 +262,7 @@ app.use((req, res, next) => {
         startQuantumMediaEngine().catch((e) => log(`MediaEngine start error: ${e}`));
         startQuantumCareerEngine().catch((e) => log(`CareerEngine start error: ${e}`));
         startCareerCrisprEngine();
+        startCareerJobFeed();
         startJobIngestionEngine();
         startHiveEconomy();
         startMarketplaceEngine();

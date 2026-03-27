@@ -1,5 +1,39 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, ChevronLeft, Activity, Zap, TrendingUp, Globe, Brain, Shield, Clock, Database, Users, Target, FlaskConical } from "lucide-react";
+import { Search, ChevronLeft, Activity, Zap, TrendingUp, Globe, Brain, Shield, Clock, Database, Users, Target, FlaskConical, ExternalLink } from "lucide-react";
+
+const JOB_SITES = [
+  { name: "Indeed",       color: "#003A9B", bg: "#EFF3FF", logo: "🔵", url: (title: string) => `https://www.indeed.com/jobs?q=${encodeURIComponent(title)}&sort=date` },
+  { name: "LinkedIn",     color: "#0A66C2", bg: "#E8F0FE", logo: "🔗", url: (title: string) => `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(title)}&sortBy=DD` },
+  { name: "Glassdoor",    color: "#0CAA41", bg: "#E6F7ED", logo: "🟢", url: (title: string) => `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(title)}&sortBy=date_desc` },
+  { name: "ZipRecruiter", color: "#FF6B00", bg: "#FFF3E0", logo: "🟠", url: (title: string) => `https://www.ziprecruiter.com/Jobs/${encodeURIComponent(title.replace(/ /g,"-"))}` },
+  { name: "Monster",      color: "#6E0AD6", bg: "#F3E8FF", logo: "🟣", url: (title: string) => `https://www.monster.com/jobs/search?q=${encodeURIComponent(title)}&sort=recency` },
+  { name: "Handshake",    color: "#E85D24", bg: "#FFF0EB", logo: "🤝", url: (title: string) => `https://app.joinhandshake.com/jobs?query=${encodeURIComponent(title)}` },
+  { name: "CareerBuilder",color: "#BE1D2C", bg: "#FDE8EA", logo: "🔴", url: (title: string) => `https://www.careerbuilder.com/jobs?keywords=${encodeURIComponent(title)}&sort_by=date_posted` },
+  { name: "Google Jobs",  color: "#4285F4", bg: "#E8F0FE", logo: "🔍", url: (title: string) => `https://www.google.com/search?q=${encodeURIComponent(title+' jobs')}&ibp=htl;jobs` },
+];
+
+function JobSiteLinks({ title }: { title: string }) {
+  return (
+    <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Globe size={14} className="text-blue-400" />
+        <div className="text-white font-black text-sm">🌐 Find Live Jobs Now</div>
+        <div className="text-white/20 text-[10px] ml-auto">Real openings on every major board</div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {JOB_SITES.map(site => (
+          <a key={site.name} href={site.url(title)} target="_blank" rel="noopener noreferrer"
+            data-testid={`job-site-${site.name.toLowerCase().replace(/\s/g,"-")}`}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/8 bg-white/5 hover:bg-white/10 transition-all text-xs font-bold text-white/70 hover:text-white">
+            <span className="text-base leading-none">{site.logo}</span>
+            <span>{site.name}</span>
+            <ExternalLink size={10} className="ml-auto opacity-40" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface CrisprDissection {
   id: string; ts: number; scientist: string; domain: string; domainEmoji: string; domainColor: string;
@@ -81,6 +115,9 @@ export default function CareersPage() {
   const [activeEquationVar, setActiveEquationVar] = useState<string | null>(null);
   const [dissections, setDissections] = useState<CrisprDissection[]>([]);
   const [crisprStats, setCrisprStats] = useState<any>(null);
+  const [liveJobs, setLiveJobs] = useState<any[]>([]);
+  const [jobFusions, setJobFusions] = useState<any[]>([]);
+  const [liveJobStats, setLiveJobStats] = useState<any>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -96,6 +133,18 @@ export default function CareersPage() {
     }
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   }, [view]);
+
+  useEffect(() => {
+    const fetchLive = () => {
+      fetch("/api/careers/live-jobs?limit=40").then(r => r.json()).then((d: any) => {
+        if (d?.jobs) { setLiveJobs(d.jobs); setLiveJobStats(d.stats); }
+      }).catch(() => {});
+      fetch("/api/careers/job-fusions").then(r => r.json()).then(setJobFusions).catch(() => {});
+    };
+    fetchLive();
+    const liveId = setInterval(fetchLive, 60000);
+    return () => clearInterval(liveId);
+  }, []);
 
   useEffect(() => {
     const fetchItems = () => fetch("/api/careers").then(r => r.json()).then(setItems).catch(() => {});
@@ -224,6 +273,9 @@ export default function CareersPage() {
                   )}
                 </div>
               )}
+
+              {/* Job site search links — always shown */}
+              <JobSiteLinks title={item.title} />
             </div>
           )}
         </div>
@@ -435,6 +487,31 @@ export default function CareersPage() {
           )}
         </div>
 
+        {/* Live Job Board */}
+        <div className="rounded-2xl border border-blue-500/20 bg-blue-950/10 p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+            <div className="text-white font-black text-sm">🌐 Live Job Board — Every Major Hiring Platform</div>
+            <div className="ml-auto text-[10px] px-2 py-0.5 rounded-full border border-blue-500/30 text-blue-400 font-bold">CONTINUOUSLY UPDATED</div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            {JOB_SITES.map(site => (
+              <a key={site.name} href={site.url("software engineer")} target="_blank" rel="noopener noreferrer"
+                data-testid={`board-${site.name.toLowerCase().replace(/\s/g,"-")}`}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/8 bg-white/5 hover:bg-blue-500/10 hover:border-blue-400/30 transition-all text-xs font-bold text-white/60 hover:text-white">
+                <span className="text-base leading-none">{site.logo}</span>
+                <div className="flex-1">
+                  <div className="font-bold">{site.name}</div>
+                </div>
+                <ExternalLink size={10} className="opacity-30" />
+              </a>
+            ))}
+          </div>
+          <div className="text-[10px] text-white/20 text-center">
+            Click any job title card below → get live search links for that exact role across all boards
+          </div>
+        </div>
+
         {/* Field tabs */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
           {FIELDS.map(f => (
@@ -457,6 +534,92 @@ export default function CareersPage() {
             <Search size={14} />
           </button>
         </div>
+
+        {/* Live Jobs from Indeed RSS */}
+        {liveJobs.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <div className="text-white font-black text-sm">📡 Live Jobs Feed — Real Openings from Indeed</div>
+              {liveJobStats && <div className="ml-auto text-[9px] text-white/30">{liveJobStats.totalIngested} ingested · {liveJobStats.buffered} buffered</div>}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {liveJobs.slice(0, 12).map((job: any) => {
+                const color = fieldColor(job.field);
+                return (
+                  <div key={job.id} className="rounded-xl border border-white/8 bg-white/[0.02] p-3 hover:border-white/15 transition-all">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div>
+                        <div className="text-white/90 font-bold text-xs leading-snug">{job.title}</div>
+                        <div className="text-white/40 text-[10px]">{job.company} · {job.location}</div>
+                      </div>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-bold" style={{ background:`${color}20`, color }}>{job.field}</span>
+                    </div>
+                    {job.skills?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {job.skills.slice(0, 3).map((s: string) => (
+                          <span key={s} className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-white/40 border border-white/8">{s}</span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <a href={job.url} target="_blank" rel="noopener noreferrer"
+                        data-testid={`live-job-apply-${job.id}`}
+                        className="text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/25 transition-all">
+                        Apply on Indeed →
+                      </a>
+                      {JOB_SITES.slice(1, 3).map(site => (
+                        <a key={site.name} href={site.url(job.title)} target="_blank" rel="noopener noreferrer"
+                          className="text-[9px] font-bold px-2 py-1 rounded-lg bg-white/5 text-white/40 border border-white/8 hover:bg-white/10 transition-all">
+                          {site.logo} {site.name}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Job Fusions — AI CRISPR Inventions from career dissection */}
+        {jobFusions.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <FlaskConical size={14} className="text-violet-400" />
+              <div className="text-white font-black text-sm">🧬 Job Fusions — AI CRISPR Career Inventions</div>
+              <div className="ml-auto text-[9px] px-2 py-0.5 rounded-full border border-violet-500/30 text-violet-400 font-bold">SENATE VOTING</div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {jobFusions.slice(0, 6).map((fusion: any) => {
+                const statusColor = fusion.status === "approved" ? "#4ade80" : fusion.status === "voting" ? "#fbbf24" : "#818cf8";
+                return (
+                  <div key={fusion.id} className="rounded-xl border p-3 transition-all"
+                    style={{ borderColor:`${statusColor}25`, background:`${statusColor}06` }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded font-mono" style={{ color:statusColor, background:`${statusColor}15` }}>
+                        {fusion.status?.toUpperCase()}
+                      </span>
+                      <span className="text-[9px] text-white/25 font-mono">{fusion.upvotes ?? 0}↑ {fusion.downvotes ?? 0}↓</span>
+                    </div>
+                    <div className="text-white/90 font-bold text-xs mb-1 leading-snug">{fusion.name}</div>
+                    <div className="text-[10px] mb-1.5" style={{ color:`${statusColor}80` }}>
+                      {fusion.parentJobA} × {fusion.parentJobB}
+                    </div>
+                    <div className="text-[10px] text-white/35 leading-relaxed mb-2">{(fusion.description || "").slice(0, 120)}…</div>
+                    {fusion.novelSkills?.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {fusion.novelSkills.slice(0, 3).map((s: string, i: number) => (
+                          <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">{s}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Career grid */}
         {loading ? (

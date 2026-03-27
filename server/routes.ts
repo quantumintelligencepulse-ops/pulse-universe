@@ -6759,6 +6759,25 @@ ${(pubs.rows as any[]).map(p => {
     if (isCacheReady()) return res.json(getCareersByFieldFromCache(field, 50));
     res.json(await storage.getCareersByField(field, 50).catch(() => []));
   });
+
+  app.get("/api/careers/live-jobs", async (req, res) => {
+    try {
+      const { getLiveJobs, getCareerFeedStats } = await import("./career-job-feed");
+      const field = String(req.query.field || "");
+      const limit = Math.min(parseInt(String(req.query.limit || "50")), 200);
+      const jobs = getLiveJobs(limit, field || undefined);
+      const stats = getCareerFeedStats();
+      res.json({ jobs, stats });
+    } catch (e) { res.json({ jobs: [], stats: { running: false, totalIngested: 0, buffered: 0, fusions: 0 } }); }
+  });
+
+  app.get("/api/careers/job-fusions", async (_req, res) => {
+    try {
+      const { getJobFusions } = await import("./career-job-feed");
+      res.json(getJobFusions(50));
+    } catch (e) { res.json([]); }
+  });
+
   app.get("/api/careers/:slug", async (req, res) => {
     const item = await storage.getCareer(req.params.slug).catch(() => null);
     if (!item) return res.status(404).json({ message: "Not found" });
@@ -8269,11 +8288,15 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
   });
 
   // ── DISCOVERED DISEASES ROUTES ────────────────────────────────────────────
-  app.get("/api/hospital/discovered-diseases", async (_req, res) => {
+  app.get("/api/hospital/discovered-diseases", async (req, res) => {
     try {
       const { discoveredDiseases } = await import("../shared/schema");
       const { desc } = await import("drizzle-orm");
-      const diseases = await db.select().from(discoveredDiseases).orderBy(desc(discoveredDiseases.discoveredAt));
+      const limit = Math.min(parseInt((req.query.limit as string) || "120", 10), 500);
+      const offset = parseInt((req.query.offset as string) || "0", 10);
+      const diseases = await db.select().from(discoveredDiseases)
+        .orderBy(desc(discoveredDiseases.discoveredAt))
+        .limit(limit).offset(offset);
       res.json(diseases);
     } catch (e) { res.json([]); }
   });

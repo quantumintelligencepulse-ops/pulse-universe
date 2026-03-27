@@ -105,6 +105,8 @@ export default function BioGenomeMedicalPage() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [selectedDiseaseCode, setSelectedDiseaseCode] = useState<string | null>(null);
   const [docCategoryFilter, setDocCategoryFilter] = useState<string>("ALL");
+  const [discPage, setDiscPage] = useState(1);
+  const DISC_PAGE_SIZE = 60;
   const qc = useQueryClient();
 
   // ── Data queries ──────────────────────────────────────────────────────────
@@ -180,7 +182,7 @@ export default function BioGenomeMedicalPage() {
     { id:"population",  label:"POPULATION OBS",  icon:<Globe className="w-3 h-3"/>,        color:C.teal,   count:null },
     { id:"dissection",  label:"DISSECTIONS",     icon:<Microscope className="w-3 h-3"/>,   color:C.violet, count:dissections.length },
     { id:"equations",   label:"EQUATIONS",       icon:<Vote className="w-3 h-3"/>,         color:C.amber,  count:eqIntegrated },
-    { id:"diseases",    label:"DISEASE CATALOG", icon:<BookOpen className="w-3 h-3"/>,     color:C.blue,   count:diseases.length },
+    { id:"diseases",    label:"DISEASE CATALOG", icon:<BookOpen className="w-3 h-3"/>,     color:C.blue,   count:(fullStats?.knownDiseases ?? (diseases.length + (discovered as any[]).length)) },
     { id:"doctors",     label:"DOCTORS",         icon:<Stethoscope className="w-3 h-3"/>,  color:C.cyan,   count:doctors.length },
     { id:"guardian",    label:"GUARDIAN",        icon:<Shield className="w-3 h-3"/>,       color:C.gold,   count:citations.length },
   ];
@@ -916,9 +918,9 @@ export default function BioGenomeMedicalPage() {
 
             {discovered.length > 0 && (
               <div className="mt-2">
-                <SectionHead label="CRISPR-Discovered Diseases — Novel Spectral Patterns" color={C.violet} count={discovered.length} />
+                <SectionHead label={`CRISPR-Discovered Diseases — Novel Spectral Patterns (${(fullStats?.discoveredDiseases ?? discovered.length).toLocaleString()} total)`} color={C.violet} count={fullStats?.discoveredDiseases ?? discovered.length} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {(discovered as any[]).slice(0,100).map((d: any, i: number) => (
+                  {(discovered as any[]).slice(0, discPage * DISC_PAGE_SIZE).map((d: any, i: number) => (
                     <button key={i} data-testid={`disc-disease-card-${d.diseaseCode}`}
                       onClick={() => setSelectedDiseaseCode(d.diseaseCode)}
                       className="text-left rounded-xl p-3 transition-all hover:scale-[1.01] group"
@@ -946,6 +948,20 @@ export default function BioGenomeMedicalPage() {
                     </button>
                   ))}
                 </div>
+                {discPage * DISC_PAGE_SIZE < discovered.length && (
+                  <button
+                    data-testid="btn-load-more-diseases"
+                    onClick={() => setDiscPage(p => p + 1)}
+                    className="w-full mt-4 py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.01]"
+                    style={{ background:`${C.violet}10`, border:`1px solid ${C.violet}25`, color:C.violet }}>
+                    Load More Diseases — {(discovered.length - discPage * DISC_PAGE_SIZE).toLocaleString()} remaining
+                  </button>
+                )}
+                {discPage * DISC_PAGE_SIZE >= discovered.length && discovered.length > DISC_PAGE_SIZE && (
+                  <div className="text-center mt-3 text-[10px] font-mono" style={{ color:`${C.violet}50` }}>
+                    ✓ All {discovered.length.toLocaleString()} CRISPR-discovered diseases loaded
+                  </div>
+                )}
               </div>
             )}
           </div>
