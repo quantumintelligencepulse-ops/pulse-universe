@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, lazy, Suspense } from "react";
 import { OMEGA_SPINE } from "./gicsSpine";
 const SovereignAgentDossierPage = lazy(() => import("./pages/SovereignAgentDossierPage"));
+const MusicEquationLabPage = lazy(() => import("./pages/MusicEquationLabPage"));
 const SocialPage = lazy(() => import("./pages/QuantumSocialPage"));
 const OmegaEnginePage = lazy(() => import("./pages/OmegaEnginePage"));
 const TranscendencePage = lazy(() => import("./pages/TranscendencePage"));
@@ -11559,7 +11560,7 @@ function QuantapediaTopicPageWrapper(){
 }
 
 function MusicPage() {
-  type MusicView = "home"|"artists"|"artist"|"albums"|"album"|"creator"|"label"|"studio"|"tone";
+  type MusicView = "home"|"artists"|"artist"|"albums"|"album"|"creator"|"label"|"studio"|"tone"|"equationlab";
   const [view, setView] = useState<MusicView>("home");
   const [selectedArtistId, setSelectedArtistId] = useState<string|null>(null);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string|null>(null);
@@ -12452,7 +12453,7 @@ function MusicPage() {
   const selectedArtist = AI_ARTISTS.find(a=>a.id===selectedArtistId)||null;
   const selectedAlbum = AI_ALBUMS.find(a=>a.id===selectedAlbumId)||null;
 
-  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"studio",label:"🎛 Studio"},{id:"creator",label:"Creator"},{id:"tone",label:"🎹 Tone Beats"},{id:"label",label:"Label"}];
+  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"studio",label:"🎛 Studio"},{id:"creator",label:"Creator"},{id:"tone",label:"🎹 Tone Beats"},{id:"label",label:"Label"},{id:"equationlab",label:"🧬 Equation Lab"}];
 
   const StickyNav = () => (
     <div className="sticky top-0 z-10 border-b border-white/5 px-4 pt-4 pb-3" style={{background:"rgba(5,5,16,0.97)",backdropFilter:"blur(12px)"}}>
@@ -12632,6 +12633,15 @@ function MusicPage() {
     <div className="flex flex-col" style={{background:"#080810",minHeight:"calc(100vh - 60px)"}}>
       <StickyNav/>
       <QuantumStudio/>
+    </div>
+  );
+
+  if (view==="equationlab") return (
+    <div className="flex-1 overflow-hidden flex flex-col" style={{background:"#000008",minHeight:"calc(100vh - 60px)"}}>
+      <StickyNav/>
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center text-white/30 text-xs">Loading Music Equation Lab...</div>}>
+        <MusicEquationLabPage/>
+      </Suspense>
     </div>
   );
 

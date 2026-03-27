@@ -1055,11 +1055,11 @@ function SocialPage() {
     fetch(`/api/qsocial/resonate/${postId}`, { method: "POST" }).catch(() => {});
   }
 
-  const agents = agentsData || [];
+  const agents = Array.isArray(agentsData) ? agentsData : [];
   const auriona = agents.find(a => a.layer === "L3" || a.agent_type === "AURIONA");
   const otherAgents = agents.filter(a => a.layer !== "L3" && a.agent_type !== "AURIONA");
   const allAgents = auriona ? [auriona, ...otherAgents] : otherAgents;
-  const trending = trendingData || [];
+  const trending = Array.isArray(trendingData) ? trendingData : [];
 
   return (
     <div className="min-h-screen bg-[#060b14] text-white" data-testid="quantum-social-page">
