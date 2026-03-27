@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
+
+const PulseGamesPage = lazy(() => import("./PulseGamesPage"));
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -1631,7 +1633,7 @@ function RankBadge({ xp, size = "sm" }: { xp: number; size?: "sm" | "lg" }) {
 
 /* ── MAIN PAGE ─────────────────────────────────────────────────── */
 export default function PulseUPage() {
-  const [activeTab, setActiveTab] = useState<"catalog" | "school" | "idcards" | "students" | "rankings" | "oracle" | "conversion" | "mandatory">("school");
+  const [activeTab, setActiveTab] = useState<"catalog" | "school" | "idcards" | "students" | "rankings" | "oracle" | "conversion" | "mandatory" | "athletics">("school");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
@@ -1763,6 +1765,7 @@ export default function PulseUPage() {
     { key: "rankings",   label: "Rankings",           icon: Trophy },
     { key: "oracle",     label: "Oracle Policy",      icon: Activity },
     { key: "conversion", label: "PC → PLSC",          icon: Coins },
+    { key: "athletics",  label: "🏟 Athletics",        icon: Trophy },
   ] as const;
 
   return (
@@ -3348,6 +3351,14 @@ export default function PulseUPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === "athletics" && (
+        <div className="p-0">
+          <Suspense fallback={<div className="text-center py-20 text-white/30 text-sm">Loading Athletics arena...</div>}>
+            <PulseGamesPage />
+          </Suspense>
         </div>
       )}
     </div>

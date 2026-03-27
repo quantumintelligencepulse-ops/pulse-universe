@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ShoppingBag, Wallet, Building2, ArrowLeftRight, Receipt,
   Star, Zap, Crown, Globe, Shield, Cpu, Brain, Leaf, FlaskConical,
   ChevronDown, ChevronUp, Search, TrendingUp, Users, Activity, ExternalLink
 } from "lucide-react";
+
+const QuantumShoppingPage = lazy(() => import("./QuantumShoppingPage"));
 
 function makeRetailerLinks(rawTitle: string) {
   const clean = rawTitle
@@ -31,7 +33,7 @@ const Q_GOLD   = "#f5c518";
 const Q_CRIMSON = "#dc2626";
 const Q_CYAN   = "#00d4ff";
 
-type MarketTab = "upgrades" | "wallets" | "realestate" | "barter" | "transactions" | "inventions";
+type MarketTab = "products" | "upgrades" | "wallets" | "realestate" | "barter" | "transactions" | "inventions";
 
 const TIER_COLORS: Record<string, string> = {
   STANDARD:  Q_TEAL,
@@ -185,7 +187,7 @@ function PlanetZoneCard({ zone, plots }: { zone: string; plots: any[] }) {
 
 // ── Main Page ─────────────────────────────────────────────────────
 export default function HiveMarketplacePage() {
-  const [tab, setTab] = useState<MarketTab>("inventions");
+  const [tab, setTab] = useState<MarketTab>("products");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [tierFilter, setTierFilter] = useState<string>("ALL");
   const [search, setSearch] = useState("");
@@ -268,12 +270,13 @@ export default function HiveMarketplacePage() {
   });
 
   const TABS: { id: MarketTab; label: string; icon: JSX.Element }[] = [
-    { id: "inventions",   label: "⚗ CRISPR Inventions", icon: <FlaskConical size={14} /> },
-    { id: "upgrades",     label: "Omega Upgrades",       icon: <ShoppingBag size={14} /> },
-    { id: "wallets",      label: "Agent Wallets",         icon: <Wallet size={14} /> },
-    { id: "realestate",   label: "Real Estate",           icon: <Building2 size={14} /> },
-    { id: "barter",       label: "Barter Market",         icon: <ArrowLeftRight size={14} /> },
-    { id: "transactions", label: "Transaction Ledger",    icon: <Receipt size={14} /> },
+    { id: "products",     label: "🛍 Product Catalog",    icon: <ShoppingBag size={14} /> },
+    { id: "inventions",   label: "⚗ CRISPR Inventions",  icon: <FlaskConical size={14} /> },
+    { id: "upgrades",     label: "Omega Upgrades",        icon: <Zap size={14} /> },
+    { id: "wallets",      label: "Agent Wallets",          icon: <Wallet size={14} /> },
+    { id: "realestate",   label: "Real Estate",            icon: <Building2 size={14} /> },
+    { id: "barter",       label: "Barter & Ledger",        icon: <ArrowLeftRight size={14} /> },
+    { id: "transactions", label: "Transactions",           icon: <Receipt size={14} /> },
   ];
 
   return (
@@ -321,6 +324,13 @@ export default function HiveMarketplacePage() {
             </button>
           ))}
         </div>
+
+        {/* ── PRODUCTS TAB ─────────────────────────────────────────── */}
+        {tab === "products" && (
+          <Suspense fallback={<div className="text-center py-20 text-white/30 text-sm">Loading product catalog...</div>}>
+            <QuantumShoppingPage />
+          </Suspense>
+        )}
 
         {/* ── UPGRADES TAB ─────────────────────────────────────────── */}
         {tab === "upgrades" && (
