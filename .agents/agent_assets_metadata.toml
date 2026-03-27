@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "jB59htAzO8w3wmXxmUfpa"
+uri = "file://myaigpt-full.zip"
+type = "unspecified"
+title = "My Ai GPT — Full Project (18.1 MB)"
