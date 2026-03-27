@@ -3,8 +3,25 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ShoppingBag, Wallet, Building2, ArrowLeftRight, Receipt,
   Star, Zap, Crown, Globe, Shield, Cpu, Brain, Leaf, FlaskConical,
-  ChevronDown, ChevronUp, Search, TrendingUp, Users, Activity
+  ChevronDown, ChevronUp, Search, TrendingUp, Users, Activity, ExternalLink
 } from "lucide-react";
+
+function makeRetailerLinks(rawTitle: string) {
+  const clean = rawTitle
+    .replace(/^CRISPR-[A-Z]+:\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+  const q = encodeURIComponent(clean);
+  return {
+    amazon:  { label: "Amazon",       url: `https://www.amazon.com/s?k=${q}&tag=billyodelltuc-20`,                                                                         color: "#ff9900" },
+    walmart: { label: "Walmart",      url: `https://www.walmart.com/search?q=${q}`,                                                                                        color: "#0071dc" },
+    ebay:    { label: "eBay",         url: `https://www.ebay.com/sch/i.html?_nkw=${q}&mkcid=1&mkrid=711-53200-19255-0&campid=pu-9732&toolid=10001&mkevt=1`,               color: "#e53238" },
+    target:  { label: "Target",       url: `https://www.target.com/s?searchTerm=${q}`,                                                                                     color: "#cc0000" },
+    bestbuy: { label: "Best Buy",     url: `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`,                                                                          color: "#0046be" },
+    google:  { label: "Google Shop",  url: `https://shopping.google.com/search?q=${q}`,                                                                                    color: "#4285f4" },
+  };
+}
 
 // ── Constants ────────────────────────────────────────────────────
 const Q_TEAL   = "#00FFD1";
@@ -584,6 +601,27 @@ export default function HiveMarketplacePage() {
                       <div className="text-right">
                         <div className="text-[8px] text-white/30">SOLD</div>
                         <div className="text-xs font-black" style={{ color:Q_AMBER }}>{inv.total_sold ?? 0}</div>
+                      </div>
+                    </div>
+                    <div className="border-t border-white/10 pt-2 mt-1">
+                      <div className="text-[8px] text-white/30 mb-1.5 flex items-center gap-1">
+                        <ExternalLink size={8} />FIND ON INTERNET
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.values(makeRetailerLinks(inv.title || "")).map(({ label, url, color }) => (
+                          <a
+                            key={label}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`retailer-link-${label.replace(/\s+/g,"-").toLowerCase()}-${inv.listing_id}`}
+                            className="text-[8px] font-bold px-1.5 py-0.5 rounded transition-opacity hover:opacity-80"
+                            style={{ background: color + "22", color, border: `1px solid ${color}50` }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {label}
+                          </a>
+                        ))}
                       </div>
                     </div>
                     <div className="text-[8px] text-white/20 truncate font-mono">{inv.listing_id} · {String(inv.inventor_id || "").slice(0,22)}</div>
