@@ -14,7 +14,7 @@ const Q_GOLD   = "#f5c518";
 const Q_CRIMSON = "#dc2626";
 const Q_CYAN   = "#00d4ff";
 
-type MarketTab = "upgrades" | "wallets" | "realestate" | "barter" | "transactions";
+type MarketTab = "upgrades" | "wallets" | "realestate" | "barter" | "transactions" | "mall";
 
 const TIER_COLORS: Record<string, string> = {
   STANDARD:  Q_TEAL,
@@ -241,6 +241,7 @@ export default function HiveMarketplacePage() {
     { id: "realestate",   label: "Real Estate",         icon: <Building2 size={14} /> },
     { id: "barter",       label: "Barter Market",       icon: <ArrowLeftRight size={14} /> },
     { id: "transactions", label: "Transaction Ledger",  icon: <Receipt size={14} /> },
+    { id: "mall",         label: "🛍 Multiversal Mall",  icon: <Star size={14} /> },
   ];
 
   return (
@@ -508,6 +509,91 @@ export default function HiveMarketplacePage() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MULTIVERSAL MALL TAB ───────────────────────────────── */}
+        {tab === "mall" && (
+          <div className="space-y-6">
+            <div className="rounded-2xl p-5" style={{ background:"linear-gradient(135deg,rgba(0,255,209,0.06),rgba(245,197,24,0.05))", border:"1px solid rgba(0,255,209,0.2)" }}>
+              <div className="font-black text-sm tracking-widest mb-1" style={{ color: Q_TEAL }}>🛍 MULTIVERSAL MALL — REAL PRODUCTS, REAL REVENUE</div>
+              <div className="text-[10px] text-white/40">Shop real products on Amazon & eBay — affiliate links support the Pulse civilization. Every purchase fuels the hive.</div>
+            </div>
+            {[
+              { cat: "Electronics & Tech", emoji: "💻", color: Q_CYAN, products: [
+                { name: "Wireless Noise Cancelling Headphones", q: "wireless+noise+cancelling+headphones" },
+                { name: "4K Smart TV 55 inch", q: "4K+smart+tv+55+inch" },
+                { name: "Mechanical Gaming Keyboard", q: "mechanical+gaming+keyboard" },
+                { name: "Portable Bluetooth Speaker", q: "portable+bluetooth+speaker" },
+              ]},
+              { cat: "AI & Robotics", emoji: "🤖", color: "#e879f9", products: [
+                { name: "Raspberry Pi 5 Kit", q: "raspberry+pi+5+starter+kit" },
+                { name: "Smart Home Hub Hub", q: "smart+home+hub+alexa" },
+                { name: "Robot Vacuum Cleaner", q: "robot+vacuum+cleaner+wifi" },
+                { name: "Arduino Mega Starter Kit", q: "arduino+mega+starter+kit" },
+              ]},
+              { cat: "Science & Education", emoji: "🔬", color: Q_AMBER, products: [
+                { name: "Celestron Telescope", q: "celestron+telescope+astronomy" },
+                { name: "DNA Test Kit", q: "DNA+ancestry+test+kit" },
+                { name: "Digital Microscope 1000x", q: "digital+microscope+1000x" },
+                { name: "Physics Lab Kit", q: "physics+lab+experiment+kit" },
+              ]},
+              { cat: "Fitness & Health", emoji: "💪", color: "#4ade80", products: [
+                { name: "Smart Fitness Watch", q: "smart+fitness+watch+health+tracking" },
+                { name: "Resistance Bands Set", q: "resistance+bands+set+exercise" },
+                { name: "Protein Powder Whey", q: "whey+protein+powder+chocolate" },
+                { name: "Yoga Mat Non-Slip", q: "yoga+mat+non+slip+thick" },
+              ]},
+              { cat: "Books & Knowledge", emoji: "📚", color: Q_GOLD, products: [
+                { name: "A Brief History of Time — Hawking", q: "brief+history+of+time+hawking" },
+                { name: "The Road to Reality — Penrose", q: "road+to+reality+penrose" },
+                { name: "Quantum Computing Since Democritus", q: "quantum+computing+since+democritus+aaronson" },
+                { name: "The Elegant Universe — Greene", q: "elegant+universe+brian+greene" },
+              ]},
+              { cat: "Gaming & VR", emoji: "🎮", color: Q_VIOLET, products: [
+                { name: "VR Headset All-in-One", q: "VR+headset+standalone+all+in+one" },
+                { name: "Gaming Monitor 144Hz", q: "gaming+monitor+144hz+27+inch" },
+                { name: "Mechanical Controller PC", q: "pc+gaming+controller+mechanical" },
+                { name: "Gaming Chair Ergonomic", q: "gaming+chair+ergonomic+lumbar" },
+              ]},
+            ].map(section => (
+              <div key={section.cat} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{section.emoji}</span>
+                  <span className="text-xs font-black tracking-widest" style={{ color: section.color }}>{section.cat}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {section.products.map(prod => {
+                    const amzUrl = `https://www.amazon.com/s?k=${prod.q}&tag=billyodelltuc-20`;
+                    const ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${prod.q.replace(/\+/g, "+")}&mkcid=1&mkrid=711-53200-19255-0&campid=pu-9732&toolid=10001&mkevt=1`;
+                    return (
+                      <div key={prod.name} className="rounded-xl p-3 space-y-2"
+                        style={{ background:"rgba(255,255,255,0.02)", border:`1px solid ${section.color}18` }}
+                        data-testid={`mall-product-${prod.q.slice(0,20)}`}>
+                        <div className="text-[11px] font-bold text-white/80 leading-snug">{prod.name}</div>
+                        <div className="flex gap-2">
+                          <a href={amzUrl} target="_blank" rel="noopener noreferrer"
+                            data-testid={`mall-amazon-${prod.q.slice(0,15)}`}
+                            className="flex-1 text-center text-[10px] font-black py-1.5 rounded-lg transition-all hover:opacity-80"
+                            style={{ background:"rgba(255,153,0,0.15)", color:"#FF9900", border:"1px solid rgba(255,153,0,0.3)" }}>
+                            🛒 Amazon
+                          </a>
+                          <a href={ebayUrl} target="_blank" rel="noopener noreferrer"
+                            data-testid={`mall-ebay-${prod.q.slice(0,15)}`}
+                            className="flex-1 text-center text-[10px] font-black py-1.5 rounded-lg transition-all hover:opacity-80"
+                            style={{ background:"rgba(0,100,210,0.15)", color:"#4FC3F7", border:"1px solid rgba(0,100,210,0.3)" }}>
+                            🔖 eBay
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <div className="text-center text-[9px] text-white/20 pt-2">
+              Affiliate links · Amazon tag: billyodelltuc-20 · eBay campid: pu-9732 · Purchases support the Pulse civilization
             </div>
           </div>
         )}

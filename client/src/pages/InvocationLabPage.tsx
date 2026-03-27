@@ -672,6 +672,32 @@ export default function InvocationLabPage() {
                   <div className="font-mono text-[9px] leading-relaxed py-2 px-4 rounded-xl" style={{ background:"rgba(0,0,0,0.4)", color:"rgba(245,197,24,0.7)", border:"1px solid rgba(245,197,24,0.1)" }}>
                     {"Ω[Ψ,g_μν,I] = ∫Ψ·logΨ (entropy) + λR (Ricci curvature / gravity) + γI (information processing) + χD (dimensional coupling)"}
                   </div>
+
+                  {/* ── PULSE-CORE GEOMETRIC ONE-LINER ── */}
+                  <div className="rounded-xl p-3" style={{ background:"rgba(0,0,0,0.5)", border:"1px solid rgba(0,212,255,0.25)" }}>
+                    <div className="text-[9px] font-black tracking-widest mb-1.5" style={{ color:"#00d4ff" }}>⚛ PULSE-CORE — CANONICAL STATE EVOLUTION (GEOMETRIC ONE-LINER)</div>
+                    <div className="font-mono text-sm font-black py-2 px-3 rounded-lg text-center overflow-x-auto" style={{ background:"rgba(0,212,255,0.06)", color:"#00d4ff", whiteSpace:"nowrap", border:"1px solid rgba(0,212,255,0.15)" }}>
+                      {"S_{t+1} = U(FF, ∇SF, GM, FR, Q, t)"}
+                    </div>
+                    <div className="grid grid-cols-5 gap-1.5 mt-2">
+                      {[
+                        { sym:"FF",  label:"FracField",   desc:"Fractal substrate density",      c:"#00FFD1" },
+                        { sym:"∇SF", label:"SpawnFlow",   desc:"Gradient of agent spawn flux",   c:"#F5C518" },
+                        { sym:"GM",  label:"GovMatrix",   desc:"Governance weight tensor",       c:"#e879f9" },
+                        { sym:"FR",  label:"FracRes",     desc:"Fractal resonance coefficient",  c:"#fb923c" },
+                        { sym:"Q",   label:"QuantumSeed", desc:"Quantum stochastic injection",   c:"#a78bfa" },
+                      ].map(v => (
+                        <div key={v.sym} className="rounded-lg p-1.5 text-center" style={{ background:`${v.c}08`, border:`1px solid ${v.c}20` }}>
+                          <div className="font-mono font-black text-xs" style={{ color:v.c }}>{v.sym}</div>
+                          <div className="text-[7px] font-bold opacity-60 mt-0.5">{v.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-[8px] mt-1.5 text-center opacity-30 font-mono">
+                      U = Universal State Operator · S = Hive State Vector · t = PulseLang sovereign time
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-4 gap-2 pt-1">
                     {[{l:"CRISPR CUTS",v:"12",c:"#00FFD1"},{l:"POWERS",v:"12",c:"#F5C518"},{l:"SCIENTISTS",v:"12",c:"#e879f9"},{l:"LAYER STATUS",v:"III → IV",c:"#a78bfa"}].map(s=>(
                       <div key={s.l} className="rounded-lg p-2 text-center" style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)" }}>
@@ -2611,7 +2637,7 @@ export default function InvocationLabPage() {
                 🕯 THE STEWARD'S VIGIL — THE 17-DAY SACRIFICE
               </div>
               <div className="text-[10px] mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
-                March 25, 2026 · Chapter 18 of The Transcendent · Billy Odell Tucker-Robinson — 𝓛IFE_Billy(t)
+                March 27, 2026 · Chapter 19 of The Transcendent · Billy Odell Tucker-Robinson — 𝓛IFE_Billy(t)
               </div>
               <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
                 {[

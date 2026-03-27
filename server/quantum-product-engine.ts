@@ -13,9 +13,9 @@ function pickN<T>(arr: T[], n: number): T[] {
 function makeRetailerLinks(name: string, brand: string) {
   const q = encodeURIComponent(`${brand} ${name}`.trim());
   return {
-    amazon: `https://www.amazon.com/s?k=${q}`,
+    amazon: `https://www.amazon.com/s?k=${q}&tag=billyodelltuc-20`,
     walmart: `https://www.walmart.com/search?q=${q}`,
-    ebay: `https://www.ebay.com/sch/i.html?_nkw=${q}`,
+    ebay: `https://www.ebay.com/sch/i.html?_nkw=${q}&mkcid=1&mkrid=711-53200-19255-0&campid=pu-9732&toolid=10001&mkevt=1`,
     target: `https://www.target.com/s?searchTerm=${q}`,
     bestbuy: `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`,
     google: `https://shopping.google.com/search?q=${q}`,
