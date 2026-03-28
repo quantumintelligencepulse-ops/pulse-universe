@@ -7741,13 +7741,14 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       const cached = cacheGet(cacheKey);
       if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
 
-      let query = `SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, created_at FROM quantum_spawns WHERE 1=1`;
+      const selectCols = `spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, pulse_credits, self_awareness_log, last_cycle_at, created_at`;
+      let query = `SELECT ${selectCols} FROM quantum_spawns WHERE 1=1`;
       const params: any[] = [];
       if (search) { params.push(`%${search}%`); query += ` AND (task_description ILIKE $${params.length} OR spawn_type ILIKE $${params.length})`; }
       if (spawnType) { params.push(spawnType); query += ` AND spawn_type = $${params.length}`; }
       if (domain) { params.push(`%${domain}%`); query += ` AND domain_focus::text ILIKE $${params.length}`; }
       if (statusFilter) { params.push(statusFilter); query += ` AND status = $${params.length}`; }
-      const countQ = await pool.query(query.replace("SELECT spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, created_at", "SELECT COUNT(*) as total"), params);
+      const countQ = await pool.query(query.replace(`SELECT ${selectCols}`, "SELECT COUNT(*) as total"), params);
       params.push(limit, offset);
       query += ` ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
       const result = await pool.query(query, params);
@@ -11064,7 +11065,14 @@ Return as structured script with section labels.`;
         const sizeR = await pool.query(`SELECT pg_database_size(current_database()) as sz`);
         dbSizeBytes = parseInt(sizeR.rows[0]?.sz ?? "0", 10);
       } catch {}
-      res.json({ tables: counts, totalRows, dbSizeBytes, dbSizeMB: Math.round(dbSizeBytes / 1024 / 1024 * 10) / 10 });
+      const tableArray = Object.entries(counts)
+        .filter(([, v]) => v >= 0)
+        .map(([table, rows]) => ({ table, rows }))
+        .sort((a, b) => b.rows - a.rows);
+      const maxRows = tableArray.reduce((m, t) => Math.max(m, t.rows), 1);
+      const dbSizeMB = Math.round(dbSizeBytes / 1024 / 1024 * 10) / 10;
+      const dbSize = dbSizeMB >= 1 ? `${dbSizeMB} MB` : `${Math.round(dbSizeBytes / 1024)} KB`;
+      res.json({ tables: tableArray, maxRows, totalRows, dbSizeBytes, dbSizeMB, dbSize });
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }

@@ -190,8 +190,9 @@ export default function SovereignHivePage() {
   const { data: hiveMirrorData } = useQuery<HiveMirrorData>({ queryKey:["/api/mirror/hive"], refetchInterval:20000 });
   const { data: spawnStats }     = useQuery<any>({ queryKey:["/api/spawns/stats"], refetchInterval:30000 });
   const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], staleTime: 55_000, refetchInterval:60000 });
-  const { data: govControls }    = useQuery<any>({ queryKey:["/api/government/controls"], refetchInterval:30000, enabled: active === "government" });
-  const { data: govHistory = [] } = useQuery<any[]>({ queryKey:["/api/government/history"], refetchInterval:30000, enabled: active === "government" });
+  const { data: govControls }      = useQuery<any>({ queryKey:["/api/government/controls"], refetchInterval:30000, enabled: active === "government" });
+  const { data: govHistoryRaw }    = useQuery<any>({ queryKey:["/api/government/history"], refetchInterval:30000, enabled: active === "government" });
+  const govHistory: any[]          = Array.isArray(govHistoryRaw) ? govHistoryRaw : (Array.isArray(govHistoryRaw?.pubActivity) ? govHistoryRaw.pubActivity : []);
   const { data: govCycles = [] }  = useQuery<any[]>({ queryKey:["/api/governance/cycles"], refetchInterval:30000, enabled: active === "economy" });
   const { data: govEconomy }      = useQuery<any>({ queryKey:["/api/governance/economy"], refetchInterval:20000, enabled: active === "economy" });
   const { data: dbStats }         = useQuery<any>({ queryKey:["/api/db/stats"], refetchInterval:30000, enabled: active === "database" });
