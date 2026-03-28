@@ -40,8 +40,8 @@ function cacheSet(key: string, data: any, ttlMs: number) {
 
 import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY } from "./transcendence";
 import { ALL_FAMILIES, FAMILY_MAP, CORPORATIONS_FROM_FAMILIES } from "./omega-families";
-import { db, pool, sessionPool } from "./db";
-import { sql } from "drizzle-orm";
+import { db, pool, priorityPool, priorityDb, sessionPool } from "./db";
+import { sql, eq, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -49,7 +49,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema, users, anomalyReports } from "@shared/schema";
+import { insertSocialProfileSchema, insertSocialPostSchema, insertSocialCommentSchema, users, anomalyReports, chats as chatsTable, messages as messagesTable } from "@shared/schema";
 import { randomBytes as cryptoRandomBytes } from "crypto";
 import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
@@ -2793,7 +2793,7 @@ ${entries}
     const cKey = `chats:list:${userId}`;
     const hit = cacheGet(cKey);
     if (hit) return res.json(hit);
-    const chats = await storage.getChatsByUser(userId);
+    const chats = await priorityDb.select().from(chatsTable).where(eq(chatsTable.userId, userId)).orderBy(asc(chatsTable.id));
     cacheSet(cKey, chats, 20_000);
     res.json(chats);
   });
@@ -2803,7 +2803,7 @@ ${entries}
       const userId = getSessionUserId(req);
       if (!userId) return res.status(401).json({ message: "Sign in to chat" });
       const input = api.chats.create.input.parse(req.body);
-      const chat = await storage.createChat({ ...input, userId });
+      const [chat] = await priorityDb.insert(chatsTable).values({ ...input, userId }).returning();
       res.status(201).json(chat);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -2814,7 +2814,7 @@ ${entries}
   app.get(api.chats.get.path, async (req, res) => {
     const userId = getSessionUserId(req);
     if (!userId) return res.status(401).json({ message: "Sign in required" });
-    const chat = await storage.getChat(Number(req.params.id));
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, Number(req.params.id))).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
     res.json(chat);
@@ -2823,7 +2823,7 @@ ${entries}
   app.delete(api.chats.delete.path, async (req, res) => {
     const userId = getSessionUserId(req);
     if (!userId) return res.status(401).json({ message: "Sign in required" });
-    const chat = await storage.getChat(Number(req.params.id));
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, Number(req.params.id))).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
     await storage.deleteChat(Number(req.params.id));
@@ -2835,7 +2835,7 @@ ${entries}
     if (!userId) return res.status(401).json({ message: "Sign in required" });
     const { title } = req.body;
     if (!title) return res.status(400).json({ message: "Title required" });
-    const chat = await storage.getChat(Number(req.params.id));
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, Number(req.params.id))).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
     const updated = await storage.renameChat(Number(req.params.id), title.substring(0, 80));
@@ -2876,10 +2876,11 @@ ${entries}
     const userId = getSessionUserId(req);
     if (!userId) return res.status(401).json({ message: "Sign in required" });
     const chatId = Number(req.params.chatId);
-    const chat = await storage.getChat(chatId);
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    res.json(await storage.getMessages(chatId));
+    const msgs = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
+    res.json(msgs);
   });
 
   function getUserCodesDir(req: any): string {
@@ -2948,10 +2949,10 @@ ${entries}
     const userId = getSessionUserId(req);
     if (!userId) return res.status(401).json({ message: "Sign in required" });
     const chatId = Number(req.params.chatId);
-    const chat = await storage.getChat(chatId);
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    const msgs = await storage.getMessages(chatId);
+    const msgs = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
     let md = `# ${chat.title}\n\nType: ${chat.type}\nDate: ${chat.createdAt}\n\n---\n\n`;
     for (const m of msgs) {
       md += `### ${m.role === "user" ? "You" : "My Ai"}\n\n${m.content}\n\n---\n\n`;
@@ -4293,13 +4294,16 @@ Write 700-1000 words of original article content. No preamble. Just the article.
       const userId = getSessionUserId(req);
       if (!userId) return res.status(401).json({ message: "Sign in to chat" });
       const chatId = Number(req.params.chatId);
-      const chat = await storage.getChat(chatId);
+
+      // ── PRIORITY POOL: chat DB calls NEVER compete with background engines ─
+      const chatRows = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
+      const chat = chatRows[0] || null;
       if (!chat) return res.status(404).json({ message: "Chat not found" });
       if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
 
       const input = api.messages.create.input.parse(req.body);
 
-      await storage.createMessage({ chatId, role: "user", content: input.content });
+      await priorityDb.insert(messagesTable).values({ chatId, role: "user", content: input.content });
 
       const lowerContent = input.content.toLowerCase();
       let searchContext = "";
@@ -4321,7 +4325,7 @@ Write 700-1000 words of original article content. No preamble. Just the article.
         financeContext = await getFinanceData(input.content);
       }
 
-      const history = await storage.getMessages(chatId);
+      const history = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
       const recentHistory = history.slice(-8);
       const conversationLength = history.length;
 
@@ -4577,8 +4581,8 @@ If you have live data provided in this prompt, USE IT and present it confidently
           }
         }
 
-        const savedMsg = await storage.createMessage({ chatId, role: "assistant", content: fullReply || "I'm here! Could you rephrase that?" });
-        res.write(`data: ${JSON.stringify({ done: true, messageId: savedMsg.id })}\n\n`);
+        const [savedMsg] = await priorityDb.insert(messagesTable).values({ chatId, role: "assistant", content: fullReply || "I'm here! Could you rephrase that?" }).returning();
+        res.write(`data: ${JSON.stringify({ done: true, messageId: savedMsg?.id })}\n\n`);
         res.end();
 
         (async () => {
@@ -4681,11 +4685,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
         } catch (_) {}
       })();
 
-      const savedMessage = await storage.createMessage({
-        chatId,
-        role: "assistant",
-        content: reply
-      });
+      const [savedMessage] = await priorityDb.insert(messagesTable).values({ chatId, role: "assistant", content: reply }).returning();
 
       res.status(200).json(savedMessage);
 
@@ -4694,11 +4694,11 @@ If you have live data provided in this prompt, USE IT and present it confidently
 
       if (err?.status === 413 || err?.message?.includes("rate_limit")) {
         const chatId = Number(req.params.chatId);
-        const fallback = await storage.createMessage({
+        const [fallback] = await priorityDb.insert(messagesTable).values({
           chatId,
           role: "assistant",
           content: "I'm experiencing high demand right now. Please try again in a moment - I'll be right here!"
-        });
+        }).returning();
         return res.status(200).json(fallback);
       }
 

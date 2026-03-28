@@ -11,23 +11,26 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Main shared pool — used by all background engines
+// Larger pool + longer timeout so engines queue instead of crashing
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 18,
+  max: 28,
   min: 2,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 4000,
+  connectionTimeoutMillis: 12000,
   allowExitOnIdle: false,
 });
 pool.on('error', (err) => {
   console.error('[pool] idle client error (main):', err.message);
 });
 
-// Priority pool — for user-facing API storage queries
+// ── PRIORITY POOL — DEDICATED TO USER-FACING CHAT/AUTH ONLY ─────────────────
+// Background engines NEVER touch this pool.
+// Always has connections available for real users.
 export const priorityPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 7,
-  min: 1,
+  max: 8,
+  min: 2,
   idleTimeoutMillis: 15000,
   connectionTimeoutMillis: 3000,
   allowExitOnIdle: false,
@@ -52,3 +55,7 @@ sessionPool.on('error', (err) => {
 });
 
 export const db = drizzle(pool, { schema });
+
+// priorityDb — for user-facing routes ONLY (chat, messages, auth lookups)
+// Never imported by background engines
+export const priorityDb = drizzle(priorityPool, { schema });
