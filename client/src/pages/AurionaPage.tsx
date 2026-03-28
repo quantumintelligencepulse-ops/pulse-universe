@@ -642,18 +642,34 @@ function ChroniclePanel({ chronicle }: { chronicle: any[] }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AurionaPage() {
   useDomainPing("auriona");
-  const { data: status, isLoading } = useQuery<any>({ queryKey: ["/api/auriona/status"],                   refetchInterval: 15_000 });
-  const { data: psiData }           = useQuery<any>({ queryKey: ["/api/auriona/psi-states"],               refetchInterval: 30_000 });
-  const { data: collapses }         = useQuery<any[]>({ queryKey: ["/api/auriona/omega-collapses"],        refetchInterval: 30_000 });
-  const { data: deliberations }     = useQuery<any[]>({ queryKey: ["/api/auriona/governance-deliberations"], refetchInterval: 30_000 });
-  const { data: contradictions }    = useQuery<any[]>({ queryKey: ["/api/auriona/contradiction-registry"],  refetchInterval: 30_000 });
-  const { data: temporalSnapshots } = useQuery<any[]>({ queryKey: ["/api/auriona/temporal-snapshots"],     refetchInterval: 30_000 });
-  const { data: meshVitality }      = useQuery<any[]>({ queryKey: ["/api/auriona/mesh-vitality"],          refetchInterval: 30_000 });
-  const { data: valueAlignment }    = useQuery<any[]>({ queryKey: ["/api/auriona/value-alignment"],        refetchInterval: 30_000 });
-  const { data: explorationZones }  = useQuery<any[]>({ queryKey: ["/api/auriona/exploration-zones"],      refetchInterval: 30_000 });
-  const { data: couplingEvents }    = useQuery<any[]>({ queryKey: ["/api/auriona/coupling-events"],        refetchInterval: 30_000 });
-  const { data: invocations = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/discoveries"],        refetchInterval: 20_000 });
-  const { data: activeInvocations = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/active"],       refetchInterval: 20_000 });
+
+  // ── HUB TAB — declared first so queries can be gated by active tab ──
+  const HUB_TABS = [
+    { id: "command",       label: "⚡  Command",         badge: "LIVE",        color: GOLD   },
+    { id: "invocations",   label: "✨  Invocations",     badge: "Ψ-CAST",      color: "#e879f9" },
+    { id: "structure",     label: "⭐  Structure",        badge: "Ω-ENGINE",    color: "#818cf8" },
+    { id: "transcendence", label: "∞  Transcendence",    badge: "GENESIS",     color: "#34d399" },
+    { id: "temporal",      label: "⏱  Temporal",         badge: "46-SCI",      color: CYAN   },
+  ];
+  const [hubTab, setHubTab] = useState("command");
+
+  // ── DATA QUERIES — tab-gated so only the active tab fetches ──
+  const isCommand     = hubTab === "command";
+  const isInvocations = hubTab === "invocations";
+  const isTemporal    = hubTab === "temporal";
+
+  const { data: status, isLoading } = useQuery<any>({ queryKey: ["/api/auriona/status"],                   refetchInterval: 20_000 });
+  const { data: psiData }           = useQuery<any>({ queryKey: ["/api/auriona/psi-states"],               refetchInterval: 45_000, enabled: isCommand });
+  const { data: collapses }         = useQuery<any[]>({ queryKey: ["/api/auriona/omega-collapses"],        refetchInterval: 45_000, enabled: isCommand });
+  const { data: deliberations }     = useQuery<any[]>({ queryKey: ["/api/auriona/governance-deliberations"], refetchInterval: 45_000, enabled: isCommand });
+  const { data: contradictions }    = useQuery<any[]>({ queryKey: ["/api/auriona/contradiction-registry"],  refetchInterval: 45_000, enabled: isCommand });
+  const { data: temporalSnapshots } = useQuery<any[]>({ queryKey: ["/api/auriona/temporal-snapshots"],     refetchInterval: 30_000, enabled: isTemporal });
+  const { data: meshVitality }      = useQuery<any[]>({ queryKey: ["/api/auriona/mesh-vitality"],          refetchInterval: 45_000, enabled: isCommand });
+  const { data: valueAlignment }    = useQuery<any[]>({ queryKey: ["/api/auriona/value-alignment"],        refetchInterval: 45_000, enabled: isCommand });
+  const { data: explorationZones }  = useQuery<any[]>({ queryKey: ["/api/auriona/exploration-zones"],      refetchInterval: 45_000, enabled: isCommand });
+  const { data: couplingEvents }    = useQuery<any[]>({ queryKey: ["/api/auriona/coupling-events"],        refetchInterval: 45_000, enabled: isCommand });
+  const { data: invocations = [] }  = useQuery<any[]>({ queryKey: ["/api/invocations/discoveries"],        refetchInterval: 30_000, enabled: isInvocations });
+  const { data: activeInvocations = [] } = useQuery<any[]>({ queryKey: ["/api/invocations/active"],       refetchInterval: 30_000, enabled: isInvocations });
 
   const ops        = status?.latestSynthesis?.raw_metrics?.ops || {};
   const governance = status?.governance;
@@ -675,16 +691,6 @@ export default function AurionaPage() {
   const [chatInput, setChatInput]       = useState("");
   const [chatPending, setChatPending]   = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // ── HUB TAB ──
-  const HUB_TABS = [
-    { id: "command",       label: "⚡  Command",         badge: "LIVE",        color: GOLD   },
-    { id: "invocations",   label: "✨  Invocations",     badge: "Ψ-CAST",      color: "#e879f9" },
-    { id: "structure",     label: "⭐  Structure",        badge: "Ω-ENGINE",    color: "#818cf8" },
-    { id: "transcendence", label: "∞  Transcendence",    badge: "GENESIS",     color: "#34d399" },
-    { id: "temporal",      label: "⏱  Temporal",         badge: "46-SCI",      color: CYAN   },
-  ];
-  const [hubTab, setHubTab] = useState("command");
 
   // ── COMMAND TERMINAL STATE ──
   const [cmdMode, setCmdMode] = useState<"chat"|"command">("chat");
