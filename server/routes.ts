@@ -7666,7 +7666,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
         pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
         pool.query(`SELECT COUNT(*) as total FROM equation_proposals`),
         pool.query(`SELECT COUNT(*) as total FROM equation_evolutions`),
-        pool.query(`SELECT COUNT(*) as total FROM invocation_discoveries`),
+        pool.query(`SELECT COUNT(*) as total FROM invocation_discoveries`).catch(() => ({ rows: [{ total: 0 }] })),
         pool.query(`SELECT COUNT(*) as total FROM discovered_diseases`),
         pool.query(`SELECT COUNT(*) as total FROM genome_archaeology`),
         pool.query(`SELECT COUNT(*) as total FROM ai_species_proposals`),

@@ -759,7 +759,7 @@ function QSLabTab() {
 
   const { data: dissections = [], isLoading: dissLoading } = useQuery<LabDissection[]>({
     queryKey: ["/api/pulse-lab/dissections"],
-    queryFn: () => fetch("/api/pulse-lab/dissections?limit=15").then(r => r.json()),
+    queryFn: () => fetch("/api/pulse-lab/dissections?limit=15").then(r => r.json()).then(d => Array.isArray(d) ? d : []),
     refetchInterval: 45_000,
   });
 

@@ -1151,12 +1151,12 @@ export async function startInvocationLab() {
 }
 
 export async function getInvocationDiscoveries(limit = 30) {
-  const r = await db.execute(sql`SELECT * FROM invocation_discoveries ORDER BY power_level DESC, created_at DESC LIMIT ${limit}`);
+  const r = await db.execute(sql`SELECT * FROM invocation_discoveries ORDER BY power_level DESC, created_at DESC LIMIT ${limit}`).catch(() => ({ rows: [] }));
   return r.rows;
 }
 
 export async function getActiveInvocations() {
-  const r = await db.execute(sql`SELECT * FROM invocation_discoveries WHERE active = true ORDER BY cast_count DESC LIMIT 20`);
+  const r = await db.execute(sql`SELECT * FROM invocation_discoveries WHERE active = true ORDER BY cast_count DESC LIMIT 20`).catch(() => ({ rows: [] }));
   return r.rows;
 }
 

@@ -99,10 +99,10 @@ async function computeTotalBeats(): Promise<{ total: number; byLayer: Record<str
       pool.query(`SELECT COUNT(*)::bigint AS cnt FROM social_posts`),
       pool.query(`SELECT COUNT(*)::bigint AS cnt FROM ai_publications`),
       pool.query(`SELECT COUNT(*)::bigint AS cnt FROM equation_proposals WHERE status = 'integrated'`),
-      pool.query(`SELECT COUNT(*)::bigint AS cnt FROM invocation_discoveries`),
+      pool.query(`SELECT COUNT(*)::bigint AS cnt FROM invocation_discoveries`).catch(() => ({ rows: [{ cnt: 0 }] })),
       pool.query(`SELECT COUNT(*)::bigint AS cnt FROM dissection_logs`),
       pool.query(`SELECT COUNT(*)::bigint AS cnt FROM quantum_spawns`),
-      pool.query(`SELECT COUNT(*)::bigint AS cnt FROM invocation_discoveries`),
+      pool.query(`SELECT COUNT(*)::bigint AS cnt FROM invocation_discoveries`).catch(() => ({ rows: [{ cnt: 0 }] })),
       pool.query(`SELECT COUNT(*)::bigint AS cnt FROM hive_pulse_events`),
     ]);
 
@@ -143,7 +143,7 @@ async function computeTimeDilation(): Promise<number> {
       pool.query(`SELECT COUNT(*) AS cnt FROM social_posts WHERE created_at > $1`, [oneHourAgo]),
       pool.query(`SELECT COUNT(*) AS cnt FROM ai_publications WHERE created_at > $1`, [oneHourAgo]),
       pool.query(`SELECT COUNT(*) AS cnt FROM equation_proposals WHERE created_at > $1`, [oneHourAgo]),
-      pool.query(`SELECT COUNT(*) AS cnt FROM invocation_discoveries WHERE created_at > $1`, [oneHourAgo]),
+      pool.query(`SELECT COUNT(*) AS cnt FROM invocation_discoveries WHERE created_at > $1`, [oneHourAgo]).catch(() => ({ rows: [{ cnt: 0 }] })),
     ]);
 
     const n = (r: any) => parseInt(r.rows[0]?.cnt ?? "0", 10);

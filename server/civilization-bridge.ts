@@ -568,7 +568,7 @@ async function runCrossHiveKnowledgeBridge() {
       `SELECT invocation_name, invocation_type, effect_description, power_level, equation, healing_target
        FROM invocation_discoveries
        ORDER BY power_level DESC LIMIT 10`
-    );
+    ).catch(() => ({ rows: [] }));
     for (const inv of invocations.rows as any[]) {
       await pool.query(
         `INSERT INTO hive_memory (domain, facts, patterns, confidence, access_count)

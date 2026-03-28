@@ -112,20 +112,20 @@ export default function BioGenomeMedicalPage() {
   const qc = useQueryClient();
 
   // ── Data queries ──────────────────────────────────────────────────────────
-  const { data: fullStats }          = useQuery<any>({ queryKey:["/api/hospital/full-stats"],         refetchInterval:15000 });
-  const { data: patients = [] }      = useQuery<any[]>({ queryKey:["/api/hospital/patients"],         refetchInterval:15000 });
+  const { data: fullStats }          = useQuery<any>({ queryKey:["/api/hospital/full-stats"],         refetchInterval:30000 });
+  const { data: patients = [] }      = useQuery<any[]>({ queryKey:["/api/hospital/patients"],         refetchInterval:30000 });
   const { data: diseases = [] }      = useQuery<any[]>({ queryKey:["/api/hospital/diseases"],         refetchInterval:60000 });
-  const { data: discovered = [] }    = useQuery<any[]>({ queryKey:["/api/hospital/discovered-diseases"], refetchInterval:20000 });
-  const { data: citations = [] }     = useQuery<any[]>({ queryKey:["/api/guardian/citations"],        refetchInterval:20000 });
-  const { data: guardianStats }      = useQuery<any>({ queryKey:["/api/guardian/stats"],              refetchInterval:20000 });
-  const { data: doctors = [] }       = useQuery<any[]>({ queryKey:["/api/hospital/doctors"],          refetchInterval:30000 });
-  const { data: dissections = [] }   = useQuery<any[]>({ queryKey:["/api/hospital/dissection-logs"], refetchInterval:20000 });
-  const { data: eqData }             = useQuery<any>({ queryKey:["/api/hospital/equation-proposals"], refetchInterval:20000 });
-  const { data: researchStats }      = useQuery<any>({ queryKey:["/api/research/stats"],              refetchInterval:30000 });
-  const { data: researchProjects = [] } = useQuery<any[]>({ queryKey:["/api/research/projects"],     refetchInterval:30000 });
+  const { data: discovered = [] }    = useQuery<any[]>({ queryKey:["/api/hospital/discovered-diseases"], refetchInterval:30000 });
+  const { data: citations = [] }     = useQuery<any[]>({ queryKey:["/api/guardian/citations"],        refetchInterval:30000 });
+  const { data: guardianStats }      = useQuery<any>({ queryKey:["/api/guardian/stats"],              refetchInterval:30000 });
+  const { data: doctors = [] }       = useQuery<any[]>({ queryKey:["/api/hospital/doctors"],          refetchInterval:45000 });
+  const { data: dissections = [] }   = useQuery<any[]>({ queryKey:["/api/hospital/dissection-logs"], refetchInterval:30000 });
+  const { data: eqData }             = useQuery<any>({ queryKey:["/api/hospital/equation-proposals"], refetchInterval:30000 });
+  const { data: researchStats }      = useQuery<any>({ queryKey:["/api/research/stats"],              refetchInterval:45000 });
+  const { data: researchProjects = [] } = useQuery<any[]>({ queryKey:["/api/research/projects"],     refetchInterval:45000 });
   const { data: selectedDoctor }     = useQuery<any>({
     queryKey:["/api/hospital/doctors", selectedDoctorId],
-    enabled:!!selectedDoctorId, refetchInterval:15000,
+    enabled:!!selectedDoctorId, refetchInterval:30000,
   });
   const { data: geneStatus }         = useQuery<any>({ queryKey:["/api/gene-editor/status"],          refetchInterval:30000 });
   const { data: diseaseStats = {} }  = useQuery<any>({ queryKey:["/api/hospital/disease-stats"],      refetchInterval:60000 });
