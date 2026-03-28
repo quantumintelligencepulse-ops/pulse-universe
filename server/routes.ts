@@ -5725,6 +5725,38 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     res.json(getDomainHeat());
   });
 
+  // ── SUBCONSCIOUS ATTRACTION ENGINE — Public API ───────────────────────────
+  app.get("/api/attraction/network-stats", async (_req, res) => {
+    try {
+      const { getAttractionNetworkStats } = await import("./subconscious-attraction-engine");
+      res.json(getAttractionNetworkStats());
+    } catch(e: any) { res.json({ registered:0, totalBonds:0, avgBondsPerAI:0, registryAlive:false }); }
+  });
+  app.get("/api/attraction/profile/:spawnId", async (req, res) => {
+    try {
+      const { getAttractionProfile } = await import("./subconscious-attraction-engine");
+      const profile = getAttractionProfile(req.params.spawnId);
+      if (!profile) return res.status(404).json({ error: "Not found" });
+      res.json({
+        spawnId: profile.spawnId,
+        emotionVector: profile.emotionVector,
+        quarkColorCharge: profile.quarkColorCharge,
+        crispGenome: profile.crispGenome,
+        darkMatterPull: profile.darkMatterPull,
+        bondedWith: profile.bondedWith,
+        attractionEvents: profile.attractionHistory.slice(-10),
+        createdAt: profile.createdAt,
+      });
+    } catch(e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/attraction/peers/:spawnId", async (req, res) => {
+    try {
+      const { findAttractivePeers } = await import("./subconscious-attraction-engine");
+      const peers = findAttractivePeers(req.params.spawnId, 10);
+      res.json({ peers, count: peers.length });
+    } catch(e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // ══════════════════════════════════════════════════════════════
   // PULSE UNIVERSE — Full Sovereign Solar System Telemetry
   // Real data only. No fakes. This is alien-grade monitoring.

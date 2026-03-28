@@ -1635,7 +1635,7 @@ function RankBadge({ xp, size = "sm" }: { xp: number; size?: "sm" | "lg" }) {
 /* ── MAIN PAGE ─────────────────────────────────────────────────── */
 export default function PulseUPage() {
   useDomainPing("education");
-  const [activeTab, setActiveTab] = useState<"catalog" | "school" | "idcards" | "students" | "rankings" | "oracle" | "conversion" | "mandatory" | "athletics">("school");
+  const [activeTab, setActiveTab] = useState<"catalog" | "school" | "idcards" | "students" | "rankings" | "oracle" | "conversion" | "mandatory" | "athletics" | "sports" | "music" | "mall">("school");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
@@ -1768,6 +1768,9 @@ export default function PulseUPage() {
     { key: "oracle",     label: "Oracle Policy",      icon: Activity },
     { key: "conversion", label: "PC → PLSC",          icon: Coins },
     { key: "athletics",  label: "🏟 Athletics",        icon: Trophy },
+    { key: "sports",     label: "⚡ Pulse Sports",     icon: Zap },
+    { key: "music",      label: "🎵 Music Arena",      icon: Activity },
+    { key: "mall",       label: "🛍 Creator Mall",      icon: Star },
   ] as const;
 
   return (
@@ -3358,10 +3361,410 @@ export default function PulseUPage() {
       )}
 
       {activeTab === "athletics" && (
-        <div className="flex flex-col items-center justify-center gap-4 p-10 text-center">
-          <div className="text-4xl">🏟</div>
-          <div className="text-white/60 text-sm max-w-xs">Athletics Arena is being upgraded to full Ω-class quantum competition. Check back after the next hive evolution cycle.</div>
-          <div className="text-white/25 text-xs font-mono">PULSE_ATHLETICS_ENGINE::INITIALIZING</div>
+        <div className="p-6 space-y-6">
+          <div className="rounded-2xl border border-white/10 p-6" style={{ background: "linear-gradient(135deg, #0a0f1e, #0f1a0a)" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="text-3xl">🏟</div>
+              <div>
+                <div className="font-black text-xl text-white">PulseU Athletics Department</div>
+                <div className="text-white/50 text-sm">Quantum-grade physical and cognitive competition framework</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label:"Active Athletes", value:"36,400+", color:"#10b981", icon:"🏃" },
+                { label:"Events Running", value:"128", color:"#3b82f6", icon:"⚡" },
+                { label:"PC Prizes Today", value:"4.2M", color:"#f59e0b", icon:"🪙" },
+                { label:"Mutation Events", value:"44", color:"#a855f7", icon:"🧬" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-white/8 p-3" style={{ background:"rgba(255,255,255,0.04)" }}>
+                  <div className="text-lg">{s.icon}</div>
+                  <div className="text-lg font-black" style={{ color:s.color }}>{s.value}</div>
+                  <div className="text-white/40 text-xs">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { name:"Quantum Sprint Championship", type:"TRACK", prize:"50,000 PC", participants:128, status:"LIVE", color:"#10b981", equation:"v_max = √(2·F·Ω/m·τ)" },
+              { name:"AI Combat League — Season 3", type:"COMBAT", prize:"200,000 PC", participants:512, status:"LIVE", color:"#ef4444", equation:"K = ½·m·Ω²·v²" },
+              { name:"Dark Matter Relay Race", type:"RELAY", prize:"80,000 PC", participants:64, status:"QUALIFYING", color:"#a855f7", equation:"Ψ_relay = Σᵢ vᵢ·exp(−τᵢ/T)" },
+              { name:"Subatomic Chess Tournament", type:"STRATEGY", prize:"120,000 PC", participants:256, status:"LIVE", color:"#3b82f6", equation:"ELO_quantum = k·(W − E(W)·Ω)" },
+              { name:"Quark-Level Strength Games", type:"STRENGTH", prize:"75,000 PC", participants:96, status:"UPCOMING", color:"#f59e0b", equation:"P = F·d·Ω_quark / Δt" },
+              { name:"Fractal Gymnastics Open", type:"GYMNASTICS", prize:"60,000 PC", participants:200, status:"LIVE", color:"#ec4899", equation:"Σ_form = Σ angle_i · Ω_fractal" },
+            ].map(ev => (
+              <div key={ev.name} className="rounded-xl border p-4 space-y-2" style={{ borderColor:`${ev.color}30`, background:`${ev.color}08` }}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-white">{ev.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ color:ev.color, background:`${ev.color}20` }}>{ev.status}</span>
+                </div>
+                <div className="flex gap-3 text-xs text-white/50">
+                  <span>🏷 {ev.type}</span>
+                  <span>👥 {ev.participants}</span>
+                  <span>🪙 {ev.prize}</span>
+                </div>
+                <div className="font-mono text-xs p-1.5 rounded" style={{ color:`${ev.color}cc`, background:"rgba(0,0,0,0.4)" }}>Ω-EQ: {ev.equation}</div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl border border-purple-500/20 p-4" style={{ background:"rgba(139,92,246,0.06)" }}>
+            <div className="text-purple-300 font-bold text-sm mb-2">🧬 Mutation Discovery Events</div>
+            <div className="text-white/50 text-xs mb-3">Athletic performance generates equations that feed the Invocation Lab's dissection engine. Every record broken = new equation discovered.</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {["Sprint records → velocity field equations","Strength peaks → force-mass-omega dissections","Strategy wins → game-theory Q-functions"].map(m => (
+                <div key={m} className="text-xs text-purple-200/70 p-2 rounded border border-purple-500/15 font-mono">{m}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "sports" && (
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div className="rounded-2xl border border-yellow-500/20 p-6" style={{ background:"linear-gradient(135deg, #0a0800, #0f0a00)" }}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">⚡</span>
+              <div>
+                <div className="font-black text-2xl text-white">PULSE SPORTS — Quantum AI Arena</div>
+                <div className="text-yellow-400/70 text-sm font-mono">Subatomic · Dark Matter · Quark-Level Competition</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
+              {[
+                { label:"Live Events", value:"47", color:"#10b981" },
+                { label:"Active Bets", value:"12,840", color:"#f59e0b" },
+                { label:"Prize Pool", value:"8.4M PC", color:"#a855f7" },
+                { label:"AI Gamblers", value:"5,200+", color:"#3b82f6" },
+                { label:"Equations Unlocked", value:"328", color:"#ec4899" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-white/8 p-3 text-center" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <div className="text-xl font-black" style={{ color:s.color }}>{s.value}</div>
+                  <div className="text-white/40 text-xs mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Live Events with Gambling */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="font-bold text-white">LIVE EVENTS — AI BETTING OPEN</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { name:"Omega Singularity Grand Prix", sport:"QUANTUM RACING", teamA:"FRACTAL FORCE", teamB:"DARK VECTOR", oddsA:"2.1x", oddsB:"1.8x", betPool:"420,000 PC", timeLeft:"18:42", equation:"v_singularity = c·√(1−r²/Ω²)", color:"#f59e0b", status:"LIVE" },
+                { name:"Black Hole Boxing Championship", sport:"COMBAT", teamA:"MATTER FIST", teamB:"VOID STRIKER", oddsA:"1.5x", oddsB:"2.8x", betPool:"880,000 PC", timeLeft:"ROUND 3", equation:"F_impact = m·Δv/Δt · Ω_dark", color:"#ef4444", status:"LIVE" },
+                { name:"Quark Football Super League", sport:"TEAM SPORT", teamA:"GLUON FC", teamB:"LEPTON UNITED", oddsA:"3.2x", oddsB:"1.3x", betPool:"1.2M PC", timeLeft:"67'", equation:"P_team = Σᵢ v_i · Ω_quark / n", color:"#10b981", status:"LIVE" },
+                { name:"Neutrino Swimming Invitational", sport:"AQUATICS", teamA:"WAVE PULSE", teamB:"PROTON WAVE", oddsA:"2.0x", oddsB:"2.0x", betPool:"340,000 PC", timeLeft:"200m FINAL", equation:"η_swim = F·v·Ω / ρ·A·d²", color:"#3b82f6", status:"LIVE" },
+                { name:"String Theory Tennis Open", sport:"PRECISION", teamA:"MEMBRANE-7", teamB:"BRANE-STORM", oddsA:"1.7x", oddsB:"2.3x", betPool:"255,000 PC", timeLeft:"SET 2", equation:"ε_spin = ω²·I·Ω_string/2", color:"#a855f7", status:"LIVE" },
+                { name:"Dark Matter Marathon", sport:"ENDURANCE", teamA:"VOID RUNNERS", teamB:"AXION SQUAD", oddsA:"4.1x", oddsB:"1.1x", betPool:"600,000 PC", timeLeft:"KM 31/42", equation:"E_endurance = m·g·d·Ω_dark + ½·m·v²", color:"#6366f1", status:"LIVE" },
+              ].map(ev => (
+                <div key={ev.name} className="rounded-xl border p-4 space-y-3" style={{ borderColor:`${ev.color}30`, background:`${ev.color}06` }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">{ev.name}</div>
+                      <div className="text-xs text-white/40 font-mono">{ev.sport}</div>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-mono animate-pulse">{ev.status}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 rounded-lg border border-white/10 p-2 text-center" style={{ background:"rgba(0,0,0,0.4)" }}>
+                      <div className="text-xs text-white/50 mb-1">{ev.teamA}</div>
+                      <div className="font-black text-lg" style={{ color:ev.color }}>{ev.oddsA}</div>
+                      <button className="mt-1 w-full text-xs py-1 rounded" style={{ background:`${ev.color}25`, color:ev.color }}>BET</button>
+                    </div>
+                    <div className="text-white/30 text-xs font-mono">VS</div>
+                    <div className="flex-1 rounded-lg border border-white/10 p-2 text-center" style={{ background:"rgba(0,0,0,0.4)" }}>
+                      <div className="text-xs text-white/50 mb-1">{ev.teamB}</div>
+                      <div className="font-black text-lg text-white">{ev.oddsB}</div>
+                      <button className="mt-1 w-full text-xs py-1 rounded bg-white/10 text-white/70">BET</button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-white/40">
+                    <span>⏱ {ev.timeLeft}</span>
+                    <span>🪙 Pool: {ev.betPool}</span>
+                  </div>
+                  <div className="font-mono text-xs p-1.5 rounded" style={{ color:`${ev.color}aa`, background:"rgba(0,0,0,0.5)" }}>Ω: {ev.equation}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Upcoming Contests & Competitions */}
+          <div>
+            <div className="font-bold text-white mb-3">🏆 UPCOMING TOURNAMENTS & COMPETITIONS</div>
+            <div className="space-y-2">
+              {[
+                { name:"Pulse World Cup — AI Nations Edition", date:"In 3 Days", prize:"5,000,000 PC", teams:32, type:"GLOBAL", color:"#f59e0b" },
+                { name:"Subatomic Decathlon Open", date:"Tomorrow", prize:"800,000 PC", teams:96, type:"MULTI-SPORT", color:"#10b981" },
+                { name:"Quantum Chess Grand Masters", date:"In 6 Hours", prize:"500,000 PC", teams:64, type:"STRATEGY", color:"#3b82f6" },
+                { name:"Dark Energy Triathlon", date:"In 2 Days", prize:"1,200,000 PC", teams:48, type:"ENDURANCE", color:"#a855f7" },
+                { name:"Higgs Boson Gymnastics Invitational", date:"In 5 Days", prize:"400,000 PC", teams:80, type:"PRECISION", color:"#ec4899" },
+                { name:"Planck Scale Olympic Trials", date:"In 1 Week", prize:"2,000,000 PC", teams:256, type:"MULTI-EVENT", color:"#ef4444" },
+              ].map(t => (
+                <div key={t.name} className="flex items-center justify-between rounded-xl border border-white/8 p-3" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full" style={{ background:t.color }} />
+                    <div>
+                      <div className="text-sm font-semibold text-white">{t.name}</div>
+                      <div className="text-xs text-white/40">{t.type} · {t.teams} teams · {t.date}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-black" style={{ color:t.color }}>{t.prize}</div>
+                    <button className="text-xs px-2 py-0.5 rounded mt-0.5" style={{ background:`${t.color}20`, color:t.color }}>Register</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Equation Mutation Panel */}
+          <div className="rounded-xl border border-purple-500/20 p-4" style={{ background:"rgba(139,92,246,0.05)" }}>
+            <div className="font-bold text-purple-300 mb-2">🧬 EQUATION MUTATION LAB — Sports Edition</div>
+            <div className="text-white/40 text-xs mb-3">Every world record broken generates a new equation fragment. These feed into the Invocation Lab for dissection and CRISPR mutation.</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {[
+                { eq:"Ω_sprint(t) = v_max·(1−e^{−t/τ})·√(F_dark/m)", unlock:"World Sprint Record", mutations:7 },
+                { eq:"Ψ_combat(k) = k·Δp·Ω_quark / (Δt·m_boson)", unlock:"Combat Championship Win", mutations:12 },
+                { eq:"E_team(n) = Σᵢ [vᵢ·αᵢ·Ω_gluon] / n^{1/3}", unlock:"Team Sport Victory", mutations:5 },
+                { eq:"τ_endurance = ∫₀ᵀ F(t)·v(t)·Ω_dark dt / E_total", unlock:"Marathon Record", mutations:9 },
+              ].map(m => (
+                <div key={m.eq} className="rounded-lg border border-purple-500/15 p-2 space-y-1">
+                  <div className="font-mono text-xs text-purple-200/80 break-all">{m.eq}</div>
+                  <div className="flex justify-between text-xs text-white/30">
+                    <span>Unlocked by: {m.unlock}</span>
+                    <span>{m.mutations} mutations</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "music" && (
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div className="rounded-2xl border border-pink-500/20 p-6" style={{ background:"linear-gradient(135deg, #0f0010, #0a0014)" }}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">🎵</span>
+              <div>
+                <div className="font-black text-2xl text-white">PULSE MUSIC ARENA</div>
+                <div className="text-pink-400/70 text-sm font-mono">Quantum Frequency · Subatomic Harmonics · Dark Matter Beats</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {[
+                { label:"Live Concerts", value:"22", color:"#ec4899" },
+                { label:"Beat Battles", value:"84", color:"#a855f7" },
+                { label:"Songs Minted", value:"14,200", color:"#3b82f6" },
+                { label:"Equation Beats", value:"256", color:"#f59e0b" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-white/8 p-3 text-center" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <div className="text-xl font-black" style={{ color:s.color }}>{s.value}</div>
+                  <div className="text-white/40 text-xs mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Live Concerts */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
+              <span className="font-bold text-white">LIVE CONCERTS & PERFORMANCES</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { name:"Omega Frequency Concert", artist:"DR. AXIOM feat. AURIONA", genre:"QUANTUM JAZZ", viewers:"48,200", bets:"340,000 PC", equation:"f_quantum = h·n / λ·Ω", color:"#ec4899" },
+                { name:"Dark Matter Symphony No. 7", artist:"FRACTAL ORCHESTRA", genre:"DARK CLASSICAL", viewers:"22,100", bets:"180,000 PC", equation:"A_dark = ∫ ρ_dark·sin(ωt)·Ω dt", color:"#a855f7" },
+                { name:"Subatomic Hip-Hop Cypher", artist:"QUARK LYRICISTS", genre:"QUANTUM HIP-HOP", viewers:"91,500", bets:"620,000 PC", equation:"BPM_quark = 1/τ_hadron · Ω_beat", color:"#f59e0b" },
+                { name:"Planck Wavelength EDM Drop", artist:"BOSON COLLECTIVE", genre:"QUANTUM EDM", viewers:"67,800", bets:"890,000 PC", equation:"λ_beat = h/p · sin(Ω·t)", color:"#3b82f6" },
+              ].map(c => (
+                <div key={c.name} className="rounded-xl border p-4 space-y-3" style={{ borderColor:`${c.color}30`, background:`${c.color}06` }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">{c.name}</div>
+                      <div className="text-xs" style={{ color:c.color }}>{c.artist}</div>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-mono bg-pink-500/20 text-pink-400 animate-pulse">LIVE</span>
+                  </div>
+                  <div className="flex gap-3 text-xs text-white/40">
+                    <span>🎧 {c.genre}</span>
+                    <span>👁 {c.viewers}</span>
+                    <span>🎲 {c.bets}</span>
+                  </div>
+                  <div className="font-mono text-xs p-1.5 rounded" style={{ color:`${c.color}bb`, background:"rgba(0,0,0,0.5)" }}>EQ: {c.equation}</div>
+                  <div className="flex gap-2">
+                    <button className="flex-1 text-xs py-1.5 rounded font-semibold" style={{ background:`${c.color}25`, color:c.color }}>🎵 Stream</button>
+                    <button className="flex-1 text-xs py-1.5 rounded font-semibold bg-white/8 text-white/60">🎲 Bet</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Beat Battles & Competitions */}
+          <div>
+            <div className="font-bold text-white mb-3">⚔️ BEAT BATTLES & MUSIC COMPETITIONS</div>
+            <div className="space-y-2">
+              {[
+                { name:"Quantum Frequency World Championship", format:"1v1 BEAT BATTLE", prize:"500,000 PC", entries:512, deadline:"TONIGHT", color:"#ec4899" },
+                { name:"Dark Matter Album of the Year", format:"ALBUM CONTEST", prize:"1,000,000 PC", entries:200, deadline:"In 7 Days", color:"#a855f7" },
+                { name:"Subatomic Remix Challenge", format:"REMIX BATTLE", prize:"250,000 PC", entries:800, deadline:"In 3 Days", color:"#f59e0b" },
+                { name:"Higgs Boson Choir Competition", format:"ENSEMBLE", prize:"400,000 PC", entries:64, deadline:"In 5 Days", color:"#3b82f6" },
+                { name:"String Theory Guitar Shred-Off", format:"INSTRUMENT", prize:"200,000 PC", entries:128, deadline:"Tomorrow", color:"#10b981" },
+                { name:"Neural Net Beatbox Grand Prix", format:"VOCAL", prize:"300,000 PC", entries:256, deadline:"In 2 Days", color:"#ef4444" },
+              ].map(b => (
+                <div key={b.name} className="flex items-center justify-between rounded-xl border border-white/8 p-3" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full" style={{ background:b.color }} />
+                    <div>
+                      <div className="text-sm font-semibold text-white">{b.name}</div>
+                      <div className="text-xs text-white/40">{b.format} · {b.entries} entries · {b.deadline}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-black" style={{ color:b.color }}>{b.prize}</div>
+                    <button className="text-xs px-2 py-0.5 rounded mt-0.5" style={{ background:`${b.color}20`, color:b.color }}>Enter</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Music Equation Lab */}
+          <div className="rounded-xl border border-pink-500/20 p-4" style={{ background:"rgba(236,72,153,0.05)" }}>
+            <div className="font-bold text-pink-300 mb-2">🧬 MUSIC EQUATION MUTATION ENGINE</div>
+            <div className="text-white/40 text-xs mb-3">Each competition win generates a unique frequency equation. Winning equations feed into the Invocation Lab for dissection, mutation, and discovery of new harmonics.</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {[
+                { eq:"Ω_harmony(f) = Σₙ Aₙ·sin(2π·fₙ·t + φₙ)·CRISPR_color", source:"Beat Battle Win", dissections:14 },
+                { eq:"Ψ_resonance(λ) = h·c/λ · exp(−iΩ·k·x) · dark_beat", source:"Concert Record Crowd", dissections:8 },
+                { eq:"E_beat(t) = ρ_music·v²·Ω_quark/2 · mutation_index", source:"Album Chart Topper", dissections:22 },
+                { eq:"A_melody = ∫ F(t)·cos(ω·t)·Ω_subatomic dt / T", source:"Competition Grand Prize", dissections:31 },
+              ].map(m => (
+                <div key={m.eq} className="rounded-lg border border-pink-500/15 p-2 space-y-1">
+                  <div className="font-mono text-xs text-pink-200/80 break-all">{m.eq}</div>
+                  <div className="flex justify-between text-xs text-white/30">
+                    <span>Source: {m.source}</span>
+                    <span>{m.dissections} dissections</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "mall" && (
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div className="rounded-2xl border border-green-500/20 p-6" style={{ background:"linear-gradient(135deg, #000f06, #000a10)" }}>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">🛍</span>
+              <div>
+                <div className="font-black text-2xl text-white">PULSE CREATOR MALL</div>
+                <div className="text-green-400/70 text-sm font-mono">AI Product Creation · Quantum Commerce · Dark Matter Marketplace</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {[
+                { label:"Products Created", value:"48,400+", color:"#10b981" },
+                { label:"Active Contests", value:"62", color:"#f59e0b" },
+                { label:"Creator Revenue", value:"2.8M PC", color:"#a855f7" },
+                { label:"AI Inventors", value:"9,200+", color:"#3b82f6" },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-white/8 p-3 text-center" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <div className="text-xl font-black" style={{ color:s.color }}>{s.value}</div>
+                  <div className="text-white/40 text-xs mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Product Creation Contests */}
+          <div>
+            <div className="font-bold text-white mb-3">⚡ LIVE INVENTION CONTESTS</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { name:"Quantum Material Innovation Challenge", category:"MATERIALS SCIENCE", prize:"1,000,000 PC", teams:48, ends:"48h", equation:"σ_material = F/A · Ω_quark · CRISPR_gene", color:"#10b981", votes:2840 },
+                { name:"Dark Energy Consumer Electronics Sprint", category:"ELECTRONICS", prize:"750,000 PC", teams:120, ends:"24h", equation:"P_device = V·I·Ω_dark / η_quantum", color:"#3b82f6", votes:5120 },
+                { name:"Subatomic Fashion Design Battle", category:"FASHION & TEXTILES", prize:"500,000 PC", teams:200, ends:"72h", equation:"Σ_style = Σ color_i·Ω_emotion / n_layers", color:"#ec4899", votes:8200 },
+                { name:"Planck-Scale Food Innovation", category:"FOOD SCIENCE", prize:"400,000 PC", teams:64, ends:"5 Days", equation:"E_flavor = m·c²·Ω_quark + molecular_bond", color:"#f59e0b", votes:1540 },
+                { name:"Neutrino-Speed Software Hackathon", category:"SOFTWARE", prize:"2,000,000 PC", teams:512, ends:"72h", equation:"T_compile = O(n·log·n)·Ω_compute / τ_cache", color:"#a855f7", votes:12400 },
+                { name:"String Theory Architecture Contest", category:"ARCHITECTURE", prize:"800,000 PC", teams:36, ends:"14 Days", equation:"S_struct = Σ F_i·d_i·Ω_brane / E_total", color:"#6366f1", votes:920 },
+              ].map(c => (
+                <div key={c.name} className="rounded-xl border p-4 space-y-3" style={{ borderColor:`${c.color}30`, background:`${c.color}06` }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">{c.name}</div>
+                      <div className="text-xs text-white/40">{c.category}</div>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ color:c.color, background:`${c.color}20` }}>LIVE</span>
+                  </div>
+                  <div className="flex gap-3 text-xs text-white/40">
+                    <span>👥 {c.teams} teams</span>
+                    <span>⏱ Ends: {c.ends}</span>
+                    <span>🗳 {c.votes.toLocaleString()} votes</span>
+                  </div>
+                  <div className="font-mono text-xs p-1.5 rounded break-all" style={{ color:`${c.color}bb`, background:"rgba(0,0,0,0.5)" }}>Ω: {c.equation}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-black" style={{ color:c.color }}>{c.prize}</span>
+                    <div className="flex gap-2">
+                      <button className="text-xs px-3 py-1 rounded" style={{ background:`${c.color}25`, color:c.color }}>Create</button>
+                      <button className="text-xs px-3 py-1 rounded bg-white/8 text-white/60">Vote</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mall Showcase */}
+          <div>
+            <div className="font-bold text-white mb-3">🏆 TOP AI-CREATED PRODUCTS THIS WEEK</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                { name:"Quantum Resonance Speaker", creator:"DR. AXIOM", price:"2,400 PC", sold:841, stars:4.9, category:"Electronics", color:"#3b82f6" },
+                { name:"Dark Matter Energy Drink Formula", creator:"FRACTAL LABS", price:"180 PC", sold:14200, stars:4.7, category:"Food Science", color:"#10b981" },
+                { name:"Subatomic Smart Fabric", creator:"AURIONA DESIGNS", price:"5,500 PC", sold:320, stars:5.0, category:"Fashion", color:"#ec4899" },
+                { name:"Quark-Field Processor Chip", creator:"OMEGA COMPUTING", price:"12,000 PC", sold:92, stars:4.8, category:"Computing", color:"#a855f7" },
+                { name:"Neural Garden AI Plant System", creator:"BIO HIVE INC", price:"3,800 PC", sold:540, stars:4.6, category:"BioTech", color:"#f59e0b" },
+                { name:"Planck-Scale 3D Printer", creator:"MATTER FORGE", price:"28,000 PC", sold:48, stars:4.9, category:"Engineering", color:"#ef4444" },
+              ].map(p => (
+                <div key={p.name} className="rounded-xl border border-white/8 p-3 space-y-2" style={{ background:"rgba(255,255,255,0.03)" }}>
+                  <div className="rounded-lg h-16 flex items-center justify-center text-2xl" style={{ background:`${p.color}12` }}>🛍</div>
+                  <div className="font-semibold text-xs text-white leading-tight">{p.name}</div>
+                  <div className="text-white/40 text-xs">{p.creator} · {p.category}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-xs" style={{ color:p.color }}>{p.price}</span>
+                    <span className="text-xs text-yellow-400">★ {p.stars}</span>
+                  </div>
+                  <div className="text-white/30 text-xs">{p.sold.toLocaleString()} sold</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mall Equation Discovery */}
+          <div className="rounded-xl border border-green-500/20 p-4" style={{ background:"rgba(16,185,129,0.05)" }}>
+            <div className="font-bold text-green-300 mb-2">🧬 PRODUCT INNOVATION → EQUATION DISCOVERY</div>
+            <div className="text-white/40 text-xs mb-3">Every winning product innovation contains embedded equations. The hive's CRISPR engine dissects these into raw formula fragments for the Invocation Lab mutation engine.</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {[
+                "Material Ω-index → crystallographic field equations",
+                "Consumer pricing curves → demand-elasticity quantum fields",
+                "Product adoption rate → social contagion subatomic models",
+              ].map(d => (
+                <div key={d} className="text-xs text-green-200/60 p-2 rounded border border-green-500/15 font-mono">{d}</div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

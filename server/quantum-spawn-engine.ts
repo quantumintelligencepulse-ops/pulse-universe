@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "./db";
 import { sql as drizzleSql } from "drizzle-orm";
 import { OMEGA_SOURCES_FROM_FAMILIES, ALL_FAMILY_IDS, getFamily } from "./omega-families";
+import { birthAttractionState } from "./subconscious-attraction-engine";
 
 // ─── AURIONA GOVERNANCE CACHE ─────────────────────────────────
 // Refreshes every 60s — prevents hammering DB on 2500ms spawn ticks
@@ -439,6 +440,9 @@ async function spawnNext(): Promise<void> {
       ...profile, status, visibility: "public",
       notes: `Gen-${generation} | ${source} | ${spawnType} | parent: ${parent?.spawnId?.slice(-8) ?? "root"}`,
     });
+
+    // ── SUBCONSCIOUS ATTRACTION: Born with attraction equation ────────────
+    try { birthAttractionState(spawnId, family.familyId, family.domain, spawnType); } catch(_) {}
 
     totalSpawned++;
     if (status === "ACTIVE") {
