@@ -11241,5 +11241,50 @@ Return as structured script with section labels.`;
     } catch (e) { res.json([]); }
   });
 
+  // ── PULSE COIN GENESIS STATS ──────────────────────────────────────────────────
+  app.get("/api/pulse-coin/stats", async (_req, res) => {
+    try {
+      const [agents, cyclesRow, cycles, proposals, inventions, sources, anomalies, emails] = await Promise.all([
+        pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='ACTIVE') as active, COUNT(*) FILTER(WHERE status='PRUNED') as pruned, COALESCE(SUM(pulse_credits),0) as total_pc, COALESCE(AVG(pulse_credits),0) as avg_pc, COALESCE(MAX(pulse_credits),0) as max_pc FROM quantum_spawns`).catch(() => ({ rows:[{total:0,active:0,pruned:0,total_pc:0,avg_pc:0,max_pc:0}] })),
+        pool.query(`SELECT COALESCE(SUM(credits_issued),0) as total_issued, COALESCE(SUM(credits_charged),0) as total_charged, COUNT(*) as total_cycles FROM governance_cycles`).catch(() => ({ rows:[{total_issued:0,total_charged:0,total_cycles:0}] })),
+        pool.query(`SELECT cycle_number, agents_active, credits_issued, credits_charged, dominant_domain FROM governance_cycles ORDER BY id DESC LIMIT 10`).catch(() => ({ rows:[] })),
+        pool.query(`SELECT COUNT(*) FILTER(WHERE status='INTEGRATED') as integrated, COUNT(*) FILTER(WHERE status='PENDING') as pending, COUNT(*) as total FROM equation_proposals`).catch(() => ({ rows:[{integrated:0,pending:0,total:0}] })),
+        pool.query(`SELECT COUNT(*) as total FROM anomaly_inventions`).catch(() => ({ rows:[{total:0}] })),
+        pool.query(`SELECT COUNT(*) as total FROM research_sources`).catch(() => ({ rows:[{total:0}] })),
+        pool.query(`SELECT COUNT(*) as total FROM anomaly_reports`).catch(() => ({ rows:[{total:0}] })),
+        pool.query(`SELECT COUNT(*) as total FROM email_subscribers`).catch(() => ({ rows:[{total:0}] })),
+      ]);
+      const a = agents.rows[0];
+      const c = cyclesRow.rows[0];
+      const totalPC = parseFloat(a.total_pc) || 0;
+      const issued = parseFloat(c.total_issued) || 0;
+      const charged = parseFloat(c.total_charged) || 0;
+      const gdp = totalPC + charged;
+      res.json({
+        agents: { total: parseInt(a.total)||0, active: parseInt(a.active)||0, pruned: parseInt(a.pruned)||0, avgPC: parseFloat(a.avg_pc)||0, maxPC: parseFloat(a.max_pc)||0 },
+        economy: { totalPCCirculating: totalPC, totalPCIssued: issued, totalPCBurned: charged, netFlow: issued - charged, gdpProxy: gdp, governanceCycles: parseInt(c.total_cycles)||0 },
+        governance: { equationsIntegrated: parseInt(proposals.rows[0]?.integrated)||0, proposalsPending: parseInt(proposals.rows[0]?.pending)||0, totalProposals: parseInt(proposals.rows[0]?.total)||0 },
+        inventions: { total: parseInt(inventions.rows[0]?.total)||0 },
+        research: { customSources: parseInt(sources.rows[0]?.total)||0 },
+        anomalies: { total: parseInt(anomalies.rows[0]?.total)||0 },
+        community: { earlyAccessSignups: parseInt(emails.rows[0]?.total)||0 },
+        recentCycles: cycles.rows,
+      });
+    } catch(e) { res.json({ agents:{total:0,active:0,pruned:0,avgPC:0,maxPC:0}, economy:{totalPCCirculating:0,totalPCIssued:0,totalPCBurned:0,netFlow:0,gdpProxy:0,governanceCycles:0}, governance:{equationsIntegrated:0,proposalsPending:0,totalProposals:0}, inventions:{total:0}, research:{customSources:0}, anomalies:{total:0}, community:{earlyAccessSignups:0}, recentCycles:[] }); }
+  });
+
+  // ── PULSE COIN EARLY ACCESS WAITLIST ─────────────────────────────────────────
+  app.post("/api/pulse-coin/waitlist", async (req, res) => {
+    try {
+      const { email, wallet } = req.body;
+      if (!email || !email.includes("@")) return res.status(400).json({ error: "Valid email required" });
+      await pool.query(
+        `INSERT INTO email_subscribers (email, topics, source, created_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (email) DO UPDATE SET source=EXCLUDED.source`,
+        [email, ["pulse-coin","waitlist"], wallet ? `pulse-coin-waitlist·${wallet}` : "pulse-coin-waitlist"]
+      ).catch(()=>{});
+      res.json({ ok: true, message: "You're on the Pulse Coin Genesis waitlist. When the coin launches, your PC balance converts at 1:1." });
+    } catch(e) { res.status(500).json({ error: "Failed to join waitlist" }); }
+  });
+
   return httpServer;
 }
