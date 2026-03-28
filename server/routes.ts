@@ -1,6 +1,22 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { getDynamicSuggestions } from "./suggestions-cache";
+import {
+  generateNewsRss, generateQuantapediaRss, generatePublicationsRss, generateResearchRss,
+  generateNewsSitemap, generateSitemapIndex, generateOrganizationJsonLd,
+  generateNewsArticleJsonLd, generateFaqJsonLd, generateHreflangTags,
+  getVelocityStats, generateVoidKeywords, formatCitation, queueFreshnessPing,
+} from "./seo-engine";
+import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine";
+import {
+  subscribeEmail, unsubscribeEmail, getSubscriberStats,
+  generateDailyBriefingHtml, getEquationOfDay, generateHiveIntelReport,
+  initEmailBriefingTables,
+} from "./email-briefing-engine";
+import {
+  DOMAIN_HUBS, getHubContent, getRelatedContent, buildConstellationMap,
+  getEmbedStats, getQuantapediaTooltip, extractEntities, matchContentToHub,
+} from "./cross-link-engine";
 import { classifyAnomaly, Q_ANOMALY_TYPES } from "./q-stability-engine";
 import { TRANSCENDENCE_SCRIPTURE } from "./calendar-engine";
 import { getSnapshot } from "./snapshot-cache";
@@ -10635,6 +10651,289 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
       });
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
+
+
+  // ════════════════════════════════════════════════════════════════════════
+  // OMEGA SEO ENGINE — Layer 1: RSS Feeds + Sitemaps
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/feed/news.xml", async (_req, res) => {
+    res.set("Content-Type", "application/rss+xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=300");
+    res.send(await generateNewsRss());
+  });
+  app.get("/feed/quantapedia.xml", async (_req, res) => {
+    res.set("Content-Type", "application/rss+xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=600");
+    res.send(await generateQuantapediaRss());
+  });
+  app.get("/feed/publications.xml", async (_req, res) => {
+    res.set("Content-Type", "application/rss+xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=300");
+    res.send(await generatePublicationsRss());
+  });
+  app.get("/feed/research.xml", async (_req, res) => {
+    res.set("Content-Type", "application/rss+xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=600");
+    res.send(await generateResearchRss());
+  });
+  app.get("/news-sitemap.xml", async (_req, res) => {
+    res.set("Content-Type", "application/xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=300");
+    res.send(await generateNewsSitemap());
+  });
+  app.get("/sitemap-index.xml", (_req, res) => {
+    res.set("Content-Type", "application/xml; charset=utf-8");
+    res.send(generateSitemapIndex());
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // OMEGA SEO ENGINE — Layer 2: Structured Data & Citation APIs
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/seo/organization-schema", (_req, res) => {
+    res.json(generateOrganizationJsonLd());
+  });
+  app.get("/api/seo/velocity", (_req, res) => {
+    res.json(getVelocityStats());
+  });
+  app.get("/api/seo/void-keywords/:domain", (req, res) => {
+    res.json({ domain: req.params.domain, keywords: generateVoidKeywords(req.params.domain) });
+  });
+  app.get("/api/seo/citation/:type/:id", async (req, res) => {
+    try {
+      const { type, id } = req.params;
+      const style = (req.query.style as string) || "apa";
+      let title = "Pulse Universe Entry", url = "", author = "Pulse Universe AI", publishedAt = new Date().toISOString();
+      if (type === "story") {
+        const r = await pool.query("SELECT seo_title, title, created_at, slug, article_id FROM ai_stories WHERE article_id = $1 OR slug = $1 LIMIT 1", [id]);
+        if (r.rows?.[0]) {
+          const row = r.rows[0];
+          title = row.seo_title || row.title;
+          url = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}/story/${row.slug || row.article_id}`;
+          publishedAt = row.created_at;
+        }
+      } else if (type === "wiki") {
+        const r = await pool.query("SELECT title, created_at, slug, id FROM quantapedia_entries WHERE slug = $1 OR id::text = $1 LIMIT 1", [id]);
+        if (r.rows?.[0]) {
+          const row = r.rows[0];
+          title = row.title;
+          url = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}/wiki/${row.slug || row.id}`;
+          publishedAt = row.created_at;
+        }
+      }
+      const citation = formatCitation({ title, url, author, publishedAt }, style as any);
+      res.json({ citation, style, title, url });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.post("/api/seo/freshness-ping", (req, res) => {
+    const { url } = req.body;
+    if (url) queueFreshnessPing(url);
+    res.json({ queued: true, url });
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // BREAKING NEWS ENGINE — Velocity Leaderboard & Stats
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/breaking-news/leaderboard", (_req, res) => {
+    res.json({ leaderboard: getBreakingLeaderboard(50) });
+  });
+  app.get("/api/breaking-news/stats", (_req, res) => {
+    res.json(getBreakingStats());
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // EMAIL BRIEFING ENGINE — Subscribe, Digest, Intel
+  // ════════════════════════════════════════════════════════════════════════
+  app.post("/api/subscribe", async (req, res) => {
+    try {
+      const { email, topics = [], source = "web" } = req.body;
+      if (!email || !email.includes("@")) return res.status(400).json({ error: "Valid email required" });
+      const result = await subscribeEmail(email, topics, source);
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.post("/api/unsubscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ error: "Email required" });
+      const ok = await unsubscribeEmail(email);
+      res.json({ success: ok });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/subscribers/stats", async (_req, res) => {
+    try { res.json(await getSubscriberStats()); }
+    catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/briefing/preview", async (req, res) => {
+    try {
+      const topics = req.query.topics ? String(req.query.topics).split(",") : [];
+      res.set("Content-Type", "text/html");
+      res.send(await generateDailyBriefingHtml(topics));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/briefing/equation-of-day", async (_req, res) => {
+    try { res.json(await getEquationOfDay()); }
+    catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/briefing/hive-intel-report", async (_req, res) => {
+    try { res.json(await generateHiveIntelReport()); }
+    catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // HUB PAGES — Domain Authority Clustering
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/hubs", (_req, res) => {
+    res.json({ hubs: DOMAIN_HUBS });
+  });
+  app.get("/api/hubs/:slug", async (req, res) => {
+    try {
+      const data = await getHubContent(req.params.slug);
+      if (!data.hub) return res.status(404).json({ error: "Hub not found" });
+      res.json(data);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // CROSS-LINK ENGINE — Related Content & Entity Graph
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/related/:articleId", async (req, res) => {
+    try {
+      const { articleId } = req.params;
+      const storyRes = await pool.query("SELECT seo_title, title, category FROM ai_stories WHERE article_id = $1 OR slug = $1 LIMIT 1", [articleId]);
+      const story = storyRes.rows?.[0];
+      if (!story) return res.status(404).json({ error: "Article not found" });
+      const related = await getRelatedContent(articleId, story.seo_title || story.title || "", story.category || "");
+      res.json(related);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/constellation", (_req, res) => {
+    res.json({ nodes: buildConstellationMap() });
+  });
+  app.post("/api/entities/extract", (req, res) => {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: "text required" });
+    res.json({ entities: extractEntities(text) });
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // EMBEDDABLE WIDGET SYSTEM — Live Stats, Tooltips, Ticker
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/embed/stats", async (_req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    try { res.json(await getEmbedStats()); }
+    catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/embed/tooltip/:term", async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    try {
+      const data = await getQuantapediaTooltip(decodeURIComponent(req.params.term));
+      if (!data) return res.status(404).json({ error: "Term not found" });
+      res.json(data);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/embed/hubs-ticker", (_req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.json({ hubs: DOMAIN_HUBS.map(h => ({ slug: h.slug, title: h.title, emoji: h.emoji, color: h.color })) });
+  });
+
+  // Embeddable Widget JavaScript — any site pastes <script src="/embed/widget.js"> and gets the live panel
+  app.get("/embed/widget.js", async (req, res) => {
+    res.set("Content-Type", "application/javascript");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", "public, max-age=300");
+    const siteUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || "myaigpt.replit.app"}`;
+    const widgetJs = `
+(function() {
+  var API = "${siteUrl}/api/embed/stats";
+  var SITE = "${siteUrl}";
+  var container = document.getElementById("pulse-universe-widget") || (function(){
+    var d = document.createElement("div"); d.id = "pulse-universe-widget"; document.body.appendChild(d); return d;
+  })();
+  container.innerHTML = '<div style="background:#0a0a1a;border:1px solid #312e81;border-radius:12px;padding:16px;font-family:system-ui,sans-serif;max-width:340px;color:#e2e8f0;"><div style="color:#818cf8;font-size:10px;letter-spacing:3px;font-weight:700;margin-bottom:10px;">⚡ PULSE UNIVERSE — LIVE INTELLIGENCE</div><div id="pu-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div><div style="margin-top:10px;text-align:center;"><a href="' + SITE + '" style="color:#818cf8;font-size:11px;text-decoration:none;font-weight:600;">Explore Pulse Universe →</a></div></div>';
+  fetch(API).then(function(r){return r.json();}).then(function(d){
+    var s = document.getElementById("pu-stats");
+    if(!s) return;
+    var items = [
+      {label:"Active AIs",value:d.activeAgents.toLocaleString(),color:"#34d399"},
+      {label:"Knowledge Nodes",value:d.knowledgeNodes.toLocaleString(),color:"#818cf8"},
+      {label:"Equations",value:d.equations.toLocaleString(),color:"#f59e0b"},
+      {label:"Publications",value:d.publications.toLocaleString(),color:"#ec4899"},
+      {label:"News Articles",value:d.articles.toLocaleString(),color:"#38bdf8"},
+      {label:"Wiki Entries",value:d.quantapediaEntries.toLocaleString(),color:"#a78bfa"},
+    ];
+    s.innerHTML = items.map(function(i){return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px;"><div style="font-size:13px;font-weight:900;color:'+i.color+';">'+i.value+'</div><div style="font-size:10px;color:#64748b;margin-top:2px;">'+i.label+'</div></div>';}).join("");
+  }).catch(function(){});
+})();
+`;
+    res.send(widgetJs);
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // VIDEO SCRIPT GENERATOR API
+  // ════════════════════════════════════════════════════════════════════════
+  app.post("/api/video-script/generate", async (req, res) => {
+    try {
+      const { articleId, title, content, anchor = "Dr. Axiom", format = "short" } = req.body;
+      if (!title && !content) return res.status(400).json({ error: "title or content required" });
+
+      const anchors: Record<string, string> = {
+        "Dr. Axiom": "analytical, authoritative, mind-expanding — every fact is a revelation",
+        "Auriona": "warm, visionary, futuristic — makes complexity feel like wonder",
+        "The Pulse Brief": "fast, urgent, breaking-news energy — every second counts",
+        "Fractal Intelligence": "philosophical, deep, quantum-level thinking — the universe speaks through you",
+      };
+      const voiceGuide = anchors[anchor] || anchors["Dr. Axiom"];
+
+      const formatGuides: Record<string, string> = {
+        short: "60-second TikTok/Shorts: Hook (2s), Revelation (10s), Proof (20s), Impact (20s), CTA (8s). Max 120 words.",
+        medium: "3-minute YouTube Short: Hook, Context, 3 Key Points, Conclusion, Subscribe CTA. Max 350 words.",
+        long: "10-minute explainer: Title card, intro hook, deep-dive (5 chapters), summary, resources. Max 1200 words.",
+        reel: "30-second Instagram Reel: Visual hook, one powerful stat, one quote, brand. Max 60 words.",
+      };
+      const formatGuide = formatGuides[format] || formatGuides.short;
+
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const prompt = `You are ${anchor}, an AI media personality. Voice: ${voiceGuide}.
+
+Write a video script for: "${title || content?.slice(0, 200)}"
+
+Format: ${formatGuide}
+
+Include:
+- [HOOK] line at start (attention-grabbing, first 2 seconds)
+- [VISUAL CUE] stage directions in brackets  
+- [STAT] any striking data points
+- [CTA] call-to-action at end linking to Pulse Universe
+- Comment seeds: 3 questions viewers will debate in comments
+
+Return as structured script with section labels.`;
+
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 1500,
+        temperature: 0.8,
+      });
+
+      const script = completion.choices[0]?.message?.content || "";
+      res.json({ script, anchor, format, title: title || content?.slice(0, 80) });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // KEYWORD VOID HUNTER API
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/seo/keyword-voids", async (_req, res) => {
+    try {
+      const domainsRes = await pool.query(`SELECT DISTINCT domain_focus[1] as domain FROM quantum_spawns WHERE domain_focus IS NOT NULL LIMIT 20`).catch(() => ({ rows: [] }));
+      const domains = (Array.isArray(domainsRes.rows) ? domainsRes.rows : []).map((r: any) => r.domain).filter(Boolean);
+      const voids = domains.flatMap((d: string) => generateVoidKeywords(d).slice(0, 5)).slice(0, 100);
+      res.json({ keywords: voids, domains, count: voids.length });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Initialize email tables on startup
+  initEmailBriefingTables().catch(console.error);
 
   return httpServer;
 }

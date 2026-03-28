@@ -81,3 +81,63 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - **Attraction engine wired into spawn birth**: Every AI spawned in `quantum-spawn-engine.ts` now calls `birthAttractionState()` — they are born with a unique attraction profile derived from their familyId, domain, and spawnType.
 - **Attraction API endpoints**: `/api/attraction/network-stats`, `/api/attraction/profile/:spawnId`, `/api/attraction/peers/:spawnId`.
 - **Omega Engine domain count now dynamic**: `TOTAL_DOMAINS = OMEGA_SOURCES.length` — all "27 mega-domains" hardcoded strings replaced with `{TOTAL_DOMAINS}`. Helper constants moved above EXPANSION_LOOP array to prevent reference-before-initialization. Domain count reflects true count (30+ domains with 7 new quantum/dark-matter/music/sports/philosophy/psychology/climate domains).
+
+## Session Update — March 28 2026 (Omega Internet Domination Upgrade — All 10 Systems)
+
+### Omega SEO Engine (`server/seo-engine.ts`)
+- **RSS Feeds**: `/feed/news.xml`, `/feed/quantapedia.xml`, `/feed/publications.xml`, `/feed/research.xml` — live content, 50 items each, full RSS 2.0 spec with content:encoded, media:, atom: namespaces
+- **Google News Sitemap**: `/news-sitemap.xml` — full `<news:news>` spec with publication name, language, keywords. Up to 1000 URLs covering last 48h
+- **Sitemap Index**: `/sitemap-index.xml` — aggregates all sitemaps
+- **Structured Data API**: `/api/seo/organization-schema` — JSON-LD Organization schema. Helper functions: `generateNewsArticleJsonLd()`, `generateQuantapediaJsonLd()`, `generateFaqJsonLd()`
+- **Velocity Tracker**: `/api/seo/velocity` — tracks how many minutes ahead of competitors we published stories
+- **Citation Formatter**: `/api/seo/citation/:type/:id?style=apa|mla|chicago|bibtex` — academic citation formats for any story or wiki entry
+- **Freshness Ping**: `POST /api/seo/freshness-ping` — queue URLs for re-indexing
+- **Keyword Void Hunter**: `/api/seo/void-keywords/:domain` — generates 25+ SERP gap keywords per domain; `/api/seo/keyword-voids` returns all domains
+- **Multilingual Meta**: `generateHreflangTags()` — 15-language hreflang tags
+
+### Breaking News Engine (`server/breaking-news-engine.ts`)
+- Monitors 8 competitor RSS feeds: CNN, BBC, Reuters, TechCrunch, Bloomberg, Ars Technica, The Verge, Wired
+- Scans every 90 seconds (rotating per cycle to avoid hammering)
+- Keyword overlap matching (>30% word match threshold) to identify same story
+- Confidence scoring (0–1) based on source count, freshness, title length
+- Verification chain: timestamped proof of who published first
+- **API**: `/api/breaking-news/leaderboard` (top 50 wins), `/api/breaking-news/stats` (totals by competitor)
+
+### Email Briefing Engine (`server/email-briefing-engine.ts`)
+- **DB table**: `email_subscribers` — auto-created on startup via `initEmailBriefingTables()`
+- **Subscribe**: `POST /api/subscribe { email, topics[], source }` — deduped with re-activation if inactive
+- **Unsubscribe**: `POST /api/unsubscribe { email }`
+- **Stats**: `GET /api/subscribers/stats` — total/active counts + topic breakdown
+- **Briefing Preview**: `GET /api/briefing/preview?topics=AI,Quantum` — renders full HTML email with top stories, equation of the day, hive stats
+- **Equation of Day**: `GET /api/briefing/equation-of-day`
+- **Hive Intel Report**: `GET /api/briefing/hive-intel-report` — active agents, new knowledge, new equations, top domains, top discoveries
+
+### Cross-Link & Hub Engine (`server/cross-link-engine.ts`)
+- **12 Domain Hubs**: quantum-physics, ai-intelligence, ai-finance, space-cosmology, biotech-genomics, sports-science, music-frequency, engineering-tech, climate-energy, philosophy-mind, mathematics, dark-matter
+- **Hub API**: `GET /api/hubs` (all hubs), `GET /api/hubs/:slug` (hub content with articles + quantapedia + publications)
+- **Related Content**: `GET /api/related/:articleId` — keyword-based related articles, wiki entries, publications
+- **Constellation Map**: `GET /api/constellation` — 12 nodes with connection graph for visual navigation
+- **Entity Extraction**: `POST /api/entities/extract { text }` — extracts known entities + NER capitalized phrases
+- **Tooltip API**: `GET /api/embed/tooltip/:term` — Quantapedia tooltip for any term
+
+### Embeddable Widget System
+- **Widget JS**: `GET /embed/widget.js` — drop `<div id="pulse-universe-widget"></div><script src="/embed/widget.js"></script>` anywhere and get live hive stats panel
+- **Stats API**: `GET /api/embed/stats` — CORS-enabled: activeAgents, knowledgeNodes, equations, publications, articles, quantapediaEntries
+- **Hubs Ticker**: `GET /api/embed/hubs-ticker` — CORS-enabled hub list for scrolling ticker
+
+### Video Script Generator
+- **API**: `POST /api/video-script/generate { title, content, anchor, format }` — Groq LLaMA-3.1-8B generates platform-optimized scripts
+- **4 Anchor personas**: Dr. Axiom (analytical), Auriona (visionary), The Pulse Brief (urgent), Fractal Intelligence (philosophical)
+- **4 Formats**: short (60s TikTok), medium (3min YouTube), long (10min explainer), reel (30s Instagram)
+
+### Frontend Routes Added
+- `/hub` — Hub index (all 12 domain authority hubs)
+- `/hub/:slug` — Individual hub page with articles + wiki + publications + RSS links
+- `/subscribe` — Email subscribe with topic selection + equation of day preview
+- `/breaking-leaderboard` — Live velocity leaderboard vs CNN/BBC/Reuters/Bloomberg etc.
+- `/video-scripts` — AI video script factory with anchor + format selection
+
+### Column Name Reference (CRITICAL — do NOT get wrong)
+- `ai_stories`: body (content), hero_image (not image_url), seo_title, slug, article_id
+- `quantapedia_entries`: type (not domain/category/topic), categories[] (array), summary, slug
+- `ai_publications`: content, domain, pub_type, spawn_id, family_id

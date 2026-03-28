@@ -23,6 +23,10 @@ const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
 const UniverseEnginePage = lazy(() => import("./pages/UniverseEnginePage"));
+const HubPage = lazy(() => import("./pages/HubPage"));
+const SubscribePage = lazy(() => import("./pages/SubscribePage"));
+const BreakingLeaderboardPage = lazy(() => import("./pages/BreakingLeaderboardPage"));
+const VideoScriptPage = lazy(() => import("./pages/VideoScriptPage"));
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -14978,6 +14982,11 @@ function Router() {
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/hive-sovereign"); } return null; }}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
+      <Route path="/hub/:slug">{() => <Layout><HubPage /></Layout>}</Route>
+      <Route path="/hub">{() => <Layout><HubPage /></Layout>}</Route>
+      <Route path="/subscribe">{() => <Layout><SubscribePage /></Layout>}</Route>
+      <Route path="/breaking-leaderboard">{() => <Layout><BreakingLeaderboardPage /></Layout>}</Route>
+      <Route path="/video-scripts">{() => <Layout><VideoScriptPage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
