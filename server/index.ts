@@ -70,6 +70,7 @@ import { startOmniNetEngine, getOmniNetStats, getAgentNetProfile } from "./omni-
 import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory } from "./research-center-engine";
 import { getResearchCached, isResearchReady } from "./pulsenet-cache";
 import { startCivilizationBridge, getBridgeStats, getMirrorState, getWills, getSuccessions, getEquationEvolutions } from "./civilization-bridge";
+import { startIndexingEngine, getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -351,6 +352,7 @@ app.use((req, res, next) => {
         startOmniNetEngine().catch((e) => log(`OmniNetEngine start error: ${e}`));
         startCivilizationBridge().catch((e) => log(`CivilizationBridge start error: ${e}`));
         startSovereignTradingEngine().catch((e) => log(`SovereignTradingEngine start error: ${e}`));
+        startIndexingEngine();
       }, 40_000);
 
       // Discord Immortality Protocol disabled — using regular Replit storage

@@ -8,6 +8,7 @@ import {
   getVelocityStats, generateVoidKeywords, formatCitation, queueFreshnessPing,
 } from "./seo-engine";
 import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine";
+import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import {
   subscribeEmail, unsubscribeEmail, getSubscriberStats,
   generateDailyBriefingHtml, getEquationOfDay, generateHiveIntelReport,
@@ -810,6 +811,8 @@ Sitemap: ${baseUrl}/sitemap-pyramid.xml
 Sitemap: ${baseUrl}/sitemap-decisions.xml
 Sitemap: ${baseUrl}/sitemap-thoughts.xml
 Sitemap: ${baseUrl}/sitemap-quantum-master.xml
+Sitemap: ${baseUrl}/sitemap-index.xml
+Sitemap: ${baseUrl}/news-sitemap.xml
 Sitemap: ${baseUrl}/news-rss.xml
 
 # My Ai Gpt by ${SITE_CREATOR}
@@ -10934,6 +10937,29 @@ Return as structured script with section labels.`;
 
   // Initialize email tables on startup
   initEmailBriefingTables().catch(console.error);
+
+  // ════════════════════════════════════════════════════════════════════════
+  // OMEGA AUTO-INDEXING ENGINE — Layer 2 & 5 Routes
+  // ════════════════════════════════════════════════════════════════════════
+
+  // IndexNow key file — Bing/Yandex verify key ownership by fetching this
+  const indexNowKey = process.env.INDEXNOW_KEY || "omega-pulse-universe-indexnow-key-2026";
+  app.get(`/${indexNowKey}.txt`, (_req, res) => {
+    res.type("text/plain").send(indexNowKey);
+  });
+
+  // Status dashboard
+  app.get("/api/indexing/status", (_req, res) => {
+    res.json(getIndexingStatus());
+  });
+
+  // Manual trigger — submit a specific URL immediately
+  app.post("/api/indexing/submit", (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "url required" });
+    queueUrlForIndexing(url);
+    res.json({ queued: true, url });
+  });
 
   return httpServer;
 }
