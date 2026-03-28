@@ -1708,6 +1708,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
   const { data: messages = [] } = useMessages(chatId || null);
   const [localMessages, setLocalMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [isThinking, setIsThinking] = useState(false);
+  const [streamingReply, setStreamingReply] = useState("");
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastFailedMsg, setLastFailedMsg] = useState<string | null>(null);
   // #21 - Saved codes panel
@@ -1760,7 +1761,7 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
 
   useEffect(() => {
     if (scrollRef.current && appSettingsForChat.autoScroll) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, localMessages, isThinking]);
+  }, [messages, localMessages, isThinking, streamingReply]);
 
   const { user } = useAuth();
   const [limitReached, setLimitReached] = useState(isLimitReached());
@@ -1792,15 +1793,45 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
         useEmojis: appSettingsForChat.useEmojis,
         greetingName: appSettingsForChat.greetingName || appSettingsForChat.displayName,
       };
-      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content, personalization }), credentials: "include" });
+      const r = await fetch(buildUrl(api.messages.create.path, { chatId: targetChatId }), { method: "POST", headers: { "Content-Type": "application/json", "Accept": "text/event-stream" }, body: JSON.stringify({ content, personalization, stream: true }), credentials: "include" });
       trackInteraction("chat_message", { text: content, topic: content.slice(0, 60) });
       if (!r.ok) throw new Error("Failed to get response");
+
+      // ── SSE STREAMING: show tokens as they arrive ──────────────────────────
+      if (r.headers.get("content-type")?.includes("text/event-stream") && r.body) {
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (!payload || payload === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(payload);
+              if (parsed.delta) setStreamingReply(prev => prev + parsed.delta);
+              if (parsed.done) {
+                setStreamingReply("");
+                if (!chatId) { setLocation(`/chat/${targetChatId}`); }
+                else { qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] }); setLocalMessages([]); }
+              }
+            } catch {}
+          }
+        }
+        return;
+      }
+
       if (!chatId) { setLocation(`/chat/${targetChatId}`); } else { qc.invalidateQueries({ queryKey: [api.messages.list.path, chatId] }); setLocalMessages([]); }
     } catch (error: any) {
       setLastError(error.message); setLastFailedMsg(content);
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setLocalMessages(prev => prev.filter(m => m.content !== content));
-    } finally { setIsThinking(false); }
+    } finally { setIsThinking(false); setStreamingReply(""); }
   }, [chatId, defaultType, qc, setLocation, toast, appSettingsForChat]);
 
   const handleRegenerate = useCallback(async () => {
@@ -1964,7 +1995,8 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
               <ChatMsg key={i} role={msg.role} content={msg.content} isCoder={isCoder} timestamp={(msg as any).createdAt}
                 onRetry={msg.role === "assistant" && i === allMessages.length - 1 ? handleRegenerate : undefined} />
             ))}
-            {isThinking && <ChatMsg role="assistant" content="" isThinking isCoder={isCoder} />}
+            {isThinking && !streamingReply && <ChatMsg role="assistant" content="" isThinking isCoder={isCoder} />}
+            {streamingReply && <ChatMsg role="assistant" content={streamingReply} isCoder={isCoder} />}
             {lastError && lastFailedMsg && (
               <div className="flex justify-center py-3">
                 <button onClick={() => handleSend(lastFailedMsg!)} data-testid="button-retry"

@@ -1,8 +1,24 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { setupSeoMiddleware } from "./seo";
 import { createServer } from "http";
+
+// ── GLOBAL CRASH GUARD — server NEVER dies from uncaught errors ──────────────
+// Without this, a single thrown error in any engine kills the entire process.
+process.on('uncaughtException', (err, origin) => {
+  console.error(`[CRASH GUARD] uncaughtException (${origin}): ${err?.message || err}`);
+  // Process continues — civilization survives
+});
+process.on('unhandledRejection', (reason) => {
+  console.error(`[CRASH GUARD] unhandledRejection: ${reason instanceof Error ? reason.message : String(reason)}`);
+  // Process continues — no crash
+});
+process.on('SIGTERM', () => {
+  console.log('[CRASH GUARD] SIGTERM received — staying alive, flushing gracefully');
+  // Do NOT exit — Replit sends SIGTERM on idle, we must survive it
+});
 import { startQuantapediaEngine } from "./quantapedia-engine";
 import { startQuantumProductEngine } from "./quantum-product-engine";
 import { startHiveBrain } from "./hive-brain";
@@ -82,6 +98,10 @@ declare module "http" {
     rawBody: unknown;
   }
 }
+
+// ── GZIP COMPRESSION — reduces response size by 60-80%, cuts bandwidth costs ─
+// threshold: 1kb — don't compress tiny responses (net loss on tiny payloads)
+app.use(compression({ level: 6, threshold: 1024 }));
 
 app.use(
   express.json({

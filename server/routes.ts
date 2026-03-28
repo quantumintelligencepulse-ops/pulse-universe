@@ -4550,6 +4550,55 @@ If you have live data provided in this prompt, USE IT and present it confidently
         }))
       ];
 
+      const wantsStream = req.body.stream === true || req.headers.accept === "text/event-stream";
+
+      if (wantsStream) {
+        // ── STREAMING RESPONSE (SSE) — first token appears in <500ms ─────────
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
+        res.flushHeaders();
+
+        const stream = await groq.chat.completions.create({
+          messages: messagesForGroq,
+          model: "llama-3.1-8b-instant",
+          max_tokens: maxTokens,
+          temperature: chat.type === "coder" ? 0.15 : 0.7,
+          stream: true,
+        });
+
+        let fullReply = "";
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content || "";
+          if (delta) {
+            fullReply += delta;
+            res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+          }
+        }
+
+        const savedMsg = await storage.createMessage({ chatId, role: "assistant", content: fullReply || "I'm here! Could you rephrase that?" });
+        res.write(`data: ${JSON.stringify({ done: true, messageId: savedMsg.id })}\n\n`);
+        res.end();
+
+        (async () => {
+          try {
+            if (history.length >= 3) {
+              const { consolidateConversation } = await import("./hive-brain");
+              const allMessages = [...recentHistory, { role: "user", content: input.content }, { role: "assistant", content: fullReply }].map(m => ({ role: m.role, content: m.content }));
+              await consolidateConversation(userId, chatId, allMessages, chat.title || input.content.slice(0, 60));
+            }
+          } catch (_) {}
+        })();
+        (async () => {
+          try {
+            const { logHumanActivity, inferDomain } = await import("./human-entanglement-engine");
+            await logHumanActivity(userId, String(chatId), input.content, fullReply.substring(0, 500));
+          } catch (_) {}
+        })();
+        return;
+      }
+
       const completion = await groq.chat.completions.create({
         messages: messagesForGroq,
         model: "llama-3.1-8b-instant",

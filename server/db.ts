@@ -13,8 +13,11 @@ if (!process.env.DATABASE_URL) {
 // Main shared pool — used by all background engines
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 25,
+  max: 18,
+  min: 2,
   idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 4000,
+  allowExitOnIdle: false,
 });
 pool.on('error', (err) => {
   console.error('[pool] idle client error (main):', err.message);
@@ -23,8 +26,11 @@ pool.on('error', (err) => {
 // Priority pool — for user-facing API storage queries
 export const priorityPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 5,
+  max: 7,
+  min: 1,
   idleTimeoutMillis: 15000,
+  connectionTimeoutMillis: 3000,
+  allowExitOnIdle: false,
 });
 priorityPool.on('error', (err) => {
   console.error('[pool] idle client error (priority):', err.message);
@@ -36,7 +42,10 @@ priorityPool.on('error', (err) => {
 export const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 3,
+  min: 1,
   idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 3000,
+  allowExitOnIdle: false,
 });
 sessionPool.on('error', (err) => {
   console.error('[pool] idle client error (session):', err.message);
