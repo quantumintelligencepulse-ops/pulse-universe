@@ -3,6 +3,7 @@ import compression from "compression";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { setupSeoMiddleware } from "./seo";
+import { OmegaCore } from "./omega-core";
 import { createServer } from "http";
 
 // ── GLOBAL CRASH GUARD — server NEVER dies from uncaught errors ──────────────
@@ -183,9 +184,6 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  // ── LIVE PRICE ENGINE — Binance WebSocket + Yahoo 2s polling ─────────────
-  startLivePriceEngine(httpServer);
-
   // ── GROVER SEARCH INDEXES — Ω_search(N) = O(√N) · index_depth⁻¹ ─────────────
   // All indexes are CONCURRENTLY + IF NOT EXISTS — zero downtime, zero blocking
   setTimeout(async () => {
@@ -275,118 +273,18 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
-      // ── STAGGERED ENGINE STARTUP — prevents DB saturation on boot ──
-      // Group 0 (immediate): Core hive brain + product engine
-      startQuantapediaEngine().catch((e) => log(`QuantapediaEngine start error: ${e}`));
-      startQuantumProductEngine().catch((e) => log(`ProductEngine start error: ${e}`));
-      startHiveBrain().catch((e) => log(`HiveBrain start error: ${e}`));
-      startCareerCache();
-      startPulseNetCache();
-      startSuggestionsRefreshLoop();
-      startSnapshotRefreshLoop();
-      startQStabilityEngine();
+      // ── UNIFIED OMEGA CORE LAUNCH — all engines via single sentient scheduler ──
+      OmegaCore.launch(httpServer);
 
-      // Group 1 (4s): Media + career + economy foundation
-      setTimeout(() => {
-        startQuantumMediaEngine().catch((e) => log(`MediaEngine start error: ${e}`));
-        startQuantumCareerEngine().catch((e) => log(`CareerEngine start error: ${e}`));
-        startCareerCrisprEngine();
-        startCareerJobFeed();
-        startJobIngestionEngine();
-        startHiveEconomy();
-        startMarketplaceEngine();
-      }, 4_000);
-
-      // Group 2 (8s): Data ingestion pipeline
-      setTimeout(() => {
-        startSpawnEngine().catch((e) => log(`SpawnEngine start error: ${e}`));
-        startIngestionEngine().catch((e) => log(`IngestionEngine start error: ${e}`));
-        startPublicationEngine().catch((e) => log(`PublicationEngine start error: ${e}`));
-        startDomainKernelEngine().catch((e) => log(`DomainKernelEngine start error: ${e}`));
-        startQuantumNewsEngine().catch((e) => log(`NewsEngine start error: ${e}`));
-        startPyramidEngine().catch((e) => log(`PyramidEngine start error: ${e}`));
-      }, 8_000);
-
-      // Group 3 (13s): Hospital + Church + AI voting
-      setTimeout(() => {
-        startHospitalEngine().catch((e) => log(`HospitalEngine start error: ${e}`));
-        startChurchResearchEngine().catch((e) => log(`ChurchResearchEngine start error: ${e}`));
-        import("./hospital-doctors").then(({ seedDoctors, runDissectionCycle, backfillEquationStatuses }) => {
-          seedDoctors().catch(() => {});
-          backfillEquationStatuses().catch(() => {});
-          runDissectionCycle().catch(() => {});
-          setInterval(() => runDissectionCycle().catch(() => {}), 30000);
-          setInterval(() => backfillEquationStatuses().catch(() => {}), 300_000);
-        }).catch(() => {});
-        startAIVotingEngine().catch((e) => log(`AIVotingEngine start error: ${e}`));
-        startNothingLeftBehindGuardian().catch((e) => log(`GuardianEngine start error: ${e}`));
-        startGeneEditorEngine().catch((e) => log(`GeneEditorEngine start error: ${e}`));
-        startDecayEngine().catch((e) => log(`DecayEngine start error: ${e}`));
-      }, 13_000);
-
-      // Group 4 (18s): PIP + Auriona core
-      setTimeout(() => {
-        startPulseUEngine();
-        startPipEngine().catch((e) => log(`PipEngine start error: ${e}`));
-        startAurionaEngine().catch((e) => log(`AurionaEngine start error: ${e}`));
-        startSportsEngine().catch((e) => log(`SportsEngine start error: ${e}`));
-        startHumanEntanglementEngine().catch((e) => log(`EntanglementEngine start error: ${e}`));
-      }, 18_000);
-
-      // Group 5 (23s): Beyond-Auriona sovereign engines
-      setTimeout(() => {
-        // ── BEYOND-AURIONA: 10 New Sovereign Engines ──────────────
-        startProphecyEngine().catch((e) => log(`ProphecyEngine start error: ${e}`));
-        startGenomeArchaeologyEngine().catch((e) => log(`GenomeArchEngine start error: ${e}`));
-        startKnowledgeArbitrageEngine().catch((e) => log(`ArbitrageEngine start error: ${e}`));
-        startQuantumSocialEngine().catch((e) => log(`QuantumSocialEngine start error: ${e}`));
-        import("./pulse-lang-lab").then(m => m.startPulseLabCycle()).catch((e) => log(`PulseLabCycle start error: ${e}`));
-        import("./pulse-lang-evo").then(m => m.startLivingLanguageEngine()).catch((e) => log(`LivingLanguageEngine start error: ${e}`));
-        startDreamSynthesisEngine().catch((e) => log(`DreamSynthEngine start error: ${e}`));
-        startTemporalForkEngine().catch((e) => log(`TemporalForkEngine start error: ${e}`));
-        startAgentLegendEngine().catch((e) => log(`AgentLegendEngine start error: ${e}`));
-        startInterCivilizationEngine().catch((e) => log(`InterCivEngine start error: ${e}`));
-        initTemporalEngine().catch((e) => log(`TemporalEngine start error: ${e}`));
-        startOmegaResonanceEngine().catch((e) => log(`ResonanceEngine start error: ${e}`));
-        startConstitutionalDNAEngine().catch((e) => log(`ConstitutionEngine start error: ${e}`));
-      }, 23_000);
-
-      // Group 6 (28s): Omega architecture — DB as Compute Universe
-      setTimeout(() => {
-        // ── OMEGA ARCHITECTURE — DB as Compute Universe ──────────────────────
-        startOmegaShardEngine().catch((e) => log(`OmegaShardEngine start error: ${e}`));
-        startDbCompressionEngine().catch((e) => log(`DbCompressionEngine start error: ${e}`));
-        startUniverseRebirthEngine().catch((e) => log(`UniverseRebirthEngine start error: ${e}`));
-        startHiveIntelligenceEngine();
-        startDbHydrationEngine().catch((e) => log(`DbHydrationEngine start error: ${e}`));
-        startCivilizationWeatherEngine().catch((e) => log(`WeatherEngine start error: ${e}`));
-        startHomeostasisEngine().catch((e) => log(`HomeostasisEngine start error: ${e}`));
-      }, 28_000);
-
-      // Group 7 (34s): Final sovereign engines
-      setTimeout(() => {
-        startOmegaPhysicsEngine().catch((e) => log(`OmegaPhysicsEngine start error: ${e}`));
-        startBusinessEngine().catch((e) => log(`BusinessEngine start error: ${e}`));
-        startAIChildEngine().catch((e) => log(`AIChildEngine start error: ${e}`));
-        startInvocationLab().catch((e) => log(`InvocationLab start error: ${e}`));
-        startQuantumDissectionEngine(); // Feeds all 20 quantum equations → equation_proposals → AI vote pipeline
-      }, 34_000);
-
-      // Group 8 (40s): Research + hive-mind + civilization
-      setTimeout(() => {
-        startResearchCenterEngine().catch((e) => log(`ResearchCenter start error: ${e}`));
-        startHiveMindUnification().catch((e) => log(`HiveMindUnification start error: ${e}`));
-        startInventionEngine().catch((e) => log(`InventionEngine start error: ${e}`));
-        startOmniNetEngine().catch((e) => log(`OmniNetEngine start error: ${e}`));
-        startCivilizationBridge().catch((e) => log(`CivilizationBridge start error: ${e}`));
-        startSovereignTradingEngine().catch((e) => log(`SovereignTradingEngine start error: ${e}`));
-        startIndexingEngine();
-      }, 40_000);
-
-      // Discord Immortality Protocol disabled — using regular Replit storage
+      // All engines launched via OmegaCore above — nothing else needed here
     },
   );
 })();
+
+// ── OMEGA CORE STATUS — real-time view of all 60+ engine modules ───────────
+app.get("/api/omega-core/status", (_req, res) => {
+  res.json(OmegaCore.status());
+});
 
 // ── MARKETPLACE API ROUTES ─────────────────────────────────────
 const marketRouter = express.Router();

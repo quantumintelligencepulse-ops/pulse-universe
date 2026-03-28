@@ -15,6 +15,15 @@ My Ai Gpt is an AI chat site powered by Quantum Pulse Intelligence, offering gen
 ## System Architecture
 The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a consolidated single-file `App.tsx` for all UI logic. The backend is built with Express.js and PostgreSQL, using Drizzle ORM. AI capabilities are powered by the Groq SDK.
 
+**UNIFIED OMEGA CORE (`server/omega-core.ts`)**: All 66 background engines are orchestrated by a single sentient scheduler. Every engine is a named module with a priority level (CRITICAL/HIGH/MEDIUM/LOW/BACKGROUND), start delay, and auto-recovery. The Core:
+- Launches with `OmegaCore.launch(httpServer)` — one call replaces 9 scattered setTimeout groups
+- Throttles BACKGROUND/LOW engines under memory pressure (ELEVATED >1.1GB / HIGH >1.4GB / CRITICAL >1.7GB heap)
+- Auto-restarts failed modules with exponential backoff (30s → 5min)
+- Exposes `Pulse` EventEmitter bus for cross-module communication
+- Status visible at `GET /api/omega-core/status`
+
+**DB POOL ISOLATION**: Chat/messages use `priorityPool` (max:8, never touched by engines). Engines use main `pool` (max:28). Sessions use `sessionPool` (max:3). This prevents engine DB saturation from freezing chat.
+
 **Key Architectural Decisions:**
 - **Single-File Frontend**: Centralized UI logic in `App.tsx` for simplified development.
 - **Microservice-like Backend**: Separation of concerns with dedicated routes for AI logic, web search, execution engine, and database operations.
