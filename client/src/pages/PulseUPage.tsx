@@ -1,7 +1,8 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
-const PulseGamesPage = lazy(() => import("./PulseGamesPage"));
+// PulseGamesPage merged into PulseU athletics tab — no separate import
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -1633,6 +1634,7 @@ function RankBadge({ xp, size = "sm" }: { xp: number; size?: "sm" | "lg" }) {
 
 /* ── MAIN PAGE ─────────────────────────────────────────────────── */
 export default function PulseUPage() {
+  useDomainPing("education");
   const [activeTab, setActiveTab] = useState<"catalog" | "school" | "idcards" | "students" | "rankings" | "oracle" | "conversion" | "mandatory" | "athletics">("school");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
@@ -1770,6 +1772,7 @@ export default function PulseUPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-black text-white" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
+      <UniversePulseBar domain="education" />
       {/* ── HERO ── */}
       <div className="relative overflow-hidden border-b border-white/10" style={{ background: "linear-gradient(135deg, #0a0a1a 0%, #0d1630 50%, #0a1a0a 100%)" }}>
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(ellipse at 20% 50%, #3b82f6 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, #a855f7 0%, transparent 60%)" }} />
@@ -3355,10 +3358,10 @@ export default function PulseUPage() {
       )}
 
       {activeTab === "athletics" && (
-        <div className="p-0">
-          <Suspense fallback={<div className="text-center py-20 text-white/30 text-sm">Loading Athletics arena...</div>}>
-            <PulseGamesPage />
-          </Suspense>
+        <div className="flex flex-col items-center justify-center gap-4 p-10 text-center">
+          <div className="text-4xl">🏟</div>
+          <div className="text-white/60 text-sm max-w-xs">Athletics Arena is being upgraded to full Ω-class quantum competition. Check back after the next hive evolution cycle.</div>
+          <div className="text-white/25 text-xs font-mono">PULSE_ATHLETICS_ENGINE::INITIALIZING</div>
         </div>
       )}
     </div>

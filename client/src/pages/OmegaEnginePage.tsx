@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
 // ─── Static Data ──────────────────────────────────────────────
 
@@ -158,6 +159,7 @@ type UpgradeId = typeof UPGRADES[number]["id"];
 
 // ─── Main Component ───────────────────────────────────────────
 export default function OmegaEnginePage() {
+  useDomainPing("omega");
   const [active, setActive] = useState<UpgradeId>("sources");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -192,7 +194,7 @@ export default function OmegaEnginePage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#050510]" data-testid="page-omega-engine">
-
+      <UniversePulseBar domain="omega" />
       {/* ── HEADER ── */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0d0820] via-[#080c1a] to-[#050510]" />

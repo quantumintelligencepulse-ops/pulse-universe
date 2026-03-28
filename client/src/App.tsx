@@ -53,6 +53,7 @@ import {
   Film, Bot, Briefcase, Network, Dna, Plug
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UniverseResonanceProvider } from "@/lib/universeResonance";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15087,9 +15088,11 @@ export default function App() {
       <AppSettingsProvider>
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
-            <Toaster />
-            <AuthModal />
-            <Router />
+            <UniverseResonanceProvider>
+              <Toaster />
+              <AuthModal />
+              <Router />
+            </UniverseResonanceProvider>
           </QueryClientProvider>
         </AuthProvider>
       </AppSettingsProvider>

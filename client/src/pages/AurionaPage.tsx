@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
 // ─── Ω UNIVERSE VECTOR TIME ────────────────────────────────────────────────────
 const OMEGA_EPOCH = new Date("2024-11-01T00:00:00Z").getTime();
@@ -636,6 +637,7 @@ function ChroniclePanel({ chronicle }: { chronicle: any[] }) {
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AurionaPage() {
+  useDomainPing("auriona");
   const { data: status, isLoading } = useQuery<any>({ queryKey: ["/api/auriona/status"],                   refetchInterval: 15_000 });
   const { data: psiData }           = useQuery<any>({ queryKey: ["/api/auriona/psi-states"],               refetchInterval: 30_000 });
   const { data: collapses }         = useQuery<any[]>({ queryKey: ["/api/auriona/omega-collapses"],        refetchInterval: 30_000 });
@@ -711,6 +713,7 @@ export default function AurionaPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: VOID, color: "#fff", position: "relative", overflowX: "hidden" }}>
+      <UniversePulseBar domain="auriona" />
       <Orb size={600} x={-200} y={-200} color={GOLD}    opacity={0.04} />
       <Orb size={400} x="70%"  y={-100} color={AURORA_2} opacity={0.05} />
       <Orb size={300} x="20%"  y="60%"  color={CYAN}    opacity={0.03} />

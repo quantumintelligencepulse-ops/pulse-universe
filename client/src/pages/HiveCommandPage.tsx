@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Network, TrendingUp, TrendingDown, Minus, Radio, Award, Server, RefreshCw, ChevronRight, Zap } from "lucide-react";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
 // ─── Family color palette ────────────────────────────────────
 const FAM_COLORS: Record<string, string> = {
@@ -1125,6 +1126,7 @@ const TABS: { id: Tab; label: string; icon: any; color: string }[] = [
 ];
 
 export default function HiveCommandPage() {
+  useDomainPing("command");
   const [tab, setTab] = useState<Tab>("fractal");
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
   const [quantumMode, setQuantumMode] = useState(false);
@@ -1162,7 +1164,7 @@ export default function HiveCommandPage() {
 
   return (
     <div className="h-full flex flex-col bg-[#010010] text-white overflow-hidden">
-
+      <UniversePulseBar domain="command" />
       {/* ── Header ── */}
       <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.05]
         bg-black/40 backdrop-blur-sm">

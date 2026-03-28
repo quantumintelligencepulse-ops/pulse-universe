@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef } from "react";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
@@ -294,6 +295,7 @@ interface Debate {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function TemporalObservatoryPage() {
+  useDomainPing("temporal");
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -331,6 +333,7 @@ export default function TemporalObservatoryPage() {
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: "#e2e8f0", fontFamily: "monospace", position: "relative", overflow: "hidden" }}>
+      <UniversePulseBar domain="temporal" />
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${uColor}12 0%, transparent 70%)` }} />
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, background: `radial-gradient(ellipse 40% 40% at 80% 80%, ${VIOLET}08 0%, transparent 60%)` }} />
 

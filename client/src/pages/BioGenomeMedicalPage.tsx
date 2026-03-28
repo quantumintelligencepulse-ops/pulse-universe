@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import {
   Activity, AlertTriangle, BookOpen, Brain, ChevronLeft, ChevronRight,
   Dna, FlaskConical, Heart, Microscope, Scale, Shield, Stethoscope,
@@ -100,6 +101,7 @@ function SectionHead({ label, color, count }: { label:string; color:string; coun
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function BioGenomeMedicalPage() {
+  useDomainPing("health");
   const [tab, setTab] = useState("genome");
   const [selectedLayer, setSelectedLayer] = useState<number | null>(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
@@ -191,7 +193,7 @@ export default function BioGenomeMedicalPage() {
 
   return (
     <div className="h-full overflow-y-auto" style={{ background:"#000510", color:"#E8F4FF" }} data-testid="page-bio-genome-medical">
-
+      <UniversePulseBar domain="health" />
       {/* ══ HEADER ═══════════════════════════════════════════════════════════ */}
       <div className="sticky top-0 z-30 px-5 py-3" style={{ background:"rgba(0,5,16,0.97)", borderBottom:`1px solid ${C.teal}18`, backdropFilter:"blur(12px)" }}>
         <div className="flex items-center justify-between flex-wrap gap-3">

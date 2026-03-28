@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import {
   ShoppingBag, Wallet, Building2, ArrowLeftRight, Receipt,
   Star, Zap, Crown, Globe, Shield, Cpu, Brain, Leaf, FlaskConical,
@@ -187,6 +188,7 @@ function PlanetZoneCard({ zone, plots }: { zone: string; plots: any[] }) {
 
 // ── Main Page ─────────────────────────────────────────────────────
 export default function HiveMarketplacePage() {
+  useDomainPing("marketplace");
   const [tab, setTab] = useState<MarketTab>("products");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [tierFilter, setTierFilter] = useState<string>("ALL");
@@ -280,6 +282,7 @@ export default function HiveMarketplacePage() {
 
   return (
     <div className="h-full overflow-y-auto bg-black text-white">
+      <UniversePulseBar domain="marketplace" />
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-white/10 bg-black/95 backdrop-blur px-6 py-4">
         <div className="flex items-center gap-3 mb-1">

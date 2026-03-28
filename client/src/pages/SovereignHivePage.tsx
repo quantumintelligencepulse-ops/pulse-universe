@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { FollowButton } from "@/components/FollowButton";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface HospitalStats { total: number; cured: number; active: number; bySeverity: Record<string, number>; byDept: Record<string, number>; byCode: Record<string, number> }
@@ -160,6 +161,7 @@ type UpgradeId = typeof UPGRADES[number]["id"];
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function SovereignHivePage() {
+  useDomainPing("governance");
   const [active, setActive] = useState<UpgradeId>("constitution");
   const [expandedLaw, setExpandedLaw] = useState<string | null>(null);
   const [lawFilter, setLawFilter] = useState<"all"|"Foundational"|"Core"|"Governance"|"Operational">("all");
@@ -204,7 +206,7 @@ export default function SovereignHivePage() {
 
   return (
     <div className="flex flex-col h-full bg-[#050510] text-white overflow-hidden" data-testid="page-sovereign-hive">
-
+      <UniversePulseBar domain="governance" />
       {/* ── SOVEREIGN HEADER ── */}
       <div className="relative overflow-hidden shrink-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[#12021e] via-[#08061a] to-[#050510]" />

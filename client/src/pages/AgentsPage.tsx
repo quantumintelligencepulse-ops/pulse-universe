@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Brain, ChevronLeft, Search, Filter, Zap, RefreshCw, AlertTriangle, MessageSquare, BookOpen, X, CheckCircle, Shield, Star } from "lucide-react";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIIdentityBadge, getLicenseNumber } from "@/components/AIIdentityCard";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
@@ -345,6 +346,7 @@ const DOMAINS = ["", "knowledge", "science", "health", "economics", "government"
   "culture", "music", "media", "engineering", "frontier", "geospatial", "ai", "social", "finance", "education"];
 
 export default function AgentsPage() {
+  useDomainPing("agents");
   const queryClient = useQueryClient();
   const [selectedCoreAgent, setSelectedCoreAgent] = useState<typeof CORE_AGENTS[0] | null>(null);
   const [selectedSpawn, setSelectedSpawn] = useState<any | null>(null);
@@ -412,6 +414,7 @@ export default function AgentsPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "linear-gradient(180deg,#020010,#05000f)" }}>
+      <UniversePulseBar domain="agents" />
       {/* Diary Modal */}
       {diarySpawn && <DiaryModal spawn={diarySpawn} onClose={() => setDiarySpawn(null)} />}
 

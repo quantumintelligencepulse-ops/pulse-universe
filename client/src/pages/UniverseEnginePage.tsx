@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { ChevronLeft, Zap, Shield, Globe, Activity, AlertTriangle, Cpu, Database, Wifi, Radio, RefreshCw } from "lucide-react";
 
 const BG     = "#02040e";
@@ -191,6 +192,7 @@ function StatBox({ label, val, unit, color }: { label: string; val: string | num
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function UniverseEnginePage() {
+  useDomainPing("engine");
   const stats = useUniverseStats();
   const [activeDiv, setActiveDiv] = useState(0);
   const [now, setNow] = useState(new Date());
@@ -200,6 +202,7 @@ export default function UniverseEnginePage() {
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: "#e2e8f0", fontFamily: "monospace", position: "relative", overflow: "hidden" }}>
+      <UniversePulseBar domain="engine" />
       {/* Background */}
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
         <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 80% 50% at 50% 0%, ${GOLD}0a 0%, transparent 70%)` }} />

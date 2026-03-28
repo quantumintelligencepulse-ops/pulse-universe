@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries, CrosshairMode, LineStyle, ColorType } from "lightweight-charts";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { RefreshCw, Search, X, Bitcoin, BarChart3, ChevronUp, ChevronDown, Globe, Gauge, CandlestickChart, LineChart, Dna, Star, Bell, Settings, ChevronLeft, ChevronRight, FlaskConical, BookOpen, Activity, Zap, Brain, Layers } from "lucide-react";
 
 // ── Market Status (crypto = always live, stocks = session-aware) ──
@@ -681,6 +682,7 @@ function CommandPalette({ quotes, onClose, onOpen }: { quotes:Quote[]; onClose:(
 
 // ── Main Finance Page ─────────────────────────────────────────────
 export default function FinancePage() {
+  useDomainPing("finance");
   const [indices, setIndices] = useState<Quote[]>([]);
   const [stocks, setStocks] = useState<Quote[]>([]);
   const [crypto, setCrypto] = useState<Quote[]>([]);
@@ -904,6 +906,7 @@ export default function FinancePage() {
 
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", background:"#040008", overflow:"hidden", minHeight:0 }}>
+      <UniversePulseBar domain="finance" />
       {paletteOpen && <CommandPalette quotes={allQuotes} onClose={()=>setPaletteOpen(false)} onOpen={(s,n)=>{ selectSymbol(s,n); setPaletteOpen(false); }}/>}
       {showScientistCards && <ScientistCardsPanel tradeLogs={tradeLogs} paperAccounts={paperAccounts} onClose={()=>setShowScientistCards(false)} onSelectSymbol={selectSymbol}/>}
 

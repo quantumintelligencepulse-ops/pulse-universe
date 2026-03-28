@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
 const G0 = "#6366f1";
 const G1 = "#8b5cf6";
@@ -175,6 +176,7 @@ function PyramidViz({ activeLayer }: { activeLayer: number | null }) {
 }
 
 export default function PulseWorldPage() {
+  useDomainPing("world");
   const [activeLayer, setActiveLayer] = useState<number>(6);
   const [ticker, setTicker] = useState(0);
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
@@ -196,7 +198,7 @@ export default function PulseWorldPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-[#06040f] text-white pb-16" data-testid="pulseworld-page">
-
+      <UniversePulseBar domain="world" />
       {/* HERO */}
       <div className="relative overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 pointer-events-none">

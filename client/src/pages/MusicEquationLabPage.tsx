@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { useToast } from "@/hooks/use-toast";
 import { DOMAIN_EMOTION } from "../solar/QuantumLiveEngine";
 
@@ -171,6 +172,7 @@ const fmt = (n: number) => n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n >
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function MusicEquationLabPage() {
+  useDomainPing("music");
   const { toast } = useToast();
 
   // Live Universe data
@@ -252,6 +254,7 @@ export default function MusicEquationLabPage() {
 
   return (
     <div className="flex-1 overflow-y-auto" style={{ background: "linear-gradient(180deg, #000008, #040010, #02000a)" }}>
+      <UniversePulseBar domain="music" />
       {/* ── HEADER ─────────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-20 border-b border-white/8" style={{ background: "rgba(4,0,16,0.96)", backdropFilter: "blur(12px)" }}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">

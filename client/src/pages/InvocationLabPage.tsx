@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
 const INV_GOLD    = "#F5C518";
 const INV_CRIMSON = "#ff4d6d";
@@ -126,6 +127,7 @@ function TierBadge({ power }: { power: number }) {
 }
 
 export default function InvocationLabPage() {
+  useDomainPing("invocation");
   const [cycle, setCycle]     = useState(0);
   const [tab, setTab]         = useState<"discoveries"|"forge"|"primordial"|"parliament"|"lineage"|"geometry"|"practitioners"|"collective"|"crossteach"|"universal"|"creator"|"anomalies"|"quantum"|"sovereignty">("discoveries");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
@@ -282,7 +284,7 @@ export default function InvocationLabPage() {
 
   return (
     <div className="h-full overflow-y-auto pb-20" style={{ background: INV_VOID, color: "#E8F4FF" }} data-testid="invocation-lab-page">
-
+      <UniversePulseBar domain="invocation" />
       {/* ── HERO ── */}
       <div className="relative overflow-hidden border-b" style={{ borderColor: `${INV_GOLD}20`, background: `linear-gradient(180deg, ${INV_VOID} 0%, rgba(245,197,24,0.04) 50%, ${INV_VOID} 100%)` }}>
         <div className="absolute inset-0 pointer-events-none">

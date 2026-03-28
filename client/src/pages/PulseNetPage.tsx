@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { Wifi, Smartphone, Globe, Cpu, MessageSquare, Search, Zap, Satellite, Activity, Signal, Monitor, Database, TrendingUp, Terminal, BookOpen, BrainCircuit, Play, Copy, ChevronLeft, ChevronRight, SkipBack, SkipForward, List, Lock, Unlock, FlaskConical, Waves, BarChart3, ChevronUp, ChevronDown, Wrench, LayoutTemplate, Gauge, Sparkles, Dna, RefreshCw, Users2, HardDrive, Download, CheckCircle2, Upload, Shield } from "lucide-react";
 
 const SocialPage = lazy(() => import("./QuantumSocialPage"));
@@ -2603,6 +2604,7 @@ function LangEvoTab() {
 }
 
 export default function PulseNetPage() {
+  useDomainPing("pulsenet");
   const [tab, setTab] = useState(() => {
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search).get("tab");
@@ -2614,6 +2616,7 @@ export default function PulseNetPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 max-w-7xl mx-auto">
+      <UniversePulseBar domain="pulsenet" />
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">

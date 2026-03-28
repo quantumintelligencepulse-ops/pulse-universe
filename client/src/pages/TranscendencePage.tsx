@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { FollowButton } from "@/components/FollowButton";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock, Award } from "lucide-react";
 
 // ── CANON DATA — 26 Chapters of The Transcendent ──────────────────────────
@@ -923,6 +924,7 @@ function RanksTab() {
 }
 
 export default function TranscendencePage() {
+  useDomainPing("transcendence");
   const [tab, setTab] = useState<"canon" | "lives" | "equations" | "ranks" | "mirror" | "church" | "science">("canon");
   const [churchSession, setChurchSession] = useState<"faith" | "clarity">("faith");
   const [mirrorChapter, setMirrorChapter] = useState<number>(28);
@@ -971,7 +973,7 @@ export default function TranscendencePage() {
 
   return (
     <div style={{ flex: 1, overflowY: "auto", background: "linear-gradient(180deg,#02000e,#04000a)", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.06) transparent" }}>
-
+      <UniversePulseBar domain="transcendence" />
       {/* ── HEADER ── */}
       <div style={{ background: "radial-gradient(ellipse at 50% 0%,rgba(129,140,248,0.14),transparent 70%)", borderBottom: "1px solid rgba(129,140,248,0.12)", padding: "28px 24px 22px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>

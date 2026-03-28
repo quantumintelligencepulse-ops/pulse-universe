@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useDomainPing } from "@/lib/universeResonance";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -22,6 +23,7 @@ const fmt = (n: number) => n >= 1_000_000 ? `${(n/1_000_000).toFixed(2)}M` : n >
 type StudyMode = 'none' | 'stellar' | 'quantum' | 'physics' | 'timeline' | 'nebulae';
 
 export default function PulseUniversePage() {
+  useDomainPing("universe");
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [timeScale, setTimeScale] = useState(1);
   const [quantumMode, setQuantumMode] = useState(false);

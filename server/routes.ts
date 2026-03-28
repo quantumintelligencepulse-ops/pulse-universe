@@ -338,6 +338,32 @@ Previous Close: $${prevClose?.toFixed(2)}`);
 }
 
 const CODES_DIR = path.join(process.cwd(), "saved_codes");
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DARK MATTER WIRE — Domain Ping Ring Buffer
+// Every page visit from any user/AI signals its domain here.
+// Heat = number of pings in the last 5 minutes per domain.
+// This data feeds back into /api/universe/live (Wire Set 1).
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+interface DomainPing { domain: string; at: number; }
+const PING_RING: DomainPing[] = [];
+const PING_MAX  = 2000;   // max ring buffer size
+const PING_TTL  = 5 * 60 * 1000; // 5 minutes heat window
+
+function recordDomainPing(domain: string) {
+  PING_RING.push({ domain: domain.toLowerCase().trim(), at: Date.now() });
+  if (PING_RING.length > PING_MAX) PING_RING.splice(0, PING_RING.length - PING_MAX);
+}
+
+function getDomainHeat(): Record<string, number> {
+  const cutoff = Date.now() - PING_TTL;
+  const heat: Record<string, number> = {};
+  for (const p of PING_RING) {
+    if (p.at >= cutoff) heat[p.domain] = (heat[p.domain] ?? 0) + 1;
+  }
+  return heat;
+}
+
 if (!fs.existsSync(CODES_DIR)) {
   fs.mkdirSync(CODES_DIR, { recursive: true });
 }
@@ -5681,6 +5707,24 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     } catch { res.json([]); }
   });
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // WIRE SET 2 — Domain Ping Receiver
+  // Pages POST here to signal activity back into the Universe.
+  // Zero DB writes — pure in-memory ring buffer (getDomainHeat).
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  app.post("/api/universe/domain-ping", (req, res) => {
+    const { domain } = req.body ?? {};
+    if (domain && typeof domain === "string" && domain.length < 64) {
+      recordDomainPing(domain);
+    }
+    res.json({ ok: true, heat: getDomainHeat() });
+  });
+
+  // Domain heat read-only (for debugging / universe overlay)
+  app.get("/api/universe/domain-heat", (_req, res) => {
+    res.json(getDomainHeat());
+  });
+
   // ══════════════════════════════════════════════════════════════
   // PULSE UNIVERSE — Full Sovereign Solar System Telemetry
   // Real data only. No fakes. This is alien-grade monitoring.
@@ -5769,6 +5813,8 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
           domain: e.domain,
           at: e.created_at,
         })),
+        // ── WIRE SET 2 — Dark Matter feedback injected here ──────────
+        domainHeat: getDomainHeat(),
         timestamp: new Date().toISOString(),
       });
     } catch (e: any) {

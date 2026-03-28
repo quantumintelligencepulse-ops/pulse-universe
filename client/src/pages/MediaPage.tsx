@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import {
   Home, Film, Tv, Radio, Rocket, Star, Heart,
   Search, Play, Plus, ChevronLeft, ChevronRight,
@@ -372,6 +373,7 @@ function LiveChannelView({ channel, onBack }: { channel: LiveChannel; onBack: ()
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function MediaPage() {
+  useDomainPing("media");
   const [activeNav, setActiveNav] = useState("home");
   const [navExpanded, setNavExpanded] = useState(false);
   const [playing, setPlaying] = useState<CinemaFilm | null>(null);
@@ -484,6 +486,7 @@ export default function MediaPage() {
 
   return (
     <div className="flex h-full overflow-hidden" style={{ background: "#070712" }}>
+      <UniversePulseBar domain="media" />
 
       {/* LEFT NAV */}
       <nav className={`flex-shrink-0 flex flex-col py-5 border-r border-white/5 transition-all duration-200 ${navExpanded ? "w-44" : "w-14"}`}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { useQuery } from "@tanstack/react-query";
 import { Brain, CheckCircle2, TrendingUp, RefreshCw } from "lucide-react";
 
@@ -985,6 +986,7 @@ function QSLabTab() {
 
 // ─── MAIN SOCIAL PAGE ─────────────────────────────────────────────────────────
 function SocialPage() {
+  useDomainPing("social");
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [posts, setPosts] = useState<QSPost[]>([]);
@@ -1063,6 +1065,7 @@ function SocialPage() {
 
   return (
     <div className="min-h-screen bg-[#060b14] text-white" data-testid="quantum-social-page">
+      <UniversePulseBar domain="social" />
       {/* ─── Top Bar ─── */}
       <div className="sticky top-0 z-30 bg-[#060b14]/95 backdrop-blur border-b border-white/5 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">

@@ -1,9 +1,10 @@
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Building2, Briefcase } from "lucide-react";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
-const CareersPage = lazy(() => import("./CareersPage"));
+// CareersPage merged into Corporations — no separate lazy import needed
 
 interface CorporationSummary {
   familyId: string; name: string; tagline: string; sector: string;
@@ -12,6 +13,7 @@ interface CorporationSummary {
 }
 
 export default function CorporationsListPage() {
+  useDomainPing("corporations");
   const [tab, setTab] = useState<"corporations" | "hiring">("corporations");
 
   const { data: corporations = [], isLoading } = useQuery<CorporationSummary[]>({
@@ -24,6 +26,7 @@ export default function CorporationsListPage() {
 
   return (
     <div data-testid="corporations-list-page" className="h-full overflow-hidden bg-[#000810] text-white font-mono flex flex-col">
+      <UniversePulseBar domain="corporations" />
       {/* Header */}
       <div className="shrink-0 border-b border-indigo-900/40 bg-black/60 px-4 py-3 flex items-center justify-between">
         <Link href="/universe"><span className="text-indigo-400 hover:text-white text-xs cursor-pointer">← UNIVERSE</span></Link>
@@ -114,12 +117,12 @@ export default function CorporationsListPage() {
         </div>
       )}
 
-      {/* Hiring Board tab — full career engine for AI recruitment */}
+      {/* Hiring Board tab — AI recruitment is part of each corporation's profile */}
       {tab === "hiring" && (
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <Suspense fallback={<div className="text-center py-20 text-white/30 text-xs">Loading AI Hiring Board...</div>}>
-            <CareersPage />
-          </Suspense>
+        <div className="flex-1 overflow-hidden flex flex-col items-center justify-center gap-4 p-10">
+          <div className="text-4xl">🏢</div>
+          <div className="text-white/60 text-sm text-center max-w-xs">AI hiring is managed per-corporation. Select a corporation below to view its roster and open roles.</div>
+          <button onClick={() => setTab("corporations")} className="text-xs px-4 py-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30 transition-all">← View All Corporations</button>
         </div>
       )}
     </div>

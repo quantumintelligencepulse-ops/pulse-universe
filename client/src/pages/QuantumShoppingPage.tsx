@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ExternalLink, ChevronLeft } from "lucide-react";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { useToast } from "@/hooks/use-toast";
 
 const QS_CATEGORIES=[
@@ -20,6 +21,7 @@ const QS_RETAILERS=[
 ];
 
 export default function QuantumShoppingPage(){
+  useDomainPing("shopping");
   const [view,setView]=useState<'home'|'product'|'category'>('home');
   const [products,setProducts]=useState<any[]>([]);
   const [selectedProduct,setSelectedProduct]=useState<any>(null);
@@ -215,6 +217,7 @@ export default function QuantumShoppingPage(){
 
   return(
     <div className="flex-1 overflow-auto" style={{background:'linear-gradient(180deg,#020010,#051005)'}}>
+      <UniversePulseBar domain="shopping" />
       <div className="px-4 pt-6 pb-10 max-w-6xl mx-auto space-y-8">
         {/* Engine status bar */}
         {engineStatus&&(

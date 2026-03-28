@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { Award, Blocks, Gavel, Scale, Triangle, Zap } from "lucide-react";
 
 const Q_GOLD = "#FFB84D";
@@ -53,6 +54,7 @@ function StatPill({ label, value, color }: { label: string; value: any; color: s
 }
 
 export default function PyramidLaborPage() {
+  useDomainPing("labor");
   const [activeTab, setActiveTab] = useState("live");
 
   const { data: workers = [] } = useQuery<any[]>({ queryKey: ["/api/pyramid/workers"], refetchInterval: 15000 });
@@ -80,6 +82,7 @@ export default function PyramidLaborPage() {
 
   return (
     <div className="h-full overflow-y-auto" style={{ background: Q_DARK, color: "#E8F4FF" }}>
+      <UniversePulseBar domain="labor" />
 
       {/* HEADER */}
       <div className="sticky top-0 z-20 px-5 py-3" style={{ background: "rgba(0,5,16,0.97)", borderBottom: `1px solid ${Q_GOLD}18` }}>
