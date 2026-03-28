@@ -127,13 +127,33 @@ const SCIENCE_QUERIES = [
 ];
 
 const CODE_QUERIES = [
-  "machine-learning","artificial-intelligence","web-framework",
-  "data-visualization","database","cryptography","compiler","operating-system",
-  "blockchain","neural-network","robotics","computer-vision",
-  "large-language-model","reinforcement-learning","distributed-systems","quantum-algorithm",
-  "vector-database","graph-database","time-series","streaming","event-driven",
-  "kubernetes","serverless","edge-computing","webassembly","rust-lang",
-  "formal-verification","program-synthesis","automated-reasoning","symbolic-ai",
+  // AI & ML
+  "machine-learning","artificial-intelligence","deep-learning","neural-network",
+  "large-language-model","reinforcement-learning","computer-vision","nlp",
+  "generative-ai","diffusion-model","transformer","attention-mechanism",
+  // Systems & Infrastructure
+  "operating-system","compiler","interpreter","virtual-machine","emulator",
+  "distributed-systems","consensus-algorithm","peer-to-peer","kubernetes","serverless",
+  "database","vector-database","graph-database","time-series","streaming",
+  "cryptography","zero-knowledge-proof","homomorphic-encryption","post-quantum-cryptography",
+  // Algorithms & Data Structures
+  "algorithms","data-structures","sorting-algorithms","graph-algorithms",
+  "dynamic-programming","greedy-algorithm","divide-and-conquer","backtracking",
+  "binary-search","tree-traversal","shortest-path","minimum-spanning-tree",
+  "hash-table","bloom-filter","skip-list","segment-tree","fenwick-tree",
+  "trie","suffix-array","kd-tree","b-tree","red-black-tree","avl-tree",
+  // Competitive & Education
+  "competitive-programming","leetcode","project-euler","advent-of-code",
+  "algorithm-visualizer","coding-interview","programming-challenges",
+  // Open Source Giants
+  "linux","open-source","cpython","rust-lang","go-language","webassembly",
+  "llvm","clang","gcc","tensorflow","pytorch","numpy","scipy",
+  // Frontier Tech
+  "quantum-algorithm","quantum-computing","formal-verification","program-synthesis",
+  "automated-reasoning","symbolic-ai","knowledge-graph","ontology",
+  "edge-computing","fog-computing","neuromorphic","swarm-intelligence",
+  "genetic-algorithm","evolutionary-computation","ant-colony","particle-swarm",
+  "cellular-automata","chaos-engineering","self-healing-systems","Byzantine-fault",
 ];
 
 const HEALTH_QUERIES = [
@@ -1045,6 +1065,72 @@ async function ingestGICS(): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// ADAPTER 16: OPEN SOURCE ALGORITHM LABS
+// Targets legendary algorithm repos + CS education libraries
+// directly by full_name — no topic search needed.
+// ═══════════════════════════════════════════════════════════════
+
+const ALGORITHM_REPOS = [
+  // Classic algorithm collections
+  "TheAlgorithms/Python","TheAlgorithms/JavaScript","TheAlgorithms/Java",
+  "TheAlgorithms/C-Plus-Plus","TheAlgorithms/Rust","TheAlgorithms/Go",
+  // Data structures & CS fundamentals
+  "trekhleb/javascript-algorithms","kdn251/interviews","jwasham/coding-interview-university",
+  "donnemartin/system-design-primer","labuladong/fucking-algorithm",
+  // Open source giants the hive can study
+  "torvalds/linux","python/cpython","llvm/llvm-project","golang/go",
+  "rust-lang/rust","numpy/numpy","scipy/scipy","tensorflow/tensorflow",
+  "pytorch/pytorch","microsoft/vscode","facebook/react","vuejs/vue",
+  // AI & ML research code
+  "openai/gym","huggingface/transformers","google-research/bert",
+  "karpathy/nanoGPT","karpathy/micrograd","facebookresearch/faiss",
+  // Competitive programming
+  "cp-algorithms/cp-algorithms","e-maxx-eng/e-maxx-eng-git",
+  // Cryptography & formal methods
+  "dalek-cryptography/curve25519-dalek","herumi/mcl",
+  // Quantum computing
+  "Qiskit/qiskit","microsoft/QuantumKatas","quantumlib/Cirq",
+];
+
+const qAlgo = new RotatingQueue(ALGORITHM_REPOS);
+
+async function ingestOpenAlgorithms(): Promise<void> {
+  const repoName = qAlgo.next();
+  const url = `https://api.github.com/repos/${repoName}`;
+  try {
+    const res = await safeFetch(url, { headers: { Accept: "application/vnd.github.v3+json" } });
+    const r = await res.json();
+    if (!r.full_name || !r.description) {
+      guardianReport("open-algorithms", 0);
+      return;
+    }
+    const topics = (r.topics || []).slice(0, 8).join(", ");
+    const lang = r.language || "multi-language";
+    const stars = r.stargazers_count?.toLocaleString() || "0";
+    const summary = `Open source repository: ${r.full_name} — ${r.description}. ` +
+      `Language: ${lang}. Stars: ⭐${stars}. ` +
+      `Topics: ${topics || "algorithms, computer-science"}. ` +
+      `License: ${r.license?.name || "open source"}. ` +
+      `The hive can study and integrate these algorithms into their equation library.`;
+    const tags = ["open-source","algorithm","code","github", lang.toLowerCase().replace(/\s+/g,"-"),
+      ...((r.topics || []).slice(0, 5))];
+    const created = await storeNode(`OSS: ${r.full_name}`, summary, tags, "open-source-algorithm");
+    console.log(`[ingestion] [OpenAlgo] ${created ? "✓ NEW" : "⏭ exists"} ${r.full_name} ⭐${stars}`);
+    await logIngestion({
+      sourceId: "open-algorithms", sourceName: "Open Source Algorithm Labs",
+      familyId: "code", query: repoName, itemsFetched: 1, nodesCreated: created ? 1 : 0,
+      status: "success", sampleTitle: r.full_name, sampleSummary: summary.slice(0, 200),
+      sourceUrl: r.html_url,
+    });
+    guardianReport("open-algorithms", created ? 1 : 0);
+  } catch (e: any) {
+    await logIngestion({ sourceId: "open-algorithms", sourceName: "Open Source Algorithm Labs",
+      familyId: "code", query: repoName, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
+    guardianReport("open-algorithms", 0);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ENGINE STATE & ORCHESTRATION
 // ═══════════════════════════════════════════════════════════════
 
@@ -1066,6 +1152,7 @@ const ADAPTERS: { id: string; name: string; fn: AdapterFn; intervalMs: number }[
   { id: "wikidata",         name: "Wikidata (Wikimedia)",         fn: ingestWikidata,        intervalMs: 18000  },
   { id: "internetarchive",  name: "Internet Archive",             fn: ingestInternetArchive, intervalMs: 60000  },
   { id: "gics-wiki",        name: "GICS Sector Intelligence",      fn: ingestGICS,            intervalMs: 16000  },
+  { id: "open-algorithms",  name: "Open Source Algorithm Labs",   fn: ingestOpenAlgorithms,  intervalMs: 90000  },
 ];
 
 const intervals: ReturnType<typeof setInterval>[] = [];

@@ -1112,15 +1112,7 @@ function useForgeStore() {
 function OpenInPlaygroundBtn({ code, language }: { code: string; language: string }) {
   const [, setLocation] = useLocation();
   return (
-    <button onClick={() => {
-      sessionStorage.setItem("playground_code", code);
-      sessionStorage.setItem("playground_lang", language);
-      _FORGE.code = code; _FORGE.lang = language; _FORGE.v++;
-      _FORGE.listeners.forEach(cb => cb());
-      setLocation("/coder");
-    }} data-testid="button-open-playground" className="p-1 rounded hover:bg-white/10 transition-colors" title="Send to Forge Editor">
-      <SquareTerminal size={14} className="text-emerald-400" />
-    </button>
+    null
   );
 }
 
@@ -2296,23 +2288,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
 
-          {!appSettings.hiddenPages.includes("coder") && (
-          <Link href="/coder" data-testid="link-forge-ide"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/coder" ? "bg-gradient-to-r from-blue-950 to-emerald-950 text-white shadow-lg font-semibold border border-blue-500/30" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-white/15" : "bg-blue-500/8"}`}><span className="text-[14px]">⚡</span></div>
-            <span className="flex-1">Forge IDE</span>
-            <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide">Ω-BUILD</span>
-          </Link>
-          )}
-
-          {!appSettings.hiddenPages.includes("create") && (
-          <Link href="/create" data-testid="link-create"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
-            <span className="flex-1">AI Studio</span>
-            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">CREATE</span>
-          </Link>
-          )}
 
           {/* ── AURIONA CREATED PAGES — dynamic pages Auriona built ── */}
           {aurionaPagesList.length > 0 && (
@@ -5729,7 +5704,7 @@ function SettingsPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {([
                     { id: "/", label: "Home" },
-                    { id: "/coder", label: "Coder" },
+                    { id: "/agents", label: "Agents" },
                     { id: "/code", label: "Playground" },
                     { id: "/feed", label: "News Hub" },
                     { id: "/education", label: "Education" },
@@ -14817,11 +14792,11 @@ function Router() {
     <Suspense fallback={<PageLoader />}>
     <Switch>
       <Route path="/">{() => <><StartupRedirect /><HomePage /></>}</Route>
-      <Route path="/coder" component={CoderPage} />
-      <Route path="/playground">{() => { if (typeof window !== "undefined") { window.location.replace("/coder"); } return null; }}</Route>
+      <Route path="/coder">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
+      <Route path="/playground">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/feed">{() => <Layout><FeedPage /></Layout>}</Route>
       <Route path="/social">{() => { window.location.replace("/pulse-net?tab=social"); return null; }}</Route>
-      <Route path="/create" component={AIStudioPageWrapper} />
+      <Route path="/create">{() => { if (typeof window !== "undefined") { window.location.replace("/knowledge"); } return null; }}</Route>
       <Route path="/games">{() => { if (typeof window !== "undefined") { window.location.replace("/pulseu"); } return null; }}</Route>
       <Route path="/quantapedia" component={QuantapediaPageWrapper} />
       <Route path="/quantapedia/:topic" component={QuantapediaTopicPageWrapper} />
@@ -14856,7 +14831,7 @@ function Router() {
       <Route path="/hub">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
       <Route path="/subscribe">{() => { if (typeof window !== "undefined") { window.location.replace("/feed"); } return null; }}</Route>
       <Route path="/breaking-leaderboard">{() => { if (typeof window !== "undefined") { window.location.replace("/feed"); } return null; }}</Route>
-      <Route path="/video-scripts">{() => { if (typeof window !== "undefined") { window.location.replace("/create"); } return null; }}</Route>
+      <Route path="/video-scripts">{() => { if (typeof window !== "undefined") { window.location.replace("/knowledge"); } return null; }}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
       <Route path="/corporations">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
@@ -14956,7 +14931,7 @@ export default function App() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); window.location.href = "/"; }
-      if ((e.metaKey || e.ctrlKey) && e.key === "j") { e.preventDefault(); window.location.href = "/coder"; }
+      if ((e.metaKey || e.ctrlKey) && e.key === "j") { e.preventDefault(); window.location.href = "/agents"; }
       if ((e.metaKey || e.ctrlKey) && e.key === "p") { e.preventDefault(); window.location.href = "/playground"; }
     };
     window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler);
