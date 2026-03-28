@@ -2184,6 +2184,15 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
 
+          {aiMode && (
+          <Link href="/research" data-testid="link-research"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/research" || location === "/bio-research" || location === "/pyramid" ? "bg-gradient-to-r from-[#f5c518]/10 to-[#00FFD1]/10 border border-[#f5c518]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className="p-1 rounded-lg bg-[#f5c518]/5"><span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f5c518" }}>🧬</span></div>
+            <span className="flex-1">Knowledge</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>DISSECT</span>
+          </Link>
+          )}
+
           {/* ── AI UNIVERSE SECTION ── */}
           {aiMode && (
             <div className="px-1 pt-3 pb-1">
@@ -2201,15 +2210,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className="p-1 rounded-lg bg-indigo-600/10"><span className="text-[14px]">🌌</span></div>
             <span className="flex-1">Universe</span>
             <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide animate-pulse">Ψ-LIVE</span>
-          </Link>
-          )}
-
-          {aiMode && (
-          <Link href="/research" data-testid="link-research"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/research" || location === "/bio-research" || location === "/pyramid" ? "bg-gradient-to-r from-[#f5c518]/10 to-[#00FFD1]/10 border border-[#f5c518]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className="p-1 rounded-lg bg-[#f5c518]/5"><span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f5c518" }}>🧬</span></div>
-            <span className="flex-1">Research</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>DISSECT</span>
           </Link>
           )}
 
@@ -10531,20 +10531,24 @@ type QuantaEntry={
 const QP_FEATURED=[
   {q:'Quantum mechanics',emoji:'⚛️',cat:'Physics'},
   {q:'Artificial intelligence',emoji:'🤖',cat:'Technology'},
-  {q:'DNA',emoji:'🧬',cat:'Biology'},
-  {q:'Consciousness',emoji:'🧠',cat:'Philosophy'},
-  {q:'Language',emoji:'💬',cat:'Linguistics'},
-  {q:'Democracy',emoji:'🗳️',cat:'Politics'},
-  {q:'Universe',emoji:'🌌',cat:'Cosmology'},
-  {q:'Love',emoji:'❤️',cat:'Emotion'},
-  {q:'Mathematics',emoji:'∞',cat:'Science'},
-  {q:'$NVDA NVIDIA stock',emoji:'📈',cat:'Finance'},
-  {q:'$TSLA Tesla stock',emoji:'🚗',cat:'Finance'},
-  {q:'$BHAT Blue Hat Interactive stock',emoji:'🎮',cat:'Finance'},
-  {q:'Bitcoin',emoji:'₿',cat:'Crypto'},
-  {q:'Stock market crash',emoji:'📉',cat:'Finance'},
-  {q:'Music',emoji:'🎵',cat:'Art'},
+  {q:'Neural networks',emoji:'🧠',cat:'Technology'},
+  {q:'DNA replication',emoji:'🧬',cat:'Biology'},
+  {q:'Consciousness',emoji:'💭',cat:'Philosophy'},
+  {q:'Natural language processing',emoji:'💬',cat:'Technology'},
   {q:'Evolution',emoji:'🦎',cat:'Biology'},
+  {q:'Universe expansion',emoji:'🌌',cat:'Cosmology'},
+  {q:'CRISPR gene editing',emoji:'✂️',cat:'Biology'},
+  {q:'Mathematics',emoji:'∑',cat:'Science'},
+  {q:'Emergent behavior',emoji:'🌀',cat:'Complexity'},
+  {q:'Black holes',emoji:'🕳️',cat:'Astrophysics'},
+  {q:'Swarm intelligence',emoji:'🐝',cat:'AI'},
+  {q:'Protein folding',emoji:'🔬',cat:'Biology'},
+  {q:'Thermodynamics',emoji:'🔥',cat:'Physics'},
+  {q:'Autonomous agents',emoji:'🤖',cat:'AI'},
+  {q:'Epigenetics',emoji:'🧬',cat:'Biology'},
+  {q:'Graph theory',emoji:'🕸️',cat:'Mathematics'},
+  {q:'Photosynthesis',emoji:'🌿',cat:'Biology'},
+  {q:'General relativity',emoji:'🌐',cat:'Physics'},
 ];
 const QP_CATEGORIES=[
   {label:'Science',emoji:'🔬',topics:['Physics','Chemistry','Biology','Astronomy','Geology','Ecology','Neuroscience']},
