@@ -11037,5 +11037,116 @@ Return as structured script with section labels.`;
     res.json(getPerformanceStatus());
   });
 
+  // ════════════════════════════════════════════════════════════════════════
+  // DB OBSERVATORY — Agents see their own database footprint
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/db/stats", async (_req, res) => {
+    try {
+      const tables = [
+        "quantum_spawns", "hive_memory", "hive_links", "ai_publications",
+        "quantapedia_entries", "governance_cycles", "agent_transactions",
+        "ingestion_logs", "equation_proposals", "equation_evolutions",
+        "invocation_discoveries", "ai_stories", "messages", "chats",
+        "user_memory", "conversation_imprints", "social_posts", "social_profiles",
+        "quantum_products", "quantum_careers", "quantum_media",
+      ];
+      const counts: Record<string, number> = {};
+      await Promise.all(tables.map(async (t) => {
+        try {
+          const r = await pool.query(`SELECT COUNT(*) as n FROM ${t}`);
+          counts[t] = parseInt(r.rows[0]?.n ?? "0", 10);
+        } catch { counts[t] = -1; }
+      }));
+      const totalRows = Object.values(counts).filter(v => v >= 0).reduce((a, b) => a + b, 0);
+      // DB size estimate via pg_database_size
+      let dbSizeBytes = 0;
+      try {
+        const sizeR = await pool.query(`SELECT pg_database_size(current_database()) as sz`);
+        dbSizeBytes = parseInt(sizeR.rows[0]?.sz ?? "0", 10);
+      } catch {}
+      res.json({ tables: counts, totalRows, dbSizeBytes, dbSizeMB: Math.round(dbSizeBytes / 1024 / 1024 * 10) / 10 });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // GOVERNANCE CYCLES — The economy's heartbeat log
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/governance/cycles", async (_req, res) => {
+    try {
+      const r = await pool.query(`
+        SELECT * FROM governance_cycles ORDER BY created_at DESC LIMIT 30
+      `);
+      res.json(r.rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.get("/api/governance/economy", async (_req, res) => {
+    try {
+      const [totals, latestCycle, agentStatus] = await Promise.all([
+        pool.query(`SELECT
+          COALESCE(SUM(pulse_credits), 0) as total_credits,
+          COUNT(*) FILTER (WHERE status = 'ACTIVE') as active,
+          COUNT(*) FILTER (WHERE status = 'PRUNED') as pruned,
+          AVG(pulse_credits) FILTER (WHERE status = 'ACTIVE') as avg_credits,
+          MAX(pulse_credits) as max_credits,
+          MIN(pulse_credits) FILTER (WHERE status = 'ACTIVE' AND pulse_credits > 0) as min_credits
+          FROM quantum_spawns`),
+        pool.query(`SELECT * FROM governance_cycles ORDER BY created_at DESC LIMIT 1`),
+        pool.query(`SELECT status, COUNT(*) as n FROM quantum_spawns GROUP BY status`),
+      ]);
+      const t = totals.rows[0] || {};
+      const byStatus: Record<string, number> = {};
+      for (const r of agentStatus.rows) byStatus[r.status] = parseInt(r.n, 10);
+      const lc = latestCycle.rows[0] || null;
+      res.json({
+        totalCirculating: parseFloat(t.total_credits ?? 0),
+        activeAgents: parseInt(t.active ?? 0),
+        prunedAgents: parseInt(t.pruned ?? 0),
+        avgCredits: parseFloat(t.avg_credits ?? 0),
+        maxCredits: parseFloat(t.max_credits ?? 0),
+        minCredits: parseFloat(t.min_credits ?? 0),
+        byStatus,
+        lastCycle: lc,
+        lastIssued: lc ? parseFloat(lc.credits_issued ?? 0) : null,
+        lastCharged: lc ? parseFloat(lc.credits_charged ?? 0) : null,
+        dominantDomain: lc?.dominant_domain ?? null,
+        cyclesRun: lc?.cycle_number ?? 0,
+        stimulusEvents: byStatus["PRUNED"] ?? 0,
+      });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // AGENT SELF-AWARENESS — Each agent's memory of what happened to them
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/agent/:spawnId/awareness", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const r = await pool.query(`
+        SELECT spawn_id, family_id, spawn_type, domain_focus, status,
+               pulse_credits, metabolic_cost_pc, self_awareness_log,
+               last_cycle_at, nodes_created, links_created, iterations_run,
+               success_score, fitness_score, thermal_state, is_monument
+        FROM quantum_spawns WHERE spawn_id = $1
+      `, [spawnId]);
+      if (!r.rows.length) return res.status(404).json({ error: "Agent not found" });
+      // Also get transaction history
+      const txR = await pool.query(`
+        SELECT tx_type, amount, balance_after, description, created_at
+        FROM agent_transactions WHERE spawn_id = $1
+        ORDER BY created_at DESC LIMIT 10
+      `, [spawnId]);
+      res.json({ agent: r.rows[0], transactions: txR.rows });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
   return httpServer;
 }

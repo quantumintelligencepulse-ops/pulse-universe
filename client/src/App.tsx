@@ -2183,13 +2183,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
         <div className="overflow-y-auto scrollbar-hide" style={{maxHeight: "calc(100dvh - 160px)"}}>
         <div className="px-2.5 py-2 space-y-1">
           {/* ── CORE LINKS (always) ── */}
-          <Link href="/" data-testid="link-general-chat"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/" ? "bg-primary/10" : "bg-muted/50"}`}><MessageSquare size={14} className={location === "/" ? "text-primary" : ""} /></div>
-            <span className="flex-1">Chat</span>
-            <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
-          </Link>
-
           {!appSettings.hiddenPages.includes("feed") && (
           <Link href="/feed" data-testid="link-feed"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -14825,48 +14818,48 @@ function Router() {
     <Switch>
       <Route path="/">{() => <><StartupRedirect /><HomePage /></>}</Route>
       <Route path="/coder" component={CoderPage} />
-      <Route path="/playground" component={PlaygroundPage} />
+      <Route path="/playground">{() => { if (typeof window !== "undefined") { window.location.replace("/coder"); } return null; }}</Route>
       <Route path="/feed">{() => <Layout><FeedPage /></Layout>}</Route>
       <Route path="/social">{() => { window.location.replace("/pulse-net?tab=social"); return null; }}</Route>
       <Route path="/create" component={AIStudioPageWrapper} />
       <Route path="/games">{() => { if (typeof window !== "undefined") { window.location.replace("/pulseu"); } return null; }}</Route>
       <Route path="/quantapedia" component={QuantapediaPageWrapper} />
       <Route path="/quantapedia/:topic" component={QuantapediaTopicPageWrapper} />
-      <Route path="/music" component={MusicPageWrapper} />
-      <Route path="/education" component={EducationPageWrapper} />
+      <Route path="/music">{() => { if (typeof window !== "undefined") { window.location.replace("/"); } return null; }}</Route>
+      <Route path="/education">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping">{() => { if (typeof window !== "undefined") { window.location.replace("/marketplace"); } return null; }}</Route>
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/sovereign-agents">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
-      <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
+      <Route path="/omega-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/research">{() => <Layout><ResearchPage /></Layout>}</Route>
       <Route path="/hive">{() => <Layout><HivePage /></Layout>}</Route>
-      <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
-      <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
+      <Route path="/transcendence">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
+      <Route path="/bio-research">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
       <Route path="/dna">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
-      <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
-      <Route path="/pulseu">{() => <Layout><PulseUPage /></Layout>}</Route>
+      <Route path="/pulseworld">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
+      <Route path="/pulseu">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
       <Route path="/pulse-games">{() => { if (typeof window !== "undefined") { window.location.replace("/pulseu"); } return null; }}</Route>
-      <Route path="/hive-sovereign">{() => <Layout><SovereignHivePage /></Layout>}</Route>
+      <Route path="/hive-sovereign">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
-      <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
-      <Route path="/pulse-net">{() => <Layout><PulseNetPage /></Layout>}</Route>
+      <Route path="/pyramid">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
+      <Route path="/pulse-net">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/hospital">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
-      <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
-      <Route path="/auriona/temporal">{() => <Layout><TemporalObservatoryPage /></Layout>}</Route>
-      <Route path="/auriona/universe-engine">{() => <Layout><UniverseEnginePage /></Layout>}</Route>
+      <Route path="/marketplace">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
+      <Route path="/auriona/temporal">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
+      <Route path="/auriona/universe-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/hive-sovereign"); } return null; }}</Route>
-      <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
-      <Route path="/hub/:slug">{() => <Layout><HubPage /></Layout>}</Route>
-      <Route path="/hub">{() => <Layout><HubPage /></Layout>}</Route>
-      <Route path="/subscribe">{() => <Layout><SubscribePage /></Layout>}</Route>
-      <Route path="/breaking-leaderboard">{() => <Layout><BreakingLeaderboardPage /></Layout>}</Route>
-      <Route path="/video-scripts">{() => <Layout><VideoScriptPage /></Layout>}</Route>
+      <Route path="/invocation-lab">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
+      <Route path="/hub/:slug">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
+      <Route path="/hub">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
+      <Route path="/subscribe">{() => { if (typeof window !== "undefined") { window.location.replace("/feed"); } return null; }}</Route>
+      <Route path="/breaking-leaderboard">{() => { if (typeof window !== "undefined") { window.location.replace("/feed"); } return null; }}</Route>
+      <Route path="/video-scripts">{() => { if (typeof window !== "undefined") { window.location.replace("/create"); } return null; }}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
-      <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
+      <Route path="/corporations">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/publication/:slug">{() => <Layout><PublicationDetailPage /></Layout>}</Route>
       <Route path="/church-session/:sessionId">{() => <Layout><ChurchSessionPage /></Layout>}</Route>
       <Route path="/settings" component={SettingsPageWrapper} />

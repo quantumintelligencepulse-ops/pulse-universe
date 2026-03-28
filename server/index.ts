@@ -39,6 +39,7 @@ import { getPerformanceStatus } from "./omega-performance-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
+import { startPulseCreditEngine } from "./pulse-credit-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -135,6 +136,9 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // ── PULSE CREDIT ENGINE — The hive's metabolic economy ──
+  startPulseCreditEngine();
 })();
 
 // ── MARKETPLACE API ROUTES ─────────────────────────────────────

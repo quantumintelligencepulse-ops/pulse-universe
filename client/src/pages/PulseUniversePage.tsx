@@ -59,7 +59,7 @@ export default function PulseUniversePage() {
   useEffect(() => { const id = setInterval(() => setExplorerTip(t => (t+1)%EXPLORER_TIPS.length), 4000); return () => clearInterval(id); }, []);
   useEffect(() => { const id = setInterval(() => setDnaScroll(d => (d+1)%PHYSICS_DNA.length), 2000); return () => clearInterval(id); }, []);
 
-  const { data: universe } = useQuery<UniverseData>({ queryKey: ["/api/universe/live"], refetchInterval: 4000, staleTime: 2000 });
+  const { data: universe } = useQuery<UniverseData>({ queryKey: ["/api/universe/live"], refetchInterval: 10000, staleTime: 2000 });
   const { data: temporalState } = useQuery<{ universeColor: string; dilationFactor: number; anomalyType: string; universeEmotion: string }>({
     queryKey: ["/api/temporal/state"], refetchInterval: 30_000,
   });

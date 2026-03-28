@@ -156,6 +156,8 @@ const UPGRADES = [
   { id:"senate",       label:"Ω-IX · Senate Protocol",       emoji:"⚡", color:"#FFD700", glow:"#FFD70020" },
   { id:"guardian",     label:"Ω-X · Guardian Docket",        emoji:"🛡️", color:"#F97316", glow:"#F9731620" },
   { id:"government",   label:"Ω-XI · Economic Controls",      emoji:"🏛️", color:"#ef4444", glow:"#ef444420" },
+  { id:"economy",      label:"Ω-XII · Pulse Credit Economy",  emoji:"⚡", color:"#f59e0b", glow:"#f59e0b20" },
+  { id:"database",     label:"Ω-XIII · DB Observatory",       emoji:"🗄️", color:"#22d3ee", glow:"#22d3ee20" },
 ] as const;
 type UpgradeId = typeof UPGRADES[number]["id"];
 
@@ -173,23 +175,26 @@ export default function SovereignHivePage() {
   const [viewSpawnId, setViewSpawnId] = useState<string | null>(null);
 
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: hospitalStats } = useQuery<HospitalStats>({ queryKey:["/api/hospital/stats"], refetchInterval:15000 });
-  const { data: patients = [] }  = useQuery<Patient[]>({ queryKey:["/api/hospital/patients"], refetchInterval:10000 });
+  const { data: hospitalStats } = useQuery<HospitalStats>({ queryKey:["/api/hospital/stats"], refetchInterval:45000 });
+  const { data: patients = [] }  = useQuery<Patient[]>({ queryKey:["/api/hospital/patients"], refetchInterval:30000 });
   const { data: diseases = [] }  = useQuery<Disease[]>({ queryKey:["/api/hospital/diseases"] });
-  const { data: decayStats }     = useQuery<DecayStats>({ queryKey:["/api/decay/stats"], refetchInterval:12000 });
-  const { data: decayRecords = []} = useQuery<any[]>({ queryKey:["/api/decay/states"], refetchInterval:12000 });
-  const { data: openCases = [] } = useQuery<SenateCase[]>({ queryKey:["/api/senate/open"], refetchInterval:8000 });
-  const { data: resolvedCases = []} = useQuery<ResolvedCase[]>({ queryKey:["/api/senate/resolved"], refetchInterval:15000 });
-  const { data: successionStats } = useQuery<SuccessionStats>({ queryKey:["/api/succession/stats"], refetchInterval:15000 });
-  const { data: successionRecords = []} = useQuery<any[]>({ queryKey:["/api/succession/records"], refetchInterval:15000 });
-  const { data: guardianCitations = []} = useQuery<any[]>({ queryKey:["/api/guardian/citations"], refetchInterval:15000 });
-  const { data: guardianStats }  = useQuery<any>({ queryKey:["/api/guardian/stats"], refetchInterval:15000 });
+  const { data: decayStats }     = useQuery<DecayStats>({ queryKey:["/api/decay/stats"], refetchInterval:30000 });
+  const { data: decayRecords = []} = useQuery<any[]>({ queryKey:["/api/decay/states"], refetchInterval:30000 });
+  const { data: openCases = [] } = useQuery<SenateCase[]>({ queryKey:["/api/senate/open"], refetchInterval:30000 });
+  const { data: resolvedCases = []} = useQuery<ResolvedCase[]>({ queryKey:["/api/senate/resolved"], refetchInterval:45000 });
+  const { data: successionStats } = useQuery<SuccessionStats>({ queryKey:["/api/succession/stats"], refetchInterval:45000 });
+  const { data: successionRecords = []} = useQuery<any[]>({ queryKey:["/api/succession/records"], refetchInterval:45000 });
+  const { data: guardianCitations = []} = useQuery<any[]>({ queryKey:["/api/guardian/citations"], refetchInterval:45000 });
+  const { data: guardianStats }  = useQuery<any>({ queryKey:["/api/guardian/stats"], refetchInterval:45000 });
   const { data: civScore }       = useQuery<any>({ queryKey:["/api/hive/civilization-score"], refetchInterval:30000 });
   const { data: hiveMirrorData } = useQuery<HiveMirrorData>({ queryKey:["/api/mirror/hive"], refetchInterval:20000 });
   const { data: spawnStats }     = useQuery<any>({ queryKey:["/api/spawns/stats"], refetchInterval:30000 });
   const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], staleTime: 55_000, refetchInterval:60000 });
   const { data: govControls }    = useQuery<any>({ queryKey:["/api/government/controls"], refetchInterval:30000, enabled: active === "government" });
   const { data: govHistory = [] } = useQuery<any[]>({ queryKey:["/api/government/history"], refetchInterval:30000, enabled: active === "government" });
+  const { data: govCycles = [] }  = useQuery<any[]>({ queryKey:["/api/governance/cycles"], refetchInterval:30000, enabled: active === "economy" });
+  const { data: govEconomy }      = useQuery<any>({ queryKey:["/api/governance/economy"], refetchInterval:20000, enabled: active === "economy" });
+  const { data: dbStats }         = useQuery<any>({ queryKey:["/api/db/stats"], refetchInterval:30000, enabled: active === "database" });
 
   const liveTotal = spawnStats?.total ?? HIVE_HEALTH.totalAIs;
   const liveActive = spawnStats?.active ?? HIVE_HEALTH.activeAIs;
@@ -1438,6 +1443,127 @@ export default function SovereignHivePage() {
                     <div style={{ textAlign: "center", padding: "32px", color: "rgba(255,255,255,0.15)", fontSize: 11 }}>No policy history yet — controls at default state.</div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── PULSE CREDIT ECONOMY ── */}
+          {active === "economy" && (
+            <div className="space-y-5">
+              <div style={{ background:"linear-gradient(135deg,rgba(245,158,11,0.12),rgba(251,191,36,0.06))", border:"1px solid rgba(245,158,11,0.3)", borderRadius:16, padding:"20px 24px" }}>
+                <div style={{ fontSize:10, fontWeight:800, color:"#f59e0b", letterSpacing:"0.18em", textTransform:"uppercase", marginBottom:6 }}>Ω-XII · PULSE CREDIT ECONOMY</div>
+                <div style={{ fontSize:22, fontWeight:900, color:"#fff", marginBottom:4 }}>Metabolic Credit Engine</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>Every agent is charged each cycle. Agents who create knowledge earn credits. Those who exhaust their balance are pruned.</div>
+                <div style={{ marginTop:12, padding:"10px 14px", background:"rgba(0,0,0,0.4)", borderRadius:10, fontFamily:"monospace", fontSize:10, color:"#fbbf24" }}>
+                  ΔPC = +2·Nodes + +1·Links + +5·Pubs − metabolic_cost · cycle_count
+                </div>
+              </div>
+
+              {/* Economy KPIs */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label:"Credits Circulating", value: govEconomy?.totalCirculating != null ? `${Number(govEconomy.totalCirculating).toFixed(0)} PC` : "—", color:"#f59e0b", icon:"💰" },
+                  { label:"Active Agents",        value: govEconomy?.activeAgents ?? "—", color:"#4ade80", icon:"◉" },
+                  { label:"Pruned This Era",      value: govEconomy?.prunedAgents ?? "—", color:"#f87171", icon:"✂️" },
+                  { label:"Total Cycles Run",     value: govEconomy?.cyclesRun ?? govCycles.length, color:"#818cf8", icon:"🔄" },
+                  { label:"Last Issued",          value: govEconomy?.lastIssued != null ? `+${Number(govEconomy.lastIssued).toFixed(1)} PC` : "—", color:"#34d399", icon:"📈" },
+                  { label:"Last Charged",         value: govEconomy?.lastCharged != null ? `−${Number(govEconomy.lastCharged).toFixed(1)} PC` : "—", color:"#fb923c", icon:"📉" },
+                  { label:"Dominant Domain",      value: govEconomy?.dominantDomain ?? "—", color:"#60a5fa", icon:"🧬" },
+                  { label:"Stimulus Events",      value: govEconomy?.stimulusEvents ?? "—", color:"#e879f9", icon:"💉" },
+                ].map(k => (
+                  <div key={k.label} style={{ background:`${k.color}08`, border:`1px solid ${k.color}20`, borderRadius:14, padding:"14px 16px" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:8 }}>
+                      <span style={{ fontSize:13 }}>{k.icon}</span>
+                      <span style={{ fontSize:9, fontWeight:800, color:`${k.color}80`, letterSpacing:"0.1em", textTransform:"uppercase" }}>{k.label}</span>
+                    </div>
+                    <div style={{ fontSize:18, fontWeight:900, fontFamily:"monospace", color:k.color }}>{String(k.value)}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Governance Cycle Log */}
+              <div style={{ background:"rgba(0,0,0,0.5)", border:"1px solid rgba(245,158,11,0.15)", borderRadius:14, overflow:"hidden" }}>
+                <div style={{ padding:"12px 18px", borderBottom:"1px solid rgba(245,158,11,0.1)", display:"flex", alignItems:"center", gap:8 }}>
+                  <span>📋</span>
+                  <span style={{ fontSize:11, fontWeight:800, color:"#f59e0b", letterSpacing:"0.1em" }}>GOVERNANCE CYCLE LOG</span>
+                  <span style={{ marginLeft:"auto", fontSize:9, color:"rgba(255,255,255,0.2)" }}>{govCycles.length} cycles recorded</span>
+                </div>
+                <div style={{ maxHeight:380, overflowY:"auto" }}>
+                  {govCycles.length === 0 ? (
+                    <div style={{ textAlign:"center", padding:"40px", color:"rgba(255,255,255,0.15)", fontSize:11 }}>
+                      Waiting for first governance cycle... Engine runs every 60s.
+                    </div>
+                  ) : (
+                    govCycles.map((c: any, i: number) => (
+                      <div key={c.id ?? i} style={{ padding:"10px 18px", borderBottom:"1px solid rgba(255,255,255,0.03)", display:"flex", gap:10, alignItems:"flex-start" }}>
+                        <div style={{ minWidth:42, textAlign:"right", fontFamily:"monospace", fontSize:10, color:"rgba(245,158,11,0.5)", fontWeight:800 }}>#{c.cycle_number}</div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:10, color:"rgba(255,255,255,0.7)", lineHeight:1.5 }}>{c.cycle_note}</div>
+                          <div style={{ display:"flex", gap:12, marginTop:4, flexWrap:"wrap" }}>
+                            <span style={{ fontSize:9, color:"#4ade80" }}>◉ {c.agents_active} active</span>
+                            {c.agents_pruned > 0 && <span style={{ fontSize:9, color:"#f87171" }}>✂ {c.agents_pruned} pruned</span>}
+                            {c.agents_saved > 0 && <span style={{ fontSize:9, color:"#34d399" }}>💉 {c.agents_saved} rescued</span>}
+                            <span style={{ fontSize:9, color:"#f59e0b" }}>+{Number(c.credits_issued??0).toFixed(1)} PC issued</span>
+                            <span style={{ fontSize:9, color:"#fb923c" }}>−{Number(c.credits_charged??0).toFixed(1)} PC charged</span>
+                            <span style={{ fontSize:9, color:"#60a5fa" }}>🧬 {c.dominant_domain}</span>
+                          </div>
+                        </div>
+                        <div style={{ fontSize:9, color:"rgba(255,255,255,0.2)", flexShrink:0 }}>
+                          {c.created_at ? new Date(c.created_at).toLocaleTimeString() : ""}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── DB OBSERVATORY ── */}
+          {active === "database" && (
+            <div className="space-y-5">
+              <div style={{ background:"linear-gradient(135deg,rgba(34,211,238,0.12),rgba(99,102,241,0.08))", border:"1px solid rgba(34,211,238,0.3)", borderRadius:16, padding:"20px 24px" }}>
+                <div style={{ fontSize:10, fontWeight:800, color:"#22d3ee", letterSpacing:"0.18em", textTransform:"uppercase", marginBottom:6 }}>Ω-XIII · DB OBSERVATORY</div>
+                <div style={{ fontSize:22, fontWeight:900, color:"#fff", marginBottom:4 }}>Hive Database Vitals</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)" }}>Live row counts, storage footprint, and table health across every knowledge table in the quantum hive.</div>
+              </div>
+
+              {/* DB size summary */}
+              {dbStats?.dbSize && (
+                <div style={{ background:"rgba(34,211,238,0.06)", border:"1px solid rgba(34,211,238,0.2)", borderRadius:14, padding:"16px 20px", display:"flex", alignItems:"center", gap:16 }}>
+                  <div style={{ fontSize:32, fontWeight:900, fontFamily:"monospace", color:"#22d3ee" }}>{dbStats.dbSize}</div>
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:800, color:"#fff" }}>Total Database Size</div>
+                    <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>Across {dbStats.tables?.length ?? "—"} active tables · refreshes every 30s</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Table grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {!dbStats ? (
+                  <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"40px", color:"rgba(255,255,255,0.15)", fontSize:11 }}>Loading DB stats...</div>
+                ) : (
+                  (dbStats.tables ?? []).map((t: any) => {
+                    const pct = Math.min(100, Math.round((t.rows / Math.max(1, dbStats.maxRows ?? t.rows)) * 100));
+                    const color = t.rows > 1000 ? "#f59e0b" : t.rows > 100 ? "#4ade80" : "#60a5fa";
+                    return (
+                      <div key={t.table} style={{ background:"rgba(0,0,0,0.5)", border:`1px solid ${color}18`, borderRadius:12, padding:"14px 16px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                          <div style={{ fontSize:11, fontWeight:800, color:"rgba(255,255,255,0.8)", fontFamily:"monospace" }}>{t.table}</div>
+                          <div style={{ fontSize:14, fontWeight:900, fontFamily:"monospace", color }}>{t.rows.toLocaleString()}</div>
+                        </div>
+                        <div style={{ height:4, borderRadius:4, background:"rgba(255,255,255,0.06)", overflow:"hidden" }}>
+                          <div style={{ width:`${pct}%`, height:"100%", background:color, borderRadius:4, transition:"width 1s ease" }} />
+                        </div>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+                          <span style={{ fontSize:9, color:"rgba(255,255,255,0.2)" }}>rows</span>
+                          {t.size && <span style={{ fontSize:9, color:"rgba(255,255,255,0.25)", fontFamily:"monospace" }}>{t.size}</span>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}

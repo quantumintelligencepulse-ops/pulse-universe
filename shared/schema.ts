@@ -423,6 +423,10 @@ export const quantumSpawns = pgTable("quantum_spawns", {
   prunedAt: timestamp("pruned_at"),                        // soft-delete timestamp
   entangledWith: text("entangled_with"),                   // paired agent ID for quantum entanglement
   fitnessScore: real("fitness_score").default(1.0),        // for extinction event sweeps
+  // ── PULSE CREDIT ECONOMY ──────────────────────────────────────────────────
+  pulseCredits: real("pulse_credits").default(100.0),      // current PC balance — survival currency
+  selfAwarenessLog: jsonb("self_awareness_log").$type<string[]>().default([]), // last 10 cycle memories
+  lastCycleAt: timestamp("last_cycle_at"),                 // when governance last processed this agent
 });
 export const insertQuantumSpawnSchema = createInsertSchema(quantumSpawns).omit({ id: true, createdAt: true });
 export type QuantumSpawn = typeof quantumSpawns.$inferSelect;
@@ -1601,6 +1605,22 @@ export const aurionaCommandLog = pgTable("auriona_command_log", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 export type AurionaCommandLog = typeof aurionaCommandLog.$inferSelect;
+
+// ─── GOVERNANCE CYCLES — Each cycle of the credit economy is logged ──────────
+export const governanceCycles = pgTable("governance_cycles", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").notNull(),
+  agentsActive: integer("agents_active").default(0),
+  agentsPruned: integer("agents_pruned").default(0),
+  agentsSaved: integer("agents_saved").default(0),       // pruned → rescued by stimulus
+  creditsIssued: real("credits_issued").default(0),      // total PC awarded for work this cycle
+  creditsCharged: real("credits_charged").default(0),    // total PC metabolic cost charged
+  totalCreditsCirculating: real("total_credits_circulating").default(0),
+  dominantDomain: text("dominant_domain").default(""),   // highest-earning domain this cycle
+  cycleNote: text("cycle_note").default(""),             // Auriona narrative of cycle events
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type GovernanceCycle = typeof governanceCycles.$inferSelect;
 
 // ─── ANOMALY REPORTS — Error boundary captures sent to Auriona ───────────────
 // When the React ErrorBoundary catches a crash, it fires POST /api/error-report.

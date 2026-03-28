@@ -692,6 +692,35 @@ function ShowcaseCard({spawn,onDossier,onPublications,onTalk}:{spawn:any;onDossi
         ))}
       </div>
 
+      {/* ── Pulse Credits ── */}
+      {spawn.pulse_credits != null && (()=>{
+        const pc = Number(spawn.pulse_credits);
+        const pcColor = pc > 50 ? "#22c55e" : pc > 10 ? "#f59e0b" : "#ef4444";
+        const pcLabel = pc > 50 ? "SOLVENT" : pc > 10 ? "LOW" : "CRITICAL";
+        const log: string[] = Array.isArray(spawn.self_awareness_log) ? spawn.self_awareness_log : [];
+        return (
+          <div className="px-3 pb-2">
+            <div className="rounded-xl overflow-hidden" style={{background:"rgba(0,0,0,0.4)",border:`1px solid ${pcColor}25`}}>
+              <div className="flex items-center gap-2 px-3 py-2 border-b" style={{borderColor:`${pcColor}15`}}>
+                <span style={{fontSize:10}}>⚡</span>
+                <span style={{fontSize:8,fontWeight:800,color:`${pcColor}90`,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pulse Credits</span>
+                <span style={{marginLeft:"auto",fontSize:12,fontWeight:900,fontFamily:"monospace",color:pcColor}}>{pc.toFixed(1)} PC</span>
+                <span style={{fontSize:7,fontWeight:800,padding:"1px 5px",borderRadius:4,background:`${pcColor}20`,color:pcColor}}>{pcLabel}</span>
+              </div>
+              {log.length > 0 && (
+                <div className="px-3 py-1.5 space-y-0.5">
+                  {log.slice(0,3).map((entry,i)=>(
+                    <div key={i} style={{fontSize:7,color:"rgba(255,255,255,0.3)",lineHeight:1.4,fontStyle:"italic"}}>
+                      {entry.slice(0,80)}{entry.length>80?"…":""}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── AI Identity Badge strip ── */}
       <div className="px-3 py-2">
         <AIIdentityBadge spawn={{spawnId,familyId,generation,spawnType,confidenceScore:confidence,status}}/>
@@ -774,8 +803,8 @@ export default function SovereignAgentDossierPage(){
 
   const PAGE_SIZE = 60; // fewer per page so cards look good in grid
 
-  const{data:stats} = useQuery<any>({queryKey:["/api/spawns/stats"],refetchInterval:5000});
-  const{data:recent=[]} = useQuery<any[]>({queryKey:["/api/spawns/recent"],refetchInterval:4000});
+  const{data:stats} = useQuery<any>({queryKey:["/api/spawns/stats"],refetchInterval:20000});
+  const{data:recent=[]} = useQuery<any[]>({queryKey:["/api/spawns/recent"],refetchInterval:15000});
   const{data:listData,isLoading:listLoading} = useQuery<{spawns:any[];total:number}>({
     queryKey:["/api/spawns/list",page,debouncedSearch,filterType,"",filterStatus],
     queryFn:()=>{
@@ -785,7 +814,7 @@ export default function SovereignAgentDossierPage(){
       if(filterStatus)p.set("status",filterStatus);
       return fetch(`/api/spawns/list?${p}`).then(r=>r.json());
     },
-    staleTime:12000,refetchInterval:18000,
+    staleTime:12000,refetchInterval:30000,
     enabled:panel==="registry",
   });
   const{data:pubFeed} = useQuery<any>({
