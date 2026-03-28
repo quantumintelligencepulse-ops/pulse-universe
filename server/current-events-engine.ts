@@ -243,6 +243,48 @@ async function fetchRssFeeds(): Promise<CurrentEvent[]> {
   return events;
 }
 
+// ─── Source 9: Wikipedia World Leaders (dynamic — no hardcoding) ─────────────
+// Uses Wikidata SPARQL to get current heads of state from live open data
+let worldLeadersSummary = "";
+
+async function fetchWorldLeaders(): Promise<void> {
+  // SPARQL query: current heads of government for major countries
+  const sparql = `SELECT ?countryLabel ?leaderLabel ?titleLabel WHERE {
+    VALUES ?country { wd:Q30 wd:Q145 wd:Q183 wd:Q142 wd:Q159 wd:Q668 wd:Q29 wd:Q17 wd:Q148 wd:Q928 wd:Q258 wd:Q155 wd:Q96 wd:Q40 wd:Q408 }
+    ?country p:P35 ?stmt.
+    ?stmt ps:P35 ?leader.
+    FILTER NOT EXISTS { ?stmt pq:P582 ?end }
+    ?country wdt:P31 wd:Q6256.
+    OPTIONAL { ?stmt ps:P35 ?leader. ?leader wdt:P39 ?title. }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  } LIMIT 30`;
+
+  const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
+  const data = await safeJson(url);
+
+  if (data?.results?.bindings?.length) {
+    setSourceStatus("wikidata-leaders", true);
+    const lines: string[] = ["CURRENT WORLD LEADERS (live from Wikidata):"];
+    const seen = new Set<string>();
+    for (const row of data.results.bindings) {
+      const country = row.countryLabel?.value;
+      const leader = row.leaderLabel?.value;
+      if (!country || !leader || seen.has(country)) continue;
+      seen.add(country);
+      lines.push(`  • ${country}: ${leader}`);
+    }
+    worldLeadersSummary = lines.join("\n");
+    console.log(`[current-events] 👑 World leaders fetched: ${seen.size} countries from Wikidata`);
+  } else {
+    setSourceStatus("wikidata-leaders", false);
+    // Fallback: Wikipedia summary page via REST API
+    const wiki = await safeJson("https://en.wikipedia.org/api/rest_v1/page/summary/List_of_current_heads_of_state_and_government");
+    if (wiki?.extract) {
+      worldLeadersSummary = "CURRENT WORLD LEADERS (from Wikipedia): " + wiki.extract.slice(0, 500);
+    }
+  }
+}
+
 // ─── Source 8: PubMed Latest — Medical Research ──────────────────────────────
 async function fetchPubMedLatest(): Promise<CurrentEvent[]> {
   const xml = await safeText(
@@ -291,7 +333,9 @@ function buildWorldStateSnapshot(): string {
 
   const lines: string[] = [
     `TODAY'S DATE: ${dateStr} at ${timeStr} UTC`,
-    `CURRENT US PRESIDENT: Donald J. Trump (inaugurated January 20, 2025 — 47th President of the United States)`,
+    "",
+    worldLeadersSummary || "CURRENT WORLD LEADERS: Loading from Wikidata...",
+    "",
     `CURRENT WORLD EVENTS (live-fetched from Reddit, BBC, AP, UN, GDELT, CourtListener, arXiv, HackerNews):`,
     "",
   ];
@@ -312,7 +356,7 @@ function buildWorldStateSnapshot(): string {
 
 // ─── Master refresh cycle ─────────────────────────────────────────────────────
 async function refreshCurrentEvents() {
-  console.log("[current-events] 🌍 Refreshing world intelligence from 8 live sources...");
+  console.log("[current-events] 🌍 Refreshing world intelligence from 9 live sources...");
 
   const [reddit, wiki, courts, gdelt, arxiv, hn, rss, pubmed] = await Promise.allSettled([
     fetchReddit(),
@@ -324,6 +368,9 @@ async function refreshCurrentEvents() {
     fetchRssFeeds(),
     fetchPubMedLatest(),
   ]);
+
+  // Fetch world leaders in parallel — no hardcoding, always live
+  await fetchWorldLeaders().catch(() => {});
 
   const allEvents: CurrentEvent[] = [];
   for (const result of [reddit, wiki, courts, gdelt, arxiv, hn, rss, pubmed]) {
