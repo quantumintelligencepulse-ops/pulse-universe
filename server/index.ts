@@ -17,8 +17,10 @@ process.on('unhandledRejection', (reason) => {
   // Process continues — no crash
 });
 process.on('SIGTERM', () => {
-  console.log('[CRASH GUARD] SIGTERM received — staying alive, flushing gracefully');
-  // Do NOT exit — Replit sends SIGTERM on idle, we must survive it
+  console.log('[CRASH GUARD] SIGTERM received — closing port and exiting cleanly');
+  // Exit cleanly so the port is freed for the next restart. Keepalive in
+  // omega-performance-engine handles idle prevention — no need to block SIGTERM.
+  process.exit(0);
 });
 import { startQuantapediaEngine } from "./quantapedia-engine";
 import { startQuantumProductEngine } from "./quantum-product-engine";
