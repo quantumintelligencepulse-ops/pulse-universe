@@ -2196,14 +2196,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">ENROLL</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("careers") && (
-          <Link href="/corporations" data-testid="link-careers"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/corporations" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/corporations" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Briefcase size={14} className="text-orange-500" /></div>
-            <span className="flex-1">Corporations</span>
-            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-400 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide animate-pulse">HIRING</span>
-          </Link>
-          )}
           {aiMode && (
             <div className="px-1 pt-3 pb-1">
               <div className="flex items-center gap-2">
