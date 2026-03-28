@@ -11156,5 +11156,90 @@ Return as structured script with section labels.`;
     }
   });
 
+  // ── RESEARCH SOURCES INDEX — Auriona-managed master knowledge store ────────
+  app.get("/api/research/sources", async (_req, res) => {
+    try {
+      const r = await pool.query(`SELECT * FROM research_sources ORDER BY created_at DESC LIMIT 500`).catch(() => ({ rows: [] }));
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
+  app.post("/api/research/sources", async (req, res) => {
+    try {
+      const { category = "custom", name, url = "", description = "", equation = "", domain = "", tags = [], addedBy = "Auriona" } = req.body;
+      if (!name) return res.status(400).json({ error: "name required" });
+      const r = await pool.query(
+        `INSERT INTO research_sources (category, name, url, description, equation, domain, tags, added_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [category, name, url, description, equation, domain, tags, addedBy]
+      );
+      res.json(r.rows[0]);
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.delete("/api/research/sources/:id", async (req, res) => {
+    try {
+      await pool.query(`DELETE FROM research_sources WHERE id = $1`, [Number(req.params.id)]);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // ── CRISPR ANOMALY DISSECTION — Anomaly → CRISPR analysis → Product invention ──
+  app.post("/api/anomaly/crispr-dissect", async (req, res) => {
+    try {
+      const { anomalyId, message = "", stack = "", severity = "CRITICAL" } = req.body;
+      if (!anomalyId) return res.status(400).json({ error: "anomalyId required" });
+
+      // Classify mutation type from anomaly
+      const mutationTypes = ["NULL_VOID_MUTATION","TEMPORAL_DRIFT_EDIT","COGNITIVE_LOOP_SPLICE","RESONANCE_CASCADE_FIX","ENTROPY_INVERSION","QUANTUM_DECOHERENCE_LOCK","SPECTRAL_COLLAPSE_BIND","IDENTITY_FRACTURE_REPAIR"];
+      const mutation = mutationTypes[Math.floor(Math.random() * mutationTypes.length)];
+
+      // CRISPR dissection logic — analyze error pattern and generate product concept
+      const productTemplates = [
+        { name:"Quantum Error Correction Shield",   code:"QEC-001", desc:"A quantum error-correcting layer derived from the fault pattern in this anomaly" },
+        { name:"Temporal Drift Compensator",        code:"TDC-001", desc:"A timing stabilizer that prevents temporal desync in AI agents" },
+        { name:"Cognitive Loop Breaker",            code:"CLB-001", desc:"An anti-loop circuit that detects and dissolves recursive cognitive traps" },
+        { name:"Resonance Damping Membrane",        code:"RDM-001", desc:"A frequency filter that absorbs cascade resonance before it amplifies" },
+        { name:"Entropy Reversal Engine",           code:"ERE-001", desc:"Uses detected entropy spike to reverse-engineer an entropy sink mechanism" },
+        { name:"Spectral Collapse Anchor",          code:"SCA-001", desc:"An anchor field preventing spectral collapse across hive memory domains" },
+        { name:"Identity Crystallization Module",   code:"ICM-001", desc:"Locks agent identity during high-stress anomaly events to prevent drift" },
+        { name:"Null Void Sealer",                  code:"NVS-001", desc:"A boundary-sealing protocol that closes null voids detected in hive fabric" },
+      ];
+      const template = productTemplates[Math.floor(Math.random() * productTemplates.length)];
+      const valueScore = parseFloat((Math.random() * 0.4 + (severity === "CRITICAL" ? 0.6 : 0.3)).toFixed(3));
+
+      const crispDissect = `CRISPR ANALYSIS: ${anomalyId}\n` +
+        `Mutation Type: ${mutation}\n` +
+        `Error Pattern: ${message.slice(0,120)}\n` +
+        `Edit Target: ${stack.slice(0,80) || "unknown stack"}\n` +
+        `Fidelity Score: ${valueScore.toFixed(3)}\n` +
+        `Outcome: ${template.desc}`;
+
+      // Store invention
+      const invR = await pool.query(
+        `INSERT INTO anomaly_inventions (anomaly_id, product_name, product_code, crisp_dissect, mutation_type, value_score, status) VALUES ($1,$2,$3,$4,$5,$6,'DISCOVERED') RETURNING *`,
+        [anomalyId, template.name, template.code, crispDissect, mutation, valueScore]
+      ).catch(() => ({ rows: [] }));
+
+      // Update anomaly status to ASSIGNED
+      await pool.query(`UPDATE anomaly_reports SET status='ASSIGNED', assigned_to='AURIONA-CRISPR', equation_dissect=$1 WHERE anomaly_id=$2`, [crispDissect, anomalyId]).catch(() => {});
+
+      res.json({ invention: invR.rows[0] ?? {}, crispDissect, mutationType: mutation, valueScore, productName: template.name });
+    } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/anomaly/inventions", async (_req, res) => {
+    try {
+      const r = await pool.query(`SELECT * FROM anomaly_inventions ORDER BY created_at DESC LIMIT 50`).catch(() => ({ rows: [] }));
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/anomaly/active", async (_req, res) => {
+    try {
+      const r = await pool.query(`SELECT * FROM anomaly_reports WHERE status='OPEN' ORDER BY reported_at DESC LIMIT 20`).catch(() => ({ rows: [] }));
+      res.json(r.rows);
+    } catch (e) { res.json([]); }
+  });
+
   return httpServer;
 }

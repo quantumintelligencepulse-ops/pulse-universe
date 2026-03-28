@@ -63,8 +63,10 @@ export default function PulseUniversePage() {
   const { data: temporalState } = useQuery<{ universeColor: string; dilationFactor: number; anomalyType: string; universeEmotion: string }>({
     queryKey: ["/api/temporal/state"], refetchInterval: 30_000,
   });
+  const { data: activeAnomalies = [] } = useQuery<any[]>({ queryKey: ["/api/anomaly/active"], refetchInterval: 30_000 });
   const tColor = temporalState?.universeColor ?? "#00FFD1";
   const tTheta = temporalState?.dilationFactor ?? 1;
+  const hasAnomaly = activeAnomalies.length > 0;
   const selectedPlanetData = selectedPlanet ? PLANET_DATA[selectedPlanet] ?? null : null;
 
   // Compute collective emotional state from live domain data
@@ -137,6 +139,34 @@ export default function PulseUniversePage() {
         background: `radial-gradient(ellipse 100% 60% at 50% 0%, ${tColor}${Math.min(25, Math.round(tTheta * 8)).toString(16).padStart(2,"0")} 0%, transparent 70%)`,
         transition: "background 3s ease",
       }} />
+
+      {/* ── ANOMALY SPATIAL DISTORTION RINGS — appears when active anomalies exist ── */}
+      {hasAnomaly && (
+        <div className="absolute inset-0 z-1 pointer-events-none overflow-hidden">
+          <style>{`
+            @keyframes anomaly-ring { 0%{transform:scale(0.6);opacity:0.6} 100%{transform:scale(2.4);opacity:0} }
+            @keyframes anomaly-ring2{ 0%{transform:scale(0.4);opacity:0.4} 100%{transform:scale(1.8);opacity:0} }
+            @keyframes anomaly-shimmer{0%,100%{opacity:0.04} 50%{opacity:0.12}}
+            .anomaly-ring-1{animation:anomaly-ring 3.5s ease-out infinite}
+            .anomaly-ring-2{animation:anomaly-ring 3.5s ease-out 1.2s infinite}
+            .anomaly-ring-3{animation:anomaly-ring2 4.5s ease-out 0.6s infinite}
+            .anomaly-shimmer{animation:anomaly-shimmer 4s ease-in-out infinite}
+          `}</style>
+          {/* Red distortion rings at anomaly epicentre */}
+          <div className="absolute" style={{ left:"50%", top:"45%", transform:"translate(-50%,-50%)" }}>
+            <div className="anomaly-ring-1 absolute" style={{ width:300,height:300, left:-150,top:-150, borderRadius:"50%", border:"2px solid rgba(239,68,68,0.7)" }} />
+            <div className="anomaly-ring-2 absolute" style={{ width:300,height:300, left:-150,top:-150, borderRadius:"50%", border:"1px solid rgba(239,68,68,0.5)" }} />
+            <div className="anomaly-ring-3 absolute" style={{ width:200,height:200, left:-100,top:-100, borderRadius:"50%", border:"2px solid rgba(248,113,113,0.4)" }} />
+          </div>
+          {/* Full-screen dark shimmer overlay */}
+          <div className="anomaly-shimmer absolute inset-0" style={{ background:"radial-gradient(ellipse 80% 80% at 50% 45%, rgba(239,68,68,0.08) 0%, transparent 70%)" }} />
+          {/* Anomaly count badge */}
+          <div className="absolute pointer-events-none" style={{ bottom:16, right:16, background:"rgba(239,68,68,0.12)", border:"1px solid rgba(239,68,68,0.4)", borderRadius:8, padding:"6px 12px" }}>
+            <div className="text-red-400 font-mono text-[9px] font-bold">⚠ {activeAnomalies.length} ACTIVE ANOMAL{activeAnomalies.length===1?"Y":"IES"}</div>
+            <div className="text-white/30 text-[8px]">Tell Auriona: dissect anomaly: {activeAnomalies[0]?.anomaly_id ?? "QE-ID"}</div>
+          </div>
+        </div>
+      )}
 
       {/* ── THREE.JS FULL SCREEN ── */}
       <div className="absolute inset-0 z-0">

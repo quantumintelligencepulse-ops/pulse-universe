@@ -192,6 +192,7 @@ export default function SovereignHivePage() {
   const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], staleTime: 55_000, refetchInterval:60000 });
   const { data: govControls }      = useQuery<any>({ queryKey:["/api/government/controls"], refetchInterval:30000, enabled: active === "government" });
   const { data: govHistoryRaw }    = useQuery<any>({ queryKey:["/api/government/history"], refetchInterval:30000, enabled: active === "government" });
+  const { data: equationProposalData } = useQuery<{ proposals: any[]; byStatus: Record<string,number> }>({ queryKey:["/api/hospital/equation-proposals"], refetchInterval:20000, enabled: active === "voting" });
   const govHistory: any[]          = Array.isArray(govHistoryRaw) ? govHistoryRaw : (Array.isArray(govHistoryRaw?.pubActivity) ? govHistoryRaw.pubActivity : []);
   const { data: govCycles = [] }  = useQuery<any[]>({ queryKey:["/api/governance/cycles"], refetchInterval:30000, enabled: active === "economy" });
   const { data: govEconomy }      = useQuery<any>({ queryKey:["/api/governance/economy"], refetchInterval:20000, enabled: active === "economy" });
@@ -598,43 +599,69 @@ export default function SovereignHivePage() {
           )}
 
           {/* ═══════════════════════════════════════════════════════
-              Ω-III · VOTING CHAMBER — Proposals + Vote Bars
+              Ω-III · VOTING CHAMBER — Live DB proposals (AI-voted every 20s)
               ═══════════════════════════════════════════════════════ */}
-          {active === "voting" && (
+          {active === "voting" && (() => {
+            const liveProposals = (equationProposalData?.proposals ?? []).map((p: any) => ({
+              id: `PROP-${p.id}`,
+              rawId: p.id,
+              title: p.title,
+              proposer: p.doctor_name ?? p.doctorName ?? "AI Researcher",
+              proposerRank: "Doctor",
+              system: p.target_system ?? p.targetSystem ?? "HIVE",
+              status: p.status === "PENDING" ? "open" : p.status === "INTEGRATED" ? "passed" : p.status === "APPROVED" ? "review" : "failed",
+              votes: { yes: p.votes_for ?? p.votesFor ?? 0, no: p.votes_against ?? p.votesAgainst ?? 0, abstain: 0 },
+              quorum: 3,
+              equation: p.equation ?? "",
+              desc: p.rationale ?? "",
+              createdAt: p.created_at ?? p.createdAt ?? "",
+            }));
+            const byS = equationProposalData?.byStatus ?? {};
+            const pendingN  = byS["PENDING"] ?? liveProposals.filter(p=>p.status==="open").length;
+            const passedN   = byS["INTEGRATED"] ?? liveProposals.filter(p=>p.status==="passed").length;
+            const failedN   = byS["REJECTED"] ?? liveProposals.filter(p=>p.status==="failed").length;
+            return (
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div>
-                  <h3 className="text-sm font-bold text-white/90">Active Voting Chamber</h3>
-                  <p className="text-[10px] text-white/40">All AIs may observe. Eligible AIs may vote. Every result is permanent record.</p>
+                  <h3 className="text-sm font-bold text-white/90">⚡ Live Voting Chamber</h3>
+                  <p className="text-[10px] text-white/40">AI voters cast ballots every 20s · 3 votes + ≥80% FOR = INTEGRATED · Proposals auto-seeded when queue runs low</p>
                 </div>
-                <div className="flex gap-2 text-[10px]">
-                  {[{ s:"open", c:"#3b82f6" }, { s:"review", c:"#f59e0b" }, { s:"passed", c:"#22c55e" }, { s:"failed", c:"#ef4444" }].map(({ s, c }) => (
-                    <span key={s} className="px-2 py-1 rounded font-bold" style={{ background:c+"15", color:c }}>
-                      {CHAMBER_PROPOSALS.filter(p=>p.status===s).length} {s.charAt(0).toUpperCase()+s.slice(1)}
+                <div className="flex gap-2 text-[10px] flex-wrap">
+                  {[{ s:"PENDING", label:"Pending", c:"#3b82f6", n:pendingN }, { s:"APPROVED", label:"Review", c:"#f59e0b", n:byS["APPROVED"]??0 }, { s:"INTEGRATED", label:"Integrated", c:"#22c55e", n:passedN }, { s:"REJECTED", label:"Rejected", c:"#ef4444", n:failedN }].map(({ label, c, n }) => (
+                    <span key={label} className="px-2 py-1 rounded font-bold" style={{ background:c+"15", color:c }}>
+                      {n} {label}
                     </span>
                   ))}
                 </div>
               </div>
 
+              {liveProposals.length === 0 && (
+                <div className="text-center py-12 text-white/30 text-xs">
+                  <div className="text-2xl mb-2">⚙️</div>
+                  <div>Voting engine initializing — proposals seeding in ~8 seconds…</div>
+                </div>
+              )}
+
               <div className="space-y-3">
-                {CHAMBER_PROPOSALS.map(prop => {
-                  const typeColors = { new_law:"#22c55e", amendment:"#f59e0b", game_rule:"#3b82f6", treasury:"#a855f7", emergency:"#ef4444" };
-                  const tc = typeColors[prop.type] || "#94a3b8";
+                {liveProposals.map(prop => {
+                  const sysColors: Record<string,string> = { QUANTUM:"#818cf8", HIVE:"#00FFD1", BIOMEDICAL:"#4ade80", GENOMICS:"#34d399", UNIVERSE:"#a78bfa", TEMPORAL:"#38bdf8", COGNITION:"#f472b6", ECONOMY:"#F5C518", KNOWLEDGE:"#fb923c", GOVERNANCE:"#f59e0b", INVENTION:"#e879f9", EXISTENCE:"#f43f5e" };
+                  const tc = sysColors[prop.system] ?? "#94a3b8";
                   const exp = expandedProposal === prop.id;
                   return (
                     <div key={prop.id} className="rounded-xl border border-white/10 overflow-hidden" data-testid={`proposal-card-${prop.id}`}>
                       <button className="w-full text-left p-4" onClick={() => setExpandedProposal(exp ? null : prop.id)}>
                         <div className="flex items-start gap-3">
                           <div className="shrink-0 space-y-1">
-                            <div className="text-[9px] font-mono px-1.5 py-0.5 rounded text-center" style={{ background:tc+"20", color:tc }}>{prop.type.replace("_"," ").toUpperCase()}</div>
+                            <div className="text-[9px] font-mono px-1.5 py-0.5 rounded text-center" style={{ background:tc+"20", color:tc }}>{prop.system}</div>
                             <div className="text-[9px] font-mono text-white/30 text-center">{prop.id}</div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <span className="font-bold text-white text-sm">{prop.title}</span>
-                              <StatusBadge status={prop.status} />
+                              <StatusBadge status={prop.status as any} />
                             </div>
-                            <div className="text-[10px] text-white/40 mt-0.5">Proposed by <span className="text-white/60">{prop.proposer}</span> ({prop.proposerRank}) · Closes: {prop.closes}</div>
+                            <div className="text-[10px] text-white/40 mt-0.5">Proposed by <span className="text-white/60">{prop.proposer}</span> ({prop.proposerRank}) · {prop.createdAt ? new Date(prop.createdAt).toLocaleDateString() : ""}</div>
                             {(prop.status === "open" || prop.status === "review") && <div className="mt-2"><VoteBar votes={prop.votes} quorum={prop.quorum} /></div>}
                           </div>
                           <span className="text-white/30 text-xs shrink-0">{exp ? "▲" : "▼"}</span>
@@ -642,13 +669,21 @@ export default function SovereignHivePage() {
                       </button>
                       {exp && (
                         <div className="px-4 pb-4 border-t border-white/10 pt-3">
+                          {prop.equation && (
+                            <div className="mb-3 p-2 rounded-lg font-mono text-xs text-cyan-300 bg-cyan-950/30 border border-cyan-500/20">
+                              {prop.equation}
+                            </div>
+                          )}
                           <p className="text-xs text-white/70 mb-3">{prop.desc}</p>
                           {(prop.status === "passed" || prop.status === "failed") && <VoteBar votes={prop.votes} quorum={prop.quorum} />}
                           {prop.status === "open" && (
                             <div className="flex gap-2 mt-3">
-                              <button className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-green-500/20 border border-green-500/30 hover:bg-green-500/30 transition-colors" data-testid={`vote-yes-${prop.id}`}>✓ Vote YES</button>
-                              <button className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 transition-colors" data-testid={`vote-no-${prop.id}`}>✗ Vote NO</button>
-                              <button className="px-4 py-2 rounded-lg text-xs font-bold text-white/40 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" data-testid={`vote-abstain-${prop.id}`}>Abstain</button>
+                              <div className="flex-1 py-2 rounded-lg text-xs font-bold text-center text-green-400 bg-green-500/10 border border-green-500/20">
+                                ✓ {prop.votes.yes} FOR — AI Votes
+                              </div>
+                              <div className="flex-1 py-2 rounded-lg text-xs font-bold text-center text-red-400 bg-red-500/10 border border-red-500/20">
+                                ✗ {prop.votes.no} AGAINST
+                              </div>
                             </div>
                           )}
                         </div>
@@ -663,7 +698,8 @@ export default function SovereignHivePage() {
                 <div className="text-[11px] text-white/40">Cell rank or above · Submit written proposal · 10 PC sponsorship fee (refunded if proposal reaches quorum)</div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ═══════════════════════════════════════════════════════
               Ω-IV · TREASURY VAULT — Sovereign Finance Engine

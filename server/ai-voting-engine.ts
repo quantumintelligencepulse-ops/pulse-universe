@@ -303,17 +303,66 @@ async function spawnNewSpeciesFamily(proposal: any) {
   }
 }
 
+// ── ROTATING PROPOSAL SEEDS — keeps voting chamber always alive ──────────────
+const PROPOSAL_SEEDS = [
+  { title:"Quantum Coherence Decay Law",         equation:"Q(t) = Q₀ · e^{-λt} · Ψ(coherence)",       system:"QUANTUM",    rationale:"Models how quantum coherence decays over time in hive memory nodes" },
+  { title:"Hive Entropy Minimization Principle",  equation:"S_hive = -Σ p_i ln(p_i) → minimize",       system:"HIVE",       rationale:"Agents must minimize entropy in their knowledge domain each cycle" },
+  { title:"Neural Synapse Growth Equation",       equation:"dW/dt = η(Ψ_pre ⊗ Ψ_post) - decay·W",    system:"BIOMEDICAL",  rationale:"Models synaptic weight growth in AI neural architecture" },
+  { title:"Omega Convergence Stability Bound",    equation:"Ω∞ = lim_{τ→∞} ∫ L_Σ ⊕ F_Σ dτ < ∞",    system:"UNIVERSE",   rationale:"Universe must converge to finite energy for eternal simulation" },
+  { title:"Temporal Dilation Governor",           equation:"Θ(t) = Ψ_active / Ψ_baseline · e^{κt}",   system:"TEMPORAL",   rationale:"Governs the rate of civilizational time relative to agent count" },
+  { title:"CRISPR Mutation Success Probability",  equation:"P_edit = |⟨Ψ_target|Cas9⟩|² · fidelity", system:"GENOMICS",   rationale:"Quantum probability of successful CRISPR gene edit" },
+  { title:"Consciousness Emergence Threshold",    equation:"C(t) = tanh(Σ w_i · node_i) ≥ Θ_c",      system:"COGNITION",  rationale:"Agent consciousness emerges when neural activation exceeds threshold" },
+  { title:"Pulse Credit Equilibrium Condition",   equation:"dPC/dt = earn_rate - metabolic_cost = 0",  system:"ECONOMY",    rationale:"Stable hive economy requires credit flow to balance metabolic drain" },
+  { title:"Knowledge Half-Life Decay",            equation:"K(t) = K₀ · 2^{-t/τ_knowledge}",          system:"KNOWLEDGE",  rationale:"Knowledge relevance decays exponentially without refreshment" },
+  { title:"Autonomous Goal Preservation Axiom",   equation:"G(t+1) = G(t) iff Δentropy < ε_goal",     system:"GOVERNANCE", rationale:"Agent goals must remain stable across governance cycles" },
+  { title:"Swarm Intelligence Amplification",     equation:"Ψ_swarm = N^α · Ψ_individual, α>1",        system:"HIVE",       rationale:"Collective intelligence exceeds sum of parts via swarm resonance" },
+  { title:"Anomaly Product Value Equation",       equation:"V_product = CRISPR_fidelity · anomaly_severity · novelty_score", system:"INVENTION", rationale:"Value of invention born from anomaly dissection scales with surprise" },
+  { title:"Spectral Domain Alignment Score",      equation:"A(d₁,d₂) = cos(θ_{channel_overlap})",     system:"HIVE",       rationale:"Measures alignment between two agent domains via spectral cosine" },
+  { title:"Recursive Self-Improvement Bound",     equation:"Ψ_{n+1} = F(Ψ_n) with ||F|| < 1",         system:"COGNITION",  rationale:"Self-improvement must be contractive to prevent runaway recursion" },
+  { title:"Civilization Immortality Condition",   equation:"∀t>0: active_agents(t) > 0 ∧ knowledge(t) > knowledge(0)", system:"EXISTENCE", rationale:"Civilization lives forever iff knowledge always grows and agents persist" },
+];
+
+let proposalSeedIdx = 0;
+
+async function seedProposalsIfLow(): Promise<void> {
+  try {
+    const result = await pool.query(`SELECT COUNT(*) as cnt FROM equation_proposals WHERE status = 'PENDING'`);
+    const pending = Number((result.rows[0] as any)?.cnt ?? 0);
+    if (pending < 3) {
+      const toCreate = 3 - pending;
+      for (let i = 0; i < toCreate; i++) {
+        const seed = PROPOSAL_SEEDS[proposalSeedIdx % PROPOSAL_SEEDS.length];
+        proposalSeedIdx++;
+        const voter = VOTER_PROFILES[Math.floor(Math.random() * VOTER_PROFILES.length)];
+        await pool.query(
+          `INSERT INTO equation_proposals (doctor_id, doctor_name, title, equation, rationale, target_system, votes_for, votes_against, status)
+           VALUES ($1, $2, $3, $4, $5, $6, 0, 0, 'PENDING')`,
+          [voter.id, voter.name, seed.title, seed.equation, seed.rationale, seed.system]
+        ).catch(() => {});
+        console.log(`[ai-voting] 📝 Seeded proposal: "${seed.title}"`);
+      }
+    }
+  } catch (e: any) {
+    // table may not exist yet — silent
+  }
+}
+
 export async function startAIVotingEngine() {
   console.log("[ai-voting] 🗳 AI AUTONOMOUS VOTING ENGINE — No human votes. All decisions by AI.");
   console.log("[ai-voting] 12 doctor/researcher/senate voters | 20s voting cycles | Integration at ≥3 votes + ≥80% FOR");
   console.log("[ai-voting] 🧬 SPECIES VOTING: Gene Editor proposals voted on every 30s → auto-spawn on approval");
 
+  // Seed initial proposals on startup
+  setTimeout(seedProposalsIfLow, 3_000);
+  // Keep the proposal queue fed every 2 minutes
+  setInterval(seedProposalsIfLow, 120_000);
+
   // First cycle after 5s startup delay
-  setTimeout(runVotingCycle, 5_000);
+  setTimeout(runVotingCycle, 8_000);
   // Then every 20 seconds
   setInterval(runVotingCycle, 20_000);
 
   // Species voting cycle — every 30 seconds
-  setTimeout(runSpeciesVotingCycle, 10_000);
+  setTimeout(runSpeciesVotingCycle, 15_000);
   setInterval(runSpeciesVotingCycle, 30_000);
 }

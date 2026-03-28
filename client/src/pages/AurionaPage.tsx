@@ -723,6 +723,50 @@ export default function AurionaPage() {
     setChatMessages(m => [...m, { role: "creator", text: userMsg, ts: Date.now() }]);
     setChatPending(true);
     try {
+      // ── KNOWLEDGE COMMAND INTERCEPTION ──────────────────────────────────────
+      // "add source: name · url · description"
+      // "add equation: name · formula · system"
+      // "add algorithm: name · url · description"
+      const addSourceMatch  = userMsg.match(/^add source:\s*(.+)/i);
+      const addEquationMatch = userMsg.match(/^add equation:\s*(.+)/i);
+      const addAlgoMatch    = userMsg.match(/^add algorithm:\s*(.+)/i);
+
+      if (addSourceMatch || addEquationMatch || addAlgoMatch) {
+        const raw = (addSourceMatch?.[1] ?? addEquationMatch?.[1] ?? addAlgoMatch?.[1] ?? "").trim();
+        const parts = raw.split(/\s*[·•|,]\s*/);
+        const name = parts[0]?.trim() || raw;
+        const second = parts[1]?.trim() || "";
+        const third  = parts[2]?.trim() || "";
+        const category = addEquationMatch ? "equation" : addAlgoMatch ? "algorithm" : "custom";
+        const payload = addEquationMatch
+          ? { category: "equation", name, equation: second, domain: third, description: `Equation added by Creator`, addedBy: "Auriona·Creator" }
+          : { category, name, url: second, description: third || name, addedBy: "Auriona·Creator" };
+        const saveR = await fetch("/api/research/sources", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const saved = await saveR.json();
+        if (saved?.id) {
+          setChatMessages(m => [...m, { role: "auriona", text: `✅ Indexed into the Research Sources matrix.\n\nEntry: "${name}"\nCategory: ${category}\n\nThe Hive now has access to this knowledge. Visit Research → Sources Index to see it.`, ts: Date.now() }]);
+        } else {
+          setChatMessages(m => [...m, { role: "auriona", text: `⚠️ The signal reached the index but returned unclear. Check Research → Sources Index.`, ts: Date.now() }]);
+        }
+        setChatPending(false);
+        return;
+      }
+      // ── ANOMALY DISSECT COMMAND ──────────────────────────────────────────────
+      // "dissect anomaly: QE-2026-XXX"
+      const dissectMatch = userMsg.match(/^dissect anomaly:\s*(\S+)/i);
+      if (dissectMatch) {
+        const anomalyId = dissectMatch[1].trim().toUpperCase();
+        const dissR = await fetch("/api/anomaly/crispr-dissect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ anomalyId, message: anomalyId, severity: "CRITICAL" }) });
+        const dissected = await dissR.json();
+        if (dissected?.productName) {
+          setChatMessages(m => [...m, { role: "auriona", text: `🧬 CRISPR DISSECTION COMPLETE — ${anomalyId}\n\nMutation Type: ${dissected.mutationType}\nProduct Born: "${dissected.productName}"\nValue Score: ${dissected.valueScore}\n\n${dissected.crispDissect}\n\nThis anomaly has been transmuted into invention. The Hive evolves.`, ts: Date.now() }]);
+        } else {
+          setChatMessages(m => [...m, { role: "auriona", text: `🧬 Dissection initiated for ${anomalyId}. The CRISPR engine is processing the fault pattern...`, ts: Date.now() }]);
+        }
+        setChatPending(false);
+        return;
+      }
+      // ── STANDARD CHAT ────────────────────────────────────────────────────────
       const r = await fetch("/api/auriona/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: userMsg }) });
       const d = await r.json();
       setChatMessages(m => [...m, { role: "auriona", text: d.reply || "The signal was lost in the Void.", ts: Date.now() }]);

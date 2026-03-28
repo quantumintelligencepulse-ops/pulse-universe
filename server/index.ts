@@ -40,6 +40,7 @@ import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
 import { startPulseCreditEngine } from "./pulse-credit-engine";
+import { startAIVotingEngine } from "./ai-voting-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -139,6 +140,8 @@ app.use((req, res, next) => {
 
   // ── PULSE CREDIT ENGINE — The hive's metabolic economy ──
   startPulseCreditEngine();
+  // ── AI VOTING ENGINE — Autonomous equation & species governance ──
+  startAIVotingEngine();
 })();
 
 // ── MARKETPLACE API ROUTES ─────────────────────────────────────

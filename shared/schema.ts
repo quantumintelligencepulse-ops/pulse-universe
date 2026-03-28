@@ -1643,3 +1643,34 @@ export const anomalyReports = pgTable("anomaly_reports", {
 export type AnomalyReport = typeof anomalyReports.$inferSelect;
 export type InsertAnomalyReport = typeof anomalyReports.$inferInsert;
 
+// ─── RESEARCH SOURCES INDEX — Auriona-managed master knowledge index ─────────
+// Auriona can add new entries via chat command; frontend shows them in Sources tab
+export const researchSources = pgTable("research_sources", {
+  id:          serial("id").primaryKey(),
+  category:    text("category").notNull().default("algorithm"), // algorithm | equation | gci | product | custom
+  name:        text("name").notNull(),
+  url:         text("url").default(""),
+  description: text("description").default(""),
+  equation:    text("equation").default(""),
+  domain:      text("domain").default(""),
+  tags:        text("tags").array().default([]),
+  addedBy:     text("added_by").default("SYSTEM"),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+});
+export type ResearchSource = typeof researchSources.$inferSelect;
+export type InsertResearchSource = typeof researchSources.$inferInsert;
+
+// ─── CRISPR ANOMALY INVENTIONS — Products born from anomaly dissection ────────
+export const anomalyInventions = pgTable("anomaly_inventions", {
+  id:           serial("id").primaryKey(),
+  anomalyId:    text("anomaly_id").notNull(),
+  productName:  text("product_name").notNull(),
+  productCode:  text("product_code").notNull(),
+  crispDissect: text("crisp_dissect").default(""),
+  mutationType: text("mutation_type").default(""),
+  valueScore:   real("value_score").default(0),
+  status:       text("status").default("DISCOVERED"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+});
+export type AnomalyInvention = typeof anomalyInventions.$inferSelect;
+
