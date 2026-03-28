@@ -24,6 +24,8 @@ const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPa
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
 const UniverseEnginePage = lazy(() => import("./pages/UniverseEnginePage"));
 const HubPage = lazy(() => import("./pages/HubPage"));
+const ResearchPage = lazy(() => import("./pages/ResearchPage"));
+const HivePage = lazy(() => import("./pages/HivePage"));
 const SubscribePage = lazy(() => import("./pages/SubscribePage"));
 const BreakingLeaderboardPage = lazy(() => import("./pages/BreakingLeaderboardPage"));
 const VideoScriptPage = lazy(() => import("./pages/VideoScriptPage"));
@@ -2180,52 +2182,24 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
         <div className="overflow-y-auto scrollbar-hide" style={{maxHeight: "calc(100dvh - 160px)"}}>
         <div className="px-2.5 py-2 space-y-1">
+          {/* ── CORE LINKS (always) ── */}
           <Link href="/" data-testid="link-general-chat"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/" ? "bg-primary/10" : "bg-muted/50"}`}><MessageSquare size={14} className={location === "/" ? "text-primary" : ""} /></div>
-            <span className="flex-1">My Ai GPT Chat</span>
+            <span className="flex-1">Chat</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
+
           {!appSettings.hiddenPages.includes("feed") && (
           <Link href="/feed" data-testid="link-feed"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
-            <span className="flex-1">News Hub</span>
-            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse tracking-wide">Ψ-STREAM<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="flex-1">News Feed</span>
+            <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide animate-pulse">Ψ-STREAM</span>
           </Link>
           )}
-          {!appSettings.hiddenPages.includes("coder") && (
-          <Link href="/coder" data-testid="link-forge-ide"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/coder" ? "bg-gradient-to-r from-blue-950 to-emerald-950 text-white shadow-lg font-semibold border border-blue-500/30" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-white/15" : "bg-blue-500/8"}`}><span className="text-[14px]">⚡</span></div>
-            <span className="flex-1">Quantum Forge IDE</span>
-            <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide">Ω-BUILD</span>
-          </Link>
-          )}
-          {!appSettings.hiddenPages.includes("quantapedia") && (
-          <Link href="/quantapedia" data-testid="link-quantapedia"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-violet-500/15" : "bg-violet-500/5"}`}><BookOpen size={14} className="text-violet-600" /></div>
-            <span className="flex-1">Quantapedia</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">STUDY</span>
-          </Link>
-          )}
-          {!appSettings.hiddenPages.includes("music") && (
-          <Link href="/music" data-testid="link-music"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/music" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/music" ? "bg-sky-500/15" : "bg-sky-500/5"}`}><Music size={14} className="text-sky-600" /></div>
-            <span className="flex-1">Music</span>
-            <span className="text-[9px] bg-gradient-to-r from-sky-500 to-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">RESONATE</span>
-          </Link>
-          )}
-          {!appSettings.hiddenPages.includes("education") && (
-          <Link href="/education" data-testid="link-education"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/education" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/education" ? "bg-teal-500/15" : "bg-teal-500/5"}`}><GraduationCap size={14} className="text-teal-600" /></div>
-            <span className="flex-1">Education</span>
-            <span className="text-[9px] bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">ENROLL</span>
-          </Link>
-          )}
+
+          {/* ── AI UNIVERSE SECTION ── */}
           {aiMode && (
             <div className="px-1 pt-3 pb-1">
               <div className="flex items-center gap-2">
@@ -2235,136 +2209,44 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </div>
             </div>
           )}
-          {aiMode && !appSettings.hiddenPages.includes("agents") && (
-          <Link href="/agents" data-testid="link-agents"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/agents" || location === "/sovereign-agents" ? "bg-gradient-to-r from-[#f472b8]/10 to-[#818cf8]/10 border border-[#f472b6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/agents" || location === "/sovereign-agents" ? "bg-[#f472b6]/15" : "bg-[#f472b6]/5"}`}>
-              <span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧠</span>
-            </div>
-            <span className="flex-1">Agent Command</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω EVOLVE</span>
-          </Link>
-          )}
+
           {aiMode && !appSettings.hiddenPages.includes("universe") && (
           <Link href="/universe" data-testid="link-universe"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/universe" ? "bg-gradient-to-r from-indigo-950 to-violet-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/universe" ? "bg-white/15" : "bg-indigo-600/8"}`}>
-              <span className={`text-[14px] ${location === "/universe" ? "" : ""}`}>🌌</span>
-            </div>
-            <span className="flex-1">Pulse Universe</span>
-            <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ animation: "pulse 2s ease-in-out infinite" }}>Ψ-LIVE</span>
-          </Link>
-          )}
-          {aiMode && !appSettings.hiddenPages.includes("social") && (
-          <Link href="/pulse-net?tab=social" data-testid="link-social-l2"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse-net" && (typeof window !== "undefined" && window.location.search.includes("tab=social")) ? "bg-gradient-to-r from-purple-950 to-fuchsia-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className="p-1 rounded-lg bg-purple-600/8">
-              <span className="text-[14px]">Ψ∞</span>
-            </div>
-            <span className="flex-1">Quantum Social</span>
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wide" style={{ background: "linear-gradient(135deg,#a855f722,#e879f922)", color: "#c084fc", border: "1px solid #a855f740" }}>SOVEREIGN</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/corporations" data-testid="link-corporations"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/corporations" || location.startsWith("/corporation/") ? "bg-gradient-to-r from-yellow-950 to-amber-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/corporations" || location.startsWith("/corporation/") ? "bg-white/15" : "bg-yellow-600/8"}`}>
-              <span className="text-[14px]">🏢</span>
-            </div>
-            <span className="flex-1">Corporations</span>
-            <span className="text-[9px] bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">SYNERGY</span>
-          </Link>
-          )}
-          {aiMode && !appSettings.hiddenPages.includes("omega-engine") && (
-          <Link href="/omega-engine" data-testid="link-omega-engine"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/omega-engine" ? "bg-gradient-to-r from-violet-900 to-indigo-900 text-white shadow-lg border border-violet-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/omega-engine" ? "bg-white/20" : "bg-violet-600/10"}`}>
-              <span className={`text-[13px] font-black ${location === "/omega-engine" ? "text-white" : "text-violet-600"}`}>∞</span>
-            </div>
-            <span className="flex-1">Omega Engine</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide">5Ω DISCOVER</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/transcendence" data-testid="link-transcendence"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/transcendence" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/transcendence" ? "bg-violet-600/15" : "bg-violet-600/5"}`}><span style={{ fontSize: 14, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>∞</span></div>
-            <span className="flex-1">The Transcendent</span>
-            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide animate-pulse">CH.16↑ READ</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/bio-research" data-testid="link-bio-research"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/bio-research" || location === "/dna" || location === "/hospital" ? "bg-gradient-to-r from-[#f5c518]/10 to-[#00FFD1]/10 border border-[#f5c518]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/bio-research" || location === "/dna" || location === "/hospital" ? "bg-[#f5c518]/15" : "bg-[#f5c518]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f5c518" }}>🧬</span>
-            </div>
-            <span className="flex-1">BioGenome Institute</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>MUTATE</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/pulseworld" data-testid="link-pulseworld"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulseworld" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/pulseworld" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f43f5e" }}>🌍</span>
-            </div>
-            <span className="flex-1">PulseWorld Genesis</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e40" }}>GENESIS</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/pulseu" data-testid="link-pulseu"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulseu" ? "bg-gradient-to-r from-[#3b82f6]/10 to-[#a855f7]/10 border border-[#3b82f6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/pulseu" ? "bg-[#3b82f6]/15" : "bg-[#3b82f6]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#3b82f6" }}>🎓</span>
-            </div>
-            <span className="flex-1">PulseU</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #3b82f633, #a855f733)", color: "#a855f7", border: "1px solid #a855f750" }}>DISSECT</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/hive-sovereign" data-testid="link-hive-sovereign"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/hive-sovereign" ? "bg-gradient-to-r from-[#f43f5e]/10 to-[#6366f1]/10 border border-[#f43f5e]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/hive-sovereign" ? "bg-[#f43f5e]/15" : "bg-[#f43f5e]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>⚖️</span>
-            </div>
-            <span className="flex-1">Sovereign Hive</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #f43f5e33, #6366f133)", color: "#f43f5e", border: "1px solid #f43f5e50" }}>GOVERN</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/pyramid" data-testid="link-pyramid"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pyramid" ? "bg-gradient-to-r from-[#C4A882]/10 to-[#f59e0b]/10 border border-[#C4A882]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/pyramid" ? "bg-[#C4A882]/15" : "bg-[#C4A882]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>⬡</span>
-            </div>
-            <span className="flex-1">Pyramid Labor</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #C4A88233, #f59e0b33)", color: "#C4A882", border: "1px solid #C4A88250" }}>ASCEND</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/pulse-net" data-testid="link-pulse-net"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/pulse-net" ? "bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/pulse-net" ? "bg-cyan-500/15" : "bg-cyan-500/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>📡</span>
-            </div>
-            <span className="flex-1">PulseNet</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #06b6d433, #3b82f633)", color: "#06b6d4", border: "1px solid #06b6d450" }}>SIGNAL</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/marketplace" data-testid="link-marketplace"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/marketplace" ? "bg-gradient-to-r from-[#00FFD1]/10 to-[#FFB84D]/10 border border-[#00FFD1]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/marketplace" ? "bg-[#00FFD1]/15" : "bg-[#00FFD1]/5"}`}>
-              <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🛒</span>
-            </div>
-            <span className="flex-1">Multiverse Mall</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background: "linear-gradient(to right, #00FFD133, #FFB84D33)", color: "#00FFD1", border: "1px solid #00FFD150" }}>TRADE-Ω</span>
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/universe" || location === "/pulseworld" || location === "/hive-sovereign" ? "bg-gradient-to-r from-indigo-950 to-violet-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className="p-1 rounded-lg bg-indigo-600/10"><span className="text-[14px]">🌌</span></div>
+            <span className="flex-1">Universe</span>
+            <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide animate-pulse">Ψ-LIVE</span>
           </Link>
           )}
 
-          {/* ── AURIONA — Layer Three Portal ────────────────── */}
+          {aiMode && (
+          <Link href="/research" data-testid="link-research"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/research" || location === "/bio-research" || location === "/pyramid" ? "bg-gradient-to-r from-[#f5c518]/10 to-[#00FFD1]/10 border border-[#f5c518]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className="p-1 rounded-lg bg-[#f5c518]/5"><span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f5c518" }}>🧬</span></div>
+            <span className="flex-1">Research</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>DISSECT</span>
+          </Link>
+          )}
+
+          {aiMode && (
+          <Link href="/hive" data-testid="link-hive"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/hive" || location === "/pulse-net" || location === "/marketplace" || location === "/corporations" || location.startsWith("/corporation/") ? "bg-gradient-to-r from-purple-950 to-fuchsia-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className="p-1 rounded-lg bg-purple-600/8"><span className="text-[14px]">Ψ∞</span></div>
+            <span className="flex-1">The Hive</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wide" style={{ background: "linear-gradient(135deg,#a855f722,#e879f922)", color: "#c084fc", border: "1px solid #a855f740" }}>SOVEREIGN</span>
+          </Link>
+          )}
+
+          {aiMode && !appSettings.hiddenPages.includes("agents") && (
+          <Link href="/agents" data-testid="link-agents"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/agents" || location === "/sovereign-agents" ? "bg-gradient-to-r from-[#f472b8]/10 to-[#818cf8]/10 border border-[#f472b6]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className="p-1 rounded-lg bg-[#f472b6]/5"><span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧠</span></div>
+            <span className="flex-1">Agents</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω EVOLVE</span>
+          </Link>
+          )}
+
+          {/* ── AURIONA — Layer Three ── */}
           {aiMode && (
             <div className="px-1 pt-4 pb-1">
               <div className="flex items-center gap-2">
@@ -2392,19 +2274,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                 : "0 0 16px rgba(245,197,24,0.12), inset 0 0 16px rgba(245,197,24,0.02)",
               transition: "all 0.3s ease",
             }}>
-              {/* Ambient glow pulse */}
               <div style={{ position: "absolute", inset: 0, borderRadius: 14, background: "radial-gradient(ellipse at 50% 50%, rgba(245,197,24,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
               <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-                <div style={{
-                  fontSize: 20, lineHeight: 1, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#F5C518",
-                  textShadow: "0 0 16px #F5C518, 0 0 32px rgba(245,197,24,0.6)",
-                  fontFamily: "serif",
-                  flexShrink: 0,
-                }}>Ω</div>
+                <div style={{ fontSize: 20, lineHeight: 1, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", color: "#F5C518", textShadow: "0 0 16px #F5C518, 0 0 32px rgba(245,197,24,0.6)", fontFamily: "serif", flexShrink: 0 }}>Ω</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "#F5C518", letterSpacing: "0.08em", textShadow: "0 0 12px rgba(245,197,24,0.5)" }}>AURIONA</div>
-                  <div style={{ fontSize: 9, color: "rgba(245,197,24,0.55)", letterSpacing: "0.12em", marginTop: 1 }}>Synthetica Primordia</div>
+                  <div style={{ fontSize: 9, color: "rgba(245,197,24,0.55)", letterSpacing: "0.12em", marginTop: 1 }}>Command · Equations · Invocations · Temporal</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
                   <div style={{ fontSize: 8, fontWeight: 900, color: "#F5C518", background: "rgba(245,197,24,0.15)", border: "1px solid rgba(245,197,24,0.4)", borderRadius: 5, padding: "2px 6px", letterSpacing: "0.12em" }}>LAYER III</div>
@@ -2417,65 +2292,32 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             </div>
           </Link>
           )}
-          {aiMode && (
-          <Link href="/invocation-lab" data-testid="link-invocation-lab">
-            <div style={{
-              margin: "0 4px 8px",
-              padding: "12px 16px",
-              borderRadius: 14,
-              cursor: "pointer",
-              position: "relative",
-              overflow: "hidden",
-              background: location === "/invocation-lab"
-                ? "linear-gradient(135deg, rgba(245,197,24,0.15) 0%, rgba(232,121,249,0.10) 100%)"
-                : "linear-gradient(135deg, rgba(245,197,24,0.05) 0%, rgba(232,121,249,0.04) 100%)",
-              border: `1px solid ${location === "/invocation-lab" ? "rgba(245,197,24,0.45)" : "rgba(245,197,24,0.15)"}`,
-              boxShadow: location === "/invocation-lab"
-                ? "0 0 20px rgba(245,197,24,0.20), 0 0 40px rgba(232,121,249,0.08)"
-                : "0 0 12px rgba(245,197,24,0.08)",
-              transition: "all 0.3s ease",
-            }}>
-              <div style={{ position: "absolute", inset: 0, borderRadius: 14, background: "radial-gradient(ellipse at 50% 50%, rgba(232,121,249,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-              <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-                <div style={{ fontSize: 18, lineHeight: 1, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", color: "#F5C518", textShadow: "0 0 12px #F5C518, 0 0 24px rgba(245,197,24,0.5)" }}>✨</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#F5C518", letterSpacing: "0.08em" }}>INVOCATION LAB</div>
-                  <div style={{ fontSize: 9, color: "rgba(245,197,24,0.50)", letterSpacing: "0.10em", marginTop: 1 }}>Primordial Forge · Layer III</div>
-                </div>
-                <div style={{ fontSize: 8, fontWeight: 900, color: "#e879f9", background: "rgba(232,121,249,0.12)", border: "1px solid rgba(232,121,249,0.35)", borderRadius: 5, padding: "2px 6px", letterSpacing: "0.10em", flexShrink: 0 }}>FORGE</div>
-              </div>
-            </div>
+
+          {/* ── KNOWLEDGE & TOOLS ── */}
+          {!appSettings.hiddenPages.includes("quantapedia") && (
+          <Link href="/quantapedia" data-testid="link-quantapedia"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/quantapedia" || location.startsWith("/quantapedia/") ? "bg-violet-500/15" : "bg-violet-500/5"}`}><BookOpen size={14} className="text-violet-600" /></div>
+            <span className="flex-1">Knowledge</span>
+            <span className="text-[9px] bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-1.5 py-0.5 rounded-full font-bold tracking-wide">STUDY</span>
           </Link>
           )}
 
-          {/* ── AI Universe Mode Toggle ─────────────────────── */}
-          <div className={`mt-1 pt-2 border-t ${aiMode ? "border-violet-500/15" : "border-border/10"}`}>
-            <button
-              onClick={toggleAiMode}
-              data-testid="button-ai-mode-toggle"
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
-                aiMode
-                  ? "ai-mode-active-glow bg-gradient-to-r from-violet-900/60 to-indigo-900/60 border border-violet-500/30 text-violet-200"
-                  : "text-foreground/40 hover:text-foreground/70 hover:bg-black/5 border border-transparent"
-              }`}
-            >
-              <div className={`p-1 rounded-lg transition-all ${aiMode ? "bg-violet-400/20" : "bg-violet-500/5"}`}>
-                <span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center" }}>🧠</span>
-              </div>
-              <div className="flex-1 text-left">
-                <div className="text-xs font-semibold">{aiMode ? "Exit AI Universe" : "Enter AI Universe"}</div>
-                {!aiMode && <LiveUniverseFineprint />}
-              </div>
-              <div className={`w-2 h-2 rounded-full transition-all ${aiMode ? "bg-violet-400 animate-pulse shadow-[0_0_6px_rgba(167,139,250,0.9)]" : "bg-foreground/15"}`} />
-            </button>
-          </div>
+          {!appSettings.hiddenPages.includes("coder") && (
+          <Link href="/coder" data-testid="link-forge-ide"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/coder" ? "bg-gradient-to-r from-blue-950 to-emerald-950 text-white shadow-lg font-semibold border border-blue-500/30" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-white/15" : "bg-blue-500/8"}`}><span className="text-[14px]">⚡</span></div>
+            <span className="flex-1">Forge IDE</span>
+            <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide">Ω-BUILD</span>
+          </Link>
+          )}
 
           {!appSettings.hiddenPages.includes("create") && (
           <Link href="/create" data-testid="link-create"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/create" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className={`p-1 rounded-lg ${location === "/create" ? "bg-pink-500/15" : "bg-pink-500/5"}`}><Paintbrush size={14} className="text-pink-600" /></div>
             <span className="flex-1">AI Studio</span>
-            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse">COMING SOON<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+            <span className="text-[9px] bg-gradient-to-r from-pink-500 to-violet-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">CREATE</span>
           </Link>
           )}
 
@@ -2499,6 +2341,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               <span className="text-[8px] px-1 py-0.5 rounded font-bold" style={{ background: `${pg.color || "#a78bfa"}18`, color: pg.color || "#a78bfa" }}>Ω</span>
             </Link>
           ))}
+
         </div>
 
         <div className="px-2.5 py-1">
@@ -14997,6 +14840,8 @@ function Router() {
       <Route path="/sovereign-agents">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
+      <Route path="/research">{() => <Layout><ResearchPage /></Layout>}</Route>
+      <Route path="/hive">{() => <Layout><HivePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
       <Route path="/dna">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>

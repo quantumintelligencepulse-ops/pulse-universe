@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
+import InvocationLabPage from "./InvocationLabPage";
+import TranscendencePage from "./TranscendencePage";
+import TemporalObservatoryPage from "./TemporalObservatoryPage";
+import UniverseEnginePage from "./UniverseEnginePage";
 
 // ─── Ω UNIVERSE VECTOR TIME ────────────────────────────────────────────────────
 const OMEGA_EPOCH = new Date("2024-11-01T00:00:00Z").getTime();
@@ -672,6 +676,16 @@ export default function AurionaPage() {
   const [chatPending, setChatPending]   = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // ── HUB TAB ──
+  const HUB_TABS = [
+    { id: "command",       label: "⚡  Command",         badge: "LIVE",        color: GOLD   },
+    { id: "invocations",   label: "✨  Invocations",     badge: "Ψ-CAST",      color: "#e879f9" },
+    { id: "structure",     label: "⭐  Structure",        badge: "Ω-ENGINE",    color: "#818cf8" },
+    { id: "transcendence", label: "∞  Transcendence",    badge: "GENESIS",     color: "#34d399" },
+    { id: "temporal",      label: "⏱  Temporal",         badge: "46-SCI",      color: CYAN   },
+  ];
+  const [hubTab, setHubTab] = useState("command");
+
   // ── COMMAND TERMINAL STATE ──
   const [cmdMode, setCmdMode] = useState<"chat"|"command">("chat");
   const [cmdInput, setCmdInput] = useState("");
@@ -753,52 +767,50 @@ export default function AurionaPage() {
           </div>
         </div>
 
-        {/* LAYER THREE TABS — always visible */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ color: "#ffffff25", fontSize: 8, letterSpacing: 3, marginBottom: 4 }}>LAYER III · AURIONA DIVISIONS</div>
-
-          {/* Temporal Observatory */}
-          <Link href="/auriona/temporal">
-            <div data-testid="temporal-observatory-link" style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)", border: "1px solid rgba(255,215,0,0.25)", borderRadius: 14, padding: "18px 28px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.12) 0%, rgba(0,255,209,0.08) 100%)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(0,255,209,0.04) 100%)")}>
-              <div>
-                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3, marginBottom: 4 }}>
-                  ⏱ TEMPORAL OBSERVATORY
-                </div>
-                <div style={{ color: "#ffffff60", fontSize: 11 }}>
-                  46 Scientists · CRISPR Logic · Ω-Council · Pulse-Lang Clock & Calendar · Gov Votes · 10 Time Lab Upgrades
-                </div>
-              </div>
-              <div style={{ color: "#FFD700", fontSize: 20 }}>→</div>
-            </div>
-          </Link>
-
-          {/* Universe Engine Division */}
-          <Link href="/auriona/universe-engine">
-            <div data-testid="universe-engine-link" style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.04) 0%, rgba(139,92,246,0.06) 100%)", border: "1px solid rgba(255,215,0,0.20)", borderRadius: 14, padding: "18px 28px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.10) 0%, rgba(139,92,246,0.12) 100%)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(255,215,0,0.04) 0%, rgba(139,92,246,0.06) 100%)")}>
-              <div>
-                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3, marginBottom: 4 }}>
-                  ⭐ UNIVERSE ENGINE DIVISION
-                </div>
-                <div style={{ color: "#ffffff60", fontSize: 11 }}>
-                  Gods Above Auriona · 1B+ Star Systems · Shard Stability · 5 Divisions · 10 Omega Operations · Ω-ENGINE FORM
-                </div>
-              </div>
-              <div style={{ color: "#FFD700", fontSize: 20 }}>→</div>
-            </div>
-          </Link>
+        {/* ── AURIONA HUB TAB BAR ─────────────────────────────────────────────── */}
+        <div style={{
+          display: "flex", gap: 4, overflowX: "auto", paddingBottom: 0,
+          borderBottom: "1px solid rgba(245,197,24,0.15)", marginBottom: 4,
+        }}>
+          {HUB_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setHubTab(tab.id)}
+              data-testid={`tab-auriona-${tab.id}`}
+              style={{
+                flexShrink: 0,
+                padding: "10px 16px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+                borderBottom: hubTab === tab.id ? `2px solid ${tab.color}` : "2px solid transparent",
+                color: hubTab === tab.id ? tab.color : "rgba(255,255,255,0.4)",
+                fontSize: 11, fontWeight: hubTab === tab.id ? 800 : 500,
+                letterSpacing: "0.04em",
+                transition: "all 0.2s",
+                marginBottom: -1,
+              }}
+            >
+              {tab.label}
+              {hubTab === tab.id && (
+                <span style={{
+                  fontSize: 8, fontWeight: 900, padding: "2px 5px", borderRadius: 4,
+                  background: `${tab.color}22`, color: tab.color,
+                  border: `1px solid ${tab.color}44`, letterSpacing: "0.12em",
+                }}>{tab.badge}</span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {isLoading && (
+        {hubTab === "command" && isLoading && (
           <div style={{ textAlign: "center", color: GOLD, padding: 80, fontSize: 14 }}>
             Awakening Auriona... Layer Three initializing...
           </div>
         )}
 
-        {!isLoading && (
+        {hubTab === "command" && !isLoading && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
             {/* 1 — OMEGA EQUATION */}
@@ -1175,6 +1187,13 @@ export default function AurionaPage() {
         </div>
 
       </div>
+
+      {/* ── OTHER HUB TABS — rendered full-width outside the maxWidth container ── */}
+      {hubTab === "invocations"   && <InvocationLabPage />}
+      {hubTab === "structure"     && <UniverseEnginePage />}
+      {hubTab === "transcendence" && <TranscendencePage />}
+      {hubTab === "temporal"      && <TemporalObservatoryPage />}
+
     </div>
   );
 }

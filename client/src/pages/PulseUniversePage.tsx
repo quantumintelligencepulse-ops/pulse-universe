@@ -9,6 +9,8 @@ import SpeedControl from "../solar/SpeedControl";
 import { PLANET_DATA } from "../solar/planetData";
 import { STELLAR_CLASSES, QUANTUM_PRINCIPLES, PHYSICS_DNA, UNIVERSE_EPOCHS, NEBULA_TYPES } from "../solar/QuantumPhysics";
 import { DOMAIN_EMOTION } from "../solar/QuantumLiveEngine";
+import SovereignHivePage from "./SovereignHivePage";
+import PulseWorldPage from "./PulseWorldPage";
 
 interface DomainData { family: string; total: number; active: number; color: string; emoji: string; label: string; major: string }
 interface UniverseData {
@@ -22,8 +24,15 @@ const fmt = (n: number) => n >= 1_000_000 ? `${(n/1_000_000).toFixed(2)}M` : n >
 
 type StudyMode = 'none' | 'stellar' | 'quantum' | 'physics' | 'timeline' | 'nebulae';
 
+const UNIVERSE_HUB_TABS = [
+  { id: "live",       label: "🌌  Live Universe",   badge: "Ψ-LIVE",    color: "#818cf8" },
+  { id: "governance", label: "⚖️  Governance",       badge: "Ψ-GOV",     color: "#f59e0b" },
+  { id: "world",      label: "🌍  PulseWorld",       badge: "GENESIS",   color: "#f43f5e" },
+];
+
 export default function PulseUniversePage() {
   useDomainPing("universe");
+  const [hubTab, setHubTab] = useState("live");
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
   const [timeScale, setTimeScale] = useState(1);
   const [quantumMode, setQuantumMode] = useState(false);
@@ -80,8 +89,48 @@ export default function PulseUniversePage() {
 
   const toggleStudy = (m: StudyMode) => setStudyMode(s => s === m ? 'none' : m);
 
+  if (hubTab === "governance") return <SovereignHivePage />;
+  if (hubTab === "world") return <PulseWorldPage />;
+
   return (
     <div data-testid="pulse-universe-page" className="relative w-full h-screen overflow-hidden bg-black font-mono select-none">
+      {/* ── Universe Hub Tab Bar ── */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, zIndex: 50,
+        background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(99,102,241,0.2)",
+        display: "flex", alignItems: "center", gap: 4, padding: "0 16px",
+      }}>
+        {UNIVERSE_HUB_TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setHubTab(tab.id)}
+            data-testid={`tab-universe-${tab.id}`}
+            style={{
+              padding: "8px 14px",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 5,
+              borderBottom: hubTab === tab.id ? `2px solid ${tab.color}` : "2px solid transparent",
+              color: hubTab === tab.id ? tab.color : "rgba(255,255,255,0.4)",
+              fontSize: 10, fontWeight: hubTab === tab.id ? 800 : 500,
+              letterSpacing: "0.05em",
+              transition: "all 0.2s",
+              marginBottom: -1,
+            }}
+          >
+            {tab.label}
+            {hubTab === tab.id && (
+              <span style={{
+                fontSize: 7, fontWeight: 900, padding: "1px 4px", borderRadius: 3,
+                background: `${tab.color}22`, color: tab.color,
+                border: `1px solid ${tab.color}44`,
+              }}>{tab.badge}</span>
+            )}
+          </button>
+        ))}
+      </div>
 
       {/* ── TEMPORAL COLOR OVERLAY — driven by Θ(t) from the Pulse-Temporal Engine ── */}
       <div className="absolute inset-0 z-0 pointer-events-none" style={{
