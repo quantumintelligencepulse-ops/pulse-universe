@@ -2416,6 +2416,57 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
 
+          {/* ── Omega Distribution Layer ─────────────────────── */}
+          <Link href="/hub" data-testid="link-hub">
+            <div style={{ margin:"0 4px 4px", padding:"10px 16px", borderRadius:14, cursor:"pointer", background: location.startsWith("/hub") ? "linear-gradient(135deg,rgba(129,140,248,0.15),rgba(52,211,153,0.08))" : "linear-gradient(135deg,rgba(129,140,248,0.05),rgba(52,211,153,0.03))", border:`1px solid ${location.startsWith("/hub") ? "rgba(129,140,248,0.4)" : "rgba(129,140,248,0.12)"}`, transition:"all 0.3s ease" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ fontSize:16, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>🌐</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:"#818cf8", letterSpacing:"0.08em" }}>KNOWLEDGE HUBS</div>
+                  <div style={{ fontSize:9, color:"rgba(129,140,248,0.50)", letterSpacing:"0.10em", marginTop:1 }}>12 Domain Authority Hubs</div>
+                </div>
+                <div style={{ fontSize:8, fontWeight:900, color:"#34d399", background:"rgba(52,211,153,0.10)", border:"1px solid rgba(52,211,153,0.30)", borderRadius:5, padding:"2px 6px", letterSpacing:"0.10em", flexShrink:0 }}>SEO</div>
+              </div>
+            </div>
+          </Link>
+          )}
+          <Link href="/breaking-leaderboard" data-testid="link-breaking-leaderboard">
+            <div style={{ margin:"0 4px 4px", padding:"10px 16px", borderRadius:14, cursor:"pointer", background: location === "/breaking-leaderboard" ? "linear-gradient(135deg,rgba(239,68,68,0.15),rgba(245,158,11,0.08))" : "linear-gradient(135deg,rgba(239,68,68,0.05),rgba(245,158,11,0.03))", border:`1px solid ${location === "/breaking-leaderboard" ? "rgba(239,68,68,0.4)" : "rgba(239,68,68,0.12)"}`, transition:"all 0.3s ease" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ fontSize:16, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>⚡</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:"#ef4444", letterSpacing:"0.08em" }}>BREAKING VELOCITY</div>
+                  <div style={{ fontSize:9, color:"rgba(239,68,68,0.50)", letterSpacing:"0.10em", marginTop:1 }}>Live vs CNN · BBC · Reuters</div>
+                </div>
+                <div style={{ fontSize:7, fontWeight:900, color:"#ef4444", background:"rgba(239,68,68,0.10)", border:"1px solid rgba(239,68,68,0.30)", borderRadius:5, padding:"2px 4px", letterSpacing:"0.06em", flexShrink:0, animation:"pulse 2s infinite" }}>LIVE</div>
+              </div>
+            </div>
+          </Link>
+          )}
+          <Link href="/subscribe" data-testid="link-subscribe">
+            <div style={{ margin:"0 4px 4px", padding:"10px 16px", borderRadius:14, cursor:"pointer", background: location === "/subscribe" ? "linear-gradient(135deg,rgba(79,70,229,0.15),rgba(167,139,250,0.08))" : "linear-gradient(135deg,rgba(79,70,229,0.05),rgba(167,139,250,0.03))", border:`1px solid ${location === "/subscribe" ? "rgba(79,70,229,0.4)" : "rgba(79,70,229,0.12)"}`, transition:"all 0.3s ease" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ fontSize:16, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>📧</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:"#a78bfa", letterSpacing:"0.08em" }}>HIVE BRIEFING</div>
+                  <div style={{ fontSize:9, color:"rgba(167,139,250,0.50)", letterSpacing:"0.10em", marginTop:1 }}>Daily AI Intelligence Email</div>
+                </div>
+              </div>
+            </div>
+          </Link>
+          <Link href="/video-scripts" data-testid="link-video-scripts">
+            <div style={{ margin:"0 4px 8px", padding:"10px 16px", borderRadius:14, cursor:"pointer", background: location === "/video-scripts" ? "linear-gradient(135deg,rgba(236,72,153,0.15),rgba(168,85,247,0.08))" : "linear-gradient(135deg,rgba(236,72,153,0.05),rgba(168,85,247,0.03))", border:`1px solid ${location === "/video-scripts" ? "rgba(236,72,153,0.4)" : "rgba(236,72,153,0.12)"}`, transition:"all 0.3s ease" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ fontSize:16, width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center" }}>🎬</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:"#ec4899", letterSpacing:"0.08em" }}>VIDEO SCRIPTS</div>
+                  <div style={{ fontSize:9, color:"rgba(236,72,153,0.50)", letterSpacing:"0.10em", marginTop:1 }}>AI Script Factory · 4 Anchors</div>
+                </div>
+              </div>
+            </div>
+          </Link>
+          )}
+
           {/* ── AI Universe Mode Toggle ─────────────────────── */}
           <div className={`mt-1 pt-2 border-t ${aiMode ? "border-violet-500/15" : "border-border/10"}`}>
             <button
