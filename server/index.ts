@@ -71,6 +71,8 @@ import { startResearchCenterEngine, getResearchStats, getActiveResearchProjects,
 import { getResearchCached, isResearchReady } from "./pulsenet-cache";
 import { startCivilizationBridge, getBridgeStats, getMirrorState, getWills, getSuccessions, getEquationEvolutions } from "./civilization-bridge";
 import { startIndexingEngine, getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
+import { startOmegaPerformanceEngine, apiCacheMiddleware, getPerformanceStatus } from "./omega-performance-engine";
+import { startCurrentEventsEngine, getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -90,6 +92,12 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+app.use(apiCacheMiddleware);
+
+// Start performance engine immediately — must be first
+startOmegaPerformanceEngine();
+// Start current events immediately — needs time to fetch before first chat
+startCurrentEventsEngine();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

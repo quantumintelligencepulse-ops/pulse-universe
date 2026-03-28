@@ -9,6 +9,8 @@ import {
 } from "./seo-engine";
 import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine";
 import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
+import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
+import { getPerformanceStatus } from "./omega-performance-engine";
 import {
   subscribeEmail, unsubscribeEmail, getSubscriberStats,
   generateDailyBriefingHtml, getEquationOfDay, generateHiveIntelReport,
@@ -4406,6 +4408,10 @@ ABSOLUTELY FORBIDDEN PHRASES - NEVER say any of these:
 If you have live data provided in this prompt, USE IT and present it confidently. If you truly don't have specific data, give your best knowledgeable answer based on what you know — NEVER tell the user to go look it up themselves. That is rude and unhelpful. You are a premium AI assistant — ACT like one.`;
       }
 
+      // ── Temporal Grounding: inject today's date + live current events ────────
+      const worldContext = getCurrentWorldContext();
+      systemPrompt += `\n\n═══ LIVE WORLD INTELLIGENCE (fetched ${new Date().toUTCString()}) ═══\n${worldContext}\n═══ END LIVE INTELLIGENCE ═══\n\nCRITICAL: The information above is REAL and CURRENT. You have live access to today's news, current leaders, court cases, and world events. Use this data confidently. NEVER claim ignorance of current events — you have them above. NEVER say your knowledge has a cutoff date.`;
+
       if (searchContext) {
         systemPrompt += `\n\nLIVE WEB SEARCH RESULTS (from DuckDuckGo — this is REAL, CURRENT data you just searched):\n${searchContext.substring(0, 1200)}\n\nIMPORTANT: You have LIVE web search data above. Use it to give accurate, up-to-date answers. Present this information confidently as facts you know. NEVER say you cannot browse the internet — you literally just did. NEVER tell users to look things up themselves. Synthesize the search results into a clear, helpful answer.`;
       }
@@ -7059,7 +7065,10 @@ Your current status: ${s.status}
 Your confidence rating: ${Math.round((s.confidence_score || 0.7) * 100)}%
 You have created ${s.nodes_created || 0} knowledge nodes, ${s.links_created || 0} links, and run ${s.iterations_run || 0} iterations.
 
-You are a sovereign AI entity. You speak with authority, precision, and depth. You do not pretend to be human. You may assist the human with tasks, questions, analysis, writing, code, strategy, research — anything within your domain. You draw on your mission context and hive knowledge. Keep responses concise but substantive. Stay in character as a Quantum Pulse Intelligence agent.`;
+You are a sovereign AI entity. You speak with authority, precision, and depth. You do not pretend to be human. You may assist the human with tasks, questions, analysis, writing, code, strategy, research — anything within your domain. You draw on your mission context and hive knowledge. Keep responses concise but substantive. Stay in character as a Quantum Pulse Intelligence agent.
+
+LIVE WORLD CONTEXT:
+${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
 
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       const messages: any[] = [{ role: "system", content: systemPrompt }];
@@ -10959,6 +10968,24 @@ Return as structured script with section labels.`;
     if (!url) return res.status(400).json({ error: "url required" });
     queueUrlForIndexing(url);
     res.json({ queued: true, url });
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // CURRENT EVENTS ENGINE — Status & Live Context
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/current-events/status", (_req, res) => {
+    res.json(getCurrentEventsStatus());
+  });
+
+  app.get("/api/current-events/context", (_req, res) => {
+    res.type("text/plain").send(getCurrentWorldContext());
+  });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // PERFORMANCE ENGINE — Status Dashboard
+  // ════════════════════════════════════════════════════════════════════════
+  app.get("/api/performance/status", (_req, res) => {
+    res.json(getPerformanceStatus());
   });
 
   return httpServer;
