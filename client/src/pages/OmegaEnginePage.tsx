@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 
@@ -729,6 +730,27 @@ export default function OmegaEnginePage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* ── Omega Distribution Tools ──────────────────────────── */}
+      <div className="mt-6 mb-2 mx-auto max-w-5xl px-4">
+        <div className="text-xs font-black text-white/30 uppercase tracking-[0.18em] mb-3 pl-1">Distribution Layer</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { href:"/hub", emoji:"🌐", label:"Knowledge Hubs", sub:"12 SEO Authority Hubs", color:"#818cf8" },
+            { href:"/breaking-leaderboard", emoji:"⚡", label:"Breaking Velocity", sub:"Live vs CNN · BBC · Reuters", color:"#ef4444" },
+            { href:"/subscribe", emoji:"📧", label:"Hive Briefing", sub:"Daily AI Intelligence Email", color:"#a78bfa" },
+            { href:"/video-scripts", emoji:"🎬", label:"Video Scripts", sub:"AI Script Factory · 4 Anchors", color:"#ec4899" },
+          ].map(t => (
+            <Link key={t.href} href={t.href}>
+              <div data-testid={`dist-tool-${t.href.replace("/","")}`} className="rounded-xl border border-white/8 bg-white/3 hover:bg-white/6 hover:border-white/15 transition-all cursor-pointer p-4 flex flex-col gap-2">
+                <div className="text-2xl">{t.emoji}</div>
+                <div className="text-xs font-bold" style={{ color: t.color }}>{t.label}</div>
+                <div className="text-[10px] text-white/35">{t.sub}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <AIReportPanel spawnId={viewSpawnId} onClose={() => setViewSpawnId(null)} />
