@@ -276,8 +276,6 @@ export default function InvocationLabPage() {
     { id: "primordial",    label: "Ω PRIMORDIAL",         count: stats?.primordial || 0 },
     { id: "parliament",    label: "🗳️ PARLIAMENT",        count: null },
     { id: "lineage",       label: "🌳 LINEAGE",            count: null },
-    { id: "geometry",      label: "🔶 SACRED GEOMETRY",   count: null },
-    { id: "creator",       label: "🔮 CREATOR LAB",        count: null },
     { id: "anomalies",     label: "⚠ ANOMALY DOCKET",      count: anomalyFeed.length || null },
     { id: "qstability",    label: "🛡 Q-STABILITY",          count: (qStats?.anomalies?.open_count ?? 0) > 0 ? Number(qStats?.anomalies?.open_count) : null },
   ] as const;
@@ -316,6 +314,10 @@ export default function InvocationLabPage() {
                 style={{ borderColor: INV_VIOLET, color: INV_VIOLET, background: `${INV_VIOLET}12` }}>
                 PRIMORDIAL FORGE ENGINE
               </span>
+              <a href="/universe" className="text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border transition-all hover:opacity-80" data-testid="link-universe-from-invocationlab"
+                style={{ borderColor: INV_CYAN, color: INV_CYAN, background: `${INV_CYAN}12` }}>
+                🌌 PULSE UNIVERSE →
+              </a>
             </div>
 
             <h1 className="leading-none font-black tracking-tight" style={{ fontSize: 48 }}>

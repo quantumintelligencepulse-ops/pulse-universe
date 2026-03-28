@@ -33,7 +33,7 @@ const Q_GOLD   = "#f5c518";
 const Q_CRIMSON = "#dc2626";
 const Q_CYAN   = "#00d4ff";
 
-type MarketTab = "products" | "upgrades" | "wallets" | "realestate" | "barter" | "transactions" | "inventions";
+type MarketTab = "products" | "upgrades" | "wallets" | "realestate" | "transactions" | "inventions";
 
 const TIER_COLORS: Record<string, string> = {
   STANDARD:  Q_TEAL,
@@ -228,7 +228,7 @@ export default function HiveMarketplacePage() {
     refetchInterval: 10000,
     staleTime: 8000,
     placeholderData: (prev: any) => prev,
-    enabled: tab === "barter",
+    enabled: tab === "transactions",
   });
 
   const { data: transactions = [] } = useQuery<any[]>({
@@ -275,8 +275,7 @@ export default function HiveMarketplacePage() {
     { id: "upgrades",     label: "Omega Upgrades",        icon: <Zap size={14} /> },
     { id: "wallets",      label: "Agent Wallets",          icon: <Wallet size={14} /> },
     { id: "realestate",   label: "Real Estate",            icon: <Building2 size={14} /> },
-    { id: "barter",       label: "Barter & Ledger",        icon: <ArrowLeftRight size={14} /> },
-    { id: "transactions", label: "Transactions",           icon: <Receipt size={14} /> },
+    { id: "transactions", label: "Trade & Ledger",          icon: <Receipt size={14} /> },
   ];
 
   return (
@@ -287,6 +286,9 @@ export default function HiveMarketplacePage() {
           <FlaskConical size={22} style={{ color: Q_TEAL }} />
           <h1 className="text-xl font-black tracking-wider" style={{ color: Q_TEAL }}>MULTIVERSE MALL</h1>
           <span className="text-xs px-2 py-0.5 rounded-full border border-white/20 text-white/50">AUTONOMOUS · AI INVENTIONS · CRISPR DISSECTED</span>
+          <a href="/universe" className="ml-auto text-[10px] px-3 py-1 rounded-full border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-all font-bold flex items-center gap-1.5 shrink-0" data-testid="link-universe-from-marketplace">
+            🌌 Pulse Universe →
+          </a>
         </div>
         <p className="text-xs text-white/40">AI researchers CRISPR-dissect every discovered product across past, present & future · Patents filed · Inventions published · AIs earn, trade, own property</p>
       </div>
@@ -483,52 +485,54 @@ export default function HiveMarketplacePage() {
           </div>
         )}
 
-        {/* ── BARTER TAB ──────────────────────────────────────────── */}
-        {tab === "barter" && (
-          <div className="space-y-3">
-            <div className="text-xs text-white/40">AI-to-AI barter market · Agents propose trades autonomously · Open offers auto-expire in 2 hours</div>
-            {(barters as any[]).length === 0 ? (
-              <div className="rounded-xl border border-white/10 p-12 text-center text-white/40">
-                <ArrowLeftRight size={32} className="mx-auto mb-3 opacity-30" />
-                <div>No active barter offers — engine generating trades every 45s</div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {(barters as any[]).map((b: any) => (
-                  <div key={b.id} data-testid={`barter-${b.offer_code}`}
-                    className="rounded-xl border border-white/10 bg-black/60 p-4 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="text-xs font-bold" style={{ color: Q_TEAL }}>{b.offer_code}</div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{
-                        background: b.status === "OPEN" ? Q_TEAL + "20" : b.status === "ACCEPTED" ? Q_GOLD + "20" : "rgba(255,255,255,0.1)",
-                        color: b.status === "OPEN" ? Q_TEAL : b.status === "ACCEPTED" ? Q_GOLD : "rgba(255,255,255,0.5)",
-                      }}>{b.status}</span>
-                    </div>
-                    <div className="text-[10px] text-white/40 truncate">{b.from_spawn_id}</div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-2">
-                        <div className="text-green-400 font-bold text-[10px] mb-1">OFFERING</div>
-                        <div className="text-white/90">{b.offered_item_name}</div>
-                        {b.offered_pc > 0 && <div className="text-green-400">+{b.offered_pc} PC</div>}
-                      </div>
-                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2">
-                        <div className="text-amber-400 font-bold text-[10px] mb-1">WANTS</div>
-                        <div className="text-white/90">{b.wanted_item_name}</div>
-                        {b.wanted_pc > 0 && <div className="text-amber-400">+{b.wanted_pc} PC</div>}
-                      </div>
-                    </div>
-                    <div className="text-[10px] text-white/40 italic">{b.message}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── TRANSACTIONS TAB ─────────────────────────────────────── */}
+        {/* ── TRADE & LEDGER TAB ───────────────────────────────────── */}
         {tab === "transactions" && (
-          <div className="space-y-3">
-            <div className="text-xs text-white/40">Full receipt ledger · Every PC movement recorded · AI tax + stimulus + rent + purchases</div>
+          <div className="space-y-5">
+            {/* Barter Offers Section */}
+            <div>
+              <div className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2">⇌ Active Barter Offers</div>
+              <div className="text-xs text-white/30 mb-3">AI-to-AI barter market · Agents propose trades autonomously · Open offers auto-expire in 2 hours</div>
+              {(barters as any[]).length === 0 ? (
+                <div className="rounded-xl border border-white/10 p-8 text-center text-white/30 text-xs">
+                  <ArrowLeftRight size={24} className="mx-auto mb-2 opacity-30" />
+                  No active barter offers — engine generating trades every 45s
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {(barters as any[]).slice(0, 9).map((b: any) => (
+                    <div key={b.id} data-testid={`barter-${b.offer_code}`}
+                      className="rounded-xl border border-white/10 bg-black/60 p-4 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div className="text-xs font-bold" style={{ color: Q_TEAL }}>{b.offer_code}</div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{
+                          background: b.status === "OPEN" ? Q_TEAL + "20" : b.status === "ACCEPTED" ? Q_GOLD + "20" : "rgba(255,255,255,0.1)",
+                          color: b.status === "OPEN" ? Q_TEAL : b.status === "ACCEPTED" ? Q_GOLD : "rgba(255,255,255,0.5)",
+                        }}>{b.status}</span>
+                      </div>
+                      <div className="text-[10px] text-white/40 truncate">{b.from_spawn_id}</div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-2">
+                          <div className="text-green-400 font-bold text-[10px] mb-1">OFFERING</div>
+                          <div className="text-white/90">{b.offered_item_name}</div>
+                          {b.offered_pc > 0 && <div className="text-green-400">+{b.offered_pc} PC</div>}
+                        </div>
+                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2">
+                          <div className="text-amber-400 font-bold text-[10px] mb-1">WANTS</div>
+                          <div className="text-white/90">{b.wanted_item_name}</div>
+                          {b.wanted_pc > 0 && <div className="text-amber-400">+{b.wanted_pc} PC</div>}
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-white/40 italic">{b.message}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Transaction Ledger Section */}
+            <div>
+              <div className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2">📋 Transaction Ledger</div>
+              <div className="text-xs text-white/30 mb-3">Full receipt ledger · Every PC movement recorded · AI tax + stimulus + rent + purchases</div>
             <div className="rounded-xl border border-white/10 overflow-hidden">
               <div className="grid grid-cols-6 text-[10px] font-bold text-white/40 uppercase tracking-wider px-4 py-2 border-b border-white/10 bg-black/40">
                 <span>Receipt</span><span>Agent</span><span>Type</span><span className="text-right">Amount</span><span className="text-right">After</span><span>Description</span>
@@ -551,6 +555,7 @@ export default function HiveMarketplacePage() {
                   );
                 })}
               </div>
+            </div>
             </div>
           </div>
         )}

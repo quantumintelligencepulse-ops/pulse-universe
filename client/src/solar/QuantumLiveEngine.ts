@@ -214,7 +214,7 @@ export class QuantumLiveEngine {
     if (!data) return;
 
     // Track spawn types for targeted events
-    const newSpawns = data.recentSpawns.filter(s => !this.seenSpawnIds.has(s.spawnId));
+    const newSpawns = (Array.isArray(data.recentSpawns) ? data.recentSpawns : []).filter((s: any) => !this.seenSpawnIds.has(s.spawnId));
     newSpawns.forEach(s => this.seenSpawnIds.add(s.spawnId));
 
     const explorerSpawns = newSpawns.filter(s => s.type === 'EXPLORER');

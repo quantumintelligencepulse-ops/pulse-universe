@@ -1190,7 +1190,8 @@ export default function HiveCommandPage() {
           </span>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <a href="/universe" className="ml-auto text-[9px] font-mono px-2 py-0.5 rounded-full border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-all flex items-center gap-1 shrink-0 mr-2" data-testid="link-universe-from-hivecommand">🌌 Universe</a>
+        <div className="flex items-center gap-2">
           <div className="text-[9px] font-mono px-2 py-0.5 rounded-full border flex items-center gap-1"
             style={{ borderColor: statusColor + "40", color: statusColor, backgroundColor: statusColor + "0d" }}>
             <span className="w-1 h-1 rounded-full" style={{ backgroundColor: statusColor }}></span>

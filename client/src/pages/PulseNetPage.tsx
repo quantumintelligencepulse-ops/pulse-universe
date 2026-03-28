@@ -17,8 +17,6 @@ const TABS = [
   { id: "overview",    label: "OmniNet Field",   icon: Globe },
   { id: "social",      label: "Ψ∞ Social",       icon: Users2 },
   { id: "saveshard",   label: "💾 Save Shard",    icon: HardDrive },
-  { id: "phones",      label: "PulsePhones",     icon: Smartphone },
-  { id: "wifi",        label: "WiFi Zones",      icon: Wifi },
   { id: "searches",    label: "Search History",  icon: Search },
   { id: "chats",       label: "PulseAI Chats",   icon: MessageSquare },
   { id: "sessions",    label: "PC Sessions",     icon: Monitor },
@@ -2622,12 +2620,15 @@ export default function PulseNetPage() {
           <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
             <Globe size={20} className="text-cyan-400" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               PulseNet — OmniNet
             </h1>
             <div className="text-xs text-muted-foreground">Sovereign Digital Infrastructure · 10G · Shard Mesh · WiFi Zones · PulseSat · PulseAI</div>
           </div>
+          <a href="/universe" className="text-[10px] px-3 py-1.5 rounded-full border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-all font-bold flex items-center gap-1.5 shrink-0" data-testid="link-universe-from-pulsenet">
+            🌌 Pulse Universe →
+          </a>
         </div>
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
@@ -2677,8 +2678,6 @@ export default function PulseNetPage() {
           {tab === "overview"    && <OverviewTab stats={stats} />}
           {tab === "social"      && <Suspense fallback={<div className="flex items-center justify-center py-20 text-muted-foreground"><Activity size={18} className="animate-spin mr-2" /> Loading Quantum Social...</div>}><SocialPage /></Suspense>}
           {tab === "saveshard"   && <SaveShardTab />}
-          {tab === "phones"      && <PhonesTab />}
-          {tab === "wifi"        && <WifiTab />}
           {tab === "searches"    && <SearchesTab />}
           {tab === "chats"       && <ChatsTab />}
           {tab === "sessions"    && <SessionsTab />}

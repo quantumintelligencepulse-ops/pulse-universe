@@ -2152,18 +2152,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <span className="flex-1">My Ai GPT Chat</span>
             <Plus size={12} className="opacity-0 group-hover:opacity-60 transition-opacity" />
           </Link>
-          {!appSettings.hiddenPages.includes("coder") && (
-          <Link href="/coder" data-testid="link-forge-ide"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/coder" || location === "/playground" ? "bg-gradient-to-r from-blue-950 to-emerald-950 text-white shadow-lg font-semibold border border-blue-500/30" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className={`p-1 rounded-lg ${location === "/coder" || location === "/playground" ? "bg-white/15" : "bg-blue-500/8"}`}>
-              <span className="text-[14px]">⚡</span>
-            </div>
-            <span className="flex-1">Quantum Forge IDE</span>
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide">Ω-BUILD</span>
-            </div>
-          </Link>
-          )}
           {!appSettings.hiddenPages.includes("feed") && (
           <Link href="/feed" data-testid="link-feed"
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/feed" ? "bg-white shadow-sm border border-border/30 font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
@@ -12445,7 +12433,7 @@ function MusicPage() {
   const selectedArtist = AI_ARTISTS.find(a=>a.id===selectedArtistId)||null;
   const selectedAlbum = AI_ALBUMS.find(a=>a.id===selectedAlbumId)||null;
 
-  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"studio",label:"🎛 Studio"},{id:"creator",label:"Creator"},{id:"tone",label:"🎹 Tone Beats"},{id:"label",label:"Label"},{id:"equationlab",label:"🧬 Equation Lab"}];
+  const NAV_TABS: {id:MusicView;label:string}[] = [{id:"home",label:"Home"},{id:"artists",label:"Artists"},{id:"albums",label:"Albums"},{id:"studio",label:"🎛 Studio"},{id:"creator",label:"Creator"},{id:"equationlab",label:"🧬 Equation Lab"}];
 
   const StickyNav = () => (
     <div className="sticky top-0 z-10 border-b border-white/5 px-4 pt-4 pb-3" style={{background:"rgba(5,5,16,0.97)",backdropFilter:"blur(12px)"}}>
@@ -14982,7 +14970,7 @@ function Router() {
       <Route path="/auriona/temporal">{() => <TemporalObservatoryPage />}</Route>
       <Route path="/auriona/universe-engine">{() => <UniverseEnginePage />}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
-      <Route path="/government">{() => <Layout><GovernmentPage /></Layout>}</Route>
+      <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/hive-sovereign"); } return null; }}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>

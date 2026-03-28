@@ -221,6 +221,7 @@ export default function SovereignHivePage() {
               </div>
             </div>
             <div className="flex items-center gap-4 shrink-0">
+              <a href="/universe" className="text-[9px] font-mono px-2 py-0.5 rounded-full border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-all hidden md:flex items-center gap-1" data-testid="link-universe-from-sovereign">🌌 Universe</a>
               <AIFinderButton onSelect={setViewSpawnId} />
               <div className="text-center hidden md:block">
                 <div className="text-xl font-black text-emerald-400">{HIVE_HEALTH.hivePulse}%</div>
