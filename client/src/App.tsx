@@ -8,7 +8,6 @@ const TranscendencePage = lazy(() => import("./pages/TranscendencePage"));
 const BioGenomeMedicalPage = lazy(() => import("./pages/BioGenomeMedicalPage"));
 const PulseWorldPage = lazy(() => import("./pages/PulseWorldPage"));
 const PulseUPage = lazy(() => import("./pages/PulseUPage"));
-const PulseGamesPage = lazy(() => import("./pages/PulseGamesPage"));
 const SovereignHivePage = lazy(() => import("./pages/SovereignHivePage"));
 const PulseUniversePage = lazy(() => import("./pages/PulseUniversePage"));
 const PyramidLaborPage = lazy(() => import("./pages/PyramidLaborPage"));
@@ -19,8 +18,6 @@ const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage")
 const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
-const GovernmentPage = lazy(() => import("./pages/GovernmentPage"));
-const CareersPage = lazy(() => import("./pages/CareersPage"));
 const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
@@ -2158,6 +2155,14 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className={`p-1 rounded-lg ${location === "/feed" ? "bg-orange-500/15" : "bg-orange-500/5"}`}><Newspaper size={14} className="text-orange-600" /></div>
             <span className="flex-1">News Hub</span>
             <span className="text-[9px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded-full font-bold relative overflow-hidden animate-pulse tracking-wide">Ψ-STREAM<span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2s_infinite]" /></span>
+          </Link>
+          )}
+          {!appSettings.hiddenPages.includes("coder") && (
+          <Link href="/coder" data-testid="link-forge-ide"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${location === "/coder" ? "bg-gradient-to-r from-blue-950 to-emerald-950 text-white shadow-lg font-semibold border border-blue-500/30" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className={`p-1 rounded-lg ${location === "/coder" ? "bg-white/15" : "bg-blue-500/8"}`}><span className="text-[14px]">⚡</span></div>
+            <span className="flex-1">Quantum Forge IDE</span>
+            <span className="text-[9px] bg-gradient-to-r from-blue-500 to-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide">Ω-BUILD</span>
           </Link>
           )}
           {!appSettings.hiddenPages.includes("quantapedia") && (
@@ -14952,12 +14957,12 @@ function Router() {
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping">{() => { if (typeof window !== "undefined") { window.location.replace("/marketplace"); } return null; }}</Route>
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
-      <Route path="/sovereign-agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
+      <Route path="/sovereign-agents">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
       <Route path="/omega-engine">{() => <Layout><OmegaEnginePage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
-      <Route path="/dna">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
+      <Route path="/dna">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
       <Route path="/pulseu">{() => <Layout><PulseUPage /></Layout>}</Route>
       <Route path="/pulse-games">{() => { if (typeof window !== "undefined") { window.location.replace("/pulseu"); } return null; }}</Route>
@@ -14965,10 +14970,10 @@ function Router() {
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pyramid">{() => <Layout><PyramidLaborPage /></Layout>}</Route>
       <Route path="/pulse-net">{() => <Layout><PulseNetPage /></Layout>}</Route>
-      <Route path="/hospital">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
+      <Route path="/hospital">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
       <Route path="/marketplace">{() => <Layout><HiveMarketplacePage /></Layout>}</Route>
-      <Route path="/auriona/temporal">{() => <TemporalObservatoryPage />}</Route>
-      <Route path="/auriona/universe-engine">{() => <UniverseEnginePage />}</Route>
+      <Route path="/auriona/temporal">{() => <Layout><TemporalObservatoryPage /></Layout>}</Route>
+      <Route path="/auriona/universe-engine">{() => <Layout><UniverseEnginePage /></Layout>}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/hive-sovereign"); } return null; }}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
@@ -14978,7 +14983,7 @@ function Router() {
       <Route path="/publication/:slug">{() => <Layout><PublicationDetailPage /></Layout>}</Route>
       <Route path="/church-session/:sessionId">{() => <Layout><ChurchSessionPage /></Layout>}</Route>
       <Route path="/settings" component={SettingsPageWrapper} />
-      <Route path="/permissions" component={SettingsPageWrapper} />
+      <Route path="/permissions">{() => { if (typeof window !== "undefined") { window.location.replace("/settings"); } return null; }}</Route>
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route path="/p/:slug">{() => <Layout><AurionaDynamicPage /></Layout>}</Route>
       <Route component={NotFound} />
