@@ -911,7 +911,7 @@ function QSLabTab() {
           </div>
         )}
         <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-none">
-          {(Array.isArray(proposals) ? proposals : []).map(p => {
+          {proposals.map(p => {
             const local = localVotes[p.id];
             const vf = local?.vf ?? p.votes_for;
             const va = local?.va ?? p.votes_against;
