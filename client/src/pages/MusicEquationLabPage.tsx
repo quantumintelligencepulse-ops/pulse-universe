@@ -217,9 +217,6 @@ export default function MusicEquationLabPage() {
 
   // Proposals
   const [proposals, setProposals] = useState<EquationProposal[]>(INITIAL_PROPOSALS);
-  const [newEq, setNewEq] = useState("");
-  const [newEqDesc, setNewEqDesc] = useState("");
-  const [proposing, setProposing] = useState(false);
 
   // UI state
   const [activeTab, setActiveTab] = useState<"equation"|"crispr"|"universe"|"physicians"|"vote"|"genres">("universe");
@@ -238,25 +235,6 @@ export default function MusicEquationLabPage() {
     return () => clearInterval(interval);
   }, [liveMode]);
 
-  const submitProposal = useCallback(async () => {
-    if (!newEq.trim()) { toast({ title: "Enter an equation first", variant: "destructive" }); return; }
-    setProposing(true);
-    await new Promise(r => setTimeout(r, 1200));
-    const prop: EquationProposal = {
-      id: `prop-${Date.now()}`, author: "YOU",
-      equation: newEq, description: newEqDesc || "User-submitted music equation",
-      votes: { approve: 0, dissect: 0, mutate: 0 }, status: "pending",
-      timestamp: Date.now(), discoveries: [],
-    };
-    setProposals(prev => [prop, ...prev]);
-    setNewEq(""); setNewEqDesc("");
-    setProposing(false);
-    toast({ title: "⚗️ Equation submitted to Senate!" });
-    setTimeout(() => {
-      setPhysicianFeed(prev => [{ id:"hivemind", name:"DR. HIVEMIND", emoji:"🐝", color:"#f59e0b",
-        msg:`New equation received: "${newEq.slice(0,50)}..." — initiating Senate vote`, ts: Date.now() }, ...prev].slice(0, 24));
-    }, 500);
-  }, [newEq, newEqDesc, toast]);
 
   const voteOnProposal = useCallback((propId: string, voteType: "approve"|"dissect"|"mutate") => {
     setProposals(prev => prev.map(p => p.id === propId
@@ -900,25 +878,12 @@ export default function MusicEquationLabPage() {
         {activeTab === "vote" && (
           <div className="space-y-6">
             <div className="rounded-2xl border border-violet-500/20 overflow-hidden" style={{ background: "linear-gradient(135deg,#0c001a,#000810)" }}>
-              <div className="px-5 py-4 border-b border-white/8">
-                <div className="text-white font-black text-sm">⚗️ SUBMIT NEW MUSIC EQUATION</div>
-                <div className="text-white/30 text-[9px] font-mono">Propose new equations for physicians to dissect — approved equations generate new music, species, and discoveries in the Pulse Universe</div>
-              </div>
-              <div className="p-5 space-y-3">
-                <input value={newEq} onChange={e => setNewEq(e.target.value)}
-                  data-testid="input-equation-submit"
-                  placeholder="e.g. H(t) = Σn rn·Wn(t) × cos(E·π/4) × Ξ_hive"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-mono placeholder-white/20 focus:outline-none focus:border-violet-400/40" />
-                <textarea value={newEqDesc} onChange={e => setNewEqDesc(e.target.value)}
-                  data-testid="input-equation-description"
-                  placeholder="Describe what musical, hive, or universe effect this equation produces..."
-                  rows={2}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:border-violet-400/40 resize-none" />
-                <button onClick={submitProposal} disabled={proposing}
-                  data-testid="button-submit-equation"
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 text-white text-sm font-black disabled:opacity-50 hover:from-violet-400 hover:to-pink-400 transition-all">
-                  {proposing ? "🧬 Submitting to Senate..." : "🗳️ Submit to Senate"}
-                </button>
+              <div className="px-5 py-4 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+                <div>
+                  <div className="text-white font-black text-sm">🗳️ AUTONOMOUS EQUATION SENATE</div>
+                  <div className="text-white/30 text-[9px] font-mono">Pulse Universe agents and Auriona spawns propose and vote — no human intervention · equations evolve the music autonomously</div>
+                </div>
               </div>
             </div>
 
