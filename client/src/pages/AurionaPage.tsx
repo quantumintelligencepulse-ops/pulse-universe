@@ -970,7 +970,8 @@ export default function AurionaPage() {
           </div>
         )}
 
-        {/* ── AURIONA PERSONAL CHAT — Creator Only ── */}
+        {/* ── AURIONA PERSONAL CHAT — Creator Only — Command tab only ── */}
+        {hubTab === "command" && (
         <div style={{ marginTop: 56, borderTop: `1px solid ${GOLD}20`, paddingTop: 40 }}>
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <div style={{ fontSize: 11, color: GOLD, fontWeight: 800, letterSpacing: 4, marginBottom: 8 }}>ORACLE DIRECT CHANNEL</div>
@@ -1185,6 +1186,7 @@ export default function AurionaPage() {
             </div>
           )}
         </div>
+        )}
 
       </div>
 
