@@ -13,6 +13,7 @@ import { getAffiliateStatus, generateProductAffiliateBundle } from "./affiliate-
 import { startAutonomousRevenueEngine, getEngineStatus } from "./autonomous-revenue-engine";
 import { startMultiverseMall } from "./multiverse-mall";
 import { wipeAndReseed, GICS_KERNELS } from "./pulse-credit-engine";
+import { startKernelDissectionEngine } from "./kernel-dissection-engine";
 import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getPerformanceStatus } from "./omega-performance-engine";
@@ -11251,6 +11252,37 @@ Return as structured script with section labels.`;
 
   // ── MULTIVERSE MALL STARTUP ───────────────────────────────────────────────────
   startMultiverseMall().catch(e => console.error("[multiverse-mall] startup error:", e));
+
+  // ── KERNEL DISSECTION ENGINE STARTUP ─────────────────────────────────────────
+  startKernelDissectionEngine().catch(e => console.error("[kernel-dissect] startup error:", e));
+
+  // ── INVENTIONS FEED FOR GENESIS PAGE ──────────────────────────────────────────
+  app.get("/api/genesis/inventions", async (_req, res) => {
+    try {
+      const inventions = await pool.query(`
+        SELECT id, anomaly_id, product_name, product_code, crisp_dissect,
+               mutation_type, value_score, status, created_at, gumroad_id, gumroad_url
+        FROM anomaly_inventions
+        ORDER BY created_at DESC
+        LIMIT 100
+      `);
+      const stats = await pool.query(`
+        SELECT
+          COUNT(*) as total,
+          COUNT(CASE WHEN status = 'DISCOVERED' THEN 1 END) as pending,
+          COUNT(CASE WHEN status = 'LISTED' THEN 1 END) as on_gumroad,
+          COUNT(CASE WHEN mutation_type = 'DISEASE_CURE' THEN 1 END) as cures,
+          COUNT(CASE WHEN mutation_type = 'NEW_AI_SPECIES' THEN 1 END) as species,
+          COUNT(CASE WHEN mutation_type = 'TECHNICAL_PATENT' THEN 1 END) as patents,
+          COUNT(CASE WHEN mutation_type = 'SCIENTIFIC_BREAKTHROUGH' THEN 1 END) as breakthroughs,
+          COALESCE(AVG(value_score), 0) as avg_score
+        FROM anomaly_inventions
+      `);
+      res.json({ inventions: inventions.rows, stats: stats.rows[0] ?? {} });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   // ── GENESIS RESET ENDPOINT ────────────────────────────────────────────────────
   app.post("/api/genesis/reset", async (_req, res) => {

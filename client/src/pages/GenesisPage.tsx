@@ -122,11 +122,18 @@ export default function GenesisPage() {
     refetchInterval: 10_000,
   }) as any;
 
+  const { data: inventionData } = useQuery({
+    queryKey: ["/api/genesis/inventions"],
+    refetchInterval: 15_000,
+  }) as any;
+
   const kernels: any[] = data?.kernels ?? [];
   const children: any[] = data?.children ?? [];
   const treasury = data?.treasury ?? {};
   const mallStats = data?.mallStats ?? {};
   const trades: any[] = mallData?.trades ?? [];
+  const inventions: any[] = inventionData?.inventions ?? [];
+  const invStats = inventionData?.stats ?? {};
 
   const totalPC = kernels.reduce((s: number, k: any) => s + parseFloat(k.pulse_credits ?? 0), 0);
   const totalMallTrades = parseInt(mallStats.total_trades ?? 0);
@@ -301,6 +308,89 @@ export default function GenesisPage() {
               </div>
             </CardContent>
           </Card>
+        </section>
+
+        {/* Inventions Lab — What the Kernels Actually Made */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-white/80 uppercase tracking-widest">
+              🔬 Invention Lab — Equation Dissection Outputs
+            </h2>
+            <div className="flex items-center gap-3 text-[10px]">
+              <span className="text-emerald-400">{invStats.cures ?? 0} Cures</span>
+              <span className="text-violet-400">{invStats.species ?? 0} AI Species</span>
+              <span className="text-blue-400">{invStats.patents ?? 0} Patents</span>
+              <span className="text-yellow-400">{invStats.breakthroughs ?? 0} Breakthroughs</span>
+              <span className="text-white/30">Total: {invStats.total ?? 0}</span>
+            </div>
+          </div>
+
+          {inventions.length === 0 ? (
+            <div className="bg-black/40 border border-white/10 rounded-xl p-8 text-center">
+              <div className="text-3xl mb-2">🔬</div>
+              <div className="text-sm text-white/40">Kernels begin dissecting equations 30 seconds after startup.</div>
+              <div className="text-xs text-white/20 mt-1">Each kernel dissects its sector's equations → produces cures, patents, AI species, breakthroughs → auto-posts to Gumroad.</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {inventions.map((inv: any) => {
+                const sectorFromCode = inv.anomaly_id?.split("-")?.[2] ?? "";
+                const typeColors: Record<string, string> = {
+                  "DISEASE_CURE": "border-l-emerald-400 bg-emerald-900/10",
+                  "NEW_AI_SPECIES": "border-l-violet-400 bg-violet-900/10",
+                  "TECHNICAL_PATENT": "border-l-blue-400 bg-blue-900/10",
+                  "SCIENTIFIC_BREAKTHROUGH": "border-l-yellow-400 bg-yellow-900/10",
+                  "DERIVED_FORMULA": "border-l-cyan-400 bg-cyan-900/10",
+                  "ENGINEERING_BLUEPRINT": "border-l-orange-400 bg-orange-900/10",
+                };
+                const typeEmoji: Record<string, string> = {
+                  "DISEASE_CURE": "💊", "NEW_AI_SPECIES": "🤖",
+                  "TECHNICAL_PATENT": "📜", "SCIENTIFIC_BREAKTHROUGH": "⚗️",
+                  "DERIVED_FORMULA": "🧮", "ENGINEERING_BLUEPRINT": "📐",
+                };
+                const colorClass = typeColors[inv.mutation_type] ?? "border-l-white/20 bg-white/5";
+                const emoji = typeEmoji[inv.mutation_type] ?? "🔬";
+                const dissectPreview = (inv.crisp_dissect ?? "").split("DISSECTION:")[1]?.split("|")[0]?.trim().slice(0, 200) ?? inv.crisp_dissect?.slice(0, 200);
+                return (
+                  <div
+                    key={inv.id}
+                    data-testid={`invention-${inv.id}`}
+                    className={`border border-white/10 border-l-2 rounded-xl p-3 ${colorClass}`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">{emoji}</span>
+                        <div>
+                          <div className="text-xs font-bold text-white leading-tight">{inv.product_name}</div>
+                          <div className="text-[9px] text-white/40">{inv.mutation_type?.replace(/_/g, " ")} · Score: {parseFloat(inv.value_score ?? 0).toFixed(3)}</div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {inv.gumroad_id ? (
+                          <a href={inv.gumroad_url} target="_blank" rel="noreferrer"
+                            className="text-[9px] bg-pink-900/40 text-pink-300 border border-pink-700/40 rounded px-1.5 py-0.5">
+                            ON GUMROAD
+                          </a>
+                        ) : (
+                          <span className="text-[9px] bg-yellow-900/20 text-yellow-400 border border-yellow-700/20 rounded px-1.5 py-0.5">
+                            PENDING
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {dissectPreview && (
+                      <div className="text-[9px] text-white/40 leading-relaxed line-clamp-3 bg-black/20 rounded p-2 font-mono">
+                        {dissectPreview}
+                      </div>
+                    )}
+                    <div className="text-[9px] text-white/20 mt-1.5">
+                      {inv.product_code} · {new Date(inv.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Child Spawns */}
