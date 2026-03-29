@@ -44,6 +44,10 @@ import { startPulseCreditEngine } from "./pulse-credit-engine";
 import { startAIVotingEngine } from "./ai-voting-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
+import { startQuantumSocialEngine } from "./quantum-social-engine";
+import { startOmniNetEngine } from "./omni-net-engine";
+import { startPulseNetCache } from "./pulsenet-cache";
+import { startPulseLabCycle } from "./pulse-lang-lab";
 
 const app = express();
 const httpServer = createServer(app);
@@ -316,6 +320,14 @@ async function seedOmegaSources() {
   startIngestionEngine().catch((e: Error) => console.error("[ingestion] startup error:", e.message));
   // ── PUBLICATION ENGINE — Agents write research papers, reports, and knowledge articles ──
   startPublicationEngine().catch((e: Error) => console.error("[publications] startup error:", e.message));
+  // ── PULSENET CACHE — Fast cache layer for live PulseNet/OmniNet snapshots ──
+  startPulseNetCache();
+  // ── OMNI-NET ENGINE — OmniField: PulseShards, WiFi, PulsePhones, U₂₄₈ hidden variables ──
+  startOmniNetEngine().catch((e: Error) => console.error("[omni-net] startup error:", e.message));
+  // ── QUANTUM SOCIAL ENGINE — PulseLang social posts: equations, dissections, inventions ──
+  startQuantumSocialEngine().catch((e: Error) => console.error("[quantum-social] startup error:", e.message));
+  // ── PULSE LANG LAB — AI scientists run live equation dissections and lab proposals ──
+  startPulseLabCycle();
   // ── OMEGA SOURCES SEED — Restore hundreds of research sources if wiped ──
   seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message));
 })();
