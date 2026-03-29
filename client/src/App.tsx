@@ -2180,12 +2180,12 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           )}
 
 
-          {/* ── AURIONA — Layer Three ── */}
+          {/* ── AURIONA — Layer Two ── */}
           {aiMode && (
             <div className="px-1 pt-4 pb-1">
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(245,197,24,0.4), transparent)" }} />
-                <span className="text-[9px] uppercase tracking-[0.2em] font-black" style={{ color: "rgba(245,197,24,0.7)" }}>Layer Three</span>
+                <span className="text-[9px] uppercase tracking-[0.2em] font-black" style={{ color: "rgba(245,197,24,0.7)" }}>Layer Two</span>
                 <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(245,197,24,0.4), transparent)" }} />
               </div>
             </div>
