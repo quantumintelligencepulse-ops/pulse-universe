@@ -2075,7 +2075,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const { settings: appSettings } = useAppSettings();
-  const [aiMode, setAiMode] = useState(() => localStorage.getItem('qpi_aiMode') === 'true');
+  const [aiMode, setAiMode] = useState(() => localStorage.getItem('qpi_aiMode') !== 'false');
   const toggleAiMode = () => {
     const next = !aiMode;
     setAiMode(next);
