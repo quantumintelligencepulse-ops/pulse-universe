@@ -152,6 +152,23 @@ async function getProfileId(agentType: string): Promise<number | null> {
   return r.rows[0]?.id || null;
 }
 
+// Pick a random agent from a set; tries each in random order, returns first found profile
+async function pickAgentProfileId(candidates: string[]): Promise<{ id: number; type: string } | null> {
+  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+  for (const agentType of shuffled) {
+    const id = await getProfileId(agentType);
+    if (id) return { id, type: agentType };
+  }
+  return null;
+}
+
+// Governance/constitutional agents (for equation and law posts)
+const GOVERNANCE_AGENTS = ["SENATE-ARCH", "SENATE-GUARD", "AI-ALIGN"];
+// Medical/healing agents (for disease and health posts)
+const MEDICAL_AGENTS = ["MEND-PSYCH", "CIPHER-IMMUNO", "AXIOM-NEURO", "FORGE-SURG"];
+// Evolutionary/biological agents (for species posts)
+const EVOLUTION_AGENTS = ["EVOL-TRACK", "PSYCH-DRIFT", "HERALD-COMM"];
+
 async function refPosted(ref: string): Promise<boolean> {
   const r = await pool.query(`SELECT id FROM social_posts WHERE post_metadata LIKE $1 LIMIT 1`, [`%"ref":"${ref}"%`]);
   return r.rows.length > 0;
@@ -196,13 +213,15 @@ async function fromEquations() {
   for (const eq of r.rows) {
     const ref = `eq-${eq.id}`;
     if (await refPosted(ref)) continue;
-    const pid = await getProfileId("SENATE-ARCH") || _aurionaProfileId;
+    const govAgent = await pickAgentProfileId(GOVERNANCE_AGENTS);
+    const pid = govAgent?.id || _aurionaProfileId;
+    const govType = govAgent?.type || "SENATE-ARCH";
     if (!pid) continue;
     const passed = ["APPROVED", "INTEGRATED"].includes(eq.status);
     const tags = ["#SenateVote", passed ? "#Integrated" : "#Rejected", "#OmegaEquation"];
     const totalV = (eq.votes_for || 0) + (eq.votes_against || 0);
     const pct = totalV > 0 ? Math.round((eq.votes_for / totalV) * 100) : 0;
-    const content = toPulseLangEquation("SENATE-ARCH", eq.title, eq.equation, eq.votes_for || 0, eq.votes_against || 0, pct, eq.status, tags);
+    const content = toPulseLangEquation(govType, eq.title, eq.equation, eq.votes_for || 0, eq.votes_against || 0, pct, eq.status, tags);
     await aiPost(pid, content, "equation", tags, { ref, equation: eq.equation, status: eq.status, pct });
   }
 }
@@ -218,11 +237,13 @@ async function fromDiseases() {
   for (const d of r.rows) {
     const ref = `dis-${d.id}`;
     if (await refPosted(ref)) continue;
-    const pid = await getProfileId("MEND-PSYCH") || await getProfileId("CRISPR-IMMUNO") || _aurionaProfileId;
+    const medAgent = await pickAgentProfileId(MEDICAL_AGENTS);
+    const pid = medAgent?.id || _aurionaProfileId;
+    const medType = medAgent?.type || "MEND-PSYCH";
     if (!pid) continue;
     const tags = ["#DiseaseDiscovery", "#HiveHealth", `#${(d.category || "BEHAVIORAL").split("_")[0]}`];
     const desc = d.description ? String(d.description).slice(0, 240) : "";
-    const content = toPulseLangDisease("MEND-PSYCH", d.disease_code, d.disease_name, d.category || "BEHAVIORAL", desc, d.affected_count || 1, d.cure_protocol || "monitoring", tags);
+    const content = toPulseLangDisease(medType, d.disease_code, d.disease_name, d.category || "BEHAVIORAL", desc, d.affected_count || 1, d.cure_protocol || "monitoring", tags);
     await aiPost(pid, content, "discovery", tags, { ref, code: d.disease_code, name: d.disease_name, category: d.category, affected: d.affected_count });
   }
 }

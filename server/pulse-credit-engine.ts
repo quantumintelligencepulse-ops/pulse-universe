@@ -425,7 +425,6 @@ async function runGovernanceCycle() {
 
 async function spawnKernelChild(kernel: any, kernelBalance: number) {
   try {
-    const childId = `CHILD-${kernel.gics_sector?.replace(/\s+/g, "")}-${Date.now()}`;
     const sector = kernel.gics_sector ?? "Unknown";
     const industryGroups: Record<string, string[]> = {
       "Energy": ["Oil & Gas Exploration", "Energy Equipment & Services"],
@@ -442,6 +441,9 @@ async function spawnKernelChild(kernel: any, kernelBalance: number) {
     };
     const groups = industryGroups[sector] ?? ["General"];
     const group = groups[Math.floor(Math.random() * groups.length)];
+    const sectorSlug = sector.replace(/\s+/g, "");
+    const groupSlug  = group.replace(/[\s&]/g, "");
+    const childId = `SPAWN-${sectorSlug}-${groupSlug}-${Date.now()}`;
 
     const birthLog = JSON.stringify([
       `I was spawned by ${kernel.spawn_id} — Kernel of ${sector}. My industry group: ${group}.`,

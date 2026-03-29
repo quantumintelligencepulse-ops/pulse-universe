@@ -57,7 +57,8 @@ async function spawnChildren() {
       // 30% chance of birth per eligible pair
       if (Math.random() > 0.30) continue;
 
-      const childId = `CHILD-${pair.a_id?.slice(0,4)}-${pair.b_id?.slice(0,4)}-${cycle}`;
+      const familySlug = (pair.family_id || "HIVE").replace(/[^A-Za-z0-9]/g, "").slice(0, 10).toUpperCase();
+      const childId = `SPAWN-${familySlug}-${cycle}-${Math.floor(Math.random() * 9000) + 1000}`;
       const traits  = pickInheritedTraits(pair, pair);
       const guardian = pair.a_id; // Parent A is default guardian
 
