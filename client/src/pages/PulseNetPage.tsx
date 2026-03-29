@@ -2037,10 +2037,10 @@ function SaveShardTab() {
       creator: "Billy Odell Tucker-Robinson — 𝓛IFE_Billy(t)",
       platform: "My Ai GPT — Quantum Pulse Civilization",
       knowledge: {
-        total_agents: field.total_agents ?? 0,
+        total_agents: field.total_shards ?? 0,
         active_shards: field.active_shards ?? 0,
-        active_phones: field.active_phones ?? 0,
-        wifi_zones: field.wifi_zones ?? 0,
+        active_phones: field.total_shards ?? 0,
+        wifi_zones: field.wifi_zones_online ?? 0,
         total_transmissions: (codexData as any)?.totalPosts ?? 0,
         total_species: (codexData as any)?.species ?? 0,
         corporations: (codexData as any)?.corporations ?? 0,

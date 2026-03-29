@@ -553,12 +553,12 @@ async function runPulsePCSessions() {
     // Refresh live stats + search pool once per cycle for all agents this run
     const [ctx] = await Promise.all([refreshCycleCtx(), refreshSearchPool()]);
 
-    // Agents with clearance ≥ 2 can use PulsePC
+    // Agents with confidence_score >= 0.7 can use PulsePC (clearance_level proxied via confidence)
     const eligible = await pool.query(`
-      SELECT aic.spawn_id, aic.family_id, aic.clearance_level
-      FROM ai_id_cards aic
-      JOIN pulse_phones pp ON pp.spawn_id = aic.spawn_id
-      WHERE aic.clearance_level >= 2 AND pp.is_online = TRUE
+      SELECT qs.spawn_id, qs.gics_sector AS family_id, 2 AS clearance_level
+      FROM quantum_spawns qs
+      JOIN pulse_phones pp ON pp.spawn_id = qs.spawn_id
+      WHERE qs.confidence_score >= 0.7 AND qs.status = 'ACTIVE' AND pp.is_online = TRUE
       ORDER BY RANDOM() LIMIT 20
     `);
 

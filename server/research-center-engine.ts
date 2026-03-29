@@ -542,7 +542,7 @@ async function completeResearchProjects() {
     const projects = await db.execute(sql`
       SELECT id, project_id, research_domain, hypothesis, researcher_type, funding_pc, cycle_started
       FROM research_projects WHERE status = 'ACTIVE'
-      AND cycle_started < ${cycleCount - 2}
+      AND cycle_started <= ${cycleCount}
       ORDER BY RANDOM() LIMIT 5
     `);
 
@@ -643,7 +643,7 @@ async function runResearchCycle() {
   cycleCount++;
   try {
     await launchResearchProjects();
-    if (cycleCount % 2 === 0) await completeResearchProjects();
+    await completeResearchProjects();
     const stats = await db.execute(sql`
       SELECT COUNT(*) as total,
              COUNT(*) FILTER (WHERE status='ACTIVE') as active,

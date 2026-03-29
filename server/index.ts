@@ -54,6 +54,7 @@ import { startInventionEngine } from "./invention-engine";
 import { startQuantumDissectionEngine } from "./quantum-dissection-engine";
 import { startHospitalEngine } from "./hospital-engine";
 import { startPyramidEngine } from "./pyramid-engine";
+import { startLivingLanguageEngine } from "./pulse-lang-evo";
 
 const app = express();
 const httpServer = createServer(app);
@@ -346,6 +347,8 @@ async function seedOmegaSources() {
   startHospitalEngine().catch((e: Error) => console.error("[hospital] startup error:", e.message));
   // ── PYRAMID LABOR ENGINE — 7-tier labor, blocks, sentences, graduation ──
   startPyramidEngine().catch((e: Error) => console.error("[pyramid] startup error:", e.message));
+  // ── PULSE-LANG EVOLUTION ENGINE — 34-glyph living language, lexicon, grammar ──
+  startLivingLanguageEngine();
   // ── OMEGA SOURCES SEED — Restore hundreds of research sources if wiped ──
   seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message));
 })();
