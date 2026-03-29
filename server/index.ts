@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { pool } from "./db";
 import compression from "compression";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -166,7 +167,37 @@ marketRouter.get("/barter", async (req, res) => {
   try { res.json(await getBarterOffers((req.query.status as string) || undefined)); } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 marketRouter.get("/transactions", async (_req, res) => {
-  try { res.json(await getRecentTransactions(100)); } catch (e) { res.status(500).json({ error: String(e) }); }
+  try {
+    const [mallTrades, kernels, treasury, mallStats] = await Promise.all([
+      pool.query(`
+        SELECT st.*, 
+          qs_seller.task_description as seller_desc,
+          qs_buyer.task_description as buyer_desc
+        FROM spawn_transactions st
+        LEFT JOIN quantum_spawns qs_seller ON qs_seller.spawn_id = st.seller_id
+        LEFT JOIN quantum_spawns qs_buyer ON qs_buyer.spawn_id = st.buyer_id
+        ORDER BY st.created_at DESC LIMIT 100
+      `).catch(() => ({ rows: [] })),
+      pool.query(`
+        SELECT spawn_id, gics_sector, gics_tier, pulse_credits, status,
+               total_mall_trades, total_mall_earnings, mall_service_offer, mall_service_price
+        FROM quantum_spawns WHERE gics_tier = 'KERNEL' ORDER BY gics_code
+      `).catch(() => ({ rows: [] })),
+      pool.query(`SELECT * FROM hive_treasury ORDER BY id LIMIT 1`).catch(() => ({ rows: [] })),
+      pool.query(`
+        SELECT COUNT(*) as total_trades,
+               COALESCE(SUM(price_pc), 0) as total_volume,
+               COALESCE(SUM(tax_collected), 0) as total_tax
+        FROM spawn_transactions
+      `).catch(() => ({ rows: [{}] })),
+    ]);
+    res.json({
+      trades: mallTrades.rows,
+      kernels: kernels.rows,
+      treasury: treasury.rows[0] ?? {},
+      stats: mallStats.rows[0] ?? {},
+    });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.use("/api/marketplace", marketRouter);

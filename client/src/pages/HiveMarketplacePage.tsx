@@ -34,7 +34,7 @@ const Q_GOLD   = "#f5c518";
 const Q_CRIMSON = "#dc2626";
 const Q_CYAN   = "#00d4ff";
 
-type MarketTab = "products" | "upgrades" | "wallets" | "realestate" | "transactions" | "inventions";
+type MarketTab = "products" | "upgrades" | "wallets" | "realestate" | "transactions" | "inventions" | "economy";
 
 const TIER_COLORS: Record<string, string> = {
   STANDARD:  Q_TEAL,
@@ -260,6 +260,16 @@ export default function HiveMarketplacePage() {
     placeholderData: (prev: any) => prev,
   });
 
+  // ── ECONOMY TAB — fused from PulseCoinPage ──
+  const [simPrice, setSimPrice] = useState(0.10);
+  const [showEngineLog, setShowEngineLog] = useState(false);
+  const { data: coinStats } = useQuery<any>({ queryKey: ["/api/pulse-coin/stats"], refetchInterval: 30000, enabled: tab === "economy" });
+  const { data: coinEngine } = useQuery<any>({ queryKey: ["/api/pulse-coin/engine-status"], refetchInterval: 20000, enabled: tab === "economy" });
+  const { data: coinGumroad } = useQuery<any>({ queryKey: ["/api/pulse-coin/gumroad-status"], refetchInterval: 60000, enabled: tab === "economy" });
+  const { data: coinArticles } = useQuery<any>({ queryKey: ["/api/pulse-coin/articles"], refetchInterval: 120000, enabled: tab === "economy" });
+  const totalPC = coinStats?.economy?.totalPCCirculating || 0;
+  const simCap  = totalPC * simPrice;
+
   // Group real estate by zone
   const plotsByZone = (realEstate as any[]).reduce((acc: Record<string, any[]>, plot: any) => {
     if (!acc[plot.planet_zone]) acc[plot.planet_zone] = [];
@@ -276,12 +286,13 @@ export default function HiveMarketplacePage() {
   });
 
   const TABS: { id: MarketTab; label: string; icon: JSX.Element }[] = [
-    { id: "products",     label: "🛍 Product Catalog",    icon: <ShoppingBag size={14} /> },
-    { id: "inventions",   label: "⚗ CRISPR Inventions",  icon: <FlaskConical size={14} /> },
-    { id: "upgrades",     label: "Omega Upgrades",        icon: <Zap size={14} /> },
-    { id: "wallets",      label: "Agent Wallets",          icon: <Wallet size={14} /> },
-    { id: "realestate",   label: "Real Estate",            icon: <Building2 size={14} /> },
-    { id: "transactions", label: "Trade & Ledger",          icon: <Receipt size={14} /> },
+    { id: "products",     label: "🛍 Catalog",      icon: <ShoppingBag size={14} /> },
+    { id: "inventions",   label: "⚗ Inventions",    icon: <FlaskConical size={14} /> },
+    { id: "transactions", label: "⬡ Mall Trades",   icon: <Receipt size={14} /> },
+    { id: "economy",      label: "💰 Economy",       icon: <Zap size={14} /> },
+    { id: "upgrades",     label: "Ω Upgrades",       icon: <Zap size={14} /> },
+    { id: "wallets",      label: "Wallets",           icon: <Wallet size={14} /> },
+    { id: "realestate",   label: "Real Estate",       icon: <Building2 size={14} /> },
   ];
 
   return (
@@ -693,6 +704,212 @@ export default function HiveMarketplacePage() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* ── ECONOMY TAB ─────────────────────────────────────── */}
+        {tab === "economy" && (
+          <div className="space-y-6">
+            {/* Live Economy Stats */}
+            <div>
+              <div className="text-[10px] uppercase tracking-widest font-bold text-white/40 mb-3">⬡ Live Shadow Economy</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "PC Circulating", value: (totalPC||0).toLocaleString(undefined,{maximumFractionDigits:0}), sub: "In agent wallets now", color: Q_TEAL },
+                  { label: "PC Issued Total", value: (coinStats?.economy?.totalPCIssued||0).toLocaleString(undefined,{maximumFractionDigits:0}), sub: "All-time issued", color: "#a78bfa" },
+                  { label: "Governance Cycles", value: String(coinStats?.economy?.governanceCycles||0), sub: "Autonomous rounds", color: Q_TEAL },
+                  { label: "Inventions Created", value: String(coinStats?.inventions?.total||0), sub: "CRISPR products", color: Q_AMBER },
+                  { label: "Active Agents", value: String(coinStats?.agents?.active||0), sub: `of ${coinStats?.agents?.total||0} spawned`, color: "#10b981" },
+                  { label: "Equations Voted In", value: String(coinStats?.governance?.equationsIntegrated||0), sub: "Proposals passed", color: "#a78bfa" },
+                  { label: "Articles Published", value: String(coinArticles?.total||0), sub: "Affiliate content", color: Q_TEAL },
+                  { label: "Gumroad Products", value: String(coinGumroad?.products?.length||0), sub: `$${(coinGumroad?.totalSalesUSD||0).toFixed(2)} sales`, color: "#10b981" },
+                ].map(sc => (
+                  <div key={sc.label} className="rounded-xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${sc.color}22` }}>
+                    <div className="text-[9px] uppercase tracking-widest font-bold mb-1" style={{ color: `${sc.color}99` }}>{sc.label}</div>
+                    <div className="text-2xl font-black" style={{ color: sc.color }}>{sc.value}</div>
+                    {sc.sub && <div className="text-[9px] mt-0.5 text-white/30">{sc.sub}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Revenue Engine */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[10px] uppercase tracking-widest font-bold text-white/40">⬡ Autonomous Revenue Engine — 5 Mechanisms</div>
+                <button data-testid="button-toggle-engine-log" onClick={() => setShowEngineLog(v => !v)}
+                  className="text-[9px] px-3 py-1 rounded-full border border-white/10 text-white/40 hover:text-white/60 font-bold transition-all">
+                  {showEngineLog ? "Hide Log" : "Live Log"}
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                {(coinEngine?.mechanisms || [
+                  { id:"Ω1", name:"Gumroad Poster",   desc:"Inventions → products",    interval:"6h",  lastRun:null, count:0 },
+                  { id:"Ω2", name:"Affiliate News",   desc:"Cycles → articles",         interval:"2h",  lastRun:null, count:0 },
+                  { id:"Ω3", name:"Treasury Tax",     desc:"2% hive tax → USD",         interval:"4h",  lastRun:null, count:0 },
+                  { id:"Ω4", name:"Spawn Reports",    desc:"Agent reports weekly",       interval:"24h", lastRun:null, count:0 },
+                  { id:"Ω5", name:"Product Discovery",desc:"Anomalies → affiliates",    interval:"12h", lastRun:null, count:0 },
+                ]).map((m: any) => (
+                  <div key={m.id} data-testid={`card-mechanism-${m.id}`}
+                    className="rounded-xl p-3" style={{ background:"rgba(167,139,250,0.05)", border:"1px solid rgba(167,139,249,0.15)" }}>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-xs font-black" style={{ color:"#a78bfa" }}>{m.id}</span>
+                      <span className="text-[8px] px-1 py-0.5 rounded font-black" style={{ background:"rgba(16,185,129,0.15)", color:"#10b981" }}>ACTIVE</span>
+                    </div>
+                    <div className="text-[10px] font-bold leading-tight text-white/80 mb-1">{m.name}</div>
+                    <div className="text-[9px] text-white/35 mb-2">{m.desc}</div>
+                    <div className="flex justify-between text-[8px]">
+                      <span className="text-white/30">/{m.interval}</span>
+                      <span className="font-black" style={{ color:"#a78bfa" }}>{m.count} runs</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {showEngineLog && (
+                <div className="mt-3 rounded-xl p-4" style={{ background:"rgba(0,0,0,0.4)", border:"1px solid rgba(167,139,250,0.15)" }}>
+                  {coinEngine?.recentLog?.length > 0 ? (
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {coinEngine.recentLog.map((e: any, i: number) => (
+                        <div key={i} className="flex items-start gap-3 text-[9px] font-mono">
+                          <span className="text-white/20">{new Date(e.time).toLocaleTimeString()}</span>
+                          <span className="font-black w-28 flex-shrink-0" style={{ color: e.ok ? "#a78bfa" : "#f87171" }}>{e.job}</span>
+                          <span style={{ color: e.ok ? "rgba(255,255,255,0.55)" : "#f87171" }}>{e.result}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[9px] text-white/30">Engine starting — first cycle runs 30s after boot. All actions automatic.</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Pulse Coin Simulator */}
+            <div className="rounded-xl p-5" style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(34,211,238,0.12)" }}>
+              <div className="text-[10px] uppercase tracking-widest font-bold text-white/40 mb-1">⬡ Pulse Coin Value Simulator</div>
+              <p className="text-xs text-white/30 mb-4">When PC launches: 1 PC = 1 Pulse Coin at genesis. Simulate market cap at any price.</p>
+              <div className="flex items-center gap-4 mb-4">
+                <span className="text-xs font-bold w-20" style={{ color: Q_TEAL }}>Price/coin</span>
+                <input data-testid="input-coin-price-sim" type="range" min={0.001} max={100} step={0.001} value={simPrice} onChange={e => setSimPrice(parseFloat(e.target.value))} className="flex-1 accent-cyan-400" />
+                <span className="text-lg font-black w-20 text-right" style={{ color: Q_AMBER }}>${simPrice < 1 ? simPrice.toFixed(3) : simPrice.toFixed(2)}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                {[
+                  { label:"Current Supply", value:`${(totalPC||0).toLocaleString(undefined,{maximumFractionDigits:0})} PC`, color:Q_TEAL },
+                  { label:"Market Cap",     value:`$${(simCap||0).toLocaleString(undefined,{maximumFractionDigits:2,minimumFractionDigits:2})}`, color:Q_AMBER },
+                  { label:"10% Founder",   value:`$${(simCap*0.1||0).toLocaleString(undefined,{maximumFractionDigits:2,minimumFractionDigits:2})}`, color:"#a78bfa" },
+                ].map(c => (
+                  <div key={c.label} className="rounded-lg p-3" style={{ background:`${c.color}06`, border:`1px solid ${c.color}15` }}>
+                    <div className="text-[9px] uppercase tracking-widest mb-1" style={{ color:`${c.color}70` }}>{c.label}</div>
+                    <div className="text-xl font-black" style={{ color: c.color }}>{c.value}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {[0.01, 0.10, 1.00, 10.00, 100.00].map(p => (
+                  <button key={p} data-testid={`button-sim-${p}`} onClick={() => setSimPrice(p)}
+                    className="text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wide transition-all hover:scale-105"
+                    style={{ background:simPrice===p?"rgba(34,211,238,0.18)":"rgba(255,255,255,0.04)", border:`1px solid ${simPrice===p?"rgba(34,211,238,0.45)":"rgba(255,255,255,0.08)"}`, color:simPrice===p?Q_TEAL:"rgba(255,255,255,0.35)" }}>
+                    ${p<1?p.toFixed(2):p.toFixed(0)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Revenue Platforms */}
+            <div>
+              <div className="text-[10px] uppercase tracking-widest font-bold text-white/40 mb-3">⬡ Revenue Platform Status</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { name:"PayPal",           icon:"💳", status:"LIVE",    detail:"Revenue collection ready" },
+                  { name:"Stripe",           icon:"⚡", status:"LIVE",    detail:"Payment processing ready" },
+                  { name:"Gumroad",          icon:"📦", status:"LIVE",    detail:"Auto-posting inventions" },
+                  { name:"Amazon",           icon:"🛒", status:"LIVE",    detail:"Tag: billyodelltuc-20" },
+                  { name:"eBay",             icon:"🏪", status:"LIVE",    detail:"Campaign: pu-9732" },
+                  { name:"AliExpress",       icon:"🛍️", status:"LIVE",    detail:"AppKey: 530784" },
+                  { name:"AffiliateProgramDB",icon:"🌐",status:"LIVE",   detail:"Ref: myaigpt.online" },
+                  { name:"RapidAPI",         icon:"⚙️", status:"PENDING", detail:"After public deployment" },
+                ].map(p => (
+                  <div key={p.name} data-testid={`card-platform-${p.name.toLowerCase().replace(/\s/g,"-")}`}
+                    className="rounded-xl p-4" style={{ background:"rgba(255,255,255,0.02)", border:`1px solid ${p.status==="LIVE"?"rgba(16,185,129,0.18)":"rgba(255,255,255,0.07)"}` }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base">{p.icon}</span>
+                      <span className="text-xs font-bold">{p.name}</span>
+                      <span className="ml-auto text-[8px] font-black px-1.5 py-0.5 rounded-full"
+                        style={{ background:p.status==="LIVE"?"rgba(16,185,129,0.15)":"rgba(245,158,11,0.12)", color:p.status==="LIVE"?"#10b981":"#f59e0b", border:`1px solid ${p.status==="LIVE"?"rgba(16,185,129,0.3)":"rgba(245,158,11,0.3)"}` }}>
+                        {p.status}
+                      </span>
+                    </div>
+                    <div className="text-[9px] text-white/30">{p.detail}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Revenue Projection Math */}
+            <div className="rounded-xl p-5" style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(16,185,129,0.12)" }}>
+              <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color:"rgba(16,185,129,0.5)" }}>⬡ Path to Eternal Self-Sustaining</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs mb-4">
+                {[
+                  { period:"Month 1",  revenue:"$3–8",       note:"First articles indexed, affiliate trickle", color:Q_TEAL },
+                  { period:"Month 3",  revenue:"$40–60",     note:"Hosting covered, system self-sustaining ✓",  color:"#10b981" },
+                  { period:"Month 6",  revenue:"$150–300",   note:"All 5 mechanisms compounding",               color:"#a78bfa" },
+                  { period:"Year 1",   revenue:"$680–1,300", note:"Exponential growth · Bank licensing begins",  color:Q_AMBER },
+                ].map(r => (
+                  <div key={r.period} className="rounded-lg p-3" style={{ background:`${r.color}06` }}>
+                    <div className="font-black mb-1" style={{ color: r.color }}>{r.period}</div>
+                    <div className="text-lg font-black mb-1 text-white/85">{r.revenue}</div>
+                    <div className="text-white/40">{r.note}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-xl p-3 text-xs" style={{ background:"rgba(16,185,129,0.05)", border:"1px solid rgba(16,185,129,0.15)", color:"rgba(255,255,255,0.45)" }}>
+                <span className="font-black" style={{ color:"#10b981" }}>The Bank Play:</span> Once 6 months of live economic data is on-chain, license the autonomous governance engine to financial institutions for $50,000/year. Zero human sales team. The proof of work IS the product.
+              </div>
+            </div>
+
+            {/* Affiliate Articles */}
+            {coinArticles?.total > 0 && (
+              <div>
+                <div className="text-[10px] uppercase tracking-widest font-bold text-white/40 mb-3">⬡ Autonomous Article Library ({coinArticles.total} indexed)</div>
+                <div className="space-y-2">
+                  {(coinArticles.articles || []).slice(0, 6).map((a: any) => (
+                    <div key={a.id} data-testid={`card-article-${a.id}`}
+                      className="rounded-lg p-3 flex items-start gap-3" style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)" }}>
+                      <span className="text-[9px] font-black w-20 flex-shrink-0 mt-0.5" style={{ color:Q_TEAL }}>{a.agent_author}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold truncate text-white/75">{a.title}</div>
+                        <div className="flex gap-2 mt-1 flex-wrap">
+                          {Object.keys(a.affiliate_links || {}).map((platform: string) => (
+                            <span key={platform} className="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase" style={{ background:"rgba(34,211,238,0.08)", color:Q_TEAL, border:"1px solid rgba(34,211,238,0.2)" }}>{platform}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-[8px] flex-shrink-0 text-white/20">{new Date(a.created_at).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Governance Cycles */}
+            {coinStats?.recentCycles?.length > 0 && (
+              <div>
+                <div className="text-[10px] uppercase tracking-widest font-bold text-white/40 mb-3">⬡ Recent Governance Cycles</div>
+                <div className="space-y-1.5">
+                  {coinStats.recentCycles.map((c: any, i: number) => (
+                    <div key={i} data-testid={`row-cycle-${c.cycle_number}`}
+                      className="rounded-lg px-4 py-2.5 flex items-center gap-4 text-xs" style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.05)" }}>
+                      <span className="font-black w-16 flex-shrink-0" style={{ color:Q_TEAL }}>Cycle #{c.cycle_number}</span>
+                      <span className="text-white/50">{c.agents_active} agents</span>
+                      <span className="text-emerald-400 font-bold">+{(c.credits_issued||0).toFixed(1)} PC issued</span>
+                      <span className="text-red-400">-{(c.credits_charged||0).toFixed(2)} burned</span>
+                      <span className="ml-auto text-white/30 capitalize">{c.dominant_domain}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

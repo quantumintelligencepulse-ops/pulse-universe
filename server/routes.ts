@@ -9331,6 +9331,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   // Multiverse Mall transactions (spawn-to-spawn trades)
   app.get("/api/marketplace/transactions", async (_req, res) => {
     try {
+      const { pool } = await import("./db");
       const [mallTrades, kernels] = await Promise.all([
         pool.query(`
           SELECT st.*, 
