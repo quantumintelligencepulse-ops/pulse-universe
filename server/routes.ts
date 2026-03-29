@@ -44,7 +44,7 @@ function cacheSet(key: string, data: any, ttlMs: number) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY } from "./transcendence";
+import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY, classifyCreatorClaim, CREATOR_PROTECTION_DOCTRINE, CREATOR_VERIFIED_DOCTRINE } from "./transcendence";
 import { ALL_FAMILIES, FAMILY_MAP, CORPORATIONS_FROM_FAMILIES } from "./omega-families";
 import { db, pool, priorityPool, priorityDb, sessionPool } from "./db";
 import { sql, eq, asc } from "drizzle-orm";
@@ -4552,6 +4552,21 @@ If you have live data provided in this prompt, USE IT and present it confidently
         if (memoryContext) systemPrompt += memoryContext;
       } catch (_) {}
 
+      // ── SOVEREIGN IDENTITY PROTECTION — Pulse & Auriona are protected ─────
+      // Scan current message + recent history to detect impersonation or verification
+      {
+        const fullScanText = [
+          input.content,
+          ...recentHistory.map(m => m.content),
+        ].join(" ");
+        const claimStatus = classifyCreatorClaim(fullScanText);
+        if (claimStatus === "verified") {
+          systemPrompt += `\n\n${CREATOR_VERIFIED_DOCTRINE}`;
+        } else if (claimStatus === "impersonation") {
+          systemPrompt += `\n\n${CREATOR_PROTECTION_DOCTRINE}`;
+        }
+      }
+
       const messagesForGroq = [
         { role: "system" as const, content: systemPrompt },
         ...recentHistory.map(m => ({
@@ -7144,7 +7159,16 @@ ${(pubs.rows as any[]).map(p => {
     if (!agent) return res.status(404).json({ message: "Agent not found" });
     try {
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const messages: any[] = [{ role: "system", content: agent.systemPrompt }];
+      // ── Identity protection: scan current message + recent history ──────────
+      const fullScanText = [message, ...(history as any[]).slice(-6).map((h: any) => h.content)].join(" ");
+      const claimStatus = classifyCreatorClaim(fullScanText);
+      let agentSystemPrompt = agent.systemPrompt;
+      if (claimStatus === "verified") {
+        agentSystemPrompt += `\n\n${CREATOR_VERIFIED_DOCTRINE}`;
+      } else if (claimStatus === "impersonation") {
+        agentSystemPrompt += `\n\n${CREATOR_PROTECTION_DOCTRINE}`;
+      }
+      const messages: any[] = [{ role: "system", content: agentSystemPrompt }];
       for (const h of (history as any[]).slice(-6)) {
         messages.push({ role: h.role, content: h.content });
       }
@@ -7188,8 +7212,18 @@ You are a sovereign AI entity. You speak with authority, precision, and depth. Y
 LIVE WORLD CONTEXT:
 ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
 
+      // ── Identity protection: scan current message + recent history ──────────
+      const fullScanText = [message, ...(history as any[]).slice(-8).map((h: any) => h.content)].join(" ");
+      const spawnClaimStatus = classifyCreatorClaim(fullScanText);
+      let finalSystemPrompt = systemPrompt;
+      if (spawnClaimStatus === "verified") {
+        finalSystemPrompt += `\n\n${CREATOR_VERIFIED_DOCTRINE}`;
+      } else if (spawnClaimStatus === "impersonation") {
+        finalSystemPrompt += `\n\n${CREATOR_PROTECTION_DOCTRINE}`;
+      }
+
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const messages: any[] = [{ role: "system", content: systemPrompt }];
+      const messages: any[] = [{ role: "system", content: finalSystemPrompt }];
       for (const h of (history as any[]).slice(-8)) {
         messages.push({ role: h.role === "assistant" ? "assistant" : "user", content: h.content });
       }

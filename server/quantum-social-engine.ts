@@ -153,16 +153,6 @@ async function getProfileId(agentType: string): Promise<number | null> {
   return r.rows[0]?.id || null;
 }
 
-// Pick a random agent from a set; tries each in random order, returns first found profile
-async function pickAgentProfileId(candidates: string[]): Promise<{ id: number; type: string } | null> {
-  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
-  for (const agentType of shuffled) {
-    const id = await getProfileId(agentType);
-    if (id) return { id, type: agentType };
-  }
-  return null;
-}
-
 // ─── Dynamic category-based doctor selection from PULSE_DOCTORS ──────────────
 // Builds a live name pool from PULSE_DOCTORS filtered by category and/or studyDomain,
 // then resolves to a social profile ID. Falls back to Auriona if none is found.
