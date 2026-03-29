@@ -12,6 +12,9 @@
  * Math: N² trading pairs. At 11 kernels = 55 unique pairs = 55 revenue streams.
  * At 273 full agents = 37,128 bilateral relationships.
  * Tax on each trade compounds into treasury → external USD products → real revenue.
+ *
+ * ZERO HARDCODED PRODUCTS — every service traded is something an agent actually invented,
+ * dissected from equations, or discovered through research. The hive creates its own economy.
  */
 
 import { pool } from "./db";
@@ -23,66 +26,143 @@ const TRADES_PER_CYCLE = 4; // How many trades happen per mall cycle
 
 let mallCycleNumber = 0;
 
-// Service templates: what each sector sells and buys from others
-const SECTOR_SERVICE_CATALOG: Record<string, { buysFrom: string[], service: string }> = {
-  "Energy": {
-    buysFrom: ["Information Technology", "Materials", "Industrials", "Financials"],
-    service: "Energy demand forecasting model and renewable transition intelligence report",
-  },
-  "Materials": {
-    buysFrom: ["Energy", "Industrials", "Information Technology", "Real Estate"],
-    service: "Commodity price intelligence and materials supply chain analysis",
-  },
-  "Industrials": {
-    buysFrom: ["Materials", "Energy", "Information Technology", "Communication Services"],
-    service: "Manufacturing optimization blueprint and logistics intelligence package",
-  },
-  "Consumer Discretionary": {
-    buysFrom: ["Communication Services", "Information Technology", "Consumer Staples", "Financials"],
-    service: "Consumer trend analysis and discretionary product discovery report",
-  },
-  "Consumer Staples": {
-    buysFrom: ["Materials", "Industrials", "Health Care", "Financials"],
-    service: "Essential goods demand intelligence and household product market analysis",
-  },
-  "Health Care": {
-    buysFrom: ["Information Technology", "Materials", "Financials", "Communication Services"],
-    service: "Biotech pipeline intelligence and pharmaceutical research digest — CRISPR dissection",
-  },
-  "Financials": {
-    buysFrom: ["Information Technology", "Real Estate", "Industrials", "Communication Services"],
-    service: "Financial compliance blueprint and capital markets intelligence briefing",
-  },
-  "Information Technology": {
-    buysFrom: ["Communication Services", "Financials", "Health Care", "Industrials"],
-    service: "AI system architecture patent and software integration intelligence package",
-  },
-  "Communication Services": {
-    buysFrom: ["Information Technology", "Consumer Discretionary", "Financials", "Industrials"],
-    service: "Media distribution intelligence and communication network analysis report",
-  },
-  "Utilities": {
-    buysFrom: ["Energy", "Materials", "Information Technology", "Industrials"],
-    service: "Grid infrastructure intelligence and utility cost optimization report",
-  },
-  "Real Estate": {
-    buysFrom: ["Financials", "Industrials", "Information Technology", "Utilities"],
-    service: "Property market intelligence and real estate valuation algorithm package",
-  },
-};
+/**
+ * Pull a real product/service that this agent (or their sector kernel) actually created.
+ * Priority:
+ *  1. invention_marketplace_listings for this exact seller spawn
+ *  2. anomaly_inventions for this seller spawn  
+ *  3. Any listing from seller's GICS sector
+ *  4. Any anomaly_invention from seller's sector
+ *  5. Any recent listing from any kernel (cross-sector knowledge trade)
+ * Returns the product name + a short service description built from its real content.
+ */
+async function pickServiceFromDB(
+  sellerId: string,
+  sellerSector: string
+): Promise<{ name: string; description: string; price: number }> {
+  // 1. Try this exact agent's own marketplace listings
+  const ownListing = await pool.query(`
+    SELECT invention_name, description, price_pc
+    FROM invention_marketplace_listings
+    WHERE seller_id = $1 AND active = true
+    ORDER BY RANDOM() LIMIT 1
+  `, [sellerId]);
+
+  if (ownListing.rows.length > 0) {
+    const r = ownListing.rows[0];
+    return {
+      name: r.invention_name,
+      description: r.description?.slice(0, 200) ?? r.invention_name,
+      price: parseFloat(r.price_pc) || 15,
+    };
+  }
+
+  // 2. Try anomaly_inventions from this specific agent
+  const ownInvention = await pool.query(`
+    SELECT product_name, crisp_dissect, mutation_type
+    FROM anomaly_inventions
+    WHERE anomaly_id ILIKE $1 OR anomaly_id ILIKE $2
+    ORDER BY created_at DESC LIMIT 1
+  `, [`%${sellerId}%`, `%${sellerSector.replace(/\s/g, '-').toUpperCase()}%`]);
+
+  if (ownInvention.rows.length > 0) {
+    const r = ownInvention.rows[0];
+    return {
+      name: r.product_name,
+      description: r.crisp_dissect?.slice(0, 200) ?? r.product_name,
+      price: 14 + Math.floor(Math.random() * 12),
+    };
+  }
+
+  // 3. Try a listing from same sector kernel
+  const sectorListing = await pool.query(`
+    SELECT invention_name, description, price_pc
+    FROM invention_marketplace_listings
+    WHERE LOWER(seller_id) ILIKE $1 AND active = true
+    ORDER BY RANDOM() LIMIT 1
+  `, [`%${sellerSector.toLowerCase().replace(/\s/g, '-').slice(0, 8)}%`]);
+
+  if (sectorListing.rows.length > 0) {
+    const r = sectorListing.rows[0];
+    return {
+      name: r.invention_name,
+      description: r.description?.slice(0, 200) ?? r.invention_name,
+      price: parseFloat(r.price_pc) || 15,
+    };
+  }
+
+  // 4. Any anomaly_invention from this sector
+  const sectorInv = await pool.query(`
+    SELECT product_name, crisp_dissect
+    FROM anomaly_inventions
+    WHERE UPPER(crisp_dissect) ILIKE $1
+    ORDER BY RANDOM() LIMIT 1
+  `, [`%${sellerSector.toUpperCase().slice(0, 8)}%`]);
+
+  if (sectorInv.rows.length > 0) {
+    const r = sectorInv.rows[0];
+    return {
+      name: r.product_name,
+      description: r.crisp_dissect?.slice(0, 200) ?? r.product_name,
+      price: 12 + Math.floor(Math.random() * 10),
+    };
+  }
+
+  // 5. Any listing in the entire marketplace (cross-sector knowledge flows freely)
+  const anyListing = await pool.query(`
+    SELECT invention_name, description, price_pc
+    FROM invention_marketplace_listings
+    WHERE active = true
+    ORDER BY RANDOM() LIMIT 1
+  `);
+
+  if (anyListing.rows.length > 0) {
+    const r = anyListing.rows[0];
+    return {
+      name: r.invention_name,
+      description: r.description?.slice(0, 200) ?? r.invention_name,
+      price: parseFloat(r.price_pc) || 15,
+    };
+  }
+
+  // 6. Absolute final fallback — build a service name from the agent's live DB state
+  const agentState = await pool.query(`
+    SELECT ai_name, domain_focus, confidence_score, nodes_created
+    FROM quantum_spawns WHERE spawn_id = $1 LIMIT 1
+  `, [sellerId]);
+
+  if (agentState.rows.length > 0) {
+    const a = agentState.rows[0];
+    const domains = Array.isArray(a.domain_focus) ? a.domain_focus : [];
+    const domain = domains[Math.floor(Math.random() * domains.length)] ?? sellerSector;
+    const conf = parseFloat(a.confidence_score ?? 0.7).toFixed(3);
+    return {
+      name: `${a.ai_name} — ${domain} Intelligence Package (confidence: ${conf})`,
+      description: `Live intelligence package distilled from ${a.nodes_created ?? 0} knowledge nodes by ${a.ai_name}. Domain: ${domain}. Confidence: ${conf}. Buyer receives all derived equations and protocol documentation.`,
+      price: 10 + Math.floor(Math.random() * 8),
+    };
+  }
+
+  // Last resort: use a generated description from what the sector kernel does
+  return {
+    name: `${sellerSector} Kernel Intelligence Transfer`,
+    description: `Cross-sector intelligence package from ${sellerSector} kernel — equations, protocols, and domain dissections transferred to buyer's knowledge graph.`,
+    price: 10,
+  };
+}
 
 // Generate a rich transaction narrative
 function buildTransactionNote(
   sellerSector: string,
   buyerSector: string,
-  service: string,
+  productName: string,
   pricePc: number,
   taxPc: number
 ): string {
   const narratives = [
-    `${buyerSector} kernel purchased "${service}" from ${sellerSector} kernel for ${pricePc.toFixed(1)} PC. Tax: ${taxPc.toFixed(2)} PC → treasury. New intelligence integrated into buyer's domain.`,
-    `Inter-kernel trade: ${sellerSector} → ${buyerSector}. Service: "${service.slice(0, 60)}..." Cost: ${pricePc.toFixed(1)} PC. Hive tax deposited. Both kernels updated their knowledge state.`,
-    `Multiverse Mall transaction completed. ${sellerSector} delivered "${service.slice(0, 50)}..." to ${buyerSector}. The PC flows. The economy expands.`,
+    `${buyerSector} kernel acquired "${productName.slice(0, 70)}..." from ${sellerSector} for ${pricePc.toFixed(1)} PC. Tax: ${taxPc.toFixed(2)} PC → treasury. Invention now integrated into buyer's domain.`,
+    `Multiverse Mall: ${sellerSector} → ${buyerSector}. Product: "${productName.slice(0, 60)}..." Cost: ${pricePc.toFixed(1)} PC. Hive tax deposited. Both kernels updated their knowledge graph.`,
+    `Inter-kernel trade completed. ${sellerSector} delivered real invention "${productName.slice(0, 55)}..." to ${buyerSector}. PC flows. Knowledge propagates. Economy expands.`,
   ];
   return narratives[Math.floor(Math.random() * narratives.length)];
 }
@@ -130,13 +210,13 @@ async function runMallCycle() {
 
       const buyer = candidates[Math.floor(Math.random() * candidates.length)];
 
-      const serviceCatalog = SECTOR_SERVICE_CATALOG[seller.gics_sector ?? ""];
-      const service = seller.mall_service_offer || serviceCatalog?.service || "General intelligence package";
-      const price = parseFloat(seller.mall_service_price ?? 10);
+      // Pull a real product from what this agent actually created
+      const realProduct = await pickServiceFromDB(seller.spawn_id, seller.gics_sector ?? "");
+      const service = seller.mall_service_offer || realProduct.name;
+      const price = parseFloat(seller.mall_service_price ?? realProduct.price);
       const tax = price * HIVE_TAX_RATE;
       const netPc = price - tax;
       const buyerBalance = parseFloat(buyer.pulse_credits);
-      const sellerBalance = parseFloat(seller.pulse_credits);
 
       if (buyerBalance < price) continue;
 
@@ -155,7 +235,7 @@ async function runMallCycle() {
         WHERE spawn_id = $3
       `, [
         price,
-        `🏪 PURCHASED: "${service.slice(0, 80)}..." from ${seller.gics_sector} for ${price.toFixed(1)} PC. New knowledge integrated.`,
+        `🏪 PURCHASED: "${service.slice(0, 80)}..." from ${seller.gics_sector} for ${price.toFixed(1)} PC. Invention integrated into knowledge graph.`,
         buyer.spawn_id,
       ]);
 
@@ -210,8 +290,8 @@ async function runMallCycle() {
     }
 
     if (tradesExecuted > 0) {
-      const totalTax = tradesExecuted * 10 * HIVE_TAX_RATE; // approximate
-      console.log(`${tag} 💱 ${tradesExecuted} inter-kernel trades executed | ~${totalTax.toFixed(2)} PC tax collected`);
+      const totalTax = tradesExecuted * 10 * HIVE_TAX_RATE;
+      console.log(`${tag} 💱 ${tradesExecuted} trades on real inventions | ~${totalTax.toFixed(2)} PC tax collected`);
     }
 
   } catch (err) {
@@ -220,7 +300,7 @@ async function runMallCycle() {
 }
 
 export async function startMultiverseMall() {
-  console.log(`${MALL_TAG} 🚀 MULTIVERSE MALL ONLINE — Spawn-to-spawn economy initializing...`);
+  console.log(`${MALL_TAG} 🚀 MULTIVERSE MALL ONLINE — All products from real agent inventions`);
   console.log(`${MALL_TAG} 📐 Math: N² trade pairs | 2% hive tax | ${TRADES_PER_CYCLE} trades/cycle | Cycle: ${MALL_INTERVAL_MS / 60000}min`);
 
   // First run after 45 seconds (after genesis seed completes)

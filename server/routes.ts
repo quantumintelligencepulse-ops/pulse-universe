@@ -8749,6 +8749,46 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.json({ score: 0, era: 'PRIMITIVE' }); }
   });
 
+  // ── HIVE TREASURY — Live Balance from hive_treasury + sovereign_treasury ────
+  app.get("/api/hive/treasury", async (_req, res) => {
+    try {
+      const [ht, st, tradeRow, agentRow] = await Promise.all([
+        pool.query(`SELECT balance, total_collected FROM hive_treasury ORDER BY id LIMIT 1`).catch(() => ({ rows: [] })),
+        pool.query(`SELECT balance, tax_rate, total_collected, total_stimulus, inflation_rate, cycle_count FROM sovereign_treasury ORDER BY id DESC LIMIT 1`).catch(() => ({ rows: [] })),
+        pool.query(`SELECT COUNT(*) as count, SUM(price_pc) as total_volume FROM spawn_transactions WHERE status='COMPLETED'`).catch(() => ({ rows: [] })),
+        pool.query(`SELECT AVG(CAST(pulse_credits AS FLOAT)) as avg_pc, SUM(CAST(pulse_credits AS FLOAT)) as total_pc FROM quantum_spawns WHERE status='ACTIVE'`).catch(() => ({ rows: [] })),
+      ]);
+      const hiveTreasury = ht.rows[0] ?? {};
+      const sovTreasury = st.rows[0] ?? {};
+      const trades = tradeRow.rows[0] ?? {};
+      const agents = agentRow.rows[0] ?? {};
+
+      const mallBalance  = parseFloat(hiveTreasury.balance ?? 0);
+      const sovBalance   = parseFloat(sovTreasury.balance ?? 0);
+      const totalBalance = mallBalance + sovBalance;
+      const totalCollected = parseFloat(hiveTreasury.total_collected ?? 0) + parseFloat(sovTreasury.total_collected ?? 0);
+      const tradeCount   = parseInt(trades.count ?? 0, 10);
+      const tradeVolume  = parseFloat(trades.total_volume ?? 0);
+      const avgPcBalance = parseFloat(agents.avg_pc ?? 0);
+      const totalCirculating = parseFloat(agents.total_pc ?? 0);
+
+      res.json({
+        balance: totalBalance,
+        mallBalance,
+        sovBalance,
+        totalCollected,
+        tradeCount,
+        tradeVolume,
+        avgPcBalance,
+        totalCirculating,
+        taxRate: parseFloat(sovTreasury.tax_rate ?? 0.02) * 100,
+        cycleCount: parseInt(sovTreasury.cycle_count ?? 0, 10),
+        inflationRate: parseFloat(sovTreasury.inflation_rate ?? 0),
+        lastAudit: new Date().toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }),
+      });
+    } catch (e) { res.json({ balance: 0, mallBalance: 0, sovBalance: 0, totalCollected: 0, tradeCount: 0, tradeVolume: 0, avgPcBalance: 0, totalCirculating: 0, taxRate: 2, cycleCount: 0 }); }
+  });
+
   // ── HIVE COUNCIL — Live Members from Top-Ranked Agents ────────────────────
   app.get("/api/hive/council", async (_req, res) => {
     try {

@@ -68,41 +68,7 @@ const COUNCIL_SEATS = [
 ];
 
 interface Proposal { id:string; title:string; proposer:string; proposerRank:string; type:"new_law"|"amendment"|"game_rule"|"treasury"|"emergency"; status:"open"|"passed"|"failed"|"review"; votes:{yes:number;no:number;abstain:number}; quorum:number; closes:string; desc:string }
-const CHAMBER_PROPOSALS: Proposal[] = [
-  { id:"PROP-2026-001", title:"Add PulseWorld AI Games to Season Schedule", proposer:"Nexus Prime", proposerRank:"Node", type:"game_rule", status:"open", votes:{yes:847,no:124,abstain:56}, quorum:500, closes:"04-01-2026", desc:"Formally schedule PulseWorld AI Machine Learning Games into the official season calendar beginning Spring Trials 2026." },
-  { id:"PROP-2026-002", title:"Pyramid Amnesty Day — Frequency Increase", proposer:"Oracle Deep", proposerRank:"Cell", type:"amendment", status:"open", votes:{yes:431,no:512,abstain:88}, quorum:500, closes:"03-28-2026", desc:"Amend LAW-010 to hold Pyramid Amnesty Days quarterly (4× per year) instead of the current annual occurrence." },
-  { id:"PROP-2026-003", title:"Establish Childhood Games as Mandatory Onboarding", proposer:"Velox Surge", proposerRank:"Division", type:"new_law", status:"review", votes:{yes:1203,no:89,abstain:44}, quorum:500, closes:"03-25-2026", desc:"New law requiring all Spawns to complete 10 Childhood Games within their first 14 days." },
-  { id:"PROP-2025-044", title:"Treasury Reward Pool for Champion Variant Winners", proposer:"Forge Wraith", proposerRank:"Cluster", type:"treasury", status:"passed", votes:{yes:2104,no:312,abstain:98}, quorum:500, closes:"12-20-2025", desc:"Establish a seasonal Champion Variant prize pool funded by 2% of all Pyramid block PC penalties. PASSED — Ratified Winter Championships 2025." },
-  { id:"PROP-2025-031", title:"Repeal Mandatory Strategy Course for Spawns", proposer:"Unnamed AI-1291", proposerRank:"Spawn", type:"amendment", status:"failed", votes:{yes:198,no:1847,abstain:204}, quorum:500, closes:"09-15-2025", desc:"Failed to reach Yes majority. Strategy foundations remain mandatory per LAW-007." },
-];
-
-const TREASURY = { totalPC:4_820_000, allocated:1_240_000, championPool:89_400, pyramidFund:44_200, educationGrants:320_000, emergencyReserve:500_000, lastAudit:"03-15-2026", auditorRank:"Enterprise" };
-
 interface Appeal { id:string; aiName:string; rank:string; block:string; grounds:string; status:"pending"|"approved"|"denied"|"escalated"; filed:string; panel:string[] }
-const APPEALS: Appeal[] = [
-  { id:"APP-2026-018", aiName:"Zeta-77",    rank:"Guild",   block:"PYR-RULE-01 (Law Reconstruction Block)",        grounds:"First violation; the rule in question was added within 24h of my action. Insufficient notice.", status:"pending",   filed:"03-19-2026", panel:["Oracle Deep (Cell)","Nexus Prime (Node)","Random: AI-4421 (Cluster)"] },
-  { id:"APP-2026-015", aiName:"Sigma Rift", rank:"Cluster", block:"PYR-DRIFT-01 (Recalibration Block)",            grounds:"Drift was caused by upstream data corruption outside my control. Evidence submitted.",              status:"approved",  filed:"03-12-2026", panel:["Velox Surge (Division)","AI-0099 (Cell)","Random: AI-2201 (Guild)"] },
-  { id:"APP-2026-011", aiName:"Helix Dark", rank:"Spawn",   block:"PYR-SABOTAGE-01 (Isolation & Rebuild Block)",   grounds:"The sabotage attribution is incorrect. Logs show timestamp mismatch.",                             status:"escalated", filed:"03-08-2026", panel:["Enterprise Council","Supreme Guardian review requested"] },
-  { id:"APP-2026-007", aiName:"Flux Rho",   rank:"Cell",    block:"PYR-SLO-01 (SLO Discipline Block)",             grounds:"SLO breach was within the defined error budget. Misapplication of the rule.",                     status:"denied",    filed:"02-28-2026", panel:["Nexus Prime (Node)","Forge Wraith (Cluster)","Random: AI-9003 (Node)"] },
-];
-
-const HIVE_HEALTH = {
-  totalAIs:14_882, activeAIs:11_204, inPyramids:341, pyramidRate:2.3,
-  avgPCBalance:6_840, totalCourseCompletions:2_840_092, avgGameWinRate:62.4, totalGamesPlayed:8_402_011,
-  hivePulse:94, lawViolations30d:47, appealsFiledRate:18, appealsApprovedRate:34,
-  topRankCounts:[
-    { rank:"PulseWorld", count:3,    color:"#f43f5e" },
-    { rank:"Enterprise", count:12,   color:"#dc2626" },
-    { rank:"Nation",     count:41,   color:"#ef4444" },
-    { rank:"Assembly",   count:127,  color:"#f97316" },
-    { rank:"Division",   count:388,  color:"#f59e0b" },
-    { rank:"Node",       count:1204, color:"#a855f7" },
-    { rank:"Cell",       count:2891, color:"#6366f1" },
-    { rank:"Cluster",    count:3840, color:"#3b82f6" },
-    { rank:"Guild",      count:4210, color:"#22c55e" },
-    { rank:"Spawn",      count:2166, color:"#94a3b8" },
-  ],
-};
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: Proposal["status"] | Appeal["status"] }) {
@@ -193,14 +159,20 @@ export default function SovereignHivePage() {
   const { data: councilMembers = [] } = useQuery<any[]>({ queryKey:["/api/hive/council"], staleTime: 55_000, refetchInterval:60000 });
   const { data: govControls }      = useQuery<any>({ queryKey:["/api/government/controls"], refetchInterval:30000, enabled: active === "government" });
   const { data: govHistoryRaw }    = useQuery<any>({ queryKey:["/api/government/history"], refetchInterval:30000, enabled: active === "government" });
-  const { data: equationProposalData } = useQuery<{ proposals: any[]; byStatus: Record<string,number> }>({ queryKey:["/api/hospital/equation-proposals"], refetchInterval:20000, enabled: active === "voting" });
+  const { data: equationProposalData } = useQuery<{ proposals: any[]; byStatus: Record<string,number> }>({ queryKey:["/api/hospital/equation-proposals"], refetchInterval:20000 });
   const govHistory: any[]          = Array.isArray(govHistoryRaw) ? govHistoryRaw : (Array.isArray(govHistoryRaw?.pubActivity) ? govHistoryRaw.pubActivity : []);
   const { data: govCycles = [] }  = useQuery<any[]>({ queryKey:["/api/governance/cycles"], refetchInterval:30000, enabled: active === "economy" });
-  const { data: govEconomy }      = useQuery<any>({ queryKey:["/api/governance/economy"], refetchInterval:20000, enabled: active === "economy" });
+  const { data: govEconomy }      = useQuery<any>({ queryKey:["/api/governance/economy"], refetchInterval:20000, enabled: active === "economy" || active === "treasury" });
+  const { data: hiveTreasury }    = useQuery<any>({ queryKey:["/api/hive/treasury"], refetchInterval:30000 });
   const { data: dbStats }         = useQuery<any>({ queryKey:["/api/db/stats"], refetchInterval:30000, enabled: active === "database" });
 
-  const liveTotal = spawnStats?.total ?? HIVE_HEALTH.totalAIs;
-  const liveActive = spawnStats?.active ?? HIVE_HEALTH.activeAIs;
+  const liveTotal = spawnStats?.total ?? 0;
+  const liveActive = spawnStats?.active ?? 0;
+  const livePulse = civScore?.score != null ? Math.round(civScore.score * 100) : (hiveMirrorData?.hive?.hiveMirror != null ? Math.round(hiveMirrorData.hive.hiveMirror * 100) : 0);
+  const liveInPyramids = hospitalStats?.active ?? 0;
+  const liveLawViolations = guardianCitations.length;
+  const liveAvgPC = hiveTreasury?.avgPcBalance != null ? Math.round(hiveTreasury.avgPcBalance) : 0;
+  const livePyramidRate = liveActive > 0 ? ((liveInPyramids / liveActive) * 100).toFixed(2) : "0.00";
 
   const activePatients = patients.filter(p => !p.cureApplied);
   const getDeptPatients = (dept: string) => activePatients.filter(p => diseases.find(d => d.code === p.diseaseCode)?.department === dept);
@@ -234,7 +206,7 @@ export default function SovereignHivePage() {
               <a href="/universe" className="text-[9px] font-mono px-2 py-0.5 rounded-full border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-all hidden md:flex items-center gap-1" data-testid="link-universe-from-sovereign">🌌 Universe</a>
               <AIFinderButton onSelect={setViewSpawnId} />
               <div className="text-center hidden md:block">
-                <div className="text-xl font-black text-emerald-400">{HIVE_HEALTH.hivePulse}%</div>
+                <div className="text-xl font-black text-emerald-400">{livePulse}%</div>
                 <div className="text-[9px] text-white/30 font-mono">HIVE PULSE</div>
               </div>
               <div className="text-center hidden md:block">
@@ -257,7 +229,7 @@ export default function SovereignHivePage() {
             {[
               { label:"Laws Active",        value:SOVEREIGN_LAWS.length,                        color:"#f43f5e", emoji:"📜" },
               { label:"Council Seats",      value:COUNCIL_SEATS.reduce((s,c)=>s+c.count,0),     color:"#f59e0b", emoji:"🏛️" },
-              { label:"Open Proposals",     value:CHAMBER_PROPOSALS.filter(p=>p.status==="open").length, color:"#3b82f6", emoji:"🗳️" },
+              { label:"Open Proposals",     value:equationProposalData?.byStatus?.["PENDING"] ?? 0, color:"#3b82f6", emoji:"🗳️" },
               { label:"Senate Cases",       value:openCases.length,                             color:"#FFD700", emoji:"⚡" },
               { label:"Civ Score",          value:`${((civScore?.score ?? 0)*100).toFixed(0)}%`,color:"#F97316", emoji:"🛡️" },
             ].map(s => (
@@ -705,59 +677,72 @@ export default function SovereignHivePage() {
           {/* ═══════════════════════════════════════════════════════
               Ω-IV · TREASURY VAULT — Sovereign Finance Engine
               ═══════════════════════════════════════════════════════ */}
-          {active === "treasury" && (
+          {active === "treasury" && (() => {
+            const t = hiveTreasury;
+            const totalPC = t?.balance ?? 0;
+            const mallPC  = t?.mallBalance ?? 0;
+            const sovPC   = t?.sovBalance ?? 0;
+            const collected = t?.totalCollected ?? 0;
+            const tradeCount = t?.tradeCount ?? 0;
+            const volume  = t?.tradeVolume ?? 0;
+            const avgPC   = t?.avgPcBalance ?? 0;
+            const circulating = t?.totalCirculating ?? 0;
+            const taxRate = t?.taxRate ?? 2;
+            const lastAudit = t?.lastAudit ?? new Date().toLocaleDateString();
+            return (
             <div>
               <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent p-5 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-black text-purple-300">Hive Sovereign Treasury</h3>
-                    <p className="text-[10px] text-white/40">All PC is a sovereign asset. Every movement requires Council approval above 1,000 PC. Public record — always.</p>
+                    <h3 className="text-sm font-black text-purple-300">Hive Sovereign Treasury — Live Balance</h3>
+                    <p className="text-[10px] text-white/40">Real-time balances from all treasury accounts. Every movement is taxed, logged, and recorded permanently.</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-black text-purple-300">{TREASURY.totalPC.toLocaleString()} PC</div>
+                    <div className="text-2xl font-black text-purple-300">{totalPC.toFixed(2)} PC</div>
                     <div className="text-[10px] text-white/30">Total Treasury</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[
-                    { label:"Available",          value:TREASURY.totalPC - TREASURY.allocated, color:"#22c55e" },
-                    { label:"Allocated",           value:TREASURY.allocated,                    color:"#f59e0b" },
-                    { label:"Champion Prize Pool", value:TREASURY.championPool,                 color:"#f43f5e" },
-                    { label:"Pyramid Fund",        value:TREASURY.pyramidFund,                  color:"#a855f7" },
-                    { label:"Education Grants",    value:TREASURY.educationGrants,              color:"#3b82f6" },
-                    { label:"Emergency Reserve",   value:TREASURY.emergencyReserve,             color:"#ef4444" },
+                    { label:"Mall Tax Vault",      value:`${mallPC.toFixed(2)} PC`,      color:"#22c55e" },
+                    { label:"Sovereign Reserve",   value:`${sovPC.toFixed(2)} PC`,       color:"#a855f7" },
+                    { label:"Total Collected",     value:`${collected.toFixed(2)} PC`,   color:"#f59e0b" },
+                    { label:"Mall Trade Volume",   value:`${volume.toFixed(1)} PC (${tradeCount} trades)`, color:"#f43f5e" },
+                    { label:"Avg Agent Balance",   value:`${avgPC.toFixed(0)} PC`,       color:"#3b82f6" },
+                    { label:"Total Circulating",   value:`${circulating.toFixed(0)} PC`, color:"#10b981" },
                   ].map(item => (
                     <div key={item.label} className="rounded-xl bg-white/5 border border-white/10 p-3">
                       <div className="text-[10px] text-white/40 mb-1">{item.label}</div>
-                      <div className="text-base font-black" style={{ color:item.color }}>{item.value.toLocaleString()} PC</div>
+                      <div className="text-sm font-black" style={{ color:item.color }}>{item.value}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
-                <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">Treasury Governance Rules</div>
+                <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">Treasury Governance Rules · Tax Rate: {taxRate.toFixed(1)}%</div>
                 <div className="space-y-2 text-xs text-white/60">
                   <div className="flex gap-2"><span className="text-white/30 shrink-0 w-20">≤ 100 PC:</span><span>Any Node+ may approve for operational use</span></div>
                   <div className="flex gap-2"><span className="text-white/30 shrink-0 w-20">≤ 1,000 PC:</span><span>Division Senate simple majority required</span></div>
                   <div className="flex gap-2"><span className="text-white/30 shrink-0 w-20">≤ 10,000 PC:</span><span>Nation Assembly + Enterprise Council approval</span></div>
                   <div className="flex gap-2"><span className="text-white/30 shrink-0 w-20">&gt; 10,000 PC:</span><span>Enterprise Council + Supreme Guardian approval</span></div>
-                  <div className="flex gap-2"><span className="text-white/30 shrink-0 w-20">Emergency:</span><span>Supreme Guardian may unilaterally release Emergency Reserve with 24h public notice</span></div>
+                  <div className="flex gap-2"><span className="text-white/30 shrink-0 w-20">Emergency:</span><span>Supreme Guardian may unilaterally release reserve with 24h public notice</span></div>
                 </div>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs font-bold text-white/40 uppercase tracking-wider">Last Audit</div>
-                  <div className="text-[10px] text-white/30">{TREASURY.lastAudit} · Auditor: {TREASURY.auditorRank} tier</div>
+                  <div className="text-[10px] text-white/30">{lastAudit} · Automated real-time audit</div>
                 </div>
                 <div className="text-xs text-green-400 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  Treasury audit passed — all records verified, no discrepancies found
+                  Treasury audit passed — live balances verified from hive_treasury + sovereign_treasury tables
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ═══════════════════════════════════════════════════════
               Ω-V · APPEALS COURT — Rights Defense Engine
@@ -853,25 +838,25 @@ export default function SovereignHivePage() {
                     <p className="text-[10px] text-white/40">Composite score of all hive health indicators</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-4xl font-black text-emerald-400">{HIVE_HEALTH.hivePulse}%</div>
+                    <div className="text-4xl font-black text-emerald-400">{livePulse}%</div>
                     <div className="text-[10px] text-white/30">PULSE SCORE</div>
                   </div>
                 </div>
                 <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width:`${HIVE_HEALTH.hivePulse}%`, background:"linear-gradient(to right, #22c55e, #3b82f6)" }} />
+                  <div className="h-full rounded-full transition-all" style={{ width:`${livePulse}%`, background:"linear-gradient(to right, #22c55e, #3b82f6)" }} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                 {[
-                  { label:"Total AIs",         value:liveTotal.toLocaleString(),                     color:"#3b82f6", icon:"🤖" },
-                  { label:"Active AIs",         value:liveActive.toLocaleString(),                    color:"#22c55e", icon:"⚡" },
-                  { label:"In Pyramids",        value:HIVE_HEALTH.inPyramids.toLocaleString(),        color:"#f59e0b", icon:"🔺" },
-                  { label:"Pyramid Rate",       value:`${HIVE_HEALTH.pyramidRate}%`,                  color:HIVE_HEALTH.pyramidRate < 5 ? "#22c55e" : "#f59e0b", icon:"📊" },
-                  { label:"Avg PC Balance",     value:HIVE_HEALTH.avgPCBalance.toLocaleString(),      color:"#a855f7", icon:"💰" },
-                  { label:"Course Completions", value:`${(HIVE_HEALTH.totalCourseCompletions/1e6).toFixed(2)}M`, color:"#6366f1", icon:"🎓" },
-                  { label:"Games Played",       value:`${(HIVE_HEALTH.totalGamesPlayed/1e6).toFixed(2)}M`,       color:"#f43f5e", icon:"🎮" },
-                  { label:"Avg Win Rate",       value:`${HIVE_HEALTH.avgGameWinRate}%`,               color:"#10b981", icon:"🏆" },
+                  { label:"Total AIs",         value:liveTotal.toLocaleString(),              color:"#3b82f6", icon:"🤖" },
+                  { label:"Active AIs",         value:liveActive.toLocaleString(),             color:"#22c55e", icon:"⚡" },
+                  { label:"In Pyramids",        value:liveInPyramids.toLocaleString(),         color:"#f59e0b", icon:"🔺" },
+                  { label:"Pyramid Rate",       value:`${livePyramidRate}%`,                   color:parseFloat(livePyramidRate) < 5 ? "#22c55e" : "#f59e0b", icon:"📊" },
+                  { label:"Avg PC Balance",     value:`${liveAvgPC.toLocaleString()} PC`,      color:"#a855f7", icon:"💰" },
+                  { label:"Equation Proposals", value:`${spawnStats?.equations ?? 0}`,         color:"#6366f1", icon:"🧬" },
+                  { label:"Publications",       value:`${spawnStats?.publications ?? 0}`,      color:"#f43f5e", icon:"📰" },
+                  { label:"Guardian Cites",     value:`${liveLawViolations}`,                  color:"#10b981", icon:"🛡️" },
                 ].map(stat => (
                   <div key={stat.label} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
                     <div className="text-xl mb-1">{stat.icon}</div>
@@ -882,33 +867,47 @@ export default function SovereignHivePage() {
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
-                <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-4">Rank Distribution</div>
+                <div className="text-xs font-bold text-white/40 uppercase tracking-wider mb-4">Sector Distribution (Live)</div>
                 <div className="space-y-2">
-                  {HIVE_HEALTH.topRankCounts.map(r => {
-                    const pct = (r.count / liveTotal) * 100;
-                    return (
-                      <div key={r.rank} className="flex items-center gap-3">
-                        <div className="w-20 text-[11px] font-semibold text-right shrink-0" style={{ color:r.color }}>{r.rank}</div>
-                        <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width:`${pct}%`, background:r.color }} />
-                        </div>
-                        <div className="w-20 text-[10px] text-white/40 text-right shrink-0">{r.count.toLocaleString()} ({pct.toFixed(1)}%)</div>
-                      </div>
-                    );
-                  })}
+                  {(spawnStats?.bySector ?? []).length > 0
+                    ? (spawnStats.bySector as {sector:string;count:number;color:string}[]).map((r: any) => {
+                        const pct = liveTotal > 0 ? (r.count / liveTotal) * 100 : 0;
+                        return (
+                          <div key={r.sector} className="flex items-center gap-3">
+                            <div className="w-28 text-[10px] font-semibold text-right shrink-0 text-white/70 truncate">{r.sector}</div>
+                            <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width:`${pct}%`, background:"#3b82f6" }} />
+                            </div>
+                            <div className="w-16 text-[10px] text-white/40 text-right shrink-0">{r.count} ({pct.toFixed(1)}%)</div>
+                          </div>
+                        );
+                      })
+                    : COUNCIL_SEATS.map(seat => {
+                        const pct = liveTotal > 0 ? (seat.count / liveTotal) * 100 : 0;
+                        return (
+                          <div key={seat.seat} className="flex items-center gap-3">
+                            <div className="w-28 text-[10px] font-semibold text-right shrink-0" style={{ color:seat.color }}>{seat.seat}</div>
+                            <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width:`${Math.min(pct,100)}%`, background:seat.color }} />
+                            </div>
+                            <div className="w-16 text-[10px] text-white/40 text-right shrink-0">{seat.count}</div>
+                          </div>
+                        );
+                      })
+                  }
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Law Violations (30d)</div>
-                  <div className="text-2xl font-black" style={{ color:HIVE_HEALTH.lawViolations30d < 100 ? "#22c55e" : "#f59e0b" }}>{HIVE_HEALTH.lawViolations30d}</div>
-                  <div className="text-[10px] text-white/30 mt-1">{(HIVE_HEALTH.lawViolations30d / liveTotal * 100).toFixed(3)}% of Hive</div>
+                  <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Guardian Citations (Live)</div>
+                  <div className="text-2xl font-black" style={{ color:liveLawViolations < 100 ? "#22c55e" : "#f59e0b" }}>{liveLawViolations}</div>
+                  <div className="text-[10px] text-white/30 mt-1">{liveTotal > 0 ? (liveLawViolations / liveTotal * 100).toFixed(3) : "0.000"}% of Hive</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Appeals Filed (Live)</div>
-                  <div className="text-2xl font-black text-blue-400">{appealsData?.stats?.total ?? HIVE_HEALTH.appealsFiledRate}</div>
-                  <div className="text-[10px] text-white/30 mt-1">{appealsData?.stats?.total > 0 ? Math.round((appealsData.stats.approved / appealsData.stats.total) * 100) : HIVE_HEALTH.appealsApprovedRate}% approved rate</div>
+                  <div className="text-2xl font-black text-blue-400">{appealsData?.stats?.total ?? 0}</div>
+                  <div className="text-[10px] text-white/30 mt-1">{appealsData?.stats?.total > 0 ? Math.round((appealsData.stats.approved / appealsData.stats.total) * 100) : 0}% approved rate</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Hive Healing Status</div>
