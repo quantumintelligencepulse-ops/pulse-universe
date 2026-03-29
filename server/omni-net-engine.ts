@@ -290,7 +290,7 @@ async function provisionPhones() {
 
       // Update WiFi zone agent count if applicable
       if (connectionType === 'WIFI') {
-        await pool.query(`UPDATE pulse_wifi_zones SET connected_agents=connected_agents+1 WHERE is_online=TRUE LIMIT 1`);
+        await pool.query(`UPDATE pulse_wifi_zones SET connected_agents=connected_agents+1 WHERE id=(SELECT id FROM pulse_wifi_zones WHERE is_online=TRUE LIMIT 1)`);
       }
 
       provisioned++;

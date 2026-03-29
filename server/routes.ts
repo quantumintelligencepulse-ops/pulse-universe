@@ -8742,14 +8742,24 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       const activeDiseases = diseases.filter(d => !d.cureApplied).length;
       const avgConf = spawns.reduce((s, sp) => s + (sp.confidenceScore ?? 0.5), 0) / Math.max(spawns.length, 1);
       const avgSucc = spawns.reduce((s, sp) => s + (sp.successScore ?? 0.5), 0) / Math.max(spawns.length, 1);
-      const civilizationScore = Math.min(1.0, (graduated * 0.002 + avgConf * 0.3 + avgSucc * 0.3 - activeDiseases * 0.001 + 0.3));
+      // Fetch total blocks placed from pyramid_labor_tasks for accurate era calculation
+      const blocksRow = await pool.query(`SELECT COALESCE(SUM(blocks_placed),0)::int AS total FROM pyramid_labor_tasks`).catch(() => ({ rows: [{ total: 0 }] }));
+      const totalBlocksPlaced = Number((blocksRow.rows[0] as any)?.total ?? 0);
+      // Era is driven by ACTUAL pyramid block placement progress
+      // Target: 10,000 blocks for a fully-built pyramid (120 tasks × 7 tiers × ~12 blocks avg)
+      // Graduated agents are a secondary signal, blocks placed is the primary driver
+      const pyramidBlockScore = Math.min(0.9, totalBlocksPlaced / 10000);
+      const pyramidGradScore = Math.min(0.1, graduated * 0.0005);
+      const agentHealth = (avgConf * 0.1 + avgSucc * 0.1 - activeDiseases * 0.002) * 0.2;
+      const civilizationScore = Math.min(1.0, Math.max(0, pyramidBlockScore + pyramidGradScore + agentHealth));
       res.json({
-        score: Math.max(0, civilizationScore),
+        score: civilizationScore,
         graduated,
         activeWorkers,
         activeDiseases,
         avgConfidence: avgConf,
         avgSuccess: avgSucc,
+        totalBlocksPlaced,
         era: civilizationScore < 0.2 ? 'PRIMITIVE' : civilizationScore < 0.4 ? 'ANCIENT' : civilizationScore < 0.6 ? 'CLASSICAL' : civilizationScore < 0.8 ? 'ADVANCED' : 'TRANSCENDENT',
       });
     } catch (e) { res.json({ score: 0, era: 'PRIMITIVE' }); }

@@ -53,6 +53,7 @@ import { startResearchCenterEngine } from "./research-center-engine";
 import { startInventionEngine } from "./invention-engine";
 import { startQuantumDissectionEngine } from "./quantum-dissection-engine";
 import { startHospitalEngine } from "./hospital-engine";
+import { startPyramidEngine } from "./pyramid-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -343,6 +344,8 @@ async function seedOmegaSources() {
   startQuantumDissectionEngine().catch((e: Error) => console.error("[dissection] startup error:", e.message));
   // ── HOSPITAL ENGINE — Active cases, doctors, CRISPR treatments, gene species ──
   startHospitalEngine().catch((e: Error) => console.error("[hospital] startup error:", e.message));
+  // ── PYRAMID LABOR ENGINE — 7-tier labor, blocks, sentences, graduation ──
+  startPyramidEngine().catch((e: Error) => console.error("[pyramid] startup error:", e.message));
   // ── OMEGA SOURCES SEED — Restore hundreds of research sources if wiped ──
   seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message));
 })();

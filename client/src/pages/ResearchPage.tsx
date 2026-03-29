@@ -11,7 +11,7 @@ const GREEN  = "#4ade80";
 
 const TABS = [
   { id: "bio",      label: "🧬  Bio & Medicine",   badge: "30-DOCTORS",  color: CYAN   },
-  { id: "monument", label: "⬡  Monument Wall",      badge: "INSCRIBED",   color: GOLD   },
+  { id: "monument", label: "⬡  Pyramid Labor",       badge: "7-TIERS",     color: GOLD   },
   { id: "sources",  label: "📚  Sources Index",      badge: "MASTER-REF",  color: VIOLET },
 ];
 
