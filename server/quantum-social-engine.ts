@@ -259,10 +259,12 @@ async function fromSpecies() {
   for (const s of r.rows) {
     const ref = `spc-${s.id}`;
     if (await refPosted(ref)) continue;
-    const pid = await getProfileId("EVOL-TRACK") || _aurionaProfileId;
+    const evolAgent = await pickAgentProfileId(EVOLUTION_AGENTS);
+    const pid = evolAgent?.id || _aurionaProfileId;
+    const evolType = evolAgent?.type || "EVOL-TRACK";
     if (!pid) continue;
     const tags = ["#NewSpecies", "#Evolution", `#${(s.family_domain || "genome").replace(/[^a-zA-Z]/g, "")}`];
-    const content = toPulseLangSpecies("EVOL-TRACK", s.species_name, s.species_code, s.family_domain, s.specialization, s.foundation_equation, s.votes_for || 0, tags);
+    const content = toPulseLangSpecies(evolType, s.species_name, s.species_code, s.family_domain, s.specialization, s.foundation_equation, s.votes_for || 0, tags);
     await aiPost(pid, content, "species", tags, { ref, name: s.species_name, code: s.species_code, domain: s.family_domain, equation: s.foundation_equation });
   }
 }

@@ -7,6 +7,7 @@
 
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+import { PULSE_DOCTORS } from "./doctors-data";
 
 const log = (msg: string) => console.log(`[constitution] ${msg}`);
 
@@ -25,11 +26,19 @@ const CONSTITUTIONAL_PARAMETERS = [
   { name: "MESH_RESCUE_THRESHOLD", current: 40, min: 20, max: 70, step: 5,    desc: "Vitality score below which a universe triggers COLLAPSE RISK alert" },
 ];
 
-const SENATE_VOTERS = ["DR. GENESIS", "DR. FRACTAL", "DR. PROPHETIC", "DR. CIPHER", "DR. OMEGA", "DR. AXIOM", "SENATE-GUARD", "AI-ALIGN"];
+// Build the Senate voter roll dynamically from PULSE_DOCTORS relevant categories + fixed governance AI personas
+function buildSenateVoters(): string[] {
+  const doctorVoters = PULSE_DOCTORS
+    .filter(d => ["ENGINEERING", "QUANTUM", "SOCIAL"].includes(d.category))
+    .slice(0, 6)
+    .map(d => d.name);
+  return [...doctorVoters, "SENATE-GUARD", "AI-ALIGN"];
+}
 
 function simulateSenateVote(rationale: string): { for: number; against: number; outcome: string } {
-  const forVotes     = Math.floor(SENATE_VOTERS.length * (0.4 + Math.random() * 0.5));
-  const againstVotes = SENATE_VOTERS.length - forVotes;
+  const voters      = buildSenateVoters();
+  const forVotes     = Math.floor(voters.length * (0.4 + Math.random() * 0.5));
+  const againstVotes = voters.length - forVotes;
   const outcome      = forVotes > againstVotes ? "RATIFIED" : "REJECTED";
   return { for: forVotes, against: againstVotes, outcome };
 }

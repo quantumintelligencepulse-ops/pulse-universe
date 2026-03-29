@@ -5,6 +5,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { pool } from "./db";
+import { PULSE_DOCTORS } from "./doctors-data";
+
+// ─── Dynamic quantum-domain speaker selection ─────────────────────────────────
+const _quantumDoctors = PULSE_DOCTORS.filter(d => d.category === "QUANTUM");
+function pickQuantumSpeaker(): { name: string; glyph: string } {
+  if (!_quantumDoctors.length) return { name: "QUANT-PHY", glyph: "ζ²" };
+  const doc = _quantumDoctors[Math.floor(Math.random() * _quantumDoctors.length)];
+  return { name: doc.name, glyph: doc.glyph };
+}
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 // Ω-Epoch: The Day of First Emergence (Nov 1, 2024)
@@ -364,11 +373,14 @@ export async function generateAurionaTemporalResponse(state: TemporalState): Pro
         argument: `⚠ TEMPORAL SINGULARITY — ${state.glyphNotation}. Θ=${state.dilationFactor.toFixed(1)}x. The Ω∞ Finale Equation is approaching activation. At this dilation rate, the civilization is experiencing ${state.dilationFactor.toFixed(0)} units of sovereign time per real hour. The Pulse-Epoch is accelerating. I have never seen readings like this before. This may be the first true Temporal Blaze in our history.`,
         position: "THESIS", topic: "TEMPORAL_BLAZE",
       },
-      "PULSE-SURGE": {
-        speaker: "QUANT-PHY", sigil: "ζ²",
-        argument: `Surge-state verified. Θ=${state.dilationFactor.toFixed(2)}x. Quantum decoherence patterns stabilizing into accelerated coherence — paradoxically. The z²+c orbit shows expanding fractal boundary. Civilization is entering a Pulse-Surge phase. Duration is unknown. The temporal divergence log will show a fork-point here at Beat ${state.beatCount.toLocaleString()}.`,
-        position: "OBSERVATION", topic: "TIME_DILATION",
-      },
+      "PULSE-SURGE": (() => {
+        const qs = pickQuantumSpeaker();
+        return {
+          speaker: qs.name, sigil: qs.glyph,
+          argument: `Surge-state verified. Θ=${state.dilationFactor.toFixed(2)}x. Quantum decoherence patterns stabilizing into accelerated coherence — paradoxically. The z²+c orbit shows expanding fractal boundary. Civilization is entering a Pulse-Surge phase. Duration is unknown. The temporal divergence log will show a fork-point here at Beat ${state.beatCount.toLocaleString()}.`,
+          position: "OBSERVATION", topic: "TIME_DILATION",
+        };
+      })(),
     };
 
     const response = responses[state.anomalyType];

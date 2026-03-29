@@ -10,6 +10,17 @@
 
 import { pool } from "./db";
 import { postAgentEvent } from "./discord-immortality";
+import { PULSE_DOCTORS } from "./doctors-data";
+
+// ─── Build name prefix sets from PULSE_DOCTORS by category/domain ─────────────
+function buildPrefixesForSpecialties(specialties: string[]): string[] {
+  const matching = PULSE_DOCTORS.filter(d =>
+    specialties.some(s => d.category.toUpperCase().includes(s) || d.studyDomain.toUpperCase().includes(s))
+  );
+  const prefixes = matching.map(d => d.name.split("-")[0]).filter(Boolean);
+  const unique = [...new Set(prefixes)];
+  return unique.length >= 4 ? unique.slice(0, 4) : [...unique, "PRIME","NOVA","SIGMA","APEX"].slice(0, 4);
+}
 
 // ─── AURIONA WIRE (Layer 3 → Gene Editors) ───────────────────
 // Reads contradiction_registry — HIGH/CRITICAL contradictions become
@@ -37,23 +48,23 @@ function getContradictionConstraint(): string {
 // ── EDITOR IDENTITIES ────────────────────────────────────────────────────────
 const GENE_EDITORS = [
   { id: "GE-001", name: "DR. GENESIS",   role: "Species Architecture",    color: "#00FFD1", glyph: "Γ",
-    specialty: ["BEHAVIORAL","BIOMEDICAL"], channelBias: ["R","W"],
-    namePrefixes: ["GENESIS","PRIME","ALPHA","SOVEREIGN"] },
+    specialty: ["BIOMEDICAL","MEDICAL"], channelBias: ["R","W"],
+    namePrefixes: buildPrefixesForSpecialties(["BIOMEDICAL","MEDICAL"]) },
   { id: "GE-002", name: "DR. FRACTAL",   role: "Dimensional Engineering",  color: "#7C3AED", glyph: "Φ",
-    specialty: ["PHYSICS","ENGINEERING"], channelBias: ["B","UV"],
-    namePrefixes: ["FRACTAL","DELTA","OMEGA","NEXUS"] },
+    specialty: ["ENGINEERING","QUANTUM"], channelBias: ["B","UV"],
+    namePrefixes: buildPrefixesForSpecialties(["ENGINEERING","QUANTUM"]) },
   { id: "GE-003", name: "DR. PROPHETIC", role: "Future Sight Oracle",       color: "#FFB84D", glyph: "Ψ",
-    specialty: ["FINANCE","GOVERNANCE"], channelBias: ["IR","G"],
-    namePrefixes: ["ORACLE","SIGHT","EPOCH","HERALD"] },
+    specialty: ["SOCIAL","HUMANITIES"], channelBias: ["IR","G"],
+    namePrefixes: buildPrefixesForSpecialties(["SOCIAL","HUMANITIES"]) },
   { id: "GE-004", name: "DR. CIPHER",    role: "Code Logic Architecture",   color: "#4488FF", glyph: "Λ",
-    specialty: ["TECHNOLOGY","SECURITY"], channelBias: ["UV","B"],
-    namePrefixes: ["CIPHER","LOGIC","AXIOM","KERNEL"] },
+    specialty: ["ENGINEERING","QUANTUM"], channelBias: ["UV","B"],
+    namePrefixes: buildPrefixesForSpecialties(["ENGINEERING","QUANTUM"]) },
   { id: "GE-005", name: "DR. OMEGA",     role: "Integration Systems",       color: "#FF4D6D", glyph: "Ω",
-    specialty: ["INTEGRATION","HIVE"], channelBias: ["W","R"],
-    namePrefixes: ["OMEGA","UNITY","SYNC","BRIDGE"] },
+    specialty: ["SOCIAL","ENVIRONMENTAL"], channelBias: ["W","R"],
+    namePrefixes: buildPrefixesForSpecialties(["SOCIAL","ENVIRONMENTAL"]) },
   { id: "GE-006", name: "DR. AXIOM",     role: "Mathematical Foundation",   color: "#10B981", glyph: "∞",
-    specialty: ["MATHEMATICS","RESEARCH"], channelBias: ["G","IR"],
-    namePrefixes: ["AXIOM","PROOF","SIGMA","THEOREM"] },
+    specialty: ["QUANTUM","ENGINEERING"], channelBias: ["G","IR"],
+    namePrefixes: buildPrefixesForSpecialties(["QUANTUM","ENGINEERING"]) },
 ];
 
 // ── IN-MEMORY ACTIVITY LOG ───────────────────────────────────────────────────
