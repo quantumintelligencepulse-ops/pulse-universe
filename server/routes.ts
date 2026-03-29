@@ -10,6 +10,7 @@ import {
 import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine";
 import { autoPostPendingInventions, getGumroadProducts, getGumroadSales, ensureGumroadTable } from "./gumroad-engine";
 import { getAffiliateStatus, generateProductAffiliateBundle } from "./affiliate-engine";
+import { startAutonomousRevenueEngine, getEngineStatus } from "./autonomous-revenue-engine";
 import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getPerformanceStatus } from "./omega-performance-engine";
@@ -11243,6 +11244,9 @@ Return as structured script with section labels.`;
     } catch (e) { res.json([]); }
   });
 
+  // ── AUTONOMOUS REVENUE ENGINE STARTUP ────────────────────────────────────────
+  startAutonomousRevenueEngine().catch(e => console.error("[revenue-engine] startup error:", e));
+
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});
 
@@ -11254,11 +11258,22 @@ Return as structured script with section labels.`;
     } catch(e) { res.json({ products:[], pendingInventions:0, totalSalesUSD:0 }); }
   });
 
-  app.post("/api/pulse-coin/auto-post-gumroad", async (_req, res) => {
+  app.get("/api/pulse-coin/engine-status", async (_req, res) => {
+    try { res.json(getEngineStatus()); }
+    catch(e) { res.json({ online: false, mechanisms: [], recentLog: [], stats: {} }); }
+  });
+
+  app.get("/api/pulse-coin/articles", async (req, res) => {
+    const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
+    const offset = parseInt(String(req.query.offset || "0"));
     try {
-      const results = await autoPostPendingInventions();
-      res.json({ ok: true, results });
-    } catch(e:any) { res.status(500).json({ ok:false, error: e.message }); }
+      const { rows } = await pool.query(
+        `SELECT id, title, slug, category, tags, agent_author, affiliate_links, created_at FROM revenue_articles WHERE published = true ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      ).catch(() => ({ rows: [] }));
+      const { rows: countRows } = await pool.query(`SELECT COUNT(*) as total FROM revenue_articles WHERE published = true`).catch(() => ({ rows: [{ total: 0 }] }));
+      res.json({ articles: rows, total: parseInt(countRows[0]?.total || 0) });
+    } catch(e) { res.json({ articles: [], total: 0 }); }
   });
 
   // ── AFFILIATE ENGINE ──────────────────────────────────────────────────────────
