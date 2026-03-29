@@ -5385,7 +5385,7 @@ function AIStudioPageWrapper() {
 }
 
 function SettingsPageWrapper() {
-  useEffect(() => { updateSEO({ title: "Settings - My Ai Gpt | Customize Your Experience", description: "Customize My Ai Gpt with dark mode, background colors, page visibility, permissions, chat preferences and more. By Quantum Logic Network.", ogTitle: "Settings - My Ai Gpt", canonical: window.location.origin + "/settings" }); }, []);
+  useEffect(() => { updateSEO({ title: "Settings - My Ai Gpt | Customize Your Experience", description: "Customize your My Ai Gpt experience: choose your theme, AI personality, language, response style, and manage your followed agents. By Quantum Logic Network.", ogTitle: "Settings - My Ai Gpt", canonical: window.location.origin + "/settings" }); }, []);
   return <Layout><SettingsPage /></Layout>;
 }
 
