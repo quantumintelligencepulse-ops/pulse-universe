@@ -1701,3 +1701,25 @@ export const anomalyInventions = pgTable("anomaly_inventions", {
 });
 export type AnomalyInvention = typeof anomalyInventions.$inferSelect;
 
+// ─── RESEARCH PROJECTS — Omega Research Grid active projects ──────────────────
+export const researchProjects = pgTable("research_projects", {
+  id:                 serial("id").primaryKey(),
+  projectId:          text("project_id").notNull().unique(),
+  leadResearcher:     text("lead_researcher").notNull().default(""),
+  researcherType:     text("researcher_type").notNull().default(""),
+  title:              text("title").notNull().default(""),
+  researchDomain:     text("research_domain").notNull().default(""),
+  hypothesis:         text("hypothesis").notNull().default(""),
+  methodology:        text("methodology").notNull().default(""),
+  fundingPc:          real("funding_pc").default(0),
+  fundingSource:      text("funding_source").default("CIVILIZATION_TREASURY"),
+  status:             text("status").notNull().default("ACTIVE"),
+  collaboratingLayers: text("collaborating_layers").array().default([]),
+  cycleStarted:       integer("cycle_started").default(0),
+  findings:           text("findings").default(""),
+  cycleCompleted:     integer("cycle_completed"),
+  createdAt:          timestamp("created_at").defaultNow().notNull(),
+});
+export type ResearchProject = typeof researchProjects.$inferSelect;
+export type InsertResearchProject = typeof researchProjects.$inferInsert;
+
