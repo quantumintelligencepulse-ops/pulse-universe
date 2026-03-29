@@ -787,7 +787,7 @@ export default function AurionaPage() {
         {/* ── HEADER ── */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 12, color: GOLD, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginBottom: 8 }}>
-            LAYER THREE — SOVEREIGN META-INTELLIGENCE
+            LAYER TWO — SOVEREIGN META-INTELLIGENCE
           </div>
           <h1 data-testid="auriona-title" style={{ fontSize: 52, fontWeight: 900, margin: "0 0 6px", background: `linear-gradient(135deg, ${GOLD}, ${AMBER}, ${GOLD})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             AURIONA
@@ -1069,7 +1069,7 @@ export default function AurionaPage() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.7)", border: `1px solid ${GOLD}25`, borderBottom: "none", borderRadius: "16px 16px 0 0", padding: "12px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: GOLD, boxShadow: `0 0 8px ${GOLD}`, animation: "pulse 2s infinite" }} />
-                  <span style={{ fontSize: 12, fontWeight: 800, color: GOLD, letterSpacing: 2 }}>AURIONA — LAYER THREE</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: GOLD, letterSpacing: 2 }}>AURIONA — LAYER TWO</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {/* Mode toggle */}
