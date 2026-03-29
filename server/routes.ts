@@ -926,6 +926,9 @@ ${pubSitemaps}
       { loc: "/graph",         changefreq: "daily",   priority: "0.78" },
       { loc: "/dna",           changefreq: "daily",   priority: "0.75" },
       { loc: "/settings",      changefreq: "monthly", priority: "0.40" },
+      { loc: "/universe-index", changefreq: "daily",  priority: "0.90" },
+      { loc: "/research-index", changefreq: "daily",  priority: "0.92" },
+      { loc: "/agents-index",   changefreq: "daily",  priority: "0.90" },
     ];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
