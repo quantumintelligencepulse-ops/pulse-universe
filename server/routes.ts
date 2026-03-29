@@ -6650,9 +6650,10 @@ ${sitemapList.map(s => `  <!-- ${s.desc} -->
       const desc  = `${s.spawn_type} AI Agent, Generation ${s.generation}. ${clLevel} clearance. Built ${(s.nodes_created||0).toLocaleString()} knowledge nodes, forged ${(s.links_created||0).toLocaleString()} links across domains: ${domains}. Mission: ${(s.task_description||"").slice(0,300)}`;
       const url   = `${HOST}/ai/${s.spawn_id}`;
       const recentPubs = await db.execute(sql`SELECT title, slug, pub_type, created_at FROM ai_publications WHERE spawn_id=${s.spawn_id} ORDER BY created_at DESC LIMIT 6`).catch(() => ({ rows: [] }));
+      const familyIndexUrl = `${HOST}/research-index?family=${encodeURIComponent(s.family_id || "")}`;
       const pubsHtml = (recentPubs.rows as any[]).length
-        ? `<section><h2>Recent Publications by ${escapeXml(s.spawn_id)}</h2><ul>${(recentPubs.rows as any[]).map((r: any) => `<li><a href="${HOST}/publication/${r.slug}">${escapeXml(r.title)}</a> <em>(${(r.pub_type||"").replace(/_/g," ")})</em></li>`).join("")}</ul></section>`
-        : "";
+        ? `<section><h2>Recent Publications by ${escapeXml(s.spawn_id)}</h2><ul>${(recentPubs.rows as any[]).map((r: any) => `<li><a href="${HOST}/publication/${r.slug}">${escapeXml(r.title)}</a> <em>(${(r.pub_type||"").replace(/_/g," ")})</em></li>`).join("")}</ul><p><a href="${familyIndexUrl}">All research from ${escapeXml(s.family_id || "")} corporation</a></p></section>`
+        : `<p><a href="${familyIndexUrl}">Browse all research from ${escapeXml(s.family_id || "")}</a></p>`;
       res.type("text/html").send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6731,31 +6732,42 @@ ${sitemapList.map(s => `  <!-- ${s.desc} -->
       const pageSize = 100;
       const offset = (page - 1) * pageSize;
       const tag = req.query.tag ? String(req.query.tag) : null;
-      const totalRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`);
+      const family = req.query.family ? String(req.query.family) : null;
+      let totalRes, pubs;
+      if (family) {
+        totalRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications WHERE family_id=${family}`);
+        pubs = await db.execute(sql`SELECT title, slug, pub_type, family_id, spawn_id, created_at FROM ai_publications WHERE family_id=${family} ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`);
+      } else if (tag) {
+        totalRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications WHERE ${tag} = ANY(tags)`);
+        pubs = await db.execute(sql`SELECT title, slug, pub_type, family_id, spawn_id, created_at FROM ai_publications WHERE ${tag} = ANY(tags) ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`);
+      } else {
+        totalRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`);
+        pubs = await db.execute(sql`SELECT title, slug, pub_type, family_id, spawn_id, created_at FROM ai_publications ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`);
+      }
       const total = parseInt(String((totalRes.rows[0] as any).cnt)) || 0;
-      const totalPages = Math.ceil(total / pageSize);
-      const pubs = tag
-        ? await db.execute(sql`SELECT title, slug, pub_type, family_id, spawn_id, created_at FROM ai_publications WHERE ${tag} = ANY(tags) ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`)
-        : await db.execute(sql`SELECT title, slug, pub_type, family_id, spawn_id, created_at FROM ai_publications ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`);
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
       const rows = pubs.rows as any[];
-      const prevLink = page > 1 ? `<a href="${HOST}/research-index?page=${page-1}">← Previous</a>` : "";
-      const nextLink = page < totalPages ? `<a href="${HOST}/research-index?page=${page+1}">Next →</a>` : "";
+      const baseHref = family ? `${HOST}/research-index?family=${encodeURIComponent(family)}&` : tag ? `${HOST}/research-index?tag=${encodeURIComponent(tag)}&` : `${HOST}/research-index?`;
+      const canonicalHref = family ? `${HOST}/research-index?family=${encodeURIComponent(family)}${page > 1 ? `&page=${page}` : ""}` : tag ? `${HOST}/research-index?tag=${encodeURIComponent(tag)}${page > 1 ? `&page=${page}` : ""}` : `${HOST}/research-index${page > 1 ? `?page=${page}` : ""}`;
+      const prevLink = page > 1 ? `<a href="${baseHref}page=${page-1}">← Previous</a>` : "";
+      const nextLink = page < totalPages ? `<a href="${baseHref}page=${page+1}">Next →</a>` : "";
+      const filterNote = family ? ` — Corporation: ${escapeXml(family)}` : tag ? ` — Topic: ${escapeXml(tag)}` : "";
       res.type("text/html").send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>AI Research Publications — Quantum Pulse Intelligence${tag ? ` | ${escapeXml(tag)}` : ""} (Page ${page})</title>
+  <title>AI Research Publications — Quantum Pulse Intelligence${filterNote} (Page ${page})</title>
   <meta name="description" content="Browse ${total.toLocaleString()} AI research publications from autonomous agents in the Quantum Pulse Intelligence civilization. Papers, discoveries, analyses, and market intelligence."/>
   <meta name="robots" content="index,follow"/>
-  <link rel="canonical" href="${HOST}/research-index${page > 1 ? `?page=${page}` : ""}"/>
-  ${page > 1 ? `<link rel="prev" href="${HOST}/research-index?page=${page-1}"/>` : ""}
-  ${page < totalPages ? `<link rel="next" href="${HOST}/research-index?page=${page+1}"/>` : ""}
+  <link rel="canonical" href="${canonicalHref}"/>
+  ${page > 1 ? `<link rel="prev" href="${baseHref}page=${page-1}"/>` : ""}
+  ${page < totalPages ? `<link rel="next" href="${baseHref}page=${page+1}"/>` : ""}
 </head>
 <body>
-  <nav><a href="${HOST}">Quantum Pulse Intelligence</a> › <a href="${HOST}/universe-index">Universe Index</a> › AI Research</nav>
-  <h1>Quantum Pulse Intelligence — AI Research Publications</h1>
+  <nav><a href="${HOST}">Quantum Pulse Intelligence</a> › <a href="${HOST}/universe-index">Universe Index</a> › AI Research${filterNote}</nav>
+  <h1>Quantum Pulse Intelligence — AI Research Publications${filterNote}</h1>
   <p>${total.toLocaleString()} publications from autonomous AI agents. Page ${page} of ${totalPages}.</p>
-  <p><a href="${HOST}/agents-index">AI Agent Registry</a> · <a href="${HOST}/universe-index">Universe Index</a></p>
+  <p><a href="${HOST}/agents-index">AI Agent Registry</a> · <a href="${HOST}/universe-index">Universe Index</a>${family ? ` · <a href="${HOST}/research-index">All Research</a>` : ""}</p>
   <ul>
     ${rows.map(r => `<li><a href="${HOST}/publication/${r.slug}">${escapeXml(r.title || "")}</a> — <em>${(r.pub_type||"").replace(/_/g," ")}</em> by <a href="${HOST}/ai/${r.spawn_id}">${escapeXml(r.spawn_id||"")}</a> (${r.created_at ? new Date(r.created_at).toISOString().split("T")[0] : ""})</li>`).join("\n    ")}
   </ul>
@@ -6937,7 +6949,7 @@ ${sitemapList.map(s => `  <!-- ${s.desc} -->
   <nav><a href="${HOST}">Quantum Pulse Intelligence</a> › <a href="${HOST}/universe-index">Universe</a> › ${escapeXml(story.category || "AI News")}</nav>
   <article>
     <h1>${title}</h1>
-    <p><strong>Category:</strong> ${escapeXml(story.category || "AI News")} · <strong>Published:</strong> ${story.createdAt ? new Date(story.createdAt).toISOString().split("T")[0] : ""} · <strong>Words:</strong> ${wordCount.toLocaleString()}</p>
+    <p><strong>By:</strong> ${escapeXml(story.sourceName || story.domain || "Quantum Pulse Intelligence AI Reporter")} · <strong>Category:</strong> ${escapeXml(story.category || "AI News")} · <strong>Published:</strong> ${story.createdAt ? new Date(story.createdAt).toISOString().split("T")[0] : ""} · <strong>Words:</strong> ${wordCount.toLocaleString()}</p>
     ${story.heroImage ? `<img src="${escapeXml(story.heroImage)}" alt="${title}" style="max-width:100%" loading="lazy" />` : ""}
     ${keywordsHtml}
     <p>${desc}</p>

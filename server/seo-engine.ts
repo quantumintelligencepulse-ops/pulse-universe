@@ -273,9 +273,13 @@ ${entries}
 
 // ─── Sitemap Index ────────────────────────────────────────────────────────────
 export function generateSitemapIndex(): string {
+  const now = new Date().toISOString();
   const sitemaps = [
-    { loc: `${SITE_URL}/news-sitemap.xml`, lastmod: new Date().toISOString() },
-    { loc: `${SITE_URL}/sitemap.xml`, lastmod: new Date().toISOString() },
+    { loc: `${SITE_URL}/news-sitemap.xml`, lastmod: now },
+    { loc: `${SITE_URL}/sitemap.xml`, lastmod: now },
+    { loc: `${SITE_URL}/universe-index`, lastmod: now },
+    { loc: `${SITE_URL}/research-index`, lastmod: now },
+    { loc: `${SITE_URL}/agents-index`, lastmod: now },
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
