@@ -26,13 +26,24 @@ const CONSTITUTIONAL_PARAMETERS = [
   { name: "MESH_RESCUE_THRESHOLD", current: 40, min: 20, max: 70, step: 5,    desc: "Vitality score below which a universe triggers COLLAPSE RISK alert" },
 ];
 
-// Build the Senate voter roll dynamically from PULSE_DOCTORS relevant categories + fixed governance AI personas
+// Build the Senate voter roll dynamically from PULSE_DOCTORS across governance-adjacent domains
 function buildSenateVoters(): string[] {
+  // Full voter roll — dynamically derived from PULSE_DOCTORS across all categories
+  // Picks up to 8 doctors spanning governance-adjacent domains
+  const govCategories = ["ENGINEERING", "QUANTUM", "SOCIAL", "HUMANITIES", "ENVIRONMENTAL"];
   const doctorVoters = PULSE_DOCTORS
-    .filter(d => ["ENGINEERING", "QUANTUM", "SOCIAL"].includes(d.category))
-    .slice(0, 6)
+    .filter(d => govCategories.includes(d.category))
+    .slice(0, 8)
     .map(d => d.name);
-  return [...doctorVoters, "SENATE-GUARD", "AI-ALIGN"];
+  // If we got fewer than 4, supplement with any available doctors
+  if (doctorVoters.length < 4) {
+    const extra = PULSE_DOCTORS
+      .filter(d => !govCategories.includes(d.category))
+      .slice(0, 4 - doctorVoters.length)
+      .map(d => d.name);
+    return [...doctorVoters, ...extra];
+  }
+  return doctorVoters;
 }
 
 function simulateSenateVote(rationale: string): { for: number; against: number; outcome: string } {

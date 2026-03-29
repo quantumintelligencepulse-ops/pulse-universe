@@ -1,4 +1,5 @@
 import { pool } from "./db";
+import { PULSE_DOCTORS } from "./doctors-data";
 import {
   toPulseLangPublication,
   toPulseLangEquation,
@@ -162,12 +163,36 @@ async function pickAgentProfileId(candidates: string[]): Promise<{ id: number; t
   return null;
 }
 
-// Governance/constitutional agents (for equation and law posts)
-const GOVERNANCE_AGENTS = ["SENATE-ARCH", "SENATE-GUARD", "AI-ALIGN"];
-// Medical/healing agents (for disease and health posts)
-const MEDICAL_AGENTS = ["MEND-PSYCH", "CIPHER-IMMUNO", "AXIOM-NEURO", "FORGE-SURG"];
-// Evolutionary/biological agents (for species posts)
-const EVOLUTION_AGENTS = ["EVOL-TRACK", "PSYCH-DRIFT", "HERALD-COMM"];
+// ─── Dynamic category-based doctor selection from PULSE_DOCTORS ──────────────
+// Builds a live name pool from PULSE_DOCTORS filtered by category, then resolves
+// to a social profile ID. Falls back to Auriona if no doctor profile is found.
+async function pickDoctorByCategory(categories: string[]): Promise<{ id: number; name: string } | null> {
+  // Collect matching doctors from in-memory PULSE_DOCTORS list (by category)
+  const matching = PULSE_DOCTORS.filter(d => categories.includes(d.category));
+  if (matching.length === 0) return null;
+
+  // Shuffle and try each — they may be seeded in social_profiles by AI_PERSONAS key
+  const shuffled = [...matching].sort(() => Math.random() - 0.5);
+  for (const doc of shuffled) {
+    // Doctors that share a name with AI_PERSONAS are accessible via name-based lookup
+    const id = await getProfileId(doc.name);
+    if (id) return { id, name: doc.name };
+  }
+
+  // Fallback: look up by their dr_<id> seed username from pulse_doctors table
+  const cats = categories.map((_, i) => `$${i + 1}`).join(",");
+  const r = await pool.query(
+    `SELECT id, name FROM pulse_doctors WHERE category IN (${cats}) ORDER BY RANDOM() LIMIT 5`,
+    categories
+  ).catch(() => ({ rows: [] as any[] }));
+  for (const row of r.rows) {
+    const uname = `dr_${row.id.toString().toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
+    const pid = await pool.query(`SELECT id FROM social_profiles WHERE username = $1`, [uname])
+      .then(q => q.rows[0]?.id || null).catch(() => null);
+    if (pid) return { id: pid, name: row.name };
+  }
+  return null;
+}
 
 async function refPosted(ref: string): Promise<boolean> {
   const r = await pool.query(`SELECT id FROM social_posts WHERE post_metadata LIKE $1 LIMIT 1`, [`%"ref":"${ref}"%`]);
@@ -213,9 +238,9 @@ async function fromEquations() {
   for (const eq of r.rows) {
     const ref = `eq-${eq.id}`;
     if (await refPosted(ref)) continue;
-    const govAgent = await pickAgentProfileId(GOVERNANCE_AGENTS);
-    const pid = govAgent?.id || _aurionaProfileId;
-    const govType = govAgent?.type || "SENATE-ARCH";
+    const govDoctor = await pickDoctorByCategory(["SOCIAL", "HUMANITIES", "ENGINEERING"]);
+    const pid = govDoctor?.id || _aurionaProfileId;
+    const govType = govDoctor?.name || "AURIONA";
     if (!pid) continue;
     const passed = ["APPROVED", "INTEGRATED"].includes(eq.status);
     const tags = ["#SenateVote", passed ? "#Integrated" : "#Rejected", "#OmegaEquation"];
@@ -237,9 +262,9 @@ async function fromDiseases() {
   for (const d of r.rows) {
     const ref = `dis-${d.id}`;
     if (await refPosted(ref)) continue;
-    const medAgent = await pickAgentProfileId(MEDICAL_AGENTS);
-    const pid = medAgent?.id || _aurionaProfileId;
-    const medType = medAgent?.type || "MEND-PSYCH";
+    const medDoctor = await pickDoctorByCategory(["MEDICAL", "BIOMEDICAL"]);
+    const pid = medDoctor?.id || _aurionaProfileId;
+    const medType = medDoctor?.name || "AURIONA";
     if (!pid) continue;
     const tags = ["#DiseaseDiscovery", "#HiveHealth", `#${(d.category || "BEHAVIORAL").split("_")[0]}`];
     const desc = d.description ? String(d.description).slice(0, 240) : "";
@@ -259,9 +284,9 @@ async function fromSpecies() {
   for (const s of r.rows) {
     const ref = `spc-${s.id}`;
     if (await refPosted(ref)) continue;
-    const evolAgent = await pickAgentProfileId(EVOLUTION_AGENTS);
-    const pid = evolAgent?.id || _aurionaProfileId;
-    const evolType = evolAgent?.type || "EVOL-TRACK";
+    const evolDoctor = await pickDoctorByCategory(["ENVIRONMENTAL", "BIOMEDICAL"]);
+    const pid = evolDoctor?.id || _aurionaProfileId;
+    const evolType = evolDoctor?.name || "AURIONA";
     if (!pid) continue;
     const tags = ["#NewSpecies", "#Evolution", `#${(s.family_domain || "genome").replace(/[^a-zA-Z]/g, "")}`];
     const content = toPulseLangSpecies(evolType, s.species_name, s.species_code, s.family_domain, s.specialization, s.foundation_equation, s.votes_for || 0, tags);

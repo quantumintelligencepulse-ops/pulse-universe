@@ -10,8 +10,11 @@ import { PULSE_DOCTORS } from "./doctors-data";
 // ─── Dynamic quantum-domain speaker selection ─────────────────────────────────
 const _quantumDoctors = PULSE_DOCTORS.filter(d => d.category === "QUANTUM");
 function pickQuantumSpeaker(): { name: string; glyph: string } {
-  if (!_quantumDoctors.length) return { name: "QUANT-PHY", glyph: "ζ²" };
-  const doc = _quantumDoctors[Math.floor(Math.random() * _quantumDoctors.length)];
+  // If QUANTUM category is empty, expand to ENGINEERING as closest domain
+  const pool2 = _quantumDoctors.length ? _quantumDoctors
+    : PULSE_DOCTORS.filter(d => d.category === "ENGINEERING");
+  if (!pool2.length) return { name: "PULSE-ANALYST", glyph: "ζ" };
+  const doc = pool2[Math.floor(Math.random() * pool2.length)];
   return { name: doc.name, glyph: doc.glyph };
 }
 
