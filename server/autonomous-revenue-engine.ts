@@ -439,8 +439,8 @@ async function runAutonomousCycle() {
   // Ω2 runs every cycle (2 hours = common)
   if (cycleCount % 1 === 0) await runAffiliateNewsGenerator();
 
-  // Ω1 runs every 3 cycles (~6 hours)
-  if (cycleCount % 3 === 0) await runGumroadPoster();
+  // Ω1 runs every cycle (~2 hours)
+  await runGumroadPoster();
 
   // Ω3 runs every 2 cycles (~4 hours)
   if (cycleCount % 2 === 0) await runTreasuryCollector();
@@ -474,7 +474,7 @@ export function getEngineStatus() {
     stats: engineStats,
     recentLog: engineLog.slice(0, 20),
     mechanisms: [
-      { id: "Ω1", name: "Gumroad Auto-Poster", desc: "CRISPR inventions → Gumroad products", interval: "6h", lastRun: engineStats.lastRun["Ω1:GUMROAD"] || null, count: engineStats.gumroadPosted },
+      { id: "Ω1", name: "Gumroad Auto-Poster", desc: "CRISPR inventions → Gumroad products", interval: "2h", lastRun: engineStats.lastRun["Ω1:GUMROAD"] || null, count: engineStats.gumroadPosted },
       { id: "Ω2", name: "Affiliate News Generator", desc: "Governance cycles → indexed affiliate articles", interval: "2h", lastRun: engineStats.lastRun["Ω2:AFFILIATE-NEWS"] || null, count: engineStats.articlesGenerated },
       { id: "Ω3", name: "Treasury Tax Collector", desc: "2% hive tax → treasury → Gumroad report", interval: "4h", lastRun: engineStats.lastRun["Ω3:TREASURY"] || null, count: engineStats.treasuryConverts },
       { id: "Ω4", name: "Spawn Business Publisher", desc: "Each agent publishes specialty report weekly", interval: "24h", lastRun: engineStats.lastRun["Ω4:SPAWN-BIZ"] || null, count: engineStats.spawnReports },

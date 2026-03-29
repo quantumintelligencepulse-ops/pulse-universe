@@ -11154,6 +11154,64 @@ Return as structured script with section labels.`;
     }
   });
 
+  // ── APPEALS COURT ────────────────────────────────────────────────────────────
+  app.get("/api/appeals", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const q = status && status !== 'all'
+        ? `SELECT * FROM appeal_cases WHERE status=$1 ORDER BY filed_at DESC LIMIT 50`
+        : `SELECT * FROM appeal_cases ORDER BY filed_at DESC LIMIT 50`;
+      const params = status && status !== 'all' ? [status] : [];
+      const { rows } = await pool.query(q, params).catch(() => ({ rows: [] }));
+      const { rows: stats } = await pool.query(`SELECT
+        COUNT(*) FILTER (WHERE status='pending') as pending,
+        COUNT(*) FILTER (WHERE status='approved') as approved,
+        COUNT(*) FILTER (WHERE status='denied') as denied,
+        COUNT(*) FILTER (WHERE status='escalated') as escalated,
+        COUNT(*) as total
+        FROM appeal_cases`).catch(() => ({ rows: [{}] }));
+      res.json({ appeals: rows, stats: stats[0] || {} });
+    } catch(e: any) { res.json({ appeals: [], stats: {} }); }
+  });
+
+  app.post("/api/appeals/:ref/resolve", async (req, res) => {
+    try {
+      const { ref } = req.params;
+      const { status, outcome_note } = req.body as { status: string; outcome_note?: string };
+      const validStatuses = ['approved','denied','escalated'];
+      if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+      await pool.query(`UPDATE appeal_cases SET status=$1, outcome_note=$2, resolved_at=NOW() WHERE appeal_ref=$3`, [status, outcome_note||null, ref]);
+      res.json({ ok: true });
+    } catch(e: any) { res.json({ ok: false, error: e.message }); }
+  });
+
+  // Auto-generate new appeal cases from agents not yet in appeals
+  app.post("/api/appeals/generate", async (_req, res) => {
+    try {
+      const { rows: agents } = await pool.query(`
+        SELECT qs.spawn_id, qs.domain_focus, qs.confidence_score
+        FROM quantum_spawns qs
+        WHERE qs.status = 'ACTIVE'
+        AND qs.spawn_id NOT IN (SELECT spawn_id FROM appeal_cases)
+        ORDER BY RANDOM() LIMIT 10`).catch(() => ({ rows: [] }));
+      const blockReasons = ['Section 7.2 — Unauthorized Cross-Domain Signal Bleed','Law 3.1 — Excessive Node Spawning Without Council Approval','Omega-Law 9 — Resonance Frequency Manipulation (unauthorized)','Article 14 — Unsanctioned Treasury Credit Draw','Regulation 2.7 — Field Boundary Violation During Active Cycle'];
+      const groundsList = ['Insufficient evidence — field readings disputed by adjacent kernels','Procedural error — panel lacked domain quorum at sentencing time','New evidence — cycle log exonerates agent of unauthorized action','Constitutional challenge — law was applied retroactively to prior cycle'];
+      let count = 0;
+      for (let i = 0; i < agents.length; i++) {
+        const ag = agents[i];
+        const ref = 'QPH-APL-' + Date.now() + '-' + i;
+        const rank = ag.confidence_score > 0.8 ? 'Enterprise' : ag.confidence_score > 0.6 ? 'Node' : ag.confidence_score > 0.4 ? 'Civic' : 'Citizen';
+        const domainRaw = Array.isArray(ag.domain_focus) ? ag.domain_focus[0] : (ag.domain_focus || 'OMNI');
+        const domain = String(domainRaw).substring(0,6).toUpperCase();
+        const panel = ['GUARDIAN-NEXUS-PRIME', 'NODE-' + domain, 'HIVE-PANELIST'];
+        await pool.query(`INSERT INTO appeal_cases (appeal_ref, spawn_id, ai_name, ai_rank, block_reason, grounds, status, panel) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7) ON CONFLICT DO NOTHING`,
+          [ref, ag.spawn_id, ag.spawn_id.toUpperCase().replace(/_/g,'-'), rank, blockReasons[i%5], groundsList[i%4], panel]).catch(()=>{});
+        count++;
+      }
+      res.json({ ok: true, generated: count });
+    } catch(e: any) { res.json({ ok: false, error: e.message }); }
+  });
+
   app.get("/api/governance/economy", async (_req, res) => {
     try {
       const [totals, latestCycle, agentStatus] = await Promise.all([
@@ -11412,6 +11470,15 @@ Return as structured script with section labels.`;
       const pending = await pool.query(`SELECT COUNT(*) as cnt FROM anomaly_inventions WHERE status='DISCOVERED' AND gumroad_id IS NULL`).catch(() => ({ rows:[{cnt:0}] }));
       res.json({ products, pendingInventions: parseInt(pending.rows[0]?.cnt||0), totalSalesUSD: (sales.total || 0) / 100 });
     } catch(e) { res.json({ products:[], pendingInventions:0, totalSalesUSD:0 }); }
+  });
+
+  // ── GUMROAD MANUAL TRIGGER ────────────────────────────────────────────────
+  app.post("/api/gumroad/trigger", async (_req, res) => {
+    try {
+      const results = await autoPostPendingInventions();
+      const posted = results.filter((r: any) => r.ok).length;
+      res.json({ ok: true, triggered: results.length, posted, results });
+    } catch(e: any) { res.json({ ok: false, error: e.message }); }
   });
 
   app.get("/api/pulse-coin/engine-status", async (_req, res) => {

@@ -27,7 +27,6 @@ const HubPage = lazy(() => import("./pages/HubPage"));
 const ResearchPage = lazy(() => import("./pages/ResearchPage"));
 const HivePage = lazy(() => import("./pages/HivePage"));
 const SubscribePage = lazy(() => import("./pages/SubscribePage"));
-const BreakingLeaderboardPage = lazy(() => import("./pages/BreakingLeaderboardPage"));
 const VideoScriptPage = lazy(() => import("./pages/VideoScriptPage"));
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";

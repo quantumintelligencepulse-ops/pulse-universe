@@ -41,8 +41,14 @@ export async function postInventionToGumroad(invention: {
   ].join("\n");
 
   try {
+    // Sanitize name: Gumroad rejects very long names and special unicode
+    const cleanName = `[QPH] ${invention.product_name}`.substring(0, 120).replace(/[^\x00-\x7F]/g, (c) => {
+      try { return c; } catch { return ''; }
+    });
+
     const body = new URLSearchParams({
-      name: `[QPH] ${invention.product_name}`,
+      access_token: GUMROAD_TOKEN,
+      name: cleanName,
       description: desc,
       price: String(priceInCents),
       currency: "usd",
@@ -58,7 +64,15 @@ export async function postInventionToGumroad(invention: {
       body: body.toString(),
     });
 
-    const data = await r.json() as any;
+    const rawText = await r.text();
+    let data: any;
+    try { data = JSON.parse(rawText); }
+    catch {
+      if (r.status === 404) {
+        return { ok: false, error: "GUMROAD_SCOPE_ERROR: Token lacks edit_products permission. Go to Gumroad dashboard → Settings → Advanced → API and create a token with product creation scope." };
+      }
+      return { ok: false, error: `Non-JSON response (${r.status}): ${rawText.substring(0, 100)}` };
+    }
 
     if (data.success) {
       await pool.query(

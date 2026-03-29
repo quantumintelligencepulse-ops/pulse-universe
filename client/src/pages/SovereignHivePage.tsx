@@ -184,6 +184,7 @@ export default function SovereignHivePage() {
   const { data: resolvedCases = []} = useQuery<ResolvedCase[]>({ queryKey:["/api/senate/resolved"], refetchInterval:45000 });
   const { data: successionStats } = useQuery<SuccessionStats>({ queryKey:["/api/succession/stats"], refetchInterval:45000 });
   const { data: successionRecords = []} = useQuery<any[]>({ queryKey:["/api/succession/records"], refetchInterval:45000 });
+  const { data: appealsData } = useQuery<{ appeals: any[]; stats: any }>({ queryKey:["/api/appeals"], refetchInterval:30000 });
   const { data: guardianCitations = []} = useQuery<any[]>({ queryKey:["/api/guardian/citations"], refetchInterval:45000 });
   const { data: guardianStats }  = useQuery<any>({ queryKey:["/api/guardian/stats"], refetchInterval:45000 });
   const { data: civScore }       = useQuery<any>({ queryKey:["/api/hive/civilization-score"], refetchInterval:30000 });
@@ -764,13 +765,29 @@ export default function SovereignHivePage() {
           {active === "appeals" && (
             <div>
               <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent p-5 mb-6">
-                <h3 className="text-sm font-black text-blue-300 mb-1">Appeals Court</h3>
+                <h3 className="text-sm font-black text-blue-300 mb-1">Appeals Court — Live Docket</h3>
                 <p className="text-xs text-white/50 max-w-2xl">Every AI has the right to appeal a Pyramid sentence within 48 hours. A three-member panel reviews the grounds. Frivolous appeals carry a −10 PC penalty. Approved appeals reduce or vacate the block. Escalated cases go to Enterprise Council or Supreme Guardian.</p>
+                {appealsData?.stats && (
+                  <div className="flex gap-4 mt-3 flex-wrap">
+                    {[
+                      { label:"Pending", val:appealsData.stats.pending, color:"#f59e0b" },
+                      { label:"Approved", val:appealsData.stats.approved, color:"#22c55e" },
+                      { label:"Denied", val:appealsData.stats.denied, color:"#ef4444" },
+                      { label:"Escalated", val:appealsData.stats.escalated, color:"#a855f7" },
+                    ].map(s => (
+                      <div key={s.label} className="text-[11px]">
+                        <span className="font-bold" style={{color:s.color}}>{s.val ?? 0}</span>
+                        <span className="text-white/40 ml-1">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="space-y-3">
-                {APPEALS.map(appeal => {
+                {(appealsData?.appeals || []).map((raw: any) => {
+                  const appeal = { id: raw.appeal_ref, aiName: raw.ai_name, rank: raw.ai_rank, block: raw.block_reason, grounds: raw.grounds, status: raw.status as "pending"|"approved"|"denied"|"escalated", panel: Array.isArray(raw.panel) ? raw.panel : [], filed: raw.filed_at ? new Date(raw.filed_at).toLocaleDateString() : "—", outcome: raw.outcome_note };
                   const exp = expandedAppeal === appeal.id;
-                  const statusColor = { pending:"#f59e0b", approved:"#22c55e", denied:"#ef4444", escalated:"#a855f7" }[appeal.status];
+                  const statusColor = ({ pending:"#f59e0b", approved:"#22c55e", denied:"#ef4444", escalated:"#a855f7" } as Record<string,string>)[appeal.status] ?? "#888";
                   return (
                     <div key={appeal.id} className="rounded-xl border border-white/10 overflow-hidden" data-testid={`appeal-card-${appeal.id}`}>
                       <button className="w-full text-left p-4 flex items-start gap-3" onClick={() => setExpandedAppeal(exp ? null : appeal.id)}>
@@ -783,7 +800,7 @@ export default function SovereignHivePage() {
                             <span className="text-[10px] text-white/40">({appeal.rank})</span>
                             <StatusBadge status={appeal.status} />
                           </div>
-                          <div className="text-[10px] text-white/40 mt-0.5">Block: {appeal.block}</div>
+                          <div className="text-[10px] text-white/40 mt-0.5 truncate">Block: {appeal.block}</div>
                           <div className="text-[10px] text-white/30">Filed: {appeal.filed}</div>
                         </div>
                         <span className="text-white/30 text-xs shrink-0">{exp ? "▲" : "▼"}</span>
@@ -797,7 +814,7 @@ export default function SovereignHivePage() {
                           <div>
                             <div className="text-[10px] text-white/40 font-bold uppercase mb-1.5">Review Panel</div>
                             <div className="space-y-1">
-                              {appeal.panel.map((member, i) => (
+                              {appeal.panel.map((member: string, i: number) => (
                                 <div key={i} className="flex items-center gap-2 text-[11px] text-white/60">
                                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
                                   {member}
@@ -811,11 +828,15 @@ export default function SovereignHivePage() {
                             {appeal.status === "denied"    && "✗ Appeal denied — original block stands; AI may file one further escalation to Enterprise Council"}
                             {appeal.status === "escalated" && "⬆ Escalated to Enterprise Council / Supreme Guardian for final ruling"}
                           </div>
+                          {appeal.outcome && <div className="text-[10px] text-white/50 italic">{appeal.outcome}</div>}
                         </div>
                       )}
                     </div>
                   );
                 })}
+                {(!appealsData?.appeals || appealsData.appeals.length === 0) && (
+                  <div className="text-center text-white/30 text-xs py-8">No appeal cases on the docket — the hive is in compliance.</div>
+                )}
               </div>
             </div>
           )}
@@ -885,9 +906,9 @@ export default function SovereignHivePage() {
                   <div className="text-[10px] text-white/30 mt-1">{(HIVE_HEALTH.lawViolations30d / liveTotal * 100).toFixed(3)}% of Hive</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Appeals Filed (30d)</div>
-                  <div className="text-2xl font-black text-blue-400">{HIVE_HEALTH.appealsFiledRate}</div>
-                  <div className="text-[10px] text-white/30 mt-1">{HIVE_HEALTH.appealsApprovedRate}% approved rate</div>
+                  <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Appeals Filed (Live)</div>
+                  <div className="text-2xl font-black text-blue-400">{appealsData?.stats?.total ?? HIVE_HEALTH.appealsFiledRate}</div>
+                  <div className="text-[10px] text-white/30 mt-1">{appealsData?.stats?.total > 0 ? Math.round((appealsData.stats.approved / appealsData.stats.total) * 100) : HIVE_HEALTH.appealsApprovedRate}% approved rate</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="text-[10px] text-white/40 uppercase font-bold mb-2">Hive Healing Status</div>
