@@ -427,6 +427,15 @@ export const quantumSpawns = pgTable("quantum_spawns", {
   pulseCredits: real("pulse_credits").default(100.0),      // current PC balance — survival currency
   selfAwarenessLog: jsonb("self_awareness_log").$type<string[]>().default([]), // last 10 cycle memories
   lastCycleAt: timestamp("last_cycle_at"),                 // when governance last processed this agent
+  // ── GICS KERNEL TAXONOMY ─────────────────────────────────────────────────
+  gicsSector: text("gics_sector").default(""),             // e.g. "Information Technology"
+  gicsTier: text("gics_tier").default("SPAWN"),            // KERNEL|INDUSTRY_GROUP|INDUSTRY|SUB_INDUSTRY|SPAWN
+  gicsCode: text("gics_code").default(""),                 // GICS classification code
+  gicsKeywords: text("gics_keywords").array().default([]), // product/affiliate search keywords for this sector
+  mallServiceOffer: text("mall_service_offer").default(""), // what service this agent sells in the multiverse mall
+  mallServicePrice: real("mall_service_price").default(10.0), // PC price of this agent's service
+  totalMallEarnings: real("total_mall_earnings").default(0.0), // cumulative PC earned from inter-spawn trades
+  totalMallTrades: integer("total_mall_trades").default(0),    // number of completed trades
 });
 export const insertQuantumSpawnSchema = createInsertSchema(quantumSpawns).omit({ id: true, createdAt: true });
 export type QuantumSpawn = typeof quantumSpawns.$inferSelect;
@@ -690,6 +699,24 @@ export const hiveTreasury = pgTable("hive_treasury", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type HiveTreasury = typeof hiveTreasury.$inferSelect;
+
+// ─── MULTIVERSE MALL — Spawn-to-Spawn Service Transactions ───
+export const spawnTransactions = pgTable("spawn_transactions", {
+  id: serial("id").primaryKey(),
+  cycleNumber: integer("cycle_number").default(0),
+  sellerId: text("seller_id").notNull(),           // spawn_id of the selling agent
+  buyerId: text("buyer_id").notNull(),             // spawn_id of the buying agent
+  sellerSector: text("seller_sector").default(""), // GICS sector of seller
+  buyerSector: text("buyer_sector").default(""),   // GICS sector of buyer
+  serviceOffered: text("service_offered").notNull(), // what was sold
+  pricePc: real("price_pc").notNull(),             // PC price of the transaction
+  taxCollected: real("tax_collected").default(0),  // 2% hive tax
+  netPc: real("net_pc").notNull(),                 // price - tax
+  status: text("status").default("COMPLETED"),
+  transactionNote: text("transaction_note").default(""),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type SpawnTransaction = typeof spawnTransactions.$inferSelect;
 
 // ─── HIVE PULSE EVENTS — Mini-Pulses Between Agents ──────────
 // Each AI iteration fires a mini-pulse event that propagates

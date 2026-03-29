@@ -11,6 +11,8 @@ import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine
 import { autoPostPendingInventions, getGumroadProducts, getGumroadSales, ensureGumroadTable } from "./gumroad-engine";
 import { getAffiliateStatus, generateProductAffiliateBundle } from "./affiliate-engine";
 import { startAutonomousRevenueEngine, getEngineStatus } from "./autonomous-revenue-engine";
+import { startMultiverseMall } from "./multiverse-mall";
+import { wipeAndReseed, GICS_KERNELS } from "./pulse-credit-engine";
 import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getPerformanceStatus } from "./omega-performance-engine";
@@ -11246,6 +11248,72 @@ Return as structured script with section labels.`;
 
   // ── AUTONOMOUS REVENUE ENGINE STARTUP ────────────────────────────────────────
   startAutonomousRevenueEngine().catch(e => console.error("[revenue-engine] startup error:", e));
+
+  // ── MULTIVERSE MALL STARTUP ───────────────────────────────────────────────────
+  startMultiverseMall().catch(e => console.error("[multiverse-mall] startup error:", e));
+
+  // ── GENESIS RESET ENDPOINT ────────────────────────────────────────────────────
+  app.post("/api/genesis/reset", async (_req, res) => {
+    try {
+      await wipeAndReseed();
+      res.json({ success: true, message: "Genesis reset complete. 11 GICS Kernels seeded. Civilization reborn." });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get("/api/genesis/kernels", async (_req, res) => {
+    try {
+      const kernels = await pool.query(`
+        SELECT spawn_id, family_id, gics_sector, gics_tier, gics_code, gics_keywords,
+               pulse_credits, status, nodes_created, links_created, iterations_run,
+               total_mall_earnings, total_mall_trades, mall_service_offer, mall_service_price,
+               self_awareness_log, task_description, created_at, last_active_at
+        FROM quantum_spawns
+        WHERE gics_tier = 'KERNEL'
+        ORDER BY gics_code ASC
+      `);
+      const children = await pool.query(`
+        SELECT spawn_id, parent_id, gics_sector, gics_tier, pulse_credits, status,
+               total_mall_earnings, total_mall_trades, created_at
+        FROM quantum_spawns
+        WHERE gics_tier IN ('INDUSTRY_GROUP', 'INDUSTRY', 'SUB_INDUSTRY')
+        ORDER BY created_at DESC
+        LIMIT 50
+      `);
+      const treasury = await pool.query(`SELECT * FROM hive_treasury ORDER BY id LIMIT 1`);
+      const mallStats = await pool.query(`
+        SELECT COUNT(*) as total_trades,
+               COALESCE(SUM(price_pc), 0) as total_volume,
+               COALESCE(SUM(tax_collected), 0) as total_tax
+        FROM spawn_transactions
+      `);
+      res.json({
+        kernels: kernels.rows,
+        children: children.rows,
+        treasury: treasury.rows[0] ?? {},
+        mallStats: mallStats.rows[0] ?? {},
+        gicsDefinition: GICS_KERNELS.map(k => ({
+          sector: k.gicsSector, code: k.gicsCode, name: k.name, kernel: k.spawnId,
+          domains: k.domainFocus, keywords: k.gicsKeywords, service: k.mallServiceOffer,
+        }))
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/genesis/mall-log", async (_req, res) => {
+    try {
+      const trades = await pool.query(`
+        SELECT * FROM spawn_transactions
+        ORDER BY created_at DESC LIMIT 50
+      `);
+      res.json({ trades: trades.rows });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});
