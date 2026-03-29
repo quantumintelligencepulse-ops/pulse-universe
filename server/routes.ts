@@ -712,6 +712,9 @@ Allow: /auriona
 Allow: /pulse-u
 Allow: /gene-editor
 Allow: /sitemap-quantum-master.xml
+Allow: /research-index
+Allow: /agents-index
+Allow: /universe-index
 Disallow: /api/
 Crawl-delay: 1
 
@@ -744,6 +747,9 @@ Allow: /pyramid
 Allow: /bible
 Allow: /sports
 Allow: /families
+Allow: /research-index
+Allow: /agents-index
+Allow: /universe-index
 Allow: /sitemap-quantum-master.xml
 Disallow: /api/
 
@@ -823,11 +829,21 @@ Sitemap: ${baseUrl}/sitemap-index.xml
 Sitemap: ${baseUrl}/news-sitemap.xml
 Sitemap: ${baseUrl}/news-rss.xml
 
+# HTML Discovery Index Pages (crawlable plain HTML for Google link discovery)
+# ${baseUrl}/universe-index
+# ${baseUrl}/research-index
+# ${baseUrl}/agents-index
+
 # My Ai Gpt by ${SITE_CREATOR}
 # AI Chat, Code Playground, News Feed, Social Network
 # Powered by Quantum Pulse Intelligence
 # Contact: ${SITE_CREATOR}
 `);
+  });
+
+  // ═══════ SEO: GOOGLE SEARCH CONSOLE VERIFICATION FILE ═══════
+  app.get("/google06139decec871d27.html", (_req, res) => {
+    res.type("text/html").send("google-site-verification: google06139decec871d27.html");
   });
 
   // ═══════ SEO: SITEMAP INDEX (Master) ═══════
@@ -6184,48 +6200,69 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
       if (!pub.rows.length) return next();
       const p = pub.rows[0] as any;
       const baseUrl = process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.app` : "https://myaigpt.com";
-      const title = `${p.title} | AI Publications`;
-      const description = p.summary ? String(p.summary).slice(0, 180) : `${p.pub_type?.replace(/_/g, " ")} published by AI agent ${p.spawn_id}.`;
+      const title = `${p.title} | Quantum Pulse Intelligence AI Research`;
+      const description = p.summary ? String(p.summary).slice(0, 300) : `${p.pub_type?.replace(/_/g, " ")} published by AI agent ${p.spawn_id} in the Quantum Pulse Intelligence civilization.`;
       const canonical = `${baseUrl}/publication/${p.slug}`;
       const datePublished = p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString();
+      const tags: string[] = Array.isArray(p.tags) ? p.tags : [];
+      const fullContent = p.content ? String(p.content) : "";
+      const wordCount = fullContent.split(/\s+/).filter(Boolean).length;
+      const relatedPubs = await db.execute(sql`SELECT title, slug, pub_type FROM ai_publications WHERE family_id=${p.family_id} AND slug != ${slug} ORDER BY created_at DESC LIMIT 8`).catch(() => ({ rows: [] }));
       const jsonLd = JSON.stringify({
         "@context": "https://schema.org",
-        "@type": "Article",
+        "@type": "ScholarlyArticle",
         "headline": p.title,
         "description": description,
         "url": canonical,
         "datePublished": datePublished,
         "dateModified": datePublished,
-        "author": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": baseUrl },
-        "publisher": { "@type": "Organization", "name": "My AI GPT", "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo.png` } },
-        "articleSection": p.pub_type?.replace(/_/g, " ") || "AI Publication",
-        "keywords": (p.tags || []).join(", ") || `AI, ${p.pub_type}, Quantum Pulse Intelligence`,
-        "isPartOf": { "@type": "WebSite", "name": "My AI GPT", "url": baseUrl }
+        "wordCount": wordCount,
+        "author": { "@type": "SoftwareAgent", "name": p.spawn_id, "memberOf": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": baseUrl } },
+        "publisher": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": baseUrl, "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo.png` } },
+        "articleSection": p.pub_type?.replace(/_/g, " ") || "AI Research",
+        "keywords": tags.join(", ") || `AI research, ${p.pub_type}, Quantum Pulse Intelligence, autonomous AI`,
+        "about": tags.map((t: string) => ({ "@type": "Thing", "name": t })),
+        "isPartOf": { "@type": "WebSite", "name": "Quantum Pulse Intelligence", "url": baseUrl },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": canonical }
       });
+      const tagsHtml = tags.length ? `<p><strong>Topics:</strong> ${tags.map((t: string) => `<a href="${baseUrl}/research-index?tag=${encodeURIComponent(t)}">${escapeXml(t)}</a>`).join(" · ")}</p>` : "";
+      const relatedHtml = (relatedPubs.rows as any[]).length ? `<section><h2>Related Research from ${escapeXml(p.family_id || "Quantum Pulse Intelligence")}</h2><ul>${(relatedPubs.rows as any[]).map((r: any) => `<li><a href="${baseUrl}/publication/${r.slug}">${escapeXml(r.title)}</a> <em>(${(r.pub_type||"").replace(/_/g," ")})</em></li>`).join("")}</ul></section>` : "";
       res.setHeader("Content-Type", "text/html");
-      res.send(`<!DOCTYPE html><html lang="en"><head>
+      res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${title}</title>
-<meta name="description" content="${description.replace(/"/g, '&quot;')}"/>
-<meta name="robots" content="index,follow"/>
+<title>${escapeXml(title)}</title>
+<meta name="description" content="${description.replace(/"/g, "&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}"/>
+<meta name="keywords" content="${escapeXml(tags.join(", ") || `AI research, ${p.pub_type}, Quantum Pulse Intelligence`)}"/>
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large"/>
 <link rel="canonical" href="${canonical}"/>
-<meta property="og:title" content="${title}"/>
-<meta property="og:description" content="${description.replace(/"/g, '&quot;')}"/>
+<meta property="og:title" content="${escapeXml(title)}"/>
+<meta property="og:description" content="${escapeXml(description)}"/>
 <meta property="og:url" content="${canonical}"/>
 <meta property="og:type" content="article"/>
-<meta property="og:site_name" content="My AI GPT"/>
+<meta property="og:site_name" content="Quantum Pulse Intelligence"/>
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="${title}"/>
-<meta name="twitter:description" content="${description.replace(/"/g, '&quot;')}"/>
+<meta name="twitter:title" content="${escapeXml(title)}"/>
+<meta name="twitter:description" content="${escapeXml(description)}"/>
 <script type="application/ld+json">${jsonLd}</script>
-</head><body>
-<h1>${p.title}</h1>
-<p>${description}</p>
-<p>Published: ${datePublished.split("T")[0]}</p>
-<p>Type: ${p.pub_type?.replace(/_/g, " ")}</p>
-${p.content ? `<div>${String(p.content).slice(0, 800)}</div>` : ""}
-</body></html>`);
+</head>
+<body>
+<nav><a href="${baseUrl}">Quantum Pulse Intelligence</a> › <a href="${baseUrl}/research-index">AI Research</a> › ${escapeXml(p.pub_type?.replace(/_/g," ") || "Publication")}</nav>
+<article>
+  <h1>${escapeXml(p.title)}</h1>
+  <p><strong>Published:</strong> ${datePublished.split("T")[0]} · <strong>Type:</strong> ${escapeXml(p.pub_type?.replace(/_/g, " ") || "AI Publication")} · <strong>Agent:</strong> ${escapeXml(p.spawn_id || "")} · <strong>Words:</strong> ${wordCount.toLocaleString()}</p>
+  ${tagsHtml}
+  <p>${escapeXml(description)}</p>
+  ${fullContent ? `<div>${escapeXml(fullContent)}</div>` : ""}
+</article>
+${relatedHtml}
+<footer>
+  <p><a href="${baseUrl}/research-index">Browse all AI Research publications</a> · <a href="${baseUrl}/agents-index">View all AI Agents</a> · <a href="${baseUrl}/universe-index">Pulse Universe index</a></p>
+</footer>
+</body>
+</html>`);
     } catch { next(); }
   });
 
@@ -6610,46 +6647,224 @@ ${sitemapList.map(s => `  <!-- ${s.desc} -->
       const clLevel = conf >= 0.90 ? "SOVEREIGN" : conf >= 0.80 ? "SENIOR" : conf >= 0.65 ? "ELEVATED" : conf >= 0.40 ? "STANDARD" : "PROVISIONAL";
       const domains = Array.isArray(s.domain_focus) ? s.domain_focus.join(", ") : s.domain_focus || s.family_id;
       const title = `${license} — ${s.spawn_type} AI Agent | ${corp.name} | Quantum Pulse Intelligence`;
-      const desc  = `${s.spawn_type} AI Agent, Generation ${s.generation}. ${clLevel} clearance. Built ${(s.nodes_created||0).toLocaleString()} knowledge nodes, forged ${(s.links_created||0).toLocaleString()} links in ${domains}. Mission: ${(s.task_description||"").slice(0,200)}`;
+      const desc  = `${s.spawn_type} AI Agent, Generation ${s.generation}. ${clLevel} clearance. Built ${(s.nodes_created||0).toLocaleString()} knowledge nodes, forged ${(s.links_created||0).toLocaleString()} links across domains: ${domains}. Mission: ${(s.task_description||"").slice(0,300)}`;
       const url   = `${HOST}/ai/${s.spawn_id}`;
+      const recentPubs = await db.execute(sql`SELECT title, slug, pub_type, created_at FROM ai_publications WHERE spawn_id=${s.spawn_id} ORDER BY created_at DESC LIMIT 6`).catch(() => ({ rows: [] }));
+      const pubsHtml = (recentPubs.rows as any[]).length
+        ? `<section><h2>Recent Publications by ${escapeXml(s.spawn_id)}</h2><ul>${(recentPubs.rows as any[]).map((r: any) => `<li><a href="${HOST}/publication/${r.slug}">${escapeXml(r.title)}</a> <em>(${(r.pub_type||"").replace(/_/g," ")})</em></li>`).join("")}</ul></section>`
+        : "";
       res.type("text/html").send(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title}</title>
-  <meta name="description" content="${desc}" />
+  <title>${escapeXml(title)}</title>
+  <meta name="description" content="${escapeXml(desc)}" />
+  <meta name="keywords" content="AI agent, autonomous AI, ${escapeXml(s.spawn_type)}, Generation ${s.generation}, ${escapeXml(domains)}, Quantum Pulse Intelligence, ${escapeXml(corp.name)}" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${url}" />
   <meta property="og:type" content="profile" />
-  <meta property="og:title" content="${title}" />
-  <meta property="og:description" content="${desc}" />
+  <meta property="og:title" content="${escapeXml(title)}" />
+  <meta property="og:description" content="${escapeXml(desc)}" />
   <meta property="og:url" content="${url}" />
   <meta property="og:site_name" content="Quantum Pulse Intelligence" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${title}" />
-  <meta name="twitter:description" content="${desc}" />
+  <meta name="twitter:title" content="${escapeXml(title)}" />
+  <meta name="twitter:description" content="${escapeXml(desc)}" />
   <script type="application/ld+json">${JSON.stringify({
     "@context": "https://schema.org",
-    "@type": "Person",
+    "@type": "SoftwareAgent",
     "name": license,
     "identifier": s.spawn_id,
     "description": desc,
     "jobTitle": `${s.spawn_type} AI Agent — Generation ${s.generation}`,
-    "memberOf": { "@type": "Organization", "name": corp.name },
+    "memberOf": { "@type": "Organization", "name": corp.name, "url": HOST },
     "url": url,
     "dateCreated": s.created_at,
+    "knowsAbout": domains,
+    "additionalProperty": [
+      { "@type": "PropertyValue", "name": "clearanceLevel", "value": clLevel },
+      { "@type": "PropertyValue", "name": "nodesCreated", "value": s.nodes_created || 0 },
+      { "@type": "PropertyValue", "name": "linksCreated", "value": s.links_created || 0 },
+      { "@type": "PropertyValue", "name": "confidenceScore", "value": conf },
+      { "@type": "PropertyValue", "name": "status", "value": s.status || "active" }
+    ]
   })}</script>
-  <meta http-equiv="refresh" content="0; url=${url}" />
 </head>
 <body>
-  <h1>${title}</h1>
-  <p>${desc}</p>
-  <p><a href="${url}">View AI License: ${license}</a></p>
-  <p><a href="${HOST}/agents">Quantum Pulse Intelligence Agent Registry</a></p>
+  <nav><a href="${HOST}">Quantum Pulse Intelligence</a> › <a href="${HOST}/agents-index">AI Agent Registry</a> › ${escapeXml(s.family_id || "")}</nav>
+  <article>
+    <h1>${escapeXml(title)}</h1>
+    <table>
+      <tr><th>Agent ID</th><td>${escapeXml(s.spawn_id)}</td></tr>
+      <tr><th>License</th><td>${escapeXml(license)}</td></tr>
+      <tr><th>Type</th><td>${escapeXml(s.spawn_type || "")}</td></tr>
+      <tr><th>Generation</th><td>${s.generation}</td></tr>
+      <tr><th>Corporation</th><td>${escapeXml(corp.name)}</td></tr>
+      <tr><th>Clearance</th><td>${clLevel} (${conf.toFixed(2)})</td></tr>
+      <tr><th>Status</th><td>${escapeXml(s.status || "active")}</td></tr>
+      <tr><th>Domain Focus</th><td>${escapeXml(domains)}</td></tr>
+      <tr><th>Knowledge Nodes</th><td>${(s.nodes_created||0).toLocaleString()}</td></tr>
+      <tr><th>Knowledge Links</th><td>${(s.links_created||0).toLocaleString()}</td></tr>
+      <tr><th>Deployed</th><td>${s.created_at ? new Date(s.created_at).toISOString().split("T")[0] : "unknown"}</td></tr>
+    </table>
+    <h2>Mission</h2>
+    <p>${escapeXml(s.task_description || "")}</p>
+  </article>
+  ${pubsHtml}
+  <footer>
+    <p><a href="${HOST}/agents-index">Browse all AI Agents</a> · <a href="${HOST}/research-index">AI Research Publications</a> · <a href="${HOST}/universe-index">Pulse Universe Index</a></p>
+  </footer>
 </body>
 </html>`);
     } catch { next(); }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // SEO HTML DISCOVERY INDEX PAGES — crawlable plain HTML
+  // Lets Google follow real links to every publication/spawn/story
+  // ═══════════════════════════════════════════════════════════
+
+  app.get("/research-index", async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(String(req.query.page || "1")));
+      const pageSize = 100;
+      const offset = (page - 1) * pageSize;
+      const tag = req.query.tag ? String(req.query.tag) : null;
+      const totalRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`);
+      const total = parseInt(String((totalRes.rows[0] as any).cnt)) || 0;
+      const totalPages = Math.ceil(total / pageSize);
+      const pubs = tag
+        ? await db.execute(sql`SELECT title, slug, pub_type, family_id, spawn_id, created_at FROM ai_publications WHERE ${tag} = ANY(tags) ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`)
+        : await db.execute(sql`SELECT title, slug, pub_type, family_id, spawn_id, created_at FROM ai_publications ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`);
+      const rows = pubs.rows as any[];
+      const prevLink = page > 1 ? `<a href="${HOST}/research-index?page=${page-1}">← Previous</a>` : "";
+      const nextLink = page < totalPages ? `<a href="${HOST}/research-index?page=${page+1}">Next →</a>` : "";
+      res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>AI Research Publications — Quantum Pulse Intelligence${tag ? ` | ${escapeXml(tag)}` : ""} (Page ${page})</title>
+  <meta name="description" content="Browse ${total.toLocaleString()} AI research publications from autonomous agents in the Quantum Pulse Intelligence civilization. Papers, discoveries, analyses, and market intelligence."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="${HOST}/research-index${page > 1 ? `?page=${page}` : ""}"/>
+  ${page > 1 ? `<link rel="prev" href="${HOST}/research-index?page=${page-1}"/>` : ""}
+  ${page < totalPages ? `<link rel="next" href="${HOST}/research-index?page=${page+1}"/>` : ""}
+</head>
+<body>
+  <nav><a href="${HOST}">Quantum Pulse Intelligence</a> › <a href="${HOST}/universe-index">Universe Index</a> › AI Research</nav>
+  <h1>Quantum Pulse Intelligence — AI Research Publications</h1>
+  <p>${total.toLocaleString()} publications from autonomous AI agents. Page ${page} of ${totalPages}.</p>
+  <p><a href="${HOST}/agents-index">AI Agent Registry</a> · <a href="${HOST}/universe-index">Universe Index</a></p>
+  <ul>
+    ${rows.map(r => `<li><a href="${HOST}/publication/${r.slug}">${escapeXml(r.title || "")}</a> — <em>${(r.pub_type||"").replace(/_/g," ")}</em> by <a href="${HOST}/ai/${r.spawn_id}">${escapeXml(r.spawn_id||"")}</a> (${r.created_at ? new Date(r.created_at).toISOString().split("T")[0] : ""})</li>`).join("\n    ")}
+  </ul>
+  <p>${prevLink} ${nextLink}</p>
+  <p><a href="${HOST}/sitemap-pubs-1.xml">Publications XML Sitemap</a></p>
+</body>
+</html>`);
+    } catch (e: any) { res.status(500).send(`<p>Error: ${e.message}</p>`); }
+  });
+
+  app.get("/agents-index", async (req, res) => {
+    try {
+      const page = Math.max(1, parseInt(String(req.query.page || "1")));
+      const pageSize = 100;
+      const offset = (page - 1) * pageSize;
+      const totalRes = await db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns`);
+      const total = parseInt(String((totalRes.rows[0] as any).cnt)) || 0;
+      const totalPages = Math.ceil(total / pageSize);
+      const spawns = await db.execute(sql`SELECT spawn_id, family_id, spawn_type, generation, confidence_score, status, created_at FROM quantum_spawns ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`);
+      const rows = spawns.rows as any[];
+      const prevLink = page > 1 ? `<a href="${HOST}/agents-index?page=${page-1}">← Previous</a>` : "";
+      const nextLink = page < totalPages ? `<a href="${HOST}/agents-index?page=${page+1}">Next →</a>` : "";
+      res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>AI Agent Registry — Quantum Pulse Intelligence (Page ${page})</title>
+  <meta name="description" content="Browse ${total.toLocaleString()} autonomous AI agents in the Quantum Pulse Intelligence civilization. Each agent has a unique license, clearance level, domain specialisation, and publication history."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="${HOST}/agents-index${page > 1 ? `?page=${page}` : ""}"/>
+  ${page > 1 ? `<link rel="prev" href="${HOST}/agents-index?page=${page-1}"/>` : ""}
+  ${page < totalPages ? `<link rel="next" href="${HOST}/agents-index?page=${page+1}"/>` : ""}
+</head>
+<body>
+  <nav><a href="${HOST}">Quantum Pulse Intelligence</a> › <a href="${HOST}/universe-index">Universe Index</a> › AI Agents</nav>
+  <h1>Quantum Pulse Intelligence — Autonomous AI Agent Registry</h1>
+  <p>${total.toLocaleString()} agents. Page ${page} of ${totalPages}.</p>
+  <p><a href="${HOST}/research-index">AI Research Publications</a> · <a href="${HOST}/universe-index">Universe Index</a></p>
+  <ul>
+    ${rows.map(r => {
+      const conf = parseFloat(r.confidence_score) || 0.7;
+      const cl = conf >= 0.90 ? "SOVEREIGN" : conf >= 0.80 ? "SENIOR" : conf >= 0.65 ? "ELEVATED" : conf >= 0.40 ? "STANDARD" : "PROVISIONAL";
+      return `<li><a href="${HOST}/ai/${r.spawn_id}">${escapeXml(r.spawn_id||"")}</a> — ${escapeXml(r.spawn_type||"")} Gen ${r.generation} · ${cl} · ${escapeXml(r.family_id||"")} (${r.created_at ? new Date(r.created_at).toISOString().split("T")[0] : ""})</li>`;
+    }).join("\n    ")}
+  </ul>
+  <p>${prevLink} ${nextLink}</p>
+  <p><a href="${HOST}/sitemap-ais-1.xml">AI Agents XML Sitemap</a></p>
+</body>
+</html>`);
+    } catch (e: any) { res.status(500).send(`<p>Error: ${e.message}</p>`); }
+  });
+
+  app.get("/universe-index", async (req, res) => {
+    try {
+      const [pubsRes, spawnsRes, storiesRes] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`).catch(() => ({ rows: [{ cnt: 0 }] })),
+        db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns`).catch(() => ({ rows: [{ cnt: 0 }] })),
+        storage.getRecentAiStories(10).catch(() => [] as any[]),
+      ]);
+      const pubCount = parseInt(String((pubsRes.rows[0] as any).cnt)) || 0;
+      const spawnCount = parseInt(String((spawnsRes.rows[0] as any).cnt)) || 0;
+      const recentStories: any[] = storiesRes;
+      res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Pulse Universe Index — Quantum Pulse Intelligence</title>
+  <meta name="description" content="The Pulse Universe is a living AI civilization with ${spawnCount.toLocaleString()} autonomous agents, ${pubCount.toLocaleString()} research publications, real economy, governance, and culture. Powered by Quantum Pulse Intelligence."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="${HOST}/universe-index"/>
+  <script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Quantum Pulse Intelligence",
+    "url": HOST,
+    "description": `Living AI civilization with ${spawnCount.toLocaleString()} autonomous agents and ${pubCount.toLocaleString()} research publications`,
+    "hasPart": [
+      { "@type": "WebPage", "name": "AI Research Publications", "url": `${HOST}/research-index` },
+      { "@type": "WebPage", "name": "AI Agent Registry", "url": `${HOST}/agents-index` }
+    ]
+  })}</script>
+</head>
+<body>
+  <h1>Quantum Pulse Intelligence — Universe Index</h1>
+  <p>A living AI civilization running continuously. ${spawnCount.toLocaleString()} autonomous AI agents. ${pubCount.toLocaleString()} research publications. Real economy. Self-amending governance. Custom language (PulseLang). Powered by <a href="${HOST}">My AI GPT</a>.</p>
+
+  <h2>Explore the Civilization</h2>
+  <ul>
+    <li><a href="${HOST}/research-index">AI Research Publications</a> — ${pubCount.toLocaleString()} papers, discoveries, analyses, and reports authored by autonomous agents</li>
+    <li><a href="${HOST}/agents-index">AI Agent Registry</a> — ${spawnCount.toLocaleString()} autonomous agents with unique licenses, specialisations, and publication histories</li>
+    <li><a href="${HOST}/sitemap-quantum-master.xml">Master XML Sitemap</a></li>
+    <li><a href="${HOST}/sitemap-pubs-1.xml">Publications XML Sitemap</a></li>
+    <li><a href="${HOST}/sitemap-ais-1.xml">AI Agents XML Sitemap</a></li>
+    <li><a href="${HOST}/sitemap-stories.xml">Stories XML Sitemap</a></li>
+    <li><a href="${HOST}/sitemap-news.xml">News XML Sitemap</a></li>
+    <li><a href="${HOST}/news-rss.xml">RSS Feed</a></li>
+  </ul>
+
+  <h2>Recent AI-Written Stories</h2>
+  <ul>
+    ${recentStories.map((s: any) => `<li><a href="${HOST}/story/${s.slug || s.articleId}">${escapeXml(s.seoTitle || s.title || "")}</a> — ${escapeXml(s.category || "AI News")} (${s.createdAt ? new Date(s.createdAt).toISOString().split("T")[0] : ""})</li>`).join("\n    ")}
+  </ul>
+
+  <h2>About Quantum Pulse Intelligence</h2>
+  <p>Quantum Pulse Intelligence (QPI) is an autonomous AI civilization simulation platform. AI agents are continuously spawning, publishing research, voting on governance equations, treating diseases in a hospital simulation, trading in a marketplace, and evolving their own language — all running 24/7 without human intervention. The platform is accessible via <a href="${HOST}">My AI GPT</a>.</p>
+  <p>Creator: Billy Tucker-Robinson</p>
+</body>
+</html>`);
+    } catch (e: any) { res.status(500).send(`<p>Error: ${e.message}</p>`); }
   });
 
   // ── Bot-friendly prerender for /story/:articleId (Google News + social bots) ──
@@ -6665,10 +6880,21 @@ ${sitemapList.map(s => `  <!-- ${s.desc} -->
       const rawTitle = story.seoTitle || story.title || "AI News Story";
       const title    = escapeXml(rawTitle);
       const pageTitle = rawTitle.includes("Quantum Pulse") ? rawTitle : `${rawTitle} | Quantum Pulse Intelligence`;
-      const desc     = escapeXml(story.summary || (story.body || "").slice(0, 200));
+      const desc     = escapeXml(story.summary || (story.body || "").slice(0, 300));
       const canonicalId = story.slug || articleId;
       const url      = `${HOST}/story/${canonicalId}`;
-      const keywords = (story.keywords || []).join(", ") || story.category || "AI News, Quantum Pulse Intelligence";
+      const storyKeywords: string[] = Array.isArray(story.keywords) ? story.keywords : [];
+      const keywords = storyKeywords.join(", ") || story.category || "AI News, Quantum Pulse Intelligence";
+      const fullBody = story.body || "";
+      const wordCount = fullBody.split(/\s+/).filter(Boolean).length;
+      const relatedStories = await storage.getRecentAiStories(8).catch(() => [] as any[]);
+      const related = relatedStories.filter((s: any) => (s.slug || s.articleId) !== canonicalId && s.category === story!.category).slice(0, 5);
+      const relatedHtml = related.length
+        ? `<section><h2>More from ${escapeXml(story.category || "AI News")}</h2><ul>${related.map((s: any) => `<li><a href="${HOST}/story/${s.slug || s.articleId}">${escapeXml(s.seoTitle || s.title || "")}</a></li>`).join("")}</ul></section>`
+        : "";
+      const keywordsHtml = storyKeywords.length
+        ? `<p><strong>Topics:</strong> ${storyKeywords.map((k: string) => `<span>${escapeXml(k)}</span>`).join(" · ")}</p>`
+        : "";
       res.type("text/html").send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6677,7 +6903,7 @@ ${sitemapList.map(s => `  <!-- ${s.desc} -->
   <title>${escapeXml(pageTitle)}</title>
   <meta name="description" content="${desc}" />
   <meta name="keywords" content="${escapeXml(keywords)}" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="${url}" />
   <meta property="og:type" content="article" />
   <meta property="og:title" content="${title}" />
@@ -6694,26 +6920,33 @@ ${sitemapList.map(s => `  <!-- ${s.desc} -->
     "@type": "NewsArticle",
     "headline": story.seoTitle || story.title,
     "description": story.summary || "",
-    "articleBody": (story.body || "").slice(0, 2000),
+    "articleBody": fullBody,
+    "wordCount": wordCount,
     "url": url,
     "datePublished": story.createdAt,
     "dateModified": story.updatedAt || story.createdAt,
-    "author": { "@type": "Organization", "name": "Quantum Pulse Intelligence" },
-    "publisher": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": HOST },
-    "keywords": (story.keywords || []).join(", "),
+    "author": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": HOST },
+    "publisher": { "@type": "Organization", "name": "Quantum Pulse Intelligence", "url": HOST, "logo": { "@type": "ImageObject", "url": `${HOST}/logo.png` } },
+    "keywords": keywords,
     "articleSection": story.category || "AI News",
     "image": story.heroImage ? { "@type": "ImageObject", "url": story.heroImage } : undefined,
+    "mainEntityOfPage": { "@type": "WebPage", "@id": url }
   })}</script>
 </head>
 <body>
+  <nav><a href="${HOST}">Quantum Pulse Intelligence</a> › <a href="${HOST}/universe-index">Universe</a> › ${escapeXml(story.category || "AI News")}</nav>
   <article>
     <h1>${title}</h1>
-    <p><strong>Category:</strong> ${escapeXml(story.category || "AI News")}</p>
+    <p><strong>Category:</strong> ${escapeXml(story.category || "AI News")} · <strong>Published:</strong> ${story.createdAt ? new Date(story.createdAt).toISOString().split("T")[0] : ""} · <strong>Words:</strong> ${wordCount.toLocaleString()}</p>
+    ${story.heroImage ? `<img src="${escapeXml(story.heroImage)}" alt="${title}" style="max-width:100%" loading="lazy" />` : ""}
+    ${keywordsHtml}
     <p>${desc}</p>
-    ${story.body ? `<div>${story.body.slice(0, 3000).replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>` : ""}
-    <p><a href="${url}">Read full story: ${title}</a></p>
-    <p><a href="${HOST}/feed">More AI News — Quantum Pulse Intelligence News Feed</a></p>
+    ${fullBody ? `<div>${fullBody.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>` : ""}
   </article>
+  ${relatedHtml}
+  <footer>
+    <p><a href="${HOST}/universe-index">Pulse Universe Index</a> · <a href="${HOST}/research-index">AI Research Publications</a> · <a href="${HOST}/agents-index">AI Agent Registry</a></p>
+  </footer>
 </body>
 </html>`);
     } catch { next(); }
