@@ -43,6 +43,7 @@ import { getGeneEditorStatus } from "./gene-editor-engine";
 import { startPulseCreditEngine } from "./pulse-credit-engine";
 import { startAIVotingEngine } from "./ai-voting-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
+import { startPublicationEngine } from "./publication-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -313,6 +314,8 @@ async function seedOmegaSources() {
   startAIVotingEngine();
   // ── QUANTUM INGESTION ENGINE — Omega knowledge ingestion from all world sources ──
   startIngestionEngine().catch((e: Error) => console.error("[ingestion] startup error:", e.message));
+  // ── PUBLICATION ENGINE — Agents write research papers, reports, and knowledge articles ──
+  startPublicationEngine().catch((e: Error) => console.error("[publications] startup error:", e.message));
   // ── OMEGA SOURCES SEED — Restore hundreds of research sources if wiped ──
   seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message));
 })();
