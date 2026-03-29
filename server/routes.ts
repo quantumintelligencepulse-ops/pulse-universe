@@ -7667,18 +7667,20 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     try {
       const cached = cacheGet("spawns:stats");
       if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
+      const fallback0 = { rows: [{ total: 0 }] };
+      const fallback0c = { rows: [{ count: "0" }] };
       const [statusRow, pubRow, eqRow, eqEvoRow, invRow, disRow, genRow, specRow, deepRow, hidRow, uniDissRow] = await Promise.all([
-        pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`),
-        pool.query(`SELECT COUNT(*) as count FROM ai_publications`),
-        pool.query(`SELECT COUNT(*) as total FROM equation_proposals`),
-        pool.query(`SELECT COUNT(*) as total FROM equation_evolutions`),
-        pool.query(`SELECT COUNT(*) as total FROM invocation_discoveries`).catch(() => ({ rows: [{ total: 0 }] })),
-        pool.query(`SELECT COUNT(*) as total FROM discovered_diseases`),
-        pool.query(`SELECT COUNT(*) as total FROM genome_archaeology`),
-        pool.query(`SELECT COUNT(*) as total FROM ai_species_proposals`),
-        pool.query(`SELECT COUNT(*) as total FROM research_deep_findings`),
-        pool.query(`SELECT COUNT(*) as total FROM hidden_variable_discoveries`),
-        pool.query(`SELECT COUNT(*) as total FROM universal_dissection_reports WHERE accepted = true`),
+        pool.query(`SELECT status, COUNT(*) as count FROM quantum_spawns GROUP BY status`).catch(() => ({ rows: [] })),
+        pool.query(`SELECT COUNT(*) as count FROM ai_publications`).catch(() => fallback0c),
+        pool.query(`SELECT COUNT(*) as total FROM equation_proposals`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM equation_evolutions`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM invocation_discoveries`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM discovered_diseases`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM genome_archaeology`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM ai_species_proposals`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM research_deep_findings`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM hidden_variable_discoveries`).catch(() => fallback0),
+        pool.query(`SELECT COUNT(*) as total FROM universal_dissection_reports WHERE accepted = true`).catch(() => fallback0),
       ]);
       const byStatus: Record<string,number> = {};
       for (const r of statusRow.rows) byStatus[r.status] = parseInt(r.count, 10);
