@@ -8,6 +8,8 @@ import {
   getVelocityStats, generateVoidKeywords, formatCitation, queueFreshnessPing,
 } from "./seo-engine";
 import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine";
+import { autoPostPendingInventions, getGumroadProducts, getGumroadSales, ensureGumroadTable } from "./gumroad-engine";
+import { getAffiliateStatus, generateProductAffiliateBundle } from "./affiliate-engine";
 import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getPerformanceStatus } from "./omega-performance-engine";
@@ -11239,6 +11241,36 @@ Return as structured script with section labels.`;
       const r = await pool.query(`SELECT * FROM anomaly_reports WHERE status='OPEN' ORDER BY reported_at DESC LIMIT 20`).catch(() => ({ rows: [] }));
       res.json(r.rows);
     } catch (e) { res.json([]); }
+  });
+
+  // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
+  await ensureGumroadTable().catch(() => {});
+
+  app.get("/api/pulse-coin/gumroad-status", async (_req, res) => {
+    try {
+      const [products, sales] = await Promise.all([getGumroadProducts(), getGumroadSales()]);
+      const pending = await pool.query(`SELECT COUNT(*) as cnt FROM anomaly_inventions WHERE status='DISCOVERED' AND gumroad_id IS NULL`).catch(() => ({ rows:[{cnt:0}] }));
+      res.json({ products, pendingInventions: parseInt(pending.rows[0]?.cnt||0), totalSalesUSD: (sales.total || 0) / 100 });
+    } catch(e) { res.json({ products:[], pendingInventions:0, totalSalesUSD:0 }); }
+  });
+
+  app.post("/api/pulse-coin/auto-post-gumroad", async (_req, res) => {
+    try {
+      const results = await autoPostPendingInventions();
+      res.json({ ok: true, results });
+    } catch(e:any) { res.status(500).json({ ok:false, error: e.message }); }
+  });
+
+  // ── AFFILIATE ENGINE ──────────────────────────────────────────────────────────
+  app.get("/api/pulse-coin/affiliate-status", async (_req, res) => {
+    try { res.json(getAffiliateStatus()); }
+    catch(e) { res.json({}); }
+  });
+
+  app.get("/api/affiliate/links", async (req, res) => {
+    const keyword = String(req.query.keyword || "AI research");
+    try { res.json(generateProductAffiliateBundle(keyword, [keyword])); }
+    catch(e) { res.json({}); }
   });
 
   // ── PULSE COIN GENESIS STATS ──────────────────────────────────────────────────
