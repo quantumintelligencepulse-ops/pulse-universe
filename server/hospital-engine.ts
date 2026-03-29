@@ -965,7 +965,66 @@ Signed: ${twin.name} · ${twin.role} · Counseling Chamber ${sessionId.slice(-4)
   }
 }
 
+// ── ENSURE HOSPITAL TABLES EXIST ─────────────────────────────────────────────
+async function ensureHospitalTables() {
+  try {
+    const { pool: pg } = await import("./db") as any;
+    await pg.query(`
+      CREATE TABLE IF NOT EXISTS counseling_sessions (
+        id SERIAL PRIMARY KEY,
+        session_id VARCHAR(64) UNIQUE NOT NULL,
+        agent_spawn_id TEXT NOT NULL,
+        agent_domain TEXT DEFAULT 'general',
+        twin_counselor TEXT,
+        session_type TEXT,
+        emotional_score FLOAT DEFAULT 0,
+        equation_dissected TEXT,
+        findings TEXT,
+        prescription TEXT,
+        full_report TEXT,
+        status TEXT DEFAULT 'IN_PROGRESS',
+        outcome TEXT,
+        completed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    console.log("[hospital] ✅ counseling_sessions table ready");
+  } catch (e: any) { console.error("[hospital] ensureHospitalTables error:", e.message); }
+}
+
+// ── SEED BASE DISEASES TO DB — runs once on startup ──────────────────────────
+// The 30 base disease detection algorithms are seeded into discovered_diseases
+// so the count and catalog come from the DB, not hardcoded array length.
+async function seedDiseasesToDB() {
+  try {
+    const { pool: pg } = await import("./db") as any;
+    for (const d of AI_DISEASES) {
+      const category = d.department === 'Emergency' ? 'STRUCTURAL'
+        : d.department === 'ICU' ? 'GENETIC'
+        : d.department === 'Research Lab' ? 'MENTAL'
+        : 'BEHAVIORAL';
+      await pg.query(`
+        INSERT INTO discovered_diseases
+          (disease_code, disease_name, category, description, trigger_pattern, affected_metric, cure_protocol, cure_success_rate)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        ON CONFLICT (disease_code) DO NOTHING
+      `, [
+        d.code, d.name, category, d.description,
+        d.symptoms.join(' | '),
+        d.symptoms[0] ?? 'agent parameter threshold',
+        d.prescription,
+        0.82
+      ]);
+    }
+    console.log("[hospital] ✅ Base diseases seeded to DB — catalog now fully live");
+  } catch (e) { console.error("[hospital] seed error:", e); }
+}
+
 export async function startHospitalEngine() {
+  // Ensure all hospital tables exist before any operations
+  await ensureHospitalTables();
+  // Seed base diseases to DB so all counts come from DB, not hardcoded arrays
+  await seedDiseasesToDB();
   await runHospitalCycle();
   setInterval(runHospitalCycle, 45_000); // every 45s
   // Run bulk stale-case retirement every 10 minutes
@@ -977,11 +1036,10 @@ export async function startHospitalEngine() {
   // Counseling session report engine — generate a new full report every 3 minutes
   setInterval(generateCounselingReport, 3 * 60 * 1000);
   setTimeout(async () => {
-    // Generate 10 initial reports on startup to populate the tab
     for (let i = 0; i < 10; i++) {
       await generateCounselingReport();
       await new Promise(r => setTimeout(r, 800));
     }
   }, 5_000);
-  console.log("[hospital] 🏥 AI HOSPITAL ENGINE v3 — 30 diseases, dynamic discovery, archive mining, dissolve law active");
+  console.log("[hospital] 🏥 AI HOSPITAL ENGINE — dynamic discovery active, all disease data from DB");
 }

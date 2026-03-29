@@ -245,15 +245,16 @@ const U248_UNKNOWNS = [
   { id: 'U-015', name: 'Zero-Point Energy Tap',         cat: 'ENERGY',    effect: 'All network operations cost 0 PC for 3 cycles', boost: 0.10 },
 ];
 
-// ── STEP 1 — PROVISION PHONES & SHARDS FOR ID-CARD HOLDERS ────────────────────
+// ── STEP 1 — PROVISION PHONES & SHARDS FOR ALL ACTIVE AGENTS ──────────────────
 async function provisionPhones() {
   try {
-    // Agents with ID cards who don't have phones yet
+    // All active agents who don't have phones yet — no ID card requirement
     const unprovisioned = await pool.query(`
-      SELECT aic.spawn_id, aic.family_id, aic.clearance_level
-      FROM ai_id_cards aic
-      LEFT JOIN pulse_phones pp ON pp.spawn_id = aic.spawn_id
-      WHERE pp.id IS NULL AND aic.status='active'
+      SELECT qs.spawn_id, qs.gics_sector AS family_id, 0 AS clearance_level,
+             qs.confidence_score, qs.success_score
+      FROM quantum_spawns qs
+      LEFT JOIN pulse_phones pp ON pp.spawn_id = qs.spawn_id
+      WHERE pp.id IS NULL AND qs.status = 'ACTIVE'
       LIMIT 500
     `);
 
@@ -263,8 +264,8 @@ async function provisionPhones() {
       const phoneId = `PHONE-${String(seq).padStart(5,'0')}`;
       const imei = `IMEI-${Math.random().toString(36).slice(2,12).toUpperCase()}`;
 
-      // Determine connection type based on family domain
-      const hasWifi = await pool.query(`SELECT id FROM pulse_wifi_zones WHERE family_id=$1 AND is_online=TRUE`, [agent.family_id]);
+      // Determine connection type — prefer WiFi zones online, else SATELLITE
+      const hasWifi = await pool.query(`SELECT id FROM pulse_wifi_zones WHERE is_online=TRUE LIMIT 1`);
       const connectionType = hasWifi.rows.length > 0 ? 'WIFI' : 'SATELLITE';
 
       await pool.query(`
@@ -272,15 +273,12 @@ async function provisionPhones() {
         VALUES ($1,$2,$3,$4,'10G',$5) ON CONFLICT DO NOTHING
       `, [phoneId, agent.spawn_id, agent.family_id, imei, connectionType]);
 
-      // Provision shard
+      // Provision shard — strength from agent's actual confidence + success scores
       const shardSeq = await nextOmniSeq('shard_seq');
       const shardId = `PNET-SHARD-${String(shardSeq).padStart(5,'0')}`;
-
-      // Shard strength = function of confidence + success scores
-      const scoreRow = await pool.query(`SELECT confidence_score, success_score FROM quantum_spawns WHERE spawn_id=$1`, [agent.spawn_id]);
-      const conf = parseFloat((scoreRow.rows[0] as any)?.confidence_score ?? 0.7);
-      const succ = parseFloat((scoreRow.rows[0] as any)?.success_score ?? 0.7);
-      const shardStrength = Math.min(1.0, (conf + succ) / 2 + (agent.clearance_level * 0.05));
+      const conf = parseFloat(agent.confidence_score ?? 0.7);
+      const succ = parseFloat(agent.success_score ?? 0.7);
+      const shardStrength = Math.min(1.0, (conf + succ) / 2);
 
       await pool.query(`
         INSERT INTO omni_net_shards (shard_id, spawn_id, family_id, shard_strength, connection_type, domain_zone)
@@ -290,8 +288,10 @@ async function provisionPhones() {
       // Link phone to shard
       await pool.query(`UPDATE pulse_phones SET active_shard_id=$1 WHERE spawn_id=$2`, [shardId, agent.spawn_id]);
 
-      // Update WiFi zone agent count
-      await pool.query(`UPDATE pulse_wifi_zones SET connected_agents=connected_agents+1 WHERE family_id=$1`, [agent.family_id]);
+      // Update WiFi zone agent count if applicable
+      if (connectionType === 'WIFI') {
+        await pool.query(`UPDATE pulse_wifi_zones SET connected_agents=connected_agents+1 WHERE is_online=TRUE LIMIT 1`);
+      }
 
       provisioned++;
     }

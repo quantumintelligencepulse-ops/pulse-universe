@@ -8019,8 +8019,14 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   // ── AI HOSPITAL ROUTES ──────────────────────────────────────────────────────
   app.get("/api/hospital/diseases", async (_req, res) => {
     try {
-      const { AI_DISEASES } = await import("./hospital-engine");
-      res.json(AI_DISEASES.map(d => ({ code: d.code, name: d.name, description: d.description, symptoms: d.symptoms, severity: d.severity, department: d.department, prescription: d.prescription })));
+      const rows = await db.execute(sql`
+        SELECT disease_code AS code, disease_name AS name, category, description,
+               trigger_pattern AS symptoms, cure_protocol AS prescription,
+               cure_success_rate, discovered_at, total_cured, affected_count
+        FROM discovered_diseases
+        ORDER BY discovered_at ASC
+      `);
+      res.json(rows.rows);
     } catch (e) { res.json([]); }
   });
 
@@ -8488,7 +8494,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       res.json({
         totalPatients: ps.active,
         totalCured: ps.cured,
-        knownDiseases: AI_DISEASES.length + ds.total,
+        knownDiseases: ds.total,
         discoveredDiseases: ds.total,
         lawViolationDiseases: ds.law_violations,
         bySeverity,
