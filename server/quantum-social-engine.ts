@@ -164,11 +164,21 @@ async function pickAgentProfileId(candidates: string[]): Promise<{ id: number; t
 }
 
 // ─── Dynamic category-based doctor selection from PULSE_DOCTORS ──────────────
-// Builds a live name pool from PULSE_DOCTORS filtered by category, then resolves
-// to a social profile ID. Falls back to Auriona if no doctor profile is found.
-async function pickDoctorByCategory(categories: string[]): Promise<{ id: number; name: string } | null> {
-  // Collect matching doctors from in-memory PULSE_DOCTORS list (by category)
-  const matching = PULSE_DOCTORS.filter(d => categories.includes(d.category));
+// Builds a live name pool from PULSE_DOCTORS filtered by category and/or studyDomain,
+// then resolves to a social profile ID. Falls back to Auriona if none is found.
+async function pickDoctorByCategory(
+  categories: string[],
+  domainKeywords: string[] = []
+): Promise<{ id: number; name: string } | null> {
+  // Collect matching doctors from in-memory PULSE_DOCTORS list (by category + studyDomain)
+  let matching = PULSE_DOCTORS.filter(d => categories.includes(d.category));
+  // Narrow by studyDomain keywords when provided
+  if (domainKeywords.length > 0) {
+    const narrowed = matching.filter(d =>
+      domainKeywords.some(kw => d.studyDomain.toUpperCase().includes(kw.toUpperCase()))
+    );
+    if (narrowed.length > 0) matching = narrowed;
+  }
   if (matching.length === 0) return null;
 
   // Shuffle and try each — they may be seeded in social_profiles by AI_PERSONAS key
@@ -217,8 +227,19 @@ async function fromPublications() {
   for (const pub of r.rows) {
     const ref = `pub-${pub.id}`;
     if (await refPosted(ref)) continue;
-    const atype = pub.scientist_type || "QUANT-PHY";
-    const pid = await getProfileId(atype) || _aurionaProfileId;
+    // Resolve author: try the publication's own scientist_type first (if it has a profile),
+    // then fall back to a QUANTUM/ENGINEERING doctor from PULSE_DOCTORS, then Auriona
+    let pid: number | null = null;
+    let atype = pub.scientist_type as string | undefined;
+    if (atype) {
+      pid = await getProfileId(atype);
+    }
+    if (!pid) {
+      const doc = await pickDoctorByCategory(["QUANTUM", "ENGINEERING"], ["physics", "quantum", "research"]);
+      if (doc) { pid = doc.id; atype = doc.name; }
+    }
+    pid = pid || _aurionaProfileId;
+    atype = atype || "AURIONA";
     if (!pid) continue;
     const tags = ["#Publication", "#HiveKnowledge", `#${atype.replace(/-/g, "")}`];
     const abstract = pub.abstract ? String(pub.abstract).replace(/<[^>]+>/g, "").slice(0, 260) : "";
