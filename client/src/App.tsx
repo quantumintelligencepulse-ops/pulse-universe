@@ -30,7 +30,6 @@ const SubscribePage = lazy(() => import("./pages/SubscribePage"));
 const BreakingLeaderboardPage = lazy(() => import("./pages/BreakingLeaderboardPage"));
 const VideoScriptPage = lazy(() => import("./pages/VideoScriptPage"));
 const PulseCoinPage = lazy(() => import("./pages/PulseCoinPage"));
-const GenesisPage = lazy(() => import("./pages/GenesisPage"));
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -2248,14 +2247,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className="p-1 rounded-lg" style={{ background: "rgba(34,211,238,0.08)" }}><span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>⬡</span></div>
             <span className="flex-1">Pulse Coin</span>
             <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full tracking-widest uppercase" style={{ background: "linear-gradient(135deg,rgba(34,211,238,0.15),rgba(167,139,250,0.15))", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.3)" }}>COIN</span>
-          </Link>
-          )}
-          {aiMode && (
-          <Link href="/genesis" data-testid="link-genesis"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/genesis" ? "bg-gradient-to-r from-violet-950/60 to-emerald-950/60 text-white shadow font-semibold border border-violet-500/20" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className="p-1 rounded-lg" style={{ background: "rgba(139,92,246,0.12)" }}><span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧬</span></div>
-            <span className="flex-1">GICS Genesis</span>
-            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full tracking-widest uppercase" style={{ background: "linear-gradient(135deg,rgba(139,92,246,0.2),rgba(16,185,129,0.2))", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.4)" }}>KERNELS</span>
           </Link>
           )}
 
@@ -14849,7 +14840,7 @@ function Router() {
       <Route path="/auriona/universe-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/coin">{() => <Layout><PulseCoinPage /></Layout>}</Route>
-      <Route path="/genesis">{() => <Layout><GenesisPage /></Layout>}</Route>
+      <Route path="/genesis">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/hive-sovereign"); } return null; }}</Route>
       <Route path="/invocation-lab">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/hub/:slug">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>

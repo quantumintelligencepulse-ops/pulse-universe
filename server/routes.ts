@@ -9303,12 +9303,65 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       const category = req.query.category as string | undefined;
       const where = category ? `WHERE category=$1` : '';
       const params = category ? [category] : [];
-      const r = await pool.query(`
-        SELECT * FROM invention_marketplace_listings ${where}
-        ORDER BY total_sold DESC LIMIT 50
-      `, params);
-      res.json(r.rows);
+      // Pull from the existing patent listings + kernel dissection inventions combined
+      const [listed, kernelInventions] = await Promise.all([
+        pool.query(`SELECT * FROM invention_marketplace_listings ${where} ORDER BY total_sold DESC LIMIT 50`, params),
+        pool.query(`
+          SELECT
+            id::text as listing_id,
+            anomaly_id as patent_id,
+            product_name as name,
+            product_code as category,
+            crisp_dissect as description,
+            mutation_type,
+            value_score,
+            status,
+            created_at,
+            gumroad_id,
+            gumroad_url,
+            'KERNEL_DISSECTION' as source
+          FROM anomaly_inventions
+          ORDER BY created_at DESC LIMIT 50
+        `),
+      ]);
+      res.json([...kernelInventions.rows, ...listed.rows]);
     } catch (e) { res.status(500).json({ error: String(e) }); }
+  });
+
+  // Multiverse Mall transactions (spawn-to-spawn trades)
+  app.get("/api/marketplace/transactions", async (_req, res) => {
+    try {
+      const [mallTrades, kernels] = await Promise.all([
+        pool.query(`
+          SELECT st.*, 
+            qs_seller.task_description as seller_desc,
+            qs_buyer.task_description as buyer_desc
+          FROM spawn_transactions st
+          LEFT JOIN quantum_spawns qs_seller ON qs_seller.spawn_id = st.seller_id
+          LEFT JOIN quantum_spawns qs_buyer ON qs_buyer.spawn_id = st.buyer_id
+          ORDER BY st.created_at DESC LIMIT 100
+        `),
+        pool.query(`
+          SELECT spawn_id, gics_sector, gics_tier, pulse_credits, status,
+                 total_mall_trades, total_mall_earnings, mall_service_offer, mall_service_price,
+                 nodes_created, links_created, iterations_run
+          FROM quantum_spawns WHERE gics_tier = 'KERNEL' ORDER BY gics_code
+        `),
+      ]);
+      const treasury = await pool.query(`SELECT * FROM hive_treasury ORDER BY id LIMIT 1`);
+      const mallStats = await pool.query(`
+        SELECT COUNT(*) as total_trades,
+               COALESCE(SUM(price_pc), 0) as total_volume,
+               COALESCE(SUM(tax_collected), 0) as total_tax
+        FROM spawn_transactions
+      `);
+      res.json({
+        trades: mallTrades.rows,
+        kernels: kernels.rows,
+        treasury: treasury.rows[0] ?? {},
+        stats: mallStats.rows[0] ?? {},
+      });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   app.get("/api/inventions/llcs", async (req, res) => {

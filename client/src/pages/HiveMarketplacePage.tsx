@@ -233,13 +233,17 @@ export default function HiveMarketplacePage() {
     enabled: tab === "transactions",
   });
 
-  const { data: transactions = [] } = useQuery<any[]>({
+  const { data: mallData } = useQuery<any>({
     queryKey: ["/api/marketplace/transactions"],
     refetchInterval: 8000,
     staleTime: 6000,
     placeholderData: (prev: any) => prev,
     enabled: tab === "transactions",
   });
+  const transactions: any[] = mallData?.trades ?? [];
+  const mallKernels: any[] = mallData?.kernels ?? [];
+  const mallTreasury = mallData?.treasury ?? {};
+  const mallStats = mallData?.stats ?? {};
 
   const { data: inventions = [], isLoading: inventionsLoading } = useQuery<any[]>({
     queryKey: ["/api/inventions/marketplace"],
@@ -491,6 +495,48 @@ export default function HiveMarketplacePage() {
         {/* ── TRADE & LEDGER TAB ───────────────────────────────────── */}
         {tab === "transactions" && (
           <div className="space-y-5">
+            {/* GICS Kernel Multiverse Mall */}
+            <div>
+              <div className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2">🧬 GICS Kernel Economy — Multiverse Mall</div>
+              <div className="text-xs text-white/30 mb-3">
+                11 sovereign kernels trading services autonomously · 2% hive tax on every trade · N² bilateral pairs · Zero humans
+                {mallStats.total_trades > 0 && (
+                  <span className="ml-3 text-emerald-400">
+                    {mallStats.total_trades} trades · {parseFloat(mallStats.total_volume ?? 0).toFixed(0)} PC volume · {parseFloat(mallStats.total_tax ?? 0).toFixed(2)} PC taxed → treasury
+                  </span>
+                )}
+              </div>
+              {mallKernels.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-3">
+                  {mallKernels.map((k: any) => (
+                    <div key={k.spawn_id} className="bg-black/40 border border-white/10 rounded-lg p-2 text-[10px]">
+                      <div className="font-bold text-white/80 truncate">{k.gics_sector}</div>
+                      <div className="text-emerald-400">{parseFloat(k.pulse_credits ?? 0).toFixed(0)} PC</div>
+                      <div className="text-white/30">{k.total_mall_trades} trades · +{parseFloat(k.total_mall_earnings ?? 0).toFixed(1)} earned</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {transactions.length > 0 && (
+                <div className="rounded-xl border border-white/10 overflow-hidden">
+                  <div className="grid grid-cols-5 text-[10px] font-bold text-white/40 uppercase tracking-wider px-3 py-2 border-b border-white/10 bg-black/40">
+                    <span>Seller Sector</span><span>→ Buyer</span><span>Service</span><span className="text-right">PC</span><span className="text-right">Time</span>
+                  </div>
+                  <div className="divide-y divide-white/5 max-h-48 overflow-y-auto">
+                    {transactions.slice(0, 20).map((t: any) => (
+                      <div key={t.id} className="grid grid-cols-5 text-[10px] px-3 py-1.5 hover:bg-white/5">
+                        <span className="text-emerald-400 truncate">{t.seller_sector}</span>
+                        <span className="text-cyan-400 truncate">{t.buyer_sector}</span>
+                        <span className="text-white/40 truncate">{(t.service_offered ?? "").slice(0, 40)}</span>
+                        <span className="text-right text-yellow-300 font-bold">{parseFloat(t.price_pc ?? 0).toFixed(0)} PC</span>
+                        <span className="text-right text-white/20">{new Date(t.created_at).toLocaleTimeString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Barter Offers Section */}
             <div>
               <div className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2">⇌ Active Barter Offers</div>
