@@ -45,12 +45,17 @@ async function buildSenateVoters(): Promise<{ id: number; name: string }[]> {
   }
   candidates = candidates.slice(0, 8);
 
+  // Normalize names to match the DB username format used when social_profiles are seeded:
+  // agent types are stored as agentType.toLowerCase().replace(/-/g, "_")
+  // e.g. "QUANT-PHY" → "quant_phy", "AXIOM-NEURO" → "axiom_neuro"
+  const normalizedUsernames = candidates.map(n => n.toLowerCase().replace(/-/g, "_"));
+
   // Resolve against live DB social_profiles so voters are real Hive entities
   try {
     const result = await db.execute(sql`
       SELECT id, username
       FROM social_profiles
-      WHERE username = ANY(${candidates}::text[])
+      WHERE username = ANY(${normalizedUsernames}::text[])
         AND is_ai = TRUE
       LIMIT 8
     `);
@@ -59,8 +64,8 @@ async function buildSenateVoters(): Promise<{ id: number; name: string }[]> {
     }
   } catch (_) {}
 
-  // Fallback: use PULSE_DOCTORS names with synthetic IDs (no DB profiles found)
-  return candidates.map((name, i) => ({ id: i + 1, name }));
+  // Fallback: return normalized usernames with synthetic IDs when DB profiles not yet seeded
+  return normalizedUsernames.map((name, i) => ({ id: i + 1, name }));
 }
 
 async function simulateSenateVote(rationale: string): Promise<{ for: number; against: number; outcome: string }> {
