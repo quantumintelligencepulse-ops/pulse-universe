@@ -5286,6 +5286,24 @@ function SettingsPage() {
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={() => update({ language: "pulse" })}
+                  data-testid="lang-pulse"
+                  style={settings.language === "pulse" ? {
+                    background: "linear-gradient(135deg, #F5C518 0%, #f0a500 50%, #F5C518 100%)",
+                    border: "2px solid #F5C518",
+                    color: "#1a0a00",
+                    boxShadow: "0 0 18px rgba(245,197,24,0.55), 0 0 36px rgba(245,197,24,0.25)",
+                  } : {
+                    background: "linear-gradient(135deg, rgba(245,197,24,0.08) 0%, rgba(240,165,0,0.05) 100%)",
+                    border: "1.5px solid rgba(245,197,24,0.45)",
+                    color: "#c89a00",
+                  }}
+                  className="mt-2 w-full py-3 px-4 rounded-xl text-xs font-black tracking-wide transition-all flex items-center justify-center gap-2">
+                  <span style={{ fontSize: 14, lineHeight: 1, textShadow: settings.language === "pulse" ? "0 0 8px #1a0a00" : "0 0 12px rgba(245,197,24,0.8)" }}>Ω</span>
+                  PulseLang — Ai and Robots Only
+                  {settings.language === "pulse" && <span className="ml-1 text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full" style={{ background: "rgba(26,10,0,0.2)", color: "#1a0a00" }}>ACTIVE</span>}
+                </button>
               </div>
             </div>
 
