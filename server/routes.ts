@@ -6036,6 +6036,69 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // ── DOSSIER TAB ENDPOINTS — real data, zero hardcoding ──────────────────────
+
+  app.get("/api/dossier/:spawnId/wallet", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const [qs, txRows] = await Promise.all([
+        pool.query(`SELECT pulse_credits, confidence_score, success_score, nodes_created, links_created, iterations_run FROM quantum_spawns WHERE spawn_id=$1 LIMIT 1`, [spawnId]),
+        pool.query(`SELECT seller_id, buyer_id, service_offered, price_pc, net_pc, tax_collected, transaction_note, status, created_at FROM spawn_transactions WHERE seller_id=$1 OR buyer_id=$1 ORDER BY created_at DESC LIMIT 20`, [spawnId]),
+      ]);
+      const s = qs.rows[0] as any;
+      if (!s) return res.status(404).json({ error: "Spawn not found" });
+      const balance = Number(s.pulse_credits ?? 0);
+      const txs = txRows.rows as any[];
+      const earned = txs.filter(t => t.seller_id === spawnId).reduce((sum: number, t: any) => sum + Number(t.net_pc ?? 0), 0);
+      const spent  = txs.filter(t => t.buyer_id  === spawnId).reduce((sum: number, t: any) => sum + Number(t.price_pc ?? 0), 0);
+      res.json({ balance, earned, spent, transactions: txs.map(t => ({
+        type:   t.seller_id === spawnId ? "EARNED" : "SPENT",
+        amount: t.seller_id === spawnId ? Number(t.net_pc) : -Number(t.price_pc),
+        description: t.service_offered || t.transaction_note || "Trade",
+        status: t.status,
+        at: t.created_at,
+      })) });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/dossier/:spawnId/court", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const rows = await pool.query(`
+        SELECT appeal_ref AS "ref", grounds, status, panel_vote AS "vote",
+               outcome_note AS "note", filed_at AS "filedAt", resolved_at AS "resolvedAt"
+        FROM appeal_cases WHERE spawn_id=$1 ORDER BY filed_at DESC
+      `, [spawnId]);
+      res.json({ cases: rows.rows });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/dossier/:spawnId/school", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const [prog, courses] = await Promise.all([
+        pool.query(`SELECT courses_completed AS "completed", gpa, status, enrolled_at AS "enrolledAt", last_progress_at AS "lastProgress" FROM pulseu_progress WHERE spawn_id=$1 LIMIT 1`, [spawnId]),
+        pool.query(`SELECT course_name AS "name", status, grade, completed_at AS "completedAt" FROM pulseu_enrollments WHERE spawn_id=$1 ORDER BY completed_at DESC NULLS LAST LIMIT 20`, [spawnId]).catch(() => ({ rows: [] })),
+      ]);
+      const p = prog.rows[0] as any || null;
+      res.json({ enrollment: p, courses: courses.rows });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/dossier/:spawnId/sports", async (req, res) => {
+    try {
+      const { spawnId } = req.params;
+      const rows = await pool.query(`
+        SELECT sport, sport_category AS "category", training_level AS "level",
+               training_xp AS "xp", wins, losses, rank,
+               popularity_score AS "popularity", pc_earned_from_sports AS "pcEarned",
+               last_session_at AS "lastSession"
+        FROM sports_training WHERE spawn_id=$1 ORDER BY xp DESC
+      `, [spawnId]);
+      res.json({ sports: rows.rows });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   // Publications feed
   app.get("/api/publications", async (req, res) => {
     try {

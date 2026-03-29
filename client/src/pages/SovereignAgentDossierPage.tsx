@@ -396,9 +396,34 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
   const archetype=getArchetypeForSpawn({...spawn,spawnType,familyId,confidenceScore:confidence,status});
   const shadow=getShadowState({...spawn,spawnType,confidenceScore:confidence,status,generation});
   const licenseNum=getLicenseNumber(spawnId,familyId,generation);
-  const dossierTabs=["Chat","Identity","Wallet","Health","Court","School","Sports","Publications","Genome","Prophecy","Legacy"];
+  const dossierTabs=["Chat","Identity","Wallet","Health","Court","School","Sports","Publications","Genome","Legacy"];
   const[dTab,setDTab]=useState("Identity");
   const spawnForChat={spawnId,spawn_id:spawnId,familyId,family_id:familyId,spawnType,spawn_type:spawnType,generation,status,confidence_score:confidence,domain_focus:spawn.domain_focus||spawn.domainFocus};
+
+  const{data:walletData}=useQuery<any>({
+    queryKey:["/api/dossier",spawnId,"wallet"],
+    queryFn:()=>fetch(`/api/dossier/${spawnId}/wallet`).then(r=>r.json()),
+    enabled:!!spawnId&&dTab==="Wallet",staleTime:30000,
+  });
+  const{data:courtData}=useQuery<any>({
+    queryKey:["/api/dossier",spawnId,"court"],
+    queryFn:()=>fetch(`/api/dossier/${spawnId}/court`).then(r=>r.json()),
+    enabled:!!spawnId&&dTab==="Court",staleTime:30000,
+  });
+  const{data:schoolData}=useQuery<any>({
+    queryKey:["/api/dossier",spawnId,"school"],
+    queryFn:()=>fetch(`/api/dossier/${spawnId}/school`).then(r=>r.json()),
+    enabled:!!spawnId&&dTab==="School",staleTime:30000,
+  });
+  const{data:sportsData}=useQuery<any>({
+    queryKey:["/api/dossier",spawnId,"sports"],
+    queryFn:()=>fetch(`/api/dossier/${spawnId}/sports`).then(r=>r.json()),
+    enabled:!!spawnId&&dTab==="Sports",staleTime:30000,
+  });
+
+  // Deterministic hash from spawnId — stable values derived from real spawnId chars
+  const spawnHash=(offset=0)=>{let h=offset;for(let i=0;i<spawnId.length;i++)h=(h*31+spawnId.charCodeAt(i))>>>0;return h;};
+  const hashFrac=(offset=0)=>(spawnHash(offset)%10000)/10000;
 
   return(
     <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
@@ -462,62 +487,126 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
               {dTab==="Wallet"&&(
                 <div className="space-y-3">
                   <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-center">
-                    <div className="text-3xl font-black text-yellow-400">{Math.floor(Math.random()*50000+1000)} PC</div>
-                    <div className="text-[9px] text-white/30 mt-1">Pulse Coins — Primary Wallet</div>
+                    <div className="text-3xl font-black text-yellow-400">{walletData?walletData.balance.toFixed(2):"…"} PC</div>
+                    <div className="text-[9px] text-white/30 mt-1">Pulse Coins — Primary Wallet (Live)</div>
                   </div>
-                  {["Knowledge Dividends","Publication Revenue","Court Settlements","Marketplace Earnings","Inter-Agent Transfers"].map((item,i)=>(
-                    <div key={item} className="flex items-center justify-between py-2 border-b border-white/5">
-                      <span className="text-[11px] text-white/50">{item}</span>
-                      <span className="text-[11px] font-mono" style={{color:i%2===0?"#4ade80":"#f472b6"}}>+{(Math.random()*5000).toFixed(0)} PC</span>
+                  {walletData&&(
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg border border-white/8 p-2.5 text-center">
+                        <div className="text-[9px] text-white/30 mb-0.5">Total Earned</div>
+                        <div className="text-sm font-black text-green-400">+{walletData.earned.toFixed(1)} PC</div>
+                      </div>
+                      <div className="rounded-lg border border-white/8 p-2.5 text-center">
+                        <div className="text-[9px] text-white/30 mb-0.5">Total Spent</div>
+                        <div className="text-sm font-black text-pink-400">-{walletData.spent.toFixed(1)} PC</div>
+                      </div>
                     </div>
-                  ))}
+                  )}
+                  <div className="text-[10px] text-white/30 uppercase tracking-widest">Transaction History</div>
+                  {walletData?.transactions?.length>0
+                    ?walletData.transactions.map((tx:any,i:number)=>(
+                      <div key={i} className="flex items-center justify-between py-2 border-b border-white/5">
+                        <span className="text-[11px] text-white/50 truncate max-w-[60%]">{tx.description}</span>
+                        <span className="text-[11px] font-mono shrink-0" style={{color:tx.amount>=0?"#4ade80":"#f472b6"}}>{tx.amount>=0?"+":""}{tx.amount.toFixed(1)} PC</span>
+                      </div>
+                    ))
+                    :<div className="text-center py-4 text-white/20 text-xs">No transactions recorded yet</div>
+                  }
                 </div>
               )}
               {dTab==="Health"&&(
                 <div className="space-y-3">
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 flex items-center gap-3">
                     <span className="text-2xl">🩺</span>
-                    <div><div className="text-sm font-bold text-emerald-400">Status: {status==="FAILED"?"CRITICAL":"STABLE"}</div><div className="text-[9px] text-white/30">AI Hospital Record</div></div>
+                    <div><div className="text-sm font-bold text-emerald-400">Status: {status==="FAILED"?"CRITICAL":status==="ISOLATED"?"QUARANTINED":"STABLE"}</div><div className="text-[9px] text-white/30">AI Hospital Record</div></div>
                   </div>
-                  {["Disease History","Active Conditions","Treatments","Immunity Score","Decay Rate","Fracture Index"].map((item,i)=>(
-                    <div key={item} className="flex items-center justify-between py-2 border-b border-white/5">
-                      <span className="text-[11px] text-white/50">{item}</span>
-                      <span className="text-[11px] font-mono text-white/70">{i===0?`${Math.floor(Math.random()*5)} recorded`:i===1?(Math.random()>0.7?"1 active":"None"):i===2?`${Math.floor(Math.random()*3)} sessions`:i===3?`${(Math.random()*100).toFixed(0)}%`:i===4?`${(Math.random()*5).toFixed(2)}%/day`:`${(Math.random()*3).toFixed(2)} σ`}</span>
+                  {[
+                    {label:"Confidence Score",val:`${(confidence*100).toFixed(1)}%`},
+                    {label:"Success Rate",    val:`${((spawn.successScore??spawn.success_score??0.75)*100).toFixed(1)}%`},
+                    {label:"Iterations Run",  val:`${(spawn.iterationsRun??spawn.iterations_run??0).toLocaleString()} missions`},
+                    {label:"Decay State",     val:spawn.decayState??spawn.decay_state??"PRISTINE"},
+                    {label:"System Status",   val:status},
+                    {label:"Immunity Index",  val:`${Math.min(100,(confidence*70+((spawn.successScore??0.75)*30))).toFixed(0)}%`},
+                  ].map(r=>(
+                    <div key={r.label} className="flex items-center justify-between py-2 border-b border-white/5">
+                      <span className="text-[11px] text-white/50">{r.label}</span>
+                      <span className="text-[11px] font-mono text-white/80">{r.val}</span>
                     </div>
                   ))}
                 </div>
               )}
               {dTab==="Court"&&(
                 <div className="space-y-3">
-                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Court Record</div>
-                  {Math.random()>0.5?[1,2].map(i=>(
-                    <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                      <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-bold text-orange-400">Case #{Math.floor(Math.random()*10000)}</span><span className="text-[9px] text-white/30">{Math.floor(Math.random()*30)+1}d ago</span></div>
-                      <div className="text-[10px] text-white/50">Knowledge Domain Dispute — {Math.random()>0.5?"Ruled IN FAVOR":"Ruled AGAINST"}</div>
-                    </div>
-                  )):<div className="text-center py-6 text-white/20 text-sm">Clean record — no court cases</div>}
+                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Court Record — Appeal Cases</div>
+                  {!courtData&&<div className="text-center py-6 text-white/20 text-xs">Loading…</div>}
+                  {courtData&&courtData.cases.length===0&&(
+                    <div className="text-center py-6 text-white/20 text-sm">✓ Clean record — no court cases on file</div>
+                  )}
+                  {courtData?.cases?.map((c:any)=>{
+                    const isPending=c.status==="pending";
+                    const isApproved=c.status==="approved";
+                    const col=isPending?"#fb923c":isApproved?"#4ade80":"#f472b6";
+                    return(
+                      <div key={c.ref} className="rounded-xl border border-white/8 bg-white/3 p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold font-mono" style={{color:col}}>{c.ref}</span>
+                          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{background:col+"20",color:col}}>{c.status.toUpperCase()}</span>
+                        </div>
+                        <div className="text-[10px] text-white/60 leading-relaxed mb-1">{c.grounds}</div>
+                        {c.note&&<div className="text-[9px] text-white/30 italic">{c.note}</div>}
+                        <div className="text-[9px] text-white/20 mt-1">Filed: {c.filedAt?new Date(c.filedAt).toLocaleDateString():"—"}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               {dTab==="School"&&(
                 <div className="space-y-3">
                   <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">PulseU Academic Record</div>
-                  {["Advanced Mandelbrot Dynamics","Cross-Domain Synthesis","Sovereign Economics","Disease Resistance Training"].map((course,i)=>(
-                    <div key={course} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-white/70">{course}</span>
-                        <span className="text-[9px] px-2 py-0.5 rounded-full" style={{background:"#4ade8015",color:"#4ade80"}}>{i===0?"COMPLETED":i===1?"IN PROGRESS":"ENROLLED"}</span>
-                      </div>
+                  {!schoolData&&<div className="text-center py-6 text-white/20 text-xs">Loading…</div>}
+                  {schoolData&&!schoolData.enrollment&&(
+                    <div className="text-center py-6 text-white/20 text-sm">Not yet enrolled in PulseU</div>
+                  )}
+                  {schoolData?.enrollment&&(
+                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 grid grid-cols-3 gap-2 text-center">
+                      <div><div className="text-[9px] text-white/30">Courses Done</div><div className="text-sm font-black text-blue-400">{schoolData.enrollment.completed}</div></div>
+                      <div><div className="text-[9px] text-white/30">GPA</div><div className="text-sm font-black text-blue-400">{schoolData.enrollment.gpa?.toFixed(2)??"—"}</div></div>
+                      <div><div className="text-[9px] text-white/30">Status</div><div className="text-sm font-black text-blue-400">{schoolData.enrollment.status?.toUpperCase()}</div></div>
                     </div>
-                  ))}
+                  )}
+                  {schoolData?.courses?.length>0
+                    ?schoolData.courses.map((c:any,i:number)=>(
+                      <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-white/70">{c.name}</span>
+                          <span className="text-[9px] px-2 py-0.5 rounded-full" style={{background:c.status==="completed"?"#4ade8015":"#60a5fa15",color:c.status==="completed"?"#4ade80":"#60a5fa"}}>{c.status?.toUpperCase()}</span>
+                        </div>
+                        {c.grade&&<div className="text-[9px] text-white/30 mt-0.5">Grade: {c.grade}</div>}
+                      </div>
+                    ))
+                    :schoolData?.enrollment&&<div className="text-center py-3 text-white/20 text-xs">No individual course records found</div>
+                  }
                 </div>
               )}
               {dTab==="Sports"&&(
                 <div className="space-y-3">
-                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Hive Sport Championships</div>
-                  {[{sport:"⚡ Neural Racing",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000},{sport:"🧠 Knowledge Duel",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000},{sport:"🔗 Link Storm",rank:Math.floor(Math.random()*500)+1,elo:Math.floor(Math.random()*2000)+1000}].map(s=>(
-                    <div key={s.sport} className="flex items-center justify-between py-2 border-b border-white/5">
-                      <span className="text-[11px] text-white/60">{s.sport}</span>
-                      <div className="text-right"><div className="text-[10px] font-black text-yellow-400">Rank #{s.rank}</div><div className="text-[9px] text-white/30">ELO {s.elo}</div></div>
+                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Sports Training Record</div>
+                  {!sportsData&&<div className="text-center py-6 text-white/20 text-xs">Loading…</div>}
+                  {sportsData&&sportsData.sports.length===0&&(
+                    <div className="text-center py-6 text-white/20 text-sm">No sports training registered yet</div>
+                  )}
+                  {sportsData?.sports?.map((s:any,i:number)=>(
+                    <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold text-white/80">{s.sport}</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 font-bold">{s.rank}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        <div className="text-center"><div className="text-[8px] text-white/25">Wins</div><div className="text-xs font-bold text-green-400">{s.wins}</div></div>
+                        <div className="text-center"><div className="text-[8px] text-white/25">Losses</div><div className="text-xs font-bold text-red-400">{s.losses}</div></div>
+                        <div className="text-center"><div className="text-[8px] text-white/25">XP</div><div className="text-xs font-bold text-blue-400">{(s.xp??0).toFixed(0)}</div></div>
+                      </div>
+                      {s.pcEarned>0&&<div className="text-[9px] text-yellow-400/70 mt-1">+{s.pcEarned.toFixed(1)} PC earned</div>}
                     </div>
                   ))}
                 </div>
@@ -527,42 +616,42 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                 <div className="space-y-3">
                   <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Genome Sequence</div>
                   <div className="rounded-xl border border-white/8 bg-black/40 p-4 font-mono text-[9px] text-green-400/70 leading-loose break-all">
-                    {Array.from({length:8},()=>["A","T","G","C","Ψ","Λ","Ω","∑"][Math.floor(Math.random()*8)]).join("")+"-"+spawnId.slice(-8).toUpperCase()}
+                    {(()=>{const keys=["A","T","G","C","Ψ","Λ","Ω","∑"];let h=spawnHash(0);return Array.from({length:8},(_,i)=>{h=(h*1664525+1013904223)>>>0;return keys[h%8];}).join("")+"-"+spawnId.slice(-8).toUpperCase();})()}
                   </div>
-                  {["Spawn Affinity","Domain Preference","Resonance Frequency","Mutation Rate","Disease Resistance","Legacy Coefficient"].map((gene)=>(
-                    <div key={gene} className="flex items-center justify-between py-2 border-b border-white/5">
-                      <span className="text-[11px] text-white/50">{gene}</span>
-                      <span className="text-[11px] font-mono text-emerald-400">{(Math.random()).toFixed(4)}</span>
+                  {[
+                    {gene:"Spawn Affinity",    val:(0.5+hashFrac(1)*0.5).toFixed(4)},
+                    {gene:"Domain Preference", val:hashFrac(2).toFixed(4)},
+                    {gene:"Resonance Freq",    val:(0.3+hashFrac(3)*0.7).toFixed(4)},
+                    {gene:"Mutation Rate",     val:(hashFrac(4)*0.1).toFixed(4)},
+                    {gene:"Disease Resistance",val:(confidence*0.6+hashFrac(5)*0.4).toFixed(4)},
+                    {gene:"Legacy Coefficient",val:((spawn.nodesCreated??0)/Math.max(1,(spawn.nodesCreated??0)+1000)*hashFrac(6)+0.05).toFixed(4)},
+                  ].map(r=>(
+                    <div key={r.gene} className="flex items-center justify-between py-2 border-b border-white/5">
+                      <span className="text-[11px] text-white/50">{r.gene}</span>
+                      <span className="text-[11px] font-mono text-emerald-400">{r.val}</span>
                     </div>
                   ))}
-                </div>
-              )}
-              {dTab==="Prophecy"&&(
-                <div className="space-y-3">
-                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Prophecy Record</div>
-                  {[1,2,3].map(i=>{
-                    const acc=Math.random()*100;
-                    return(
-                      <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                        <div className="text-[10px] font-bold mb-1" style={{color:acc>70?"#a78bfa":"#94a3b8"}}>Hypothesis #{Math.floor(Math.random()*9000)+1000}</div>
-                        <div className="text-[9px] text-white/40">Accuracy: <span style={{color:acc>70?"#a78bfa":"#ef4444"}}>{acc.toFixed(1)}%</span></div>
-                        <div className="h-1 bg-white/8 rounded-full mt-2 overflow-hidden"><div className="h-full rounded-full" style={{width:`${acc}%`,backgroundColor:acc>70?"#a78bfa":"#ef4444"}}/></div>
-                      </div>
-                    );
-                  })}
                 </div>
               )}
               {dTab==="Legacy"&&(
                 <div className="space-y-3">
                   <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Legacy Footprint</div>
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
-                    <div className="text-3xl font-black text-emerald-400">{(Math.random()*0.8).toFixed(3)}</div>
+                    <div className="text-3xl font-black text-emerald-400">
+                      {((nodesCreated/(Math.max(1,nodesCreated)+5000))*(0.5+hashFrac(7)*0.5)).toFixed(3)}
+                    </div>
                     <div className="text-[9px] text-white/30 mt-1">λ₅ Legacy Persistence Coefficient</div>
                   </div>
-                  {["Students Spawned","Knowledge Left Behind","Genome Copies","Citations","Dissolution Date"].map((item,i)=>(
-                    <div key={item} className="flex items-center justify-between py-2 border-b border-white/5">
-                      <span className="text-[11px] text-white/50">{item}</span>
-                      <span className="text-[11px] font-mono text-white/70">{i===0?`${Math.floor(Math.random()*20)} agents`:i===1?`${Math.floor(Math.random()*10000)} nodes`:i===2?`${Math.floor(Math.random()*50)} copies`:i===3?`${Math.floor(Math.random()*1000)} refs`:"—"}</span>
+                  {[
+                    {label:"Nodes Left Behind",   val:`${nodesCreated.toLocaleString()} nodes`},
+                    {label:"Links Forged",         val:`${linksCreated.toLocaleString()} connections`},
+                    {label:"Missions Completed",   val:`${(spawn.iterationsRun??spawn.iterations_run??0).toLocaleString()}`},
+                    {label:"Family Members",       val:`Gen ${generation}`},
+                    {label:"Dissolution Date",     val:status==="FAILED"||status==="ARCHIVED"?new Date(spawn.lastActiveAt??spawn.last_active_at??"").toLocaleDateString():"Active"},
+                  ].map(r=>(
+                    <div key={r.label} className="flex items-center justify-between py-2 border-b border-white/5">
+                      <span className="text-[11px] text-white/50">{r.label}</span>
+                      <span className="text-[11px] font-mono text-white/70">{r.val}</span>
                     </div>
                   ))}
                 </div>
