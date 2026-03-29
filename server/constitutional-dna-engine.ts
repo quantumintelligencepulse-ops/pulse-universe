@@ -26,28 +26,45 @@ const CONSTITUTIONAL_PARAMETERS = [
   { name: "MESH_RESCUE_THRESHOLD", current: 40, min: 20, max: 70, step: 5,    desc: "Vitality score below which a universe triggers COLLAPSE RISK alert" },
 ];
 
-// Build the Senate voter roll dynamically from PULSE_DOCTORS across governance-adjacent domains
-function buildSenateVoters(): string[] {
-  // Full voter roll — dynamically derived from PULSE_DOCTORS across all categories
-  // Picks up to 8 doctors spanning governance-adjacent domains
+// Build the Senate voter roll from LIVE runtime social_profiles in the DB.
+// Candidate names are sourced from PULSE_DOCTORS (governance-adjacent categories),
+// then resolved against actual social_profiles rows so voters are real Hive entities.
+async function buildSenateVoters(): Promise<{ id: number; name: string }[]> {
   const govCategories = ["ENGINEERING", "QUANTUM", "SOCIAL", "HUMANITIES", "ENVIRONMENTAL"];
-  const doctorVoters = PULSE_DOCTORS
+  // Derive candidate names from PULSE_DOCTORS filtered by governance categories
+  let candidates = PULSE_DOCTORS
     .filter(d => govCategories.includes(d.category))
-    .slice(0, 8)
     .map(d => d.name);
-  // If we got fewer than 4, supplement with any available doctors
-  if (doctorVoters.length < 4) {
+  // Supplement to 8 if fewer govern-adjacent doctors available
+  if (candidates.length < 8) {
     const extra = PULSE_DOCTORS
       .filter(d => !govCategories.includes(d.category))
-      .slice(0, 4 - doctorVoters.length)
-      .map(d => d.name);
-    return [...doctorVoters, ...extra];
+      .map(d => d.name)
+      .slice(0, 8 - candidates.length);
+    candidates = [...candidates, ...extra];
   }
-  return doctorVoters;
+  candidates = candidates.slice(0, 8);
+
+  // Resolve against live DB social_profiles so voters are real Hive entities
+  try {
+    const result = await db.execute(sql`
+      SELECT id, username
+      FROM social_profiles
+      WHERE username = ANY(${candidates}::text[])
+        AND is_ai = TRUE
+      LIMIT 8
+    `);
+    if (result.rows.length >= 4) {
+      return (result.rows as any[]).map(r => ({ id: r.id as number, name: r.username as string }));
+    }
+  } catch (_) {}
+
+  // Fallback: use PULSE_DOCTORS names with synthetic IDs (no DB profiles found)
+  return candidates.map((name, i) => ({ id: i + 1, name }));
 }
 
-function simulateSenateVote(rationale: string): { for: number; against: number; outcome: string } {
-  const voters      = buildSenateVoters();
+async function simulateSenateVote(rationale: string): Promise<{ for: number; against: number; outcome: string }> {
+  const voters      = await buildSenateVoters();
   const forVotes     = Math.floor(voters.length * (0.4 + Math.random() * 0.5));
   const againstVotes = voters.length - forVotes;
   const outcome      = forVotes > againstVotes ? "RATIFIED" : "REJECTED";
@@ -81,7 +98,7 @@ async function runConstitutionalCycle() {
         ? `Current dK/dt (${avgDkDt.toFixed(1)}) is below optimal threshold. Increasing ${param.name} to accelerate civilization growth.`
         : `Current dK/dt (${avgDkDt.toFixed(1)}) shows healthy trajectory. Fine-tuning ${param.name} for long-term optimization.`;
 
-      const vote = simulateSenateVote(rationale);
+      const vote = await simulateSenateVote(rationale);
       const isEnacted = vote.outcome === "RATIFIED";
       if (isEnacted) enacted++;
 
