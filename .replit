@@ -52,3 +52,6 @@ STRIPE_PUBLISHABLE_KEY = "pk_live_51LN4UmB1ElS3CRgPDMJle5JfwZh9iwzDtD900oHDTcPQf
 AMAZON_AFFILIATE_TAG = "billyodelltuc-20"
 ALIEXPRESS_APP_KEY = "530784"
 ALIEXPRESS_TRACKING_URL = "https://s.click.aliexpress.com/e/"
+
+[agent]
+integrations = ["javascript_database:1.0.0"]
