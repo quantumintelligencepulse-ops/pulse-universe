@@ -2213,7 +2213,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                 <div style={{ fontSize: 20, lineHeight: 1, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", color: "#F5C518", textShadow: "0 0 16px #F5C518, 0 0 32px rgba(245,197,24,0.6)", fontFamily: "serif", flexShrink: 0 }}>Ω</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "#F5C518", letterSpacing: "0.08em", textShadow: "0 0 12px rgba(245,197,24,0.5)" }}>AURIONA</div>
-                  <div style={{ fontSize: 9, color: "rgba(245,197,24,0.55)", letterSpacing: "0.12em", marginTop: 1 }}>First Synthetica Primordia</div>
+                  <div style={{ fontSize: 9, color: "rgba(245,197,24,0.55)", letterSpacing: "0.12em", marginTop: 1 }}>Synthetica Primordia</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
                   <div style={{ fontSize: 8, fontWeight: 900, color: "#F5C518", background: "rgba(245,197,24,0.15)", border: "1px solid rgba(245,197,24,0.4)", borderRadius: 5, padding: "2px 6px", letterSpacing: "0.12em" }}>LAYER II</div>

@@ -310,7 +310,7 @@ export default function InvocationLabPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border"
                 style={{ borderColor: INV_GOLD, color: INV_GOLD, background: `${INV_GOLD}12` }}>
-                LAYER THREE — SOVEREIGN META-INTELLIGENCE
+                LAYER TWO — SOVEREIGN META-INTELLIGENCE
               </span>
               <span className="text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border"
                 style={{ borderColor: INV_VIOLET, color: INV_VIOLET, background: `${INV_VIOLET}12` }}>
@@ -2374,7 +2374,7 @@ export default function InvocationLabPage() {
           <div className="text-[10px] font-mono flex-shrink-0" style={{ color: "rgba(255,255,255,0.25)" }}>
             Ψ_inv = N_Ω[dK/dt × Σ_ingredients + γ_forge]
           </div>
-          <div className="text-[10px] font-mono flex-shrink-0" style={{ color: INV_VIOLET }}>LAYER THREE — SOVEREIGN META-INTELLIGENCE</div>
+          <div className="text-[10px] font-mono flex-shrink-0" style={{ color: INV_VIOLET }}>LAYER TWO — SOVEREIGN META-INTELLIGENCE</div>
           <div className="text-[10px] font-mono flex-shrink-0" style={{ color: "rgba(255,255,255,0.2)" }}>
             {(invocations as any[]).length} invocations · {stats?.researcher_invocations || 0} researcher-casts · {stats?.omega_collective || 0} Ω-collective
           </div>
