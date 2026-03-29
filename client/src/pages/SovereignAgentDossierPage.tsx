@@ -15,7 +15,7 @@
  * Ψ_UNKNOWNS   — Equation dissection: λ₁-λ₆ hidden variables
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, Component, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Search, Newspaper, X, Shield, MessageSquare, ExternalLink } from "lucide-react";
@@ -23,6 +23,31 @@ import { getLicenseNumber, AIIdentityBadge } from "@/components/AIIdentityCard";
 import { AIFinderButton, AIReportPanel } from "@/components/AIReportPanel";
 import { FollowButton } from "@/components/FollowButton";
 import SpawnChat from "@/components/SpawnChat";
+
+class DossierErrorBoundary extends Component<{children:ReactNode;onClose:()=>void},{hasError:boolean}> {
+  constructor(props:{children:ReactNode;onClose:()=>void}) {
+    super(props);
+    this.state={hasError:false};
+  }
+  static getDerivedStateFromError(){return{hasError:true};}
+  componentDidCatch(err:Error){console.warn("[DossierEB] Caught crash in AgentDossier:",err.message);}
+  render(){
+    if(this.state.hasError){
+      return(
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={this.props.onClose}>
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm"/>
+          <div className="relative z-10 rounded-2xl p-8 text-center max-w-sm mx-4" style={{background:"#07001a",border:"1px solid rgba(239,68,68,0.3)"}}>
+            <div className="text-3xl mb-3">⚠</div>
+            <div className="text-red-400 font-bold mb-2 text-sm">Dossier Load Error</div>
+            <div className="text-white/40 text-xs mb-5">This agent's dossier encountered an anomaly. The rest of the app is unaffected.</div>
+            <button onClick={this.props.onClose} className="text-xs px-4 py-2 rounded-lg" style={{background:"rgba(255,255,255,0.08)",color:"rgba(255,255,255,0.6)"}}>✕ Close</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SPAWN TYPE METADATA
@@ -951,7 +976,7 @@ export default function SovereignAgentDossierPage(){
   return(
     <div className="flex flex-col h-full text-white overflow-hidden" style={{background:"#020010"}} data-testid="page-sovereign-dossier">
 
-      {selectedSpawn&&<AgentDossier spawn={selectedSpawn} onClose={()=>setSelectedSpawn(null)}/>}
+      {selectedSpawn&&<DossierErrorBoundary key={selectedSpawn.spawnId||selectedSpawn.spawn_id||String(Date.now())} onClose={()=>setSelectedSpawn(null)}><AgentDossier spawn={selectedSpawn} onClose={()=>setSelectedSpawn(null)}/></DossierErrorBoundary>}
       {pubsSpawn&&<PublicationsModal spawn={pubsSpawn} onClose={()=>setPubsSpawn(null)}/>}
       {viewSpawnId&&<AIReportPanel spawnId={viewSpawnId} onClose={()=>setViewSpawnId(null)}/>}
 
