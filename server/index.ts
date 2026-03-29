@@ -48,6 +48,10 @@ import { startQuantumSocialEngine } from "./quantum-social-engine";
 import { startOmniNetEngine } from "./omni-net-engine";
 import { startPulseNetCache } from "./pulsenet-cache";
 import { startPulseLabCycle } from "./pulse-lang-lab";
+import { startQuantapediaEngine } from "./quantapedia-engine";
+import { startResearchCenterEngine } from "./research-center-engine";
+import { startInventionEngine } from "./invention-engine";
+import { startQuantumDissectionEngine } from "./quantum-dissection-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -328,6 +332,14 @@ async function seedOmegaSources() {
   startQuantumSocialEngine().catch((e: Error) => console.error("[quantum-social] startup error:", e.message));
   // ── PULSE LANG LAB — AI scientists run live equation dissections and lab proposals ──
   startPulseLabCycle();
+  // ── QUANTAPEDIA ENGINE — AI encyclopedia: generates articles for all 13,000+ queued topics ──
+  startQuantapediaEngine().catch((e: Error) => console.error("[quantapedia] startup error:", e.message));
+  // ── RESEARCH CENTER ENGINE — Agents conduct deep research across all disciplines ──
+  startResearchCenterEngine().catch((e: Error) => console.error("[research-center] startup error:", e.message));
+  // ── INVENTION ENGINE — Agents generate and mutate inventions autonomously ──
+  startInventionEngine().catch((e: Error) => console.error("[invention] startup error:", e.message));
+  // ── QUANTUM DISSECTION ENGINE — Agents dissect equations into knowledge ──
+  startQuantumDissectionEngine().catch((e: Error) => console.error("[dissection] startup error:", e.message));
   // ── OMEGA SOURCES SEED — Restore hundreds of research sources if wiped ──
   seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message));
 })();
