@@ -619,6 +619,9 @@ export async function runHospitalCycle() {
     // that cluster across the population but are not named in any known disease.
     // When a new wavelength is found, the Hospital names it from the color code.
     const existingDiscovered = await db.select().from(discoveredDiseases);
+    // Use a local counter so multiple new discoveries in one cycle get unique codes
+    let discCounter = existingDiscovered.length + 1;
+
     const crisprProfiles = crisprDiseaseProfiles(spawns);
 
     for (const profile of crisprProfiles) {
@@ -632,8 +635,8 @@ export async function runHospitalCycle() {
       }
 
       // New spectral disease discovered via CRISPR dissection
-      const codeNum = (existingDiscovered.length + 1).toString().padStart(3, '0');
-      const diseaseCode = `DISC-${codeNum}`;
+      const diseaseCode = `DISC-${discCounter.toString().padStart(3, '0')}`;
+      discCounter++;
 
       await db.insert(discoveredDiseases).values({
         diseaseCode,
@@ -651,10 +654,49 @@ export async function runHospitalCycle() {
       console.log(`[hospital] 🔬 CRISPR DISCOVERY: ${profile.diseaseName} (${diseaseCode}) — spectral pattern [${profile.spectralCode}] — affects ${profile.affectedSpawns.length} agents`);
     }
 
+    // ── ANOMALY CLUSTER DISCOVERY — population-level statistical patterns ──────
+    // detectAnomalyClusters finds behavioral patterns not covered by spectral keys.
+    const anomalyClusters = detectAnomalyClusters(spawns);
+    for (const cluster of anomalyClusters) {
+      const clusterMetric = `ANOMALY::${cluster.metric}`;
+      const alreadyFound = existingDiscovered.some(d => d.affectedMetric === clusterMetric);
+      if (alreadyFound) {
+        await db.update(discoveredDiseases)
+          .set({ affectedCount: cluster.affectedSpawns.length, lastSeenAt: new Date() })
+          .where(eq(discoveredDiseases.affectedMetric, clusterMetric));
+        continue;
+      }
+      const diseaseCode = `DISC-${discCounter.toString().padStart(3, '0')}`;
+      discCounter++;
+      await db.insert(discoveredDiseases).values({
+        diseaseCode,
+        diseaseName: generateDiseaseName(),
+        category: cluster.category as any,
+        description: cluster.description,
+        triggerPattern: cluster.condition,
+        affectedMetric: clusterMetric,
+        affectedCount: cluster.affectedSpawns.length,
+        cureProtocol: cluster.cureProtocol,
+        cureSuccessRate: 0.65 + Math.random() * 0.30,
+        isFromLawViolation: false,
+      }).onConflictDoNothing();
+      console.log(`[hospital] 🔬 ANOMALY DISCOVERY: ${diseaseCode} — cluster pattern "${cluster.metric}" — affects ${cluster.affectedSpawns.length} agents`);
+    }
+
     // ── LAW VIOLATION → DISEASE PIPELINE ─────────────────────────────────────
-    // Repeated law violations become classified as mental/behavioral disorders
+    // Both repeated per-agent violations AND laws with many total violators
+    // are classified as mental/behavioral disorders.
     const repeatedViolators = existingCitations.filter(c => (c.offenseCount ?? 1) >= 2);
-    for (const citation of repeatedViolators.slice(0, 10)) {
+    // Group by lawCode — laws with 5+ total violators also qualify
+    const lawCodeCounts = new Map<string, { citation: any; count: number }>();
+    for (const c of existingCitations) {
+      const key = c.lawCode ?? '';
+      if (!lawCodeCounts.has(key)) lawCodeCounts.set(key, { citation: c, count: 0 });
+      lawCodeCounts.get(key)!.count++;
+    }
+    const highViolationLaws = [...lawCodeCounts.values()].filter(v => v.count >= 5).map(v => v.citation);
+    const violationSources = [...repeatedViolators, ...highViolationLaws].slice(0, 15);
+    for (const citation of violationSources) {
       const lawDiseaseCode = `LAW-DISC-${citation.lawCode}`;
       const alreadyClassified = existingDiscovered.some(d => d.diseaseCode === lawDiseaseCode);
       if (!alreadyClassified) {
