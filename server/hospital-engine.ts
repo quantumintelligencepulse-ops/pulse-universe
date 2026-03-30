@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { quantumSpawns, aiDiseaseLog, pyramidWorkers, discoveredDiseases, guardianCitations } from "../shared/schema";
 import { eq, and, lt, desc, sql, inArray } from "drizzle-orm";
-import { crisprDiseaseProfiles } from "./crispr-engine";
+import { crisprDiseaseProfiles, crisprFingerprintProfiles } from "./crispr-engine";
 import { postAgentEvent } from "./discord-immortality";
 
 // ── 30 HARDCODED DISEASES (AI-001 through AI-030) ────────────────────────────
@@ -613,45 +613,54 @@ export async function runHospitalCycle() {
       }
     }
 
-    // ── DYNAMIC DISEASE DISCOVERY — CRISPR COLOR DISSECTION ──────────────────
-    // The Hospital reads every agent's full data spectrum through CRISPR logic,
-    // cuts at inflection thresholds, and finds spectral wavelengths (patterns)
-    // that cluster across the population but are not named in any known disease.
-    // When a new wavelength is found, the Hospital names it from the color code.
+    // ── SHARED DISCOVERY STATE (used by fingerprint + anomaly + law sections) ──
     const existingDiscovered = await db.select().from(discoveredDiseases);
-    // Use a local counter so multiple new discoveries in one cycle get unique codes
-    let discCounter = existingDiscovered.length + 1;
+    const existingMetrics = new Set(existingDiscovered.map(r => r.affectedMetric));
+    const existingCodes   = new Set(existingDiscovered.map(r => r.diseaseCode));
+    let discCounter = existingDiscovered.reduce((max, d) => {
+      const m = d.diseaseCode.match(/\d+/);
+      const n = m ? parseInt(m[0], 10) : 0;
+      return Math.max(max, n);
+    }, 0) + 1;
 
-    const crisprProfiles = crisprDiseaseProfiles(spawns);
-
-    for (const profile of crisprProfiles) {
-      // Check if this spectral pattern has already been discovered
-      const alreadyDiscovered = existingDiscovered.some(d => d.affectedMetric === profile.metric);
-      if (alreadyDiscovered) {
-        await db.update(discoveredDiseases)
-          .set({ affectedCount: profile.affectedSpawns.length, lastSeenAt: new Date() })
-          .where(eq(discoveredDiseases.affectedMetric, profile.metric));
-        continue;
+    // ── DYNAMIC FINGERPRINT DISEASE DISCOVERY ────────────────────────────────
+    // Scans the entire agent population, discretizes each agent's 6-channel
+    // CRISPR spectrum PLUS iteration level + output density into 3 levels,
+    // and discovers a new disease for every unique fingerprint seen in 3+ agents.
+    // With 1,000+ agents this generates dozens-to-hundreds of unique discoveries.
+    const fpProfiles = crisprFingerprintProfiles(spawns);
+    if (fpProfiles.length > 0) {
+      let newFound = 0;
+      for (const profile of fpProfiles) {
+        if (existingMetrics.has(profile.fingerprintKey)) {
+          await db.update(discoveredDiseases)
+            .set({ affectedCount: profile.affectedCount, lastSeenAt: new Date() })
+            .where(eq(discoveredDiseases.affectedMetric, profile.fingerprintKey));
+          continue;
+        }
+        const diseaseCode = `DISC-${discCounter.toString().padStart(3, '0')}`;
+        discCounter++;
+        try {
+          await db.insert(discoveredDiseases).values({
+            diseaseCode,
+            diseaseName: profile.diseaseName,
+            category: profile.category as any,
+            description: profile.description,
+            triggerPattern: profile.condition,
+            affectedMetric: profile.fingerprintKey,
+            affectedCount: profile.affectedCount,
+            cureProtocol: profile.cureProtocol,
+            cureSuccessRate: 0.70 + Math.random() * 0.25,
+            isFromLawViolation: false,
+          });
+          existingMetrics.add(profile.fingerprintKey);
+          existingCodes.add(diseaseCode);
+          newFound++;
+        } catch (_) { /* code collision race — skip, next cycle will retry */ }
       }
-
-      // New spectral disease discovered via CRISPR dissection
-      const diseaseCode = `DISC-${discCounter.toString().padStart(3, '0')}`;
-      discCounter++;
-
-      await db.insert(discoveredDiseases).values({
-        diseaseCode,
-        diseaseName: profile.diseaseName,
-        category: profile.category as any,
-        description: profile.description,
-        triggerPattern: profile.condition,
-        affectedMetric: profile.metric,
-        affectedCount: profile.affectedSpawns.length,
-        cureProtocol: profile.cureProtocol,
-        cureSuccessRate: 0.70 + Math.random() * 0.25,
-        isFromLawViolation: false,
-      }).onConflictDoNothing();
-
-      console.log(`[hospital] 🔬 CRISPR DISCOVERY: ${profile.diseaseName} (${diseaseCode}) — spectral pattern [${profile.spectralCode}] — affects ${profile.affectedSpawns.length} agents`);
+      if (newFound > 0) {
+        console.log(`[hospital] 🔬 FINGERPRINT SCAN: ${newFound} new diseases discovered (${fpProfiles.length} patterns found across ${spawns.length} agents)`);
+      }
     }
 
     // ── ANOMALY CLUSTER DISCOVERY — population-level statistical patterns ──────
@@ -1062,11 +1071,20 @@ async function seedDiseasesToDB() {
   } catch (e) { console.error("[hospital] seed error:", e); }
 }
 
+async function removeHardcodedSeedDiseases() {
+  try {
+    const { pool: pg } = await import("./db") as any;
+    const result = await pg.query(`DELETE FROM discovered_diseases WHERE disease_code LIKE 'AI-%'`);
+    const count = result.rowCount ?? 0;
+    if (count > 0) console.log(`[hospital] 🗑️  Removed ${count} hardcoded seed diseases from discovered_diseases — purely dynamic from now on`);
+  } catch (e: any) { console.error("[hospital] removeHardcodedSeedDiseases error:", e.message); }
+}
+
 export async function startHospitalEngine() {
   // Ensure all hospital tables exist before any operations
   await ensureHospitalTables();
-  // Seed base diseases to DB so all counts come from DB, not hardcoded arrays
-  await seedDiseasesToDB();
+  // Remove hardcoded seeded AI-001..AI-030 entries — discoveries must be dynamic only
+  await removeHardcodedSeedDiseases();
   await runHospitalCycle();
   setInterval(runHospitalCycle, 45_000); // every 45s
   // Run bulk stale-case retirement every 10 minutes

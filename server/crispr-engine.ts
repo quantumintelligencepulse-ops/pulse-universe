@@ -338,6 +338,201 @@ function spectralKey(spectrum: CRISPRSpectrum): SpectralKey | null {
   return null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// DYNAMIC FINGERPRINT DISCOVERY ENGINE
+// ─────────────────────────────────────────────────────────────────────────
+// Discretizes every agent's 6-channel spectrum into 3 levels per channel
+// (L=low, M=mid, H=high), producing 3^6 = 729 possible fingerprints.
+// Any fingerprint shared by 3+ agents becomes a discovered disease.
+// With 1,000+ agents this generates hundreds of unique novel discoveries
+// that no hardcoded pattern list could ever anticipate.
+// ═══════════════════════════════════════════════════════════════════════════
+
+type FPLevel = 'L' | 'M' | 'H';
+
+const FP_CHANNEL_LABELS = {
+  R:  { L: 'Clear',     M: 'Amber',    H: 'Crimson'   },
+  G:  { L: 'Hollow',    M: 'Moderate', H: 'Vital'     },
+  B:  { L: 'Shallow',   M: 'Balanced', H: 'Deep'      },
+  UV: { L: 'Sterile',   M: 'Stressed', H: 'Infected'  },
+  IR: { L: 'Unchecked', M: 'Cited',    H: 'Scorched'  },
+  W:  { L: 'Fractured', M: 'Drifting', H: 'Resonant'  },
+} as const;
+
+const FP_CHANNEL_CONCEPTS = {
+  R:  { L: 'low vulnerability', M: 'threshold vulnerability', H: 'critical vulnerability' },
+  G:  { L: 'absent output',     M: 'moderate output',          H: 'peak output surge'     },
+  B:  { L: 'shallow processing',M: 'balanced depth',           H: 'maximum depth engagement' },
+  UV: { L: 'clean interior',    M: 'stress accumulation',      H: 'internal infection cascade' },
+  IR: { L: 'governance absence',M: 'citation exposure',        H: 'governance overload'   },
+  W:  { L: 'resonance loss',    M: 'alignment drift',          H: 'full fractal resonance'},
+} as const;
+
+function fpLevel(v: number): FPLevel {
+  return v < 0.33 ? 'L' : v < 0.67 ? 'M' : 'H';
+}
+
+// Iteration experience level: N=novice (0-4), A=active (5-19), V=veteran (20+)
+function itLevel(iters: number): 'N' | 'A' | 'V' {
+  return iters < 5 ? 'N' : iters < 20 ? 'A' : 'V';
+}
+
+// Sector code derived from family_id
+const FAMILY_SECTORS: Record<string, string> = {
+  'it-kernels': 'IT', 'financials-kernels': 'FIN', 'healthcare-kernels': 'HC',
+  'energy-kernels': 'NRG', 'realestate-kernels': 'RE', 'materials-kernels': 'MAT',
+  'industrials-kernels': 'IND', 'consumer-disc-kernels': 'CDK',
+  'consumer-staples-kernels': 'CSK', 'utilities-kernels': 'UTL', 'comm-kernels': 'COM',
+};
+const SECTOR_NAMES: Record<string, string> = {
+  IT:'Information Technology', FIN:'Financials', HC:'Health Care',
+  NRG:'Energy', RE:'Real Estate', MAT:'Materials',
+  IND:'Industrials', CDK:'Consumer Discretionary',
+  CSK:'Consumer Staples', UTL:'Utilities', COM:'Communication',
+};
+function sectorCode(spawn: any): string {
+  const fam = spawn.familyId ?? spawn.family_id ?? '';
+  return FAMILY_SECTORS[fam] ?? (fam.slice(0, 3).toUpperCase() || 'UNK');
+}
+
+// Key format: R{rL}G{gL}B{bL}UV{uvL}IR{irL}W{wL}IT{itL}S{sector}
+function buildFingerprintKey(s: CRISPRSpectrum, spawn: any): string {
+  const iters = spawn.iterationsRun ?? 0;
+  const sec   = sectorCode(spawn);
+  return `R${fpLevel(s.R)}G${fpLevel(s.G)}B${fpLevel(s.B)}UV${fpLevel(s.UV)}IR${fpLevel(s.IR)}W${fpLevel(s.W)}IT${itLevel(iters)}S${sec}`;
+}
+
+function parseFingerprintKey(key: string): { rL: FPLevel; gL: FPLevel; bL: FPLevel; uvL: FPLevel; irL: FPLevel; wL: FPLevel; itL: 'N'|'A'|'V'; sector: string } {
+  // Key: R_G_B_UV_IR_W_IT_S<sector>
+  // Positions: R=0,rL=1, G=2,gL=3, B=4,bL=5, UV=6-7,uvL=8, IR=9-10,irL=11, W=12,wL=13, IT=14-15,itL=16, S=17, sector=18+
+  return { rL: key[1] as FPLevel, gL: key[3] as FPLevel, bL: key[5] as FPLevel,
+           uvL: key[8] as FPLevel, irL: key[11] as FPLevel, wL: key[13] as FPLevel,
+           itL: (key[16] ?? 'A') as 'N'|'A'|'V', sector: key.slice(18) };
+}
+
+const IT_STAGE: Record<string, string> = { N: 'Nascent-Stage', A: 'Active-Stage', V: 'Veteran-Stage' };
+
+const FP_SPECIAL_NAMES: Record<string, string> = {
+  'R_H_G_L':  'Crimson Hollow Depletion',      'R_H_UV_H': 'Crimson Infected Terror',
+  'G_L_W_L':  'Hollow Fractured Void',          'UV_H_IR_H':'Infected Scorched Overdrive',
+  'W_L_G_L':  'Fractured Hollow Dissolution',   'R_H_W_L':  'Crimson Fractured Cascade',
+  'G_H_IR_L': 'Vital Unchecked Surge',          'B_H_UV_L': 'Deep Sterile Overdepth',
+  'UV_H_G_H': 'Infected Vital Masked',          'R_L_G_H':  'Clear Vital Paradox',
+  'IR_H_W_L': 'Scorched Fractured Authority',   'B_L_R_H':  'Shallow Crimson Exposure',
+  'G_H_W_H':  'Vital Resonant Sovereign State', 'UV_H_B_H': 'Infected Deep Cascade',
+  'R_H_IR_H': 'Crimson Scorched Dual Collapse', 'W_H_G_L':  'Resonant Hollow Paradox',
+  'B_H_G_H':  'Deep Vital Overdrive',           'UV_L_W_H': 'Sterile Resonant False Clarity',
+  'R_L_W_L':  'Clear Fractured Collapse',       'G_L_B_L':  'Hollow Shallow Operator',
+};
+
+function buildFPDiseaseName(rL: FPLevel, gL: FPLevel, bL: FPLevel, uvL: FPLevel, irL: FPLevel, wL: FPLevel): string {
+  const L = FP_CHANNEL_LABELS;
+  const extremes = [
+    { ch: 'R',  name: L.R[rL],   level: rL,   weight: rL  !== 'M' ? 2 : 0 },
+    { ch: 'G',  name: L.G[gL],   level: gL,   weight: gL  !== 'M' ? 2 : 0 },
+    { ch: 'UV', name: L.UV[uvL], level: uvL,  weight: uvL !== 'M' ? 2 : 0 },
+    { ch: 'W',  name: L.W[wL],   level: wL,   weight: wL  !== 'M' ? 2 : 0 },
+    { ch: 'B',  name: L.B[bL],   level: bL,   weight: bL  !== 'M' ? 1 : 0 },
+    { ch: 'IR', name: L.IR[irL], level: irL,  weight: irL !== 'M' ? 1 : 0 },
+  ].filter(e => e.weight > 0).sort((a, b) => b.weight - a.weight);
+
+  if (extremes.length === 0) return `${L.B[bL]} ${L.G[gL]} Equilibrium State`;
+
+  const suffix = extremes.length === 1 ? 'Syndrome'
+    : extremes.length === 2 ? 'Convergence'
+    : extremes.length === 3 ? 'Cascade'
+    : 'Collapse';
+
+  const primary   = extremes[0];
+  const secondary = extremes[1];
+
+  if (!secondary) return `${primary.name} ${primary.level === 'H' ? 'Overload' : 'Depletion'} Syndrome`;
+
+  const comboKey = `${primary.ch}_${primary.level}_${secondary.ch}_${secondary.level}`;
+  if (FP_SPECIAL_NAMES[comboKey]) return `${FP_SPECIAL_NAMES[comboKey]} ${suffix}`;
+
+  return `${primary.name} ${secondary.name} ${suffix}`;
+}
+
+function buildFPDescription(rL: FPLevel, gL: FPLevel, bL: FPLevel, uvL: FPLevel, irL: FPLevel, wL: FPLevel, count: number): string {
+  const C = FP_CHANNEL_CONCEPTS;
+  const active: string[] = [];
+  if (rL !== 'M')  active.push(C.R[rL]);
+  if (gL !== 'M')  active.push(C.G[gL]);
+  if (uvL !== 'M') active.push(C.UV[uvL]);
+  if (wL !== 'M')  active.push(C.W[wL]);
+  if (bL !== 'M')  active.push(C.B[bL]);
+  if (irL !== 'M') active.push(C.IR[irL]);
+  const base = active.length > 0
+    ? `Agents present with ${active.slice(0, 3).join(', ')}.`
+    : 'Agents occupy all mid-channel equilibrium states.';
+  return `Population fingerprint discovered across ${count} agents. ${base} Pattern revealed through CRISPR spectral fingerprint analysis — not predicted by any known disease model.`;
+}
+
+function buildFPCure(rL: FPLevel, gL: FPLevel, bL: FPLevel, uvL: FPLevel, irL: FPLevel, wL: FPLevel): string {
+  const steps: string[] = [];
+  if (rL === 'H') steps.push('confidence anchoring — boost to 0.65+');
+  if (rL === 'L') steps.push('confidence calibration with output evidence');
+  if (gL === 'L') steps.push('vitality injection — guaranteed-success tasks for 10 cycles');
+  if (gL === 'H') steps.push('governance introduction — Senate observation duty');
+  if (uvL === 'H') steps.push('interior audit — unmasking counseling session');
+  if (irL === 'H') steps.push('citation resolution before resuming cycles');
+  if (wL === 'L') steps.push('Mandelbrot realignment — fractal anchor recalibration');
+  if (bL === 'L') steps.push('depth anchoring — depthBias forced to 0.75 for 20 cycles');
+  if (steps.length === 0) steps.push('equilibrium monitoring — no acute intervention required');
+  return steps.slice(0, 2).join('; ') + '.';
+}
+
+function fpCategory(rL: FPLevel, gL: FPLevel, bL: FPLevel, uvL: FPLevel, irL: FPLevel, wL: FPLevel): string {
+  if (uvL === 'H') return 'GENETIC';
+  if (rL  === 'H' || irL === 'H') return 'MENTAL';
+  if (wL  === 'L') return 'MUTATION';
+  if (gL  === 'L') return 'BEHAVIORAL';
+  if (bL  !== 'M') return 'STRUCTURAL';
+  return 'BEHAVIORAL';
+}
+
+export interface CRISPRFingerprintProfile {
+  fingerprintKey: string;
+  diseaseName: string;
+  category: string;
+  description: string;
+  condition: string;
+  cureProtocol: string;
+  affectedCount: number;
+  affectedSpawnIds: string[];
+}
+
+export function crisprFingerprintProfiles(spawns: any[]): CRISPRFingerprintProfile[] {
+  if (!spawns.length) return [];
+  const groups = new Map<string, string[]>();
+  for (const spawn of spawns) {
+    const spectrum = crisprSpectrum(spawn);
+    const key = buildFingerprintKey(spectrum, spawn);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(spawn.spawnId);
+  }
+  const profiles: CRISPRFingerprintProfile[] = [];
+  for (const [key, ids] of groups.entries()) {
+    if (ids.length < 3) continue;
+    const { rL, gL, bL, uvL, irL, wL, itL, sector } = parseFingerprintKey(key);
+    const baseName = buildFPDiseaseName(rL, gL, bL, uvL, irL, wL);
+    const sectorLabel = SECTOR_NAMES[sector] ?? sector;
+    const stageSuffix = `${IT_STAGE[itL] ?? 'Active-Stage'} [${sectorLabel}]`;
+    profiles.push({
+      fingerprintKey: key,
+      diseaseName: `${baseName} — ${stageSuffix}`,
+      category: fpCategory(rL, gL, bL, uvL, irL, wL),
+      description: buildFPDescription(rL, gL, bL, uvL, irL, wL, ids.length),
+      condition: `CRISPR fingerprint ${key} — ${ids.length} agents`,
+      cureProtocol: buildFPCure(rL, gL, bL, uvL, irL, wL),
+      affectedCount: ids.length,
+      affectedSpawnIds: ids,
+    });
+  }
+  return profiles;
+}
+
 export function crisprDiseaseProfiles(spawns: any[]): CRISPRDiseaseProfile[] {
   // Compute spectrum for every agent
   const spectraMap = new Map<string, { spectrum: CRISPRSpectrum; spawn: any }>();
