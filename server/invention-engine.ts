@@ -704,6 +704,7 @@ async function resolveIPDisputes() {
 
 // ── MAIN CYCLE ────────────────────────────────────────────────────────────────
 async function inventionCycle() {
+  try {
   inventionCycleCount++;
   await pool.query(`UPDATE invention_counters SET cycle = cycle + 1`);
 
@@ -739,6 +740,7 @@ async function inventionCycle() {
       console.log(`${TAG} 📊 Cycle ${inventionCycleCount} | Approved:${s.approved} | Listed:${s.listed} | Royalties:${parseFloat(s.total_royalties??0).toFixed(0)} PC | LLCs:${l.llcs} | Revenue:${parseFloat(l.revenue??0).toFixed(0)} PC`);
     } catch {}
   }
+  } catch (e) { console.error(`${TAG} cycle error:`, (e as Error).message); }
 }
 
 // ── PUBLIC API ────────────────────────────────────────────────────────────────

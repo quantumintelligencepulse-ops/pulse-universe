@@ -11,13 +11,14 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Main shared pool — used by all background engines
-// Larger pool + longer timeout so engines queue instead of crashing
+// 50 connections (well under PostgreSQL's 112 limit) so 30+ engines
+// can queue without timing out when their cycles align.
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 28,
+  max: 50,
   min: 2,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 12000,
+  connectionTimeoutMillis: 30000,
   allowExitOnIdle: false,
 });
 pool.on('error', (err) => {
