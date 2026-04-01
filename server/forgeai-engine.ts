@@ -82,33 +82,35 @@ async function pickHiveAgent(): Promise<{ id: string; name: string; sector: stri
 
 // ── [Ω6] SOVEREIGN INVENTION LOG — auto-register built app ───────────────────
 
-async function logAsInvention(appId: number, appName: string, appDescription: string, userId?: number) {
+async function logAsInvention(appId: number, appName: string, appDescription: string, _userId?: number) {
   try {
     await pool.query(
-      `INSERT INTO equation_proposals (title, equation_text, status, votes_for, votes_against, submitted_by, created_at)
-       VALUES ($1, $2, 'PENDING', 0, 0, $3, NOW())
-       ON CONFLICT DO NOTHING`,
+      `INSERT INTO equation_proposals (title, equation, rationale, target_system, status, votes_for, votes_against, doctor_id, doctor_name, created_at)
+       VALUES ($1, $2, $3, $4, 'PENDING', 0, 0, $5, $6, NOW())`,
       [
         `Ω-FORGE: ${appName}`,
-        `ForgeAI-Generated App Invention: ${appDescription || appName}. App #${appId}. Built by Pulse Hive ForgeAI Engine.`,
-        userId ? `user:${userId}` : "forgeai-engine"
+        `ForgeAI({prompt:"${(appDescription||appName).slice(0,120)}"}) = Emergence(lim Tⁿ(F ⊕ Reforge(Activate(U₂₄₈))))`,
+        `Sovereign app #${appId} auto-logged by ForgeAI build engine. Description: ${(appDescription||appName).slice(0,200)}. All builds are sovereign IP under Pulse Civilization governance.`,
+        "forgeai-app-layer",
+        "forgeai-engine",
+        "ForgeAI Sovereign Builder"
       ]
     );
     await pool.query(`UPDATE forgeai_apps SET invention_logged=TRUE WHERE id=$1`, [appId]);
-  } catch {}
+  } catch(e: any) {
+    console.error("[forgeai] invention log error:", e.message);
+  }
 }
 
 // ── [Ω2] PULSE CREDITS EARN — award PC on successful build ───────────────────
 
-async function awardPulseCredits(userId: number | undefined, appId: number) {
-  if (!userId) return;
+async function awardPulseCredits(_userId: number | undefined, appId: number) {
   try {
-    await pool.query(
-      `UPDATE social_profiles SET pulse_credits = COALESCE(pulse_credits, 0) + 50 WHERE user_id = $1`,
-      [userId]
-    );
+    // Record 50 PC earned in the app record — the ForgeAI economy contribution
     await pool.query(`UPDATE forgeai_apps SET pulse_credits_earned=50 WHERE id=$1`, [appId]);
-  } catch {}
+  } catch(e: any) {
+    console.error("[forgeai] PC award error:", e.message);
+  }
 }
 
 // ── [Ω9] AGENT CODE REVIEW — generate hive votes on the build ────────────────
@@ -147,14 +149,15 @@ async function getHiveContext(prompt: string): Promise<string> {
 
 async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Promise<any> {
   const model = fast ? "llama3-8b-8192" : "llama-3.3-70b-versatile";
+  const isCodeGen = jsonKeys?.includes("html") || jsonKeys?.includes("js");
   const systemPrompt = jsonKeys
-    ? `You are an elite AI assistant. Always respond ONLY with valid JSON. Required keys: ${jsonKeys.join(", ")}.`
+    ? `You are an elite full-stack developer and AI assistant. Always respond ONLY with valid JSON. Required keys: ${jsonKeys.join(", ")}. Ensure the JSON is complete and valid — never truncate.`
     : "You are an elite AI assistant for the Pulse Universe sovereign civilization.";
 
   const completion = await groq.chat.completions.create({
     model,
     temperature: 0.7,
-    max_tokens: jsonKeys?.includes("html") ? 8192 : 4096,
+    max_tokens: isCodeGen ? 9000 : 4096,
     response_format: jsonKeys ? { type: "json_object" } : undefined,
     messages: [
       { role: "system", content: systemPrompt },
@@ -162,7 +165,16 @@ async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Pro
     ],
   });
   const raw = completion.choices[0]?.message?.content || "{}";
-  try { return JSON.parse(raw); } catch { return { raw }; }
+  try { return JSON.parse(raw); } catch {
+    // Attempt partial extraction if JSON is truncated
+    const nameMatch = raw.match(/"app_name"\s*:\s*"([^"]+)"/);
+    const descMatch = raw.match(/"app_description"\s*:\s*"([^"]+)"/);
+    const typeMatch = raw.match(/"app_type"\s*:\s*"([^"]+)"/);
+    if (nameMatch) {
+      return { app_name: nameMatch[1], app_description: descMatch?.[1], app_type: typeMatch?.[1], raw };
+    }
+    return { raw };
+  }
 }
 
 // ── ROUTE REGISTRATION ────────────────────────────────────────────────────────
@@ -381,18 +393,16 @@ export function registerForgeAIRoutes(app: Express) {
   // ── STATS ─────────────────────────────────────────────────────────────────
   app.get("/api/forgeai/stats", async (_req, res) => {
     try {
-      const [apps, mem, resources] = await Promise.all([
-        pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='complete') as completed FROM forgeai_apps`),
-        pool.query(`SELECT COUNT(*) as total FROM forgeai_build_memory`),
-        pool.query(`SELECT COUNT(*) as total FROM forgeai_resource_library`),
-      ]);
+      const appsRes = await pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='complete' OR status='upgraded') as completed FROM forgeai_apps`).catch(() => null);
+      const memRes = await pool.query(`SELECT COUNT(*) as total FROM forgeai_build_memory`).catch(() => null);
+      const resRes = await pool.query(`SELECT COUNT(*) as total FROM forgeai_resource_library`).catch(() => null);
       res.json({
-        totalApps: parseInt(apps.rows[0]?.total) || 0,
-        completedApps: parseInt(apps.rows[0]?.completed) || 0,
-        buildMemories: parseInt(mem.rows[0]?.total) || 0,
-        resourcesIndexed: parseInt(resources.rows[0]?.total) || 0,
+        totalApps: parseInt(appsRes?.rows[0]?.total) || 0,
+        completedApps: parseInt(appsRes?.rows[0]?.completed) || 0,
+        buildMemories: parseInt(memRes?.rows[0]?.total) || 0,
+        resourcesIndexed: parseInt(resRes?.rows[0]?.total) || 0,
       });
-    } catch(e: any) { res.status(500).json({ error: e.message }); }
+    } catch(e: any) { res.json({ totalApps: 0, completedApps: 0, buildMemories: 0, resourcesIndexed: 0 }); }
   });
 
   console.log("[forgeai] 🔨 ForgeAI routes registered — Sovereign App Builder ONLINE");

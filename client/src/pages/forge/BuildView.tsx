@@ -157,29 +157,27 @@ export default function BuildView({ appId, onComplete, onBack }: BuildViewProps)
     log("◆ Generating full application code...", "accent");
     log("  Synthesizing research + market data + Omega sources...", "dim");
 
+    const featuresSnippet = (researchResult.key_features || []).slice(0, 6).join(", ");
+    const uxSnippet = (researchResult.ux_patterns || []).slice(0, 3).join(", ");
     const buildResult = await forgeApi.invokeLLM({
-      prompt: `You are the world's best full-stack developer. Build a COMPLETE, FULLY FUNCTIONAL single-page web application.
+      prompt: `You are the world's best full-stack developer. Build a COMPLETE, FULLY FUNCTIONAL single-page web application as a JSON object.
 
 IDEA: "${a.prompt}"
-PROJECT TYPE: ${a.project_type || "fullstack"}
-
-RESEARCH SUMMARY: ${JSON.stringify(researchResult).slice(0, 1200)}
-SIMILAR APPS: ${JSON.stringify(appsResult).slice(0, 600)}
-OMEGA SOURCES: ${matched.slice(0, 6).map((s) => `${s.name}: ${s.desc}`).join("; ")}
+PROJECT TYPE: ${a.project_type || "tool"}
+KEY FEATURES TO INCLUDE: ${featuresSnippet || "core functionality"}
+UX PATTERNS: ${uxSnippet || "clean, intuitive"}
 
 REQUIREMENTS:
-1. COMPLETE functional app — every button, form, interaction WORKS
-2. Beautiful premium dark design — gradients, glassmorphism, micro-animations
-3. Responsive — mobile and desktop perfect
-4. localStorage for state persistence
-5. Rich demo/sample data pre-loaded
-6. Smooth CSS animations (keyframes, transitions)
-7. Clean vanilla JS — no external dependencies
-8. At minimum 10 core features
-9. Loading states, empty states, error states all handled
-10. If SaaS: include sidebar nav, dashboard, settings, multiple sections
+- All features fully working — every button, form and interaction must work
+- Beautiful dark UI with CSS gradients and glassmorphism
+- Responsive layout (mobile + desktop)
+- Use localStorage for data persistence
+- Include sample/demo data so the app looks populated on first load
+- Smooth CSS transitions and animations
+- Pure vanilla JS only — zero external libraries
+- Handle empty states and loading gracefully
 
-Return JSON with ONLY these keys: app_name (string), app_description (string), app_type (string, one of: web_app/saas/tool/dashboard/game/mobile_web/api/landing_page), html (string — COMPLETE HTML body content), css (string — ALL styles), js (string — ALL JavaScript logic). Make the app IMPRESSIVE.`,
+Return JSON with EXACTLY these keys and no others: app_name (short string), app_description (one sentence), app_type (one of: web_app/saas/tool/dashboard/game/landing_page), html (complete HTML body innerHTML), css (all CSS styles), js (all JavaScript code).`,
       schema_keys: ["app_name", "app_description", "app_type", "html", "css", "js"],
     });
 
