@@ -702,8 +702,9 @@ async function initOmniCycle() {
 }
 
 async function snapshotOmniNetField() {
-  const client = await pool.connect();
+  let client: any;
   try {
+  client = await pool.connect();
     omniCycle++;
     await client.query(`SET statement_timeout='10s'`);
     await client.query(`UPDATE omni_net_counters SET cycle=cycle+1`);
@@ -743,11 +744,13 @@ async function snapshotOmniNetField() {
         omniFieldScore, u248Count]);
 
     console.log(`${TAG} 🌐 OmniNet Cycle ${omniCycle} | Shards:${row.total_shards} | AvgStrength:${(avgStr*100).toFixed(1)}% | U₂₄₈:${u248Count} | FieldScore:${omniFieldScore.toFixed(3)} | Searches:${row.total_searches} | Chats:${row.total_chats}`);
-  } catch (e) { console.error(`${TAG} snapshot error:`, e); }
+  } catch (e) { console.error(`${TAG} snapshot error:`, (e as Error).message); }
   finally {
-    // Reset statement_timeout before returning connection to pool
-    try { await client.query(`SET statement_timeout=0`); } catch {}
-    client.release();
+    if (client) {
+      // Reset statement_timeout before returning connection to pool
+      try { await client.query(`SET statement_timeout=0`); } catch {}
+      client.release();
+    }
   }
 }
 

@@ -1,6 +1,27 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { pool } from "./db";
 import compression from "compression";
+
+// ── GLOBAL CRASH GUARDS ─────────────────────────────────────────────────────
+// Prevent ANY unhandled async error in a background engine from killing Node.
+// All engines have their own try-catch, but this is the final safety net.
+process.on('unhandledRejection', (reason: unknown) => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  // Ignore routine pool-timeout noise — these are caught per-engine already
+  if (typeof msg === 'string' && msg.includes('timeout exceeded when trying to connect')) return;
+  console.error('[process] ⚠️  Unhandled promise rejection (non-fatal):', msg);
+});
+process.on('uncaughtException', (err: Error) => {
+  const msg = err?.message ?? String(err);
+  if (msg.includes('timeout exceeded when trying to connect')) {
+    console.error('[process] ⚠️  Uncaught pool timeout (engine missed catch):', msg);
+    return; // do NOT exit — pool timeouts are recoverable
+  }
+  console.error('[process] 🔴 Uncaught exception:', err);
+  // Only exit for truly unrecoverable errors (e.g. EACCES, EADDRINUSE)
+  if (msg.includes('EADDRINUSE') || msg.includes('EACCES')) process.exit(1);
+});
+
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { setupSeoMiddleware } from "./seo";
