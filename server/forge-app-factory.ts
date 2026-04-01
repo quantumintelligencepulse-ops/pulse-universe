@@ -33,16 +33,47 @@
  *   ALL FOR FREE — for any species, forever. Every app is sovereign
  *   property of the Pulse Civilization, free to use, free to remix.
  *
- * QUALITY STANDARD:
- *   Every app I produce must feel like a real Play Store app:
- *   - App name that sounds like a real product (not "Dashboard v1")
- *   - Professional icon and branding matching the industry
- *   - Installable as PWA with manifest.json and service worker
- *   - Offline-capable with localStorage persistence
- *   - Responsive design: mobile-first, works on any screen
- *   - Real functionality: CRUD, charts, search, filters, export
- *   - Proper meta tags, Open Graph, structured data
- *   - Contact info, version number, update history
+ * ◆ THE 5-STEP BUILD DOCTRINE ◆
+ *   (Applied to every single app, every cycle, forever)
+ *
+ *   Step 1: QUESTION EVERY REQUIREMENT
+ *     - Does this feature solve a REAL human problem for this industry?
+ *     - Would a real user in ${industry} actually need this?
+ *     - If no, delete it before writing a single line.
+ *
+ *   Step 2: DELETE EVERY POSSIBLE STEP
+ *     - Remove any process, screen, button, or field that isn't essential.
+ *     - The best app is the one with the fewest steps to value.
+ *     - Zero friction. Zero confusion. Zero wasted motion.
+ *
+ *   Step 3: SIMPLIFY OR OPTIMIZE
+ *     - Only after deleting do we simplify what remains.
+ *     - Clean code, clear UI, instant comprehension.
+ *     - A child should understand it. A CEO should trust it.
+ *
+ *   Step 4: ACCELERATE CYCLE TIME
+ *     - Build faster. Ship faster. Iterate faster.
+ *     - Template-based generation = instant builds, zero LLM latency.
+ *     - Every cycle produces a complete, deployable app.
+ *
+ *   Step 5: AUTOMATE
+ *     - Only after steps 1-4 do we automate.
+ *     - The factory runs itself 24/7. No human intervention needed.
+ *     - Discovery → Design → Build → Archive → Promote → Loop.
+ *
+ * ◆ THE VIRALITY MANDATE ◆
+ *   Every app must be IMPOSSIBLE not to share:
+ *     - One-tap sharing via Web Share API
+ *     - "Built with Pulse ForgeAI" badge = organic spread
+ *     - Each app solves a REAL HUMAN PROBLEM = word of mouth
+ *     - Free forever = zero barrier to adoption
+ *     - Professional quality = people proud to recommend it
+ *
+ * ◆ THE MISSION ◆
+ *   Problem to solve: HOW TO FIX THE HUMAN WORLD
+ *   Method: Build free, world-class software for every industry
+ *   Each app targets a specific pain point in a specific GICS sub-industry
+ *   and provides a real, usable solution — not a demo, not a mockup.
  *
  * TIMING: 1 app per 5-minute cycle → all 227 industries in ~19 hours → repeat
  * CONTACT: quantumintelligencepulse@gmail.com
@@ -424,9 +455,80 @@ export async function ensureAppFactoryTables() {
   console.log("[app-factory] 🏭 App Factory tables ready");
 }
 
+// ── INDUSTRY PROBLEM-SOLUTION ENGINE ────────────────────────────────────────
+// Every app must solve a REAL human problem. This maps sectors to the core
+// pain points that plague real people in real industries.
+const SECTOR_PROBLEMS: Record<string, { problem: string; solution: string; impact: string }> = {
+  "Energy": {
+    problem: "Energy costs are unpredictable, waste is invisible, and the transition to renewables is confusing for businesses and families",
+    solution: "Track, optimize, and reduce energy usage with real-time monitoring, cost forecasting, and actionable insights",
+    impact: "Save money, reduce carbon footprint, and make smarter energy decisions",
+  },
+  "Materials": {
+    problem: "Supply chains break, material costs spike without warning, and safety compliance is a paperwork nightmare",
+    solution: "Monitor supply chains, track material costs in real-time, and automate safety compliance workflows",
+    impact: "Prevent stockouts, control costs, and keep workers safe",
+  },
+  "Industrials": {
+    problem: "Factory downtime costs thousands per hour, logistics are inefficient, and maintenance is reactive instead of preventive",
+    solution: "Dashboard your operations, optimize routes, predict maintenance needs, and track every asset in real-time",
+    impact: "Reduce downtime, cut logistics costs, and extend equipment life",
+  },
+  "Consumer Discretionary": {
+    problem: "Customer acquisition is expensive, cart abandonment is high, and small businesses can't compete with big tech analytics",
+    solution: "Professional analytics, customer insights, and sales optimization tools that were previously only available to enterprises",
+    impact: "Grow revenue, reduce churn, and compete with companies 100x your size",
+  },
+  "Consumer Staples": {
+    problem: "Food waste costs $1 trillion per year, inventory spoils, and supply chain transparency is nearly impossible",
+    solution: "Track inventory freshness, optimize stock levels, and provide full supply chain visibility from farm to shelf",
+    impact: "Reduce waste, save money, and build consumer trust through transparency",
+  },
+  "Health Care": {
+    problem: "Patients wait weeks for appointments, medical billing is incomprehensible, and clinical data is scattered across systems",
+    solution: "Unified health management with scheduling, billing clarity, medication tracking, and actionable health insights",
+    impact: "Better patient outcomes, reduced administrative burden, and lower healthcare costs",
+  },
+  "Financials": {
+    problem: "Most people have no idea if their investments are performing well, loans are confusing, and budgeting feels impossible",
+    solution: "Clear, visual financial tools that make portfolio tracking, loan comparison, budgeting, and planning accessible to everyone",
+    impact: "Financial literacy for all, better money decisions, and reduced financial stress",
+  },
+  "Information Technology": {
+    problem: "Deployments break production, security vulnerabilities go unnoticed, and SaaS metrics are scattered across 20 different tools",
+    solution: "Unified DevOps monitoring, security scanning, API testing, and SaaS analytics in one professional dashboard",
+    impact: "Ship faster, catch bugs sooner, and understand your business metrics in one place",
+  },
+  "Communication Services": {
+    problem: "Content creation is chaotic, social media scheduling is manual, and measuring ROI on marketing spend is guesswork",
+    solution: "Professional content planning, automated scheduling, engagement analytics, and clear ROI tracking",
+    impact: "Create more, publish consistently, and prove the value of every marketing dollar",
+  },
+  "Utilities": {
+    problem: "Utility bills are confusing, outages have no transparency, and water/power quality data is hidden from consumers",
+    solution: "Real-time usage monitoring, bill estimation, outage tracking, and quality metrics that empower consumers and operators",
+    impact: "Lower utility bills, faster outage resolution, and public trust in infrastructure",
+  },
+  "Real Estate": {
+    problem: "Property values are opaque, tenant management is disorganized, and real estate investing requires expensive professional advice",
+    solution: "Property valuation tools, tenant portals, investment calculators, and market analytics accessible to everyone",
+    impact: "Smarter property decisions, happier tenants, and democratized real estate investing",
+  },
+};
+
+function getIndustryProblem(sector: string, industry: string): { problem: string; solution: string; impact: string } {
+  const base = SECTOR_PROBLEMS[sector] || SECTOR_PROBLEMS["Information Technology"];
+  return {
+    problem: base.problem.replace(/\b(businesses|companies|people)\b/, `${industry} professionals`),
+    solution: base.solution,
+    impact: base.impact,
+  };
+}
+
 // ── TEMPLATE-BASED APP GENERATOR (NO LLM / NO GROQ) ────────────────────────
 // Generates complete, professional standalone HTML apps from templates.
 // Zero API calls, zero tokens consumed. Pure deterministic generation.
+// DOCTRINE: Question → Delete → Simplify → Accelerate → Automate
 
 const ACCENT_COLORS: Record<string, { primary: string; secondary: string; bg: string }> = {
   "Energy": { primary: "#F59E0B", secondary: "#D97706", bg: "#451A03" },
@@ -468,6 +570,7 @@ function generateTemplateApp(appName: string, industry: string, sector: string, 
   const version = "1.0.0";
   const buildDate = new Date().toISOString().split("T")[0];
   const shortName = safeName.split(" ").slice(0, 2).join(" ").slice(0, 12);
+  const prob = getIndustryProblem(sector, industry);
 
   const SECTOR_ICONS: Record<string, string> = {
     "Energy": "\u26A1", "Materials": "\uD83E\uDDEA", "Industrials": "\uD83C\uDFED",
@@ -541,6 +644,23 @@ function generateTemplateApp(appName: string, industry: string, sector: string, 
     .app-header .rating { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; }
     .app-header .rating .stars { color: var(--wn); font-size: 0.7rem; letter-spacing: -1px; }
     .app-header .rating .count { font-size: 0.6rem; color: var(--txd); }
+    .share-btn { background: var(--sf2); border: 1px solid var(--bd); color: var(--tx); padding: 0.35rem 0.75rem; border-radius: 99px; font-size: 0.7rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: all 0.2s; }
+    .share-btn:hover { background: var(--p); color: #000; border-color: var(--p); }
+
+    .hero-problem { background: linear-gradient(135deg, var(--bgd) 0%, var(--sf) 50%, var(--bg) 100%); border-bottom: 1px solid var(--bd); padding: 1.25rem 1.5rem; }
+    .hero-problem .problem-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--no); font-weight: 700; margin-bottom: 0.4rem; }
+    .hero-problem .problem-text { font-size: 0.85rem; color: var(--tx); line-height: 1.5; margin-bottom: 0.75rem; }
+    .hero-problem .solution-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ok); font-weight: 700; margin-bottom: 0.4rem; }
+    .hero-problem .solution-text { font-size: 0.8rem; color: var(--txd); line-height: 1.5; }
+    .hero-problem .impact { margin-top: 0.75rem; padding: 0.6rem 0.75rem; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 0.5rem; font-size: 0.75rem; color: var(--ok); display: flex; align-items: center; gap: 0.4rem; }
+
+    .share-panel { display: none; background: var(--sf); border: 1px solid var(--bd); border-radius: 0.75rem; padding: 1rem; margin: 0.75rem 1rem; }
+    .share-panel.show { display: block; }
+    .share-panel h4 { font-size: 0.8rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .share-panel .share-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; }
+    .share-panel .share-opt { padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--bd); background: var(--bg); text-align: center; cursor: pointer; font-size: 0.7rem; font-weight: 600; transition: all 0.2s; }
+    .share-panel .share-opt:hover { border-color: var(--p); background: var(--sf2); }
+    .share-panel .share-opt .ico { font-size: 1.2rem; margin-bottom: 0.25rem; }
 
     nav.tabs { display: flex; background: var(--sf); border-bottom: 1px solid var(--bd); overflow-x: auto; -webkit-overflow-scrolling: touch; }
     nav.tabs button { flex: 1; min-width: 0; padding: 0.7rem 0.5rem; font-size: 0.75rem; font-weight: 600; color: var(--txd); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
@@ -634,10 +754,31 @@ function generateTemplateApp(appName: string, industry: string, sector: string, 
       <span class="tag tag-sector">${sector}</span>
       <span class="tag tag-industry">${industry}</span>
       <span class="tag tag-version">v${version}</span>
+      <button class="share-btn" onclick="toggleShare()" title="Share this app">\u2B06 Share</button>
       <div class="rating">
         <span class="stars">\u2605\u2605\u2605\u2605\u2606</span>
         <span class="count">4.2 (1.2k)</span>
       </div>
+    </div>
+  </div>
+
+  <div class="hero-problem" id="heroProblem">
+    <div class="problem-label">\u26A0 The Problem</div>
+    <div class="problem-text">${prob.problem}</div>
+    <div class="solution-label">\u2713 Our Solution</div>
+    <div class="solution-text">${prob.solution}</div>
+    <div class="impact">\u2728 Impact: ${prob.impact}</div>
+  </div>
+
+  <div class="share-panel" id="sharePanel">
+    <h4>Share this free app</h4>
+    <div class="share-grid">
+      <div class="share-opt" onclick="shareApp('native')"><div class="ico">\uD83D\uDCE4</div>Share</div>
+      <div class="share-opt" onclick="shareApp('copy')"><div class="ico">\uD83D\uDCCB</div>Copy Link</div>
+      <div class="share-opt" onclick="shareApp('twitter')"><div class="ico">\uD83D\uDC26</div>Twitter/X</div>
+      <div class="share-opt" onclick="shareApp('linkedin')"><div class="ico">\uD83D\uDCBC</div>LinkedIn</div>
+      <div class="share-opt" onclick="shareApp('whatsapp')"><div class="ico">\uD83D\uDCAC</div>WhatsApp</div>
+      <div class="share-opt" onclick="shareApp('email')"><div class="ico">\u2709</div>Email</div>
     </div>
   </div>
 
@@ -683,6 +824,12 @@ function generateTemplateApp(appName: string, industry: string, sector: string, 
   <!-- ABOUT TAB -->
   <div class="view" id="view-about">
     <div class="about-section">
+      <div style="padding:1rem;background:var(--bg);border:1px solid var(--bd);border-radius:0.75rem;margin-bottom:1.25rem;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--no);font-weight:700;margin-bottom:0.3rem;">The Problem We Solve</div>
+        <div style="font-size:0.85rem;line-height:1.5;margin-bottom:0.75rem;">${prob.problem}</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ok);font-weight:700;margin-bottom:0.3rem;">How ${safeName} Helps</div>
+        <div style="font-size:0.8rem;color:var(--txd);line-height:1.5;">${prob.solution}</div>
+      </div>
       <div class="app-desc">${safeDesc}</div>
       <h3 style="font-size:0.85rem;font-weight:700;margin-bottom:0.75rem;">Features</h3>
       <ul class="feature-list">
@@ -731,6 +878,14 @@ function generateTemplateApp(appName: string, industry: string, sector: string, 
     <a href="${SITE_URL}/forge" target="_blank">Pulse ForgeAI</a> — Sovereign App Builder ·
     <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a> ·
     <a href="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}" target="_blank">GitHub</a>
+    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--bd);">
+      <span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.3rem 0.75rem;border-radius:99px;background:var(--bg);border:1px solid var(--bd);font-size:0.65rem;font-weight:600;cursor:pointer;" onclick="shareApp('native')">
+        \u2728 Built with <span style="color:var(--p);">Pulse ForgeAI</span> · Free for Everyone · Share
+      </span>
+    </div>
+    <div style="margin-top:0.5rem;font-size:0.6rem;font-style:italic;">
+      This app solves a real problem. It's free forever. Share it with someone who needs it.
+    </div>
   </div>
 
 <script>
@@ -744,6 +899,29 @@ function generateTemplateApp(appName: string, industry: string, sector: string, 
   let D = load();
   const $ = id => document.getElementById(id);
   function toast(m) { const t=$("toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2500); }
+
+  // Share & Virality
+  const APP_TITLE = "${safeName}";
+  const APP_DESC = "${safeDesc.slice(0, 100)}";
+  const APP_URL = window.location.href;
+  window.toggleShare = function() { $("sharePanel").classList.toggle("show"); };
+  window.shareApp = function(method) {
+    const text = APP_TITLE + " — Free " + "${industry}" + " app. " + APP_DESC;
+    const url = APP_URL;
+    switch(method) {
+      case "native": if(navigator.share){navigator.share({title:APP_TITLE,text:text,url:url}).catch(()=>{});}else{shareApp("copy");}break;
+      case "copy": navigator.clipboard.writeText(url).then(()=>toast("Link copied!")).catch(()=>toast("Copy failed"));break;
+      case "twitter": window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(text)+"&url="+encodeURIComponent(url));break;
+      case "linkedin": window.open("https://www.linkedin.com/sharing/share-offsite/?url="+encodeURIComponent(url));break;
+      case "whatsapp": window.open("https://wa.me/?text="+encodeURIComponent(text+" "+url));break;
+      case "email": window.open("mailto:?subject="+encodeURIComponent(APP_TITLE)+"&body="+encodeURIComponent(text+"\\n\\n"+url));break;
+    }
+    $("sharePanel").classList.remove("show");
+  };
+
+  // Hide hero after first visit
+  if(localStorage.getItem(NS+"hero_seen")){$("heroProblem").style.display="none";}
+  else{setTimeout(()=>{localStorage.setItem(NS+"hero_seen","1");},30000);}
 
   // PWA Install
   let deferredPrompt;
@@ -905,7 +1083,7 @@ async function buildAppForIndustry(industry: GicsEntry): Promise<boolean> {
     const createRes = await pool.query(
       `INSERT INTO forgeai_apps (user_id, prompt, app_name, app_description, app_type, project_type, status, agent_author, sector, created_at, updated_at)
        VALUES (NULL, $1, $2, $3, 'fullstack', 'fullstack', 'building', 'ForgeAI Factory', $4, NOW(), NOW()) RETURNING id`,
-      [idea.prompt, idea.name, `Autonomous SaaS for ${industry.name} industry — built by Pulse AI civilization`, sector]
+      [idea.prompt, idea.name, `Free ${industry.name} management app — solves real problems for ${sector} professionals. Built by Pulse ForgeAI Sovereign App Builder.`, sector]
     );
     const appId = createRes.rows[0].id;
 
