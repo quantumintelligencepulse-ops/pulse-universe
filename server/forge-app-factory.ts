@@ -396,6 +396,393 @@ export async function ensureAppFactoryTables() {
   console.log("[app-factory] 🏭 App Factory tables ready");
 }
 
+// ── TEMPLATE-BASED APP GENERATOR (NO LLM / NO GROQ) ────────────────────────
+// Generates complete, professional standalone HTML apps from templates.
+// Zero API calls, zero tokens consumed. Pure deterministic generation.
+
+const ACCENT_COLORS: Record<string, { primary: string; secondary: string; bg: string }> = {
+  "Energy": { primary: "#F59E0B", secondary: "#D97706", bg: "#451A03" },
+  "Materials": { primary: "#78716C", secondary: "#A8A29E", bg: "#1C1917" },
+  "Industrials": { primary: "#3B82F6", secondary: "#60A5FA", bg: "#172554" },
+  "Consumer Discretionary": { primary: "#EC4899", secondary: "#F472B6", bg: "#500724" },
+  "Consumer Staples": { primary: "#22C55E", secondary: "#4ADE80", bg: "#052E16" },
+  "Health Care": { primary: "#EF4444", secondary: "#F87171", bg: "#450A0A" },
+  "Financials": { primary: "#10B981", secondary: "#34D399", bg: "#022C22" },
+  "Information Technology": { primary: "#06B6D4", secondary: "#22D3EE", bg: "#083344" },
+  "Communication Services": { primary: "#8B5CF6", secondary: "#A78BFA", bg: "#2E1065" },
+  "Utilities": { primary: "#EAB308", secondary: "#FACC15", bg: "#422006" },
+  "Real Estate": { primary: "#6366F1", secondary: "#818CF8", bg: "#1E1B4B" },
+};
+
+function generateSampleData(category: string, industry: string): string {
+  const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0; return Math.abs(h); };
+  const seed = hash(industry + category);
+  const names = ["Apex Systems", "NovaTech Corp", "Stellar Industries", "Quantum Solutions", "Meridian Group", "Atlas Partners", "Vertex Labs", "Pinnacle Dynamics", "Orion Enterprises", "Helix Analytics", "Summit Technologies", "Catalyst Research", "Fusion Works", "Zenith Corp", "Vanguard Systems"];
+  const statuses = ["Active", "Pending", "Complete", "In Progress", "Review", "Approved", "Scheduled"];
+  const rows: string[] = [];
+  for (let i = 0; i < 15; i++) {
+    const idx = (seed + i * 7) % names.length;
+    const statusIdx = (seed + i * 3) % statuses.length;
+    const val1 = ((seed * (i + 1)) % 9000 + 1000).toLocaleString();
+    const val2 = ((seed * (i + 2)) % 100).toFixed(1);
+    const month = ((seed + i) % 12) + 1;
+    const day = ((seed + i * 2) % 28) + 1;
+    rows.push(`{ id: ${i + 1}, name: "${names[idx]} ${industry.split(" ")[0]}", status: "${statuses[statusIdx]}", value: ${val1.replace(/,/g, "")}, rate: ${val2}, date: "2026-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}", category: "${category}" }`);
+  }
+  return `[${rows.join(",\n      ")}]`;
+}
+
+function generateTemplateApp(appName: string, industry: string, sector: string, description: string, category: string): string {
+  const colors = ACCENT_COLORS[sector] || ACCENT_COLORS["Information Technology"];
+  const ns = appName.slice(0, 12).replace(/\W/g, "_").toLowerCase() + "_";
+  const sampleData = generateSampleData(category, industry);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${appName} — Pulse ForgeAI</title>
+  <meta name="description" content="${description.replace(/"/g, "&quot;")}">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --primary: ${colors.primary}; --secondary: ${colors.secondary}; --bg-deep: ${colors.bg}; --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a2e; --border: #2a2a3e; --text: #e4e4e7; --text-dim: #71717a; --success: #22c55e; --danger: #ef4444; --warning: #eab308; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .header { background: linear-gradient(135deg, var(--bg-deep), var(--surface)); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .header h1 { font-size: 1.25rem; font-weight: 800; background: linear-gradient(90deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header .badge { font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 99px; background: var(--primary); color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .header .pulse-brand { margin-left: auto; font-size: 0.7rem; color: var(--text-dim); font-family: monospace; }
+    .toolbar { padding: 1rem 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .toolbar input, .toolbar select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.8rem; outline: none; transition: border-color 0.2s; }
+    .toolbar input:focus, .toolbar select:focus { border-color: var(--primary); }
+    .toolbar input { flex: 1; min-width: 200px; }
+    .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: #000; border-color: var(--primary); }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--text); }
+    .btn-outline:hover { background: var(--surface2); }
+    .container { padding: 1.5rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; transition: transform 0.2s, border-color 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+    .stat-card .label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .stat-card .value { font-size: 1.75rem; font-weight: 800; color: var(--primary); }
+    .stat-card .change { font-size: 0.7rem; margin-top: 0.25rem; }
+    .stat-card .change.up { color: var(--success); }
+    .stat-card .change.down { color: var(--danger); }
+    .chart-section { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 768px) { .chart-section { grid-template-columns: 1fr; } }
+    .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; }
+    .chart-box h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-dim); }
+    canvas { width: 100%; height: 200px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.75rem 1rem; font-size: 0.8rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; background: var(--surface); position: sticky; top: 0; }
+    tr { transition: background 0.15s; }
+    tr:hover { background: var(--surface2); }
+    .status-badge { padding: 0.15rem 0.5rem; border-radius: 99px; font-size: 0.65rem; font-weight: 600; }
+    .status-Active, .status-Complete, .status-Approved { background: rgba(34,197,94,0.15); color: var(--success); }
+    .status-Pending, .status-Review, .status-Scheduled { background: rgba(234,179,8,0.15); color: var(--warning); }
+    .status-In\\ Progress { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; margin-bottom: 1.5rem; }
+    .table-header { padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+    .table-header h3 { font-size: 0.85rem; font-weight: 600; }
+    .table-scroll { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+    .footer { text-align: center; padding: 2rem 1rem; color: var(--text-dim); font-size: 0.7rem; border-top: 1px solid var(--border); background: var(--surface); }
+    .footer a { color: var(--primary); text-decoration: none; }
+    .empty-state { text-align: center; padding: 3rem; color: var(--text-dim); }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; width: 90%; max-width: 500px; }
+    .modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    .modal label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.25rem; margin-top: 0.75rem; }
+    .modal input, .modal select, .modal textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.5rem; border-radius: 0.5rem; font-size: 0.8rem; outline: none; }
+    .modal textarea { resize: vertical; min-height: 60px; }
+    .modal-actions { display: flex; gap: 0.5rem; margin-top: 1.25rem; justify-content: flex-end; }
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--primary); color: #000; padding: 0.75rem 1.25rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 200; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    @media (max-width: 640px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .header h1 { font-size: 1rem; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${appName}</h1>
+    <span class="badge">${sector}</span>
+    <span class="badge" style="background:var(--surface2);color:var(--text-dim);">${industry}</span>
+    <span class="pulse-brand">◆ Pulse ForgeAI</span>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search records..." />
+    <select id="statusFilter">
+      <option value="all">All Status</option>
+      <option value="Active">Active</option>
+      <option value="Pending">Pending</option>
+      <option value="Complete">Complete</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Review">Review</option>
+      <option value="Approved">Approved</option>
+      <option value="Scheduled">Scheduled</option>
+    </select>
+    <select id="sortField">
+      <option value="id">Sort by ID</option>
+      <option value="name">Sort by Name</option>
+      <option value="value">Sort by Value</option>
+      <option value="rate">Sort by Rate</option>
+      <option value="date">Sort by Date</option>
+    </select>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Record</button>
+    <button class="btn btn-outline" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="chart-section">
+      <div class="chart-box"><h3>Performance Over Time</h3><canvas id="lineChart"></canvas></div>
+      <div class="chart-box"><h3>Distribution</h3><canvas id="pieChart"></canvas></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>Records</h3>
+        <span id="recordCount" style="font-size:0.75rem;color:var(--text-dim);"></span>
+      </div>
+      <div class="table-scroll">
+        <table><thead><tr>
+          <th>ID</th><th>Name</th><th>Status</th><th>Value</th><th>Rate %</th><th>Date</th><th>Actions</th>
+        </tr></thead><tbody id="tableBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3 id="modalTitle">Add Record</h3>
+      <input type="hidden" id="editId" />
+      <label>Name</label><input type="text" id="fName" />
+      <label>Status</label>
+      <select id="fStatus"><option>Active</option><option>Pending</option><option>Complete</option><option>In Progress</option><option>Review</option><option>Approved</option><option>Scheduled</option></select>
+      <label>Value</label><input type="number" id="fValue" />
+      <label>Rate %</label><input type="number" id="fRate" step="0.1" />
+      <label>Date</label><input type="date" id="fDate" />
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveRecord()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="footer">
+    Built by <a href="${SITE_URL}/forge" target="_blank">Pulse ForgeAI</a> — Sovereign App Builder
+    · Industry: ${industry} · Sector: ${sector}
+    <br>Contact: <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>
+    · <a href="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}" target="_blank">GitHub Archive</a>
+  </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const NS = "${ns}";
+  const defaultData = ${sampleData};
+
+  function load() { try { const s = localStorage.getItem(NS + "data"); return s ? JSON.parse(s) : [...defaultData]; } catch { return [...defaultData]; } }
+  function save(d) { localStorage.setItem(NS + "data", JSON.stringify(d)); }
+  let data = load();
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2500);
+  }
+
+  function renderStats() {
+    const total = data.length;
+    const totalVal = data.reduce((s, r) => s + (r.value || 0), 0);
+    const avgRate = total ? (data.reduce((s, r) => s + (r.rate || 0), 0) / total).toFixed(1) : "0";
+    const active = data.filter(r => r.status === "Active" || r.status === "Complete" || r.status === "Approved").length;
+    document.getElementById("statsGrid").innerHTML = [
+      { label: "Total Records", value: total, change: "+${Math.floor(Math.random() * 12 + 3)}% this month", up: true },
+      { label: "Total Value", value: "$" + totalVal.toLocaleString(), change: "+${Math.floor(Math.random() * 8 + 2)}% growth", up: true },
+      { label: "Avg Rate", value: avgRate + "%", change: "${Math.random() > 0.5 ? "+" : "-"}${(Math.random() * 3).toFixed(1)}%", up: ${Math.random() > 0.4} },
+      { label: "Active Items", value: active, change: active + " of " + total + " total", up: true },
+    ].map(s => \`<div class="stat-card"><div class="label">\${s.label}</div><div class="value">\${s.value}</div><div class="change \${s.up ? 'up' : 'down'}">\${s.change}</div></div>\`).join("");
+  }
+
+  function getFiltered() {
+    const q = document.getElementById("searchInput").value.toLowerCase();
+    const st = document.getElementById("statusFilter").value;
+    const sf = document.getElementById("sortField").value;
+    let f = data.filter(r => {
+      if (q && !r.name.toLowerCase().includes(q) && !r.status.toLowerCase().includes(q)) return false;
+      if (st !== "all" && r.status !== st) return false;
+      return true;
+    });
+    f.sort((a, b) => {
+      if (sf === "name") return a.name.localeCompare(b.name);
+      if (sf === "value") return (b.value || 0) - (a.value || 0);
+      if (sf === "rate") return (b.rate || 0) - (a.rate || 0);
+      if (sf === "date") return (b.date || "").localeCompare(a.date || "");
+      return a.id - b.id;
+    });
+    return f;
+  }
+
+  function renderTable() {
+    const f = getFiltered();
+    document.getElementById("recordCount").textContent = f.length + " records";
+    document.getElementById("tableBody").innerHTML = f.length === 0
+      ? '<tr><td colspan="7" class="empty-state">No records found</td></tr>'
+      : f.map(r => \`<tr>
+        <td>#\${r.id}</td>
+        <td>\${r.name}</td>
+        <td><span class="status-badge status-\${r.status}">\${r.status}</span></td>
+        <td>$\${(r.value || 0).toLocaleString()}</td>
+        <td>\${r.rate}%</td>
+        <td>\${r.date}</td>
+        <td>
+          <button class="btn btn-outline" style="padding:0.25rem 0.5rem;font-size:0.7rem;" onclick="editRecord(\${r.id})">Edit</button>
+          <button class="btn btn-outline" style="padding:0.25rem 0.5rem;font-size:0.7rem;color:var(--danger);" onclick="deleteRecord(\${r.id})">Del</button>
+        </td>
+      </tr>\`).join("");
+  }
+
+  function drawCharts() {
+    // Line chart
+    const lc = document.getElementById("lineChart");
+    const ctx = lc.getContext("2d");
+    lc.width = lc.parentElement.clientWidth - 40; lc.height = 200;
+    ctx.clearRect(0, 0, lc.width, lc.height);
+    const sorted = [...data].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    const vals = sorted.map(d => d.value || 0);
+    const maxV = Math.max(...vals, 1);
+    const pad = 40;
+    ctx.strokeStyle = "${colors.primary}"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    vals.forEach((v, i) => {
+      const x = pad + (i / Math.max(vals.length - 1, 1)) * (lc.width - pad * 2);
+      const y = lc.height - pad - (v / maxV) * (lc.height - pad * 2);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.fillStyle = "${colors.primary}";
+    vals.forEach((v, i) => {
+      const x = pad + (i / Math.max(vals.length - 1, 1)) * (lc.width - pad * 2);
+      const y = lc.height - pad - (v / maxV) * (lc.height - pad * 2);
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+    });
+    // Axes
+    ctx.strokeStyle = "#2a2a3e"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, pad/2); ctx.lineTo(pad, lc.height - pad); ctx.lineTo(lc.width - pad/2, lc.height - pad); ctx.stroke();
+    ctx.fillStyle = "#71717a"; ctx.font = "10px monospace";
+    ctx.fillText("$" + maxV.toLocaleString(), 0, pad/2 + 10);
+    ctx.fillText("$0", 0, lc.height - pad + 12);
+
+    // Pie chart
+    const pc = document.getElementById("pieChart");
+    const pctx = pc.getContext("2d");
+    pc.width = pc.parentElement.clientWidth - 40; pc.height = 200;
+    pctx.clearRect(0, 0, pc.width, pc.height);
+    const statusCounts = {};
+    data.forEach(d => { statusCounts[d.status] = (statusCounts[d.status] || 0) + 1; });
+    const entries = Object.entries(statusCounts);
+    const total = data.length || 1;
+    const pieColors = ["${colors.primary}", "${colors.secondary}", "#22c55e", "#3b82f6", "#eab308", "#ec4899", "#8b5cf6"];
+    const cx = pc.width / 2, cy = 90, r = 70;
+    let startAngle = -Math.PI / 2;
+    entries.forEach(([status, count], i) => {
+      const angle = (count / total) * Math.PI * 2;
+      pctx.beginPath(); pctx.moveTo(cx, cy);
+      pctx.arc(cx, cy, r, startAngle, startAngle + angle);
+      pctx.fillStyle = pieColors[i % pieColors.length]; pctx.fill();
+      startAngle += angle;
+    });
+    // Legend
+    entries.forEach(([status, count], i) => {
+      pctx.fillStyle = pieColors[i % pieColors.length];
+      pctx.fillRect(10, 175 - entries.length * 14 + i * 14, 8, 8);
+      pctx.fillStyle = "#71717a"; pctx.font = "10px sans-serif";
+      pctx.fillText(status + " (" + count + ")", 22, 183 - entries.length * 14 + i * 14);
+    });
+  }
+
+  function render() { renderStats(); renderTable(); drawCharts(); }
+
+  window.openAddModal = function() {
+    document.getElementById("modalTitle").textContent = "Add Record";
+    document.getElementById("editId").value = "";
+    document.getElementById("fName").value = "";
+    document.getElementById("fStatus").value = "Active";
+    document.getElementById("fValue").value = "";
+    document.getElementById("fRate").value = "";
+    document.getElementById("fDate").value = new Date().toISOString().split("T")[0];
+    document.getElementById("modalOverlay").classList.add("active");
+  };
+
+  window.editRecord = function(id) {
+    const r = data.find(d => d.id === id);
+    if (!r) return;
+    document.getElementById("modalTitle").textContent = "Edit Record";
+    document.getElementById("editId").value = id;
+    document.getElementById("fName").value = r.name;
+    document.getElementById("fStatus").value = r.status;
+    document.getElementById("fValue").value = r.value;
+    document.getElementById("fRate").value = r.rate;
+    document.getElementById("fDate").value = r.date;
+    document.getElementById("modalOverlay").classList.add("active");
+  };
+
+  window.closeModal = function() { document.getElementById("modalOverlay").classList.remove("active"); };
+
+  window.saveRecord = function() {
+    const eid = document.getElementById("editId").value;
+    const rec = {
+      name: document.getElementById("fName").value || "New Record",
+      status: document.getElementById("fStatus").value,
+      value: parseFloat(document.getElementById("fValue").value) || 0,
+      rate: parseFloat(document.getElementById("fRate").value) || 0,
+      date: document.getElementById("fDate").value || new Date().toISOString().split("T")[0],
+      category: "${category}",
+    };
+    if (eid) {
+      const idx = data.findIndex(d => d.id === parseInt(eid));
+      if (idx >= 0) { data[idx] = { ...data[idx], ...rec }; showToast("Record updated"); }
+    } else {
+      rec.id = Math.max(0, ...data.map(d => d.id)) + 1;
+      data.push(rec); showToast("Record added");
+    }
+    save(data); closeModal(); render();
+  };
+
+  window.deleteRecord = function(id) {
+    if (!confirm("Delete this record?")) return;
+    data = data.filter(d => d.id !== id);
+    save(data); render(); showToast("Record deleted");
+  };
+
+  window.exportCSV = function() {
+    const f = getFiltered();
+    const header = "ID,Name,Status,Value,Rate,Date";
+    const rows = f.map(r => [r.id, '"' + r.name + '"', r.status, r.value, r.rate, r.date].join(","));
+    const csv = [header, ...rows].join("\\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "${ns}export.csv"; a.click();
+    showToast("CSV exported");
+  };
+
+  document.getElementById("searchInput").addEventListener("input", renderTable);
+  document.getElementById("statusFilter").addEventListener("change", renderTable);
+  document.getElementById("sortField").addEventListener("change", renderTable);
+  document.getElementById("modalOverlay").addEventListener("click", function(e) { if (e.target === this) closeModal(); });
+
+  render();
+  window.addEventListener("resize", drawCharts);
+});
+</script>
+</body>
+</html>`;
+}
+
 // ── CORE BUILD PIPELINE ─────────────────────────────────────────────────────
 // Takes an industry, discovers an app idea, builds it, archives it
 async function buildAppForIndustry(industry: GicsEntry): Promise<boolean> {
@@ -430,47 +817,8 @@ async function buildAppForIndustry(industry: GicsEntry): Promise<boolean> {
     );
     const appId = createRes.rows[0].id;
 
-    // 3. BUILD — call the LLM to generate the app
-    // Use the internal LLM function via HTTP to leverage existing infrastructure
-    const buildPrompt = `You are an elite full-stack developer building a COMPLETE standalone HTML web application.
-
-APP NAME: ${idea.name}
-INDUSTRY: ${industry.name} (${sector} sector)
-DESCRIPTION: ${idea.prompt}
-
-REQUIREMENTS:
-1. Return a COMPLETE HTML document from <!DOCTYPE html> to </html>
-2. ALL CSS in a <style> block inside <head> — professional dark theme with accent colors
-3. ALL JavaScript in a <script> block at end of <body> wrapped in DOMContentLoaded
-4. NO external CDN imports — pure vanilla HTML/CSS/JS
-5. Pre-populate with realistic sample data (10+ records minimum)
-6. Include: search, filters, sorting, charts (using canvas), data tables, and export
-7. Responsive design that works on mobile and desktop
-8. localStorage persistence with namespace "${idea.name.slice(0, 12).replace(/\W/g, "_").toLowerCase()}_"
-9. Professional UI with smooth animations, hover effects, and transitions
-10. Include a header with the app name, industry badge, and Pulse branding
-11. Add a footer: "Built by Pulse ForgeAI — Sovereign App Builder | ${CONTACT_EMAIL}"
-
-Return JSON: { "full_html": string, "feature_list": string[], "description": string }`;
-
-    let result: any;
-    try {
-      const llmRes = await fetch(`http://localhost:5000/api/forgeai/llm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: buildPrompt, schema_keys: ["full_html", "feature_list", "description"] }),
-      });
-      result = await llmRes.json();
-    } catch (e: any) {
-      throw new Error(`LLM call failed: ${e.message}`);
-    }
-
-    if (!result?.full_html || result.full_html.length < 500) {
-      await pool.query(`UPDATE forge_factory_queue SET status='failed', error_msg='LLM returned empty' WHERE id=$1`, [queueId]);
-      await pool.query(`UPDATE forgeai_apps SET status='failed' WHERE id=$1`, [appId]);
-      console.log(`[app-factory] ⚠ Empty build for ${idea.name}`);
-      return false;
-    }
+    // 3. BUILD — generate app from templates (NO LLM — zero Groq usage)
+    const result = { full_html: generateTemplateApp(idea.name, industry.name, sector, idea.prompt, idea.category) };
 
     // 4. SAVE the generated HTML
     const crypto = await import("crypto");
