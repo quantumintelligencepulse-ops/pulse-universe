@@ -1,0 +1,345 @@
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { base44 } from "@/api/base44Client";
+import { Zap, ArrowRight, Library, Sparkles, Globe, Cpu, Brain, Download, Code2, Layers } from "lucide-react";
+import ProjectTemplates from "./ProjectTemplates";
+import { generateForgeAISelfInstaller, generateWindowsForgeInstaller } from "./ForgeAIInstaller";
+
+const EXAMPLES = [
+  "SaaS dashboard with user auth, billing, and analytics",
+  "AI-powered recipe generator with meal planning",
+  "Real-time crypto portfolio tracker with charts",
+  "Project management tool with kanban boards",
+  "E-commerce storefront with cart and checkout",
+  "Habit tracker with streaks and heatmap",
+  "Collaborative whiteboard with drawing tools",
+  "Personal finance app with spending insights",
+];
+
+const PROJECT_TYPES = [
+  { id: "static", label: "Static Site", icon: Globe, desc: "HTML/CSS/JS" },
+  { id: "react", label: "React App", icon: Layers, desc: "React + Vite" },
+  { id: "fullstack", label: "Full-Stack SaaS", icon: Cpu, desc: "Frontend + Backend" },
+  { id: "python_flask", label: "Python App", icon: Code2, desc: "Flask + Python" },
+  { id: "node_express", label: "Node.js API", icon: Brain, desc: "Express + Node" },
+];
+
+function DownloadForgeAIButton() {
+  const [open, setOpen] = useState(false);
+
+  const downloadForgeAI = (platform) => {
+    const launcher = generateForgeAISelfInstaller();
+    const win = generateWindowsForgeInstaller(launcher);
+
+    if (platform === "py") {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([launcher], { type: "text/plain" }));
+      a.download = "forgeai.py";
+      a.click();
+    } else if (platform === "win") {
+      // Download both files
+      const a1 = document.createElement("a");
+      a1.href = URL.createObjectURL(new Blob([launcher], { type: "text/plain" }));
+      a1.download = "forgeai.py";
+      a1.click();
+      setTimeout(() => {
+        const a2 = document.createElement("a");
+        a2.href = URL.createObjectURL(new Blob([win], { type: "text/plain" }));
+        a2.download = "LAUNCH_FORGEAI.bat";
+        a2.click();
+      }, 300);
+    } else {
+      // All files
+      const a1 = document.createElement("a");
+      a1.href = URL.createObjectURL(new Blob([launcher], { type: "text/plain" }));
+      a1.download = "forgeai.py";
+      a1.click();
+      setTimeout(() => {
+        const a2 = document.createElement("a");
+        a2.href = URL.createObjectURL(new Blob([win], { type: "text/plain" }));
+        a2.download = "LAUNCH_FORGEAI.bat";
+        a2.click();
+      }, 300);
+    }
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-xs sm:text-sm hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/30"
+      >
+        <Download className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Download ForgeAI</span>
+        <span className="sm:hidden">Download</span>
+        <span className="text-primary-foreground/70">▾</span>
+      </button>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -8, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-border bg-card/95 backdrop-blur-sm shadow-2xl shadow-black/50 overflow-hidden z-50"
+        >
+          <div className="p-3 border-b border-border">
+            <p className="text-xs font-bold text-foreground">Download ForgeAI to Your Computer</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Run locally · 100% free · No internet required</p>
+          </div>
+          <div className="p-2 space-y-1">
+            {[
+              { platform: "win", icon: "🪟", label: "Windows", sub: "Double-click LAUNCH_FORGEAI.bat" },
+              { platform: "py", icon: "🍎", label: "macOS / Linux", sub: "python3 forgeai.py" },
+              { platform: "all", icon: "📦", label: "All Files", sub: "forgeai.py + Windows launcher" },
+            ].map((opt) => (
+              <button key={opt.platform} onClick={() => downloadForgeAI(opt.platform)}
+                className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-primary/10 transition-all text-left group">
+                <span className="text-lg">{opt.icon}</span>
+                <div>
+                  <p className="text-xs font-semibold group-hover:text-primary transition-colors">{opt.label}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">{opt.sub}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="p-3 border-t border-border bg-primary/5">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Requires <span className="text-primary font-semibold">Python 3.8+</span>. Auto-installs dependencies.
+              Builds static sites, React, SaaS, Python, Node.js & more.
+            </p>
+          </div>
+        </motion.div>
+      )}
+      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
+    </div>
+  );
+}
+
+export default function HomeView({ onBuild, onLibrary, onEditor }) {
+  const [prompt, setPrompt] = useState("");
+  const [projectType, setProjectType] = useState("fullstack");
+  const [creating, setCreating] = useState(false);
+  const [recentBuilds, setRecentBuilds] = useState([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    base44.entities.GeneratedApp.list("-created_date", 6).then(setRecentBuilds).catch(() => {});
+  }, []);
+
+  const handleBuild = async () => {
+    if (!prompt.trim() || creating) return;
+    setCreating(true);
+    const app = await base44.entities.GeneratedApp.create({
+      prompt: prompt.trim(),
+      status: "researching",
+      project_type: projectType,
+    });
+    onBuild(app.id);
+  };
+
+  const handleTemplate = (template) => {
+    setPrompt(template.prompt);
+    setProjectType(template.type);
+    setShowTemplates(false);
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-24">
+      {/* Sticky Navbar */}
+      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 flex items-center justify-between mb-10">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <Zap className="w-3.5 h-3.5 text-primary-foreground" />
+          </div>
+          <span className="font-black text-sm tracking-tight">ForgeAI</span>
+          <span className="text-[10px] font-mono text-primary border border-primary/20 bg-primary/5 px-2 py-0.5 rounded-full">v2.0 FREE</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={onLibrary}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-secondary">
+            <Library className="w-3.5 h-3.5" /> Library
+          </button>
+          <DownloadForgeAIButton />
+        </div>
+      </div>
+
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="text-center mb-12">
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring" }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/5 mb-6">
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+          <span className="text-xs font-mono text-primary tracking-widest uppercase">ForgeAI v2.0 — Free SaaS Builder</span>
+        </motion.div>
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight mb-4 leading-[0.95]">
+          <span className="text-foreground">Describe It.</span>
+          <br />
+          <span className="bg-gradient-to-r from-primary via-accent to-chart-3 bg-clip-text text-transparent">
+            We Build It.
+          </span>
+        </h1>
+        <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+          Type any idea — app, SaaS, tool, API, dashboard. Our AI researches{" "}
+          <span className="text-primary font-semibold">100+ sources</span>, generates production code, and gives you a{" "}
+          <span className="text-accent font-semibold">downloadable auto-installing package</span> that runs on any computer.
+        </p>
+      </motion.div>
+
+      {/* Project Type Selector */}
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+        className="flex flex-wrap justify-center gap-2 mb-5">
+        {PROJECT_TYPES.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button key={t.id} onClick={() => setProjectType(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-xs font-medium transition-all ${
+                projectType === t.id
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-border"
+              }`}>
+              <Icon className="w-3.5 h-3.5" />
+              <span>{t.label}</span>
+              <span className="text-muted-foreground/60 hidden sm:inline">· {t.desc}</span>
+            </button>
+          );
+        })}
+      </motion.div>
+
+      {/* Input */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        className="relative rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-1 mb-5 glow-emerald">
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-primary/5 to-chart-3/5 pointer-events-none" />
+        <textarea
+          ref={textareaRef}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleBuild(); }}
+          placeholder="Describe the app, SaaS, or tool you want to build... (Ctrl+Enter to build)"
+          rows={4}
+          className="w-full bg-transparent text-foreground placeholder-muted-foreground/40 text-base sm:text-lg p-5 resize-none outline-none font-inter leading-relaxed"
+        />
+        <div className="flex items-center justify-between px-5 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground font-mono">{prompt.length} chars</span>
+            <button onClick={() => setShowTemplates(!showTemplates)}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+              <Layers className="w-3 h-3" /> Templates
+            </button>
+          </div>
+          <button
+            onClick={handleBuild}
+            disabled={!prompt.trim() || creating}
+            className="flex items-center gap-2.5 px-6 sm:px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            {creating ? (
+              <>
+                <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Launching...
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4" />
+                Build My App
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Templates dropdown */}
+      {showTemplates && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <ProjectTemplates onSelect={handleTemplate} />
+        </motion.div>
+      )}
+
+      {/* Example chips */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+        className="flex flex-wrap gap-2 justify-center mb-12">
+        {EXAMPLES.map((ex) => (
+          <button key={ex} onClick={() => setPrompt(ex)}
+            className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all">
+            {ex}
+          </button>
+        ))}
+      </motion.div>
+
+      {/* Stats */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-12">
+        {[
+          { v: "100+", l: "Open Sources", c: "text-primary" },
+          { v: "5", l: "Project Types", c: "text-accent" },
+          { v: "20+", l: "AI Models", c: "text-chart-3" },
+          { v: "∞", l: "Free Builds", c: "text-chart-5" },
+        ].map((s) => (
+          <div key={s.l} className="rounded-xl border border-border bg-card/30 p-4 sm:p-5 text-center">
+            <div className={`text-2xl sm:text-3xl font-black ${s.c}`}>{s.v}</div>
+            <div className="text-xs text-muted-foreground mt-1">{s.l}</div>
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Feature grid */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-12">
+        {[
+          { icon: Globe, t: "Deep Web Research", d: "Searches the internet to understand your idea, market, and best practices before writing code." },
+          { icon: Cpu, t: "100 Omega Sources", d: "Mines GitHub, arXiv, HuggingFace, NASA, CERN, and 94 more for the best code and assets." },
+          { icon: Brain, t: "SaaS Builder Engine", d: "Generates full-stack SaaS apps with auth, billing logic, dashboards, and API routes." },
+          { icon: Download, t: "Auto-Install ZIP", d: "Download a ZIP that auto-installs Python, dependencies, and launches on double-click." },
+          { icon: Zap, t: "6 AI Upgrade Modes", d: "UI, Features, Performance, AI Integration, Security, or Full Rebuild powered by AI." },
+          { icon: Code2, t: "Full Source Code", d: "HTML, CSS, JS files ready to run. No lock-in, no subscriptions, forever free." },
+        ].map((f) => {
+          const Icon = f.icon;
+          return (
+            <div key={f.t} className="flex items-start gap-3.5 rounded-xl border border-border bg-card/20 p-4 sm:p-5 hover:border-primary/20 transition-all">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Icon className="w-4.5 h-4.5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-1">{f.t}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{f.d}</p>
+              </div>
+            </div>
+          );
+        })}
+      </motion.div>
+
+      {/* Actions */}
+      <div className="flex flex-wrap justify-center gap-3 mb-12">
+        <button onClick={onLibrary}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-chart-3/30 text-chart-3 text-sm hover:bg-chart-3/10 transition-all">
+          <Library className="w-4 h-4" /> Omega Source Library (100+)
+        </button>
+      </div>
+
+      {/* Recent builds */}
+      {recentBuilds.length > 0 && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
+          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-4">Recent Builds</p>
+          <div className="space-y-2">
+            {recentBuilds.map((b) => (
+              <div key={b.id}
+                className="flex items-center justify-between rounded-xl border border-border bg-card/20 px-5 py-3 hover:border-border transition-all cursor-pointer"
+                onClick={() => {
+                  if (b.status === "complete") onEditor(b.id);
+                }}>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{b.app_name || b.prompt}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {b.project_type || b.app_type || "web_app"} · {new Date(b.created_date).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 ml-3 ${
+                  b.status === "complete" ? "bg-primary/10 text-primary" : "bg-chart-4/10 text-chart-4"
+                }`}>
+                  {b.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}

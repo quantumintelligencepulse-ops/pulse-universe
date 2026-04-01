@@ -1,0 +1,277 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Download, FileArchive, FileCode, Loader2, Check, Terminal } from "lucide-react";
+import {
+  generatePythonInstaller,
+  generatePowerShellInstaller,
+  generateBatchLauncher,
+  generateReadme,
+  generateRequirementsTxt,
+  generatePackageJson,
+} from "./InstallerGenerator";
+
+export default function DownloadManager({ app, html, css, js }) {
+  const [downloading, setDownloading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const appName = app?.app_name || "ForgeAI-App";
+  const safeName = appName.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "-").toLowerCase();
+
+  const downloadSingleHtml = () => {
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${appName}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,sans-serif}${css || ""}</style>
+</head><body>${html || ""}<script>${js || ""}</script></body></html>`;
+    
+    const blob = new Blob([fullHtml], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safeName}.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const downloadSeparateFiles = () => {
+    const files = [
+      { name: "index.html", content: `<!DOCTYPE html>\n<html lang="en"><head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>${appName}</title>\n<link rel="stylesheet" href="styles.css">\n<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">\n</head><body>\n${html || ""}\n<script src="app.js"></script>\n</body></html>`, type: "text/html" },
+      { name: "styles.css", content: css || "", type: "text/css" },
+      { name: "app.js", content: js || "", type: "text/javascript" },
+    ];
+    files.forEach((f) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([f.content], { type: f.type }));
+      a.download = f.name;
+      a.click();
+    });
+  };
+
+  const downloadFullZip = async () => {
+    setDownloading(true);
+
+    // Build all files for the project
+    const projectFiles = {
+      "index.html": `<!DOCTYPE html>\n<html lang="en"><head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>${appName}</title>\n<link rel="stylesheet" href="styles.css">\n<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">\n</head><body>\n${html || ""}\n<script src="app.js"></script>\n</body></html>`,
+      "styles.css": css || "",
+      "app.js": js || "",
+      "forge_launcher.py": generatePythonInstaller(appName, app?.project_type, null),
+      "forge_install.ps1": generatePowerShellInstaller(appName),
+      "LAUNCH.bat": generateBatchLauncher(appName),
+      "README.md": generateReadme(appName, app?.app_description, app?.app_type),
+      "requirements.txt": generateRequirementsTxt(),
+      "package.json": generatePackageJson(appName, {}),
+    };
+
+    // Since we can't create actual ZIP in browser without JSZip,
+    // we'll download each file with folder prefix naming
+    // But we CAN create a self-contained HTML that contains everything
+    
+    const allInOneHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${appName} - ForgeAI Project Package</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;background:#050508;color:#e5e5e5;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
+h1{font-size:2rem;margin-bottom:8px}
+.sub{color:#888;margin-bottom:30px}
+.files{width:100%;max-width:800px}
+.file{background:#111;border:1px solid #222;border-radius:12px;margin-bottom:12px;overflow:hidden}
+.file-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.2s}
+.file-header:hover{background:#181818}
+.file-name{font-family:monospace;font-weight:600;font-size:14px}
+.file-size{font-size:12px;color:#666}
+.file-content{display:none;border-top:1px solid #222;padding:16px 18px;max-height:400px;overflow:auto}
+.file-content.open{display:block}
+pre{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;color:#aaa}
+.btn{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s}
+.btn-primary{background:linear-gradient(135deg,#10b981,#06b6d4);color:#000}
+.btn-primary:hover{opacity:0.9;transform:scale(1.02)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:30px}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-family:monospace;border:1px solid #10b98133;color:#10b981;background:#10b98108}
+.instructions{background:#111;border:1px solid #222;border-radius:12px;padding:24px;max-width:800px;width:100%;margin-bottom:30px}
+.instructions h2{font-size:16px;margin-bottom:12px;color:#10b981}
+.instructions p,.instructions li{font-size:13px;color:#888;line-height:1.7}
+.instructions ol{padding-left:20px}
+</style>
+</head>
+<body>
+<div class="badge">ForgeAI Project Package</div>
+<h1>${appName}</h1>
+<p class="sub">${app?.app_description || "Built with ForgeAI"}</p>
+
+<div class="instructions">
+<h2>🚀 Quick Start</h2>
+<ol>
+<li>Click "Download All Files" below to save each project file</li>
+<li>Put all files in a folder named <strong>${safeName}</strong></li>
+<li><strong>Windows:</strong> Double-click <code>LAUNCH.bat</code></li>
+<li><strong>Mac/Linux:</strong> Run <code>python3 forge_launcher.py</code></li>
+<li>Your app opens at <code>http://localhost:3000</code> automatically!</li>
+</ol>
+</div>
+
+<div class="actions">
+<button class="btn btn-primary" onclick="downloadAllFiles()">⬇ Download All Files</button>
+<button class="btn" style="background:#222;color:#ccc" onclick="toggleAll()">📂 View All Code</button>
+</div>
+
+<div class="files" id="files"></div>
+
+<script>
+const FILES = ${JSON.stringify(projectFiles)};
+
+function init() {
+  const container = document.getElementById('files');
+  Object.entries(FILES).forEach(([name, content]) => {
+    const div = document.createElement('div');
+    div.className = 'file';
+    div.innerHTML = \`
+      <div class="file-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="file-name">\${name}</span>
+        <span class="file-size">\${content.length} bytes</span>
+      </div>
+      <div class="file-content">
+        <pre>\${escapeHtml(content)}</pre>
+      </div>
+    \`;
+    container.appendChild(div);
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function downloadFile(name, content) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type:'text/plain'}));
+  a.download = name;
+  a.click();
+}
+
+function downloadAllFiles() {
+  Object.entries(FILES).forEach(([name, content], i) => {
+    setTimeout(() => downloadFile(name, content), i * 200);
+  });
+}
+
+function toggleAll() {
+  document.querySelectorAll('.file-content').forEach(el => el.classList.toggle('open'));
+}
+
+init();
+</script>
+</body>
+</html>`;
+
+    // Download the package HTML
+    const blob = new Blob([allInOneHtml], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safeName}-forgeai-package.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    // Also download key files individually
+    const keyFiles = [
+      { name: "forge_launcher.py", content: projectFiles["forge_launcher.py"] },
+      { name: "LAUNCH.bat", content: projectFiles["LAUNCH.bat"] },
+      { name: "forge_install.ps1", content: projectFiles["forge_install.ps1"] },
+    ];
+
+    for (let i = 0; i < keyFiles.length; i++) {
+      await new Promise((r) => setTimeout(r, 300));
+      const el = document.createElement("a");
+      el.href = URL.createObjectURL(new Blob([keyFiles[i].content], { type: "text/plain" }));
+      el.download = keyFiles[i].name;
+      el.click();
+    }
+
+    setDownloading(false);
+    setDone(true);
+    setTimeout(() => setDone(false), 3000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card/30 p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Download className="w-4.5 h-4.5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm">Download & Deploy</h3>
+            <p className="text-xs text-muted-foreground">Get your app ready to run anywhere</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Single HTML */}
+          <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            onClick={downloadSingleHtml}
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all">
+            <FileCode className="w-5 h-5 text-orange-400" />
+            <span className="text-xs font-semibold">Single HTML</span>
+            <span className="text-[10px] text-muted-foreground">One file, open in browser</span>
+          </motion.button>
+
+          {/* Separate files */}
+          <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            onClick={downloadSeparateFiles}
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:border-accent/30 hover:bg-accent/5 transition-all">
+            <FileCode className="w-5 h-5 text-blue-400" />
+            <span className="text-xs font-semibold">Separate Files</span>
+            <span className="text-[10px] text-muted-foreground">HTML + CSS + JS files</span>
+          </motion.button>
+
+          {/* Full package */}
+          <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            onClick={downloadFullZip}
+            disabled={downloading}
+            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all relative overflow-hidden">
+            {downloading ? (
+              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            ) : done ? (
+              <Check className="w-5 h-5 text-primary" />
+            ) : (
+              <FileArchive className="w-5 h-5 text-primary" />
+            )}
+            <span className="text-xs font-semibold text-primary">Full Package</span>
+            <span className="text-[10px] text-muted-foreground">Auto-installer + all files</span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* What's in the package */}
+      <div className="rounded-xl border border-border bg-card/30 p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Terminal className="w-4 h-4 text-accent" />
+          <h3 className="text-xs font-semibold">Full Package Includes</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { name: "index.html", desc: "Main app file" },
+            { name: "styles.css", desc: "All stylesheets" },
+            { name: "app.js", desc: "Application logic" },
+            { name: "forge_launcher.py", desc: "Python auto-installer & server" },
+            { name: "LAUNCH.bat", desc: "Windows double-click launcher" },
+            { name: "forge_install.ps1", desc: "PowerShell installer" },
+            { name: "requirements.txt", desc: "Python dependencies" },
+            { name: "README.md", desc: "Documentation" },
+          ].map((f) => (
+            <div key={f.name} className="flex items-center gap-2 text-xs">
+              <span className="text-primary/60">·</span>
+              <span className="font-mono text-muted-foreground">{f.name}</span>
+              <span className="text-muted-foreground/40 hidden sm:inline">— {f.desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

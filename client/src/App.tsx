@@ -19,6 +19,7 @@ const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
 const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
+const ForgeAIPage = lazy(() => import("./pages/ForgeAIPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
@@ -2176,6 +2177,15 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
             <div className="p-1 rounded-lg bg-[#f472b6]/5"><span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🧠</span></div>
             <span className="flex-1">Agents</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background:"linear-gradient(to right,#f59e0b33,#818cf833)", color:"#f59e0b", border:"1px solid #f59e0b50" }}>12Ω EVOLVE</span>
+          </Link>
+          )}
+
+          {aiMode && (
+          <Link href="/forge" data-testid="link-forgeai"
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/forge" ? "bg-gradient-to-r from-[#00FFD1]/10 to-[#4F8EFF]/10 border border-[#00FFD1]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            <div className="p-1 rounded-lg bg-[#00FFD1]/5"><span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🔨</span></div>
+            <span className="flex-1">Forge AI</span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background:"linear-gradient(to right,#00FFD133,#4F8EFF33)", color:"#00FFD1", border:"1px solid #00FFD150" }}>BUILD</span>
           </Link>
           )}
 
@@ -13467,6 +13477,7 @@ function Router() {
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping">{() => { if (typeof window !== "undefined") { window.location.replace("/marketplace"); } return null; }}</Route>
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
+      <Route path="/forge">{() => <Layout><ForgeAIPage /></Layout>}</Route>
       <Route path="/sovereign-agents">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
       <Route path="/omega-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>

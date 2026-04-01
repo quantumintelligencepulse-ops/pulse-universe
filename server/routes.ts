@@ -28,6 +28,7 @@ import {
 } from "./cross-link-engine";
 import { classifyAnomaly, Q_ANOMALY_TYPES } from "./q-stability-engine";
 import { TRANSCENDENCE_SCRIPTURE } from "./calendar-engine";
+import { ensureForgeAITables, registerForgeAIRoutes } from "./forgeai-engine";
 import { getSnapshot } from "./snapshot-cache";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
@@ -11861,6 +11862,10 @@ Return as structured script with section labels.`;
       res.status(500).json({ error: e.message });
     }
   });
+
+  // ── FORGEAI ENGINE ───────────────────────────────────────────────────────────
+  await ensureForgeAITables().catch((e) => console.error("[forgeai] table init:", e));
+  registerForgeAIRoutes(app);
 
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});

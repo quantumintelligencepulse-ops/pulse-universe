@@ -1,0 +1,166 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { base44 } from "@/api/base44Client";
+import { getRelevantSources } from "./OmegaSources";
+import { Zap, Palette, TrendingUp, Rocket, Brain, Shield, Loader2 } from "lucide-react";
+
+const MODES = [
+  { id: "full", icon: Zap, label: "Full Rebuild", desc: "Complete AI reconstruction with latest research" },
+  { id: "ui", icon: Palette, label: "UI/UX Upgrade", desc: "Premium design with animations and modern aesthetics" },
+  { id: "features", icon: TrendingUp, label: "Add Features", desc: "5+ new capabilities and interactive modules" },
+  { id: "performance", icon: Rocket, label: "Performance", desc: "Optimize rendering, reduce size, speed up" },
+  { id: "ai", icon: Brain, label: "AI Features", desc: "Embed auto-complete, suggestions, ML logic" },
+  { id: "security", icon: Shield, label: "Security", desc: "Input validation, XSS prevention, secure patterns" },
+];
+
+const MODE_DIRECTIVES = {
+  full: "Completely rebuild and supercharge. Rethink architecture, design, and features from the ground up.",
+  ui: "Dramatically redesign the visual layer. Premium dark theme, gradients, glassmorphism, micro-animations.",
+  features: "Add 5+ significant new features. Expand capabilities with new modules and interactions.",
+  performance: "Rewrite for performance: fewer DOM ops, efficient events, optimized CSS, smooth 60fps animations.",
+  ai: "Integrate AI features: smart autocomplete, suggestions, predictive patterns, adaptive UI.",
+  security: "Add security: input sanitization, XSS prevention, safe innerHTML alternatives, validation.",
+};
+
+export default function UpgradePanel({ app, html, css, js, onUpgradeComplete }) {
+  const [mode, setMode] = useState("full");
+  const [instructions, setInstructions] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
+  const [logs, setLogs] = useState([]);
+
+  const addLog = (msg) => setLogs((p) => [...p, { msg, id: Date.now() + Math.random() }]);
+
+  const runUpgrade = async () => {
+    setUpgrading(true);
+    setLogs([]);
+    addLog("Scanning current architecture...");
+
+    const sources = getRelevantSources(app.prompt, 20);
+    addLog(`Loaded ${sources.length} Omega sources`);
+    addLog(`Running ${mode} upgrade...`);
+
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `You are an elite web developer performing a MAJOR ${mode.toUpperCase()} UPGRADE.
+
+ORIGINAL IDEA: "${app.prompt}"
+APP NAME: "${app.app_name}"
+UPGRADE: ${MODE_DIRECTIVES[mode]}
+INSTRUCTIONS: ${instructions || "Make it dramatically better."}
+
+CURRENT CODE:
+HTML: ${html?.slice(0, 2000)}
+CSS: ${css?.slice(0, 1500)}
+JS: ${js?.slice(0, 1500)}
+
+OMEGA SOURCES:
+${sources.slice(0, 10).map((s) => `- ${s.name}: ${s.desc}`).join("\n")}
+
+REQUIREMENTS:
+1. DRAMATICALLY better than current version
+2. All existing core functionality still works
+3. Richer data and better user flows
+4. Loading states, edge cases polished
+5. Production-quality code
+
+Return JSON: { html, css, js, upgrade_summary, new_features: string[] }`,
+      model: "claude_sonnet_4_6",
+      response_json_schema: {
+        type: "object",
+        properties: {
+          html: { type: "string" },
+          css: { type: "string" },
+          js: { type: "string" },
+          upgrade_summary: { type: "string" },
+          new_features: { type: "array", items: { type: "string" } },
+        },
+      },
+    });
+
+    addLog("Upgrade complete! Saving...");
+
+    await base44.entities.BuildMemory.create({
+      build_id: app.id,
+      prompt: app.prompt,
+      app_type: app.app_type,
+      upgrade_notes: result.upgrade_summary,
+      version: Date.now(),
+      resources_used: JSON.stringify(sources.slice(0, 8).map((s) => s.name)),
+    }).catch(() => {});
+
+    addLog(`${result.new_features?.length || 0} new features applied`);
+    setUpgrading(false);
+    onUpgradeComplete({
+      html: result.html,
+      css: result.css,
+      js: result.js,
+      summary: result.upgrade_summary,
+      new_features: result.new_features,
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border border-border bg-card/30 p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
+            <Zap className="w-4.5 h-4.5 text-accent" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm">AI Upgrader</h3>
+            <p className="text-xs text-muted-foreground">
+              Upgrade <strong className="text-foreground">{app?.app_name}</strong> with 100+ open-source intelligence
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+          {MODES.map((m) => {
+            const Icon = m.icon;
+            return (
+              <button key={m.id} onClick={() => setMode(m.id)}
+                className={`text-left p-3 rounded-lg border transition-all ${
+                  mode === m.id ? "border-primary/30 bg-primary/5" : "border-border hover:border-border"
+                }`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className={`w-3.5 h-3.5 ${mode === m.id ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className={`text-xs font-semibold ${mode === m.id ? "text-primary" : ""}`}>{m.label}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">{m.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <textarea
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="Additional instructions (optional)..."
+          disabled={upgrading}
+          rows={2}
+          className="w-full bg-secondary/50 border border-border rounded-lg p-3 text-sm text-foreground placeholder-muted-foreground/40 outline-none resize-none mb-3 focus:border-primary/30 transition-all"
+        />
+
+        {upgrading && logs.length > 0 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="rounded-lg border border-accent/10 bg-accent/5 p-3 max-h-32 overflow-y-auto mb-3">
+            <AnimatePresence>
+              {logs.map((l) => (
+                <motion.div key={l.id} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
+                  className="text-xs font-mono text-accent/70 mb-0.5">{l.msg}</motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
+
+        <button onClick={runUpgrade} disabled={upgrading}
+          className="w-full h-11 rounded-lg bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+          {upgrading ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Upgrading...</>
+          ) : (
+            <><Zap className="w-4 h-4" /> Launch Upgrade</>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}

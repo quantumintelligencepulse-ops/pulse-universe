@@ -1,0 +1,50 @@
+import { motion } from "framer-motion";
+import { Globe, Cpu, Brain, Code2, Layers, ShoppingCart, BarChart3, MessageSquare, Kanban, Calculator } from "lucide-react";
+
+const TEMPLATES = [
+  { id: "saas-dashboard", label: "SaaS Dashboard", icon: BarChart3, type: "fullstack",
+    prompt: "A complete SaaS dashboard with user authentication, subscription management, usage analytics charts, settings page, and responsive sidebar navigation. Include sample data and a modern dark theme." },
+  { id: "ecommerce", label: "E-Commerce Store", icon: ShoppingCart, type: "fullstack",
+    prompt: "An e-commerce storefront with product catalog, search and filters, shopping cart, checkout flow, order history, and admin inventory management. Include product images and ratings." },
+  { id: "chat-app", label: "Chat Application", icon: MessageSquare, type: "react",
+    prompt: "A real-time chat application with multiple channels, direct messages, user profiles, typing indicators, message reactions, and file sharing. Dark theme with smooth animations." },
+  { id: "project-mgmt", label: "Project Manager", icon: Kanban, type: "fullstack",
+    prompt: "A project management tool with kanban boards, task lists, team members, deadlines, progress tracking, Gantt chart view, and project analytics dashboard." },
+  { id: "finance-tracker", label: "Finance Tracker", icon: Calculator, type: "react",
+    prompt: "A personal finance tracking app with income/expense logging, budget categories, spending charts, monthly summaries, savings goals, and recurring transaction support." },
+  { id: "landing-page", label: "Landing Page", icon: Globe, type: "static",
+    prompt: "A stunning SaaS landing page with hero section, feature showcase, pricing table with toggle, testimonials carousel, FAQ accordion, newsletter signup, and footer. Animated on scroll." },
+  { id: "api-service", label: "REST API Service", icon: Cpu, type: "node_express",
+    prompt: "A REST API service with CRUD endpoints, user authentication with JWT, rate limiting, input validation, error handling, API documentation page, and health check endpoint." },
+  { id: "ai-tool", label: "AI-Powered Tool", icon: Brain, type: "fullstack",
+    prompt: "An AI-powered content generation tool with text generation, image prompt builder, content history, favorites, export options, and usage statistics dashboard." },
+  { id: "portfolio", label: "Dev Portfolio", icon: Code2, type: "static",
+    prompt: "A developer portfolio website with hero section, skills grid, project showcase with live demos, blog section, contact form, and smooth scroll animations. Dark premium design." },
+  { id: "crm", label: "CRM System", icon: Layers, type: "fullstack",
+    prompt: "A customer relationship management system with contact management, deal pipeline, activity timeline, email templates, reporting dashboard, and team collaboration features." },
+];
+
+export default function ProjectTemplates({ onSelect }) {
+  return (
+    <div className="rounded-xl border border-border bg-card/50 backdrop-blur-sm p-4">
+      <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-3">Quick Start Templates</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {TEMPLATES.map((t, i) => {
+          const Icon = t.icon;
+          return (
+            <motion.button key={t.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03 }}
+              onClick={() => onSelect(t)}
+              className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-center group">
+              <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              <span className="text-xs font-medium group-hover:text-primary transition-colors">{t.label}</span>
+              <span className="text-[10px] text-muted-foreground/60">{t.type}</span>
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
