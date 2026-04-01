@@ -82,13 +82,13 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
 const FREE_FOREVER_EMAILS = ["quantumintelligencepulse@gmail.com", "billyotucker@gmail.com"];
 import { search as _ddgSearch, searchNews as _ddgSearchNews, searchVideos as _ddgSearchVideos, searchImages as _ddgSearchImages } from "duck-duck-scrape";
 
-let lastDdgCall = 0;
 const DDG_MIN_INTERVAL = 10000;
 async function ddgThrottle() {
   const now = Date.now();
-  const wait = DDG_MIN_INTERVAL - (now - lastDdgCall);
+  const last: number = (global as any)._ddgLastCall || 0;
+  const wait = DDG_MIN_INTERVAL - (now - last);
   if (wait > 0) await new Promise(r => setTimeout(r, wait));
-  lastDdgCall = Date.now();
+  (global as any)._ddgLastCall = Date.now();
 }
 const search: typeof _ddgSearch = async (...args) => { await ddgThrottle(); return _ddgSearch(...args); };
 const searchNews: typeof _ddgSearchNews = async (...args) => { await ddgThrottle(); return _ddgSearchNews(...args); };

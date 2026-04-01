@@ -5,6 +5,19 @@
 import { pool } from "./db";
 import Groq from "groq-sdk";
 import type { Express } from "express";
+import { search as _ddgSearch, searchNews as _ddgSearchNews } from "duck-duck-scrape";
+
+// throttle DDG calls — shared with routes.ts via global to avoid rate limits across modules
+const FORGE_DDG_INTERVAL = 12000; // 12s per call, shared with main DDG throttle
+async function forgeDdgThrottle() {
+  const now = Date.now();
+  const last: number = (global as any)._ddgLastCall || 0;
+  const wait = Math.max(0, FORGE_DDG_INTERVAL - (now - last));
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  (global as any)._ddgLastCall = Date.now();
+}
+const ddgSearch: typeof _ddgSearch = async (...args) => { await forgeDdgThrottle(); return _ddgSearch(...args); };
+const ddgNews: typeof _ddgSearchNews = async (...args) => { await forgeDdgThrottle(); return _ddgSearchNews(...args); };
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -387,6 +400,62 @@ export function registerForgeAIRoutes(app: Express) {
     } catch(e: any) {
       console.error("[forgeai-llm] error:", e.message);
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── REAL WEB SEARCH (DuckDuckGo) ─────────────────────────────────────────
+  // Used by the ForgeAI pipeline for live internet research during builds
+  app.post("/api/forgeai/web-search", async (req, res) => {
+    const { query, type = "web", max = 8 } = req.body;
+    if (!query) return res.status(400).json({ error: "query required" });
+    try {
+      const { SafeSearchType } = await import("duck-duck-scrape");
+      let items: any[] = [];
+
+      if (type === "news") {
+        try {
+          const r = await ddgNews(query, { safeSearch: SafeSearchType.STRICT });
+          items = (r.results || []).slice(0, max).map((n: any) => ({
+            title: n.title || "",
+            excerpt: n.excerpt || n.description || "",
+            url: n.url || "",
+            source: n.source || n.url || "",
+          }));
+        } catch (e: any) {
+          console.error(`[forgeai-search] news error for "${query}":`, e.message?.slice(0, 80));
+        }
+        return res.json({ results: items, query, type: "news" });
+      }
+
+      // For play_store: search DuckDuckGo constrained to play.google.com
+      // For github: search DuckDuckGo constrained to github.com
+      const searchQuery = type === "play_store"
+        ? `site:play.google.com ${query}`
+        : type === "github"
+          ? `site:github.com ${query} open source`
+          : query;
+
+      try {
+        const r = await ddgSearch(searchQuery, { safeSearch: SafeSearchType.STRICT });
+        items = (r.results || []).slice(0, max).map((item: any) => {
+          let hostname = "";
+          try { hostname = new URL(item.url || "https://x.com").hostname; } catch {}
+          return {
+            title: item.title || "",
+            description: item.description || item.rawDescription || "",
+            url: item.url || "",
+            hostname,
+          };
+        });
+        console.log(`[forgeai-search] "${query}" (${type}): ${items.length} results`);
+      } catch (e: any) {
+        console.error(`[forgeai-search] web error for "${query}" (${type}):`, e.message?.slice(0, 100));
+      }
+
+      return res.json({ results: items, query, type });
+    } catch (e: any) {
+      console.error("[forgeai-search] outer error:", e.message);
+      res.json({ results: [], query, type, error: e.message });
     }
   });
 
