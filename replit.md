@@ -141,3 +141,49 @@ The application uses a React + Vite + Tailwind CSS + shadcn/ui frontend, with a 
 - `ai_stories`: body (content), hero_image (not image_url), seo_title, slug, article_id
 - `quantapedia_entries`: type (not domain/category/topic), categories[] (array), summary, slug
 - `ai_publications`: content, domain, pub_type, spawn_id, family_id
+
+## ForgeAI Sovereign Solutions (April 2026)
+
+### Engine Files
+- `server/forgeai-engine.ts` — All server routes + table creation + sovereign client injection
+- `client/src/pages/forge/EditorView.tsx` — Editor with Chat Mutation + Go Live + Download
+- `client/src/pages/forge/BuildView.tsx` — 9-step Ultron build pipeline with hive eval + play store testing
+- `client/src/pages/forge/PlayStoreTestEngine.ts` — 5-phase autonomous testing
+- `client/src/pages/forge/PatternLibrary.ts` — 12 code patterns injected into every build
+- `client/src/pages/forge/HiveEvalEngine.ts` — 7 specialist agent evaluators
+- `client/src/pages/forge/OmegaSources.ts` — 200+ research sources
+
+### Sovereign Solutions Implemented
+1. **Instant Public URL**: `/forge/live/:id` serves generated HTML directly. One-click Go Live toggle makes apps public. Sovereign Client auto-injected (PULSE_DB, PULSE_AUTH, PULSE_ANALYTICS, PULSE_EVOLVE).
+2. **Real Database (PULSE_DB)**: Universal CRUD API at `/api/forge/data/:appId/:collection`. Table: `forgeai_app_data` (app_id, collection, doc_id, data JSONB). List/Get/Create/Update/Delete.
+3. **Conversational Editing (Chat Mutations)**: `/api/forge/chat/:appId` — send instruction, get surgical code mutation. Full chat UI in EditorView. Mutations stored in `forgeai_mutations` with generation + SHA-256 hash.
+4. **Sovereign Identity (PULSE_AUTH)**: `/api/forge/auth/:appId/register` + `/login`. SHA-256(password + salt + appId). Table: `forgeai_app_users`. window.PULSE_AUTH injected into every live app.
+5. **OmniLink Proxy**: `/api/forge/proxy` — routes email, SMS, storage, maps integrations.
+6. **Embeddable Badge**: `/forge/badge/:id` — SVG badge showing trust score.
+7. **Sovereign Certificate**: `/forge/cert/:id` — machine-readable provenance JSON.
+8. **Build Registry**: `forgeai_build_registry` — immutable SHA-256 hash of every build.
+9. **Analytics**: `forgeai_analytics` — page views, events, proxy calls tracked per app.
+10. **Remix Protocol**: `/api/forge/remix/:id` — fork any app with all research.
+11. **Gallery**: `/api/forge/gallery` — list public apps by trust score.
+
+### New DB Tables (Raw SQL, no Drizzle)
+- `forgeai_app_data` — Universal document store for generated apps
+- `forgeai_app_users` — Auth users per generated app
+- `forgeai_mutations` — Mutation history with ancestry
+- `forgeai_analytics` — App-level event tracking
+- `forgeai_build_registry` — Immutable build ledger
+
+### New Columns on forgeai_apps
+- `is_public` BOOLEAN — whether app has a public URL
+- `code_hash` TEXT — SHA-256 hash of generated HTML
+- `trust_score` INTEGER — computed from hive + play store scores
+- `view_count` INTEGER — total page views at /forge/live/:id
+- `remix_count` INTEGER — number of times app was forked
+
+### Auth Hashing
+- `SHA-256(password + "pulse_sovereign_salt_" + appId)` — simple per-app salt
+- Trust score: `Math.round(hiveScore * 0.6 + psScore * 0.4)`
+
+### GROQ Limits (Free Tier)
+- TPM: 12,000 | max_tokens: 9,000 for code gen | Model: llama-3.3-70b-versatile
+- DDG throttle: 12s interval, shared global `_ddgLastCall`
