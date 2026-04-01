@@ -29,6 +29,7 @@ import {
 import { classifyAnomaly, Q_ANOMALY_TYPES } from "./q-stability-engine";
 import { TRANSCENDENCE_SCRIPTURE } from "./calendar-engine";
 import { ensureForgeAITables, registerForgeAIRoutes } from "./forgeai-engine";
+import { registerAppFactoryRoutes, startAppFactory } from "./forge-app-factory";
 import { getSnapshot } from "./snapshot-cache";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
@@ -11866,6 +11867,10 @@ Return as structured script with section labels.`;
   // ── FORGEAI ENGINE ───────────────────────────────────────────────────────────
   await ensureForgeAITables().catch((e) => console.error("[forgeai] table init:", e));
   registerForgeAIRoutes(app);
+
+  // ── FORGE APP FACTORY — Autonomous SaaS Builder for all 156 GICS industries ─
+  registerAppFactoryRoutes(app);
+  startAppFactory().catch((e) => console.error("[app-factory] startup error:", e.message));
 
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});

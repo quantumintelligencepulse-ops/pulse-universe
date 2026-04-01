@@ -1,12 +1,13 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Hammer, Zap, Book, Plus, Search, Loader2, Trash2, ExternalLink, Sparkles, RotateCcw } from "lucide-react";
+import { Hammer, Zap, Book, Plus, Search, Loader2, Trash2, ExternalLink, Sparkles, RotateCcw, Factory } from "lucide-react";
 
 const BuildView = lazy(() => import("./forge/BuildView"));
 const EditorView = lazy(() => import("./forge/EditorView"));
 const LibraryView = lazy(() => import("./forge/LibraryView"));
+const FactoryDashboard = lazy(() => import("./forge/FactoryDashboard"));
 
-type View = "home" | "build" | "editor" | "library";
+type View = "home" | "build" | "editor" | "library" | "factory";
 
 // ── ForgeAI API client ────────────────────────────────────────────────────────
 const forgeApi = {
@@ -92,10 +93,11 @@ function AppCard({ app, onOpen, onDelete }: { app: any; onOpen: () => void; onDe
 }
 
 // ── HOME VIEW ─────────────────────────────────────────────────────────────────
-function HomeView({ onBuild, onViewEditor, onViewLibrary }: {
+function HomeView({ onBuild, onViewEditor, onViewLibrary, onViewFactory }: {
   onBuild: (id: number) => void;
   onViewEditor: (id: number) => void;
   onViewLibrary: () => void;
+  onViewFactory: () => void;
 }) {
   const [prompt, setPrompt] = useState("");
   const [projectType, setProjectType] = useState("fullstack");
@@ -235,6 +237,11 @@ function HomeView({ onBuild, onViewEditor, onViewLibrary }: {
             data-testid="button-view-library">
             <Book className="w-3.5 h-3.5" /> Library
           </button>
+          <button onClick={onViewFactory}
+            className="flex items-center gap-1.5 px-4 py-3 rounded-xl border border-[#F5C518]/20 text-xs text-[#F5C518]/70 hover:text-[#F5C518] hover:border-[#F5C518]/40 transition-all"
+            data-testid="button-view-factory">
+            <Factory className="w-3.5 h-3.5" /> Factory
+          </button>
         </div>
         <p className="text-[10px] text-muted-foreground/40 text-center mt-2">Ctrl+Enter to build · Earns +50 Pulse Credits</p>
       </div>
@@ -371,6 +378,7 @@ export default function ForgeAIPage() {
   const startBuild = (id: number) => { setActiveAppId(id); setView("build"); };
   const openEditor = (id: number) => { setActiveAppId(id); setView("editor"); };
   const openLibrary = () => setView("library");
+  const openFactory = () => setView("factory");
 
   return (
     <div className="w-full h-full overflow-y-auto relative bg-background">
@@ -385,7 +393,7 @@ export default function ForgeAIPage() {
         <AnimatePresence mode="wait">
           {view === "home" && (
             <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <HomeView onBuild={startBuild} onViewEditor={openEditor} onViewLibrary={openLibrary} />
+              <HomeView onBuild={startBuild} onViewEditor={openEditor} onViewLibrary={openLibrary} onViewFactory={openFactory} />
             </motion.div>
           )}
           {view === "build" && activeAppId && (
@@ -401,6 +409,11 @@ export default function ForgeAIPage() {
           {view === "library" && (
             <motion.div key="library" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <LibraryView onBack={goHome} />
+            </motion.div>
+          )}
+          {view === "factory" && (
+            <motion.div key="factory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+              <FactoryDashboard onBack={goHome} />
             </motion.div>
           )}
         </AnimatePresence>
