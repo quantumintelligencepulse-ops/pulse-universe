@@ -10,14 +10,14 @@ type View = "home" | "build" | "editor" | "library";
 
 // ── ForgeAI API client ────────────────────────────────────────────────────────
 const forgeApi = {
-  listApps: () => fetch("/api/forgeai/apps").then(r => r.json()),
+  listApps: () => fetch("/api/forgeai/apps").then(r => r.json()).then(d => Array.isArray(d) ? d : []),
   createApp: (data: any) => fetch("/api/forgeai/apps", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
   }).then(r => r.json()),
   deleteApp: (id: number) => fetch(`/api/forgeai/apps/${id}`, { method: "DELETE" }).then(r => r.json()),
   getStats: () => fetch("/api/forgeai/stats").then(r => r.json()),
-  getDiscoveryPrompts: () => fetch("/api/forgeai/discovery-prompts").then(r => r.json()),
-  getSectorSuggestions: () => fetch("/api/forgeai/sector-suggestions").then(r => r.json()),
+  getDiscoveryPrompts: () => fetch("/api/forgeai/discovery-prompts").then(r => r.json()).then(d => Array.isArray(d) ? d : []),
+  getSectorSuggestions: () => fetch("/api/forgeai/sector-suggestions").then(r => r.json()).then(d => Array.isArray(d) ? d : []),
 };
 
 // ── [Ω10] PROJECT TYPES ───────────────────────────────────────────────────────

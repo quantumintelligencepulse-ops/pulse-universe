@@ -189,8 +189,8 @@ export function registerForgeAIRoutes(app: Express) {
         ? `SELECT * FROM forgeai_apps WHERE user_id=$1 OR user_id IS NULL ORDER BY created_at DESC LIMIT 100`
         : `SELECT * FROM forgeai_apps ORDER BY created_at DESC LIMIT 50`;
       const result = await pool.query(q, userId ? [userId] : []);
-      res.json(result.rows);
-    } catch(e: any) { res.status(500).json({ error: e.message }); }
+      res.json(result.rows ?? []);
+    } catch(e: any) { res.json([]); }
   });
 
   // ── GET SINGLE APP ────────────────────────────────────────────────────────
