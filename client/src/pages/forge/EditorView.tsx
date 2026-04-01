@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Download, Eye, Code2, Sparkles, Play, FileText, FileCode, Cpu, ChevronRight, X, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Download, Eye, Code2, Sparkles, Play, FileText, FileCode, Cpu, X, Loader2, CheckCircle2 } from "lucide-react";
 import JSZip from "jszip";
 import { generatePythonInstaller, generatePowerShellInstaller, generateBatchLauncher, generateReadme, generateRequirementsTxt } from "./InstallerGenerator";
 
 interface EditorViewProps { appId: number; onBack: () => void; }
 
-// ── ForgeAI API client ────────────────────────────────────────────────────────
 const forgeApi = {
   getApp: (id: number) => fetch(`/api/forgeai/apps/${id}`).then(r => r.json()),
   updateApp: (id: number, data: any) => fetch(`/api/forgeai/apps/${id}`, {
@@ -20,9 +19,45 @@ const forgeApi = {
   }).then(r => r.json()),
 };
 
+// Detect if stored HTML is a complete document or legacy split-field code
+function isFullDocument(html: string): boolean {
+  const trimmed = (html || "").trim().toLowerCase();
+  return trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
+}
+
+// Build srcDoc: full document used directly, legacy assembled from parts
+function buildSrcDoc(app: any, fullHtml: string): string {
+  if (isFullDocument(fullHtml)) return fullHtml;
+  // Legacy fallback: assemble from split fields
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${app?.app_name || "App Preview"}</title>
+  <style>${app?.generated_css || ""}</style>
+</head>
+<body>
+${app?.generated_html || ""}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+${app?.generated_js || ""}
+});
+<\/script>
+</body>
+</html>`;
+}
+
 // ── FILE TREE ─────────────────────────────────────────────────────────────────
-function FileTree({ selected, onSelect, appName }: { selected: string; onSelect: (f: string) => void; appName: string }) {
-  const files = [
+function FileTree({ selected, onSelect, appName, isFull }: {
+  selected: string; onSelect: (f: string) => void; appName: string; isFull: boolean;
+}) {
+  const files = isFull ? [
+    { name: "index.html", icon: <FileText className="w-3.5 h-3.5 text-orange-400" /> },
+    { name: "forge_launcher.py", icon: <FileCode className="w-3.5 h-3.5 text-green-400" /> },
+    { name: "LAUNCH.bat", icon: <Play className="w-3.5 h-3.5 text-violet-400" /> },
+    { name: "README.md", icon: <FileText className="w-3.5 h-3.5 text-cyan-400" /> },
+  ] : [
     { name: "index.html", icon: <FileText className="w-3.5 h-3.5 text-orange-400" /> },
     { name: "styles.css", icon: <FileCode className="w-3.5 h-3.5 text-blue-400" /> },
     { name: "app.js", icon: <Cpu className="w-3.5 h-3.5 text-yellow-400" /> },
@@ -34,10 +69,7 @@ function FileTree({ selected, onSelect, appName }: { selected: string; onSelect:
     <div className="w-44 shrink-0 border-r border-border/50 bg-card/20 p-3">
       <p className="text-[10px] text-muted-foreground uppercase font-mono tracking-widest mb-3">Files</p>
       <div className="space-y-0.5">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground/50 mb-2">
-          <ChevronRight className="w-3 h-3" />
-          <span className="font-mono truncate text-[10px]">{appName || "project"}</span>
-        </div>
+        <div className="text-[10px] text-muted-foreground/50 font-mono truncate mb-2 px-2">{appName || "project"}/</div>
         {files.map((f) => (
           <button key={f.name} onClick={() => onSelect(f.name)}
             className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-left transition-all font-mono ${
@@ -52,18 +84,19 @@ function FileTree({ selected, onSelect, appName }: { selected: string; onSelect:
   );
 }
 
-// ── CODE EDITOR (syntax-highlighted textarea) ─────────────────────────────────
-function CodeEditor({ value, onChange, language }: { value: string; onChange: (v: string) => void; language: string }) {
+// ── CODE EDITOR ───────────────────────────────────────────────────────────────
+function CodeEditor({ value, onChange, language, readOnly = false }: {
+  value: string; onChange: (v: string) => void; language: string; readOnly?: boolean;
+}) {
   const lineCount = (value || "").split("\n").length;
   return (
     <div className="relative flex h-full overflow-hidden">
       <div className="select-none pt-4 pb-4 px-3 text-right border-r border-border/30 bg-card/20 font-mono text-[11px] text-muted-foreground/30 overflow-hidden"
         style={{ minWidth: 40, lineHeight: "20px" }}>
-        {Array.from({ length: Math.max(lineCount, 20) }, (_, i) => (
-          <div key={i}>{i + 1}</div>
-        ))}
+        {Array.from({ length: Math.max(lineCount, 20) }, (_, i) => <div key={i}>{i + 1}</div>)}
       </div>
-      <textarea value={value || ""} onChange={(e) => onChange(e.target.value)} spellCheck={false}
+      <textarea value={value || ""} onChange={(e) => !readOnly && onChange(e.target.value)}
+        readOnly={readOnly} spellCheck={false}
         className="flex-1 h-full resize-none bg-transparent font-mono text-[12px] leading-5 p-4 outline-none text-foreground/90 overflow-auto"
         style={{ tabSize: 2 }} />
       <div className="absolute top-2 right-2 text-[10px] text-muted-foreground/30 font-mono">{language}</div>
@@ -71,25 +104,9 @@ function CodeEditor({ value, onChange, language }: { value: string; onChange: (v
   );
 }
 
-// ── PREVIEW PANEL ─────────────────────────────────────────────────────────────
-function PreviewPanel({ app }: { app: any }) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+// ── PREVIEW PANEL — uses full HTML document directly as srcDoc ─────────────────
+function PreviewPanel({ srcDoc, appName }: { srcDoc: string; appName: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
-
-  const fullHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${app?.app_name || "App Preview"}</title>
-  <style>${app?.generated_css || ""}</style>
-</head>
-<body>
-${app?.generated_html || ""}
-<script>${app?.generated_js || ""}<\/script>
-</body>
-</html>`;
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-card/20 shrink-0">
@@ -97,31 +114,35 @@ ${app?.generated_html || ""}
           <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
           <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
-          <span className="ml-2 text-[11px] text-muted-foreground font-mono">{app?.app_name || "Preview"}</span>
+          <span className="ml-2 text-[11px] text-muted-foreground font-mono">{appName || "Preview"}</span>
         </div>
         <button onClick={() => setRefreshKey(k => k + 1)} className="text-[10px] text-muted-foreground hover:text-foreground font-mono transition-colors">
           ↺ Refresh
         </button>
       </div>
-      <iframe key={refreshKey} ref={iframeRef} title="App Preview"
-        srcDoc={fullHtml}
-        className="flex-1 w-full border-0 bg-white"
+      <iframe key={refreshKey} title="App Preview"
+        srcDoc={srcDoc}
+        className="flex-1 w-full border-0"
         sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin" />
     </div>
   );
 }
 
 // ── DOWNLOAD MANAGER ──────────────────────────────────────────────────────────
-function DownloadManager({ app, onClose }: { app: any; onClose: () => void }) {
+function DownloadManager({ app, fullHtml, onClose }: { app: any; fullHtml: string; onClose: () => void }) {
   const [downloading, setDownloading] = useState(false);
   const [done, setDone] = useState(false);
   const safeName = (app?.app_name || "forge-app").replace(/[^a-z0-9]/gi, "-").toLowerCase();
+  const isFull = isFullDocument(fullHtml);
 
   const download = async () => {
     setDownloading(true);
     try {
       const zip = new JSZip();
-      const full = `<!DOCTYPE html>
+      if (isFull) {
+        zip.file("index.html", fullHtml);
+      } else {
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -134,9 +155,10 @@ ${app.generated_html || ""}
 <script src="app.js"><\/script>
 </body>
 </html>`;
-      zip.file("index.html", full);
-      zip.file("styles.css", app.generated_css || "");
-      zip.file("app.js", app.generated_js || "");
+        zip.file("index.html", html);
+        zip.file("styles.css", app.generated_css || "");
+        zip.file("app.js", app.generated_js || "");
+      }
       zip.file("forge_launcher.py", generatePythonInstaller(app.app_name, app.project_type));
       zip.file("install.ps1", generatePowerShellInstaller(app.app_name));
       zip.file("LAUNCH.bat", generateBatchLauncher(app.app_name));
@@ -152,6 +174,10 @@ ${app.generated_html || ""}
     setDownloading(false);
   };
 
+  const fileList = isFull
+    ? ["index.html — Complete standalone app", "forge_launcher.py — Auto-installer", "LAUNCH.bat — Windows launcher", "README.md — Setup guide"]
+    : ["index.html — App shell", "styles.css — All styles", "app.js — Application logic", "forge_launcher.py — Auto-installer", "LAUNCH.bat — Windows launcher", "README.md — Setup guide"];
+
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
       className="absolute inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm">
@@ -165,7 +191,7 @@ ${app.generated_html || ""}
           <p className="text-xs text-muted-foreground mb-6">Complete project package with auto-installer</p>
         </div>
         <div className="space-y-2 mb-6">
-          {["index.html — Full app", "styles.css — All styles", "app.js — Application logic", "forge_launcher.py — Auto-installer", "LAUNCH.bat — Windows launcher", "README.md — Setup guide"].map((f) => (
+          {fileList.map((f) => (
             <div key={f} className="flex items-center gap-2.5 text-xs text-muted-foreground">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>{f}</span>
@@ -182,75 +208,76 @@ ${app.generated_html || ""}
   );
 }
 
-// ── [Ω10] UPGRADE PANEL — AI-powered code upgrade ────────────────────────────
-function UpgradePanel({ app, onUpgraded, onClose }: { app: any; onUpgraded: (data: any) => void; onClose: () => void }) {
+// ── UPGRADE PANEL ─────────────────────────────────────────────────────────────
+function UpgradePanel({ app, fullHtml, onUpgraded, onClose }: {
+  app: any; fullHtml: string; onUpgraded: (html: string) => void; onClose: () => void;
+}) {
   const [req, setReq] = useState("");
   const [loading, setLoading] = useState(false);
-  const [log, setLog] = useState("");
+  const [logMsg, setLogMsg] = useState("");
 
   const presets = [
-    "Add dark/light mode toggle with smooth transitions",
-    "Add real-time data updates with animated charts",
-    "Add authentication with login/signup modals",
-    "Add AI chatbot sidebar powered by the Pulse Hive",
-    "Add drag-and-drop interface with haptic feedback",
-    "Optimize for mobile with touch gestures",
-    "Add export functionality (PDF, CSV, JSON)",
-    // [Ω10] Civilization-level upgrade
-    "Integrate Pulse Hive AI agents — make agents autonomously use and improve this app",
+    "Add dark/light mode toggle with smooth transition",
+    "Add real-time animated stat counters",
+    "Add keyboard shortcuts (N=new, Esc=close, Ctrl+S=export)",
+    "Add CSV and JSON export download buttons",
+    "Add priority levels and color-coded badges",
+    "Add drag-and-drop reordering with visual feedback",
+    "Add a timeline/calendar view for date-based data",
+    "Integrate Pulse Hive AI agents — make this app autonomous",
   ];
 
   const upgrade = async () => {
     if (!req.trim()) return;
     setLoading(true);
-    setLog("◆ Upgrading application...");
+    setLogMsg("◆ Upgrading application...");
     try {
+      const appKey = (app?.app_name || "app").slice(0, 12).replace(/\W/g, "_").toLowerCase();
       const result = await forgeApi.invokeLLM({
-        prompt: `You are an elite full-stack developer. Upgrade this web app with the following request.
+        prompt: `You are an elite web developer upgrading a standalone HTML app.
 
-CURRENT APP NAME: ${app?.app_name}
+CURRENT APP: ${app?.app_name}
 UPGRADE REQUEST: ${req}
 
-CURRENT HTML:
-${(app?.generated_html || "").slice(0, 3000)}
+CURRENT CODE (first 5000 chars):
+${fullHtml.slice(0, 5000)}
 
-CURRENT CSS:
-${(app?.generated_css || "").slice(0, 2000)}
+RULES:
+1. Keep ALL existing functionality — only ADD new features, never remove
+2. Return ONE complete HTML document from <!DOCTYPE html> to </html>
+3. ALL CSS in <style> block in <head>
+4. ALL JS in <script> block at end of <body> wrapped in DOMContentLoaded
+5. NO external CDN imports — vanilla JS and CSS only
+6. localStorage namespace: "${appKey}_"
+7. Pre-populate any new data lists with 5+ sample records
+8. The upgrade must be seamless and beautifully polished
 
-CURRENT JS:
-${(app?.generated_js || "").slice(0, 3000)}
-
-INSTRUCTIONS:
-1. Keep all existing functionality — ADD to it, don't replace
-2. The upgrade should be seamless and polished
-3. Update all three files as needed
-4. Add smooth animations for new features
-
-Return JSON with ONLY these keys: html (string), css (string), js (string), upgrade_summary (string), new_features (array of strings).`,
-        schema_keys: ["html", "css", "js", "upgrade_summary", "new_features"],
+Return JSON: { full_html: string, upgrade_summary: string, new_features: string[] }`,
+        schema_keys: ["full_html", "upgrade_summary", "new_features"],
       });
 
-      setLog(`✓ Upgrade complete! ${result.new_features?.join(", ")}`);
-
-      const updated = await forgeApi.updateApp(app.id, {
-        generated_html: result.html || app.generated_html,
-        generated_css: result.css || app.generated_css,
-        generated_js: result.js || app.generated_js,
-        status: "upgraded",
-      });
-
-      await forgeApi.createBuildMemory({
-        build_id: String(app.id),
-        prompt: req,
-        app_type: app.app_type,
-        upgrade_notes: result.upgrade_summary,
-        version: 2,
-        success_score: 100,
-      }).catch(() => {});
-
-      onUpgraded(updated);
+      if (result.full_html && result.full_html.length > 500) {
+        setLogMsg(`✓ Upgrade complete! ${(result.new_features || []).slice(0, 2).join(", ")}`);
+        const updated = await forgeApi.updateApp(app.id, {
+          generated_html: result.full_html,
+          generated_css: "",
+          generated_js: "",
+          status: "upgraded",
+        });
+        await forgeApi.createBuildMemory({
+          build_id: String(app.id),
+          prompt: req,
+          app_type: app.app_type,
+          upgrade_notes: result.upgrade_summary,
+          version: 2,
+          success_score: 100,
+        }).catch(() => {});
+        onUpgraded(result.full_html);
+      } else {
+        setLogMsg("⚠ Upgrade returned empty — try again");
+      }
     } catch (e: any) {
-      setLog("Error: " + (e?.message || "upgrade failed"));
+      setLogMsg("Error: " + (e?.message || "upgrade failed"));
     }
     setLoading(false);
   };
@@ -284,9 +311,12 @@ Return JSON with ONLY these keys: html (string), css (string), js (string), upgr
           <textarea value={req} onChange={(e) => setReq(e.target.value)} rows={3} placeholder="Describe your upgrade..."
             className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs outline-none focus:border-primary/30 resize-none transition-all" />
         </div>
-        {log && (
-          <div className={`text-xs font-mono px-3 py-2 rounded-lg ${log.startsWith("✓") ? "text-emerald-400 bg-emerald-500/10" : log.startsWith("Error") ? "text-red-400 bg-red-500/10" : "text-[#00FFD1] bg-[#00FFD1]/5"}`}>
-            {log}
+        {logMsg && (
+          <div className={`text-xs font-mono px-3 py-2 rounded-lg ${
+            logMsg.startsWith("✓") ? "text-emerald-400 bg-emerald-500/10"
+            : logMsg.startsWith("Error") || logMsg.startsWith("⚠") ? "text-red-400 bg-red-500/10"
+            : "text-[#00FFD1] bg-[#00FFD1]/5"}`}>
+            {logMsg}
           </div>
         )}
       </div>
@@ -304,10 +334,8 @@ Return JSON with ONLY these keys: html (string), css (string), js (string), upgr
 // ── MAIN EditorView ───────────────────────────────────────────────────────────
 export default function EditorView({ appId, onBack }: EditorViewProps) {
   const [app, setApp] = useState<any>(null);
+  const [fullHtml, setFullHtml] = useState("");
   const [selectedFile, setSelectedFile] = useState("index.html");
-  const [html, setHtml] = useState("");
-  const [css, setCss] = useState("");
-  const [js, setJs] = useState("");
   const [editorTab, setEditorTab] = useState<"code" | "preview">("preview");
   const [showDownload, setShowDownload] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -318,45 +346,57 @@ export default function EditorView({ appId, onBack }: EditorViewProps) {
     forgeApi.getApp(appId).then((a) => {
       if (!a?.id) return;
       setApp(a);
-      setHtml(a.generated_html || "");
-      setCss(a.generated_css || "");
-      setJs(a.generated_js || "");
+      // Use generated_html as full document if it is one, otherwise build srcDoc
+      const html = a.generated_html || "";
+      if (isFullDocument(html)) {
+        setFullHtml(html);
+      } else {
+        setFullHtml(buildSrcDoc(a, html));
+      }
     });
   }, [appId]);
 
-  const autosave = useCallback((h: string, c: string, j: string) => {
+  const autosave = useCallback((html: string) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       setSaving(true);
-      forgeApi.updateApp(appId, { generated_html: h, generated_css: c, generated_js: j }).then((updated) => {
+      forgeApi.updateApp(appId, {
+        generated_html: html,
+        generated_css: "",
+        generated_js: "",
+      }).then((updated) => {
         setApp((prev: any) => ({ ...prev, ...updated }));
         setSaving(false);
       }).catch(() => setSaving(false));
-    }, 1200);
+    }, 1500);
   }, [appId]);
 
   const handleCodeChange = (val: string) => {
-    if (selectedFile === "index.html") { setHtml(val); autosave(val, css, js); }
-    else if (selectedFile === "styles.css") { setCss(val); autosave(html, val, js); }
-    else if (selectedFile === "app.js") { setJs(val); autosave(html, css, val); }
+    if (selectedFile === "index.html") {
+      setFullHtml(val);
+      autosave(val);
+    }
   };
 
-  const currentCode = () => {
-    if (selectedFile === "index.html") return html;
-    if (selectedFile === "styles.css") return css;
-    if (selectedFile === "app.js") return js;
-    return "# Read-only generated file\n# Edit index.html, styles.css or app.js";
+  const getCodeContent = () => {
+    if (selectedFile === "index.html") return fullHtml;
+    if (selectedFile === "forge_launcher.py") return generatePythonInstaller(app?.app_name, app?.project_type);
+    if (selectedFile === "LAUNCH.bat") return generateBatchLauncher(app?.app_name);
+    if (selectedFile === "README.md") return generateReadme(app?.app_name, app?.app_description, app?.app_type);
+    return "# Read-only file";
   };
 
-  const currentLanguage = () => {
+  const getLanguage = () => {
     if (selectedFile.endsWith(".html")) return "HTML";
     if (selectedFile.endsWith(".css")) return "CSS";
     if (selectedFile.endsWith(".js")) return "JavaScript";
     if (selectedFile.endsWith(".py")) return "Python";
+    if (selectedFile.endsWith(".md")) return "Markdown";
     return "Text";
   };
 
-  const previewApp = app ? { ...app, generated_html: html, generated_css: css, generated_js: js } : null;
+  const isEditableFile = selectedFile === "index.html";
+  const isFull = isFullDocument(fullHtml);
 
   return (
     <div className="flex flex-col h-[calc(100dvh-56px)] overflow-hidden">
@@ -395,7 +435,8 @@ export default function EditorView({ appId, onBack }: EditorViewProps) {
       <div className="flex items-center gap-4 px-4 py-2 border-b border-border/30 bg-card/10 shrink-0 text-[11px] text-muted-foreground">
         <span className="font-mono">{app?.app_type || "web_app"}</span>
         <span>·</span>
-        <span className="text-emerald-400">✓ Complete</span>
+        <span className="text-emerald-400">✓ {app?.status || "complete"}</span>
+        {isFull && <><span>·</span><span className="text-[#00FFD1]/70 font-mono">◆ Standalone HTML</span></>}
         {app?.agent_author && <><span>·</span><span className="text-violet-400 font-mono">⚡ {app.agent_author}</span></>}
         {app?.pulse_credits_earned > 0 && <><span>·</span><span className="text-[#F5C518] font-mono">+{app.pulse_credits_earned} PC</span></>}
       </div>
@@ -405,9 +446,8 @@ export default function EditorView({ appId, onBack }: EditorViewProps) {
         {/* File tree — code mode only */}
         <AnimatePresence>
           {editorTab === "code" && (
-            <motion.div initial={{ x: -176, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -176, opacity: 0 }}
-              className="shrink-0">
-              <FileTree selected={selectedFile} onSelect={setSelectedFile} appName={app?.app_name} />
+            <motion.div initial={{ x: -176, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -176, opacity: 0 }} className="shrink-0">
+              <FileTree selected={selectedFile} onSelect={setSelectedFile} appName={app?.app_name} isFull={isFull} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -415,23 +455,36 @@ export default function EditorView({ appId, onBack }: EditorViewProps) {
         {/* Editor or Preview */}
         <div className="flex-1 overflow-hidden">
           {editorTab === "code" ? (
-            <CodeEditor value={currentCode()} onChange={handleCodeChange} language={currentLanguage()} />
+            <CodeEditor
+              value={getCodeContent()}
+              onChange={handleCodeChange}
+              language={getLanguage()}
+              readOnly={!isEditableFile}
+            />
           ) : (
-            previewApp && <PreviewPanel app={previewApp} />
+            fullHtml ? <PreviewPanel srcDoc={fullHtml} appName={app?.app_name || "App Preview"} /> : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                Loading preview...
+              </div>
+            )
           )}
         </div>
 
         {/* Overlays */}
-        {showDownload && app && <DownloadManager app={app} onClose={() => setShowDownload(false)} />}
+        {showDownload && app && (
+          <DownloadManager app={app} fullHtml={fullHtml} onClose={() => setShowDownload(false)} />
+        )}
         {showUpgrade && app && (
-          <UpgradePanel app={app} onClose={() => setShowUpgrade(false)}
-            onUpgraded={(updated) => {
-              setApp((prev: any) => ({ ...prev, ...updated }));
-              setHtml(updated.generated_html || html);
-              setCss(updated.generated_css || css);
-              setJs(updated.generated_js || js);
+          <UpgradePanel
+            app={app}
+            fullHtml={fullHtml}
+            onClose={() => setShowUpgrade(false)}
+            onUpgraded={(newHtml) => {
+              setFullHtml(newHtml);
+              setApp((prev: any) => ({ ...prev, generated_html: newHtml, generated_css: "", generated_js: "" }));
               setShowUpgrade(false);
-            }} />
+            }}
+          />
         )}
       </div>
     </div>
