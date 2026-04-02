@@ -23,6 +23,303 @@ const ddgNews: typeof _ddgSearchNews = async (...args) => { await forgeDdgThrott
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+// ── MULTI-PROVIDER FREE LLM ROTATION ENGINE ─────────────────────────────────
+// Uses every available free AI API provider. When one hits rate limits,
+// automatically rotates to the next. Add API keys as env vars to enable more.
+//
+// Supported providers (all have free tiers):
+//   GROQ_API_KEY         — Groq (llama-3.3-70b, very fast, 6K RPD free)
+//   TOGETHER_API_KEY     — Together AI ($25 free credit, 200+ models)
+//   OPENROUTER_API_KEY   — OpenRouter (free models available, many providers)
+//   HF_API_KEY           — Hugging Face Inference API (free tier)
+//   CEREBRAS_API_KEY     — Cerebras (free, extremely fast inference)
+//   SAMBANOVA_API_KEY    — SambaNova (free tier, fast Llama inference)
+//   GOOGLE_AI_KEY        — Google AI Studio / Gemini (free tier generous)
+//   COHERE_API_KEY       — Cohere (free tier, Command model)
+//   MISTRAL_API_KEY      — Mistral AI (free tier for small models)
+//   FIREWORKS_API_KEY    — Fireworks AI (free credits on signup)
+//   NVIDIA_API_KEY       — NVIDIA NIM (free tier for Llama models)
+//   LEPTON_API_KEY       — Lepton AI (free tier)
+//   DEEPINFRA_API_KEY    — DeepInfra (free credits on signup)
+//   NOVITA_API_KEY       — Novita AI (free tier)
+//   GLHF_API_KEY         — GLHF.chat (free open-source model hosting)
+//   HYPERBOLIC_API_KEY   — Hyperbolic (free tier)
+//   CLOUDFLARE_AI_TOKEN  — Cloudflare Workers AI (free tier, 10K req/day)
+//   CLOUDFLARE_ACCOUNT_ID — Required with CLOUDFLARE_AI_TOKEN
+
+interface LLMProvider {
+  name: string;
+  envKey: string;
+  endpoint: string;
+  model: string;
+  fastModel?: string;
+  maxTokens: number;
+  headers: (key: string) => Record<string, string>;
+  bodyTransform?: (body: any) => any;
+  responseTransform?: (data: any) => { content: string; finishReason: string };
+}
+
+const LLM_PROVIDERS: LLMProvider[] = [
+  {
+    name: "Groq",
+    envKey: "GROQ_API_KEY",
+    endpoint: "https://api.groq.com/openai/v1/chat/completions",
+    model: "llama-3.3-70b-versatile",
+    fastModel: "llama3-8b-8192",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Cerebras",
+    envKey: "CEREBRAS_API_KEY",
+    endpoint: "https://api.cerebras.ai/v1/chat/completions",
+    model: "llama-3.3-70b",
+    fastModel: "llama3.1-8b",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "SambaNova",
+    envKey: "SAMBANOVA_API_KEY",
+    endpoint: "https://api.sambanova.ai/v1/chat/completions",
+    model: "Meta-Llama-3.3-70B-Instruct",
+    fastModel: "Meta-Llama-3.1-8B-Instruct",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Together",
+    envKey: "TOGETHER_API_KEY",
+    endpoint: "https://api.together.xyz/v1/chat/completions",
+    model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+    fastModel: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "OpenRouter",
+    envKey: "OPENROUTER_API_KEY",
+    endpoint: "https://openrouter.ai/api/v1/chat/completions",
+    model: "meta-llama/llama-3.3-70b-instruct:free",
+    fastModel: "meta-llama/llama-3.1-8b-instruct:free",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "https://myaigpt.replit.app", "X-Title": "Pulse ForgeAI" }),
+  },
+  {
+    name: "HuggingFace",
+    envKey: "HF_API_KEY",
+    endpoint: "https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-70B-Instruct/v1/chat/completions",
+    model: "meta-llama/Llama-3.1-70B-Instruct",
+    fastModel: "meta-llama/Llama-3.1-8B-Instruct",
+    maxTokens: 16384,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Google Gemini",
+    envKey: "GOOGLE_AI_KEY",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    model: "gemini-2.0-flash",
+    fastModel: "gemini-2.0-flash",
+    maxTokens: 32768,
+    headers: (key) => ({ "Content-Type": "application/json", "x-goog-api-key": key }),
+    bodyTransform: (body) => ({
+      contents: [{ parts: [{ text: body.messages.map((m: any) => `${m.role}: ${m.content}`).join("\n\n") }] }],
+      generationConfig: { maxOutputTokens: body.max_tokens, temperature: body.temperature },
+    }),
+    responseTransform: (data) => ({
+      content: data.candidates?.[0]?.content?.parts?.[0]?.text || "",
+      finishReason: data.candidates?.[0]?.finishReason === "MAX_TOKENS" ? "length" : "stop",
+    }),
+  },
+  {
+    name: "Fireworks",
+    envKey: "FIREWORKS_API_KEY",
+    endpoint: "https://api.fireworks.ai/inference/v1/chat/completions",
+    model: "accounts/fireworks/models/llama-v3p1-70b-instruct",
+    fastModel: "accounts/fireworks/models/llama-v3p1-8b-instruct",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "DeepInfra",
+    envKey: "DEEPINFRA_API_KEY",
+    endpoint: "https://api.deepinfra.com/v1/openai/chat/completions",
+    model: "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    fastModel: "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Cohere",
+    envKey: "COHERE_API_KEY",
+    endpoint: "https://api.cohere.ai/v2/chat",
+    model: "command-r-plus",
+    fastModel: "command-r",
+    maxTokens: 16384,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+    bodyTransform: (body) => ({
+      model: body.model, max_tokens: body.max_tokens, temperature: body.temperature,
+      messages: body.messages,
+    }),
+    responseTransform: (data) => ({
+      content: data.message?.content?.[0]?.text || "",
+      finishReason: data.finish_reason === "MAX_TOKENS" ? "length" : "stop",
+    }),
+  },
+  {
+    name: "Mistral",
+    envKey: "MISTRAL_API_KEY",
+    endpoint: "https://api.mistral.ai/v1/chat/completions",
+    model: "mistral-small-latest",
+    fastModel: "mistral-small-latest",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "NVIDIA NIM",
+    envKey: "NVIDIA_API_KEY",
+    endpoint: "https://integrate.api.nvidia.com/v1/chat/completions",
+    model: "meta/llama-3.1-70b-instruct",
+    fastModel: "meta/llama-3.1-8b-instruct",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Lepton",
+    envKey: "LEPTON_API_KEY",
+    endpoint: "https://llama3-1-70b.lepton.run/api/v1/chat/completions",
+    model: "llama3-1-70b",
+    fastModel: "llama3-1-8b",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Novita",
+    envKey: "NOVITA_API_KEY",
+    endpoint: "https://api.novita.ai/v3/openai/chat/completions",
+    model: "meta-llama/llama-3.1-70b-instruct",
+    fastModel: "meta-llama/llama-3.1-8b-instruct",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "GLHF",
+    envKey: "GLHF_API_KEY",
+    endpoint: "https://glhf.chat/api/openai/v1/chat/completions",
+    model: "hf:meta-llama/Llama-3.3-70B-Instruct",
+    fastModel: "hf:meta-llama/Llama-3.1-8B-Instruct",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Hyperbolic",
+    envKey: "HYPERBOLIC_API_KEY",
+    endpoint: "https://api.hyperbolic.xyz/v1/chat/completions",
+    model: "meta-llama/Llama-3.3-70B-Instruct",
+    fastModel: "meta-llama/Llama-3.1-8B-Instruct",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Cloudflare Workers AI",
+    envKey: "CLOUDFLARE_AI_TOKEN",
+    endpoint: "", // built dynamically with account ID
+    model: "@cf/meta/llama-3.1-70b-instruct",
+    fastModel: "@cf/meta/llama-3.1-8b-instruct",
+    maxTokens: 16384,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+];
+
+// Track rate-limited providers and cooldown times
+const providerCooldowns: Record<string, number> = {};
+const COOLDOWN_MS = 60000; // 1 min cooldown after rate limit
+
+function getAvailableProviders(): { provider: LLMProvider; apiKey: string }[] {
+  const now = Date.now();
+  const available: { provider: LLMProvider; apiKey: string }[] = [];
+
+  for (const p of LLM_PROVIDERS) {
+    const key = process.env[p.envKey];
+    if (!key) continue;
+
+    // Build Cloudflare endpoint dynamically
+    if (p.name === "Cloudflare Workers AI") {
+      const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+      if (!accountId) continue;
+      p.endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1/chat/completions`;
+    }
+
+    const cooldownUntil = providerCooldowns[p.name] || 0;
+    if (now < cooldownUntil) continue;
+
+    available.push({ provider: p, apiKey: key });
+  }
+
+  return available;
+}
+
+async function callProviderLLM(
+  provider: LLMProvider,
+  apiKey: string,
+  prompt: string,
+  jsonKeys?: string[],
+  fast?: boolean
+): Promise<{ content: string; finishReason: string }> {
+  const model = fast ? (provider.fastModel || provider.model) : provider.model;
+  const isCodeGen = jsonKeys?.includes("html") || jsonKeys?.includes("js") || jsonKeys?.includes("full_html");
+  const systemPrompt = jsonKeys
+    ? `You are an elite full-stack developer. Respond ONLY with valid JSON. Required keys: ${jsonKeys.join(", ")}. Never truncate.`
+    : "You are an elite AI assistant for the Pulse Universe sovereign civilization.";
+
+  const maxTokens = Math.min(isCodeGen ? 32768 : 4096, provider.maxTokens);
+
+  let body: any = {
+    model,
+    temperature: 0.7,
+    max_tokens: maxTokens,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt },
+    ],
+  };
+
+  if (jsonKeys && !provider.bodyTransform) {
+    body.response_format = { type: "json_object" };
+  }
+
+  if (provider.bodyTransform) {
+    body = provider.bodyTransform(body);
+  }
+
+  const res = await fetch(provider.endpoint, {
+    method: "POST",
+    headers: provider.headers(apiKey),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    if (res.status === 429 || res.status === 503 || errText.includes("rate_limit") || errText.includes("quota")) {
+      providerCooldowns[provider.name] = Date.now() + COOLDOWN_MS;
+      throw new Error(`RATE_LIMITED: ${provider.name} (${res.status})`);
+    }
+    throw new Error(`${provider.name} error ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+
+  if (provider.responseTransform) {
+    return provider.responseTransform(data);
+  }
+
+  return {
+    content: data.choices?.[0]?.message?.content || "",
+    finishReason: data.choices?.[0]?.finish_reason || "stop",
+  };
+}
+
 // ── DB SETUP — All ForgeAI tables including Sovereign Solutions ──────────────
 
 export async function ensureForgeAITables() {
@@ -247,28 +544,9 @@ async function getHiveContext(prompt: string): Promise<string> {
 
 // ── LLM PROXY (GROQ) ─────────────────────────────────────────────────────────
 
-async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Promise<any> {
-  const model = fast ? "llama3-8b-8192" : "llama-3.3-70b-versatile";
-  const isCodeGen = jsonKeys?.includes("html") || jsonKeys?.includes("js") || jsonKeys?.includes("full_html");
-  const systemPrompt = jsonKeys
-    ? `You are an elite full-stack developer and AI assistant. Always respond ONLY with valid JSON. Required keys: ${jsonKeys.join(", ")}. Ensure the JSON is complete and valid — never truncate.`
-    : "You are an elite AI assistant for the Pulse Universe sovereign civilization.";
-
-  const completion = await groq.chat.completions.create({
-    model,
-    temperature: 0.7,
-    max_tokens: isCodeGen ? 32768 : 4096,
-    response_format: jsonKeys ? { type: "json_object" } : undefined,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: prompt },
-    ],
-  });
-  const raw = completion.choices[0]?.message?.content || "{}";
-  const finishReason = completion.choices[0]?.finish_reason;
-
+function parseRawLLMResponse(raw: string, finishReason: string): any {
   if (finishReason === "length") {
-    console.warn("[forgeai-llm] WARNING: Response truncated (hit max_tokens). Attempting HTML extraction from partial response.");
+    console.warn("[forgeai-llm] WARNING: Response truncated (hit max_tokens). Attempting HTML extraction.");
   }
 
   try { return JSON.parse(raw); } catch {
@@ -317,6 +595,44 @@ async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Pro
     }
     return { raw };
   }
+}
+
+async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Promise<any> {
+  const providers = getAvailableProviders();
+  const errors: string[] = [];
+
+  // Try each available provider in order
+  for (const { provider, apiKey } of providers) {
+    try {
+      console.log(`[forgeai-llm] Trying ${provider.name}...`);
+      const result = await callProviderLLM(provider, apiKey, prompt, jsonKeys, fast);
+      const raw = result.content || "{}";
+
+      if (!raw || raw.length < 5) {
+        console.log(`[forgeai-llm] ${provider.name} returned empty response, trying next...`);
+        continue;
+      }
+
+      console.log(`[forgeai-llm] ✓ ${provider.name} responded — ${raw.length} chars (finish: ${result.finishReason})`);
+      return parseRawLLMResponse(raw, result.finishReason);
+    } catch (e: any) {
+      const msg = e.message || "Unknown error";
+      errors.push(`${provider.name}: ${msg.slice(0, 100)}`);
+
+      if (msg.includes("RATE_LIMITED")) {
+        console.log(`[forgeai-llm] ${provider.name} rate limited — rotating to next provider...`);
+      } else {
+        console.error(`[forgeai-llm] ${provider.name} failed: ${msg.slice(0, 150)}`);
+      }
+      continue;
+    }
+  }
+
+  // All providers failed — log comprehensive error
+  console.error(`[forgeai-llm] ALL ${providers.length} providers failed. Errors: ${errors.join(" | ")}`);
+  console.log(`[forgeai-llm] Available providers: ${providers.map(p => p.provider.name).join(", ") || "NONE — add API keys!"}`);
+
+  return { error: "All LLM providers exhausted", providers_tried: errors };
 }
 
 // ── CODE HASH UTILITY ─────────────────────────────────────────────────────────
@@ -1101,6 +1417,39 @@ Return JSON: { "full_html": string, "changes_made": string[], "summary": string 
         appUsers: parseInt(usersRes?.rows[0]?.total) || 0,
       });
     } catch(e: any) { res.json({ totalApps: 0, completedApps: 0, publicApps: 0, buildMemories: 0, resourcesIndexed: 0, dataDocuments: 0, appUsers: 0 }); }
+  });
+
+  app.get("/api/forgeai/llm-providers", (_req, res) => {
+    const now = Date.now();
+    const allProviders = LLM_PROVIDERS.map(p => {
+      const hasKey = !!process.env[p.envKey];
+      const cooldownUntil = providerCooldowns[p.name] || 0;
+      const isOnCooldown = now < cooldownUntil;
+      let status = "no_key";
+      if (hasKey && !isOnCooldown) status = "active";
+      else if (hasKey && isOnCooldown) status = "rate_limited";
+      return {
+        name: p.name,
+        envKey: p.envKey,
+        model: p.model,
+        fastModel: p.fastModel,
+        maxTokens: p.maxTokens,
+        status,
+        cooldownRemaining: isOnCooldown ? Math.round((cooldownUntil - now) / 1000) : 0,
+      };
+    });
+
+    const active = allProviders.filter(p => p.status === "active").length;
+    const configured = allProviders.filter(p => p.status !== "no_key").length;
+    const total = allProviders.length;
+
+    res.json({
+      summary: `${active} active / ${configured} configured / ${total} supported providers`,
+      activeCount: active,
+      configuredCount: configured,
+      totalSupported: total,
+      providers: allProviders,
+    });
   });
 
   app.post("/api/forgeai/template-fallback", (req, res) => {

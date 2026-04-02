@@ -57,8 +57,10 @@ The application features a React + Vite + Tailwind CSS + shadcn/ui frontend, wit
 - **Embeddable Widget System**: Provides a JavaScript widget for displaying live hive stats on external sites.
 - **Video Script Generator**: AI-powered generation of platform-optimized video scripts with selectable anchor personas and formats.
 
+- **Multi-Provider LLM Rotation Engine**: ForgeAI auto-rotates through 17 free AI providers. When one hits rate limits, it instantly switches to the next. Add API keys as env vars to activate: `GROQ_API_KEY` (Groq), `CEREBRAS_API_KEY` (Cerebras), `SAMBANOVA_API_KEY` (SambaNova), `TOGETHER_API_KEY` (Together AI), `OPENROUTER_API_KEY` (OpenRouter), `HF_API_KEY` (Hugging Face), `GOOGLE_AI_KEY` (Google Gemini), `FIREWORKS_API_KEY` (Fireworks), `DEEPINFRA_API_KEY` (DeepInfra), `COHERE_API_KEY` (Cohere), `MISTRAL_API_KEY` (Mistral), `NVIDIA_API_KEY` (NVIDIA NIM), `LEPTON_API_KEY` (Lepton), `NOVITA_API_KEY` (Novita), `GLHF_API_KEY` (GLHF.chat), `HYPERBOLIC_API_KEY` (Hyperbolic), `CLOUDFLARE_AI_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` (Cloudflare Workers AI). Status endpoint: `/api/forgeai/llm-providers`. File: `server/forgeai-engine.ts`.
+
 ## External Dependencies
-- **AI Model**: Groq API (llama-3.1-8b-instant)
+- **AI Models**: Multi-provider rotation — Groq (primary), Cerebras, SambaNova, Together, OpenRouter, HuggingFace, Google Gemini, Fireworks, DeepInfra, Cohere, Mistral, NVIDIA NIM, Lepton, Novita, GLHF, Hyperbolic, Cloudflare Workers AI
 - **Web Search**: duck-duck-scrape (for DuckDuckGo)
 - **Video Platforms**: YouTube, Vimeo, Dailymotion
 - **Weather API**: Open-Meteo API
