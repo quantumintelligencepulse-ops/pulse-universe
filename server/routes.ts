@@ -3815,14 +3815,22 @@ ${entries}
     try {
       const { messages, stream } = req.body;
       if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "messages array required" });
-      const completion = await groq.chat.completions.create({
-        model: "llama-3.1-8b-instant",
-        messages: messages.slice(-20), // safety limit
-        temperature: 0.7,
-        max_tokens: 2000,
-        stream: false,
-      });
-      const content = completion.choices[0]?.message?.content || "";
+      let content = "";
+      try {
+        const completion = await groq.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: messages.slice(-20),
+          temperature: 0.7,
+          max_tokens: 2000,
+          stream: false,
+        });
+        content = completion.choices[0]?.message?.content || "";
+      } catch (groqErr: any) {
+        console.log(`[completions] Groq failed — Sovereign Brain activating...`);
+        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const brainResult = await sovereignBrainChat(messages.slice(-20));
+        content = brainResult.content;
+      }
       res.json({ content, choices: [{ message: { content } }] });
     } catch (e: any) {
       console.error("completions error:", e?.message);
@@ -4599,27 +4607,38 @@ If you have live data provided in this prompt, USE IT and present it confidently
       const wantsStream = req.body.stream === true || req.headers.accept === "text/event-stream";
 
       if (wantsStream) {
-        // ── STREAMING RESPONSE (SSE) — first token appears in <500ms ─────────
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
         res.setHeader("X-Accel-Buffering", "no");
         res.flushHeaders();
 
-        const stream = await groq.chat.completions.create({
-          messages: messagesForGroq,
-          model: "llama-3.1-8b-instant",
-          max_tokens: maxTokens,
-          temperature: chat.type === "coder" ? 0.15 : 0.7,
-          stream: true,
-        });
-
         let fullReply = "";
-        for await (const chunk of stream) {
-          const delta = chunk.choices[0]?.delta?.content || "";
-          if (delta) {
-            fullReply += delta;
-            res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+        try {
+          const stream = await groq.chat.completions.create({
+            messages: messagesForGroq,
+            model: "llama-3.1-8b-instant",
+            max_tokens: maxTokens,
+            temperature: chat.type === "coder" ? 0.15 : 0.7,
+            stream: true,
+          });
+
+          for await (const chunk of stream) {
+            const delta = chunk.choices[0]?.delta?.content || "";
+            if (delta) {
+              fullReply += delta;
+              res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+            }
+          }
+        } catch (groqErr: any) {
+          console.log(`[chat] Groq stream failed (${groqErr?.message?.slice(0, 80)}) — activating Sovereign Brain...`);
+          const { sovereignBrainChat } = await import("./forgeai-engine");
+          const brainResult = await sovereignBrainChat(messagesForGroq);
+          fullReply = brainResult.content;
+          const words = fullReply.split(/\s+/);
+          for (let i = 0; i < words.length; i += 3) {
+            const chunk = words.slice(i, i + 3).join(" ") + " ";
+            res.write(`data: ${JSON.stringify({ delta: chunk })}\n\n`);
           }
         }
 
@@ -4645,14 +4664,21 @@ If you have live data provided in this prompt, USE IT and present it confidently
         return;
       }
 
-      const completion = await groq.chat.completions.create({
-        messages: messagesForGroq,
-        model: "llama-3.1-8b-instant",
-        max_tokens: maxTokens,
-        temperature: chat.type === "coder" ? 0.15 : 0.7,
-      });
-
-      let reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
+      let reply = "";
+      try {
+        const completion = await groq.chat.completions.create({
+          messages: messagesForGroq,
+          model: "llama-3.1-8b-instant",
+          max_tokens: maxTokens,
+          temperature: chat.type === "coder" ? 0.15 : 0.7,
+        });
+        reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
+      } catch (groqErr: any) {
+        console.log(`[chat] Groq non-stream failed (${groqErr?.message?.slice(0, 80)}) — activating Sovereign Brain...`);
+        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const brainResult = await sovereignBrainChat(messagesForGroq);
+        reply = brainResult.content;
+      }
 
       // ── MEMORY CONSOLIDATION (async — non-blocking) ───────────────────────
       // After every response: encode the exchange as a memory strand.
@@ -7423,8 +7449,16 @@ ${(pubs.rows as any[]).map(p => {
         messages.push({ role: h.role, content: h.content });
       }
       messages.push({ role: "user", content: message });
-      const resp = await groq.chat.completions.create({ model: "llama-3.1-8b-instant", messages, max_tokens: 800, temperature: 0.8 });
-      const reply = resp.choices[0]?.message?.content || "";
+      let reply = "";
+      try {
+        const resp = await groq.chat.completions.create({ model: "llama-3.1-8b-instant", messages, max_tokens: 800, temperature: 0.8 });
+        reply = resp.choices[0]?.message?.content || "";
+      } catch (groqErr: any) {
+        console.log(`[agents/chat] Groq failed — Sovereign Brain activating for agent ${agentId}...`);
+        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const brainResult = await sovereignBrainChat(messages);
+        reply = `[${agent.name} — Sovereign Brain Mode]\n\n${brainResult.content}`;
+      }
       res.json({ reply, agentId, agentName: agent.name });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
@@ -7478,8 +7512,16 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
         messages.push({ role: h.role === "assistant" ? "assistant" : "user", content: h.content });
       }
       messages.push({ role: "user", content: message });
-      const resp = await groq.chat.completions.create({ model: "llama-3.1-8b-instant", messages, max_tokens: 900, temperature: 0.75 });
-      const reply = resp.choices[0]?.message?.content || "…";
+      let reply = "";
+      try {
+        const resp = await groq.chat.completions.create({ model: "llama-3.1-8b-instant", messages, max_tokens: 900, temperature: 0.75 });
+        reply = resp.choices[0]?.message?.content || "…";
+      } catch (groqErr: any) {
+        console.log(`[spawns/chat] Groq failed — Sovereign Brain activating for spawn ${spawnId}...`);
+        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const brainResult = await sovereignBrainChat(messages);
+        reply = `[${license} — Sovereign Brain Mode]\n\n${brainResult.content}`;
+      }
       res.json({ reply, spawnId, license, spawnType: s.spawn_type, familyId: s.family_id });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
