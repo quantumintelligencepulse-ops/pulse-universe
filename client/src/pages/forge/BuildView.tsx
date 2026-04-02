@@ -321,7 +321,32 @@ Return JSON: { "app_name": string, "app_description": string, "app_type": string
       schema_keys: ["app_name", "app_description", "app_type", "full_html"],
     });
 
-    const fullHtml = buildResult.full_html || buildResult.html || "";
+    let fullHtml = buildResult.full_html || buildResult.html || "";
+
+    if (!fullHtml || fullHtml.length < 200 || !fullHtml.includes("<html")) {
+      log("⚠ LLM returned incomplete HTML — activating template fallback engine...", "warn");
+      try {
+        const fallbackRes = await fetch("/api/forgeai/template-fallback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            appName: buildResult.app_name || a.app_name || a.prompt?.slice(0, 40) || "Pulse App",
+            prompt: a.prompt || "",
+            description: buildResult.app_description || a.prompt || "",
+          }),
+        });
+        if (fallbackRes.ok) {
+          const fb = await fallbackRes.json();
+          if (fb.html && fb.html.length > 500) {
+            fullHtml = fb.html;
+            log(`✓ Template fallback generated ${fullHtml.length.toLocaleString()} chars — professional app created`, "success");
+          }
+        }
+      } catch {
+        log("⚠ Template fallback unavailable — proceeding with partial HTML", "dim");
+      }
+    }
+
     log(`✓ "${buildResult.app_name || "App"}" — ${fullHtml.length.toLocaleString()} chars | ${Math.round(fullHtml.length / 1000)}KB`, "success");
 
     // ── STEP 5: Self-Healing ───────────────────────────────────────────────

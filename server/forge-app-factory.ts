@@ -562,7 +562,7 @@ function generateSampleData(category: string, industry: string): string {
   return `[${rows.join(",\n      ")}]`;
 }
 
-function generateTemplateApp(appName: string, industry: string, sector: string, description: string, category: string): string {
+export function generateTemplateApp(appName: string, industry: string, sector: string, description: string, category: string): string {
   const colors = ACCENT_COLORS[sector] || ACCENT_COLORS["Information Technology"];
   const ns = appName.slice(0, 20).replace(/\W/g, "_").toLowerCase() + "_";
   const safeName = appName.replace(/[^a-zA-Z0-9 ]/g, "").trim();

@@ -8,6 +8,7 @@ import Groq from "groq-sdk";
 import crypto from "crypto";
 import type { Express, Request, Response } from "express";
 import { search as _ddgSearch, searchNews as _ddgSearchNews } from "duck-duck-scrape";
+import { generateTemplateApp } from "./forge-app-factory";
 
 const FORGE_DDG_INTERVAL = 12000;
 async function forgeDdgThrottle() {
@@ -256,7 +257,7 @@ async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Pro
   const completion = await groq.chat.completions.create({
     model,
     temperature: 0.7,
-    max_tokens: isCodeGen ? 9000 : 4096,
+    max_tokens: isCodeGen ? 32768 : 4096,
     response_format: jsonKeys ? { type: "json_object" } : undefined,
     messages: [
       { role: "system", content: systemPrompt },
@@ -264,10 +265,53 @@ async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Pro
     ],
   });
   const raw = completion.choices[0]?.message?.content || "{}";
+  const finishReason = completion.choices[0]?.finish_reason;
+
+  if (finishReason === "length") {
+    console.warn("[forgeai-llm] WARNING: Response truncated (hit max_tokens). Attempting HTML extraction from partial response.");
+  }
+
   try { return JSON.parse(raw); } catch {
+    const htmlMatch = raw.match(/<!DOCTYPE html[\s\S]*?<\/html>/i);
+    if (htmlMatch) {
+      const extractedHtml = htmlMatch[0];
+      console.log(`[forgeai-llm] JSON parse failed but extracted ${extractedHtml.length} chars of HTML from raw response`);
+      const nameMatch = raw.match(/"app_name"\s*:\s*"([^"]+)"/);
+      const descMatch = raw.match(/"app_description"\s*:\s*"([^"]+)"/);
+      const typeMatch = raw.match(/"app_type"\s*:\s*"([^"]+)"/);
+      return {
+        app_name: nameMatch?.[1] || "Pulse App",
+        app_description: descMatch?.[1] || "",
+        app_type: typeMatch?.[1] || "fullstack",
+        full_html: extractedHtml,
+      };
+    }
+
     const nameMatch = raw.match(/"app_name"\s*:\s*"([^"]+)"/);
     const descMatch = raw.match(/"app_description"\s*:\s*"([^"]+)"/);
     const typeMatch = raw.match(/"app_type"\s*:\s*"([^"]+)"/);
+
+    const htmlInJson = raw.match(/"full_html"\s*:\s*"([\s\S]*)/);
+    if (htmlInJson) {
+      let partialHtml = htmlInJson[1];
+      partialHtml = partialHtml.replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+      if (partialHtml.includes("<!DOCTYPE") || partialHtml.includes("<html")) {
+        const endIdx = partialHtml.lastIndexOf("</html>");
+        if (endIdx > 0) {
+          partialHtml = partialHtml.slice(0, endIdx + 7);
+        } else {
+          partialHtml += "\n</script>\n</body>\n</html>";
+        }
+        console.log(`[forgeai-llm] Recovered ${partialHtml.length} chars of HTML from truncated JSON`);
+        return {
+          app_name: nameMatch?.[1] || "Pulse App",
+          app_description: descMatch?.[1] || "",
+          app_type: typeMatch?.[1] || "fullstack",
+          full_html: partialHtml,
+        };
+      }
+    }
+
     if (nameMatch) {
       return { app_name: nameMatch[1], app_description: descMatch?.[1], app_type: typeMatch?.[1], raw };
     }
@@ -1057,6 +1101,54 @@ Return JSON: { "full_html": string, "changes_made": string[], "summary": string 
         appUsers: parseInt(usersRes?.rows[0]?.total) || 0,
       });
     } catch(e: any) { res.json({ totalApps: 0, completedApps: 0, publicApps: 0, buildMemories: 0, resourcesIndexed: 0, dataDocuments: 0, appUsers: 0 }); }
+  });
+
+  app.post("/api/forgeai/template-fallback", (req, res) => {
+    try {
+      const { appName, prompt, description } = req.body;
+      if (!appName) return res.status(400).json({ error: "appName required" });
+
+      const sectorKeywords: Record<string, string[]> = {
+        "Energy": ["energy", "solar", "oil", "gas", "wind", "power", "fuel", "electric"],
+        "Health Care": ["health", "medical", "patient", "doctor", "hospital", "pharma", "clinical", "drug"],
+        "Financials": ["stock", "finance", "bank", "invest", "trading", "portfolio", "loan", "budget", "crypto", "webull", "robinhood"],
+        "Information Technology": ["tech", "software", "code", "dev", "api", "saas", "cyber", "cloud"],
+        "Consumer Discretionary": ["shop", "store", "ecommerce", "restaurant", "hotel", "retail", "fashion"],
+        "Consumer Staples": ["food", "grocery", "beverage", "nutrition", "farm"],
+        "Industrials": ["factory", "manufacturing", "logistics", "construction", "aerospace"],
+        "Materials": ["material", "chemical", "metal", "mining", "supply chain"],
+        "Communication Services": ["social media", "content", "podcast", "email", "marketing", "media"],
+        "Utilities": ["utility", "water", "grid", "waste", "meter"],
+        "Real Estate": ["real estate", "property", "tenant", "rent", "mortgage", "housing"],
+      };
+
+      const promptLower = (prompt || "").toLowerCase() + " " + (appName || "").toLowerCase();
+      let detectedSector = "Information Technology";
+      let detectedIndustry = "Software & Services";
+
+      for (const [sector, keywords] of Object.entries(sectorKeywords)) {
+        if (keywords.some(kw => promptLower.includes(kw))) {
+          detectedSector = sector;
+          detectedIndustry = keywords.find(kw => promptLower.includes(kw)) || sector;
+          detectedIndustry = detectedIndustry.charAt(0).toUpperCase() + detectedIndustry.slice(1);
+          break;
+        }
+      }
+
+      const html = generateTemplateApp(
+        appName,
+        detectedIndustry,
+        detectedSector,
+        description || prompt || `Professional ${detectedIndustry} management application`,
+        detectedIndustry.toLowerCase(),
+      );
+
+      console.log(`[forgeai] Template fallback generated: "${appName}" (${detectedSector}/${detectedIndustry}) — ${html.length} chars`);
+      res.json({ html, sector: detectedSector, industry: detectedIndustry });
+    } catch (e: any) {
+      console.error("[forgeai] Template fallback error:", e.message);
+      res.status(500).json({ error: e.message });
+    }
   });
 
   console.log("[forgeai] ◆ ForgeAI Sovereign Engine ONLINE — Public URLs + Real DB + Auth + Chat Mutations + Proxy + Registry + Analytics + Gallery");
