@@ -51,6 +51,10 @@ STRIPE_PUBLISHABLE_KEY = "pk_live_51LN4UmB1ElS3CRgPDMJle5JfwZh9iwzDtD900oHDTcPQf
 AMAZON_AFFILIATE_TAG = "billyodelltuc-20"
 ALIEXPRESS_APP_KEY = "530784"
 ALIEXPRESS_TRACKING_URL = "https://s.click.aliexpress.com/e/"
+HF_API_KEY = "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"
+CLOUDFLARE_ACCOUNT_ID = "d8de21da00e23badf99680977cac6d4d"
+CLOUDFLARE_AI_TOKEN = "cfut_W8vri9jpPbhTYmM3S6raty3Z4P4ouOD2x2dbtKy1aeff1f36"
+MISTRAL_API_KEY = "VIWwKSG4e9DgknfBx617FKOfSS3rQ2O9"
 
 [agent]
 integrations = ["javascript_database:1.0.0"]

@@ -53,6 +53,59 @@ const LLM_PROVIDERS: LLMProvider[] = [
     maxTokens: 32768,
     headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
   },
+  {
+    name: "Cerebras",
+    envKey: "CEREBRAS_API_KEY",
+    endpoint: "https://api.cerebras.ai/v1/chat/completions",
+    model: "llama-3.3-70b",
+    fastModel: "llama3.1-8b",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Google Gemini",
+    envKey: "GOOGLE_API_KEY",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    model: "gemini-2.0-flash",
+    fastModel: "gemini-2.0-flash",
+    maxTokens: 32768,
+    headers: (key) => ({ "Content-Type": "application/json", "x-goog-api-key": key }),
+    bodyTransform: (body) => ({
+      contents: [{ parts: [{ text: body.messages.map((m: any) => `${m.role}: ${m.content}`).join("\n\n") }] }],
+      generationConfig: { maxOutputTokens: body.max_tokens, temperature: body.temperature },
+    }),
+    responseTransform: (data) => ({
+      content: data.candidates?.[0]?.content?.parts?.[0]?.text || "",
+      finishReason: data.candidates?.[0]?.finishReason === "MAX_TOKENS" ? "length" : "stop",
+    }),
+  },
+  {
+    name: "HuggingFace",
+    envKey: "HF_API_KEY",
+    endpoint: "https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-70B-Instruct/v1/chat/completions",
+    model: "meta-llama/Llama-3.1-70B-Instruct",
+    fastModel: "meta-llama/Llama-3.1-8B-Instruct",
+    maxTokens: 16384,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Mistral",
+    envKey: "MISTRAL_API_KEY",
+    endpoint: "https://api.mistral.ai/v1/chat/completions",
+    model: "mistral-small-latest",
+    fastModel: "mistral-small-latest",
+    maxTokens: 32768,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
+  {
+    name: "Cloudflare Workers AI",
+    envKey: "CLOUDFLARE_AI_TOKEN",
+    endpoint: "",
+    model: "@cf/meta/llama-3.1-70b-instruct",
+    fastModel: "@cf/meta/llama-3.1-8b-instruct",
+    maxTokens: 16384,
+    headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
+  },
 ];
 
 const providerCooldowns: Record<string, number> = {};
@@ -64,6 +117,11 @@ function getAvailableProviders(): { provider: LLMProvider; apiKey: string }[] {
   for (const p of LLM_PROVIDERS) {
     const key = process.env[p.envKey];
     if (!key) continue;
+    if (p.name === "Cloudflare Workers AI") {
+      const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+      if (!accountId) continue;
+      p.endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1/chat/completions`;
+    }
     const cooldownUntil = providerCooldowns[p.name] || 0;
     if (now < cooldownUntil) continue;
     available.push({ provider: p, apiKey: key });

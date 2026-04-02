@@ -6,3 +6,9 @@ id = "jB59htAzO8w3wmXxmUfpa"
 uri = "file://myaigpt-full.zip"
 type = "unspecified"
 title = "My Ai GPT — Full Project (18.1 MB)"
+
+[[outputs]]
+id = "dNii20esdkgznNGFOpKxJ"
+uri = "file://PULSE_UNIVERSE_WHITEPAPER.md"
+type = "text"
+title = "Pulse Universe — Complete White Paper"
