@@ -20,6 +20,7 @@ const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
 const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
 const ForgeAIPage = lazy(() => import("./pages/ForgeAIPage"));
+const MissionControlPage = lazy(() => import("./pages/MissionControlPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
@@ -13478,6 +13479,7 @@ function Router() {
       <Route path="/shopping">{() => { if (typeof window !== "undefined") { window.location.replace("/marketplace"); } return null; }}</Route>
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/forge">{() => <Layout><ForgeAIPage /></Layout>}</Route>
+      <Route path="/mission-control">{() => <Layout><MissionControlPage /></Layout>}</Route>
       <Route path="/sovereign-agents">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
       <Route path="/omega-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>

@@ -65,7 +65,8 @@ export default function FactoryDashboard({ onBack }: { onBack: () => void }) {
   const [recent, setRecent] = useState<RecentBuild[]>([]);
   const [industries, setIndustries] = useState<IndustryEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overview" | "recent" | "industries">("overview");
+  const [tab, setTab] = useState<"overview" | "recent" | "industries" | "gallery">("overview");
+  const [rankedApps, setRankedApps] = useState<any[]>([]);
   const [sectorFilter, setSectorFilter] = useState<string>("all");
   const [buildingSlug, setBuildingSlug] = useState<string | null>(null);
 
@@ -199,6 +200,7 @@ export default function FactoryDashboard({ onBack }: { onBack: () => void }) {
                 { id: "overview" as const, l: "Sector Coverage" },
                 { id: "recent" as const, l: `Recent Builds (${recent.length})` },
                 { id: "industries" as const, l: `All Industries (${industries.length})` },
+                { id: "gallery" as const, l: "Top Ranked Apps" },
               ].map((t) => (
                 <button key={t.id} onClick={() => setTab(t.id)}
                   className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
@@ -340,6 +342,67 @@ export default function FactoryDashboard({ onBack }: { onBack: () => void }) {
                     </motion.div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {tab === "gallery" && (
+              <div>
+                {rankedApps.length === 0 && !loading && (
+                  <div className="text-center py-6 mb-4">
+                    <button onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const res = await fetch("/api/forge/gallery/ranked").then(r => r.json());
+                        setRankedApps(Array.isArray(res) ? res : []);
+                      } catch {}
+                      setLoading(false);
+                    }} className="px-4 py-2 rounded-lg bg-[#F5C518]/10 border border-[#F5C518]/20 text-[#F5C518] text-xs font-medium hover:bg-[#F5C518]/20 transition-all"
+                      data-testid="button-load-gallery">
+                      Load Top Ranked Apps
+                    </button>
+                  </div>
+                )}
+                {rankedApps.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {rankedApps.map((app: any, i: number) => (
+                      <motion.div key={app.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="rounded-xl border border-border bg-card/30 p-4 hover:border-[#00FFD1]/20 transition-all group">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-[#F5C518]">#{i + 1}</span>
+                              <p className="text-sm font-semibold truncate">{app.app_name || "Unnamed"}</p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{app.sector || "General"}</p>
+                          </div>
+                          {app.trust_score && (
+                            <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
+                              app.trust_score >= 80 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                              app.trust_score >= 60 ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" :
+                              "bg-red-500/10 text-red-400 border border-red-500/20"
+                            }`}>
+                              {app.trust_score}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground line-clamp-2 mb-3">{app.app_description || app.prompt || ""}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            {app.quality_score != null && <span>Q:{app.quality_score}</span>}
+                            {app.fork_count > 0 && <span>Forks:{app.fork_count}</span>}
+                            {app.agent_author && <span>{app.agent_author}</span>}
+                          </div>
+                          <a href={`/api/forgeai/preview/${app.id}`} target="_blank" rel="noopener noreferrer"
+                            className="opacity-0 group-hover:opacity-100 text-[10px] px-2 py-1 rounded-lg border border-border hover:border-[#00FFD1]/30 hover:text-[#00FFD1] transition-all"
+                            data-testid={`link-preview-${app.id}`}>
+                            Preview
+                          </a>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>

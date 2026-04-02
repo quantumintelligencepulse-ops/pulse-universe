@@ -12,7 +12,7 @@ import {
   type PlayStoreReport, type Phase1Report, type Phase2Report, type Phase3Report, type Phase4Report,
 } from "./PlayStoreTestEngine";
 import { getRelevantPatterns, formatPatternsForPrompt } from "./PatternLibrary";
-import { ArrowLeft, CheckCircle2, Circle, Loader2, Dna, ShieldCheck, Zap, Star, FlaskConical, Smartphone } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Loader2, Dna, ShieldCheck, Zap, Star, FlaskConical, Smartphone, Eye, MessageSquare, Send, GitFork, Download, ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 
 interface BuildViewProps {
   appId: number;
@@ -145,6 +145,14 @@ export default function BuildView({ appId, onComplete, onBack }: BuildViewProps)
   const [hiveCert, setHiveCert] = useState<HiveCertification | null>(null);
   const [playStoreReport, setPlayStoreReport] = useState<PlayStoreReport | null>(null);
   const [injectedPatterns, setInjectedPatterns] = useState<string[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{role: string; text: string}[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [forkLoading, setForkLoading] = useState(false);
+  const [qualityScore, setQualityScore] = useState<any>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
   const logsRef = useRef<HTMLDivElement>(null);
   const hasRun = useRef(false);
 
@@ -576,7 +584,62 @@ JSON: { "full_html": string, "bugs_found": string[], "fixes_applied": string[] }
     log(`  ${cert.beats_competitors ? "✓ Outclasses competitors" : "✓ Market ready"} | ${psReport.publish_ready ? "✓ Publish ready" : "⚠ Minor fixes suggested"}`, "success");
     log(`  📦 ${patterns.length} code patterns | ⚡ ${matched.length} Omega sources | 👥 20 synthetic testers`, "dim");
     log(`  ⚡ +100 Pulse Credits earned`, "pulse");
+    setShowPreview(true);
+    fetch(`/api/forgeai/app/${a.id}/quality`).then(r => r.json()).then(setQualityScore).catch(() => {});
     setTimeout(onComplete, 1500);
+  };
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const msg = chatInput.trim();
+    setChatInput("");
+    setChatMessages(p => [...p, { role: "user", text: msg }]);
+    setChatLoading(true);
+    try {
+      const res = await fetch(`/api/forgeai/app/${appId}/iterate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instruction: msg }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setChatMessages(p => [...p, { role: "ai", text: `Applied changes: ${data.changes_made || "Code updated successfully"}` }]);
+        setShowPreview(true);
+      } else {
+        setChatMessages(p => [...p, { role: "ai", text: `Error: ${data.error || "Failed to apply changes"}` }]);
+      }
+    } catch (err: any) {
+      setChatMessages(p => [...p, { role: "ai", text: `Error: ${err.message}` }]);
+    }
+    setChatLoading(false);
+    setTimeout(() => chatRef.current?.scrollTo({ top: 99999, behavior: "smooth" }), 50);
+  };
+
+  const handleFork = async () => {
+    setForkLoading(true);
+    try {
+      const res = await fetch(`/api/forgeai/app/${appId}/fork`, { method: "POST" });
+      const data = await res.json();
+      if (data.forked_id) {
+        log(`✓ Forked! New app ID: ${data.forked_id}`, "success");
+        setChatMessages(p => [...p, { role: "ai", text: `App forked successfully! New app ID: ${data.forked_id}. You can now modify the fork independently.` }]);
+      }
+    } catch (err: any) {
+      log(`Fork failed: ${err.message}`, "info");
+    }
+    setForkLoading(false);
+  };
+
+  const handleDownload = () => {
+    const iframe = document.querySelector("#app-preview-frame") as HTMLIFrameElement;
+    const html = iframe?.contentDocument?.documentElement?.outerHTML || app?.generated_html || "";
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${app?.app_name || "forge-app"}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const typeColors: Record<string, string> = {
@@ -756,6 +819,96 @@ JSON: { "full_html": string, "bugs_found": string[], "fixes_applied": string[] }
           </div>
         </div>
       </div>
+
+      {showPreview && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-[#00FFD1]" />
+              <span className="text-sm font-mono text-[#00FFD1] uppercase tracking-widest">Live Preview</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {qualityScore && (
+                <span className="text-xs font-mono text-violet-400" data-testid="text-quality-score">
+                  Quality: {qualityScore.quality_score}/100
+                </span>
+              )}
+              <button onClick={handleFork} disabled={forkLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:border-violet-500/30 text-xs text-muted-foreground hover:text-violet-400 transition-all disabled:opacity-50"
+                data-testid="button-fork-app">
+                {forkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitFork className="w-3 h-3" />}
+                Fork
+              </button>
+              <button onClick={handleDownload}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:border-emerald-500/30 text-xs text-muted-foreground hover:text-emerald-400 transition-all"
+                data-testid="button-download-app">
+                <Download className="w-3 h-3" /> Download
+              </button>
+              <a href={`/api/forgeai/preview/${appId}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:border-[#00FFD1]/30 text-xs text-muted-foreground hover:text-[#00FFD1] transition-all"
+                data-testid="link-open-preview">
+                <ExternalLink className="w-3 h-3" /> Open
+              </a>
+              <button onClick={() => setPreviewExpanded(p => !p)}
+                className="p-1.5 rounded-lg border border-border hover:border-border/80 text-muted-foreground transition-all"
+                data-testid="button-toggle-preview-size">
+                {previewExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+
+          <div className={`rounded-xl border border-border bg-black overflow-hidden transition-all ${previewExpanded ? "h-[80vh]" : "h-[500px]"}`}>
+            <iframe
+              id="app-preview-frame"
+              src={`/api/forgeai/preview/${appId}?t=${Date.now()}`}
+              className="w-full h-full border-0"
+              sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+              title="App Preview"
+              data-testid="iframe-app-preview"
+            />
+          </div>
+
+          <div className="rounded-xl border border-border bg-card/30 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageSquare className="w-3.5 h-3.5 text-violet-400" />
+              <span className="text-xs font-mono text-violet-400 uppercase tracking-widest">Chat-to-Modify</span>
+              <span className="text-[10px] text-muted-foreground ml-auto">Describe changes — AI will update the app code</span>
+            </div>
+            <div ref={chatRef} className="max-h-48 overflow-y-auto space-y-2 mb-3">
+              {chatMessages.length === 0 && (
+                <p className="text-[10px] text-muted-foreground/50 italic">Try: "Add a dark mode toggle" or "Make the header blue" or "Add a search bar"</p>
+              )}
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`text-xs px-3 py-2 rounded-lg max-w-[85%] ${
+                  m.role === "user" ? "bg-violet-500/10 border border-violet-500/20 text-violet-300 ml-auto" : "bg-card border border-border text-foreground"
+                }`}>
+                  {m.text}
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="text-xs px-3 py-2 rounded-lg bg-card border border-border text-muted-foreground flex items-center gap-2 max-w-[85%]">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Sovereign Brain is modifying your app...
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendChatMessage()}
+                placeholder="Describe what to change..."
+                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500/50 placeholder:text-muted-foreground/50"
+                data-testid="input-chat-modify"
+              />
+              <button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}
+                className="px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-400 text-xs font-medium hover:bg-violet-500/30 transition-all disabled:opacity-50"
+                data-testid="button-send-chat">
+                {chatLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

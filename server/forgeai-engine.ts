@@ -3,7 +3,7 @@
 // ── ULTRON SOVEREIGN SOLUTIONS: Public URLs, Real DB, Auth, Proxy, Chat Mutations
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { pool } from "./db";
+import { pool, priorityPool } from "./db";
 import Groq from "groq-sdk";
 import crypto from "crypto";
 import type { Express, Request, Response } from "express";
@@ -626,7 +626,7 @@ function parseRawLLMResponse(raw: string, finishReason: string): any {
   }
 }
 
-async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Promise<any> {
+export async function callLLM(prompt: string, jsonKeys?: string[], fast?: boolean): Promise<any> {
   const providers = getAvailableProviders();
   const errors: string[] = [];
 
@@ -1195,10 +1195,21 @@ Return JSON: { "full_html": string, "changes_made": string[], "summary": string 
 
   app.get("/api/forgeai/apps/:id", async (req, res) => {
     try {
-      const r = await pool.query(`SELECT * FROM forgeai_apps WHERE id=$1`, [req.params.id]);
+      const r = await priorityPool.query(`SELECT * FROM forgeai_apps WHERE id=$1`, [req.params.id]);
       if (!r.rows[0]) return res.status(404).json({ error: "Not found" });
       res.json(r.rows[0]);
     } catch(e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/forgeai/preview/:id", async (req, res) => {
+    try {
+      const r = await priorityPool.query(`SELECT generated_html, app_name FROM forgeai_apps WHERE id=$1`, [req.params.id]);
+      if (!r.rows[0]) return res.status(404).send("<h1>App not found</h1>");
+      const html = r.rows[0].generated_html || r.rows[0].html_output || "<h1>No content generated yet</h1>";
+      res.set("Content-Type", "text/html; charset=utf-8");
+      res.set("X-Frame-Options", "SAMEORIGIN");
+      res.send(html);
+    } catch (e: any) { res.status(500).send(`<h1>Error loading preview</h1><p>${e.message}</p>`); }
   });
 
   app.post("/api/forgeai/apps", async (req, res) => {
@@ -1299,9 +1310,9 @@ Return JSON: { "full_html": string, "changes_made": string[], "summary": string 
 
   app.get("/api/forgeai/resources", async (_req, res) => {
     try {
-      const r = await pool.query(`SELECT * FROM forgeai_resource_library ORDER BY usage_count DESC LIMIT 200`);
+      const r = await priorityPool.query(`SELECT * FROM forgeai_resource_library ORDER BY usage_count DESC LIMIT 200`);
       res.json(r.rows);
-    } catch(e: any) { res.status(500).json({ error: e.message }); }
+    } catch(e: any) { res.json([]); }
   });
 
   app.post("/api/forgeai/resources", async (req, res) => {
@@ -1431,11 +1442,11 @@ Return JSON: { "full_html": string, "changes_made": string[], "summary": string 
 
   app.get("/api/forgeai/stats", async (_req, res) => {
     try {
-      const appsRes = await pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='complete' OR status='upgraded') as completed, COUNT(*) FILTER(WHERE is_public=TRUE) as public_count FROM forgeai_apps`).catch(() => null);
-      const memRes = await pool.query(`SELECT COUNT(*) as total FROM forgeai_build_memory`).catch(() => null);
-      const resRes = await pool.query(`SELECT COUNT(*) as total FROM forgeai_resource_library`).catch(() => null);
-      const dataRes = await pool.query(`SELECT COUNT(*) as total FROM forgeai_app_data`).catch(() => null);
-      const usersRes = await pool.query(`SELECT COUNT(*) as total FROM forgeai_app_users`).catch(() => null);
+      const appsRes = await priorityPool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='complete' OR status='upgraded') as completed, COUNT(*) FILTER(WHERE is_public=TRUE) as public_count FROM forgeai_apps`).catch(() => null);
+      const memRes = await priorityPool.query(`SELECT COUNT(*) as total FROM forgeai_build_memory`).catch(() => null);
+      const resRes = await priorityPool.query(`SELECT COUNT(*) as total FROM forgeai_resource_library`).catch(() => null);
+      const dataRes = await priorityPool.query(`SELECT COUNT(*) as total FROM forgeai_app_data`).catch(() => null);
+      const usersRes = await priorityPool.query(`SELECT COUNT(*) as total FROM forgeai_app_users`).catch(() => null);
       res.json({
         totalApps: parseInt(appsRes?.rows[0]?.total) || 0,
         completedApps: parseInt(appsRes?.rows[0]?.completed) || 0,

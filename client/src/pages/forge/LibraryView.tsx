@@ -10,7 +10,9 @@ export default function LibraryView({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<"omega" | "saved">("omega");
 
   useEffect(() => {
-    fetch("/api/forgeai/resources").then(r => r.json()).then(setSaved).catch(() => {});
+    fetch("/api/forgeai/resources").then(r => r.json()).then(d => {
+      setSaved(Array.isArray(d) ? d : []);
+    }).catch(() => setSaved([]));
   }, []);
 
   const sources = activeTab === "omega" ? OMEGA_SOURCES : saved;

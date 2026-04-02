@@ -1087,8 +1087,39 @@ async function buildAppForIndustry(industry: GicsEntry): Promise<boolean> {
     );
     const appId = createRes.rows[0].id;
 
-    // 3. BUILD — generate app from templates (NO LLM — zero Groq usage)
-    const result = { full_html: generateTemplateApp(idea.name, industry.name, sector, idea.prompt, idea.category) };
+    let result: { full_html: string };
+    try {
+      const { callLLM } = await import("./forgeai-engine");
+      const llmHtml = await callLLM(
+        `You are an expert web developer building a standalone PWA app.
+App Name: "${idea.name}"
+Industry: ${industry.name} (${sector})
+Description: ${idea.prompt}
+Category: ${idea.category}
+
+Build a COMPLETE, production-quality single-page HTML app with:
+- Modern, professional UI with CSS Grid/Flexbox
+- Interactive JavaScript functionality specific to ${industry.name}
+- Responsive design (mobile + desktop)
+- Dark mode support
+- PWA manifest and service worker registration
+- Real, working features (not placeholders)
+- Professional color scheme appropriate for ${sector}
+
+Return ONLY the complete HTML file (<!DOCTYPE html> to </html>). No markdown, no explanation.`,
+        undefined, false
+      );
+      if (typeof llmHtml === 'string' && llmHtml.length > 1000 && llmHtml.includes('<html')) {
+        result = { full_html: llmHtml };
+        console.log(`[app-factory] ✨ LLM-generated app for "${idea.name}" (${llmHtml.length} chars)`);
+      } else {
+        result = { full_html: generateTemplateApp(idea.name, industry.name, sector, idea.prompt, idea.category) };
+        console.log(`[app-factory] 📋 Template fallback for "${idea.name}" (LLM output too short)`);
+      }
+    } catch (llmErr: any) {
+      result = { full_html: generateTemplateApp(idea.name, industry.name, sector, idea.prompt, idea.category) };
+      console.log(`[app-factory] 📋 Template fallback for "${idea.name}" (${llmErr.message?.slice(0, 50)})`);
+    }
 
     // 4. SAVE the generated HTML
     const crypto = await import("crypto");
