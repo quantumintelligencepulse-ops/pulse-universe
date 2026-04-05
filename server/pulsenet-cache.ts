@@ -83,8 +83,8 @@ export function isResearchReady(): boolean { return researchReady; }
 export function startPulseNetCache() {
   setTimeout(async () => {
     await Promise.all([refreshOmniCache(), refreshResearchCache()]);
-    setInterval(refreshOmniCache, 30_000);
-    setInterval(refreshResearchCache, 45_000);
+    setInterval(refreshOmniCache, 120_000);
+    setInterval(refreshResearchCache, 120_000);
     console.log(`${TAG} ✅ PulseNet cache live — refreshing every 30s`);
   }, 12_000);
 }

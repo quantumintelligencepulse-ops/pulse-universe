@@ -805,6 +805,6 @@ export async function startInventionEngine() {
   console.log(`${TAG} 🔬 SOVEREIGN INVENTION ENGINE — Patents | LLCs | Marketplace | Royalties | Nobel Prize | IP Disputes | Grants ONLINE`);
   setTimeout(async () => {
     await inventionCycle();
-    setInterval(inventionCycle, 45_000); // every 45s
+    setInterval(inventionCycle, 120_000);
   }, 12_000);
 }

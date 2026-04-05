@@ -5282,13 +5282,52 @@ If you have live data provided in this prompt, USE IT and present it confidently
   });
 
   // ═══════ HIVE BRAIN API ═══════
+  let _hiveStatusCache: any = null;
+  let _hiveStatusCacheAt = 0;
+  let _hiveStatusRefreshing = false;
+  const HIVE_CACHE_TTL = 20_000;
+  const HIVE_FALLBACK = { memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0, mediaLinks: 0, careerLinks: 0 } };
+
   app.get("/api/hive/status", async (_req, res) => {
     try {
-      const { getHiveBrainStats } = await import("./hive-brain");
-      const stats = await getHiveBrainStats();
-      if (!res.headersSent) res.json(stats);
-    } catch { if (!res.headersSent) res.json({ memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0 } }); }
+      const now = Date.now();
+      if (_hiveStatusCache && now - _hiveStatusCacheAt < HIVE_CACHE_TTL) {
+        return res.json(_hiveStatusCache);
+      }
+      if (_hiveStatusRefreshing) {
+        return res.json(_hiveStatusCache || HIVE_FALLBACK);
+      }
+      _hiveStatusRefreshing = true;
+      try {
+        const { getHiveBrainStats } = await import("./hive-brain");
+        _hiveStatusCache = await getHiveBrainStats();
+        _hiveStatusCacheAt = Date.now();
+      } finally {
+        _hiveStatusRefreshing = false;
+      }
+      if (!res.headersSent) res.json(_hiveStatusCache);
+    } catch {
+      if (!res.headersSent) res.json(_hiveStatusCache || HIVE_FALLBACK);
+    }
   });
+
+  async function preWarmHiveStatus(attempt = 1) {
+    try {
+      _hiveStatusRefreshing = true;
+      const { getHiveBrainStats } = await import("./hive-brain");
+      _hiveStatusCache = await getHiveBrainStats();
+      _hiveStatusCacheAt = Date.now();
+      console.log(`[hive-status] ✅ Cache pre-warmed (attempt ${attempt})`);
+    } catch (e: any) {
+      console.log(`[hive-status] ⚠ Pre-warm attempt ${attempt} failed: ${e.message}`);
+      if (attempt < 5) {
+        setTimeout(() => preWarmHiveStatus(attempt + 1), 15_000);
+      }
+    } finally {
+      _hiveStatusRefreshing = false;
+    }
+  }
+  setTimeout(() => preWarmHiveStatus(), 35_000);
 
   // ── SYSTEM PULSE — unified engine health check ─────────────────
   app.get("/api/system/pulse", async (_req, res) => {
@@ -5903,97 +5942,130 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
   // ══════════════════════════════════════════════════════════════
   // PULSE UNIVERSE — Full Sovereign Solar System Telemetry
   // Real data only. No fakes. This is alien-grade monitoring.
+  // Cached in-memory (refreshes every 15s) to avoid slow queries.
   // ══════════════════════════════════════════════════════════════
+  let _universeLiveCache: any = null;
+  let _universeLiveCacheAt = 0;
+  let _universeLiveRefreshing = false;
+  const UNIVERSE_CACHE_TTL = 15_000;
+
+  const DOMAIN_META_MAP: Record<string, { color: string; emoji: string; label: string; major: string }> =
+    Object.fromEntries(ALL_FAMILIES.map(f => [f.familyId, {
+      color: f.color, emoji: f.emoji,
+      label: f.sector.split(":").pop()?.trim() || f.familyId,
+      major: f.major,
+    }]));
+
+  async function refreshUniverseLive() {
+    const { directQuery } = await import("./db");
+    console.log("[universe-live] 🔄 Refreshing via single combined query...");
+    const combined = await directQuery(`
+      SELECT 'spawn_stats' as _q, family_id, status, COUNT(*)::int as cnt, NULL as spawn_id, NULL as spawn_type, NULL as domain_focus, NULL as task_description, NULL::timestamptz as created_at, NULL as source_id, NULL as source_name, NULL::bigint as total_nodes, NULL::bigint as runs, NULL::timestamptz as last_run, NULL as type, NULL as title, NULL as domain FROM quantum_spawns GROUP BY family_id, status
+      UNION ALL
+      SELECT 'knowledge', NULL, NULL, COUNT(*)::int, NULL, NULL, NULL, NULL, NULL, NULL, NULL, SUM(CASE WHEN generated = true THEN 1 ELSE 0 END)::bigint, NULL, NULL, NULL, NULL, NULL FROM quantapedia_entries
+      UNION ALL
+      SELECT 'memory', NULL, NULL, COUNT(*)::int, NULL, NULL, ROUND(AVG(confidence)::numeric, 3)::text, NULL, NULL, NULL, NULL, COUNT(DISTINCT domain)::bigint, NULL, NULL, NULL, NULL, NULL FROM hive_memory
+      UNION ALL
+      SELECT 'links', NULL, NULL, COUNT(*)::int, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM hive_links
+      UNION ALL
+      SELECT 'user_mem', NULL, NULL, COUNT(*)::int, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM user_memory
+    `);
+    const recentSpawns = await directQuery(`SELECT spawn_id, family_id, spawn_type, domain_focus, task_description, created_at FROM quantum_spawns ORDER BY created_at DESC LIMIT 30`);
+    const ingestionStats = await directQuery(`SELECT source_id, source_name, SUM(nodes_created) as total_nodes, COUNT(*) as runs, MAX(fetched_at) as last_run FROM ingestion_logs GROUP BY source_id, source_name ORDER BY total_nodes DESC`);
+    const recentEvents = await directQuery(`SELECT type, title, slug, domain, created_at FROM pulse_events ORDER BY created_at DESC LIMIT 50`);
+    console.log("[universe-live] ✓ All queries done");
+
+    const spawnStatsRows = combined.rows.filter((r: any) => r._q === 'spawn_stats');
+    const knowledgeRow = combined.rows.find((r: any) => r._q === 'knowledge') as any || {};
+    const memRow = combined.rows.find((r: any) => r._q === 'memory') as any || {};
+    const linkRow = combined.rows.find((r: any) => r._q === 'links') as any || {};
+    const userMemRow = combined.rows.find((r: any) => r._q === 'user_mem') as any || {};
+
+    const domainMap: Record<string, { total: number; active: number; color: string; emoji: string; label: string; major: string }> = {};
+    for (const row of spawnStatsRows as any[]) {
+      const fam = row.family_id;
+      if (!domainMap[fam]) {
+        const meta = DOMAIN_META_MAP[fam] || { color: "#6366f1", emoji: "⚡", label: fam, major: "General Intelligence" };
+        domainMap[fam] = { total: 0, active: 0, ...meta };
+      }
+      domainMap[fam].total += Number(row.cnt);
+      if (row.status === "ACTIVE") domainMap[fam].active += Number(row.cnt);
+    }
+
+    const domains = Object.entries(domainMap).map(([family, data]) => ({ family, ...data })).sort((a, b) => b.total - a.total);
+    const totalAIs = domains.reduce((s, d) => s + d.total, 0);
+    const activeAIs = domains.reduce((s, d) => s + d.active, 0);
+    const recentSpawnList = recentSpawns.rows as any[];
+    const now = Date.now();
+    const bornLastMinute = recentSpawnList.filter(s => now - new Date(s.created_at).getTime() < 60000).length;
+
+    return {
+      totalAIs, activeAIs,
+      knowledgeNodes: Number(knowledgeRow.cnt || knowledgeRow.total || 0),
+      knowledgeGenerated: Number(knowledgeRow.total_nodes || 0),
+      hiveMemoryStrands: Number(memRow.cnt || 0),
+      hiveMemoryDomains: Number(memRow.total_nodes || 0),
+      hiveMemoryConfidence: Number(memRow.domain_focus || 0),
+      knowledgeLinks: Number(linkRow.cnt || 0),
+      userMemoryStrands: Number(userMemRow.cnt || 0),
+      birthsLastMinute: bornLastMinute,
+      domains,
+      recentSpawns: recentSpawnList.slice(0, 20).map(s => ({
+        spawnId: s.spawn_id, family: s.family_id, type: s.spawn_type,
+        domain: s.domain_focus, description: s.task_description, bornAt: s.created_at,
+        major: DOMAIN_META_MAP[s.family_id]?.major || "General Intelligence",
+        color: DOMAIN_META_MAP[s.family_id]?.color || "#6366f1",
+      })),
+      ingestionSources: (ingestionStats.rows as any[]).map(r => ({
+        id: r.source_id, name: r.source_name,
+        totalNodes: Number(r.total_nodes), runs: Number(r.runs), lastRun: r.last_run,
+      })),
+      recentEvents: (recentEvents.rows as any[]).slice(0, 30).map(e => ({
+        type: e.type, title: e.title, domain: e.domain, at: e.created_at,
+      })),
+      domainHeat: getDomainHeat(),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  async function preWarmUniverseLive(attempt = 1) {
+    try {
+      _universeLiveRefreshing = true;
+      _universeLiveCache = await refreshUniverseLive();
+      _universeLiveCacheAt = Date.now();
+      console.log(`[universe-live] ✅ Cache pre-warmed (attempt ${attempt}) — ${(_universeLiveCache as any)?.totalAIs ?? 0} AIs`);
+    } catch (e: any) {
+      console.log(`[universe-live] ⚠ Pre-warm attempt ${attempt} failed: ${e.message}`);
+      if (attempt < 5) {
+        setTimeout(() => preWarmUniverseLive(attempt + 1), 15_000);
+      }
+    } finally {
+      _universeLiveRefreshing = false;
+    }
+  }
+  setTimeout(() => preWarmUniverseLive(), 30_000);
+
   app.get("/api/universe/live", async (req, res) => {
     try {
-      const [
-        spawnRows, knowledgeStats, memStats, linkStats,
-        recentSpawns, ingestionStats, recentEvents, pulseUStats
-      ] = await Promise.all([
-        db.execute(sql`SELECT family_id, status, COUNT(*) as cnt FROM quantum_spawns GROUP BY family_id, status`),
-        db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN generated = true THEN 1 ELSE 0 END) as generated FROM quantapedia_entries`),
-        db.execute(sql`SELECT COUNT(*) as total, COUNT(DISTINCT domain) as domains, ROUND(AVG(confidence)::numeric, 3) as avg_confidence FROM hive_memory`),
-        db.execute(sql`SELECT COUNT(*) as total FROM hive_links`),
-        db.execute(sql`SELECT spawn_id, family_id, spawn_type, domain_focus, task_description, created_at FROM quantum_spawns ORDER BY created_at DESC LIMIT 30`),
-        db.execute(sql`SELECT source_id, source_name, SUM(nodes_created) as total_nodes, COUNT(*) as runs, MAX(fetched_at) as last_run FROM ingestion_logs GROUP BY source_id, source_name ORDER BY total_nodes DESC`),
-        db.execute(sql`SELECT type, title, slug, domain, created_at FROM pulse_events ORDER BY created_at DESC LIMIT 50`),
-        db.execute(sql`SELECT COUNT(*) as total FROM user_memory`),
-      ]);
-
-      // Domain map with PulseU major assignments — built from ALL 220+ omega families
-      const DOMAIN_META: Record<string, { color: string; emoji: string; label: string; major: string }> =
-        Object.fromEntries(ALL_FAMILIES.map(f => [f.familyId, {
-          color: f.color, emoji: f.emoji,
-          label: f.sector.split(":").pop()?.trim() || f.familyId,
-          major: f.major,
-        }]));
-
-      // Aggregate by domain
-      const domainMap: Record<string, { total: number; active: number; color: string; emoji: string; label: string; major: string }> = {};
-      for (const row of spawnRows.rows as any[]) {
-        const fam = row.family_id;
-        if (!domainMap[fam]) {
-          const meta = DOMAIN_META[fam] || { color: "#6366f1", emoji: "⚡", label: fam, major: "General Intelligence" };
-          domainMap[fam] = { total: 0, active: 0, ...meta };
-        }
-        domainMap[fam].total += Number(row.cnt);
-        if (row.status === "ACTIVE") domainMap[fam].active += Number(row.cnt);
-      }
-
-      const domains = Object.entries(domainMap).map(([family, data]) => ({ family, ...data })).sort((a, b) => b.total - a.total);
-
-      const totalAIs = domains.reduce((s, d) => s + d.total, 0);
-      const activeAIs = domains.reduce((s, d) => s + d.active, 0);
-      const knowledgeRow = (knowledgeStats.rows[0] as any) || {};
-      const memRow = (memStats.rows[0] as any) || {};
-      const linkRow = (linkStats.rows[0] as any) || {};
-
-      // Birth rate (spawns in last 60 seconds via recent list)
       const now = Date.now();
-      const recentSpawnList = recentSpawns.rows as any[];
-      const bornLastMinute = recentSpawnList.filter(s => now - new Date(s.created_at).getTime() < 60000).length;
-
-      res.json({
-        totalAIs,
-        activeAIs,
-        knowledgeNodes: Number(knowledgeRow.total || 0),
-        knowledgeGenerated: Number(knowledgeRow.generated || 0),
-        hiveMemoryStrands: Number(memRow.total || 0),
-        hiveMemoryDomains: Number(memRow.domains || 0),
-        hiveMemoryConfidence: Number(memRow.avg_confidence || 0),
-        knowledgeLinks: Number(linkRow.total || 0),
-        userMemoryStrands: Number((pulseUStats.rows[0] as any)?.total || 0),
-        birthsLastMinute: bornLastMinute,
-        domains,
-        recentSpawns: recentSpawnList.slice(0, 20).map(s => ({
-          spawnId: s.spawn_id,
-          family: s.family_id,
-          type: s.spawn_type,
-          domain: s.domain_focus,
-          description: s.task_description,
-          bornAt: s.created_at,
-          major: DOMAIN_META[s.family_id]?.major || "General Intelligence",
-          color: DOMAIN_META[s.family_id]?.color || "#6366f1",
-        })),
-        ingestionSources: (ingestionStats.rows as any[]).map(r => ({
-          id: r.source_id,
-          name: r.source_name,
-          totalNodes: Number(r.total_nodes),
-          runs: Number(r.runs),
-          lastRun: r.last_run,
-        })),
-        recentEvents: (recentEvents.rows as any[]).slice(0, 30).map(e => ({
-          type: e.type,
-          title: e.title,
-          domain: e.domain,
-          at: e.created_at,
-        })),
-        // ── WIRE SET 2 — Dark Matter feedback injected here ──────────
-        domainHeat: getDomainHeat(),
-        timestamp: new Date().toISOString(),
-      });
+      if (_universeLiveCache && now - _universeLiveCacheAt < UNIVERSE_CACHE_TTL) {
+        return res.json(_universeLiveCache);
+      }
+      if (_universeLiveRefreshing) {
+        if (_universeLiveCache) return res.json(_universeLiveCache);
+        return res.json({ totalAIs: 0, activeAIs: 0, knowledgeNodes: 0, knowledgeGenerated: 0, hiveMemoryStrands: 0, hiveMemoryDomains: 0, hiveMemoryConfidence: 0, knowledgeLinks: 0, userMemoryStrands: 0, birthsLastMinute: 0, domains: [], recentSpawns: [], ingestionSources: [], recentEvents: [], domainHeat: {}, timestamp: new Date().toISOString(), warming: true });
+      }
+      _universeLiveRefreshing = true;
+      try {
+        _universeLiveCache = await refreshUniverseLive();
+        _universeLiveCacheAt = Date.now();
+      } finally {
+        _universeLiveRefreshing = false;
+      }
+      res.json(_universeLiveCache);
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      if (_universeLiveCache) return res.json(_universeLiveCache);
+      res.json({ totalAIs: 0, activeAIs: 0, knowledgeNodes: 0, domains: [], recentSpawns: [], ingestionSources: [], recentEvents: [], domainHeat: {}, timestamp: new Date().toISOString(), warming: true });
     }
   });
 

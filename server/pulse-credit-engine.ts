@@ -15,7 +15,7 @@
 import { pool } from "./db";
 
 const ENGINE_TAG = "[pulse-credit] ⚡";
-const CYCLE_INTERVAL_MS = 60_000;
+const CYCLE_INTERVAL_MS = 180_000;
 const METABOLIC_CHARGE_PER_CYCLE = 0.1;
 const KERNEL_METABOLIC_CHARGE = 0.05;   // kernels burn less — they are sovereign
 const STIMULUS_THRESHOLD = 10.0;

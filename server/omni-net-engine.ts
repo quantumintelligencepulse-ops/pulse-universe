@@ -842,12 +842,12 @@ export async function startOmniNetEngine() {
     runShardMesh().catch(e => console.error(`${TAG} shardMesh error:`, e));
     runU248Activations().catch(e => console.error(`${TAG} u248 error:`, e));
 
-    setInterval(provisionPhones, 60_000);
-    setInterval(runShardMesh, 45_000);
-    setInterval(runPulseBrowserSearches, 30_000);
-    setInterval(runPulsePCSessions, 45_000);
-    setInterval(runU248Activations, 90_000);
-    setInterval(refreshShardStrengths, 120_000);
-    setInterval(snapshotOmniNetField, 60_000);
+    setInterval(provisionPhones, 180_000);
+    setInterval(runShardMesh, 120_000);
+    setInterval(runPulseBrowserSearches, 180_000);
+    setInterval(runPulsePCSessions, 180_000);
+    setInterval(runU248Activations, 180_000);
+    setInterval(refreshShardStrengths, 180_000);
+    setInterval(snapshotOmniNetField, 120_000);
   }, 15_000);
 }

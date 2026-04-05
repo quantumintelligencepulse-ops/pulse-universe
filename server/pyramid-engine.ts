@@ -795,6 +795,6 @@ export async function startPyramidEngine() {
   await setupPyramidTables();
   await healZeroBlockTasks();
   await runPyramidCycle();
-  setInterval(runPyramidCycle, 15_000);
+  setInterval(runPyramidCycle, 90_000);
   console.log("[pyramid] ⬡ PYRAMID LABOR ENGINE v3 — Foremen | Guilds | Master Builders | Work Orders | Apprenticeships | Milestones | Task Chains | Completion% | Labor Unrest | Reports — ACTIVE");
 }

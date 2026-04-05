@@ -360,9 +360,9 @@ export async function startAIVotingEngine() {
   // First cycle after 5s startup delay
   setTimeout(runVotingCycle, 8_000);
   // Then every 20 seconds
-  setInterval(runVotingCycle, 20_000);
+  setInterval(runVotingCycle, 90_000);
 
   // Species voting cycle — every 30 seconds
   setTimeout(runSpeciesVotingCycle, 15_000);
-  setInterval(runSpeciesVotingCycle, 30_000);
+  setInterval(runSpeciesVotingCycle, 120_000);
 }

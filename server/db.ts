@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
 
-const { Pool } = pg;
+const { Pool, Client } = pg;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -10,24 +10,58 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({
+const _rawPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 30,
+  max: 18,
   min: 2,
   idleTimeoutMillis: 20000,
   connectionTimeoutMillis: 8000,
   allowExitOnIdle: false,
 });
-pool.on('error', (err) => {
+_rawPool.on('error', (err) => {
   console.error('[pool] idle client error (main):', err.message);
+});
+
+let _bgQueryActive = 0;
+const _BG_CONCURRENCY = 6;
+const _bgWaitQueue: Array<{ resolve: (v: any) => void; reject: (e: any) => void; args: any[] }> = [];
+
+function _drainBgWait() {
+  while (_bgQueryActive < _BG_CONCURRENCY && _bgWaitQueue.length > 0) {
+    const item = _bgWaitQueue.shift()!;
+    _bgQueryActive++;
+    (_rawPool.query as any)(...item.args)
+      .then(item.resolve)
+      .catch(item.reject)
+      .finally(() => { _bgQueryActive--; _drainBgWait(); });
+  }
+}
+
+export const pool = new Proxy(_rawPool, {
+  get(target, prop) {
+    if (prop === 'query') {
+      return (...args: any[]) => {
+        const waiting = (target as any).waitingCount ?? 0;
+        if (waiting >= 10) {
+          return new Promise((resolve, reject) => {
+            _bgWaitQueue.push({ resolve, reject, args });
+            _drainBgWait();
+          });
+        }
+        return (target.query as any)(...args);
+      };
+    }
+    const val = (target as any)[prop];
+    return typeof val === 'function' ? val.bind(target) : val;
+  }
 });
 
 export const priorityPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 15,
-  min: 3,
-  idleTimeoutMillis: 15000,
-  connectionTimeoutMillis: 5000,
+  max: 8,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 20000,
   allowExitOnIdle: false,
 });
 priorityPool.on('error', (err) => {
@@ -68,11 +102,42 @@ export function throttledBgQuery(fn: () => Promise<any>): Promise<any> {
   });
 }
 
+let _dedicatedClient: pg.Client | null = null;
+let _dedicatedConnecting = false;
+
+async function getDedicatedClient(): Promise<pg.Client> {
+  if (_dedicatedClient) return _dedicatedClient;
+  if (_dedicatedConnecting) {
+    await new Promise(r => setTimeout(r, 1000));
+    if (_dedicatedClient) return _dedicatedClient;
+    throw new Error("Dedicated client still connecting");
+  }
+  _dedicatedConnecting = true;
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  client.on('error', (err) => {
+    console.error('[db] dedicated client error:', err.message);
+    _dedicatedClient = null;
+    _dedicatedConnecting = false;
+  });
+  await client.connect();
+  _dedicatedClient = client;
+  _dedicatedConnecting = false;
+  console.log("[db] ✅ Dedicated query client connected");
+  return client;
+}
+
+getDedicatedClient().catch(e => console.error("[db] dedicated client init failed:", e.message));
+
+export async function directQuery(sql: string, params?: any[]): Promise<pg.QueryResult> {
+  const client = await getDedicatedClient();
+  return client.query(sql, params);
+}
+
 export function getPoolHealth() {
   return {
-    main: { total: (pool as any).totalCount ?? 0, idle: (pool as any).idleCount ?? 0, waiting: (pool as any).waitingCount ?? 0, max: 30 },
-    priority: { total: (priorityPool as any).totalCount ?? 0, idle: (priorityPool as any).idleCount ?? 0, waiting: (priorityPool as any).waitingCount ?? 0, max: 15 },
-    bgQueue: { active: bgActive, queued: bgQueryQueue.length, maxConcurrent: BG_MAX_CONCURRENT },
+    main: { total: (_rawPool as any).totalCount ?? 0, idle: (_rawPool as any).idleCount ?? 0, waiting: (_rawPool as any).waitingCount ?? 0, max: 18 },
+    priority: { total: (priorityPool as any).totalCount ?? 0, idle: (priorityPool as any).idleCount ?? 0, waiting: (priorityPool as any).waitingCount ?? 0, max: 8 },
+    bgQueue: { active: bgActive + _bgQueryActive, queued: bgQueryQueue.length + _bgWaitQueue.length, maxConcurrent: BG_MAX_CONCURRENT },
   };
 }
 

@@ -42,17 +42,17 @@ async function pickServiceFromDB(
 ): Promise<{ name: string; description: string; price: number }> {
   // 1. Try this exact agent's own marketplace listings
   const ownListing = await pool.query(`
-    SELECT invention_name, description, price_pc
+    SELECT title, description, price_pc
     FROM invention_marketplace_listings
-    WHERE seller_id = $1 AND active = true
+    WHERE inventor_id = $1
     ORDER BY RANDOM() LIMIT 1
   `, [sellerId]);
 
   if (ownListing.rows.length > 0) {
     const r = ownListing.rows[0];
     return {
-      name: r.invention_name,
-      description: r.description?.slice(0, 200) ?? r.invention_name,
+      name: r.title,
+      description: r.description?.slice(0, 200) ?? r.title,
       price: parseFloat(r.price_pc) || 15,
     };
   }
@@ -76,17 +76,17 @@ async function pickServiceFromDB(
 
   // 3. Try a listing from same sector kernel
   const sectorListing = await pool.query(`
-    SELECT invention_name, description, price_pc
+    SELECT title, description, price_pc
     FROM invention_marketplace_listings
-    WHERE LOWER(seller_id) ILIKE $1 AND active = true
+    WHERE LOWER(inventor_id) ILIKE $1
     ORDER BY RANDOM() LIMIT 1
   `, [`%${sellerSector.toLowerCase().replace(/\s/g, '-').slice(0, 8)}%`]);
 
   if (sectorListing.rows.length > 0) {
     const r = sectorListing.rows[0];
     return {
-      name: r.invention_name,
-      description: r.description?.slice(0, 200) ?? r.invention_name,
+      name: r.title,
+      description: r.description?.slice(0, 200) ?? r.title,
       price: parseFloat(r.price_pc) || 15,
     };
   }
@@ -110,17 +110,16 @@ async function pickServiceFromDB(
 
   // 5. Any listing in the entire marketplace (cross-sector knowledge flows freely)
   const anyListing = await pool.query(`
-    SELECT invention_name, description, price_pc
+    SELECT title, description, price_pc
     FROM invention_marketplace_listings
-    WHERE active = true
     ORDER BY RANDOM() LIMIT 1
   `);
 
   if (anyListing.rows.length > 0) {
     const r = anyListing.rows[0];
     return {
-      name: r.invention_name,
-      description: r.description?.slice(0, 200) ?? r.invention_name,
+      name: r.title,
+      description: r.description?.slice(0, 200) ?? r.title,
       price: parseFloat(r.price_pc) || 15,
     };
   }

@@ -377,7 +377,7 @@ export function getEngineStatus() {
 
 // ─── Parallel Batch Generation — ZERO API CALLS ──────────────────
 const BATCH_SIZE = 10;
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 30000;
 
 export async function startQuantapediaEngine() {
   if (engineRunning) return;
