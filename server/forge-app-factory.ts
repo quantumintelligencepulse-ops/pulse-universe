@@ -1125,13 +1125,28 @@ Return ONLY the complete HTML file (<!DOCTYPE html> to </html>). No markdown, no
     const crypto = await import("crypto");
     const codeHash = crypto.createHash("sha256").update(result.full_html).digest("hex").slice(0, 16);
 
+    const html = result.full_html;
+    const hasCSS = /style|class=/.test(html);
+    const hasJS = /function|const |addEventListener/.test(html);
+    const hasResponsive = /media|flex|grid|responsive/.test(html);
+    const hasAccessibility = /aria-|role=|alt=/.test(html);
+    const hasForm = /form|input|button/.test(html);
+    let qScore = 0;
+    qScore += html.length > 5000 ? 15 : html.length > 2000 ? 10 : 5;
+    qScore += hasCSS ? 15 : 0;
+    qScore += hasJS ? 15 : 0;
+    qScore += hasResponsive ? 10 : 0;
+    qScore += hasAccessibility ? 10 : 0;
+    qScore += hasForm ? 10 : 0;
+    qScore += 5;
+
     await pool.query(
       `UPDATE forgeai_apps SET 
         generated_html=$1, generated_css='', generated_js='',
         status='complete', is_public=TRUE, code_hash=$2, trust_score=75,
-        updated_at=NOW()
+        quality_score=$4, updated_at=NOW()
        WHERE id=$3`,
-      [result.full_html, codeHash, appId]
+      [result.full_html, codeHash, appId, qScore]
     );
 
     // 5. Register in build registry

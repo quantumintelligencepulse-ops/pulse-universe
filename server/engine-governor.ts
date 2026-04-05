@@ -24,7 +24,7 @@ const PRIORITY_SLOTS: Record<string, number> = {
   idle: 1,
 };
 
-const MAX_CONCURRENT_ENGINES = 6;
+const MAX_CONCURRENT_ENGINES = 4;
 const ERROR_BACKOFF_MULTIPLIER = 2;
 const MAX_BACKOFF_MS = 10 * 60 * 1000;
 const POOL_PRESSURE_THRESHOLD = 0.7;
@@ -36,10 +36,12 @@ function getPoolPressure(): number {
   const total = (pool as any).totalCount ?? 0;
   const idle = (pool as any).idleCount ?? 0;
   const waiting = (pool as any).waitingCount ?? 0;
-  const max = 50;
-  if (max === 0) return 0;
-  const inUse = total - idle + waiting;
-  return inUse / max;
+  const pTotal = (priorityPool as any).totalCount ?? 0;
+  const pIdle = (priorityPool as any).idleCount ?? 0;
+  const pWaiting = (priorityPool as any).waitingCount ?? 0;
+  const maxAll = 18 + 8;
+  const inUse = (total - idle + waiting) + (pTotal - pIdle + pWaiting);
+  return inUse / maxAll;
 }
 
 function isPoolHealthy(): boolean {

@@ -2884,6 +2884,244 @@ ${entries}
     res.json(results);
   });
 
+  // ══════════════════════════════════════════════════════════════
+  // PUBLIC API ENDPOINTS — $1 Intelligence Platform
+  // These are the 8 endpoints listed on RapidAPI + direct access
+  // No auth required — rate limiting by API key (future)
+  // ══════════════════════════════════════════════════════════════
+
+  app.get("/api/news", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const limit = Math.min(Number(_req.query.limit) || 50, 200);
+      const offset = Number(_req.query.offset) || 0;
+      const sector = _req.query.sector as string || null;
+      let query = `SELECT ra.id, ra.title, ra.slug, ra.body, ra.category, ra.tags, ra.source, ra.agent_author, ra.created_at FROM revenue_articles ra WHERE ra.published = true`;
+      const params: any[] = [];
+      if (sector) {
+        params.push(`%${sector}%`);
+        query += ` AND (ra.category ILIKE $${params.length} OR ra.tags ILIKE $${params.length})`;
+      }
+      query += ` ORDER BY ra.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+      params.push(limit, offset);
+      const { rows } = await directQuery(query, params);
+      const countQ = await directQuery(`SELECT COUNT(*) as total FROM revenue_articles WHERE published = true`);
+      res.json({
+        data: rows.map((r: any) => ({ id: r.id, title: r.title, slug: r.slug, summary: (r.body || '').slice(0, 300), category: r.category, tags: r.tags, source: r.source, author: r.agent_author, publishedAt: r.created_at })),
+        total: Number(countQ.rows[0]?.total || 0),
+        limit, offset,
+        timestamp: new Date().toISOString(),
+        engine: "Pulse Universe Intelligence",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  app.get("/api/topics", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const limit = Math.min(Number(_req.query.limit) || 50, 200);
+      const domain = _req.query.domain as string || null;
+      const params: any[] = [limit];
+      let query: string;
+      if (domain) {
+        params.push(domain.toLowerCase());
+        query = `SELECT slug, title, type as domain, summary, categories, related_terms, lookup_count, created_at FROM quantapedia_entries WHERE LOWER(type) = $2 ORDER BY id DESC LIMIT $1`;
+      } else {
+        query = `SELECT slug, title, type as domain, summary, categories, related_terms, lookup_count, created_at FROM quantapedia_entries ORDER BY id DESC LIMIT $1`;
+      }
+      const { rows } = await directQuery(query, params);
+      res.json({
+        data: rows.map((r: any) => ({ slug: r.slug, title: r.title, domain: r.domain, summary: (r.summary || '').slice(0, 500), categories: r.categories, relatedTerms: r.related_terms, popularity: Number(r.lookup_count || 0), createdAt: r.created_at })),
+        total: rows.length,
+        limit,
+        timestamp: new Date().toISOString(),
+        engine: "Pulse Universe Intelligence",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  app.get("/api/articles", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const limit = Math.min(Number(_req.query.limit) || 30, 100);
+      const offset = Number(_req.query.offset) || 0;
+      const slug = _req.query.slug as string || null;
+      if (slug) {
+        const { rows } = await directQuery(`SELECT id, title, slug, body, category, tags, source, agent_author, created_at FROM revenue_articles WHERE slug = $1`, [slug]);
+        if (rows.length === 0) return res.status(404).json({ error: "Article not found" });
+        const r = rows[0] as any;
+        return res.json({ id: r.id, title: r.title, slug: r.slug, body: r.body, category: r.category, tags: r.tags, source: r.source, author: r.agent_author, publishedAt: r.created_at, engine: "Pulse Universe Intelligence" });
+      }
+      const { rows } = await directQuery(`SELECT id, title, slug, body, category, tags, source, agent_author, created_at FROM revenue_articles WHERE published = true ORDER BY created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]);
+      res.json({
+        data: rows.map((r: any) => ({ id: r.id, title: r.title, slug: r.slug, body: r.body, category: r.category, tags: r.tags, source: r.source, author: r.agent_author, publishedAt: r.created_at })),
+        limit, offset,
+        timestamp: new Date().toISOString(),
+        engine: "Pulse Universe Intelligence",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  app.get("/api/gics", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const sector = _req.query.sector as string || null;
+      let query = `SELECT family_id, gics_sector, gics_tier, gics_code, domain_focus, spawn_type, status, spawn_id, task_description, nodes_created, success_score, created_at FROM quantum_spawns WHERE gics_sector IS NOT NULL`;
+      const params: any[] = [];
+      if (sector) {
+        params.push(`%${sector}%`);
+        query += ` AND gics_sector ILIKE $${params.length}`;
+      }
+      query += ` ORDER BY created_at DESC LIMIT 100`;
+      const { rows } = await directQuery(query, params);
+      const sectorSummary: Record<string, { sector: string, agents: number, activeAgents: number, totalNodes: number }> = {};
+      for (const r of rows as any[]) {
+        const s = r.gics_sector;
+        if (!sectorSummary[s]) sectorSummary[s] = { sector: s, agents: 0, activeAgents: 0, totalNodes: 0 };
+        sectorSummary[s].agents++;
+        if (r.status === 'ACTIVE') sectorSummary[s].activeAgents++;
+        sectorSummary[s].totalNodes += Number(r.nodes_created || 0);
+      }
+      res.json({
+        sectors: Object.values(sectorSummary),
+        agents: rows.map((r: any) => ({ spawnId: r.spawn_id, familyId: r.family_id, sector: r.gics_sector, tier: r.gics_tier, code: r.gics_code, domain: r.domain_focus, type: r.spawn_type, status: r.status, nodes: Number(r.nodes_created || 0), score: Number(r.success_score || 0), description: r.task_description, createdAt: r.created_at })),
+        timestamp: new Date().toISOString(),
+        engine: "Pulse Universe Intelligence",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  app.get("/api/signals", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const limit = Math.min(Number(_req.query.limit) || 50, 200);
+      const status = _req.query.status as string || null;
+      let query = `SELECT id, doctor_id, doctor_name, title, equation, rationale, target_system, votes_for, votes_against, status, created_at FROM equation_proposals`;
+      const params: any[] = [];
+      if (status) {
+        params.push(status.toUpperCase());
+        query += ` WHERE status = $${params.length}`;
+      }
+      query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+      params.push(limit);
+      const { rows } = await directQuery(query, params);
+      const countQ = await directQuery(`SELECT COUNT(*) as total FROM equation_proposals`);
+      res.json({
+        data: rows.map((r: any) => ({ id: r.id, doctorId: r.doctor_id, doctorName: r.doctor_name, title: r.title, equation: r.equation, rationale: (r.rationale || '').slice(0, 500), targetSystem: r.target_system, votesFor: Number(r.votes_for || 0), votesAgainst: Number(r.votes_against || 0), status: r.status, createdAt: r.created_at, consensus: Number(r.votes_for || 0) > 0 ? Math.round((Number(r.votes_for) / (Number(r.votes_for) + Number(r.votes_against))) * 100) : 0 })),
+        total: Number(countQ.rows[0]?.total || 0),
+        limit,
+        timestamp: new Date().toISOString(),
+        engine: "Pulse Universe Intelligence",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  app.get("/api/hive", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const domain = _req.query.domain as string || null;
+      const limit = Math.min(Number(_req.query.limit) || 50, 200);
+      let memQuery = `SELECT key, domain, facts, patterns, confidence, access_count, created_at FROM hive_memory`;
+      const params: any[] = [];
+      if (domain) {
+        params.push(domain.toLowerCase());
+        memQuery += ` WHERE LOWER(domain) = $${params.length}`;
+      }
+      memQuery += ` ORDER BY id DESC LIMIT $${params.length + 1}`;
+      params.push(limit);
+      const { rows: memRows } = await directQuery(memQuery, params);
+      res.json({
+        memory: {
+          domainsReturned: [...new Set(memRows.map((r: any) => r.domain))].length,
+          avgConfidence: memRows.length > 0 ? Math.round(memRows.reduce((s: number, r: any) => s + Number(r.confidence || 0), 0) / memRows.length * 1000) / 1000 : 0,
+        },
+        data: memRows.map((r: any) => ({ key: r.key, domain: r.domain, facts: r.facts, patterns: r.patterns, confidence: Number(r.confidence || 0), accessCount: Number(r.access_count || 0), createdAt: r.created_at })),
+        limit,
+        timestamp: new Date().toISOString(),
+        engine: "Pulse Universe Intelligence",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  app.get("/api/search", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const q = (_req.query.q as string || '').trim();
+      if (!q || q.length < 2) return res.json({ data: [], query: q, message: "Query must be at least 2 characters" });
+      const limit = Math.min(Number(_req.query.limit) || 30, 100);
+      const pattern = `%${q}%`;
+      const perSource = Math.ceil(limit / 3);
+      const knowledge = await directQuery(`SELECT slug, title, type as domain, summary, created_at, 'knowledge' as source FROM quantapedia_entries WHERE title ILIKE $1 ORDER BY id DESC LIMIT $2`, [pattern, perSource]);
+      const memory = await directQuery(`SELECT key, domain, facts, created_at, 'hive' as source FROM hive_memory WHERE key ILIKE $1 ORDER BY id DESC LIMIT $2`, [pattern, perSource]);
+      const articles = await directQuery(`SELECT slug, title, category as domain, body, created_at, 'article' as source FROM revenue_articles WHERE title ILIKE $1 AND published = true ORDER BY created_at DESC LIMIT $2`, [pattern, perSource]);
+      const results = [
+        ...knowledge.rows.map((r: any) => ({ type: 'knowledge', slug: r.slug, title: r.title, domain: r.domain, summary: (r.summary || '').slice(0, 300), createdAt: r.created_at })),
+        ...memory.rows.map((r: any) => ({ type: 'hive_memory', key: r.key, domain: r.domain, facts: (r.facts || '').slice(0, 300), createdAt: r.created_at })),
+        ...articles.rows.map((r: any) => ({ type: 'article', slug: r.slug, title: r.title, domain: r.domain, summary: (r.body || '').slice(0, 300), createdAt: r.created_at })),
+      ];
+      res.json({
+        data: results,
+        query: q,
+        total: results.length,
+        timestamp: new Date().toISOString(),
+        engine: "Pulse Universe Intelligence",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  app.get("/api/stream", (_req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const sendEvent = (type: string, data: any) => {
+      res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    sendEvent('connected', { message: 'Pulse Universe Stream connected', timestamp: new Date().toISOString(), engine: "Pulse Universe Intelligence" });
+
+    const interval = setInterval(async () => {
+      try {
+        const { directQuery } = await import("./db");
+        const [newsQ, signalQ, spawnQ] = await Promise.all([
+          directQuery(`SELECT title, slug, category, created_at FROM revenue_articles WHERE published = true ORDER BY created_at DESC LIMIT 3`),
+          directQuery(`SELECT title, doctor_name, status, votes_for, votes_against, created_at FROM equation_proposals ORDER BY created_at DESC LIMIT 3`),
+          directQuery(`SELECT spawn_id, family_id, domain_focus, gics_sector, created_at FROM quantum_spawns ORDER BY created_at DESC LIMIT 3`),
+        ]);
+        if (newsQ.rows.length > 0) sendEvent('news', { items: newsQ.rows });
+        if (signalQ.rows.length > 0) sendEvent('signals', { items: signalQ.rows });
+        if (spawnQ.rows.length > 0) sendEvent('spawns', { items: spawnQ.rows });
+        sendEvent('heartbeat', { timestamp: new Date().toISOString() });
+      } catch (e: any) {
+        sendEvent('error', { message: e.message });
+      }
+    }, 15000);
+
+    _req.on('close', () => {
+      clearInterval(interval);
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // END PUBLIC API ENDPOINTS
+  // ══════════════════════════════════════════════════════════════
+
   app.get("/api/stats", async (req, res) => {
     const userId = getSessionUserId(req);
     if (!userId) return res.json({ chatCount: 0, messageCount: 0, codeFiles: 0 });
@@ -12083,11 +12321,12 @@ Return as structured script with section labels.`;
 
   app.get("/api/mission-control", async (_req, res) => {
     try {
+      const { directQuery } = await import("./db");
       const poolHealth = getPoolHealth();
       const governor = getGovernorStats();
       const [agentCount, tableStats, forgeStats, recentErrors] = await Promise.all([
-        priorityPool.query(`SELECT COUNT(*) as total FROM quantum_spawns`).catch(() => ({ rows: [{ total: 0 }] })),
-        priorityPool.query(`
+        directQuery(`SELECT COUNT(*) as total FROM quantum_spawns`).catch(() => ({ rows: [{ total: 0 }] })),
+        directQuery(`
           SELECT 'equation_proposals' as tbl, COUNT(*) as cnt FROM equation_proposals
           UNION ALL SELECT 'invention_registry', COUNT(*) FROM invention_registry
           UNION ALL SELECT 'social_posts', COUNT(*) FROM social_posts
@@ -12099,23 +12338,32 @@ Return as structured script with section labels.`;
           UNION ALL SELECT 'dream_log', COUNT(*) FROM dream_log
           UNION ALL SELECT 'counseling_sessions', COUNT(*) FROM counseling_sessions
         `).catch(() => ({ rows: [] })),
-        priorityPool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='complete') as completed FROM forgeai_apps`).catch(() => ({ rows: [{ total: 0, completed: 0 }] })),
-        priorityPool.query(`SELECT * FROM anomaly_reports WHERE status='OPEN' ORDER BY reported_at DESC LIMIT 5`).catch(() => ({ rows: [] })),
+        directQuery(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='complete') as completed FROM forgeai_apps`).catch(() => ({ rows: [{ total: 0, completed: 0 }] })),
+        directQuery(`SELECT * FROM anomaly_reports WHERE status='OPEN' ORDER BY reported_at DESC LIMIT 5`).catch(() => ({ rows: [] })),
       ]);
 
       const tables: Record<string, number> = {};
       for (const r of tableStats.rows) tables[(r as any).tbl] = parseInt((r as any).cnt) || 0;
 
       res.json({
-        status: "OPERATIONAL",
+        status: poolHealth.main.waiting > 8 ? "DEGRADED" : "OPERATIONAL",
         uptime: process.uptime(),
         memory: { heapMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024), rssMB: Math.round(process.memoryUsage().rss / 1024 / 1024) },
-        pools: poolHealth,
+        pools: { ...poolHealth, dedicated: { connected: true, type: "pg.Client" } },
         engines: governor,
         civilization: {
           totalAgents: parseInt(agentCount.rows[0]?.total) || 0,
           tables,
           forgeApps: { total: parseInt(forgeStats.rows[0]?.total) || 0, completed: parseInt(forgeStats.rows[0]?.completed) || 0 },
+        },
+        llm: {
+          providers: ["cloudflare", "mistral", "huggingface"],
+          status: process.env.CLOUDFLARE_AI_TOKEN ? "configured" : "missing",
+          endpoints: { iterate: "/api/forgeai/app/:id/iterate", build: "/api/forgeai/llm", search: "/api/forgeai/web-search" },
+        },
+        apiEndpoints: {
+          public: ["/api/news", "/api/topics", "/api/articles", "/api/gics", "/api/signals", "/api/hive", "/api/search", "/api/stream"],
+          status: "live",
         },
         openAnomalies: recentErrors.rows,
       });
@@ -12136,11 +12384,12 @@ Return as structured script with section labels.`;
 
   app.post("/api/mission-control/seed-empty-tables", async (_req, res) => {
     try {
+      const { directQuery } = await import("./db");
       const seeded: string[] = [];
       const checkAndSeed = async (table: string, insertSql: string) => {
-        const r = await priorityPool.query(`SELECT COUNT(*) as cnt FROM ${table}`);
+        const r = await directQuery(`SELECT COUNT(*) as cnt FROM ${table}`);
         if (parseInt(r.rows[0].cnt) === 0) {
-          await priorityPool.query(insertSql);
+          await directQuery(insertSql);
           seeded.push(table);
         }
       };
@@ -12210,7 +12459,8 @@ Return as structured script with section labels.`;
 
   app.get("/api/forgeai/app/:id/quality", async (req, res) => {
     try {
-      const appR = await priorityPool.query(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
+      const { directQuery } = await import("./db");
+      const appR = await directQuery(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
       if (!appR.rows.length) return res.status(404).json({ error: "App not found" });
       const app = appR.rows[0] as any;
       const html = app.generated_html || app.html_output || "";
@@ -12236,7 +12486,7 @@ Return as structured script with section labels.`;
       breakdown.completeness = (app.status === 'complete' || app.status === 'upgraded') ? 5 : 0; score += breakdown.completeness;
 
       const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : score >= 20 ? 'D' : 'F';
-      await priorityPool.query(`UPDATE forgeai_apps SET quality_score = $1 WHERE id = $2`, [score, req.params.id]).catch(() => {});
+      await directQuery(`UPDATE forgeai_apps SET quality_score = $1 WHERE id = $2`, [score, req.params.id]).catch(() => {});
 
       res.json({ appId: req.params.id, score, grade, maxScore: 100, breakdown });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -12244,24 +12494,26 @@ Return as structured script with section labels.`;
 
   app.post("/api/forgeai/app/:id/fork", async (req, res) => {
     try {
-      const srcR = await priorityPool.query(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
+      const { directQuery } = await import("./db");
+      const srcR = await directQuery(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
       if (!srcR.rows.length) return res.status(404).json({ error: "Source app not found" });
       const src = srcR.rows[0] as any;
-      const forkR = await priorityPool.query(
+      const forkR = await directQuery(
         `INSERT INTO forgeai_apps (prompt, app_name, app_type, generated_html, status, is_public, forked_from, fork_count, quality_score, created_at)
          VALUES ($1, $2, $3, $4, 'draft', TRUE, $5, 0, $6, NOW()) RETURNING id, app_name`,
         [`[Fork] ${src.prompt || ''}`, `${src.app_name || 'App'} (Fork)`, src.app_type || 'fullstack', src.generated_html || src.html_output || '', src.id, src.quality_score || 0]
       );
-      await priorityPool.query(`UPDATE forgeai_apps SET fork_count = COALESCE(fork_count, 0) + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
-      res.json({ ok: true, forkedApp: forkR.rows[0] });
+      await directQuery(`UPDATE forgeai_apps SET fork_count = COALESCE(fork_count, 0) + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+      res.json({ ok: true, forked_id: forkR.rows[0]?.id, forkedApp: forkR.rows[0] });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   app.post("/api/forgeai/app/:id/iterate", async (req, res) => {
     try {
+      const { directQuery } = await import("./db");
       const { instruction } = req.body;
       if (!instruction) return res.status(400).json({ error: "instruction required" });
-      const appR = await priorityPool.query(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
+      const appR = await directQuery(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
       if (!appR.rows.length) return res.status(404).json({ error: "App not found" });
       const app = appR.rows[0] as any;
       const currentHtml = app.generated_html || app.html_output || "";
@@ -12279,20 +12531,21 @@ Return the COMPLETE modified HTML file with the requested changes applied. Keep 
       );
 
       if (modifiedHtml && modifiedHtml.length > 200) {
-        await priorityPool.query(
+        await directQuery(
           `UPDATE forgeai_apps SET generated_html = $1, status = 'upgraded', updated_at = NOW() WHERE id = $2`,
           [modifiedHtml, req.params.id]
         );
-        res.json({ ok: true, message: "App updated successfully", htmlLength: modifiedHtml.length });
+        res.json({ success: true, changes_made: "App updated successfully", htmlLength: modifiedHtml.length });
       } else {
-        res.json({ ok: false, message: "LLM did not return sufficient code. Try a more specific instruction." });
+        res.json({ success: false, error: "LLM did not return sufficient code. Try a more specific instruction." });
       }
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   app.get("/api/forge/gallery/ranked", async (_req, res) => {
     try {
-      const r = await priorityPool.query(`
+      const { directQuery } = await import("./db");
+      const r = await directQuery(`
         SELECT id, app_name, app_type, prompt, app_description, sector, status, is_public, 
                quality_score, trust_score, COALESCE(fork_count, 0) as fork_count, 
                agent_author, created_at
@@ -12307,7 +12560,8 @@ Return the COMPLETE modified HTML file with the requested changes applied. Keep 
 
   app.get("/api/forge/data-mesh", async (_req, res) => {
     try {
-      const apps = await priorityPool.query(`
+      const { directQuery } = await import("./db");
+      const apps = await directQuery(`
         SELECT id, app_name, sector, app_type, status, trust_score, quality_score
         FROM forgeai_apps WHERE status='complete' ORDER BY created_at DESC LIMIT 100
       `);

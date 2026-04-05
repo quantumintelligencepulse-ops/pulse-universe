@@ -102,41 +102,31 @@ export function throttledBgQuery(fn: () => Promise<any>): Promise<any> {
   });
 }
 
-let _dedicatedClient: pg.Client | null = null;
-let _dedicatedConnecting = false;
-
-async function getDedicatedClient(): Promise<pg.Client> {
-  if (_dedicatedClient) return _dedicatedClient;
-  if (_dedicatedConnecting) {
-    await new Promise(r => setTimeout(r, 1000));
-    if (_dedicatedClient) return _dedicatedClient;
-    throw new Error("Dedicated client still connecting");
-  }
-  _dedicatedConnecting = true;
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
-  client.on('error', (err) => {
-    console.error('[db] dedicated client error:', err.message);
-    _dedicatedClient = null;
-    _dedicatedConnecting = false;
-  });
-  await client.connect();
-  _dedicatedClient = client;
-  _dedicatedConnecting = false;
-  console.log("[db] ✅ Dedicated query client connected");
-  return client;
-}
-
-getDedicatedClient().catch(e => console.error("[db] dedicated client init failed:", e.message));
+const apiPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 5,
+  min: 1,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  allowExitOnIdle: false,
+});
+apiPool.on('error', (err) => {
+  console.error('[pool] idle client error (api):', err.message);
+});
+apiPool.on('connect', (client) => {
+  client.query('SET statement_timeout = 15000').catch(() => {});
+});
+console.log("[db] ✅ API query pool ready (max 5)");
 
 export async function directQuery(sql: string, params?: any[]): Promise<pg.QueryResult> {
-  const client = await getDedicatedClient();
-  return client.query(sql, params);
+  return apiPool.query(sql, params);
 }
 
 export function getPoolHealth() {
   return {
     main: { total: (_rawPool as any).totalCount ?? 0, idle: (_rawPool as any).idleCount ?? 0, waiting: (_rawPool as any).waitingCount ?? 0, max: 18 },
     priority: { total: (priorityPool as any).totalCount ?? 0, idle: (priorityPool as any).idleCount ?? 0, waiting: (priorityPool as any).waitingCount ?? 0, max: 8 },
+    api: { total: (apiPool as any).totalCount ?? 0, idle: (apiPool as any).idleCount ?? 0, waiting: (apiPool as any).waitingCount ?? 0, max: 5 },
     bgQueue: { active: bgActive + _bgQueryActive, queued: bgQueryQueue.length + _bgWaitQueue.length, maxConcurrent: BG_MAX_CONCURRENT },
   };
 }

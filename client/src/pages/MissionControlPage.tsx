@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Activity, Database, Cpu, Zap, AlertTriangle, Play, Pause, RefreshCw, Layers, Heart, Server } from "lucide-react";
+import { ArrowLeft, Activity, Database, Cpu, Zap, AlertTriangle, Play, Pause, RefreshCw, Layers, Heart, Server, Globe, Brain, Radio } from "lucide-react";
 
 interface EngineInfo {
   name: string;
@@ -36,6 +36,15 @@ interface MissionData {
     totalAgents: number;
     tables: Record<string, number>;
     forgeApps: { total: number; completed: number };
+  };
+  llm?: {
+    providers: string[];
+    status: string;
+    endpoints: Record<string, string>;
+  };
+  apiEndpoints?: {
+    public: string[];
+    status: string;
   };
   openAnomalies: any[];
 }
@@ -285,24 +294,63 @@ export default function MissionControlPage() {
           )}
         </div>
 
-        <div className="mt-6 rounded-xl border border-border bg-card/20 p-4">
-          <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[#F5C518]" /> ForgeAI Factory
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-black text-[#00FFD1]" data-testid="stat-forge-total">{data.civilization.forgeApps.total}</div>
-              <div className="text-xs text-muted-foreground">Total Apps</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-black text-emerald-400" data-testid="stat-forge-completed">{data.civilization.forgeApps.completed}</div>
-              <div className="text-xs text-muted-foreground">Completed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-black text-violet-400">{data.civilization.totalAgents.toLocaleString()}</div>
-              <div className="text-xs text-muted-foreground">AI Agents</div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+          <div className="rounded-xl border border-border bg-card/20 p-4">
+            <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#F5C518]" /> ForgeAI Factory
+            </h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-black text-[#00FFD1]" data-testid="stat-forge-total">{data.civilization.forgeApps.total}</div>
+                <div className="text-xs text-muted-foreground">Total Apps</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-black text-emerald-400" data-testid="stat-forge-completed">{data.civilization.forgeApps.completed}</div>
+                <div className="text-xs text-muted-foreground">Completed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-black text-violet-400">{data.civilization.totalAgents.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">AI Agents</div>
+              </div>
             </div>
           </div>
+
+          {data.llm && (
+            <div className="rounded-xl border border-border bg-card/20 p-4">
+              <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                <Brain className="w-4 h-4 text-violet-400" /> LLM Providers
+              </h3>
+              <div className="space-y-2">
+                {data.llm.providers.map((p) => (
+                  <div key={p} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground capitalize">{p}</span>
+                    <span className={`font-mono ${data.llm!.status === "configured" ? "text-emerald-400" : "text-red-400"}`}>
+                      {data.llm!.status === "configured" ? "ONLINE" : "OFFLINE"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.apiEndpoints && (
+            <div className="rounded-xl border border-border bg-card/20 p-4">
+              <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#00FFD1]" /> Public API ({data.apiEndpoints.public.length} endpoints)
+              </h3>
+              <div className="space-y-1">
+                {data.apiEndpoints.public.map((ep) => (
+                  <div key={ep} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-mono">{ep}</span>
+                    <Radio className="w-3 h-3 text-emerald-400" />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 pt-2 border-t border-border text-[10px] text-muted-foreground">
+                Status: <span className="text-emerald-400 font-mono">{data.apiEndpoints.status.toUpperCase()}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
