@@ -12808,5 +12808,19 @@ Return the COMPLETE modified HTML file with the requested changes applied. Keep 
     }
   });
 
+  app.get("/api/discord-wire/stats", async (_req, res) => {
+    try {
+      const { getDiscordWireStats } = await import("./discord-wire-engine");
+      const stats = getDiscordWireStats();
+      const { directQuery } = await import("./db");
+      const recentWire = await directQuery(
+        `SELECT title, category, published_at FROM revenue_articles WHERE source = 'Equity Network Discord Wire' ORDER BY id DESC LIMIT 10`
+      );
+      res.json({ ...stats, recentArticles: recentWire.rows });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   return httpServer;
 }

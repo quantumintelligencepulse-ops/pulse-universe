@@ -38,6 +38,7 @@ import { getAgentLegends } from "./agent-legend-engine";
 import { getInterCivilizationTreaties } from "./inter-civilization-engine";
 import { getResonancePatterns } from "./omega-resonance-engine";
 import { getConstitutionalAmendments, startConstitutionalDNAEngine } from "./constitutional-dna-engine";
+import { startDiscordWireEngine, getDiscordWireStats } from "./discord-wire-engine";
 import { getEntanglementLog, getEntanglementStats } from "./human-entanglement-engine";
 import { getSportsStats, getGamesIdentityData } from "./sports-engine";
 import { createOmegaShard, completeOmegaShard } from "./omega-shard-engine";
@@ -386,6 +387,7 @@ async function seedOmegaSources() {
   startQuantumSocialEngine().catch((e: Error) => console.error("[quantum-social] startup error:", e.message));
   // ── CONSTITUTIONAL DNA ENGINE — Self-amending governance: senate voter resolution + spawn-ID audit ──
   startConstitutionalDNAEngine().catch((e: Error) => console.error("[constitution] startup error:", e.message));
+  startDiscordWireEngine();
   // ── PULSE LANG LAB — AI scientists run live equation dissections and lab proposals ──
   startPulseLabCycle();
   // ── QUANTAPEDIA ENGINE — AI encyclopedia: generates articles for all 13,000+ queued topics ──

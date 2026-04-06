@@ -1,0 +1,1398 @@
+# equity_mirror.py
+# Equity Network – Static AI Wire (multi-channel, video, SEO, mini Pulse, pro nav)
+
+import os
+import re
+import json
+import asyncio
+import hashlib
+import sys
+import subprocess
+import unicodedata
+from datetime import datetime
+from pathlib import Path
+from collections import defaultdict
+
+import discord
+from discord.ext import commands
+
+# ---------- CONFIG ----------
+
+DISCORD_TOKEN = "MTQyMjAxNjAwNTM2MTg5NzU2NQ.Gcy0a4.k6EVpuY2pP19Knwfu6-jskl1S1rMGfwNjqpuXc"
+
+GUILD_ID = 1467658793373536278
+
+CHANNEL_IDS = [
+    1474248839350456352,  # core equity/news wire
+    1474250311739637836,  # news-tv (video-heavy)
+]
+
+CHANNEL_LABELS = {
+    1474248839350456352: "Equity Wire",
+    1474250311739637836: "News TV",
+}
+
+SITE_DIR = Path(r"C:\Users\Billy\Equity Network\cloudfare\equitymirror")
+BASE_URL = "https://equitynetwork.quantumintelligencepulse.workers.dev"
+
+MAX_MESSAGES_PER_CHANNEL = 400
+MAX_GLOBAL_FEED = 300
+MAX_RSS_ITEMS = 200
+MAX_RELATED = 6
+
+SITE_NAME = "Equity Network"
+SITE_TAGLINE = "Official braided AI wire for markets, macro, geopolitics, crypto, and equities."
+DISCORD_INVITE = "https://discord.gg/fHjhegx58J"
+
+KNOWLEDGE_PATH = SITE_DIR / "knowledge.json"
+
+# ---------- OPTIONAL HTTP DEPS (DuckDuckGo images) ----------
+
+def ensure_http_deps():
+    try:
+        import requests  # noqa
+        from bs4 import BeautifulSoup  # noqa
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "beautifulsoup4"])
+
+# ---------- STATE ----------
+
+articles = []
+used_images = set()
+knowledge = {
+    "tickers": {},
+    "tags": {},
+    "channels": {},
+    "updated_at": None,
+}
+
+# ---------- DISCORD BOT ----------
+
+intents = discord.Intents.default()
+intents.guilds = True
+intents.messages = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ---------- KNOWLEDGE (MINI PULSE) ----------
+
+def load_knowledge():
+    global knowledge
+    if KNOWLEDGE_PATH.exists():
+        try:
+            knowledge = json.loads(KNOWLEDGE_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            knowledge = {
+                "tickers": {},
+                "tags": {},
+                "channels": {},
+                "updated_at": None,
+            }
+
+
+def update_knowledge_from_article(a: dict):
+    global knowledge
+    now_iso = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+    for t in a.get("tickers", []):
+        entry = knowledge["tickers"].setdefault(t, {"count": 0, "last_seen": None})
+        entry["count"] += 1
+        entry["last_seen"] = now_iso
+
+    for tag in a.get("tags", []):
+        entry = knowledge["tags"].setdefault(tag, {"count": 0, "last_seen": None})
+        entry["count"] += 1
+        entry["last_seen"] = now_iso
+
+    ch = a.get("section_name", "")
+    if ch:
+        entry = knowledge["channels"].setdefault(ch, {"count": 0, "last_seen": None})
+        entry["count"] += 1
+        entry["last_seen"] = now_iso
+
+    knowledge["updated_at"] = now_iso
+
+
+def export_knowledge():
+    KNOWLEDGE_PATH.write_text(json.dumps(knowledge, ensure_ascii=False, indent=2), encoding="utf-8")
+
+# ---------- HELPERS ----------
+
+def ensure_site_dirs():
+    SITE_DIR.mkdir(parents=True, exist_ok=True)
+    (SITE_DIR / "news").mkdir(exist_ok=True)
+    (SITE_DIR / "topic").mkdir(exist_ok=True)
+
+
+def human_time(iso_str: str) -> str:
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        return dt.strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        return iso_str
+
+
+def parse_dt(iso_str: str) -> datetime:
+    try:
+        return datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    except Exception:
+        return datetime.utcnow()
+
+
+def slugify(name: str, max_len: int = 80) -> str:
+    name = unicodedata.normalize("NFKD", name)
+    name = "".join(c for c in name if not unicodedata.combining(c))
+    slug_chars = []
+    for c in name:
+        if c.isalnum():
+            slug_chars.append(c.lower())
+        else:
+            slug_chars.append("-")
+    slug = "".join(slug_chars)
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
+    if len(slug) > max_len:
+        slug = slug[:max_len].rstrip("-")
+    if not slug:
+        slug = "item"
+    return slug
+
+
+def clean_text(text: str) -> str:
+    text = text.replace("\r", " ").replace("\n", " ")
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def sanitize_source(text: str) -> str:
+    replacements = [
+        ("Banking With Billy", "Equity Investing Alert"),
+        ("BANKING WITH BILLY", "Equity Investing Alert"),
+        ("Banking with Billy", "Equity Investing Alert"),
+        ("Banking With billy", "Equity Investing Alert"),
+    ]
+    for old, new in replacements:
+        text = text.replace(old, new)
+    text = text.replace("•  ", " ").replace("• ", " ")
+    return text.strip()
+
+
+def extract_tickers(text: str):
+    tickers = []
+    for word in text.split():
+        w = re.sub(r"[^A-Z]", "", word)
+        if 2 <= len(w) <= 5 and w.isupper():
+            tickers.append(w)
+    return sorted(set(tickers))
+
+
+def extract_numbers(text: str):
+    return re.findall(r"\b\d+(\.\d+)?%?\b", text)
+
+
+def hash_int(s: str) -> int:
+    return int(hashlib.sha256(s.encode("utf-8")).hexdigest(), 16)
+
+# ---------- VIDEO DETECTION ----------
+
+VIDEO_EXTENSIONS = (".mp4", ".webm", ".mov", ".m4v", ".m3u8")
+
+def extract_first_url(text: str) -> str | None:
+    m = re.search(r"(https?://\S+)", text)
+    return m.group(1) if m else None
+
+def is_video_url(url: str) -> bool:
+    if not url:
+        return False
+    lower = url.lower()
+    if "video.twimg.com" in lower:
+        return True
+    if any(lower.split("?", 1)[0].endswith(ext) for ext in VIDEO_EXTENSIONS):
+        return True
+    return False
+
+# ---------- IMAGE POOLS + DEDUP ----------
+
+IMAGE_POOLS = {
+    "crypto": [
+        "https://images.pexels.com/photos/6770772/pexels-photo-6770772.jpeg",
+        "https://images.pexels.com/photos/5980861/pexels-photo-5980861.jpeg",
+        "https://images.pexels.com/photos/8370750/pexels-photo-8370750.jpeg",
+    ],
+    "markets": [
+        "https://images.pexels.com/photos/210607/pexels-photo-210607.jpeg",
+        "https://images.pexels.com/photos/7567441/pexels-photo-7567441.jpeg",
+        "https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg",
+    ],
+    "geopolitics": [
+        "https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg",
+        "https://images.pexels.com/photos/109629/pexels-photo-109629.jpeg",
+        "https://images.pexels.com/photos/155907/pexels-photo-155907.jpeg",
+    ],
+    "ai": [
+        "https://images.pexels.com/photos/5473955/pexels-photo-5473955.jpeg",
+        "https://images.pexels.com/photos/8386434/pexels-photo-8386434.jpeg",
+        "https://images.pexels.com/photos/8386430/pexels-photo-8386430.jpeg",
+    ],
+    "energy": [
+        "https://images.pexels.com/photos/459728/pexels-photo-459728.jpeg",
+        "https://images.pexels.com/photos/157827/pexels-photo-157827.jpeg",
+        "https://images.pexels.com/photos/2850347/pexels-photo-2850347.jpeg",
+    ],
+    "commodities": [
+        "https://images.pexels.com/photos/315788/pexels-photo-315788.jpeg",
+        "https://images.pexels.com/photos/210113/pexels-photo-210113.jpeg",
+        "https://images.pexels.com/photos/5980863/pexels-photo-5980863.jpeg",
+    ],
+    "macro": [
+        "https://images.pexels.com/photos/210607/pexels-photo-210607.jpeg",
+        "https://images.pexels.com/photos/669610/pexels-photo-669610.jpeg",
+        "https://images.pexels.com/photos/669622/pexels-photo-669622.jpeg",
+    ],
+    "default": [
+        "https://images.pexels.com/photos/669610/pexels-photo-669610.jpeg",
+        "https://images.pexels.com/photos/669615/pexels-photo-669615.jpeg",
+        "https://images.pexels.com/photos/669623/pexels-photo-669623.jpeg",
+    ],
+}
+
+def pick_pool_key(tags):
+    tags_lower = [t.lower() for t in tags]
+    if any(t in tags_lower for t in ["crypto", "rwa", "defi"]):
+        return "crypto"
+    if any(t in tags_lower for t in ["markets", "fundamentals", "general"]):
+        return "markets"
+    if any(t in tags_lower for t in ["geopolitics", "politics"]):
+        return "geopolitics"
+    if any(t in tags_lower for t in ["ai", "technology", "tech"]):
+        return "ai"
+    if any(t in tags_lower for t in ["energy"]):
+        return "energy"
+    if any(t in tags_lower for t in ["commodities"]):
+        return "commodities"
+    if any(t in tags_lower for t in ["macro", "central-banks"]):
+        return "macro"
+    return "default"
+
+def pick_image_from_pool(tags, raw: str, used_images_set: set) -> str:
+    key = pick_pool_key(tags)
+    pool = IMAGE_POOLS.get(key, IMAGE_POOLS["default"])
+    for candidate in pool:
+        if candidate not in used_images_set:
+            used_images_set.add(candidate)
+            return candidate
+    h = hash_int(raw)
+    idx = h % len(pool)
+    url = pool[idx]
+    used_images_set.add(url)
+    return url
+
+def duckduckgo_image_search(query: str, timeout_sec: float = 5.0) -> str | None:
+    try:
+        if not query.strip():
+            return None
+        ensure_http_deps()
+        import requests
+        from bs4 import BeautifulSoup
+
+        params = {"q": query.strip(), "iax": "images", "ia": "images"}
+        resp = requests.get("https://duckduckgo.com/", params=params, timeout=timeout_sec)
+        if resp.status_code != 200:
+            return None
+        html = resp.text
+        matches = re.findall(r'"image":"(https:[^"]+)"', html)
+        if matches:
+            return matches[0]
+        soup = BeautifulSoup(html, "html.parser")
+        for img in soup.find_all("img"):
+            src = img.get("src") or ""
+            if src.startswith("http"):
+                return src
+        return None
+    except Exception:
+        return None
+
+def pick_image_live(tags, tickers, raw: str, used_images_set: set) -> str:
+    parts = []
+    if tickers:
+        parts.append(" ".join(tickers[:3]))
+    tl = [t.lower() for t in tags]
+    if "deals" in tl:
+        parts.append("M&A deal news")
+    if "crypto" in tl:
+        parts.append("crypto markets")
+    if "geopolitics" in tl:
+        parts.append("geopolitics sanctions markets")
+    if "macro" in tl or "central-banks" in tl:
+        parts.append("macro economy central bank")
+    if not parts:
+        parts.append(clean_text(raw)[:80])
+    query = " ".join(parts)
+
+    img_url = duckduckgo_image_search(query, timeout_sec=5.0)
+    if img_url and img_url not in used_images_set:
+        used_images_set.add(img_url)
+        return img_url
+
+    return pick_image_from_pool(tags, raw, used_images_set)
+
+# ---------- CATEGORY / TOPIC INTELLIGENCE ----------
+
+def smart_tags(content: str, channel_name: str):
+    text = content.lower()
+    tags = []
+
+    if any(k in text for k in ["spy", "qqq", "stock", "options", "calls", "puts", "breakout", "price-targets"]):
+        tags.append("markets")
+    if any(k in text for k in ["earnings", "guidance", "downgrade", "upgrade", "analyst", "profit", "revenue", "target"]):
+        tags.append("fundamentals")
+    if any(k in text for k in ["loan", "instant-loans", "credit", "mortgage"]):
+        tags.append("loans")
+    if any(k in text for k in ["hiring", "job", "apply now", "hiring-now", "unemployment"]):
+        tags.append("labor")
+    if any(k in text for k in ["partnership", "affiliate", "merger", "acquisition", "takeover", "offer", "bid", "buyout", "deal"]):
+        tags.append("deals")
+    if any(k in text for k in ["war", "sanctions", "tariff", "election", "parliament", "minister", "president", "congress", "strike on", "missile"]):
+        tags.append("geopolitics")
+    if any(k in text for k in ["crypto", "bitcoin", "ethereum", "token", "rwa", "defi"]):
+        tags.append("crypto")
+    if any(k in text for k in ["ai", "anthropic", "openai", "model", "neural", "machine learning"]):
+        tags.append("ai")
+    if any(k in text for k in ["oil", "gas", "energy", "opec", "barrel"]):
+        tags.append("energy")
+    if any(k in text for k in ["gold", "silver", "copper", "commodity", "futures"]):
+        tags.append("commodities")
+    if any(k in text for k in ["fed", "ecb", "boe", "boj", "interest rate", "hike", "cut", "central bank"]):
+        tags.append("central-banks")
+    if any(k in text for k in ["inflation", "cpi", "ppi", "gdp", "growth", "recession"]):
+        tags.append("macro")
+    if any(k in text for k in ["video", "clip", "watch now", "play"]):
+        tags.append("video")
+
+    if not tags:
+        tags.append("general")
+
+    return sorted(set(tags))
+
+
+def is_breaking(content: str) -> bool:
+    text = content.lower()
+    return any(k in text for k in ["just in", "breaking", "urgent", "flash", "alert"])
+
+# ---------- NARRATIVE ENGINE ----------
+
+def infer_region(raw: str) -> str:
+    t = raw.lower()
+    if any(k in t for k in ["eu", "european", "germany", "france", "hungary", "italy", "uk"]):
+        return "Europe"
+    if any(k in t for k in ["us ", "u.s.", "united states", "america"]):
+        return "United States"
+    if any(k in t for k in ["china", "beijing", "shanghai"]):
+        return "China"
+    if any(k in t for k in ["japan", "tokyo", "boj"]):
+        return "Japan"
+    if any(k in t for k in ["middle east", "iran", "israel", "gaza", "saudi"]):
+        return "Middle East"
+    return "Global"
+
+
+def knowledge_line_for_tickers(tickers):
+    if not tickers:
+        return ""
+    lines = []
+    for t in tickers:
+        entry = knowledge["tickers"].get(t)
+        if entry and entry.get("count", 0) >= 3:
+            lines.append(
+                f"{t} has appeared in {entry['count']} Equity Network headlines recently, "
+                "signaling persistent interest on the wire."
+            )
+    return " ".join(lines)
+
+
+def knowledge_line_for_tags(tags):
+    if not tags:
+        return ""
+    lines = []
+    for tag in tags:
+        entry = knowledge["tags"].get(tag)
+        if entry and entry.get("count", 0) >= 5:
+            lines.append(
+                f"The {tag} theme has been active on the Equity Network feed, "
+                f"with {entry['count']} tagged headlines in the recent run."
+            )
+    return " ".join(lines)
+
+
+def build_headline(raw: str, tickers, tags) -> str:
+    base = clean_text(raw)
+    if len(base) > 110:
+        base = base[:107].rstrip() + "..."
+    if tickers:
+        return f"Equity Alert: {', '.join(tickers)} – {base}"
+    if "geopolitics" in tags:
+        return f"Geopolitics Briefing: {base}"
+    if "crypto" in tags:
+        return f"Crypto Wire: {base}"
+    if "macro" in tags or "central-banks" in tags:
+        return f"Macro Watch: {base}"
+    if "deals" in tags:
+        return f"Deal Watch: {base}"
+    if "video" in tags:
+        return f"Video Briefing: {base}"
+    return f"Market Wire: {base}"
+
+
+def build_deck(raw: str, tickers, numbers, tags) -> str:
+    cleaned = clean_text(raw)
+    region = infer_region(raw)
+    parts = []
+
+    if tickers:
+        parts.append(f"Focus: {', '.join(tickers)}.")
+    if region:
+        parts.append(f"Region: {region}.")
+    if "geopolitics" in tags:
+        parts.append("Theme: Geopolitics and policy risk.")
+    if "crypto" in tags:
+        parts.append("Theme: Digital assets and tokenization.")
+    if "macro" in tags or "central-banks" in tags:
+        parts.append("Theme: Macro data and central banks.")
+    if "fundamentals" in tags:
+        parts.append("Theme: Company fundamentals and guidance.")
+    if "deals" in tags:
+        parts.append("Theme: M&A and strategic control.")
+    if "video" in tags:
+        parts.append("Format: Video clip with market context.")
+    if numbers:
+        parts.append(f"Key figures: {', '.join(numbers[:4])}.")
+
+    k_line_t = knowledge_line_for_tickers(tickers)
+    k_line_tag = knowledge_line_for_tags(tags)
+    if k_line_t:
+        parts.append(k_line_t)
+    if k_line_tag:
+        parts.append(k_line_tag)
+
+    parts.append(cleaned)
+    deck = " ".join(parts)
+    if len(deck) > 260:
+        deck = deck[:257].rstrip() + "..."
+    return deck
+
+
+def summarize_context_for_article(current_raw: str, current_tickers, current_tags, context_articles):
+    if not context_articles:
+        return ""
+
+    same_ticker = []
+    same_tags = []
+    for a in context_articles[-200:]:
+        if set(current_tickers) & set(a.get("tickers", [])):
+            same_ticker.append(a)
+        elif set(current_tags) & set(a.get("tags", [])):
+            same_tags.append(a)
+
+    lines = []
+
+    if same_ticker:
+        same_ticker_sorted = sorted(same_ticker, key=lambda x: parse_dt(x["created_at"]), reverse=True)[:6]
+        headlines = [clean_text(x["headline"]) for x in same_ticker_sorted]
+        lines.append(
+            f"Recent Equity Network coverage around {', '.join(current_tickers)} includes: "
+            + "; ".join(headlines) + "."
+        )
+
+    if same_tags and not same_ticker:
+        same_tags_sorted = sorted(same_tags, key=lambda x: parse_dt(x["created_at"]), reverse=True)[:6]
+        headlines = [clean_text(x["headline"]) for x in same_tags_sorted]
+        tag_label = ", ".join(sorted(set(current_tags)))
+        lines.append(
+            f"This headline sits inside a broader {tag_label} storyline on the Equity Network wire. "
+            "Recent related pieces: "
+            + "; ".join(headlines) + "."
+        )
+
+    if not lines:
+        return ""
+
+    return " ".join(lines)
+
+
+def build_body(raw: str, tickers, numbers, tags, context_articles) -> str:
+    cleaned = clean_text(raw)
+    region = infer_region(raw)
+
+    if tickers:
+        signal = (
+            "Signal\n"
+            f"{', '.join(tickers)} is in focus after a new headline on the Equity Network wire:\n"
+            f"“{cleaned}”."
+        )
+    else:
+        signal = (
+            "Signal\n"
+            f"A new headline just hit the tape in the {region} complex:\n"
+            f"“{cleaned}”."
+        )
+
+    if "geopolitics" in tags:
+        why = (
+            "Why it matters\n"
+            "Geopolitical moves rarely stay local. Sanctions, tariffs, and diplomatic shifts can reprice FX, "
+            "commodities, rates, and equities quickly. A single statement can change how investors think about "
+            "risk premia across an entire region."
+        )
+    elif "deals" in tags:
+        why = (
+            "Why it matters\n"
+            "Deal headlines shape expectations for control, valuation, and balance sheet risk. Early reports on bids "
+            "or revised offers can move both the target and potential acquirers, and reset how the market prices the "
+            "probability of a transaction closing."
+        )
+    elif "crypto" in tags:
+        why = (
+            "Why it matters\n"
+            "In digital assets, narrative and liquidity are tightly linked. Comments on flows, tokenization, or new "
+            "regimes can shift positioning quickly, especially in markets where depth is limited and sentiment turns fast."
+        )
+    elif "macro" in tags or "central-banks" in tags:
+        why = (
+            "Why it matters\n"
+            "Macro and central bank signals anchor global pricing. Changes in tone around inflation, growth, or policy "
+            "paths can move yield curves, FX pairs, credit spreads, and equity valuations in short order."
+        )
+    elif "fundamentals" in tags:
+        why = (
+            "Why it matters\n"
+            "Fundamental updates—on earnings, guidance, or strategy—feed directly into valuation. For concentrated names "
+            "or key benchmarks, a single headline can shift sector leadership and portfolio positioning."
+        )
+    else:
+        why = (
+            "Why it matters\n"
+            "Even narrow headlines can matter when markets are tightly connected. Local developments can spill over into "
+            "supply chains, funding conditions, and sentiment, especially when volatility is already elevated."
+        )
+
+    context_para = summarize_context_for_article(cleaned, tickers, tags, context_articles)
+    if context_para:
+        braided = "Context\n" + context_para
+    else:
+        braided = (
+            "Context\n"
+            "This headline is one of a series of signals the market is tracking. As more related stories emerge, "
+            "the direction and persistence of the move will become clearer."
+        )
+
+    if numbers:
+        numbers_para = (
+            "Numbers\n"
+            f"The text surfaces the following figures: {', '.join(numbers[:6])}.\n"
+            "They help frame the scale of the story, but should be read alongside price action and follow‑up detail."
+        )
+    else:
+        numbers_para = (
+            "Numbers\n"
+            "No explicit levels or percentages stand out in the text. The signal is primarily qualitative and will "
+            "be interpreted through price action and subsequent coverage."
+        )
+
+    if tickers:
+        market = (
+            "Market impact\n"
+            f"For {', '.join(tickers)}, traders may watch intraday volatility, order‑book depth, and options activity "
+            "as the headline circulates. Cross‑asset desks will look at related sectors, indexes, and ETFs to see "
+            "whether this remains a single‑name story or broadens out."
+        )
+    elif "geopolitics" in tags:
+        market = (
+            "Market impact\n"
+            "Geopolitical headlines often show up first in FX and commodities, then in rates and equities. Safe‑haven "
+            "flows, risk‑off rotations, and sector‑specific repricing are all possible depending on how the story evolves."
+        )
+    else:
+        market = (
+            "Market impact\n"
+            "The immediate impact will depend on how quickly this line is picked up by larger newsrooms, policymakers, "
+            "and institutional desks. Early moves may be more about scenario‑building than firm conviction."
+        )
+
+    if tickers:
+        forward = (
+            "What to watch\n"
+            f"Key tells include follow‑up statements, official releases, and price action in {', '.join(tickers)} and "
+            "their peers. Liquidity around key sessions and changes in options skew can signal how seriously the market "
+            "is treating the story."
+        )
+    else:
+        forward = (
+            "What to watch\n"
+            "Follow‑up coverage from major wires, any shift in tone from policymakers or corporate leadership, and "
+            "cross‑asset correlations will show whether this headline is being priced as noise or as a regime signal."
+        )
+
+    risk = (
+        "Risk\n"
+        "Early headlines can be incomplete, misinterpreted, or reversed. Position sizing, scenario planning, and "
+        "clear risk limits remain essential when trading around evolving stories."
+    )
+    disclaimer = (
+        "Disclosure\n"
+        "This article was generated automatically from a short‑form market signal by the Equity Network AI Desk. "
+        "It is for informational purposes only and does not constitute investment advice or a recommendation."
+    )
+
+    paragraphs = [signal, why, braided, numbers_para, market, forward, risk, disclaimer]
+    return "\n\n".join(paragraphs)
+
+# ---------- ARTICLE BUILDERS ----------
+
+def build_article_from_message(
+    msg: discord.Message,
+    channel_name: str,
+    context_articles,
+    used_images_set: set,
+    *,
+    use_live_images: bool,
+) -> dict | None:
+    raw_original = msg.content or ""
+    raw = sanitize_source(raw_original)
+    if not raw:
+        return None
+
+    first_url = extract_first_url(raw_original)
+    video_url = first_url if is_video_url(first_url) else None
+
+    tickers = extract_tickers(raw)
+    numbers = extract_numbers(raw)
+    tags = smart_tags(raw, channel_name)
+    if video_url and "video" not in tags:
+        tags.append("video")
+
+    headline = build_headline(raw, tickers, tags)
+    deck = build_deck(raw, tickers, numbers, tags)
+    body = build_body(raw, tickers, numbers, tags, context_articles)
+
+    if use_live_images:
+        hero_image = pick_image_live(tags, tickers, raw, used_images_set)
+    else:
+        hero_image = pick_image_from_pool(tags, raw, used_images_set)
+
+    breaking_flag = is_breaking(raw)
+    created_iso = msg.created_at.replace(microsecond=0).isoformat() + "Z"
+    article_id = str(msg.id)
+
+    base_slug = slugify(headline, max_len=60)
+    article_slug = f"{article_id}-{base_slug}"
+    if len(article_slug) > 100:
+        article_slug = f"{article_id}-{hash_int(headline) % 10_000_000}"
+
+    author_name = "Equity Network AI Desk"
+
+    section_name = CHANNEL_LABELS.get(msg.channel.id, "Equity Wire")
+
+    article = {
+        "id": article_id,
+        "slug": article_slug,
+        "headline": headline,
+        "deck": deck,
+        "body": body,
+        "raw": raw,
+        "author_name": author_name,
+        "section_name": section_name,
+        "created_at": created_iso,
+        "tickers": tickers,
+        "numbers": numbers,
+        "tags": tags,
+        "hero_image": hero_image,
+        "breaking": breaking_flag,
+        "video_url": video_url,
+    }
+
+    update_knowledge_from_article(article)
+    return article
+
+# ---------- NAV / HTML TEMPLATES ----------
+
+def build_nav_html(all_articles):
+    tag_counts = defaultdict(int)
+    for a in all_articles:
+        for t in a["tags"]:
+            tag_counts[t] += 1
+
+    top_tags = sorted(tag_counts.items(), key=lambda x: x[0])
+    top_tags = sorted(top_tags, key=lambda x: x[1], reverse=True)
+    top_tags = [t for t, _ in top_tags if t != "general"][:12]
+
+    static_sections = [
+        ("Home", f"{BASE_URL}/index.html"),
+        ("Markets", f"{BASE_URL}/topic/{slugify('markets')}.html"),
+        ("Macro", f"{BASE_URL}/topic/{slugify('macro')}.html"),
+        ("Geopolitics", f"{BASE_URL}/topic/{slugify('geopolitics')}.html"),
+        ("Crypto", f"{BASE_URL}/topic/{slugify('crypto')}.html"),
+        ("AI", f"{BASE_URL}/topic/{slugify('ai')}.html"),
+        ("Deals", f"{BASE_URL}/topic/{slugify('deals')}.html"),
+        ("Video", f"{BASE_URL}/topic/{slugify('video')}.html"),
+    ]
+
+    nav_items = []
+    for label, href in static_sections:
+        nav_items.append(f'<a class="nav-link" href="{href}">{label}</a>')
+
+    if top_tags:
+        nav_items.append('<div class="nav-section-label">Active topics</div>')
+        for t in top_tags:
+            nav_items.append(
+                f'<a class="nav-link nav-tag" href="{BASE_URL}/topic/{slugify(t)}.html">{t}</a>'
+            )
+
+    nav_items.append('<div class="nav-section-label">Wire access</div>')
+    nav_items.append(
+        f'<a class="nav-link" href="{DISCORD_INVITE}" target="_blank" rel="noopener">Join Discord wire</a>'
+    )
+    nav_items.append(
+        f'<a class="nav-link" href="{BASE_URL}/feed.xml" target="_blank" rel="noopener">RSS feed</a>'
+    )
+
+    return '<nav class="sidebar">' + "".join(nav_items) + "</nav>"
+
+BASE_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{title}</title>
+  <meta name="description" content="{meta_description}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:title" content="{title}">
+  <meta property="og:description" content="{meta_description}">
+  <meta property="og:type" content="{og_type}">
+  <meta property="og:url" content="{canonical}">
+  <meta property="og:image" content="{og_image}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{title}">
+  <meta name="twitter:description" content="{meta_description}">
+  <meta name="twitter:image" content="{og_image}">
+  <link rel="canonical" href="{canonical}">
+  <style>
+    body {{
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #05060a;
+      color: #f5f5f5;
+    }}
+    a {{ color: #4ea3ff; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+    header {{
+      padding: 12px 24px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #05060a;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }}
+    .brand {{
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }}
+    .tagline {{
+      font-size: 12px;
+      color: #aaa;
+    }}
+    .invite {{
+      font-size: 12px;
+      color: #ccc;
+    }}
+    .invite a {{
+      color: #ffcc66;
+      font-weight: 600;
+    }}
+    .layout {{
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      max-width: 1280px;
+      margin: 0 auto;
+    }}
+    .sidebar {{
+      border-right: 1px solid #181a22;
+      padding: 16px 12px 32px;
+      font-size: 13px;
+      background: #05060a;
+      position: sticky;
+      top: 48px;
+      align-self: flex-start;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+    }}
+    .nav-link {{
+      display: block;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: #c2c7d6;
+      margin-bottom: 4px;
+    }}
+    .nav-link:hover {{
+      background: #10121a;
+      text-decoration: none;
+    }}
+    .nav-tag {{
+      font-size: 12px;
+      color: #9aa4c0;
+    }}
+    .nav-section-label {{
+      margin-top: 10px;
+      margin-bottom: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666f86;
+    }}
+    main {{
+      padding: 24px 16px 48px;
+    }}
+    .card-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }}
+    .card {{
+      background: #0b0d14;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #181a22;
+      display: flex;
+      flex-direction: column;
+      min-height: 260px;
+    }}
+    .card img {{
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      display: block;
+    }}
+    .card-body {{
+      padding: 12px 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }}
+    .card-tags {{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9aa4c0;
+    }}
+    .card-title {{
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.3;
+    }}
+    .card-meta {{
+      font-size: 11px;
+      color: #888;
+    }}
+    .badge-breaking {{
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #ff3b3b;
+      color: #fff;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-right: 6px;
+    }}
+    article h1 {{
+      font-size: 26px;
+      margin-bottom: 8px;
+    }}
+    .deck {{
+      font-size: 14px;
+      color: #c2c7d6;
+      margin-bottom: 16px;
+    }}
+    .meta-line {{
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 16px;
+    }}
+    .hero {{
+      margin-bottom: 18px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #181a22;
+    }}
+    .hero img {{
+      width: 100%;
+      display: block;
+      max-height: 420px;
+      object-fit: cover;
+    }}
+    .hero video {{
+      width: 100%;
+      display: block;
+      max-height: 480px;
+      background: #000;
+    }}
+    .body-block {{
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }}
+    .tags-line {{
+      margin-top: 18px;
+      font-size: 12px;
+      color: #9aa4c0;
+    }}
+    .tags-line span {{
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid #2a3144;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }}
+    .related {{
+      margin-top: 32px;
+    }}
+    .related h2 {{
+      font-size: 16px;
+      margin-bottom: 10px;
+    }}
+    footer {{
+      border-top: 1px solid #222;
+      padding: 16px 24px;
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+    }}
+    .share-strip {{
+      margin-top: 16px;
+      font-size: 12px;
+      color: #aaa;
+    }}
+    .share-strip a {{
+      margin-right: 10px;
+    }}
+    @media (max-width: 800px) {{
+      .layout {{
+        grid-template-columns: 1fr;
+      }}
+      .sidebar {{
+        position: static;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid #181a22;
+      }}
+    }}
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="brand">{site_name}</div>
+    <div class="tagline">{site_tagline}</div>
+  </div>
+  <div class="invite">
+    Official Discord wire · <a href="{invite}" target="_blank" rel="noopener">Join the Equity Network</a>
+  </div>
+</header>
+<div class="layout">
+  {sidebar}
+  <main>
+    {content}
+  </main>
+</div>
+<footer>
+  &copy; {year} {site_name}. Automated AI wire. No investment advice. |
+  <a href="{base_url}/sitemap.xml">Sitemap</a> |
+  <a href="{invite}" target="_blank" rel="noopener">Discord</a>
+</footer>
+</body>
+</html>
+"""
+
+def render_page(title, meta_description, og_type, canonical, og_image, content_html, all_articles):
+    sidebar_html = build_nav_html(all_articles)
+    return BASE_HTML.format(
+        title=title,
+        meta_description=meta_description,
+        og_type=og_type,
+        canonical=canonical,
+        og_image=og_image,
+        content=content_html,
+        site_name=SITE_NAME,
+        site_tagline=SITE_TAGLINE,
+        invite=DISCORD_INVITE,
+        year=datetime.utcnow().year,
+        base_url=BASE_URL,
+        sidebar=sidebar_html,
+    )
+
+def render_article_page(article, related, all_articles):
+    title = article["headline"]
+    meta_description = article["deck"]
+    canonical = f"{BASE_URL}/news/{article['slug']}.html"
+    og_image = article["hero_image"]
+
+    tags_html = "".join(f"<span>{t}</span>" for t in article["tags"])
+    related_html = ""
+    if related:
+        items = []
+        for r in related:
+            items.append(
+                f'<div class="card">'
+                f'<a href="{BASE_URL}/news/{r["slug"]}.html">'
+                f'<img src="{r["hero_image"]}" alt="">'
+                f'<div class="card-body">'
+                f'<div class="card-tags">{" / ".join(r["tags"])}</div>'
+                f'<div class="card-title">{r["headline"]}</div>'
+                f'<div class="card-meta">{human_time(r["created_at"])} · {r["section_name"]}</div>'
+                f'</div></a></div>'
+            )
+        related_html = '<div class="related"><h2>Related coverage</h2><div class="card-grid">' + "".join(items) + "</div></div>"
+
+    if article["video_url"]:
+        hero_block = (
+            '<div class="hero">'
+            f'<video controls preload="metadata">'
+            f'<source src="{article["video_url"]}" type="video/mp4">'
+            "Your browser does not support the video tag."
+            "</video></div>"
+        )
+    else:
+        hero_block = (
+            '<div class="hero">'
+            f'<img src="{article["hero_image"]}" alt="">'
+            "</div>"
+        )
+
+    share_strip = (
+        '<div class="share-strip">'
+        'Share: '
+        f'<a href="https://twitter.com/intent/tweet?text={title}&url={canonical}" target="_blank" rel="noopener">X</a>'
+        f'<a href="https://www.linkedin.com/sharing/share-offsite/?url={canonical}" target="_blank" rel="noopener">LinkedIn</a>'
+        f'<a href="{DISCORD_INVITE}" target="_blank" rel="noopener">Discord</a>'
+        "</div>"
+    )
+
+    content_html = (
+        '<article>'
+        f'<a href="{BASE_URL}/index.html">&larr; Home</a>'
+        f'<h1>{title}</h1>'
+        f'<div class="deck">{meta_description}</div>'
+        f'<div class="meta-line">By {article["author_name"]} · {human_time(article["created_at"])} · {article["section_name"]}</div>'
+        f'{hero_block}'
+        f'<div class="body-block">{article["body"]}</div>'
+        f'<div class="tags-line">Tags: {tags_html}</div>'
+        f'{share_strip}'
+        '</article>'
+        f'{related_html}'
+    )
+
+    return render_page(title, meta_description, "article", canonical, og_image, content_html, all_articles)
+
+def render_index_page(latest_articles, all_articles):
+    cards = []
+    seen_ids = set()
+    for a in latest_articles:
+        if a["id"] in seen_ids:
+            continue
+        seen_ids.add(a["id"])
+        breaking_html = '<span class="badge-breaking">Breaking</span>' if a["breaking"] else ""
+        cards.append(
+            '<div class="card">'
+            f'<a href="{BASE_URL}/news/{a["slug"]}.html">'
+            f'<img src="{a["hero_image"]}" alt="">'
+            '<div class="card-body">'
+            f'<div class="card-tags">{breaking_html}{" / ".join(a["tags"])}</div>'
+            f'<div class="card-title">{a["headline"]}</div>'
+            f'<div class="card-meta">{human_time(a["created_at"])} · {a["section_name"]}</div>'
+            '</div></a></div>'
+        )
+
+    content_html = (
+        "<h1>Equity Network AI Wire</h1>"
+        "<p>Live, braided coverage across equities, macro, geopolitics, crypto, and video briefings.</p>"
+        '<div class="card-grid">'
+        + "".join(cards)
+        + "</div>"
+    )
+
+    hero_image = latest_articles[0]["hero_image"] if latest_articles else ""
+    return render_page(
+        f"{SITE_NAME} – Live AI Wire",
+        SITE_TAGLINE,
+        "website",
+        f"{BASE_URL}/index.html",
+        hero_image,
+        content_html,
+        all_articles,
+    )
+
+def render_topic_page(tag, tag_articles, all_articles):
+    cards = []
+    seen_ids = set()
+    for a in tag_articles:
+        if a["id"] in seen_ids:
+            continue
+        seen_ids.add(a["id"])
+        cards.append(
+            '<div class="card">'
+            f'<a href="{BASE_URL}/news/{a["slug"]}.html">'
+            f'<img src="{a["hero_image"]}" alt="">'
+            '<div class="card-body">'
+            f'<div class="card-tags">{" / ".join(a["tags"])}</div>'
+            f'<div class="card-title">{a["headline"]}</div>'
+            f'<div class="card-meta">{human_time(a["created_at"])} · {a["section_name"]}</div>'
+            '</div></a></div>'
+        )
+    content_html = (
+        f"<h1>Topic: {tag}</h1>"
+        "<p>Curated coverage from the Equity Network AI wire.</p>"
+        '<div class="card-grid">'
+        + "".join(cards)
+        + "</div>"
+    )
+    canonical = f"{BASE_URL}/topic/{slugify(tag)}.html"
+    og_image = tag_articles[0]["hero_image"] if tag_articles else ""
+    return render_page(
+        f"{SITE_NAME} – {tag} coverage",
+        f"Equity Network AI wire coverage tagged {tag}.",
+        "website",
+        canonical,
+        og_image,
+        content_html,
+        all_articles,
+    )
+
+# ---------- STATIC EXPORT ----------
+
+def compute_related_articles(all_articles):
+    related_map = {}
+    for a in all_articles:
+        candidates = []
+        seen_ids = set()
+        for b in all_articles:
+            if a["id"] == b["id"]:
+                continue
+            if b["id"] in seen_ids:
+                continue
+            score = 0
+            if set(a["tickers"]) & set(b["tickers"]):
+                score += 3
+            if set(a["tags"]) & set(b["tags"]):
+                score += 2
+            if a["section_name"] == b["section_name"]:
+                score += 1
+            if score > 0:
+                candidates.append((score, b))
+                seen_ids.add(b["id"])
+        candidates.sort(key=lambda x: (-x[0], parse_dt(x[1]["created_at"])))
+        related_map[a["id"]] = [c[1] for c in candidates[:MAX_RELATED]]
+    return related_map
+
+
+def export_index():
+    if not articles:
+        return
+    latest = sorted(articles, key=lambda a: parse_dt(a["created_at"]), reverse=True)[:MAX_GLOBAL_FEED]
+    html = render_index_page(latest, articles)
+    (SITE_DIR / "index.html").write_text(html, encoding="utf-8")
+
+
+def export_article_pages():
+    if not articles:
+        return
+    related_map = compute_related_articles(articles)
+    for a in articles:
+        rel = related_map.get(a["id"], [])
+        html = render_article_page(a, rel, articles)
+        path = SITE_DIR / "news" / f"{a['slug']}.html"
+        path.write_text(html, encoding="utf-8")
+
+
+def export_topic_pages():
+    if not articles:
+        return
+    by_tag = defaultdict(dict)  # tag -> {id: article}
+    for a in articles:
+        for t in a["tags"]:
+            by_tag[t][a["id"]] = a
+    for tag, id_map in by_tag.items():
+        tag_articles = list(id_map.values())
+        tag_articles_sorted = sorted(tag_articles, key=lambda a: parse_dt(a["created_at"]), reverse=True)
+        html = render_topic_page(tag, tag_articles_sorted, articles)
+        path = SITE_DIR / "topic" / f"{slugify(tag)}.html"
+        path.write_text(html, encoding="utf-8")
+
+
+def export_sitemap():
+    urls = [
+        f"<url><loc>{BASE_URL}/index.html</loc></url>",
+        f"<url><loc>{BASE_URL}/sitemap.xml</loc></url>",
+    ]
+    for a in articles:
+        urls.append(f"<url><loc>{BASE_URL}/news/{a['slug']}.html</loc></url>")
+    tags = set()
+    for a in articles:
+        for t in a["tags"]:
+            tags.add(t)
+    for t in tags:
+        urls.append(f"<url><loc>{BASE_URL}/topic/{slugify(t)}.html</loc></url>")
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + "".join(urls)
+        + "</urlset>"
+    )
+    (SITE_DIR / "sitemap.xml").write_text(xml, encoding="utf-8")
+
+
+def export_rss():
+    if not articles:
+        return
+    latest = sorted(articles, key=lambda a: parse_dt(a["created_at"]), reverse=True)[:MAX_RSS_ITEMS]
+    items = []
+    for a in latest:
+        link = f"{BASE_URL}/news/{a['slug']}.html"
+        pubdate = parse_dt(a["created_at"]).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        desc = a["deck"]
+        items.append(
+            "<item>"
+            f"<title><![CDATA[{a['headline']}]]></title>"
+            f"<link>{link}</link>"
+            f"<guid>{link}</guid>"
+            f"<pubDate>{pubdate}</pubDate>"
+            f"<description><![CDATA[{desc}]]></description>"
+            "</item>"
+        )
+    rss = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        "<rss version=\"2.0\"><channel>"
+        f"<title>{SITE_NAME} AI Wire</title>"
+        f"<link>{BASE_URL}/index.html</link>"
+        f"<description>{SITE_TAGLINE}</description>"
+        + "".join(items)
+        + "</channel></rss>"
+    )
+    (SITE_DIR / "feed.xml").write_text(rss, encoding="utf-8")
+
+
+def export_robots():
+    txt = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        f"Sitemap: {BASE_URL}/sitemap.xml\n"
+    )
+    (SITE_DIR / "robots.txt").write_text(txt, encoding="utf-8")
+
+
+def export_all():
+    ensure_site_dirs()
+    export_index()
+    export_article_pages()
+    export_topic_pages()
+    export_sitemap()
+    export_rss()
+    export_robots()
+    export_knowledge()
+    print("Static export complete.")
+
+# ---------- DISCORD EVENTS ----------
+
+@bot.event
+async def on_ready():
+    print("Bot connected.")
+
+    load_knowledge()
+
+    guild = bot.get_guild(GUILD_ID)
+    if guild is None:
+        print("Guild not found.")
+        return
+
+    msgs_articles = []
+    global used_images
+    used_images.clear()
+
+    for cid in CHANNEL_IDS:
+        channel = guild.get_channel(cid)
+        if channel is None or not isinstance(channel, discord.TextChannel):
+            print(f"Channel {cid} not found or not text.")
+            continue
+
+        print(f"Syncing channel {channel.name} ({cid})...")
+        try:
+            async for msg in channel.history(limit=MAX_MESSAGES_PER_CHANNEL, oldest_first=True):
+                if not msg.content:
+                    continue
+                article = build_article_from_message(
+                    msg,
+                    channel.name,
+                    msgs_articles,
+                    used_images,
+                    use_live_images=False,
+                )
+                if article is None:
+                    continue
+                msgs_articles.append(article)
+                await asyncio.sleep(0.01)
+        except Exception as e:
+            print(f"Error during history scan for channel {cid}: {e}")
+
+    msgs_sorted = sorted(msgs_articles, key=lambda a: parse_dt(a["created_at"]))
+    global articles
+    articles = msgs_sorted[-MAX_MESSAGES_PER_CHANNEL * len(CHANNEL_IDS):]
+
+    export_all()
+    print("Initial sync complete.")
+
+
+@bot.event
+async def on_message(message: discord.Message):
+    if message.guild is None or message.guild.id != GUILD_ID:
+        return
+    if not isinstance(message.channel, discord.TextChannel):
+        return
+    if message.channel.id not in CHANNEL_IDS:
+        return
+    if not message.content:
+        return
+
+    global used_images
+    try:
+        article = build_article_from_message(
+            message,
+            message.channel.name,
+            articles,
+            used_images,
+            use_live_images=True,
+        )
+    except Exception as e:
+        print(f"Error building article from live message: {e}")
+        return
+
+    if article is None:
+        return
+
+    articles.append(article)
+    articles_sorted = sorted(articles, key=lambda a: parse_dt(a["created_at"]))
+    articles[:] = articles_sorted[-MAX_MESSAGES_PER_CHANNEL * len(CHANNEL_IDS):]
+
+    export_all()
+    await bot.process_commands(message)
+
+# ---------- MAIN ----------
+
+if __name__ == "__main__":
+    ensure_site_dirs()
+    load_knowledge()
+    if not DISCORD_TOKEN:
+        raise RuntimeError("DISCORD_TOKEN not set in environment.")
+    bot.run(DISCORD_TOKEN)
