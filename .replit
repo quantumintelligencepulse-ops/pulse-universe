@@ -57,4 +57,4 @@ CLOUDFLARE_AI_TOKEN = "cfut_W8vri9jpPbhTYmM3S6raty3Z4P4ouOD2x2dbtKy1aeff1f36"
 MISTRAL_API_KEY = "VIWwKSG4e9DgknfBx617FKOfSS3rQ2O9"
 
 [agent]
-integrations = ["javascript_database:1.0.0"]
+integrations = ["javascript_database:1.0.0", "stripe:1.0.0"]
