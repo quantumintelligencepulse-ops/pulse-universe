@@ -1,16 +1,83 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Zap, Check, Key, Copy, ExternalLink, Shield } from "lucide-react";
+import { ArrowLeft, Zap, Check, Key, Copy, Shield, Database, Radio, FileText, Package, Building2, Paintbrush, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
+
+interface PriceInfo {
+  id: string;
+  amount: number;
+  currency: string;
+  interval: string | null;
+}
 
 interface Product {
   id: string;
   name: string;
   description: string;
-  tier: string;
-  callsPerMonth: string;
-  prices: { id: string; amount: number; currency: string; interval: string }[];
+  organ: string;
+  prices: PriceInfo[];
 }
+
+const ORGAN_CONFIG: Record<string, { icon: any; color: string; border: string; bg: string; features: string[]; tag: string }> = {
+  "api-access": {
+    icon: Zap,
+    color: "text-[#00FFD1]",
+    border: "border-[#00FFD1]/30",
+    bg: "bg-[#00FFD1]/5",
+    tag: "$1/mo",
+    features: ["All 8 API endpoints", "100,000 calls/month", "JSON responses", "99.9% uptime SLA"],
+  },
+  "datasets": {
+    icon: Database,
+    color: "text-blue-400",
+    border: "border-blue-500/30",
+    bg: "bg-blue-500/5",
+    tag: "$1 each",
+    features: ["Daily News Dataset (JSONL)", "GICS Intelligence Dataset", "Signals Dataset", "30-Day Archive", "Topic Metadata", "Narrative Timelines"],
+  },
+  "realtime-stream": {
+    icon: Radio,
+    color: "text-emerald-400",
+    border: "border-emerald-500/30",
+    bg: "bg-emerald-500/5",
+    tag: "$1/mo",
+    features: ["Full /api/stream SSE", "Real-time news events", "Live signals & hive insights", "Sector & topic events"],
+  },
+  "reports": {
+    icon: FileText,
+    color: "text-violet-400",
+    border: "border-violet-500/30",
+    bg: "bg-violet-500/5",
+    tag: "$1/mo",
+    features: ["Daily Market Intelligence", "Weekly Sector Deep Dive", "Monthly Macro Outlook", "HTML + JSON formats"],
+  },
+  "intelligence-packs": {
+    icon: Package,
+    color: "text-orange-400",
+    border: "border-orange-500/30",
+    bg: "bg-orange-500/5",
+    tag: "$1 each",
+    features: ["Tech Intelligence Pack", "Financials Pack", "Energy Pack", "Healthcare Pack", "Full GICS Universe Pack"],
+  },
+  "enterprise": {
+    icon: Building2,
+    color: "text-[#F5C518]",
+    border: "border-[#F5C518]/30",
+    bg: "bg-[#F5C518]/5",
+    tag: "$1/mo",
+    features: ["Private API base URL", "Unlimited requests", "Custom filters", "Dedicated stream", "Priority routing"],
+  },
+  "white-label": {
+    icon: Paintbrush,
+    color: "text-pink-400",
+    border: "border-pink-500/30",
+    bg: "bg-pink-500/5",
+    tag: "$1/mo",
+    features: ["Embeddable widgets", "White-label API", "Branded dashboards", "Scoped endpoints", "200K widget calls"],
+  },
+};
+
+const ORGAN_ORDER = ["api-access", "datasets", "realtime-stream", "reports", "intelligence-packs", "enterprise", "white-label"];
 
 export default function ApiPricingPage() {
   const [, setLocation] = useLocation();
@@ -67,36 +134,28 @@ export default function ApiPricingPage() {
     } catch { setKeyStatus(null); }
   };
 
-  const tierColors: Record<string, string> = {
-    starter: "border-[#00FFD1]/30 bg-[#00FFD1]/5",
-    pro: "border-violet-500/30 bg-violet-500/5",
-    enterprise: "border-[#F5C518]/30 bg-[#F5C518]/5",
-  };
-  const tierAccent: Record<string, string> = { starter: "text-[#00FFD1]", pro: "text-violet-400", enterprise: "text-[#F5C518]" };
-
-  const staticProducts: Product[] = [
-    { id: "starter", name: "Starter", description: "1,000 API calls/month across all 8 endpoints", tier: "starter", callsPerMonth: "1000", prices: [] },
-    { id: "pro", name: "Pro", description: "50,000 API calls/month. Priority access + streaming", tier: "pro", callsPerMonth: "50000", prices: [] },
-    { id: "enterprise", name: "Enterprise", description: "Unlimited calls. Dedicated support + SLA", tier: "enterprise", callsPerMonth: "unlimited", prices: [] },
-  ];
-  const displayProducts = products.length > 0 ? products : staticProducts;
-  const priceLabels: Record<string, string> = { starter: "$1/mo", pro: "$9.99/mo", enterprise: "$49.99/mo" };
+  const sortedProducts = ORGAN_ORDER.map(organ => products.find(p => p.organ === organ)).filter(Boolean) as Product[];
+  const displayProducts = sortedProducts.length > 0 ? sortedProducts : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-20">
         <button onClick={() => setLocation("/")} className="text-xs text-muted-foreground hover:text-foreground mb-6 flex items-center gap-1.5 transition-colors" data-testid="link-back">
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </button>
 
         <div className="text-center mb-12">
-          <h1 className="text-3xl sm:text-4xl font-black mb-3" data-testid="text-page-title">
-            <span className="text-[#00FFD1]">$1</span> Intelligence Platform
-          </h1>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            8 production API endpoints powered by the Pulse Universe AI Civilization.
-            News, Topics, Articles, GICS Industries, Signals, Hive Memory, Search, and Real-Time Streaming.
-          </p>
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+            <h1 className="text-4xl sm:text-5xl font-black mb-3" data-testid="text-page-title">
+              THE <span className="text-[#00FFD1]">$1</span> INTELLIGENCE PLATFORM
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-2">
+              7 revenue organs. Everything is $1. The cheapest intelligence engine on Earth.
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Powered by Pulse Universe AI Civilization — myaigpt.online
+            </p>
+          </motion.div>
         </div>
 
         {apiKey && (
@@ -109,7 +168,7 @@ export default function ApiPricingPage() {
                 {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Save this key — you'll need it for API requests. Include as <code className="text-emerald-400">X-API-Key</code> header.</p>
+            <p className="text-xs text-muted-foreground mt-2">Save this key — include as <code className="text-emerald-400">X-API-Key</code> header.</p>
           </motion.div>
         )}
 
@@ -119,47 +178,117 @@ export default function ApiPricingPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading plans...</div>
+          <div className="text-center py-12 text-muted-foreground">Loading products...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {displayProducts.map(p => {
-              const tier = p.tier || "starter";
-              const price = p.prices?.[0];
-              const priceLabel = price ? `$${price.amount}/${price.interval}` : priceLabels[tier] || "$1/mo";
-              return (
-                <motion.div key={p.id} whileHover={{ scale: 1.02 }} className={`rounded-xl border ${tierColors[tier] || "border-border"} p-6 flex flex-col`}>
-                  <div className="mb-4">
-                    <h3 className={`text-xl font-black ${tierAccent[tier] || ""}`} data-testid={`text-tier-${tier}`}>{p.name?.replace("Pulse Intelligence API — ", "")}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{p.description}</p>
-                  </div>
-                  <div className="text-3xl font-black mb-1" data-testid={`text-price-${tier}`}>{priceLabel}</div>
-                  <div className="text-xs text-muted-foreground mb-4">{p.callsPerMonth === "unlimited" ? "Unlimited calls" : `${Number(p.callsPerMonth).toLocaleString()} calls/month`}</div>
-                  <ul className="space-y-2 mb-6 flex-1">
-                    {["All 8 API endpoints", "JSON responses", "99.9% uptime"].map(f => (
-                      <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Check className="w-3 h-3 text-emerald-400" /> {f}
-                      </li>
-                    ))}
-                    {tier === "pro" && <li className="flex items-center gap-2 text-xs text-muted-foreground"><Check className="w-3 h-3 text-violet-400" /> Priority rate limits</li>}
-                    {tier === "enterprise" && <><li className="flex items-center gap-2 text-xs text-muted-foreground"><Check className="w-3 h-3 text-[#F5C518]" /> Dedicated support</li><li className="flex items-center gap-2 text-xs text-muted-foreground"><Check className="w-3 h-3 text-[#F5C518]" /> SLA guarantee</li></>}
-                  </ul>
-                  <button
-                    onClick={() => price ? handleCheckout(price.id) : null}
-                    disabled={!email || !price || checkingOut === price?.id}
-                    className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all ${
-                      price && email
-                        ? "bg-[#00FFD1] text-black hover:bg-[#00FFD1]/80 cursor-pointer"
-                        : "bg-muted text-muted-foreground cursor-not-allowed"
-                    }`}
-                    data-testid={`button-subscribe-${tier}`}
-                  >
-                    {checkingOut === price?.id ? "Redirecting..." : !price ? "Coming Soon" : "Subscribe"}
-                  </button>
-                </motion.div>
-              );
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+              {displayProducts.slice(0, 3).map((p, i) => {
+                const cfg = ORGAN_CONFIG[p.organ] || ORGAN_CONFIG["api-access"];
+                const Icon = cfg.icon;
+                const price = p.prices?.[0];
+                return (
+                  <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileHover={{ scale: 1.02 }} className={`rounded-xl border ${cfg.border} ${cfg.bg} p-6 flex flex-col`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Icon className={`w-5 h-5 ${cfg.color}`} />
+                      <h3 className={`text-lg font-black ${cfg.color}`} data-testid={`text-organ-${p.organ}`}>{p.name.replace("Pulse Intelligence — ", "")}</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">{p.description}</p>
+                    <div className="text-3xl font-black mb-1" data-testid={`text-price-${p.organ}`}>{cfg.tag}</div>
+                    <ul className="space-y-1.5 mb-5 flex-1 mt-3">
+                      {cfg.features.map(f => (
+                        <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Check className={`w-3 h-3 ${cfg.color} flex-shrink-0`} /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => price ? handleCheckout(price.id) : null}
+                      disabled={!email || !price || checkingOut === price?.id}
+                      className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all ${
+                        price && email ? "bg-[#00FFD1] text-black hover:bg-[#00FFD1]/80 cursor-pointer" : "bg-muted text-muted-foreground cursor-not-allowed"
+                      }`}
+                      data-testid={`button-buy-${p.organ}`}
+                    >
+                      {checkingOut === price?.id ? "Redirecting..." : price?.interval ? "Subscribe — $1/mo" : "Buy — $1"}
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
+              {displayProducts.slice(3).map((p, i) => {
+                const cfg = ORGAN_CONFIG[p.organ] || ORGAN_CONFIG["reports"];
+                const Icon = cfg.icon;
+                const price = p.prices?.[0];
+                return (
+                  <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (i + 3) * 0.05 }} whileHover={{ scale: 1.02 }} className={`rounded-xl border ${cfg.border} ${cfg.bg} p-5 flex flex-col`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`w-4 h-4 ${cfg.color}`} />
+                      <h3 className={`text-sm font-black ${cfg.color}`} data-testid={`text-organ-${p.organ}`}>{p.name.replace("Pulse Intelligence — ", "")}</h3>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-2">{p.description}</p>
+                    <div className="text-2xl font-black mb-1" data-testid={`text-price-${p.organ}`}>{cfg.tag}</div>
+                    <ul className="space-y-1 mb-4 flex-1 mt-2">
+                      {cfg.features.slice(0, 3).map(f => (
+                        <li key={f} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <Check className={`w-2.5 h-2.5 ${cfg.color} flex-shrink-0`} /> {f}
+                        </li>
+                      ))}
+                      {cfg.features.length > 3 && (
+                        <li className="text-[11px] text-muted-foreground/60">+ {cfg.features.length - 3} more</li>
+                      )}
+                    </ul>
+                    <button
+                      onClick={() => price ? handleCheckout(price.id) : null}
+                      disabled={!email || !price || checkingOut === price?.id}
+                      className={`w-full py-2 rounded-lg font-bold text-xs transition-all ${
+                        price && email ? "bg-[#00FFD1] text-black hover:bg-[#00FFD1]/80 cursor-pointer" : "bg-muted text-muted-foreground cursor-not-allowed"
+                      }`}
+                      data-testid={`button-buy-${p.organ}`}
+                    >
+                      {checkingOut === price?.id ? "Redirecting..." : price?.interval ? "Subscribe — $1/mo" : "Buy — $1"}
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
         )}
+
+        <div className="rounded-xl border border-[#00FFD1]/20 bg-[#00FFD1]/5 p-6 mb-12">
+          <h3 className="text-center text-xl font-black text-[#00FFD1] mb-6">THE $1 EVERYTHING MAP</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 text-muted-foreground font-medium">#</th>
+                  <th className="text-left py-2 text-muted-foreground font-medium">Revenue Organ</th>
+                  <th className="text-left py-2 text-muted-foreground font-medium">What You Get</th>
+                  <th className="text-right py-2 text-muted-foreground font-medium">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { n: 1, organ: "API Access", desc: "All 8 endpoints + 100K calls", price: "$1/mo" },
+                  { n: 2, organ: "Datasets", desc: "All datasets (each)", price: "$1" },
+                  { n: 3, organ: "Real-Time Stream", desc: "Full /api/stream SSE", price: "$1/mo" },
+                  { n: 4, organ: "Automated Reports", desc: "Daily + Weekly + Monthly", price: "$1/mo" },
+                  { n: 5, organ: "Intelligence Packs", desc: "Sector intelligence bundles", price: "$1" },
+                  { n: 6, organ: "Enterprise License", desc: "Private API + unlimited", price: "$1/mo" },
+                  { n: 7, organ: "White-Label", desc: "Widgets + branded API", price: "$1/mo" },
+                ].map(r => (
+                  <tr key={r.n} className="border-b border-border/30">
+                    <td className="py-2.5 text-[#00FFD1] font-bold">{r.n}</td>
+                    <td className="py-2.5 font-medium">{r.organ}</td>
+                    <td className="py-2.5 text-muted-foreground">{r.desc}</td>
+                    <td className="py-2.5 text-right font-black text-[#00FFD1]">{r.price}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           <div className="rounded-xl border border-border bg-card/20 p-6">
@@ -171,7 +300,7 @@ export default function ApiPricingPage() {
             {keyStatus && (
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Tier</span><span className="font-mono capitalize" data-testid="text-key-tier">{keyStatus.tier}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Calls Used</span><span className="font-mono" data-testid="text-key-usage">{keyStatus.callsUsed.toLocaleString()} / {keyStatus.callsLimit.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Calls Used</span><span className="font-mono" data-testid="text-key-usage">{keyStatus.callsUsed?.toLocaleString()} / {keyStatus.callsLimit?.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className={keyStatus.isActive ? "text-emerald-400" : "text-red-400"} data-testid="text-key-status">{keyStatus.isActive ? "Active" : "Inactive"}</span></div>
               </div>
             )}
@@ -199,7 +328,7 @@ export default function ApiPricingPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card/20 p-6">
+        <div className="rounded-xl border border-border bg-card/20 p-6 mb-12">
           <h3 className="font-bold mb-4">Quick Start</h3>
           <pre className="bg-black/50 rounded-lg p-4 text-xs font-mono overflow-x-auto text-muted-foreground">
 {`curl -H "X-API-Key: pulse_YOUR_KEY_HERE" \\
@@ -212,6 +341,10 @@ export default function ApiPricingPage() {
   "engine": "Pulse Universe Intelligence"
 }`}
           </pre>
+        </div>
+
+        <div className="text-center text-xs text-muted-foreground/50">
+          Also available on <a href="https://rapidapi.com" target="_blank" rel="noopener noreferrer" className="text-[#00FFD1]/60 hover:text-[#00FFD1] inline-flex items-center gap-1">RapidAPI <ExternalLink className="w-3 h-3" /></a>
         </div>
       </div>
     </div>

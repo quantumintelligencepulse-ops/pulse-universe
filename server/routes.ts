@@ -12656,13 +12656,14 @@ Return the COMPLETE modified HTML file with the requested changes applied. Keep 
           id: p.id,
           name: p.name,
           description: p.description,
-          tier: p.metadata?.tier,
+          organ: p.metadata?.organ || p.metadata?.tier || 'api-access',
+          tier: p.metadata?.tier || p.metadata?.organ,
           callsPerMonth: p.metadata?.calls_per_month,
           prices: prices.data.map(pr => ({
             id: pr.id,
             amount: (pr.unit_amount || 0) / 100,
             currency: pr.currency,
-            interval: pr.recurring?.interval,
+            interval: pr.recurring?.interval || null,
           }))
         });
       }
