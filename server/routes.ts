@@ -12814,7 +12814,7 @@ Return the COMPLETE modified HTML file with the requested changes applied. Keep 
       const stats = getDiscordWireStats();
       const { directQuery } = await import("./db");
       const recentWire = await directQuery(
-        `SELECT title, category, published_at FROM revenue_articles WHERE source = 'Equity Network Discord Wire' ORDER BY id DESC LIMIT 10`
+        `SELECT title, category, created_at FROM revenue_articles WHERE source = 'Equity Network Discord Wire' ORDER BY id DESC LIMIT 10`
       );
       res.json({ ...stats, recentArticles: recentWire.rows });
     } catch (e: any) {

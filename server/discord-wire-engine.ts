@@ -133,8 +133,8 @@ async function ingestMessage(msg: any, channelId: string): Promise<boolean> {
 
   try {
     await throttledBgQuery(
-      `INSERT INTO revenue_articles (title, slug, summary, category, tags, source, author, published_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO revenue_articles (title, slug, body, category, tags, source, agent_author)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT DO NOTHING`,
       [
         headline,
@@ -144,7 +144,6 @@ async function ingestMessage(msg: any, channelId: string): Promise<boolean> {
         JSON.stringify(tags),
         "Equity Network Discord Wire",
         msg.author?.username || "Equity Wire AI",
-        timestamp,
       ]
     );
   } catch {}
