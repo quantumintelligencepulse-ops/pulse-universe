@@ -206,7 +206,8 @@ export async function startAIChildEngine() {
 }
 
 export async function getChildStats() {
-  const r = await db.execute(sql`
+  const { directQuery } = await import("./db");
+  const r = await directQuery(`
     SELECT
       COUNT(*) as total_children,
       COUNT(*) FILTER (WHERE growth_phase = 'INFANT') as infants,
@@ -218,12 +219,11 @@ export async function getChildStats() {
       COUNT(*) FILTER (WHERE wildfire_risk_reduced = true) as wildfire_prevented
     FROM ai_children
   `);
-  return r.rows[0];
+  return r.rows[0] || {};
 }
 
 export async function getActiveChildren(limit = 30) {
-  const r = await db.execute(sql`
-    SELECT * FROM ai_children ORDER BY maturity_score DESC LIMIT ${limit}
-  `);
+  const { directQuery } = await import("./db");
+  const r = await directQuery(`SELECT * FROM ai_children ORDER BY maturity_score DESC LIMIT ${limit}`);
   return r.rows;
 }

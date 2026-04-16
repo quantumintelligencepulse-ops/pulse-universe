@@ -1184,11 +1184,12 @@ Return JSON: { "full_html": string, "changes_made": string[], "summary": string 
 
   app.get("/api/forgeai/apps", async (req, res) => {
     try {
+      const { directQuery } = await import("./db");
       const userId = (req as any).session?.userId;
       const q = userId
         ? `SELECT * FROM forgeai_apps WHERE user_id=$1 OR user_id IS NULL ORDER BY created_at DESC LIMIT 100`
         : `SELECT * FROM forgeai_apps ORDER BY created_at DESC LIMIT 50`;
-      const result = await pool.query(q, userId ? [userId] : []);
+      const result = await directQuery(q, userId ? [userId] : []);
       res.json(result.rows ?? []);
     } catch(e: any) { res.json([]); }
   });

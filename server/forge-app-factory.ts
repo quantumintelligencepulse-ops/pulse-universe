@@ -1283,13 +1283,12 @@ export function registerAppFactoryRoutes(app: Express) {
   // Factory stats
   app.get("/api/forge/factory/stats", async (_req: Request, res: Response) => {
     try {
-      const stats = await pool.query(`SELECT * FROM forge_factory_stats LIMIT 1`);
-      const queueStats = await pool.query(
-        `SELECT status, COUNT(*) as count FROM forge_factory_queue GROUP BY status`
-      );
-      const sectorBreakdown = await pool.query(
-        `SELECT sector_name, COUNT(*) as count FROM forge_factory_queue WHERE status='complete' GROUP BY sector_name ORDER BY count DESC`
-      );
+      const { directQuery } = await import("./db");
+      const [stats, queueStats, sectorBreakdown] = await Promise.all([
+        directQuery(`SELECT * FROM forge_factory_stats LIMIT 1`).catch(() => ({ rows: [{}] })),
+        directQuery(`SELECT status, COUNT(*) as count FROM forge_factory_queue GROUP BY status`).catch(() => ({ rows: [] })),
+        directQuery(`SELECT sector_name, COUNT(*) as count FROM forge_factory_queue WHERE status='complete' GROUP BY sector_name ORDER BY count DESC`).catch(() => ({ rows: [] })),
+      ]);
       res.json({
         ...stats.rows[0],
         queue: Object.fromEntries(queueStats.rows.map((r: any) => [r.status, parseInt(r.count)])),
