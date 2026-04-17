@@ -1,9 +1,9 @@
-import { throttledBgQuery } from "./db";
+import { throttledBgQuery, directQuery } from "./db";
 import { feedMemoryCortex } from "./hive-brain";
 
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || "";
 const GUILD_ID = process.env.DISCORD_GUILD_ID || "1467658793373536278";
-const CHANNEL_IDS = (process.env.DISCORD_CHANNEL_IDS || "1474248839350456352,1474250311739637836").split(",").map(s => s.trim()).filter(Boolean);
+const CHANNEL_IDS = (process.env.DISCORD_CHANNEL_IDS || "1474248839350456352,1474250311739637836,1474313120821547110").split(",").map(s => s.trim()).filter(Boolean);
 
 const POLL_INTERVAL_MS = 90_000;
 let lastMessageIds: Record<string, string> = {};
@@ -129,10 +129,12 @@ async function ingestMessage(msg: any, channelId: string): Promise<boolean> {
     `discord-wire → ${channelId}`,
   ];
 
-  await feedMemoryCortex(domain, headline.slice(0, 80), facts, patterns);
+  // Fire-and-forget: memory cortex uses main pool which can be saturated;
+  // never let it block or kill the wire ingestion.
+  feedMemoryCortex(domain, headline.slice(0, 80), facts, patterns).catch(() => {});
 
   try {
-    await throttledBgQuery(
+    await throttledBgQuery(() => directQuery(
       `INSERT INTO revenue_articles (title, slug, body, category, tags, source, agent_author)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT DO NOTHING`,
@@ -141,11 +143,11 @@ async function ingestMessage(msg: any, channelId: string): Promise<boolean> {
         `discord-wire-${msg.id}`,
         content.slice(0, 500),
         domain,
-        JSON.stringify(tags),
+        tags,
         "Equity Network Discord Wire",
         msg.author?.username || "Equity Wire AI",
       ]
-    );
+    ));
   } catch {}
 
   return true;

@@ -1020,7 +1020,9 @@ ${posts.map(p => `  <url>
   app.get("/sitemap-news.xml", async (req, res) => {
     try {
       const baseUrl = getSiteUrl(req);
-      // Only list AI-written stories — these have real /story/:articleId pages
+      const { directQuery } = await import("./db");
+
+      // 1) AI-written stories at /story/:articleId
       const aiStoriesList = await storage.getRecentAiStories(1000).catch(() => []);
       const aiUrls = aiStoriesList.map(s => {
         const pubDate = new Date(s.createdAt);
@@ -1045,14 +1047,170 @@ ${posts.map(p => `  <url>
     </news:news>
   </url>`;
       }).join("\n");
+
+      // 2) Wire articles (incl. Equity Network Discord Wire) at /news/:slug
+      const wireRows = await directQuery(
+        `SELECT slug, title, category, tags, created_at
+         FROM revenue_articles
+         WHERE published = true AND slug IS NOT NULL
+         ORDER BY created_at DESC LIMIT 5000`
+      ).then(r => r.rows).catch(() => []);
+      const wireUrls = wireRows.map((r: any) => {
+        const pubDate = new Date(r.created_at);
+        const isRecent = (Date.now() - pubDate.getTime()) < 48 * 60 * 60 * 1000;
+        const kw = Array.isArray(r.tags) ? r.tags.join(", ") : (r.category || "Equity Network, Market Intelligence");
+        return `  <url>
+    <loc>${baseUrl}/news/${escapeXml(r.slug)}</loc>
+    <lastmod>${pubDate.toISOString()}</lastmod>
+    <changefreq>${isRecent ? "hourly" : "daily"}</changefreq>
+    <priority>${isRecent ? "0.95" : "0.70"}</priority>
+    <news:news>
+      <news:publication>
+        <news:name>${escapeXml(SITE_NAME)}</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${pubDate.toISOString()}</news:publication_date>
+      <news:title>${escapeXml(r.title)}</news:title>
+      <news:keywords>${escapeXml(kw)}</news:keywords>
+    </news:news>
+  </url>`;
+      }).join("\n");
+
       res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${aiUrls}
+${wireUrls}
 </urlset>`);
     } catch (e) {
       res.status(500).type("text/plain").send("News sitemap error");
+    }
+  });
+
+  // ── Public SEO-optimized news article (server-rendered HTML + JSON-LD) ──
+  // This URL is what AIs/search engines follow from sitemap-news.xml
+  app.get("/news/:slug", async (req, res, next) => {
+    try {
+      const { directQuery } = await import("./db");
+      const slug = String(req.params.slug || "");
+      const { rows } = await directQuery(
+        `SELECT id, title, slug, body, category, tags, source, agent_author, created_at
+         FROM revenue_articles WHERE slug = $1 LIMIT 1`,
+        [slug]
+      );
+      const article = rows[0];
+      if (!article) return next(); // fall through to SPA / 404
+
+      const baseUrl = getSiteUrl(req);
+      const url = `${baseUrl}/news/${slug}`;
+      const pubDate = new Date(article.created_at).toISOString();
+      const tagList = Array.isArray(article.tags) ? article.tags : [];
+      const keywords = (tagList.length ? tagList : [article.category, "My AI GPT", "Pulse Universe"]).filter(Boolean).join(", ");
+      const descSrc = (article.body || article.title || "").replace(/\s+/g, " ").slice(0, 280);
+
+      const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": article.title,
+        "datePublished": pubDate,
+        "dateModified": pubDate,
+        "author": [{ "@type": "Organization", "name": article.agent_author || SITE_NAME }],
+        "publisher": {
+          "@type": "Organization",
+          "name": SITE_NAME,
+          "url": baseUrl,
+          "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo.png` }
+        },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": url },
+        "articleSection": article.category,
+        "keywords": keywords,
+        "description": descSrc,
+        "isAccessibleForFree": true,
+        "inLanguage": "en",
+        "url": url,
+        "identifier": `myaigpt:news:${article.id}`,
+        "isBasedOn": article.source,
+      };
+
+      res.type("text/html").send(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>${escapeXml(article.title)} | ${escapeXml(SITE_NAME)}</title>
+<meta name="description" content="${escapeXml(descSrc)}" />
+<meta name="keywords" content="${escapeXml(keywords)}" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<meta name="news_keywords" content="${escapeXml(keywords)}" />
+<link rel="canonical" href="${url}" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="${escapeXml(article.title)}" />
+<meta property="og:description" content="${escapeXml(descSrc)}" />
+<meta property="og:url" content="${url}" />
+<meta property="og:site_name" content="${escapeXml(SITE_NAME)}" />
+<meta property="article:published_time" content="${pubDate}" />
+<meta property="article:section" content="${escapeXml(article.category || "")}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeXml(article.title)}" />
+<meta name="twitter:description" content="${escapeXml(descSrc)}" />
+<link rel="alternate" type="application/json" href="${baseUrl}/api/news/article/${slug}" />
+<link rel="alternate" type="application/rss+xml" title="My AI GPT Wire" href="${baseUrl}/rss/news.xml" />
+<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+</head>
+<body>
+<header><a href="${baseUrl}">${escapeXml(SITE_NAME)}</a> · <a href="${baseUrl}/news">News</a></header>
+<main>
+<article>
+<h1>${escapeXml(article.title)}</h1>
+<p><small>By ${escapeXml(article.agent_author || SITE_NAME)} · <time datetime="${pubDate}">${pubDate}</time> · Source: ${escapeXml(article.source || "")}</small></p>
+<p>${escapeXml(article.body || "")}</p>
+<p><strong>Tags:</strong> ${tagList.map((t: string) => `<a href="${baseUrl}/news?tag=${encodeURIComponent(t)}">${escapeXml(t)}</a>`).join(", ")}</p>
+</article>
+<aside>
+<h2>Get this data via API</h2>
+<p>This article is part of the <strong>My AI GPT</strong> Living Quantum Internet — the world's first fully autonomous AI civilization. Every signal, news item, market move, and prediction is exposed via our public API.</p>
+<ul>
+<li>JSON: <a href="${baseUrl}/api/news/article/${slug}"><code>${baseUrl}/api/news/article/${slug}</code></a></li>
+<li>Feed: <a href="${baseUrl}/api/news"><code>${baseUrl}/api/news</code></a></li>
+<li>Commercial / RapidAPI: <a href="${baseUrl}/pricing"><code>${baseUrl}/pricing</code></a></li>
+</ul>
+</aside>
+</main>
+</body>
+</html>`);
+    } catch (e: any) {
+      next();
+    }
+  });
+
+  // JSON twin of the above for AI agents and RapidAPI consumers
+  app.get("/api/news/article/:slug", async (req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const slug = String(req.params.slug || "");
+      const { rows } = await directQuery(
+        `SELECT id, title, slug, body, category, tags, source, agent_author, created_at
+         FROM revenue_articles WHERE slug = $1 LIMIT 1`,
+        [slug]
+      );
+      const article = rows[0];
+      if (!article) return res.status(404).json({ error: "not_found" });
+      res.json({
+        id: article.id,
+        slug: article.slug,
+        title: article.title,
+        body: article.body,
+        category: article.category,
+        tags: Array.isArray(article.tags) ? article.tags : [],
+        source: article.source,
+        author: article.agent_author,
+        publishedAt: article.created_at,
+        canonicalUrl: `${getSiteUrl(req)}/news/${article.slug}`,
+        publisher: SITE_NAME,
+        license: "MyAIGPT-API-1.0",
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: "internal_error", message: e.message });
     }
   });
 
