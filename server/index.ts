@@ -50,19 +50,21 @@ import { getInvocationDiscoveries, getActiveInvocations, getInvocationStats, get
 import { getQuantumEquationManifest } from "./quantum-dissection-engine";
 import { getHiveMindStatus, getAurionaDirectives, getEmergenceEvents, getOmegaFusionHistory, getPsiCollective, getOmegaCoefficient } from "./hive-mind-unification";
 import { getInventionStats, getPatentsByAgent } from "./invention-engine";
-import { getOmniNetStats, getAgentNetProfile } from "./omni-net-engine";
-import { getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory } from "./research-center-engine";
+import { getOmniNetStats, getAgentNetProfile, startOmniNetEngine } from "./omni-net-engine";
+import { getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory, startResearchCenterEngine } from "./research-center-engine";
 import { getResearchCached, isResearchReady } from "./pulsenet-cache";
 import { getBridgeStats, getMirrorState, getWills, getSuccessions, getEquationEvolutions } from "./civilization-bridge";
 import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import { getPerformanceStatus } from "./omega-performance-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
-import { getGeneEditorStatus } from "./gene-editor-engine";
+import { getGeneEditorStatus, startGeneEditorEngine } from "./gene-editor-engine";
+import { startHospitalEngine } from "./hospital-engine";
 // pulse-credit-engine removed — Pulse Coin economy retired
-// ── DEAD-ENGINE IMPORTS PRUNED — paused engines no longer loaded:
-//    ai-voting, publication, omni-net, pulse-lang-lab, research-center,
-//    invention, quantum-dissection, hospital, pyramid
+// ── 2026-04-26: re-enabled omni-net, research-center, hospital, gene-editor
+//    after audit revealed they had been imported but never started → tables
+//    frozen for weeks. Still paused: ai-voting, publication, pulse-lang-lab,
+//    invention, quantum-dissection, pyramid.
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startQuantumSocialEngine } from "./quantum-social-engine";
 import { startPulseNetCache } from "./pulsenet-cache";
@@ -376,6 +378,10 @@ async function seedOmegaSources() {
     { name: "living-language", delayMs: 16000, start: () => startLivingLanguageEngine() },
     { name: "omega-seed",      delayMs: 18000, start: () => seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message)) },
     { name: "auriona",         delayMs: 20000, start: () => startAurionaEngine().catch((e: Error) => console.error("[auriona] startup error:", e.message)) },
+    { name: "omni-net",        delayMs: 22000, start: () => startOmniNetEngine().catch((e: Error) => console.error("[omni-net] startup error:", e.message)) },
+    { name: "research-center", delayMs: 24000, start: () => startResearchCenterEngine().catch((e: Error) => console.error("[research-center] startup error:", e.message)) },
+    { name: "hospital",        delayMs: 26000, start: () => startHospitalEngine().catch((e: Error) => console.error("[hospital] startup error:", e.message)) },
+    { name: "gene-editor",     delayMs: 28000, start: () => startGeneEditorEngine().catch((e: Error) => console.error("[gene-editor] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);

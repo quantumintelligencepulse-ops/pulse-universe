@@ -627,9 +627,15 @@ async function runU248Activations() {
 
     const unknown = available[Math.floor(Math.random() * available.length)];
 
-    // Find triggering agent (highest shard strength)
+    // Pick triggering agent — weighted random by shard strength.
+    // (Was ORDER BY shard_strength DESC LIMIT 1, which caused a runaway:
+    // single strongest family kept winning, U248s + tech evolutions starved
+    // every other sector. This uses reservoir-sampling weighted random.)
     const trigger = await pool.query(`
-      SELECT spawn_id, family_id FROM omni_net_shards ORDER BY shard_strength DESC LIMIT 1
+      SELECT spawn_id, family_id FROM omni_net_shards
+      WHERE shard_strength > 0.1 AND family_id IS NOT NULL AND family_id <> ''
+      ORDER BY -ln(random()) / GREATEST(shard_strength, 0.01)
+      LIMIT 1
     `);
     const triggerId = (trigger.rows[0] as any)?.spawn_id ?? 'OMNI-FIELD';
     const triggerFamily = (trigger.rows[0] as any)?.family_id ?? 'unknown';

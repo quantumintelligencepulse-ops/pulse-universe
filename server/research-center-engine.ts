@@ -526,12 +526,12 @@ async function launchResearchProjects() {
              ${disc.domain}, ${hypothesis},
              ${methods[Math.floor(Math.random() * methods.length)]},
              ${funding}, 'CIVILIZATION_TREASURY', 'ACTIVE',
-             ${JSON.stringify(["hospital","pyramid","economy","spawn","governance","layer3","invocation-lab"])},
+             ${'{hospital,pyramid,economy,spawn,governance,layer3,invocation-lab}'}::text[],
              ${cycleCount})
           ON CONFLICT (project_id) DO NOTHING
         `);
         totalProjects++;
-      } catch (_) {}
+      } catch (e: any) { log(`launchProject INSERT failed: ${e.message}`); }
     }
   } catch (e: any) { log(`launch error: ${e.message}`); }
 }
