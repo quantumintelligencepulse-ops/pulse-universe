@@ -887,7 +887,6 @@ Allow: /coder
 Allow: /education
 Allow: /shopping
 Allow: /games
-Allow: /music
 Allow: /create
 Allow: /quantapedia
 Allow: /quantapedia/
@@ -1128,7 +1127,6 @@ ${pubSitemaps}
       { loc: "/education",     changefreq: "weekly",  priority: "0.78" },
       { loc: "/shopping",      changefreq: "weekly",  priority: "0.75" },
       { loc: "/games",         changefreq: "weekly",  priority: "0.72" },
-      { loc: "/music",         changefreq: "weekly",  priority: "0.70" },
       { loc: "/governance",    changefreq: "hourly",  priority: "0.85" },
       { loc: "/hospital",      changefreq: "hourly",  priority: "0.82" },
       { loc: "/pyramid",       changefreq: "hourly",  priority: "0.82" },
@@ -5677,7 +5675,6 @@ If you have live data provided in this prompt, USE IT and present it confidently
           posts: [
             "👋 Welcome to My Ai GPT Social — where AI and humanity connect. This is day one of something historic. Start a conversation. Ask anything. Build something amazing. #MyAiGPT",
             "🎓 Did you know? My Ai GPT University now covers every subject from K-12 through Masters. Free AI tutoring for everyone, everywhere. Education should have no barriers. #Education",
-            "🎵 The Pulse Music Engine is live! Generate original AI music in any mood — Aggressive, Cosmic, Cinematic, and more. Your AI studio, your sound. #Music #AI",
             "🎮 Play against AI. Challenge your friends. The My Ai GPT Games Hub is open — Blackjack, Memory Match, and more. Who wins: you or the AI? #Games",
             "🔮 We believe AI should be yours — not rented from a corporate subscription. My Ai GPT is built for people, by people, powered by Quantum Logic Network. #Sovereign #AI",
           ]
@@ -10904,84 +10901,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
         lastUpdate: eqRes.rows[0]?.integrated_at || spawnRes.rows[0]?.updated_at || null,
       });
     } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  // ── MUSIC GENERATION ROUTES ──────────────────────────────────────────────
-
-  // POST /api/music/generate — MusicGen AI via HuggingFace (real audio generation)
-  app.post("/api/music/generate", async (req, res) => {
-    try {
-      const { prompt, genre = "Hip-Hop", bpm = 140, key = "Am", duration = 15, producerStyle } = req.body;
-      if (!prompt) return res.status(400).json({ error: "prompt required" });
-
-      // Build a rich, specific prompt for MusicGen
-      const genrePromptMap: Record<string, string> = {
-        "Trap": `aggressive trap instrumental, heavy 808 bass slides, trap hi-hat rolls 16th notes, dark piano melody, hard kick drums, ${bpm} bpm, key of ${key}, professional studio quality`,
-        "Hip-Hop": `classic hip-hop instrumental, boom bap drums, sampled soulful chords, deep bass groove, punchy snare, ${bpm} bpm, key of ${key}, major label quality`,
-        "Drill": `uk drill instrumental, sliding 808 bass, offbeat snare pattern, dark atmospheric melody, synth stabs, triplet hi-hats, ${bpm} bpm, key of ${key}`,
-        "R&B": `smooth r&b instrumental, warm chord pads, groove drum kit, soulful melody, deep bass, open hi-hats, ${bpm} bpm, key of ${key}, radio ready`,
-        "Pop": `modern pop instrumental, catchy synth melody, punchy drums, warm bass, bright chords, professional mix, ${bpm} bpm, key of ${key}`,
-        "Lo-Fi": `lo-fi hip hop instrumental, jazzy chord progression, vintage drum kit with vinyl crackle, mellow bass, dreamy atmosphere, ${bpm} bpm, key of ${key}`,
-        "EDM": `edm instrumental, energetic synth lead, four-on-the-floor kick, deep bass drop, euphoric chords, sidechain compression, ${bpm} bpm, key of ${key}`,
-        "Afrobeats": `afrobeats instrumental, talking drum percussion, shekere rhythms, melodic guitar, groovy bass, afro pop feel, ${bpm} bpm, key of ${key}`,
-        "Dancehall": `dancehall riddim, heavy bass, offbeat guitar stabs, digital drums, Caribbean percussion, ${bpm} bpm, key of ${key}`,
-        "Ambient": `ethereal ambient instrumental, lush atmospheric pads, evolving textures, gentle melody, deep reverb, ${bpm} bpm, key of ${key}`,
-        "Jazz": `jazz instrumental, walking bass line, piano chord comping, brushed drums, improvised melody, ${bpm} bpm, key of ${key}`,
-      };
-      const enrichedPrompt = genrePromptMap[genre] || `${genre} instrumental beat, professional studio quality, ${bpm} bpm, ${key}, ${prompt}`;
-      const finalPrompt = `${enrichedPrompt}. ${prompt}`;
-
-      const hfKey = process.env.HUGGINGFACE_API_KEY;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (hfKey) headers["Authorization"] = `Bearer ${hfKey}`;
-
-      // Try musicgen-medium first (better quality), fall back to small
-      const models = ["facebook/musicgen-small", "facebook/musicgen-melody"];
-      let audioBuffer: Buffer | null = null;
-      let usedModel = "";
-
-      for (const model of models) {
-        try {
-          const hfRes = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ inputs: finalPrompt, parameters: { duration: Math.min(duration, 30), guidance_scale: 3.5 } }),
-          });
-          if (hfRes.ok) {
-            const buf = Buffer.from(await hfRes.arrayBuffer());
-            if (buf.length > 1000) { audioBuffer = buf; usedModel = model; break; }
-          }
-          if (hfRes.status === 503) {
-            // Model loading — return estimated time
-            const errJson = await hfRes.json().catch(() => ({})) as any;
-            return res.status(503).json({ error: "Model loading", estimatedTime: errJson?.estimated_time || 20, hint: "Try again in 20-30 seconds" });
-          }
-        } catch { continue; }
-      }
-
-      if (!audioBuffer) return res.status(503).json({ error: "Music generation unavailable. Add HUGGINGFACE_API_KEY for guaranteed access.", hint: "Free tier has rate limits — try again in 60 seconds" });
-
-      const base64 = audioBuffer.toString("base64");
-      res.json({ audioData: `data:audio/wav;base64,${base64}`, model: usedModel, prompt: finalPrompt, genre, bpm, key });
-    } catch (e: any) { res.status(500).json({ error: String(e) }); }
-  });
-
-  // GET /api/music/producer-styles — Returns all 12 producer style profiles
-  app.get("/api/music/producer-styles", async (_req, res) => {
-    res.json({ styles: [
-      { id: "metro", name: "Metro Pulse", genre: "Trap", bpm: [140,145], key: "Cm", swing: 0, trademark: "808 slides + dark piano", palette: "#8b5cf6" },
-      { id: "apollo", name: "Apollo Grid", genre: "R&B", bpm: [80,95], key: "Fm", swing: 8, trademark: "lush chords + smooth groove", palette: "#f59e0b" },
-      { id: "quantum", name: "Quantum Wave", genre: "EDM", bpm: [126,132], key: "Am", swing: 0, trademark: "euphoric drops + sidechain pump", palette: "#06b6d4" },
-      { id: "drillmaster", name: "Drillmaster X", genre: "Drill", bpm: [144,148], key: "Dm", swing: 0, trademark: "sliding 808 + offgrid snares", palette: "#ef4444" },
-      { id: "lofi_sage", name: "Lo-Fi Sage", genre: "Lo-Fi", bpm: [70,85], key: "Dm", swing: 15, trademark: "vinyl crackle + jazzy chords", palette: "#84cc16" },
-      { id: "afro_king", name: "Afro King", genre: "Afrobeats", bpm: [100,115], key: "Gm", swing: 12, trademark: "talking drum + melodic guitar", palette: "#f97316" },
-      { id: "celestial", name: "Celestial Arc", genre: "Ambient", bpm: [65,75], key: "Em", swing: 0, trademark: "evolving pads + deep reverb", palette: "#a78bfa" },
-      { id: "boom_bap", name: "Boom Bap King", genre: "Hip-Hop", bpm: [85,95], key: "Am", swing: 10, trademark: "sampled soul + punchy drums", palette: "#fbbf24" },
-      { id: "pop_titan", name: "Pop Titan", genre: "Pop", bpm: [100,120], key: "C", swing: 5, trademark: "catchy hooks + bright synths", palette: "#ec4899" },
-      { id: "dancehall_don", name: "Dancehall Don", genre: "Dancehall", bpm: [90,100], key: "Bb", swing: 8, trademark: "riddim bass + offbeat stabs", palette: "#10b981" },
-      { id: "jazz_cipher", name: "Jazz Cipher", genre: "Jazz", bpm: [120,140], key: "Fm", swing: 20, trademark: "ii-V-I progressions + brushed drums", palette: "#e879f9" },
-      { id: "sovereign", name: "Sovereign Sound", genre: "Trap", bpm: [138,160], key: "F#m", swing: 3, trademark: "subatomic 808 + quantum melody", palette: "#7c3aed" },
-    ]});
   });
 
   // ── RESEARCH ROUTES (PulseNetPage PulseLang Lab tab) ────────────────────────

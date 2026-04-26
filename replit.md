@@ -20,7 +20,7 @@ The application features a React + Vite + Tailwind CSS + shadcn/ui frontend, wit
 - **Microservice-like Backend**: Dedicated routes for AI logic, web search, execution engine, and database operations.
 - **Robust Code Playground**: Provides an IDE experience with multi-language support, server-side execution, sandboxed browser execution, live previews, and advanced AI code assistance.
 - **Dynamic Content Integration**: Real-time weather, finance, and web search results are integrated into AI conversations.
-- **Quantum Sound Records — AI Music Studio**: A music creation engine with MusicGen AI integration, a Quantum Sound Engine, genre-specific chord DNA, melody patterns, producer genomes, and advanced audio processing features.
+- **Music feature removed (Apr 2026)**: Quantum Sound Records, Quantum Studio DAW, Music Equation Lab, ToneBeatMaker, MusicGen API routes, and the `/music` route were fully retired (~3,572 lines deleted). Page count 24 → 23. Reason: dead-weight, not core to evolution machinery.
 - **Finance Oracle**: A professional trading terminal (`FinancePage.tsx`) featuring a watchlist, embedded charts with indicators, and a live AI scientist feed for market analysis.
 - **Quantapedia Knowledge Engine**: An autonomous AI system for generating and expanding a persistent knowledge base.
 - **Quantum Shopping Universe**: An AI-driven store for product discovery, indexing, and AI-generated descriptions.
