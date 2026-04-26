@@ -236,7 +236,6 @@ console.log("[db] ✅ API query pool ready (max 5)");
     `CREATE TABLE IF NOT EXISTS ai_id_cards (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
     `CREATE TABLE IF NOT EXISTS ai_will (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
     `CREATE TABLE IF NOT EXISTS royalty_transactions (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
-    `CREATE TABLE IF NOT EXISTS email_subscribers (id serial PRIMARY KEY, email text DEFAULT '', payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
     `CREATE TABLE IF NOT EXISTS counseling_sessions (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
     `CREATE TABLE IF NOT EXISTS pulse_doctors (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
     `CREATE TABLE IF NOT EXISTS pulse_sat_connections (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,

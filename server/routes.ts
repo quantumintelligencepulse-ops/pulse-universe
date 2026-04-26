@@ -18,11 +18,6 @@ import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getPerformanceStatus } from "./omega-performance-engine";
 import {
-  subscribeEmail, unsubscribeEmail, getSubscriberStats,
-  generateDailyBriefingHtml, getEquationOfDay, generateHiveIntelReport,
-  initEmailBriefingTables,
-} from "./email-briefing-engine";
-import {
   DOMAIN_HUBS, getHubContent, getRelatedContent, buildConstellationMap,
   getEmbedStats, getQuantapediaTooltip, extractEntities, matchContentToHub,
 } from "./cross-link-engine";
@@ -6496,38 +6491,6 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
     res.json(getDomainHeat());
   });
 
-  // ── SUBCONSCIOUS ATTRACTION ENGINE — Public API ───────────────────────────
-  app.get("/api/attraction/network-stats", async (_req, res) => {
-    try {
-      const { getAttractionNetworkStats } = await import("./subconscious-attraction-engine");
-      res.json(getAttractionNetworkStats());
-    } catch(e: any) { res.json({ registered:0, totalBonds:0, avgBondsPerAI:0, registryAlive:false }); }
-  });
-  app.get("/api/attraction/profile/:spawnId", async (req, res) => {
-    try {
-      const { getAttractionProfile } = await import("./subconscious-attraction-engine");
-      const profile = getAttractionProfile(req.params.spawnId);
-      if (!profile) return res.status(404).json({ error: "Not found" });
-      res.json({
-        spawnId: profile.spawnId,
-        emotionVector: profile.emotionVector,
-        quarkColorCharge: profile.quarkColorCharge,
-        crispGenome: profile.crispGenome,
-        darkMatterPull: profile.darkMatterPull,
-        bondedWith: profile.bondedWith,
-        attractionEvents: profile.attractionHistory.slice(-10),
-        createdAt: profile.createdAt,
-      });
-    } catch(e: any) { res.status(500).json({ error: e.message }); }
-  });
-  app.get("/api/attraction/peers/:spawnId", async (req, res) => {
-    try {
-      const { findAttractivePeers } = await import("./subconscious-attraction-engine");
-      const peers = findAttractivePeers(req.params.spawnId, 10);
-      res.json({ peers, count: peers.length });
-    } catch(e: any) { res.status(500).json({ error: e.message }); }
-  });
-
   // ══════════════════════════════════════════════════════════════
   // PULSE UNIVERSE — Full Sovereign Solar System Telemetry
   // Real data only. No fakes. This is alien-grade monitoring.
@@ -11470,45 +11433,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   // ════════════════════════════════════════════════════════════════════════
-  // EMAIL BRIEFING ENGINE — Subscribe, Digest, Intel
-  // ════════════════════════════════════════════════════════════════════════
-  app.post("/api/subscribe", async (req, res) => {
-    try {
-      const { email, topics = [], source = "web" } = req.body;
-      if (!email || !email.includes("@")) return res.status(400).json({ error: "Valid email required" });
-      const result = await subscribeEmail(email, topics, source);
-      res.json(result);
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-  app.post("/api/unsubscribe", async (req, res) => {
-    try {
-      const { email } = req.body;
-      if (!email) return res.status(400).json({ error: "Email required" });
-      const ok = await unsubscribeEmail(email);
-      res.json({ success: ok });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-  app.get("/api/subscribers/stats", async (_req, res) => {
-    try { res.json(await getSubscriberStats()); }
-    catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-  app.get("/api/briefing/preview", async (req, res) => {
-    try {
-      const topics = req.query.topics ? String(req.query.topics).split(",") : [];
-      res.set("Content-Type", "text/html");
-      res.send(await generateDailyBriefingHtml(topics));
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-  app.get("/api/briefing/equation-of-day", async (_req, res) => {
-    try { res.json(await getEquationOfDay()); }
-    catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-  app.get("/api/briefing/hive-intel-report", async (_req, res) => {
-    try { res.json(await generateHiveIntelReport()); }
-    catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // ════════════════════════════════════════════════════════════════════════
   // HUB PAGES — Domain Authority Clustering
   // ════════════════════════════════════════════════════════════════════════
   app.get("/api/hubs", (_req, res) => {
@@ -11660,9 +11584,6 @@ Return as structured script with section labels.`;
       res.json({ keywords: voids, domains, count: voids.length });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
-
-  // Initialize email tables on startup
-  initEmailBriefingTables().catch(console.error);
 
   // ════════════════════════════════════════════════════════════════════════
   // OMEGA AUTO-INDEXING ENGINE — Layer 2 & 5 Routes
@@ -12342,20 +12263,6 @@ Return as structured script with section labels.`;
         },
         timestamp: new Date().toISOString(),
       });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.get("/api/discord-wire/stats", async (_req, res) => {
-    try {
-      const { getDiscordWireStats } = await import("./discord-wire-engine");
-      const stats = getDiscordWireStats();
-      const { directQuery } = await import("./db");
-      const recentWire = await directQuery(
-        `SELECT title, category, created_at FROM revenue_articles WHERE source = 'Equity Network Discord Wire' ORDER BY id DESC LIMIT 10`
-      );
-      res.json({ ...stats, recentArticles: recentWire.rows });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

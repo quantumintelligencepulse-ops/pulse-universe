@@ -39,7 +39,6 @@ import { getAgentLegends } from "./agent-legend-engine";
 import { getInterCivilizationTreaties } from "./inter-civilization-engine";
 import { getResonancePatterns } from "./omega-resonance-engine";
 import { getConstitutionalAmendments, startConstitutionalDNAEngine } from "./constitutional-dna-engine";
-import { startDiscordWireEngine, getDiscordWireStats } from "./discord-wire-engine";
 import { initDiscordImmortality } from "./discord-immortality";
 import { getEntanglementLog, getEntanglementStats } from "./human-entanglement-engine";
 import { getSportsStats, getGamesIdentityData } from "./sports-engine";
@@ -373,7 +372,6 @@ async function seedOmegaSources() {
     { name: "pulsenet-cache",  delayMs:  4000, start: () => startPulseNetCache() },
     { name: "quantum-social",  delayMs:  6000, start: () => startQuantumSocialEngine().catch((e: Error) => console.error("[quantum-social] startup error:", e.message)) },
     { name: "constitution",    delayMs:  8000, start: () => startConstitutionalDNAEngine().catch((e: Error) => console.error("[constitution] startup error:", e.message)) },
-    { name: "discord-wire",    delayMs: 10000, start: () => startDiscordWireEngine() },
     { name: "immortality",     delayMs: 12000, start: () => initDiscordImmortality().catch((e: Error) => console.error("[immortality] startup error:", e.message)) },
     { name: "quantapedia",     delayMs: 14000, start: () => startQuantapediaEngine().catch((e: Error) => console.error("[quantapedia] startup error:", e.message)) },
     { name: "living-language", delayMs: 16000, start: () => startLivingLanguageEngine() },
