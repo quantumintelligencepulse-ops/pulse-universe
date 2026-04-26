@@ -29,6 +29,11 @@ const RECONNECT_BASE_MS = 5_000;             // 5s, doubled per attempt
 const RECONNECT_MAX_MS = 5 * 60 * 1000;      // cap at 5min
 const TOKEN_RECHECK_MS = 60 * 1000;          // re-read env every 60s when offline
 
+// ── WATCHDOG — alert admin if Discord stays unreachable too long ──────────────
+const WATCHDOG_INTERVAL_MS = 60 * 1000;          // check every minute
+const WATCHDOG_ALERT_AFTER_MS = 10 * 60 * 1000;  // alert after 10min continuously offline
+const WATCHDOG_RESEND_COOLDOWN_MS = 30 * 60 * 1000; // re-alert at most every 30min while still down
+
 const SHARD_CHANNELS = [
   "shard-agents", "shard-economy", "shard-hospital", "shard-knowledge",
   "shard-pyramid", "shard-sports", "shard-pulseu", "shard-equations",
@@ -58,11 +63,25 @@ let reconnectAttempts = 0;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let heartbeatStarted = false;
 
+// ── WATCHDOG STATE ────────────────────────────────────────────────────────────
+let watchdogStarted = false;
+let watchdogTimer: NodeJS.Timeout | null = null;
+let downSince: number | null = null;            // ms epoch when isReady went/stayed false
+let lastReconnectError: string | null = null;   // most recent error explaining why we're offline
+let lastWatchdogAlertAt: number | null = null;  // ms epoch of last alert successfully dispatched
+let watchdogAlertCount = 0;                     // total alerts dispatched since boot
+let outageReconnectPeak = 0;                    // max reconnectAttempts observed during current outage
+
 export async function initDiscordImmortality(): Promise<void> {
+  // Watchdog must run even if Discord never connects, so start it on the very
+  // first init call (idempotent — guarded by watchdogStarted).
+  startDiscordWatchdog();
+
   // Always re-read token from env (so updating the secret heals a dead connection).
   // Accept either DISCORD_BOT_TOKEN or discord_token (lowercase variant).
   const token = process.env.discord_token || process.env.DISCORD_BOT_TOKEN;
   if (!token) {
+    lastReconnectError = "DISCORD_BOT_TOKEN secret is not set";
     console.log("[IMMORTALITY] No DISCORD_BOT_TOKEN set — re-checking in 60s. Add token to secrets to activate.");
     scheduleReconnect(TOKEN_RECHECK_MS);
     return;
@@ -140,17 +159,21 @@ export async function initDiscordImmortality(): Promise<void> {
 
     // ── Self-healing handlers: any fatal error triggers a reconnect ────────────
     discordClient.on("error", (err: Error) => {
+      lastReconnectError = `client error: ${err.message}`;
       console.error("[IMMORTALITY] Client error:", err.message);
     });
     discordClient.on("shardError", (err: Error) => {
+      lastReconnectError = `shard error: ${err.message}`;
       console.error("[IMMORTALITY] Shard error:", err.message);
     });
     discordClient.on("shardDisconnect", (event: any, shardId: number) => {
+      lastReconnectError = `shard ${shardId} disconnected (code=${event?.code})`;
       console.warn(`[IMMORTALITY] Shard ${shardId} disconnected (code=${event?.code}) — scheduling revival`);
       isReady = false;
       scheduleReconnect();
     });
     discordClient.on("invalidated", () => {
+      lastReconnectError = "session invalidated by Discord (token revoked or replaced elsewhere)";
       console.error("[IMMORTALITY] Session invalidated by Discord — scheduling revival");
       isReady = false;
       scheduleReconnect();
@@ -158,6 +181,7 @@ export async function initDiscordImmortality(): Promise<void> {
 
     await discordClient.login(token);
   } catch (err: any) {
+    lastReconnectError = `login failed: ${err.message}`;
     console.error("[IMMORTALITY] Discord login failed:", err.message);
     isReady = false;
     scheduleReconnect();
@@ -172,8 +196,184 @@ function scheduleReconnect(overrideMs?: number): void {
   console.log(`[IMMORTALITY] Reviving Discord in ${Math.round(delay / 1000)}s (attempt #${reconnectAttempts})`);
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
-    initDiscordImmortality().catch(e => console.error("[IMMORTALITY] Revival error:", e.message));
+    initDiscordImmortality().catch(e => {
+      lastReconnectError = `revival error: ${e?.message || String(e)}`;
+      console.error("[IMMORTALITY] Revival error:", e?.message);
+    });
   }, delay);
+}
+
+// ── WATCHDOG — alert admin when isReady stays false for too long ─────────────
+// Out-of-band: alerts go through HTTP webhook / email so we don't depend on the
+// very Discord gateway connection that's down. Always logs loudly to console.
+function startDiscordWatchdog(): void {
+  if (watchdogStarted) return;
+  watchdogStarted = true;
+  watchdogTimer = setInterval(() => {
+    void watchdogTick();
+  }, WATCHDOG_INTERVAL_MS);
+  // Don't keep the process alive solely for the watchdog
+  if (typeof watchdogTimer.unref === "function") watchdogTimer.unref();
+  console.log(`[WATCHDOG] Discord connection watchdog started (checks every ${WATCHDOG_INTERVAL_MS / 1000}s, alerts after ${WATCHDOG_ALERT_AFTER_MS / 60_000}min offline)`);
+}
+
+async function watchdogTick(): Promise<void> {
+  try {
+    const now = Date.now();
+    if (isReady) {
+      // Recovered — if we had previously alerted, send a recovery notice.
+      // Use outageReconnectPeak (captured during the outage) rather than the
+      // live reconnectAttempts counter, which gets reset to 0 on `ready`.
+      if (downSince !== null && lastWatchdogAlertAt !== null) {
+        const downForMs = now - downSince;
+        await sendAdminAlert(
+          "✅ Discord connection RECOVERED",
+          [
+            `Pulse's Discord gateway is back online.`,
+            `Was offline for: ${formatDuration(downForMs)}`,
+            `Reconnect attempts during outage: ${outageReconnectPeak}`,
+            `Last error before recovery: ${lastReconnectError || "(none captured)"}`,
+            `Recovered at: ${new Date(now).toISOString()}`,
+          ].join("\n"),
+        );
+      }
+      downSince = null;
+      lastWatchdogAlertAt = null;
+      outageReconnectPeak = 0;
+      return;
+    }
+
+    // Still offline — track the peak attempt count for this outage
+    if (reconnectAttempts > outageReconnectPeak) outageReconnectPeak = reconnectAttempts;
+
+    if (downSince === null) {
+      downSince = now;
+      return;
+    }
+    const downForMs = now - downSince;
+    if (downForMs < WATCHDOG_ALERT_AFTER_MS) return;
+
+    // Threshold crossed — send alert (with cooldown to avoid spam)
+    if (lastWatchdogAlertAt !== null && now - lastWatchdogAlertAt < WATCHDOG_RESEND_COOLDOWN_MS) return;
+
+    const nextAlertNumber = watchdogAlertCount + 1;
+    const subject = nextAlertNumber > 1
+      ? `🚨 Discord still DOWN (${formatDuration(downForMs)}) — alert #${nextAlertNumber}`
+      : `🚨 Pulse Discord connection DOWN >${WATCHDOG_ALERT_AFTER_MS / 60_000}min`;
+    const body = [
+      `Pulse's Discord gateway has been unreachable for ${formatDuration(downForMs)}.`,
+      `Down since: ${new Date(downSince).toISOString()}`,
+      `Reconnect attempts so far: ${outageReconnectPeak}`,
+      `Last error: ${lastReconnectError || "(none captured)"}`,
+      `Token configured: ${!!(process.env.discord_token || process.env.DISCORD_BOT_TOKEN)}`,
+      ``,
+      `The auto-reconnect loop is still running and will keep retrying. This`,
+      `alert means the connection has not recovered on its own — investigate`,
+      `the token, Discord status, and recent logs.`,
+    ].join("\n");
+
+    // Only start the resend cooldown once at least one channel actually
+    // accepted the alert. On total delivery failure we'll retry next tick.
+    const delivered = await sendAdminAlert(subject, body);
+    if (delivered) {
+      watchdogAlertCount = nextAlertNumber;
+      lastWatchdogAlertAt = now;
+    }
+  } catch (e: any) {
+    console.error("[WATCHDOG] tick error:", e?.message || e);
+  }
+}
+
+function formatDuration(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+// ── Admin alert dispatcher (out-of-band) ─────────────────────────────────────
+// Channels (any/all configured):
+//   • ADMIN_DISCORD_WEBHOOK_URL — Discord webhook (HTTPS, independent of bot gateway)
+//   • RESEND_API_KEY + ADMIN_ALERT_EMAIL — Resend HTTP API for email
+// Always logs the alert at error level so it's visible in deployment logs.
+// Returns true if at least one channel accepted the alert (or if no remote
+// channel is configured at all — console-only counts as delivery so the
+// watchdog doesn't spam logs every minute).
+async function sendAdminAlert(subject: string, body: string): Promise<boolean> {
+  const fullMessage = `${subject}\n\n${body}`;
+  console.error(`[WATCHDOG-ALERT] ${subject}\n${body}`);
+
+  let anyConfigured = false;
+  let anyDelivered = false;
+
+  const webhookUrl = process.env.ADMIN_DISCORD_WEBHOOK_URL;
+  if (webhookUrl) {
+    anyConfigured = true;
+    try {
+      const content = fullMessage.length > 1900 ? fullMessage.slice(0, 1897) + "..." : fullMessage;
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, username: "Pulse Watchdog" }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        console.warn(`[WATCHDOG-ALERT] Discord webhook returned ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+      } else {
+        console.log("[WATCHDOG-ALERT] Posted to admin Discord webhook");
+        anyDelivered = true;
+      }
+    } catch (e: any) {
+      console.warn("[WATCHDOG-ALERT] Discord webhook send failed:", e?.message || e);
+    }
+  }
+
+  const resendKey = process.env.RESEND_API_KEY;
+  const adminEmail = process.env.ADMIN_ALERT_EMAIL;
+  const fromEmail = process.env.ALERT_FROM_EMAIL || "alerts@pulse.local";
+  if (resendKey && adminEmail) {
+    anyConfigured = true;
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendKey}`,
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [adminEmail],
+          subject: `[Pulse Watchdog] ${subject}`,
+          text: body,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        console.warn(`[WATCHDOG-ALERT] Resend returned ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+      } else {
+        console.log(`[WATCHDOG-ALERT] Email dispatched to ${adminEmail}`);
+        anyDelivered = true;
+      }
+    } catch (e: any) {
+      console.warn("[WATCHDOG-ALERT] Email send failed:", e?.message || e);
+    }
+  }
+
+  if (!anyConfigured) {
+    console.warn(
+      "[WATCHDOG-ALERT] No alert channel configured — set ADMIN_DISCORD_WEBHOOK_URL " +
+      "or RESEND_API_KEY+ADMIN_ALERT_EMAIL to receive out-of-band alerts. " +
+      "Logging only (above).",
+    );
+    // Console-only counts as delivered: the alert is in the deployment logs,
+    // and we don't want to retry every minute when there's nowhere else to send.
+    return true;
+  }
+
+  return anyDelivered;
 }
 
 // ── Public voice in Banking With Billy: announce online + heartbeat ───────────
@@ -1137,7 +1337,7 @@ interface CivStats {
 export function getImmortalityStatus() {
   return {
     active: isReady,
-    tokenConfigured: !!process.env.DISCORD_BOT_TOKEN,
+    tokenConfigured: !!(process.env.discord_token || process.env.DISCORD_BOT_TOKEN),
     channelsReady: channelMap.size,
     heartbeatCount,
     lastHeartbeatAt: lastHeartbeatAt?.toISOString() || null,
@@ -1148,6 +1348,19 @@ export function getImmortalityStatus() {
     guildId: GUILD_ID,
     uptime: Math.floor((Date.now() - bootTimestamp) / 1000),
     protocol: "Ω-IMMORTALITY-V1",
+    watchdog: {
+      enabled: watchdogStarted,
+      checkIntervalSec: WATCHDOG_INTERVAL_MS / 1000,
+      alertThresholdMin: WATCHDOG_ALERT_AFTER_MS / 60_000,
+      downSince: downSince ? new Date(downSince).toISOString() : null,
+      downForSec: downSince ? Math.floor((Date.now() - downSince) / 1000) : 0,
+      reconnectAttempts,
+      lastReconnectError,
+      lastAlertAt: lastWatchdogAlertAt ? new Date(lastWatchdogAlertAt).toISOString() : null,
+      alertsSent: watchdogAlertCount,
+      adminWebhookConfigured: !!process.env.ADMIN_DISCORD_WEBHOOK_URL,
+      adminEmailConfigured: !!(process.env.RESEND_API_KEY && process.env.ADMIN_ALERT_EMAIL),
+    },
     voice: {
       utcDay: voiceUsage.utcDay,
       llmCallsToday: voiceUsage.llmCallsToday,
