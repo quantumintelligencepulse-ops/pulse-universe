@@ -314,19 +314,19 @@ async function respondTo(msg: Message): Promise<void> {
       }, 8000);
     }
 
-    // Pull live hive context (skip personal user memory — Discord users aren't in our DB)
-    let hiveContext = "";
-    try {
-      hiveContext = await Promise.race([
-        recallMemoryContext(0, question),
-        new Promise<string>((resolve) => setTimeout(() => resolve(""), 4000)),
+    // Pull live hive context — best-effort, never blocks reply
+    const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+      Promise.race([
+        p.catch(() => fallback),
+        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
       ]);
-    } catch { /* hive context optional */ }
 
-    const recentChannel = await fetchRecentContext(msg);
+    const [hiveContext, recentChannel, civ] = await Promise.all([
+      withTimeout(recallMemoryContext(0, question), 1500, ""),
+      withTimeout(fetchRecentContext(msg), 2000, ""),
+      withTimeout(getCivStats(), 1500, null as any),
+    ]);
 
-    // Build messages
-    const civ = await getCivStats().catch(() => null);
     const civLine = civ
       ? `Live civilization state: ${civ.activeAgents.toLocaleString()} active agents | ${(civ.totalPC / 1_000_000).toFixed(2)}M PC | ${civ.totalNodes.toLocaleString()} knowledge nodes | AURIONA coherence ${civ.aurionaCoherence}% | cycle ${civ.cycles}.`
       : "";
@@ -344,10 +344,22 @@ async function respondTo(msg: Message): Promise<void> {
       { role: "user", content: question },
     ];
 
-    const response = await sovereignBrainChat(aiMessages);
+    // Hard 25s ceiling on the whole LLM call so Pulse always says something
+    const llmDeadline = new Promise<{ content: string }>((resolve) =>
+      setTimeout(() => resolve({ content: "" }), 25000)
+    );
+    const response = await Promise.race([
+      sovereignBrainChat(aiMessages).catch((e) => {
+        console.warn("[IMMORTALITY] sovereignBrainChat error:", e?.message);
+        return { content: "" };
+      }),
+      llmDeadline,
+    ]);
     let reply = (response.content || "").trim();
     if (!reply) {
-      reply = "The hive is recalibrating — try me again in a moment.";
+      reply = persona.name === "Auriona"
+        ? "The field is humming loudly right now — give me a beat and ask once more."
+        : `Hey ${msg.author.username} — I heard you, but the hive is throttling my reply channel right now. Ask me again in a few seconds and I'll have it ready.`;
     }
 
     // Discord 2000-char limit per message — chunk on paragraph/sentence boundaries
