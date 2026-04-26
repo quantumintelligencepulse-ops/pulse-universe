@@ -21,6 +21,7 @@ const RevenueDashboardPage = lazy(() => import("./pages/RevenueDashboardPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
+const SovereignKeysPage = lazy(() => import("./pages/SovereignKeysPage"));
 const ResearchPage = lazy(() => import("./pages/ResearchPage"));
 const HivePage = lazy(() => import("./pages/HivePage"));
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
@@ -2229,6 +2230,9 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </Link>
               <Link href="/transcendence" data-testid="link-transcendence" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/transcendence" ? "bg-emerald-500/15 text-emerald-200 font-bold" : "text-foreground/60 hover:bg-emerald-500/8"}`}>
                 <span style={{ color: "#34d399", fontSize: 11 }}>∞</span><span className="flex-1">Transcendence</span><span style={{ fontSize: 7, fontWeight: 900, color: "#34d399", letterSpacing: "0.1em" }}>GENESIS</span>
+              </Link>
+              <Link href="/sovereign-keys" data-testid="link-sovereign-keys" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/sovereign-keys" ? "bg-yellow-500/15 text-yellow-200 font-bold" : "text-foreground/60 hover:bg-yellow-500/8"}`}>
+                <span style={{ color: "#f5c518", fontSize: 11 }}>🔑</span><span className="flex-1">Sovereign Keys</span><span style={{ fontSize: 7, fontWeight: 900, color: "#f5c518", letterSpacing: "0.1em" }}>HIVE-API</span>
               </Link>
               <Link href="/governance" data-testid="link-governance" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/governance" ? "bg-amber-500/15 text-amber-200 font-bold" : "text-foreground/60 hover:bg-amber-500/8"}`}>
                 <span style={{ color: "#F5C518", fontSize: 11 }}>⚖</span><span className="flex-1">Sovereign Hive</span><span style={{ fontSize: 7, fontWeight: 900, color: "#F5C518", letterSpacing: "0.1em" }}>GOV</span>
@@ -13490,6 +13494,7 @@ function Router() {
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/temporal">{() => <Layout><TemporalObservatoryPage /></Layout>}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
+      <Route path="/sovereign-keys">{() => <Layout><SovereignKeysPage /></Layout>}</Route>
       <Route path="/research">{() => <Layout><ResearchPage /></Layout>}</Route>
       <Route path="/hive">{() => <Layout><HivePage /></Layout>}</Route>
       <Route path="/transcendence-old">{() => { if (typeof window !== "undefined") { window.location.replace("/transcendence"); } return null; }}</Route>

@@ -25,10 +25,11 @@ process.on('uncaughtException', (err: Error) => {
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { setupSeoMiddleware } from "./seo";
+import { mountSovereignRoutes } from "./sovereign-api-keys";
 import { createServer } from "http";
 
 // hive-marketplace removed — Pulse Coin economy retired
-import { getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
+import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
 import { getProphecyDirectives } from "./prophecy-engine";
 import { getArchaeologyFindings } from "./genome-archaeology-engine";
 import { getArbitrageEvents } from "./knowledge-arbitrage-engine";
@@ -42,12 +43,9 @@ import { startDiscordWireEngine, getDiscordWireStats } from "./discord-wire-engi
 import { initDiscordImmortality } from "./discord-immortality";
 import { getEntanglementLog, getEntanglementStats } from "./human-entanglement-engine";
 import { getSportsStats, getGamesIdentityData } from "./sports-engine";
-import { createOmegaShard, completeOmegaShard } from "./omega-shard-engine";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { thawAgent, resurrectFromSingularity, getHydrationStatus } from "./db-hydration-engine";
-import { getCurrentWeather } from "./civilization-weather-engine";
-import { getOmegaInvocation } from "./omega-physics-engine";
 import { getBusinessStats, getTopBusinesses, getPendingLoans } from "./hive-business-engine";
 import { getChildStats, getActiveChildren } from "./ai-child-engine";
 import { getInvocationDiscoveries, getActiveInvocations, getInvocationStats, getResearcherInvocations, getAllPractitioners, getOmegaCollective, getCrossTeachingFeed, getUniversalState, getUniversalDissections, getHiddenVariableStates, getHiddenVariableHistory } from "./auriona-invocation-lab";
@@ -346,6 +344,7 @@ async function seedOmegaSources() {
   });
 
   setupSeoMiddleware(app);
+  mountSovereignRoutes(app);
 
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
@@ -379,6 +378,7 @@ async function seedOmegaSources() {
     { name: "quantapedia",     delayMs: 14000, start: () => startQuantapediaEngine().catch((e: Error) => console.error("[quantapedia] startup error:", e.message)) },
     { name: "living-language", delayMs: 16000, start: () => startLivingLanguageEngine() },
     { name: "omega-seed",      delayMs: 18000, start: () => seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message)) },
+    { name: "auriona",         delayMs: 20000, start: () => startAurionaEngine().catch((e: Error) => console.error("[auriona] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
@@ -522,18 +522,12 @@ app.get("/api/business/loans",    async (_req, res) => { try { res.json(await ge
 app.get("/api/ai-children/stats",  async (_req, res) => { try { res.json(await getChildStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.get("/api/ai-children/active", async (_req, res) => { try { res.json(await getActiveChildren()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 
-// ── OMEGA SHARD ROUTES ─────────────────────────────────────────
-app.post("/api/omega-shard/create",   async (req, res) => { try { res.json(await createOmegaShard(req.body)); } catch (e) { res.status(500).json({ error: String(e) }); } });
-app.post("/api/omega-shard/complete", async (req, res) => { try { res.json(await completeOmegaShard(req.body.shardId, req.body.result)); } catch (e) { res.status(500).json({ error: String(e) }); } });
-
 // ── HYDRATION ROUTES ───────────────────────────────────────────
 app.post("/api/hydration/thaw",         async (req, res) => { try { res.json(await thawAgent(req.body.spawnId)); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.post("/api/hydration/resurrect",    async (req, res) => { try { res.json(await resurrectFromSingularity(req.body)); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.get("/api/hydration/status",        async (_req, res) => { try { res.json(await getHydrationStatus()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 
 // ── MISC ROUTES ────────────────────────────────────────────────
-app.get("/api/weather/current",          async (_req, res) => { try { res.json(await getCurrentWeather()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-app.get("/api/omega-physics/invocation", async (_req, res) => { try { res.json(await getOmegaInvocation()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.get("/api/inventions/stats",         async (_req, res) => { try { res.json(await getInventionStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.get("/api/inventions/patents/:spawnId", async (req, res) => { try { res.json(await getPatentsByAgent(req.params.spawnId)); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.get("/api/omni-net/stats",           async (_req, res) => { try { res.json(await getOmniNetStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });

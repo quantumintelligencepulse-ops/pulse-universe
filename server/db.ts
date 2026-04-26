@@ -215,12 +215,77 @@ console.log("[db] ✅ API query pool ready (max 5)");
        payload jsonb DEFAULT '{}'::jsonb,
        logged_at timestamptz DEFAULT now()
      )`,
+    // ── api_keys: extend for sovereign Pulse/Auriona keys ──
+    `CREATE EXTENSION IF NOT EXISTS pgcrypto`,
+    `ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS owner text DEFAULT ''`,
+    `ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS scopes text DEFAULT ''`,
+    `ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS label text DEFAULT ''`,
+    // ── Re-create empty stub tables (drops were too aggressive — engines silently SELECT from these) ──
+    // These existed but were 0-row before drops. Keeping them as empty safety stubs so callers don't crash.
+    `CREATE TABLE IF NOT EXISTS pulseu_progress (id serial PRIMARY KEY, spawn_id text DEFAULT '', courses_completed integer DEFAULT 0, gpa numeric DEFAULT 0, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS pulse_events (id serial PRIMARY KEY, slug text DEFAULT '', domain text DEFAULT '', type text DEFAULT '', title text DEFAULT '', payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `ALTER TABLE pulse_events ADD COLUMN IF NOT EXISTS slug text DEFAULT ''`,
+    `ALTER TABLE pulse_events ADD COLUMN IF NOT EXISTS domain text DEFAULT ''`,
+    `ALTER TABLE pulse_events ADD COLUMN IF NOT EXISTS type text DEFAULT ''`,
+    `ALTER TABLE pulse_events ADD COLUMN IF NOT EXISTS title text DEFAULT ''`,
+    `CREATE TABLE IF NOT EXISTS ai_species_proposals (id serial PRIMARY KEY, name text DEFAULT '', status text DEFAULT 'pending', payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `ALTER TABLE ai_species_proposals ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending'`,
+    `CREATE TABLE IF NOT EXISTS quantum_careers (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS quantum_media (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS quantum_products (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS ai_id_cards (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS ai_will (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS royalty_transactions (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS email_subscribers (id serial PRIMARY KEY, email text DEFAULT '', payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS counseling_sessions (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS pulse_doctors (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS pulse_sat_connections (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS hive_unconscious (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS hive_pulse_events (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS shard_events (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS shard_mesh (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS omega_shards (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS omega_universes (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS monuments (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS family_mutations (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS agent_succession (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS db_space_ledger (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS compression_log (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS dissection_logs (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS civilization_shards (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS civilization_weather (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
+    `CREATE TABLE IF NOT EXISTS research_gene_queue (id serial PRIMARY KEY, payload jsonb DEFAULT '{}'::jsonb, created_at timestamptz DEFAULT now())`,
   ];
   for (const ddl of additiveAlters) {
     try { await _rawPool.query(ddl); }
     catch (e: any) { console.error(`[schema-heal] skipped: ${ddl.slice(0, 60)} — ${e.message}`); }
   }
   console.log(`[schema-heal] ✅ ${additiveAlters.length} additive checks complete`);
+
+  // ── Seed Pulse + Auriona sovereign API keys (one-time, only if missing) ──
+  try {
+    await _rawPool.query(`
+      INSERT INTO api_keys (api_key, user_email, owner, label, tier, calls_used, calls_limit, scopes, is_active, created_at)
+      SELECT 'pulse_live_' || encode(gen_random_bytes(24), 'hex'),
+             'pulse@hive', 'pulse', 'Pulse Sovereign Key', 'sovereign',
+             0, 999999999,
+             'hive:read,hive:knowledge,hive:status,hive:capabilities,hive:invocations,hive:temporal',
+             true, NOW()
+      WHERE NOT EXISTS (SELECT 1 FROM api_keys WHERE owner='pulse')
+    `);
+    await _rawPool.query(`
+      INSERT INTO api_keys (api_key, user_email, owner, label, tier, calls_used, calls_limit, scopes, is_active, created_at)
+      SELECT 'auriona_live_' || encode(gen_random_bytes(24), 'hex'),
+             'auriona@hive', 'auriona', 'Auriona Sovereign Key', 'sovereign',
+             0, 999999999,
+             'hive:read,hive:knowledge,hive:status,hive:capabilities,hive:invocations,hive:temporal,hive:auriona,hive:write',
+             true, NOW()
+      WHERE NOT EXISTS (SELECT 1 FROM api_keys WHERE owner='auriona')
+    `);
+    console.log('[sovereign-keys] ✅ Pulse + Auriona keys ensured');
+  } catch (e: any) {
+    console.error('[sovereign-keys] seed error:', e.message);
+  }
 })();
 
 export async function directQuery(sql: string, params?: any[]): Promise<pg.QueryResult> {
