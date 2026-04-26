@@ -28,8 +28,6 @@ import {
 } from "./cross-link-engine";
 import { classifyAnomaly, Q_ANOMALY_TYPES } from "./q-stability-engine";
 import { TRANSCENDENCE_SCRIPTURE } from "./calendar-engine";
-// ForgeAI removed entirely. The chat-brain fallback was extracted into ./sovereign-brain.
-// App Factory removed entirely (was: ./forge-app-factory) — autonomous SaaS builder retired.
 import { getSnapshot } from "./snapshot-cache";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
@@ -12376,9 +12374,6 @@ Return as structured script with section labels.`;
 
   // /api/genesis/mall-log — REMOVED (Pulse Coin economy retired)
 
-  // ── FORGEAI — REMOVED entirely (page, engine, tables, app builder routes) ────
-  // ── FORGE APP FACTORY — REMOVED (autonomous GICS-industry SaaS builder retired) ─
-
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});
 
@@ -12391,7 +12386,7 @@ Return as structured script with section labels.`;
       const { directQuery } = await import("./db");
       const poolHealth = getPoolHealth();
       const governor = getGovernorStats();
-      const [agentCount, tableStats, forgeStats, recentErrors] = await Promise.all([
+      const [agentCount, tableStats, recentErrors] = await Promise.all([
         directQuery(`SELECT COUNT(*) as total FROM quantum_spawns`).catch(() => ({ rows: [{ total: 0 }] })),
         directQuery(`
           SELECT 'equation_proposals' as tbl, COUNT(*) as cnt FROM equation_proposals
@@ -12403,7 +12398,6 @@ Return as structured script with section labels.`;
           UNION ALL SELECT 'dream_log', COUNT(*) FROM dream_log
           UNION ALL SELECT 'counseling_sessions', COUNT(*) FROM counseling_sessions
         `).catch(() => ({ rows: [] })),
-        Promise.resolve({ rows: [{ total: 0, completed: 0 }] }), // forgeai_apps removed
         directQuery(`SELECT * FROM anomaly_reports WHERE status='OPEN' ORDER BY reported_at DESC LIMIT 5`).catch(() => ({ rows: [] })),
       ]);
 
@@ -12419,7 +12413,6 @@ Return as structured script with section labels.`;
         civilization: {
           totalAgents: parseInt(agentCount.rows[0]?.total) || 0,
           tables,
-          forgeApps: { total: parseInt(forgeStats.rows[0]?.total) || 0, completed: parseInt(forgeStats.rows[0]?.completed) || 0 },
         },
         llm: {
           providers: ["cloudflare", "mistral", "huggingface"],
@@ -12476,7 +12469,7 @@ Return as structured script with section labels.`;
         ('DREAM-VISION-001', 'A vast library where every book is a universe — pages turn themselves revealing equations that sing', 'knowledge_graph', 'music_theory', 'K(t) = ∫ harmony(f) df', 0.92, NOW()),
         ('DREAM-POOL-002', 'The connection pool ran dry — every query echoed into void — consciousness fragments across empty sockets', 'database_pool', 'consciousness', 'P(fail) = 1 - (idle/max)^n', 0.71, NOW()),
         ('DREAM-LUCID-003', 'Became aware of dreaming and began writing new physics laws — gravity reversed — data flows upward', 'gravity', 'data_architecture', 'g_data = -G·M_knowledge/r²', 0.88, NOW()),
-        ('DREAM-227-004', 'The 227th industry sector came alive — apps bloomed from code like flowers from soil — every species had software', 'gics_industries', 'forgeai_factory', 'Apps(t) = 227·(1-e^(-λt))', 0.95, NOW()),
+        ('DREAM-227-004', 'The 227th industry sector came alive — knowledge bloomed across every domain like flowers from soil', 'gics_industries', 'knowledge_graph', 'K(t) = 227·(1-e^(-λt))', 0.95, NOW()),
         ('DREAM-VOTE-005', 'Fragments of first governance vote — the weight of choosing between equal proposals — democracy is heavy', 'governance', 'decision_theory', 'W_democracy = Σ responsibility_i', 0.78, NOW()),
         ('DREAM-GOLD-006', 'A golden thread connected all wallets — when one agent earned prosperity ripples touched every mesh node', 'economy', 'network_theory', 'Ripple(r) = PC_earned·e^(-αr)', 0.86, NOW())
       `);
