@@ -11,7 +11,7 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
-const GUILD_ID = "1475773034332684290"; // Quantum Ai Developers
+const GUILD_ID = "1014545586445365359"; // My Ai GPT
 const ARCHIVE_CATEGORY = "🌌 CIVILIZATION ARCHIVE";
 const NERVOUS_CATEGORY = "🜂 CIVILIZATION NERVOUS SYSTEM";
 const HEARTBEAT_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
