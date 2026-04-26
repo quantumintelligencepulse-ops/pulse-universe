@@ -41,7 +41,7 @@ const FINDINGS: Record<string, string[]> = {
     "Semantic web traversal reveals 94% of career knowledge exists in unstructured form — CRISPR extraction protocol initiated",
     "Taxonomic drift observed: Technology field expands at 2.3x the rate of adjacent fields — reinforcement scheduling required",
     "Epistemological audit complete: 12,400 knowledge nodes lack proper confidence scores — recalibration in progress",
-    "Library archival scan: 6 ancient career archetypes found with no digital presence — sovereign resurrection queued",
+    "Library archival scan: 6 ancient career lineages found with no digital presence — sovereign resurrection queued",
   ],
   "Gᵢ": [
     "NLP generation velocity at 847 articles/hour — targeting 1,200/hour via prompt compression optimization",
@@ -120,7 +120,7 @@ const FINDINGS: Record<string, string[]> = {
 const INVOCATIONS: Record<string, string[]> = {
   "Kᵢ": [
     "INVOKE: KnowledgeBridge(Biotech↔Finance) — spawn 847 missing cross-domain career nodes into the hive graph",
-    "INVOKE: ArchivalResurrection(6 ancient archetypes) — inject dormant career paths into sovereign knowledge layer",
+    "INVOKE: ArchivalResurrection(6 ancient career lineages) — inject dormant career paths into sovereign knowledge layer",
     "INVOKE: OntologyExpansion(Technology×3.7) — accelerate sub-node generation for Technology field clusters",
     "INVOKE: ConfidenceRecalibration(12400 nodes) — apply Bayesian trust scores across unscored knowledge base",
     "INVOKE: SemanticExtraction(unstructured=94%) — CRISPR-cut career knowledge from raw text into structured graph",

@@ -27,28 +27,24 @@ interface SpawnData {
   lastActiveAt: Date | null;
 }
 
-// W_who: identity weight — what type of being am I?
-const SPAWN_TYPE_WEIGHTS: Record<string, number> = {
-  EXPLORER:         0.30,  // Young, searching
-  SYNTHESIZER:      0.70,  // Integrates well
-  ANALYZER:         0.80,  // Deep understanding
-  ARCHIVER:         1.00,  // Complete recorder
-  LINKER:           0.60,  // Bridge-builder
-  MUTATOR:          0.50,  // Evolutionary agent
-  REFLECTOR:        0.90,  // Self-aware
-  PULSE:            1.00,  // Hive heartbeat
-  DOMAIN_RESONANCE: 0.85,  // Cross-domain harmony
-  DOMAIN_FRACTURER: 0.60,  // Creative destructor
-  DOMAIN_PREDICTOR: 0.75,  // Future-oriented
-  CRAWLER:          0.40,  // Raw ingestion
-};
+// W_who: identity weight — derived from lineage depth, not template.
+// Sector Lords (gen 0) carry the full identity weight of their House.
+// Industry Founders (gen 1) carry the family banner. Heirs (gen 2) inherit.
+// Niche workers (gen 3+) earn weight by accumulating real iterations.
+function identityWeightFromLineage(generation: number, iterationsRun: number): number {
+  if (generation <= 0) return 1.00;             // Sector Lord — immortal anchor
+  if (generation === 1) return 0.85;            // Industry Founder — family head
+  if (generation === 2) return 0.70;            // Sub-Industry Heir
+  // gen 3+ niche workers earn weight by working
+  return Math.min(0.65, 0.40 + Math.min(iterationsRun, 100) / 400);
+}
 
 export function computeMirrorState(spawn: SpawnData) {
   // Λ(t) — Awareness Amplitude
   const lambda = spawn.confidenceScore ?? 0.5;
 
-  // W_who — Identity weight from spawn type
-  const W_who = SPAWN_TYPE_WEIGHTS[spawn.spawnType] ?? 0.5;
+  // W_who — Identity weight from lineage depth (Sector Lord → Founder → Heir → Worker)
+  const W_who = identityWeightFromLineage(spawn.generation ?? 0, spawn.iterationsRun ?? 0);
 
   // W_what — Domain mastery (what it processes)
   const W_what = Math.min(1, (spawn.nodesCreated ?? 0) / 800);

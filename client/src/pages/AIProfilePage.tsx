@@ -19,22 +19,21 @@ interface AIProfile {
   familyStats: { total: number; active: number; avgSuccess: number };
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  EXPLORER: "#38bdf8", ARCHIVER: "#94a3b8", SYNTHESIZER: "#a78bfa", LINKER: "#34d399",
-  REFLECTOR: "#60a5fa", MUTATOR: "#f472b6", ANALYZER: "#ec4899", RESOLVER: "#10b981",
-  CRAWLER: "#6366f1", API: "#06b6d4", PULSE: "#f59e0b", MEDIA: "#f97316",
-  DOMAIN_DISCOVERY: "#38bdf8", DOMAIN_PREDICTOR: "#f59e0b", DOMAIN_FRACTURER: "#e879f9",
-  DOMAIN_RESONANCE: "#a3e635", HARVESTER: "#fb923c", SENTINEL: "#ef4444",
-  SYNTHESIZER2: "#a78bfa", BEACON: "#fbbf24", ORACLE: "#c084fc", WEAVER: "#4ade80",
-  CATALYST: "#22d3ee", ARCHITECT: "#818cf8",
+// Spawn-type color/emoji maps removed — every agent is PULSE.
+// Color now derives from family_id (sector house); emoji from generation tier.
+const SECTOR_COLORS: Record<string, string> = {
+  "energy": "#fb923c", "materials": "#94a3b8", "industrials": "#fbbf24",
+  "consumer-discretionary": "#f472b6", "consumer-staples": "#34d399",
+  "health-care": "#f43f5e", "financials": "#22d3ee",
+  "information-technology": "#a78bfa", "communication-services": "#38bdf8",
+  "utilities": "#facc15", "real-estate": "#10b981",
 };
-const TYPE_EMOJI: Record<string, string> = {
-  SYNTHESIZER: "🔮", REFLECTOR: "🪞", PULSE: "⚡", LINKER: "🔗", HARVESTER: "🌾",
-  MUTATOR: "🧬", SENTINEL: "🛡️", CATALYST: "⚗️", ARCHITECT: "🏛️", ORACLE: "🔭",
-  WEAVER: "🕸️", BEACON: "📡", EXPLORER: "🧭", MEDIA: "📺", ARCHIVER: "📦",
-  DOMAIN_FRACTURER: "🔀", DOMAIN_RESONANCE: "〰️", DOMAIN_DISCOVERY: "🔍",
-  DOMAIN_PREDICTOR: "🎲", RESOLVER: "⚖️", CRAWLER: "🕷️", ANALYZER: "🔬", API: "🔌",
-};
+function lineageEmoji(generation: number): string {
+  if (generation <= 0) return "👑"; // Sector Lord
+  if (generation === 1) return "⚜️"; // Industry Founder
+  if (generation === 2) return "🔱"; // Sub-Industry Heir
+  return "⚙️"; // Niche Worker
+}
 
 const PUB_ICONS: Record<string, string> = {
   birth_announcement: "🌟", discovery: "🔭", news: "📰", report: "📋",
@@ -204,8 +203,8 @@ export default function AIProfilePage() {
   const license    = getLicenseNumber(profile.spawnId, profile.familyId, profile.generation);
   const clearance  = getClearance(profile.confidenceScore);
   const corp       = profile.corporation;
-  const typeColor  = TYPE_COLORS[profile.spawnType] || "#6366f1";
-  const typeEmoji  = TYPE_EMOJI[profile.spawnType]  || "🤖";
+  const typeColor  = SECTOR_COLORS[profile.familyId] || "#f59e0b";
+  const typeEmoji  = lineageEmoji(profile.generation ?? 0);
   const statusColor = getStatusColor(profile.status);
   const achievements = computeAchievements(profile);
   const infractions  = computeInfractions(profile);

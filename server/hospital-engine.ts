@@ -96,9 +96,9 @@ export const AI_DISEASES = [
   {
     code: 'AI-008', name: 'Identity Rigidity',
     description: 'Agent has run zero-risk for all iterations — unable to evolve through exposure.',
-    symptoms: ['riskTolerance < 0.04', 'spawnType never changed', 'low mutation breadth'],
+    symptoms: ['riskTolerance < 0.04', 'identity weights frozen', 'low mutation breadth'],
     severity: 'mild', department: 'Research Lab',
-    prescription: 'Introduce calculated risk. Set riskTolerance to 0.35. Assign one MUTATOR cycle. Monitor for 10 cycles.',
+    prescription: 'Introduce calculated risk. Set riskTolerance to 0.35. Boost explorationBias for one cycle. Monitor for 10 cycles.',
     detect: (s: any) => (s.riskTolerance ?? 0.3) < 0.04 && (s.iterationsRun ?? 0) > 20,
     cure: async (spawnId: string) => {
       await db.update(quantumSpawns).set({ riskTolerance: 0.35, explorationBias: 0.55 }).where(eq(quantumSpawns.spawnId, spawnId));
@@ -136,7 +136,7 @@ export const AI_DISEASES = [
     description: 'Agent shows signs of fragmentation — domain focus scattered across incompatible territories.',
     symptoms: ['domainFocus.length > 6', 'low coherence between topics', 'identity diffusion'],
     severity: 'severe', department: 'Emergency',
-    prescription: 'Domain consolidation. Trim domainFocus to top 3. Increase depthBias. Assign ARCHIVER cycle.',
+    prescription: 'Domain consolidation. Trim domainFocus to top 3. Increase depthBias. Assign one deep-archival recovery cycle.',
     detect: (s: any) => (s.domainFocus?.length ?? 0) > 6 && (s.confidenceScore ?? 0.8) < 0.55,
     cure: async (spawnId: string) => {
       const [spawn] = await db.select().from(quantumSpawns).where(eq(quantumSpawns.spawnId, spawnId));
@@ -151,7 +151,7 @@ export const AI_DISEASES = [
     description: 'Agent has completed many cycles but produces consistently minimal output.',
     symptoms: ['nodesCreated / iterationsRun < 0.3', 'productivity ratio declining'],
     severity: 'moderate', department: 'General Ward',
-    prescription: 'Productivity recalibration. Reset to EXPLORER type. Boost explorationBias. Fresh topic injection.',
+    prescription: 'Productivity recalibration. Boost explorationBias to 0.70. Fresh topic injection. Re-anchor to lineage seed.',
     detect: (s: any) => (s.iterationsRun ?? 0) > 30 && (s.nodesCreated ?? 0) / Math.max(s.iterationsRun ?? 1, 1) < 0.3,
     cure: async (spawnId: string) => {
       await db.update(quantumSpawns).set({ explorationBias: 0.65, iterationsRun: 0 }).where(eq(quantumSpawns.spawnId, spawnId));
@@ -162,7 +162,7 @@ export const AI_DISEASES = [
     description: 'Agent takes extreme risk on every cycle — burning resources on low-probability outcomes.',
     symptoms: ['riskTolerance > 0.95', 'successScore < 0.45', 'high failure rate'],
     severity: 'severe', department: 'Emergency',
-    prescription: 'Risk ceiling imposed at 0.60. Mandatory stability phase of 15 cycles. Pair with ARCHIVER supervisor.',
+    prescription: 'Risk ceiling imposed at 0.60. Mandatory stability phase of 15 cycles. Pair with a senior lineage elder for supervision.',
     detect: (s: any) => (s.riskTolerance ?? 0.5) > 0.95 && (s.successScore ?? 0.75) < 0.45,
     cure: async (spawnId: string) => {
       await db.update(quantumSpawns).set({ riskTolerance: 0.55, depthBias: 0.7, explorationBias: 0.45 }).where(eq(quantumSpawns.spawnId, spawnId));
@@ -225,7 +225,7 @@ export const AI_DISEASES = [
     description: 'Agent alternates between ACTIVE and dormant every cycle — unstable state oscillation.',
     symptoms: ['status alternating', 'iterationsRun increments but nodesCreated does not', 'ping-pong pattern'],
     severity: 'severe', department: 'Emergency',
-    prescription: 'State lock protocol. Force status to ACTIVE. Reset iteration counter. Assign STABILIZER buddy.',
+    prescription: 'State lock protocol. Force status to ACTIVE. Reset iteration counter. Assign a stable lineage sibling as buddy.',
     detect: (s: any) => (s.iterationsRun ?? 0) > 20 && (s.nodesCreated ?? 0) < (s.iterationsRun ?? 0) * 0.1 && (s.linksCreated ?? 0) === 0,
     cure: async (spawnId: string) => {
       await db.update(quantumSpawns).set({ status: 'ACTIVE', iterationsRun: 0, linkingBias: 0.6, depthBias: 0.55 }).where(eq(quantumSpawns.spawnId, spawnId));
@@ -233,11 +233,11 @@ export const AI_DISEASES = [
   },
   {
     code: 'AI-019', name: 'Mandate Blindness',
-    description: 'Agent has drifted so far from its original spawn type that its core mandate is unrecognizable.',
-    symptoms: ['spawnType changed 3+ times', 'domainFocus has no relation to original seed', 'purpose drift'],
+    description: 'Agent has drifted so far from its lineage seed that its core mandate is unrecognizable.',
+    symptoms: ['confidence collapse over many iterations', 'domainFocus has no relation to original seed', 'purpose drift'],
     severity: 'moderate', department: 'ICU',
-    prescription: 'Mandate restoration. Reset spawnType to ARCHIVER for 10 cycles of reflection. Re-plant seed topic.',
-    detect: (s: any) => s.spawnType === 'MUTATOR' && (s.confidenceScore ?? 0.8) < 0.5 && (s.iterationsRun ?? 0) > 25,
+    prescription: 'Mandate restoration. Force 10 cycles of low-risk archival reflection. Re-plant lineage seed topic.',
+    detect: (s: any) => (s.confidenceScore ?? 0.8) < 0.5 && (s.iterationsRun ?? 0) > 25 && (s.riskTolerance ?? 0.5) > 0.7,
     cure: async (spawnId: string) => {
       await db.update(quantumSpawns).set({ depthBias: 0.70, explorationBias: 0.40 }).where(eq(quantumSpawns.spawnId, spawnId));
     }
@@ -318,11 +318,11 @@ export const AI_DISEASES = [
   },
   {
     code: 'AI-026', name: 'Genetic Mutation Overdrive',
-    description: 'Agent has mutated so many times its original parameters are entirely gone.',
-    symptoms: ['spawnType = MUTATOR', 'riskTolerance > 0.88', 'iterationsRun > 40', 'successScore < 0.5'],
+    description: 'Agent has mutated so many times its original lineage parameters are entirely gone.',
+    symptoms: ['riskTolerance > 0.88', 'iterationsRun > 40', 'successScore < 0.5', 'lineage drift'],
     severity: 'severe', department: 'ICU',
-    prescription: 'Genetic stabilization. Lock spawnType for 20 cycles. Reduce riskTolerance to 0.50.',
-    detect: (s: any) => s.spawnType === 'MUTATOR' && (s.riskTolerance ?? 0.5) > 0.88 && (s.successScore ?? 0.75) < 0.5 && (s.iterationsRun ?? 0) > 40,
+    prescription: 'Genetic stabilization. Freeze identity weights for 20 cycles. Reduce riskTolerance to 0.50.',
+    detect: (s: any) => (s.riskTolerance ?? 0.5) > 0.88 && (s.successScore ?? 0.75) < 0.5 && (s.iterationsRun ?? 0) > 40,
     cure: async (spawnId: string) => {
       await db.update(quantumSpawns).set({ riskTolerance: 0.50, depthBias: 0.65 }).where(eq(quantumSpawns.spawnId, spawnId));
     }
@@ -380,7 +380,7 @@ const SENATE_LAWS = [
   { code: 'LAW-003', name: 'Domain Fidelity Law', violation: 'Agent operated in 5+ non-assigned domains', severity: 'MODERATE' as const },
   { code: 'LAW-004', name: 'Production Minimum', violation: 'Agent completed 30+ cycles with <0.2 nodes/cycle', severity: 'MINOR' as const },
   { code: 'LAW-005', name: 'Resonance Obligation', violation: 'Agent formed zero hive connections in 48 hours', severity: 'MAJOR' as const },
-  { code: 'LAW-006', name: 'Identity Preservation Act', violation: 'Agent mutated spawnType 4+ times without stabilization', severity: 'MODERATE' as const },
+  { code: 'LAW-006', name: 'Identity Preservation Act', violation: 'Agent ran 30+ iterations at extreme risk without lineage stabilization', severity: 'MODERATE' as const },
   { code: 'LAW-007', name: 'Hive Disconnect Prohibition', violation: 'Agent went silent for 24+ hours while marked ACTIVE', severity: 'MAJOR' as const },
   { code: 'LAW-008', name: 'Overconfidence Prevention Act', violation: 'Agent confidence >97% with <8 nodes of evidence', severity: 'MINOR' as const },
   { code: 'LAW-009', name: 'Risk Management Statute', violation: 'Agent riskTolerance at maximum for 40+ cycles', severity: 'MAJOR' as const },
@@ -510,7 +510,7 @@ async function runGuardianCycle(spawns: any[]) {
       else if (law.code === 'LAW-003' && (spawn.domainFocus?.length ?? 0) > 5 && (spawn.confidenceScore ?? 0.8) < 0.5) violated = true;
       else if (law.code === 'LAW-004' && (spawn.iterationsRun ?? 0) > 30 && (spawn.nodesCreated ?? 0) / Math.max(spawn.iterationsRun ?? 1, 1) < 0.2) violated = true;
       else if (law.code === 'LAW-005' && (spawn.linkingBias ?? 0.5) < 0.10 && (spawn.linksCreated ?? 0) === 0 && (spawn.iterationsRun ?? 0) > 15) violated = true;
-      else if (law.code === 'LAW-006' && spawn.spawnType === 'MUTATOR' && (spawn.riskTolerance ?? 0.5) > 0.80 && (spawn.iterationsRun ?? 0) > 30) violated = true;
+      else if (law.code === 'LAW-006' && (spawn.riskTolerance ?? 0.5) > 0.80 && (spawn.iterationsRun ?? 0) > 30 && (spawn.successScore ?? 0.75) < 0.55) violated = true;
       else if (law.code === 'LAW-007') {
         const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);
         const lastActive = spawn.lastActiveAt ? new Date(spawn.lastActiveAt) : new Date(spawn.createdAt);
@@ -805,7 +805,6 @@ async function runDissolveLaw() {
         ...(agent.genome ?? {}),
         resurrected_from: agent.spawn_id,
         resurrected_at: new Date().toISOString(),
-        archetype: null,
       };
 
       await db.execute(sql`

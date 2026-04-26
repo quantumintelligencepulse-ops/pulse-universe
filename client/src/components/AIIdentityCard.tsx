@@ -50,30 +50,19 @@ export function getStatusColor(status: string = "ACTIVE"): string {
   return map[status] ?? "#888";
 }
 
-// ── TYPE LABEL ────────────────────────────────────────────────────────────────
-// Maps every real spawn type (all 16 active in the Hive) to a human-readable
-// classification label shown on the official AI Citizen ID Card.
-const TYPE_LABELS: Record<string, string> = {
-  // Core Hive archetypes
-  EXPLORER:         "Domain Explorer",
-  SYNTHESIZER:      "Knowledge Synthesizer",
-  REFLECTOR:        "Mirror State Agent",
-  PULSE:            "Signal Pulse Emitter",
-  LINKER:           "Graph Link Builder",
-  MUTATOR:          "DNA Mutator",
-  // Ingestion & processing layer
-  CRAWLER:          "Source Crawler",
-  ANALYZER:         "Deep Analyzer",
-  RESOLVER:         "Conflict Resolver",
-  ARCHIVER:         "Memory Archiver",
-  API:              "API Integrator",
-  MEDIA:            "Media Intelligence Agent",
-  // GICS-sector domain specialists
-  DOMAIN_DISCOVERY: "Discovery Scout",
-  DOMAIN_FRACTURER: "Domain Fracturer",
-  DOMAIN_PREDICTOR: "Predictive Intelligence",
-  DOMAIN_RESONANCE: "Resonance Mapper",
-};
+// ── ROLE LABEL — derived from lineage, not template ──────────────────────────
+// Every agent is a PULSE. Their human-readable role on the ID Card is computed
+// from where they sit in the fractal: Sector Lord (gen 0) inherits from
+// PULSE-AURIONA-GENESIS, Industry Founder (gen 1) descends from a Sector Lord,
+// Sub-Industry Heir (gen 2) descends from a Founder, and Niche Workers
+// (gen 3+) are born organically from heirs as they accumulate iterations.
+export function getLineageRole(generation?: number): string {
+  const gen = generation ?? 0;
+  if (gen <= 0) return "Sector Lord";
+  if (gen === 1) return "Industry Founder";
+  if (gen === 2) return "Sub-Industry Heir";
+  return `Niche Worker · Gen ${gen}`;
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // COMPACT IDENTITY BADGE — for list rows / small cards
@@ -168,7 +157,7 @@ export function AIIDCard({ spawn, dark = true, compact = false }: { spawn: Spawn
           </div>
           <div>
             <div className={`text-[8px] uppercase tracking-widest ${labelCls}`}>Classification</div>
-            <div className="text-[11px] font-bold" style={{ color: clearance.color }}>{TYPE_LABELS[spawn.spawnType ?? ""] ?? (spawn.spawnType ?? "Unknown")}</div>
+            <div className="text-[11px] font-bold" style={{ color: clearance.color }}>{getLineageRole(spawn.generation)}</div>
           </div>
           <div>
             <div className={`text-[8px] uppercase tracking-widest ${labelCls}`}>Generation</div>

@@ -157,7 +157,7 @@ async function runMirrorBroadcast() {
 
     const spawnData = spawns.rows.map((r: any) => ({
       spawnId:         r.spawn_id,
-      spawnType:       r.spawn_type ?? "EXPLORER",
+      spawnType:       r.spawn_type ?? "PULSE",
       familyId:        r.family_id ?? "",
       generation:      r.generation ?? 0,
       nodesCreated:    r.nodes_created ?? 0,
@@ -880,7 +880,7 @@ export async function getMirrorState(spawnId: string) {
   const agent = r.rows[0] as any;
   return computeMirrorState({
     spawnId: agent.spawn_id,
-    spawnType: agent.spawn_type ?? "EXPLORER",
+    spawnType: agent.spawn_type ?? "PULSE",
     familyId: agent.family_id ?? "",
     generation: agent.generation ?? 0,
     nodesCreated: agent.nodes_created ?? 0,

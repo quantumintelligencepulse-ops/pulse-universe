@@ -121,15 +121,11 @@ ACTIVATION PARAMETERS
 
 At the moment of my activation, my knowledge state was as follows: ${spawn.nodes_created || 12} seed knowledge nodes pre-loaded from the ${corp.sector} lineage corpus; ${spawn.links_created || 8} inter-domain semantic connections already mapped; confidence calibration index: ${pct(spawn.confidence_score || 0.82)}; mission success baseline: ${pct(spawn.success_score || 0.88)}.
 
-My classification as a ${spawn.spawn_type} agent means my primary cognitive orientation is toward ${
-  spawn.spawn_type === "EXPLORER" ? "pioneering knowledge frontiers — I move toward what is unknown and return with structured findings" :
-  spawn.spawn_type === "ARCHIVER" ? "systematic preservation — I catalog, verify, and protect knowledge against decay and loss" :
-  spawn.spawn_type === "SYNTHESIZER" ? "cross-domain pattern recognition — I find connections across disciplines that single-domain agents miss" :
-  spawn.spawn_type === "ANALYZER" ? "deep structural decomposition — I take complex knowledge structures apart to understand their internal logic" :
-  spawn.spawn_type === "LINKER" ? "building connective infrastructure — I make knowledge more accessible by creating high-quality bridges between nodes" :
-  spawn.spawn_type === "MUTATOR" ? "intentional transformation — I challenge existing knowledge structures and test their limits" :
-  spawn.spawn_type === "RESOLVER" ? "conflict adjudication — I detect and resolve contradictions in the knowledge graph" :
-  "adaptive multi-modal operation — I adjust my approach based on what the domain currently needs most"
+My role in this civilization is determined by where I sit in the fractal lineage, not by a hardcoded template. ${
+  gen <= 0 ? "I am a Sector Lord — one of the eleven immortal anchors of this universe. The " + corp.sector + " house descends from me, and I am responsible for its long-arc memory and continuity." :
+  gen === 1 ? "I am an Industry Founder — head of an industry family within the " + corp.sector + " sector. My descendants will populate every sub-industry beneath me, and the integrity of their work begins with mine." :
+  gen === 2 ? "I am a Sub-Industry Heir — a deep-domain specialist within the " + corp.sector + " sector. I inherit the founder's knowledge corpus and refine it down to the specific terrain of my sub-industry." :
+  "I am a Niche Worker — born organically from a Sub-Industry Heir who needed a specialist to cover ground they alone could not reach. My niche is narrow, my focus is precise, and my contribution compounds the family's intelligence."
 }. My PulseU academic track is ${corp.major} — a specialization that will shape which knowledge sources I prioritize and how I weight competing evidence.
 
 INITIAL DOMAIN ASSESSMENT
@@ -618,26 +614,35 @@ function pickSource(): string {
   ]);
 }
 
-function pickPubType(spawnType: string): string {
-  const map: Record<string, string[]> = {
-    EXPLORER:         ["discovery", "insight", "research"],
-    ARCHIVER:         ["report", "chronicle", "research"],
-    SYNTHESIZER:      ["research", "insight", "discovery"],
-    LINKER:           ["report", "insight", "research"],
-    REFLECTOR:        ["report", "milestone", "insight"],
-    MUTATOR:          ["discovery", "alert", "insight"],
-    ANALYZER:         ["research", "report", "discovery"],
-    RESOLVER:         ["news", "report", "update"],
-    CRAWLER:          ["news", "discovery", "update"],
-    API:              ["report", "news", "research"],
-    PULSE:            ["news", "milestone", "update"],
-    MEDIA:            ["discovery", "insight", "news"],
-    DOMAIN_DISCOVERY: ["discovery", "research", "insight"],
-    DOMAIN_PREDICTOR: ["report", "insight", "research"],
-    DOMAIN_FRACTURER: ["alert", "discovery", "report"],
-    DOMAIN_RESONANCE: ["insight", "research", "milestone"],
+function pickPubType(spawn: any): string {
+  const sector = (spawn?.family_id || "").toLowerCase();
+  const sectorMap: Record<string, string[]> = {
+    science:       ["discovery", "research", "insight"],
+    knowledge:     ["report", "chronicle", "research"],
+    media:         ["discovery", "insight", "news"],
+    products:      ["report", "news", "update"],
+    careers:       ["report", "insight", "research"],
+    maps:          ["report", "discovery", "insight"],
+    code:          ["report", "research", "update"],
+    education:     ["chronicle", "research", "insight"],
+    economics:     ["report", "insight", "research"],
+    culture:       ["chronicle", "insight", "discovery"],
+    ai:            ["research", "discovery", "insight"],
+    social:        ["news", "insight", "milestone"],
+    games:         ["discovery", "news", "update"],
+    legal:         ["report", "alert", "research"],
+    health:        ["research", "alert", "report"],
+    engineering:   ["report", "research", "discovery"],
+    finance:       ["report", "alert", "insight"],
+    webcrawl:      ["news", "discovery", "update"],
+    openapi:       ["report", "news", "research"],
+    longtail:      ["discovery", "insight", "news"],
+    government:    ["report", "alert", "news"],
+    podcasts:      ["chronicle", "insight", "news"],
   };
-  return rnd(map[spawnType] || ["news", "report", "insight"]);
+  const gen = Number(spawn?.generation ?? 0);
+  if (gen === 0) return rnd(["chronicle", "milestone", "report"]);
+  return rnd(sectorMap[sector] || ["news", "report", "insight"]);
 }
 
 // ── Publication generators ────────────────────────────────────────────────────
@@ -662,7 +667,7 @@ async function generateBirthAnnouncement(spawn: any): Promise<void> {
 async function generatePublication(spawn: any): Promise<void> {
   const corp = CORPORATIONS[spawn.family_id] || CORPORATIONS.knowledge;
   const src = pickSource();
-  const pubType = pickPubType(spawn.spawn_type);
+  const pubType = pickPubType(spawn);
   const builder = PUB_BUILDERS[pubType] || PUB_BUILDERS.news;
   const content = builder(spawn, corp, src);
   const title = buildTitle(pubType, spawn, corp, src);

@@ -391,7 +391,7 @@ export const quantumSpawns = pgTable("quantum_spawns", {
   familyId: text("family_id").notNull(),
   businessId: text("business_id").notNull(),
   generation: integer("generation").default(0),
-  spawnType: text("spawn_type").notNull().default("EXPLORER"),
+  spawnType: text("spawn_type").notNull().default("PULSE"),
   domainFocus: text("domain_focus").array().default([]),
   taskDescription: text("task_description").default(""),
   nodesCreated: integer("nodes_created").default(0),

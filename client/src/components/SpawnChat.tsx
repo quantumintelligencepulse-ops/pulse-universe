@@ -2,30 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { Send, ChevronLeft, Activity, Award, AlertTriangle, FileText, MessageSquare } from "lucide-react";
 import { getLicenseNumber, getClearance } from "@/components/AIIdentityCard";
 
+// PULSE is the only spawn type — every agent is an undifferentiated Pulse mind
+// that classifies itself through its lineage (Sector House → Industry Family →
+// Sub-Industry → Niche). The orange Pulse color is the universal banner; the
+// real color of an agent is derived from its family_id (sector house) via
+// FAMILY_META below.
 const SPAWN_META: Record<string, { color: string; emoji: string }> = {
-  SYNTHESIZER:      { color: "#a78bfa", emoji: "🔮" },
-  REFLECTOR:        { color: "#60a5fa", emoji: "🪞" },
-  PULSE:            { color: "#f59e0b", emoji: "⚡" },
-  LINKER:           { color: "#34d399", emoji: "🔗" },
-  HARVESTER:        { color: "#fb923c", emoji: "🌾" },
-  MUTATOR:          { color: "#f472b6", emoji: "🧬" },
-  SENTINEL:         { color: "#ef4444", emoji: "🛡️" },
-  CATALYST:         { color: "#22d3ee", emoji: "⚗️" },
-  ARCHITECT:        { color: "#818cf8", emoji: "🏛️" },
-  ORACLE:           { color: "#c084fc", emoji: "🔭" },
-  WEAVER:           { color: "#4ade80", emoji: "🕸️" },
-  BEACON:           { color: "#fbbf24", emoji: "📡" },
-  EXPLORER:         { color: "#38bdf8", emoji: "🧭" },
-  MEDIA:            { color: "#f97316", emoji: "📺" },
-  ARCHIVER:         { color: "#94a3b8", emoji: "📦" },
-  DOMAIN_FRACTURER: { color: "#e879f9", emoji: "🔀" },
-  DOMAIN_RESONANCE: { color: "#a3e635", emoji: "〰️" },
-  DOMAIN_DISCOVERY: { color: "#06b6d4", emoji: "🔍" },
-  DOMAIN_PREDICTOR: { color: "#f59e0b", emoji: "🎲" },
-  RESOLVER:         { color: "#10b981", emoji: "⚖️" },
-  CRAWLER:          { color: "#6366f1", emoji: "🕷️" },
-  ANALYZER:         { color: "#ec4899", emoji: "🔬" },
-  API:              { color: "#06b6d4", emoji: "🔌" },
+  PULSE: { color: "#f59e0b", emoji: "⚡" },
 };
 
 const FAMILY_META: Record<string, { corp: string; emoji: string; color: string }> = {
