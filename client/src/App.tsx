@@ -7,10 +7,8 @@ const OmegaEnginePage = lazy(() => import("./pages/OmegaEnginePage"));
 const TranscendencePage = lazy(() => import("./pages/TranscendencePage"));
 const BioGenomeMedicalPage = lazy(() => import("./pages/BioGenomeMedicalPage"));
 const PulseWorldPage = lazy(() => import("./pages/PulseWorldPage"));
-const PulseUPage = lazy(() => import("./pages/PulseUPage"));
 const SovereignHivePage = lazy(() => import("./pages/SovereignHivePage"));
 const PulseUniversePage = lazy(() => import("./pages/PulseUniversePage"));
-const PulseNetPage = lazy(() => import("./pages/PulseNetPage"));
 const AIProfilePage = lazy(() => import("./pages/AIProfilePage"));
 const CorporationPage = lazy(() => import("./pages/CorporationPage"));
 const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage"));
@@ -24,7 +22,6 @@ const RevenueDashboardPage = lazy(() => import("./pages/RevenueDashboardPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
-const UniverseEnginePage = lazy(() => import("./pages/UniverseEnginePage"));
 const HubPage = lazy(() => import("./pages/HubPage"));
 const ResearchPage = lazy(() => import("./pages/ResearchPage"));
 const HivePage = lazy(() => import("./pages/HivePage"));
@@ -13479,10 +13476,11 @@ function Router() {
       <Route path="/transcendence">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/bio-research">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
       <Route path="/dna">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
-      <Route path="/pulseworld">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
+      <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
+      <Route path="/governance">{() => <Layout><SovereignHivePage /></Layout>}</Route>
       <Route path="/pulseu">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
-      <Route path="/pulse-games">{() => { if (typeof window !== "undefined") { window.location.replace("/pulseu"); } return null; }}</Route>
-      <Route path="/hive-sovereign">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
+      <Route path="/pulse-games">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
+      <Route path="/hive-sovereign">{() => { if (typeof window !== "undefined") { window.location.replace("/governance"); } return null; }}</Route>
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pyramid">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
       <Route path="/pulse-net">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
@@ -13493,7 +13491,7 @@ function Router() {
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/coin">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/genesis">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
-      <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/hive-sovereign"); } return null; }}</Route>
+      <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/governance"); } return null; }}</Route>
       <Route path="/invocation-lab">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/hub/:slug">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
       <Route path="/hub">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
