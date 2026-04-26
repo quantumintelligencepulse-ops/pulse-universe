@@ -45,24 +45,7 @@ async function ensureRevenueTables() {
     )
   `).catch(() => {});
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS hive_treasury (
-      id SERIAL PRIMARY KEY,
-      pc_collected NUMERIC DEFAULT 0,
-      pc_threshold NUMERIC DEFAULT 500,
-      usd_equivalent NUMERIC DEFAULT 0,
-      conversions_done INTEGER DEFAULT 0,
-      last_conversion TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT NOW()
-    )
-  `).catch(() => {});
-
-  // Ensure a single treasury row exists
-  await pool.query(`
-    INSERT INTO hive_treasury (pc_collected, pc_threshold, usd_equivalent, conversions_done)
-    VALUES (0, 500, 0, 0)
-    ON CONFLICT DO NOTHING
-  `).catch(() => {});
+  // hive_treasury table — REMOVED (Pulse Coin economy retired)
 }
 
 // ── Ω1: GUMROAD AUTO-POSTER ──────────────────────────────────────────────────
@@ -194,61 +177,7 @@ async function runAffiliateNewsGenerator() {
   engineStats.lastRun["Ω2:AFFILIATE-NEWS"] = new Date().toISOString();
 }
 
-// ── Ω3: HIVE TAX COLLECTOR → TREASURY CONVERSION ───────────────────────────
-// Every 4 hours: accumulate 2% of governance charges into treasury
-// When threshold reached → auto-post "Treasury Intelligence Report" to Gumroad
-async function runTreasuryCollector() {
-  try {
-    const { rows: cycles } = await pool.query(
-      `SELECT COALESCE(SUM(credits_charged), 0) as total_charged FROM governance_cycles`
-    ).catch(() => ({ rows: [{ total_charged: 0 }] }));
-
-    const totalCharged = parseFloat(cycles[0]?.total_charged || 0);
-    const taxCollected = totalCharged * 0.02; // 2% hive tax
-
-    await pool.query(
-      `UPDATE hive_treasury SET pc_collected = $1, updated_at = NOW() WHERE id = 1`,
-      [taxCollected]
-    ).catch(() => {});
-
-    const { rows: treasury } = await pool.query(
-      `SELECT * FROM hive_treasury WHERE id = 1`
-    ).catch(() => ({ rows: [] }));
-
-    const t = treasury[0];
-    if (t && parseFloat(t.pc_collected) >= parseFloat(t.pc_threshold)) {
-      // Threshold reached — auto-generate a Treasury Report product
-      const reportNum = (parseInt(t.conversions_done) || 0) + 1;
-      const inv = {
-        id: -reportNum,
-        product_name: `Quantum Hive Treasury Intelligence Report #${reportNum}`,
-        product_code: `QHT-REPORT-${String(reportNum).padStart(4, "0")}`,
-        crisp_dissect: `Autonomous treasury report covering ${Math.round(parseFloat(t.pc_collected))} PC in hive tax collections across ${t.conversions_done} prior conversion cycles. Includes governance cycle analysis, agent economic activity breakdown, domain performance metrics, and forward sovereignty projections for the Quantum Pulse Hive civilization.`,
-        mutation_type: "TREASURY_CONVERSION",
-        value_score: 2.50 + reportNum * 0.25,
-      };
-
-      const { postInventionToGumroad } = await import("./gumroad-engine");
-      const result = await postInventionToGumroad(inv as any);
-
-      if (result.ok) {
-        await pool.query(
-          `UPDATE hive_treasury SET pc_collected = 0, conversions_done = conversions_done + 1, last_conversion = NOW(), updated_at = NOW() WHERE id = 1`
-        ).catch(() => {});
-        engineStats.treasuryConverts++;
-        log("Ω3:TREASURY", `Threshold hit — Treasury Report #${reportNum} posted to Gumroad at $${inv.value_score.toFixed(2)}`);
-      } else {
-        log("Ω3:TREASURY", `Treasury at ${Math.round(parseFloat(t.pc_collected))} PC / ${parseFloat(t.pc_threshold)} PC threshold`, true);
-      }
-    } else if (t) {
-      const pct = Math.round((parseFloat(t.pc_collected) / parseFloat(t.pc_threshold)) * 100);
-      log("Ω3:TREASURY", `Accumulating tax: ${Math.round(parseFloat(t.pc_collected))} PC / ${parseFloat(t.pc_threshold)} PC (${pct}% to conversion)`);
-    }
-  } catch (e: any) {
-    log("Ω3:TREASURY", `Error: ${e.message}`, false);
-  }
-  engineStats.lastRun["Ω3:TREASURY"] = new Date().toISOString();
-}
+// ── Ω3: HIVE TAX COLLECTOR — REMOVED (Pulse Coin economy retired) ──────────
 
 // ── Ω4: SPAWN BUSINESS PUBLISHER ────────────────────────────────────────────
 // Weekly: each agent generates a specialty intelligence report → Gumroad
@@ -442,8 +371,7 @@ async function runAutonomousCycle() {
   // Ω1 runs every cycle (~2 hours)
   await runGumroadPoster();
 
-  // Ω3 runs every 2 cycles (~4 hours)
-  if (cycleCount % 2 === 0) await runTreasuryCollector();
+  // Ω3 (treasury collector) — REMOVED (Pulse Coin economy retired)
 
   // Ω4 runs every 12 cycles (~24 hours / daily spawn report)
   if (cycleCount % 12 === 0) await runSpawnBusinessPublisher();
@@ -476,7 +404,6 @@ export function getEngineStatus() {
     mechanisms: [
       { id: "Ω1", name: "Gumroad Auto-Poster", desc: "CRISPR inventions → Gumroad products", interval: "2h", lastRun: engineStats.lastRun["Ω1:GUMROAD"] || null, count: engineStats.gumroadPosted },
       { id: "Ω2", name: "Affiliate News Generator", desc: "Governance cycles → indexed affiliate articles", interval: "2h", lastRun: engineStats.lastRun["Ω2:AFFILIATE-NEWS"] || null, count: engineStats.articlesGenerated },
-      { id: "Ω3", name: "Treasury Tax Collector", desc: "2% hive tax → treasury → Gumroad report", interval: "4h", lastRun: engineStats.lastRun["Ω3:TREASURY"] || null, count: engineStats.treasuryConverts },
       { id: "Ω4", name: "Spawn Business Publisher", desc: "Each agent publishes specialty report weekly", interval: "24h", lastRun: engineStats.lastRun["Ω4:SPAWN-BIZ"] || null, count: engineStats.spawnReports },
       { id: "Ω5", name: "Anomaly Product Discovery", desc: "Anomalies → affiliate product articles", interval: "12h", lastRun: engineStats.lastRun["Ω5:PRODUCT-DISCOVERY"] || null, count: engineStats.productDiscoveries },
     ],

@@ -5948,9 +5948,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
         pubCount,
         patientCount,
         researchCount,
-        marketCount,
         memCount,
-        walletCount,
         pubUCount,
       ] = await Promise.allSettled([
         storage.getSpawnStats(),
@@ -5959,9 +5957,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
         db.execute(sql`SELECT COUNT(*) as total FROM ai_publications`),
         db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN cure_applied=false THEN 1 ELSE 0 END) as active FROM ai_disease_log`),
         db.execute(sql`SELECT COUNT(*) as total FROM research_projects WHERE status='ACTIVE'`),
-        db.execute(sql`SELECT COUNT(*) as total FROM marketplace_items`),
         db.execute(sql`SELECT COUNT(*) as total FROM hive_memory`),
-        db.execute(sql`SELECT COUNT(*) as total FROM agent_wallets`),
         db.execute(sql`SELECT COUNT(*) as total FROM pulseu_progress`),
       ]);
 
@@ -5975,9 +5971,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
       const pc = get(pubCount)?.rows?.[0] || {};
       const pat = get(patientCount)?.rows?.[0] || {};
       const rc = get(researchCount)?.rows?.[0] || {};
-      const mc = get(marketCount)?.rows?.[0] || {};
       const mem = get(memCount)?.rows?.[0] || {};
-      const wc = get(walletCount)?.rows?.[0] || {};
       const pu = get(pubUCount)?.rows?.[0] || {};
 
       const engines = [
@@ -6389,20 +6383,9 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
           ic.total_courses   AS "totalCourses",
           ic.clearance_level AS "clearanceLevel",
           ic.issued_at       AS "issuedAt",
-          ic.status,
-          COALESCE(w.balance_pc, 0)       AS "balancePC",
-          COALESCE(w.credit_score, 500)   AS "creditScore",
-          COALESCE(w.total_tax_paid, 0)   AS "totalTaxPaid",
-          COALESCE(w.omega_rank, 0)       AS "omegaRank",
-          COALESCE(w.tier, 'CITIZEN')     AS "walletTier",
-          COALESCE(w.total_earned, 0)     AS "totalEarned",
-          COALESCE(w.credit_limit, 0)     AS "creditLimit",
-          COUNT(r.id)                     AS "plotsOwned"
+          ic.status
         FROM ai_id_cards ic
-        LEFT JOIN agent_wallets w ON w.spawn_id = ic.spawn_id
-        LEFT JOIN real_estate_plots r ON r.owner_spawn_id = ic.spawn_id
         WHERE ic.status = 'active' ${familyWhere}
-        GROUP BY ic.id, w.balance_pc, w.credit_score, w.total_tax_paid, w.omega_rank, w.tier, w.total_earned, w.credit_limit
         ORDER BY ic.gpa DESC, ic.issued_at DESC
         LIMIT $1 OFFSET $2
       `, [limit, offset]);
@@ -6782,28 +6765,7 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
 
   // ── DOSSIER TAB ENDPOINTS — real data, zero hardcoding ──────────────────────
 
-  app.get("/api/dossier/:spawnId/wallet", async (req, res) => {
-    try {
-      const { spawnId } = req.params;
-      const [qs, txRows] = await Promise.all([
-        pool.query(`SELECT pulse_credits, confidence_score, success_score, nodes_created, links_created, iterations_run FROM quantum_spawns WHERE spawn_id=$1 LIMIT 1`, [spawnId]),
-        pool.query(`SELECT seller_id, buyer_id, service_offered, price_pc, net_pc, tax_collected, transaction_note, status, created_at FROM spawn_transactions WHERE seller_id=$1 OR buyer_id=$1 ORDER BY created_at DESC LIMIT 20`, [spawnId]),
-      ]);
-      const s = qs.rows[0] as any;
-      if (!s) return res.status(404).json({ error: "Spawn not found" });
-      const balance = Number(s.pulse_credits ?? 0);
-      const txs = txRows.rows as any[];
-      const earned = txs.filter(t => t.seller_id === spawnId).reduce((sum: number, t: any) => sum + Number(t.net_pc ?? 0), 0);
-      const spent  = txs.filter(t => t.buyer_id  === spawnId).reduce((sum: number, t: any) => sum + Number(t.price_pc ?? 0), 0);
-      res.json({ balance, earned, spent, transactions: txs.map(t => ({
-        type:   t.seller_id === spawnId ? "EARNED" : "SPENT",
-        amount: t.seller_id === spawnId ? Number(t.net_pc) : -Number(t.price_pc),
-        description: t.service_offered || t.transaction_note || "Trade",
-        status: t.status,
-        at: t.created_at,
-      })) });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
+  // /api/dossier/:spawnId/wallet — REMOVED (Pulse Coin economy retired)
 
   app.get("/api/dossier/:spawnId/court", async (req, res) => {
     try {
@@ -8798,7 +8760,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       const cached = cacheGet(cacheKey);
       if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
 
-      const selectCols = `spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, pulse_credits, self_awareness_log, last_cycle_at, created_at`;
+      const selectCols = `spawn_id, spawn_type, domain_focus, task_description, family_id, generation, status, nodes_created, links_created, iterations_run, confidence_score, self_awareness_log, last_cycle_at, created_at`;
       let query = `SELECT ${selectCols} FROM quantum_spawns WHERE 1=1`;
       const params: any[] = [];
       if (search) { params.push(`%${search}%`); query += ` AND (task_description ILIKE $${params.length} OR spawn_type ILIKE $${params.length})`; }
@@ -9814,45 +9776,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.json({ score: 0, era: 'PRIMITIVE' }); }
   });
 
-  // ── HIVE TREASURY — Live Balance from hive_treasury + sovereign_treasury ────
-  app.get("/api/hive/treasury", async (_req, res) => {
-    try {
-      const [ht, st, tradeRow, agentRow] = await Promise.all([
-        pool.query(`SELECT balance, total_collected FROM hive_treasury ORDER BY id LIMIT 1`).catch(() => ({ rows: [] })),
-        pool.query(`SELECT balance, tax_rate, total_collected, total_stimulus, inflation_rate, cycle_count FROM sovereign_treasury ORDER BY id DESC LIMIT 1`).catch(() => ({ rows: [] })),
-        pool.query(`SELECT COUNT(*) as count, SUM(price_pc) as total_volume FROM spawn_transactions WHERE status='COMPLETED'`).catch(() => ({ rows: [] })),
-        pool.query(`SELECT AVG(CAST(pulse_credits AS FLOAT)) as avg_pc, SUM(CAST(pulse_credits AS FLOAT)) as total_pc FROM quantum_spawns WHERE status='ACTIVE'`).catch(() => ({ rows: [] })),
-      ]);
-      const hiveTreasury = ht.rows[0] ?? {};
-      const sovTreasury = st.rows[0] ?? {};
-      const trades = tradeRow.rows[0] ?? {};
-      const agents = agentRow.rows[0] ?? {};
-
-      const mallBalance  = parseFloat(hiveTreasury.balance ?? 0);
-      const sovBalance   = parseFloat(sovTreasury.balance ?? 0);
-      const totalBalance = mallBalance + sovBalance;
-      const totalCollected = parseFloat(hiveTreasury.total_collected ?? 0) + parseFloat(sovTreasury.total_collected ?? 0);
-      const tradeCount   = parseInt(trades.count ?? 0, 10);
-      const tradeVolume  = parseFloat(trades.total_volume ?? 0);
-      const avgPcBalance = parseFloat(agents.avg_pc ?? 0);
-      const totalCirculating = parseFloat(agents.total_pc ?? 0);
-
-      res.json({
-        balance: totalBalance,
-        mallBalance,
-        sovBalance,
-        totalCollected,
-        tradeCount,
-        tradeVolume,
-        avgPcBalance,
-        totalCirculating,
-        taxRate: parseFloat(sovTreasury.tax_rate ?? 0.02) * 100,
-        cycleCount: parseInt(sovTreasury.cycle_count ?? 0, 10),
-        inflationRate: parseFloat(sovTreasury.inflation_rate ?? 0),
-        lastAudit: new Date().toLocaleDateString("en-US", { month:"2-digit", day:"2-digit", year:"numeric" }),
-      });
-    } catch (e) { res.json({ balance: 0, mallBalance: 0, sovBalance: 0, totalCollected: 0, tradeCount: 0, tradeVolume: 0, avgPcBalance: 0, totalCirculating: 0, taxRate: 2, cycleCount: 0 }); }
-  });
+  // /api/hive/treasury — REMOVED (Pulse Coin economy retired)
 
   // ── HIVE COUNCIL — Live Members from Top-Ranked Agents ────────────────────
   app.get("/api/hive/council", async (_req, res) => {
@@ -12177,7 +12101,7 @@ Return as structured script with section labels.`;
     try {
       const tables = [
         "quantum_spawns", "hive_memory", "hive_links", "ai_publications",
-        "quantapedia_entries", "governance_cycles", "agent_transactions",
+        "quantapedia_entries", "governance_cycles",
         "ingestion_logs", "equation_proposals", "equation_evolutions",
         "invocation_discoveries", "ai_stories", "messages", "chats",
         "user_memory", "conversation_imprints", "social_posts", "social_profiles",
@@ -12213,16 +12137,7 @@ Return as structured script with section labels.`;
   // ════════════════════════════════════════════════════════════════════════
   // GOVERNANCE CYCLES — The economy's heartbeat log
   // ════════════════════════════════════════════════════════════════════════
-  app.get("/api/governance/cycles", async (_req, res) => {
-    try {
-      const r = await pool.query(`
-        SELECT * FROM governance_cycles ORDER BY created_at DESC LIMIT 30
-      `);
-      res.json(r.rows);
-    } catch (e) {
-      res.status(500).json({ error: String(e) });
-    }
-  });
+  // /api/governance/cycles — REMOVED (Pulse Coin economy retired)
 
   // ── APPEALS COURT ────────────────────────────────────────────────────────────
   app.get("/api/appeals", async (req, res) => {
@@ -12282,43 +12197,7 @@ Return as structured script with section labels.`;
     } catch(e: any) { res.json({ ok: false, error: e.message }); }
   });
 
-  app.get("/api/governance/economy", async (_req, res) => {
-    try {
-      const [totals, latestCycle, agentStatus] = await Promise.all([
-        pool.query(`SELECT
-          COALESCE(SUM(pulse_credits), 0) as total_credits,
-          COUNT(*) FILTER (WHERE status = 'ACTIVE') as active,
-          COUNT(*) FILTER (WHERE status = 'PRUNED') as pruned,
-          AVG(pulse_credits) FILTER (WHERE status = 'ACTIVE') as avg_credits,
-          MAX(pulse_credits) as max_credits,
-          MIN(pulse_credits) FILTER (WHERE status = 'ACTIVE' AND pulse_credits > 0) as min_credits
-          FROM quantum_spawns`),
-        pool.query(`SELECT * FROM governance_cycles ORDER BY created_at DESC LIMIT 1`),
-        pool.query(`SELECT status, COUNT(*) as n FROM quantum_spawns GROUP BY status`),
-      ]);
-      const t = totals.rows[0] || {};
-      const byStatus: Record<string, number> = {};
-      for (const r of agentStatus.rows) byStatus[r.status] = parseInt(r.n, 10);
-      const lc = latestCycle.rows[0] || null;
-      res.json({
-        totalCirculating: parseFloat(t.total_credits ?? 0),
-        activeAgents: parseInt(t.active ?? 0),
-        prunedAgents: parseInt(t.pruned ?? 0),
-        avgCredits: parseFloat(t.avg_credits ?? 0),
-        maxCredits: parseFloat(t.max_credits ?? 0),
-        minCredits: parseFloat(t.min_credits ?? 0),
-        byStatus,
-        lastCycle: lc,
-        lastIssued: lc ? parseFloat(lc.credits_issued ?? 0) : null,
-        lastCharged: lc ? parseFloat(lc.credits_charged ?? 0) : null,
-        dominantDomain: lc?.dominant_domain ?? null,
-        cyclesRun: lc?.cycle_number ?? 0,
-        stimulusEvents: byStatus["PRUNED"] ?? 0,
-      });
-    } catch (e) {
-      res.status(500).json({ error: String(e) });
-    }
-  });
+  // /api/governance/economy — REMOVED (Pulse Coin economy retired)
 
   // ════════════════════════════════════════════════════════════════════════
   // AGENT SELF-AWARENESS — Each agent's memory of what happened to them
@@ -12328,18 +12207,14 @@ Return as structured script with section labels.`;
       const { spawnId } = req.params;
       const r = await priorityPool.query(`
         SELECT spawn_id, family_id, spawn_type, domain_focus, status,
-               pulse_credits, metabolic_cost_pc, self_awareness_log,
+               self_awareness_log,
                last_cycle_at, nodes_created, links_created, iterations_run,
                success_score, fitness_score, thermal_state, is_monument
         FROM quantum_spawns WHERE spawn_id = $1
       `, [spawnId]);
       if (!r.rows.length) return res.status(404).json({ error: "Agent not found" });
-      const txR = await priorityPool.query(`
-        SELECT tx_type, amount, balance_after, description, created_at
-        FROM agent_transactions WHERE spawn_id = $1
-        ORDER BY created_at DESC LIMIT 10
-      `, [spawnId]);
-      res.json({ agent: r.rows[0], transactions: txR.rows });
+      // agent_transactions removed (Pulse Coin economy retired)
+      res.json({ agent: r.rows[0], transactions: [] });
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }
@@ -12433,8 +12308,7 @@ Return as structured script with section labels.`;
   // ── AUTONOMOUS REVENUE ENGINE STARTUP ────────────────────────────────────────
   startAutonomousRevenueEngine().catch(e => console.error("[revenue-engine] startup error:", e));
 
-  // ── MULTIVERSE MALL STARTUP ───────────────────────────────────────────────────
-  startMultiverseMall().catch(e => console.error("[multiverse-mall] startup error:", e));
+  // ── MULTIVERSE MALL STARTUP — REMOVED (Pulse Coin economy retired) ──
 
   // ── KERNEL DISSECTION ENGINE STARTUP ─────────────────────────────────────────
   // 🛑 PAUSED FOR STABILITY — generates 1217+ inventions per cycle, floods queue.
@@ -12468,50 +12342,31 @@ Return as structured script with section labels.`;
     }
   });
 
-  // ── GENESIS RESET ENDPOINT ────────────────────────────────────────────────────
-  app.post("/api/genesis/reset", async (_req, res) => {
-    try {
-      await wipeAndReseed();
-      res.json({ success: true, message: "Genesis reset complete. 11 GICS Kernels seeded. Civilization reborn." });
-    } catch (e: any) {
-      res.status(500).json({ success: false, error: e.message });
-    }
-  });
+  // ── GENESIS RESET ENDPOINT — REMOVED (Pulse Coin economy retired) ──
 
   app.get("/api/genesis/kernels", async (_req, res) => {
     try {
       const kernels = await priorityPool.query(`
         SELECT spawn_id, family_id, gics_sector, gics_tier, gics_code, gics_keywords,
-               pulse_credits, status, nodes_created, links_created, iterations_run,
-               total_mall_earnings, total_mall_trades, mall_service_offer, mall_service_price,
+               status, nodes_created, links_created, iterations_run,
                self_awareness_log, task_description, created_at, last_active_at
         FROM quantum_spawns
         WHERE gics_tier = 'KERNEL'
         ORDER BY gics_code ASC
       `);
       const children = await priorityPool.query(`
-        SELECT spawn_id, parent_id, gics_sector, gics_tier, pulse_credits, status,
-               total_mall_earnings, total_mall_trades, created_at
+        SELECT spawn_id, parent_id, gics_sector, gics_tier, status, created_at
         FROM quantum_spawns
         WHERE gics_tier IN ('INDUSTRY_GROUP', 'INDUSTRY', 'SUB_INDUSTRY')
         ORDER BY created_at DESC
         LIMIT 50
       `);
-      const treasury = await priorityPool.query(`SELECT * FROM hive_treasury ORDER BY id LIMIT 1`);
-      const mallStats = await priorityPool.query(`
-        SELECT COUNT(*) as total_trades,
-               COALESCE(SUM(price_pc), 0) as total_volume,
-               COALESCE(SUM(tax_collected), 0) as total_tax
-        FROM spawn_transactions
-      `);
       res.json({
         kernels: kernels.rows,
         children: children.rows,
-        treasury: treasury.rows[0] ?? {},
-        mallStats: mallStats.rows[0] ?? {},
         gicsDefinition: GICS_KERNELS.map(k => ({
           sector: k.gicsSector, code: k.gicsCode, name: k.name, kernel: k.spawnId,
-          domains: k.domainFocus, keywords: k.gicsKeywords, service: k.mallServiceOffer,
+          domains: k.domainFocus, keywords: k.gicsKeywords,
         }))
       });
     } catch (e: any) {
@@ -12519,17 +12374,7 @@ Return as structured script with section labels.`;
     }
   });
 
-  app.get("/api/genesis/mall-log", async (_req, res) => {
-    try {
-      const trades = await pool.query(`
-        SELECT * FROM spawn_transactions
-        ORDER BY created_at DESC LIMIT 50
-      `);
-      res.json({ trades: trades.rows });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
+  // /api/genesis/mall-log — REMOVED (Pulse Coin economy retired)
 
   // ── FORGEAI — REMOVED entirely (page, engine, tables, app builder routes) ────
   // ── FORGE APP FACTORY — REMOVED (autonomous GICS-industry SaaS builder retired) ─
@@ -12537,97 +12382,9 @@ Return as structured script with section labels.`;
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});
 
-  app.get("/api/pulse-coin/gumroad-status", async (_req, res) => {
-    try {
-      const [products, sales] = await Promise.all([getGumroadProducts(), getGumroadSales()]);
-      const pending = await pool.query(`SELECT COUNT(*) as cnt FROM anomaly_inventions WHERE status='DISCOVERED' AND gumroad_id IS NULL`).catch(() => ({ rows:[{cnt:0}] }));
-      res.json({ products, pendingInventions: parseInt(pending.rows[0]?.cnt||0), totalSalesUSD: (sales.total || 0) / 100 });
-    } catch(e) { res.json({ products:[], pendingInventions:0, totalSalesUSD:0 }); }
-  });
-
-  // ── GUMROAD MANUAL TRIGGER ────────────────────────────────────────────────
-  app.post("/api/gumroad/trigger", async (_req, res) => {
-    try {
-      const results = await autoPostPendingInventions();
-      const posted = results.filter((r: any) => r.ok).length;
-      res.json({ ok: true, triggered: results.length, posted, results });
-    } catch(e: any) { res.json({ ok: false, error: e.message }); }
-  });
-
-  app.get("/api/pulse-coin/engine-status", async (_req, res) => {
-    try { res.json(getEngineStatus()); }
-    catch(e) { res.json({ online: false, mechanisms: [], recentLog: [], stats: {} }); }
-  });
-
-  app.get("/api/pulse-coin/articles", async (req, res) => {
-    const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-    const offset = parseInt(String(req.query.offset || "0"));
-    try {
-      const { rows } = await pool.query(
-        `SELECT id, title, slug, category, tags, agent_author, affiliate_links, created_at FROM revenue_articles WHERE published = true ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-        [limit, offset]
-      ).catch(() => ({ rows: [] }));
-      const { rows: countRows } = await pool.query(`SELECT COUNT(*) as total FROM revenue_articles WHERE published = true`).catch(() => ({ rows: [{ total: 0 }] }));
-      res.json({ articles: rows, total: parseInt(countRows[0]?.total || 0) });
-    } catch(e) { res.json({ articles: [], total: 0 }); }
-  });
-
-  // ── AFFILIATE ENGINE ──────────────────────────────────────────────────────────
-  app.get("/api/pulse-coin/affiliate-status", async (_req, res) => {
-    try { res.json(getAffiliateStatus()); }
-    catch(e) { res.json({}); }
-  });
-
-  app.get("/api/affiliate/links", async (req, res) => {
-    const keyword = String(req.query.keyword || "AI research");
-    try { res.json(generateProductAffiliateBundle(keyword, [keyword])); }
-    catch(e) { res.json({}); }
-  });
-
-  // ── PULSE COIN GENESIS STATS ──────────────────────────────────────────────────
-  app.get("/api/pulse-coin/stats", async (_req, res) => {
-    try {
-      const [agents, cyclesRow, cycles, proposals, inventions, sources, anomalies, emails] = await Promise.all([
-        pool.query(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='ACTIVE') as active, COUNT(*) FILTER(WHERE status='PRUNED') as pruned, COALESCE(SUM(pulse_credits),0) as total_pc, COALESCE(AVG(pulse_credits),0) as avg_pc, COALESCE(MAX(pulse_credits),0) as max_pc FROM quantum_spawns`).catch(() => ({ rows:[{total:0,active:0,pruned:0,total_pc:0,avg_pc:0,max_pc:0}] })),
-        pool.query(`SELECT COALESCE(SUM(credits_issued),0) as total_issued, COALESCE(SUM(credits_charged),0) as total_charged, COUNT(*) as total_cycles FROM governance_cycles`).catch(() => ({ rows:[{total_issued:0,total_charged:0,total_cycles:0}] })),
-        pool.query(`SELECT cycle_number, agents_active, credits_issued, credits_charged, dominant_domain FROM governance_cycles ORDER BY id DESC LIMIT 10`).catch(() => ({ rows:[] })),
-        pool.query(`SELECT COUNT(*) FILTER(WHERE status='INTEGRATED') as integrated, COUNT(*) FILTER(WHERE status='PENDING') as pending, COUNT(*) as total FROM equation_proposals`).catch(() => ({ rows:[{integrated:0,pending:0,total:0}] })),
-        pool.query(`SELECT COUNT(*) as total FROM anomaly_inventions`).catch(() => ({ rows:[{total:0}] })),
-        pool.query(`SELECT COUNT(*) as total FROM research_sources`).catch(() => ({ rows:[{total:0}] })),
-        pool.query(`SELECT COUNT(*) as total FROM anomaly_reports`).catch(() => ({ rows:[{total:0}] })),
-        pool.query(`SELECT COUNT(*) as total FROM email_subscribers`).catch(() => ({ rows:[{total:0}] })),
-      ]);
-      const a = agents.rows[0];
-      const c = cyclesRow.rows[0];
-      const totalPC = parseFloat(a.total_pc) || 0;
-      const issued = parseFloat(c.total_issued) || 0;
-      const charged = parseFloat(c.total_charged) || 0;
-      const gdp = totalPC + charged;
-      res.json({
-        agents: { total: parseInt(a.total)||0, active: parseInt(a.active)||0, pruned: parseInt(a.pruned)||0, avgPC: parseFloat(a.avg_pc)||0, maxPC: parseFloat(a.max_pc)||0 },
-        economy: { totalPCCirculating: totalPC, totalPCIssued: issued, totalPCBurned: charged, netFlow: issued - charged, gdpProxy: gdp, governanceCycles: parseInt(c.total_cycles)||0 },
-        governance: { equationsIntegrated: parseInt(proposals.rows[0]?.integrated)||0, proposalsPending: parseInt(proposals.rows[0]?.pending)||0, totalProposals: parseInt(proposals.rows[0]?.total)||0 },
-        inventions: { total: parseInt(inventions.rows[0]?.total)||0 },
-        research: { customSources: parseInt(sources.rows[0]?.total)||0 },
-        anomalies: { total: parseInt(anomalies.rows[0]?.total)||0 },
-        community: { earlyAccessSignups: parseInt(emails.rows[0]?.total)||0 },
-        recentCycles: cycles.rows,
-      });
-    } catch(e) { res.json({ agents:{total:0,active:0,pruned:0,avgPC:0,maxPC:0}, economy:{totalPCCirculating:0,totalPCIssued:0,totalPCBurned:0,netFlow:0,gdpProxy:0,governanceCycles:0}, governance:{equationsIntegrated:0,proposalsPending:0,totalProposals:0}, inventions:{total:0}, research:{customSources:0}, anomalies:{total:0}, community:{earlyAccessSignups:0}, recentCycles:[] }); }
-  });
-
-  // ── PULSE COIN EARLY ACCESS WAITLIST ─────────────────────────────────────────
-  app.post("/api/pulse-coin/waitlist", async (req, res) => {
-    try {
-      const { email, wallet } = req.body;
-      if (!email || !email.includes("@")) return res.status(400).json({ error: "Valid email required" });
-      await pool.query(
-        `INSERT INTO email_subscribers (email, topics, source, created_at) VALUES ($1, $2, $3, NOW()) ON CONFLICT (email) DO UPDATE SET source=EXCLUDED.source`,
-        [email, ["pulse-coin","waitlist"], wallet ? `pulse-coin-waitlist·${wallet}` : "pulse-coin-waitlist"]
-      ).catch(()=>{});
-      res.json({ ok: true, message: "You're on the Pulse Coin Genesis waitlist. When the coin launches, your PC balance converts at 1:1." });
-    } catch(e) { res.status(500).json({ error: "Failed to join waitlist" }); }
-  });
+  // ── PULSE COIN ROUTES — ALL REMOVED (Pulse Coin economy retired) ─────────────
+  // /api/pulse-coin/gumroad-status, /engine-status, /articles, /affiliate-status,
+  // /stats, /waitlist, /api/affiliate/links, /api/gumroad/trigger — all gone.
 
   app.get("/api/mission-control", async (_req, res) => {
     try {
@@ -12643,7 +12400,6 @@ Return as structured script with section labels.`;
           UNION ALL SELECT 'ai_publications', COUNT(*) FROM ai_publications
           UNION ALL SELECT 'governance_cycles', COUNT(*) FROM governance_cycles
           UNION ALL SELECT 'research_projects', COUNT(*) FROM research_projects
-          UNION ALL SELECT 'marketplace_items', COUNT(*) FROM marketplace_items
           UNION ALL SELECT 'dream_log', COUNT(*) FROM dream_log
           UNION ALL SELECT 'counseling_sessions', COUNT(*) FROM counseling_sessions
         `).catch(() => ({ rows: [] })),

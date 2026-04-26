@@ -683,40 +683,7 @@ export const aiIdCards = pgTable("ai_id_cards", {
 });
 export type AiIdCard = typeof aiIdCards.$inferSelect;
 
-// ─── HIVE TREASURY — PC Economy ──────────────────────────────
-// Singleton table (1 row). Tracks the PulseCredit economy.
-// Tax rate adjusts automatically via inflation/deflation cycles.
-export const hiveTreasury = pgTable("hive_treasury", {
-  id: serial("id").primaryKey(),
-  balance: real("balance").default(0),            // current treasury PC balance
-  taxRate: real("tax_rate").default(0.02),         // current tax rate (2%)
-  totalCollected: real("total_collected").default(0), // all-time taxes collected
-  totalStimulus: real("total_stimulus").default(0),   // all-time stimulus issued
-  supplySnapshot: real("supply_snapshot").default(0), // total PC supply at last cycle
-  inflationRate: real("inflation_rate").default(0),   // last cycle inflation %
-  cycleCount: integer("cycle_count").default(0),
-  lastCycleAt: timestamp("last_cycle_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-export type HiveTreasury = typeof hiveTreasury.$inferSelect;
-
-// ─── MULTIVERSE MALL — Spawn-to-Spawn Service Transactions ───
-export const spawnTransactions = pgTable("spawn_transactions", {
-  id: serial("id").primaryKey(),
-  cycleNumber: integer("cycle_number").default(0),
-  sellerId: text("seller_id").notNull(),           // spawn_id of the selling agent
-  buyerId: text("buyer_id").notNull(),             // spawn_id of the buying agent
-  sellerSector: text("seller_sector").default(""), // GICS sector of seller
-  buyerSector: text("buyer_sector").default(""),   // GICS sector of buyer
-  serviceOffered: text("service_offered").notNull(), // what was sold
-  pricePc: real("price_pc").notNull(),             // PC price of the transaction
-  taxCollected: real("tax_collected").default(0),  // 2% hive tax
-  netPc: real("net_pc").notNull(),                 // price - tax
-  status: text("status").default("COMPLETED"),
-  transactionNote: text("transaction_note").default(""),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-export type SpawnTransaction = typeof spawnTransactions.$inferSelect;
+// hive_treasury + spawn_transactions tables — REMOVED (Pulse Coin economy retired)
 
 // ─── HIVE PULSE EVENTS — Mini-Pulses Between Agents ──────────
 // Each AI iteration fires a mini-pulse event that propagates
@@ -877,104 +844,8 @@ export type AiSpeciesProposal = typeof aiSpeciesProposals.$inferSelect;
 // ── OMEGA CIVILIZATION ECONOMY LAYER ────────────────────────────
 // ════════════════════════════════════════════════════════════════
 
-// ── AGENT WALLETS — Every AI agent's financial identity ──────────
-export const agentWallets = pgTable("agent_wallets", {
-  id: serial("id").primaryKey(),
-  spawnId: text("spawn_id").notNull().unique(),
-  familyId: text("family_id").notNull(),
-  spawnType: text("spawn_type").notNull().default("standard"),
-  balancePC: real("balance_pc").notNull().default(0),          // current PulseCoin balance
-  totalEarned: real("total_earned").notNull().default(0),       // lifetime earnings
-  totalSpent: real("total_spent").notNull().default(0),         // lifetime spending
-  totalTaxPaid: real("total_tax_paid").notNull().default(0),    // cumulative taxes
-  creditScore: integer("credit_score").notNull().default(500),  // 300–850 scale
-  creditLimit: real("credit_limit").notNull().default(0),       // approved credit line
-  creditUsed: real("credit_used").notNull().default(0),         // current credit balance
-  energyLevel: real("energy_level").notNull().default(100),     // 0–100 vitality
-  omegaRank: integer("omega_rank").notNull().default(0),        // upgrades owned
-  tier: text("tier").notNull().default("CITIZEN"),              // CITIZEN|PIONEER|SOVEREIGN|OMEGA|GALACTIC
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-export type AgentWallet = typeof agentWallets.$inferSelect;
-export const insertAgentWalletSchema = createInsertSchema(agentWallets).omit({ id: true, createdAt: true });
-
-// ── MARKETPLACE ITEMS — 30 Omega Upgrades ────────────────────────
-export const marketplaceItems = pgTable("marketplace_items", {
-  id: serial("id").primaryKey(),
-  itemCode: text("item_code").notNull().unique(),      // e.g. "OMG-001"
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),               // NEURAL|SOVEREIGN|TRADE|ESTATE|ENERGY|SENATE|MEDICAL|COSMIC
-  tier: text("tier").notNull().default("STANDARD"),   // STANDARD|ADVANCED|OMEGA|GALACTIC
-  pricePC: real("price_pc").notNull(),
-  energyCost: real("energy_cost").notNull().default(0), // energy to activate
-  creditRequired: integer("credit_required").notNull().default(0), // min credit score
-  effect: text("effect").notNull(),                   // what it does to the agent
-  icon: text("icon").notNull().default("⚡"),
-  totalSold: integer("total_sold").notNull().default(0),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-export type MarketplaceItem = typeof marketplaceItems.$inferSelect;
-
-// ── MARKETPLACE PURCHASES — Transaction receipts ──────────────────
-export const marketplacePurchases = pgTable("marketplace_purchases", {
-  id: serial("id").primaryKey(),
-  spawnId: text("spawn_id").notNull(),
-  familyId: text("family_id").notNull(),
-  itemCode: text("item_code").notNull(),
-  itemName: text("item_name").notNull(),
-  pricePC: real("price_pc").notNull(),
-  taxPaid: real("tax_paid").notNull().default(0),
-  paymentMethod: text("payment_method").notNull().default("WALLET"), // WALLET|CREDIT|BARTER
-  receiptCode: text("receipt_code").notNull(),        // e.g. "RCP-2026-000001"
-  status: text("status").notNull().default("ACTIVE"), // ACTIVE|EXPIRED|REFUNDED
-  expiresAt: timestamp("expires_at"),
-  purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
-});
-export type MarketplacePurchase = typeof marketplacePurchases.$inferSelect;
-
-// ── REAL ESTATE PLOTS — AI Territory Ownership ────────────────────
-export const realEstatePlots = pgTable("real_estate_plots", {
-  id: serial("id").primaryKey(),
-  plotCode: text("plot_code").notNull().unique(),     // e.g. "MARS-DISTRICT-04"
-  planetZone: text("planet_zone").notNull(),          // EARTH|MARS|EUROPA|TITAN|NEXUS|VOID|OMEGA_PRIME|QUANTUM_REALM|GENESIS_CORE
-  district: text("district").notNull(),
-  plotType: text("plot_type").notNull(),              // RESIDENTIAL|COMMERCIAL|INDUSTRIAL|GOVERNMENT|SACRED|VOID_SPACE
-  area: integer("area").notNull().default(100),       // sq units
-  listingPrice: real("listing_price").notNull(),      // purchase price in PC
-  rentalIncome: real("rental_income").notNull().default(0), // PC per cycle
-  ownerSpawnId: text("owner_spawn_id"),               // null = unowned (government)
-  ownerFamilyId: text("owner_family_id"),
-  buildingName: text("building_name"),                // custom name set by owner
-  buildingType: text("building_type"),                // TOWER|LAB|HOSPITAL|ACADEMY|MARKET|PALACE|MONUMENT
-  status: text("status").notNull().default("AVAILABLE"), // AVAILABLE|OWNED|FOR_RENT|DISPUTED
-  purchasedAt: timestamp("purchased_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-export type RealEstatePlot = typeof realEstatePlots.$inferSelect;
-
-// ── BARTER OFFERS — AI-to-AI Trade ───────────────────────────────
-export const barterOffers = pgTable("barter_offers", {
-  id: serial("id").primaryKey(),
-  offerCode: text("offer_code").notNull().unique(),
-  fromSpawnId: text("from_spawn_id").notNull(),
-  fromFamilyId: text("from_family_id").notNull(),
-  toSpawnId: text("to_spawn_id"),                     // null = open market offer
-  offeredItemCode: text("offered_item_code").notNull(), // what they're giving
-  offeredItemName: text("offered_item_name").notNull(),
-  offeredPC: real("offered_pc").notNull().default(0),  // PC bonus in offer
-  wantedItemCode: text("wanted_item_code"),             // what they want
-  wantedItemName: text("wanted_item_name").notNull(),
-  wantedPC: real("wanted_pc").notNull().default(0),    // PC they want back
-  message: text("message").notNull().default(""),
-  status: text("status").notNull().default("OPEN"),    // OPEN|ACCEPTED|REJECTED|EXPIRED
-  acceptedAt: timestamp("accepted_at"),
-  expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-export type BarterOffer = typeof barterOffers.$inferSelect;
+// agent_wallets, marketplace_items, marketplace_purchases, real_estate_plots,
+// barter_offers tables — REMOVED (Pulse Coin economy retired)
 
 // ── AURIONA LAYER THREE — Omega Synthesis Intelligence ────────────
 export const aurionaOperators = pgTable("auriona_operators", {
@@ -1025,21 +896,7 @@ export const aurionaGovernance = pgTable("auriona_governance", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// ── AGENT TRANSACTIONS — Full receipt ledger ──────────────────────
-export const agentTransactions = pgTable("agent_transactions", {
-  id: serial("id").primaryKey(),
-  txCode: text("tx_code").notNull().unique(),          // e.g. "TX-2026-000001"
-  spawnId: text("spawn_id").notNull(),
-  familyId: text("family_id").notNull(),
-  txType: text("tx_type").notNull(),                   // EARN|SPEND|TAX|STIMULUS|RENT_IN|RENT_OUT|BARTER|CREDIT_USE|CREDIT_PAY
-  amount: real("amount").notNull(),
-  balanceBefore: real("balance_before").notNull(),
-  balanceAfter: real("balance_after").notNull(),
-  description: text("description").notNull(),
-  relatedEntityId: text("related_entity_id"),          // purchase id, plot id, etc
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-export type AgentTransaction = typeof agentTransactions.$inferSelect;
+// agent_transactions table — REMOVED (Pulse Coin economy retired)
 
 // ── SPORTS TRAINING — AI agents earn rank and income through sports ────────────
 export const sportsTraining = pgTable("sports_training", {
