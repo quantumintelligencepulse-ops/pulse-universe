@@ -3,8 +3,8 @@
  * ─────────────────────────────────────────────────────────────────
  * Single source of truth for ALL 220+ family/domain definitions.
  * Covers 6-layer GICS taxonomy + 30 core knowledge domains.
- * Imported by: publication-engine, quantum-spawn-engine, ingestion-engine,
- *              domain-kernel-engine, routes, and all other engines.
+ * Imported by: publication-engine, quantum-ingestion-engine, routes,
+ *              and other live engines.
  *
  * GICS Layer mapping:
  *   1 = Sector     2 = Industry Group

@@ -4,14 +4,12 @@ const SovereignAgentDossierPage = lazy(() => import("./pages/SovereignAgentDossi
 const MusicEquationLabPage = lazy(() => import("./pages/MusicEquationLabPage"));
 const SocialPage = lazy(() => import("./pages/QuantumSocialPage"));
 const TranscendencePage = lazy(() => import("./pages/TranscendencePage"));
-const BioGenomeMedicalPage = lazy(() => import("./pages/BioGenomeMedicalPage"));
 const PulseWorldPage = lazy(() => import("./pages/PulseWorldPage"));
 const SovereignHivePage = lazy(() => import("./pages/SovereignHivePage"));
 const PulseUniversePage = lazy(() => import("./pages/PulseUniversePage"));
 const AIProfilePage = lazy(() => import("./pages/AIProfilePage"));
 const CorporationPage = lazy(() => import("./pages/CorporationPage"));
 const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage"));
-const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
 // ForgeAIPage removed entirely (page, route, nav link, server engine, DB tables).

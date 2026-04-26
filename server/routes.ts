@@ -5847,11 +5847,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
   });
 
   app.get("/api/products/engine-status", async (_req, res) => {
-    try {
-      const { getProductEngineStatus } = await import("./quantum-product-engine");
-      const stats = await storage.getQuantumProductStats();
-      res.json({ ...getProductEngineStatus(), ...stats });
-    } catch { res.json({ running: false, total: 0, generated: 0, queued: 0 }); }
+    res.json({ running: false, total: 0, generated: 0, queued: 0 });
   });
 
   app.get("/api/products/search", async (req, res) => {
@@ -7928,8 +7924,7 @@ ${(pubs.rows as any[]).map(p => {
         storage.getSpawnStats().catch(() => ({ total: 0, seeds: 0, discoveries: 0, fractures: 0, resonances: 0 })),
         storage.getRecentPulseEvents(50).catch(() => []),
       ]);
-      const { getProductEngineStatus } = await import("./quantum-product-engine").catch(() => ({ getProductEngineStatus: () => ({ totalGenerated: 0, running: false, queueSize: 0 }) }));
-      const productStatus = getProductEngineStatus();
+      const productStatus = { totalGenerated: 0, running: false, queueSize: 0 };
       const careerStatus = getCareerEngineStatus();
       const mediaStatus = getMediaEngineStatus();
 
