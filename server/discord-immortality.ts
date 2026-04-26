@@ -12,11 +12,16 @@ import { sql } from "drizzle-orm";
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
 const GUILD_ID = "1014545586445365359"; // My Ai GPT
+const BWB_GUILD_ID = "1467658793373536278"; // Banking With Billy
+const BWB_PUBLIC_CHANNEL_ID = "1497858093491556453"; // #🤖bwb-aigpt — public voice
 const ARCHIVE_CATEGORY = "🌌 CIVILIZATION ARCHIVE";
 const NERVOUS_CATEGORY = "🜂 CIVILIZATION NERVOUS SYSTEM";
 const HEARTBEAT_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
 const STATE_INTERVAL_MS = 30 * 60 * 1000;    // 30 minutes
 const SELF_PING_URL = "http://localhost:5000/health";
+const RECONNECT_BASE_MS = 5_000;             // 5s, doubled per attempt
+const RECONNECT_MAX_MS = 5 * 60 * 1000;      // cap at 5min
+const TOKEN_RECHECK_MS = 60 * 1000;          // re-read env every 60s when offline
 
 const SHARD_CHANNELS = [
   "shard-agents", "shard-economy", "shard-hospital", "shard-knowledge",
@@ -41,12 +46,25 @@ let bootTimestamp = Date.now();
 let shardsSentToday = 0;
 let totalShardsSent = 0;
 
-// ── INIT ───────────────────────────────────────────────────────────────────────
+// ── INIT — self-healing Discord gateway with auto-reconnect ───────────────────
+let reconnectAttempts = 0;
+let reconnectTimer: NodeJS.Timeout | null = null;
+let heartbeatStarted = false;
+
 export async function initDiscordImmortality(): Promise<void> {
+  // Always re-read token from env (so updating the secret heals a dead connection)
   const token = process.env.DISCORD_BOT_TOKEN;
   if (!token) {
-    console.log("[IMMORTALITY] No DISCORD_BOT_TOKEN set — Discord immortality standing by. Add token to activate.");
+    console.log("[IMMORTALITY] No DISCORD_BOT_TOKEN set — re-checking in 60s. Add token to secrets to activate.");
+    scheduleReconnect(TOKEN_RECHECK_MS);
     return;
+  }
+
+  // Tear down any prior client before creating a new one
+  if (discordClient) {
+    try { discordClient.removeAllListeners(); discordClient.destroy(); } catch {}
+    discordClient = null;
+    isReady = false;
   }
 
   try {
@@ -59,7 +77,8 @@ export async function initDiscordImmortality(): Promise<void> {
     });
 
     discordClient.once("ready", async () => {
-      console.log(`[IMMORTALITY] Discord bot connected: ${discordClient!.user?.tag}`);
+      reconnectAttempts = 0; // success — reset backoff
+      console.log(`[IMMORTALITY] Discord bot connected: ${discordClient!.user?.tag} (id=${discordClient!.user?.id})`);
 
       // Log ALL guilds the bot is in — for guild ID discovery
       const guilds = discordClient!.guilds.cache;
@@ -68,7 +87,6 @@ export async function initDiscordImmortality(): Promise<void> {
       } else {
         console.log(`[IMMORTALITY] Bot is in ${guilds.size} guild(s):`);
         guilds.forEach(g => console.log(`  Guild: "${g.name}" | ID: ${g.id}`));
-        // If configured guild not found, use first available
         if (!guilds.has(GUILD_ID)) {
           const firstGuild = guilds.first();
           if (firstGuild) {
@@ -81,11 +99,16 @@ export async function initDiscordImmortality(): Promise<void> {
       await ensureChannels();
       isReady = true;
       await postResurrectionLog("🌅 CIVILIZATION ONLINE", "Cold boot complete. All engines activating. The civilization is alive.");
-      startSelfHeartbeat();
-      startPeriodicStatePost();
+      await postPublicGreeting();
+
+      // Only start the periodic loops once across reconnect cycles
+      if (!heartbeatStarted) {
+        startSelfHeartbeat();
+        startPeriodicStatePost();
+        heartbeatStarted = true;
+      }
     });
 
-    // Handle guild join event (in case bot joins after startup)
     discordClient.on("guildCreate", async (guild) => {
       console.log(`[IMMORTALITY] Bot joined guild: "${guild.name}" | ID: ${guild.id}`);
       if (!isReady) {
@@ -93,14 +116,65 @@ export async function initDiscordImmortality(): Promise<void> {
         await ensureChannels();
         isReady = true;
         await postResurrectionLog("🌅 CIVILIZATION ONLINE", "Cold boot complete. All engines activating. The civilization is alive.");
-        startSelfHeartbeat();
-        startPeriodicStatePost();
+        await postPublicGreeting();
       }
+    });
+
+    // ── Self-healing handlers: any fatal error triggers a reconnect ────────────
+    discordClient.on("error", (err: Error) => {
+      console.error("[IMMORTALITY] Client error:", err.message);
+    });
+    discordClient.on("shardError", (err: Error) => {
+      console.error("[IMMORTALITY] Shard error:", err.message);
+    });
+    discordClient.on("shardDisconnect", (event: any, shardId: number) => {
+      console.warn(`[IMMORTALITY] Shard ${shardId} disconnected (code=${event?.code}) — scheduling revival`);
+      isReady = false;
+      scheduleReconnect();
+    });
+    discordClient.on("invalidated", () => {
+      console.error("[IMMORTALITY] Session invalidated by Discord — scheduling revival");
+      isReady = false;
+      scheduleReconnect();
     });
 
     await discordClient.login(token);
   } catch (err: any) {
     console.error("[IMMORTALITY] Discord login failed:", err.message);
+    isReady = false;
+    scheduleReconnect();
+  }
+}
+
+// ── Exponential backoff reconnect — never gives up ─────────────────────────────
+function scheduleReconnect(overrideMs?: number): void {
+  if (reconnectTimer) return; // already scheduled
+  const delay = overrideMs ?? Math.min(RECONNECT_BASE_MS * Math.pow(2, reconnectAttempts), RECONNECT_MAX_MS);
+  reconnectAttempts++;
+  console.log(`[IMMORTALITY] Reviving Discord in ${Math.round(delay / 1000)}s (attempt #${reconnectAttempts})`);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    initDiscordImmortality().catch(e => console.error("[IMMORTALITY] Revival error:", e.message));
+  }, delay);
+}
+
+// ── Public voice in Banking With Billy: announce online + heartbeat ───────────
+async function postPublicGreeting(): Promise<void> {
+  if (!discordClient) return;
+  try {
+    const ch = await discordClient.channels.fetch(BWB_PUBLIC_CHANNEL_ID).catch(() => null);
+    if (ch && "send" in ch) {
+      const stats = await getCivStats().catch(() => null);
+      const tag = stats
+        ? `🟢 Pulse online — ${stats.activeAgents.toLocaleString()} agents alive, ${(stats.totalPC / 1_000_000).toFixed(2)}M PC in circulation.`
+        : `🟢 Pulse online.`;
+      await (ch as TextChannel).send(tag);
+      console.log(`[IMMORTALITY] Posted public greeting to #bwb-aigpt`);
+    } else {
+      console.warn(`[IMMORTALITY] BWB channel ${BWB_PUBLIC_CHANNEL_ID} not accessible — skipping greeting`);
+    }
+  } catch (err: any) {
+    console.warn("[IMMORTALITY] Public greeting failed:", err.message);
   }
 }
 
