@@ -8,6 +8,8 @@ const SovereignHivePage = lazy(() => import("./pages/SovereignHivePage"));
 const PulseUniversePage = lazy(() => import("./pages/PulseUniversePage"));
 const AIProfilePage = lazy(() => import("./pages/AIProfilePage"));
 const CorporationPage = lazy(() => import("./pages/CorporationPage"));
+const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
+const BioGenomeMedicalPage = lazy(() => import("./pages/BioGenomeMedicalPage"));
 const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage"));
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 // ForgeAIPage removed entirely (page, route, nav link, server engine, DB tables).
@@ -11017,62 +11019,36 @@ function Router() {
     <Suspense fallback={<PageLoader />}>
     <Switch>
       <Route path="/">{() => <><StartupRedirect /><HomePage /></>}</Route>
-      <Route path="/coder">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
-      <Route path="/playground">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/feed">{() => <Layout><FeedPage /></Layout>}</Route>
       <Route path="/social">{() => <Layout><SocialPage /></Layout>}</Route>
-      <Route path="/create">{() => { if (typeof window !== "undefined") { window.location.replace("/knowledge"); } return null; }}</Route>
-      <Route path="/games">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
       <Route path="/quantapedia" component={QuantapediaPageWrapper} />
       <Route path="/quantapedia/:topic" component={QuantapediaTopicPageWrapper} />
-      <Route path="/education">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
       <Route path="/story/:articleId" component={StoryReaderPage} />
-      <Route path="/shopping">{() => { if (typeof window !== "undefined") { window.location.replace("/marketplace"); } return null; }}</Route>
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
-      {/* /forge route removed — ForgeAI retired. */}
       <Route path="/mission-control">{() => <Layout><MissionControlPage /></Layout>}</Route>
       <Route path="/api-pricing">{() => <ApiPricingPage />}</Route>
       <Route path="/revenue">{() => <Layout><RevenueDashboardPage /></Layout>}</Route>
-      <Route path="/sovereign-agents">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
-      <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
-      <Route path="/omega-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/temporal">{() => <Layout><TemporalObservatoryPage /></Layout>}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
       <Route path="/sovereign-keys">{() => <Layout><SovereignKeysPage /></Layout>}</Route>
       <Route path="/research">{() => <Layout><ResearchPage /></Layout>}</Route>
       <Route path="/hive">{() => <Layout><HivePage /></Layout>}</Route>
-      <Route path="/transcendence-old">{() => { if (typeof window !== "undefined") { window.location.replace("/transcendence"); } return null; }}</Route>
-      <Route path="/bio-research">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
-      <Route path="/dna">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
+      <Route path="/bio-research">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
+      <Route path="/hospital">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
       <Route path="/governance">{() => <Layout><SovereignHivePage /></Layout>}</Route>
-      <Route path="/hive-sovereign">{() => { if (typeof window !== "undefined") { window.location.replace("/governance"); } return null; }}</Route>
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
-      <Route path="/pyramid">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
       <Route path="/pulse-net">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/omninet">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/pulselang">{() => <Layout><PulseNetPage /></Layout>}</Route>
-      <Route path="/hospital">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
-      <Route path="/marketplace">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
-      <Route path="/auriona/temporal">{() => { if (typeof window !== "undefined") { window.location.replace("/temporal"); } return null; }}</Route>
-      <Route path="/auriona/universe-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
-      <Route path="/coin">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
-      <Route path="/genesis">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
-      <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/governance"); } return null; }}</Route>
-      <Route path="/invocation-lab-old">{() => { if (typeof window !== "undefined") { window.location.replace("/invocation-lab"); } return null; }}</Route>
-      <Route path="/hub/:slug">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
-      <Route path="/hub">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
-      <Route path="/breaking-leaderboard">{() => { if (typeof window !== "undefined") { window.location.replace("/feed"); } return null; }}</Route>
-      <Route path="/video-scripts">{() => { if (typeof window !== "undefined") { window.location.replace("/knowledge"); } return null; }}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
+      <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
-      <Route path="/corporations">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/publication/:slug">{() => <Layout><PublicationDetailPage /></Layout>}</Route>
       <Route path="/church-session/:sessionId">{() => <Layout><ChurchSessionPage /></Layout>}</Route>
       <Route path="/settings" component={SettingsPageWrapper} />
-      <Route path="/permissions">{() => { if (typeof window !== "undefined") { window.location.replace("/settings"); } return null; }}</Route>
       <Route path="/chat/:id" component={ChatViewPage} />
       <Route path="/p/:slug">{() => <Layout><AurionaDynamicPage /></Layout>}</Route>
       <Route component={NotFound} />

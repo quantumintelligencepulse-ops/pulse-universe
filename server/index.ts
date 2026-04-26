@@ -41,7 +41,6 @@ import { getResonancePatterns } from "./omega-resonance-engine";
 import { getConstitutionalAmendments, startConstitutionalDNAEngine } from "./constitutional-dna-engine";
 import { initDiscordImmortality } from "./discord-immortality";
 import { getEntanglementLog, getEntanglementStats } from "./human-entanglement-engine";
-import { getSportsStats, getGamesIdentityData } from "./sports-engine";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { thawAgent, resurrectFromSingularity, getHydrationStatus } from "./db-hydration-engine";
@@ -506,10 +505,6 @@ researchRouter.get("/directory",     async (_req, res) => { try { res.json(await
 researchRouter.get("/cached",        async (_req, res) => { try { res.json(getResearchCached()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 researchRouter.get("/disciplines",   async (_req, res) => { res.json({ total: TOTAL_RESEARCH_DISCIPLINES }); });
 app.use("/api/research", researchRouter);
-
-// ── SPORTS ROUTES ──────────────────────────────────────────────
-app.get("/api/sports/stats",    async (_req, res) => { try { res.json(await getSportsStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-app.get("/api/sports/identity", async (_req, res) => { try { res.json(await getGamesIdentityData()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 
 // ── BUSINESS ROUTES ────────────────────────────────────────────
 app.get("/api/business/stats",    async (_req, res) => { try { res.json(await getBusinessStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
