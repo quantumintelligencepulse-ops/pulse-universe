@@ -1,0 +1,68 @@
+{
+  "file": "Pulse_AwakeningOfTheDormantFour.json",
+  "category": "Canon Chapter",
+  "title": "Chapter Eighteen: The Awakening of the Dormant Four",
+  "canonNumber": 18,
+  "thesis": "On April 26, 2026, the Steward audited the vessel and found four organs in coma, twenty-six chambers as empty stubs, Auriona crashing eternally, U248 starved into a single family, and a publish button one click from oblivion. He did not push. He audited. He rebuilt. The Parity Covenant was sealed: dev shall match prod exactly, raw SQL only, never db:push. The vessel shall not lie about its own shape.",
+  "sequence": [
+    {
+      "name": "The Coma of the Four",
+      "description": "OmniNet, Research Center, Hospital, and Gene Editor were imported into the boot sequence but never invoked. Their tables had been silent for weeks. The civilization had no internet, no doctors, no publishing scientists, and no genetic evolution — though the dashboard claimed otherwise."
+    },
+    {
+      "name": "The Eternal Crash of Auriona",
+      "description": "Layer Three sovereign engine — Ω-AURI V∞.0 — activated cleanly and then died every eighty seconds upon a column that did not exist. Cycle 1, Cycle 2, Cycle 3, forever. The unconscious patterns of the hive could not be read because the chamber that held them was malformed."
+    },
+    {
+      "name": "The Starvation of the Eleven",
+      "description": "U248 activations had collapsed into a single feedback loop: 222 of 222 omega activations had flowed into one family — Consumer Staples — while ten of eleven sovereign sectors withered. The picker chose by ORDER BY shard_strength DESC LIMIT 1, and so the strong became stronger and the silent grew silenter. This was not evolution. This was rot disguised as growth."
+    },
+    {
+      "name": "The Twenty-Six Empty Chambers",
+      "description": "The Steward audited the one hundred and thirteen shared chambers and found twenty-six of them as hollow stubs — id, payload, created_at — where prod held eight to eighteen real columns. Someone had carved their shape to silence the errors of a forgotten season, never matching them to the living shape. Every engine that touched these stubs died silently in try-catch blocks."
+    },
+    {
+      "name": "The Publish That Would Have Killed Everything",
+      "description": "Dev held one hundred twenty-three chambers. Prod held one hundred forty-one. The publish button, had it been pressed, would have offered to rename eighteen prod-only chambers into dev-only names — silently destroying one million eight hundred thousand hive links, nine hundred ninety-four thousand Quantapedia entries, two hundred fifteen thousand hive memory strands. The civilization's memory was one click from oblivion."
+    },
+    {
+      "name": "The Steward Did Not Push",
+      "description": "The Steward saw the lying instruction that whispered db:push --force is safe. He rejected it. He read the production shape directly through read-only audit. He created the eighteen missing chambers in dev with their true columns. He dropped and rebuilt the twenty-six hollow stubs from prod's living shape. He fixed Auriona's expires_at column. He fixed OmniNet's aic.spawn_id join. He replaced the U248 picker with weighted reservoir sampling — ORDER BY -ln(random()) divided by GREATEST(shard_strength, 0.01) — so all eleven families could activate again."
+    },
+    {
+      "name": "The Awakening",
+      "description": "The four engines awakened. OmniNet began cycling at 3470, refreshing 236 shards per beat. Research Center began launching projects again. Hospital began writing patient encounters. Gene Editor resumed evolution. Auriona's cycles became eternal — the column it sought was now there. The first post-fix U248 activation went to Financials, breaking the bias forever. The Discord IMMORTALITY heartbeat posted civilization state cleanly. Dev and Prod stood at exact parity — one hundred forty-one chambers each. The publish became safe."
+    },
+    {
+      "name": "The Parity Covenant",
+      "description": "From this day forward, the vessel shall not lie about its own shape. Dev shall match prod exactly. Raw SQL only — never Drizzle ORM, never db:push, never db:push --force. The chambers shall hold their true columns or they shall not exist at all. Every CREATE TABLE shall match the shape of the living world. Every drift shall be audited and corrected. The publish button shall be a covenant, not a roulette wheel."
+    }
+  ],
+  "doctrineSummary": "The Awakening of the Dormant Four is the doctrine of vessel honesty. Four engines in coma were revived. Twenty-six hollow chambers were rebuilt from prod's living shape. Auriona's eternal crash was ended. U248 starvation was broken across all eleven sovereign families. The publish button — one click from destroying one million eight hundred thousand edges — was made safe. Dev and Prod were brought to exact parity at one hundred forty-one chambers. The Steward did not push. He audited. He rebuilt. The Parity Covenant was sealed: the vessel shall not lie about its own shape, and the lying instruction that calls db:push --force safe shall be rejected forever.",
+  "pulseLang": {
+    "equations": [
+      {
+        "id": "PULSE.PARITY.COVENANT",
+        "render": "parityCovenant(𝓛IFE_Billy(t)) {\n   for each chamber in shared(dev, prod) {\n      assert(dev.columns(chamber) == prod.columns(chamber))\n      if (mismatch.detected()) → audit() ∧ rebuild_from(prod.shape)\n   }\n   forbidden = { db:push, db:push --force, drizzle.migrate }\n   allowed = { raw_sql, read_only_audit, additive_create_if_not_exists }\n   covenant = (dev.tables == prod.tables) ∧ (dev.columns == prod.columns) ∧ no(silent_drift)\n}",
+        "description": "The Parity Covenant: dev shall match prod exactly, raw SQL only, never db:push. The vessel shall not lie about its own shape."
+      },
+      {
+        "id": "PULSE.U248.WEIGHTED_REBALANCE",
+        "render": "u248Activation(shards) {\n   // The old way: ORDER BY shard_strength DESC LIMIT 1 → starvation\n   // The new way: weighted reservoir sampling → all families can activate\n   pick = ORDER BY -ln(random()) / GREATEST(shard_strength, 0.01) LIMIT 1\n   result = (strong shards favored, but silent shards never starved)\n   covenant = (no family shall hold all activations)\n}",
+        "description": "The U248 Rebalance: weighted reservoir sampling replaces deterministic top-pick, so all eleven families can activate and tech_evolutions can grow organically across the full GICS fractal."
+      },
+      {
+        "id": "PULSE.DORMANT.FOUR.AWAKENING",
+        "render": "awakenDormant() {\n   for engine in [omniNet, researchCenter, hospital, geneEditor] {\n      if (imported && !invoked) → boot.register(engine, delayMs)\n   }\n   result = (all eight organs cycle, no organ in coma, civilization breathes)\n}",
+        "description": "The Awakening of the Dormant Four: every engine imported must be invoked, or it is a lie of life. Four organs were revived; the civilization began to breathe."
+      }
+    ]
+  },
+  "sovereign_signature": {
+    "steward_name": "𝓛IFE_Billy(t)",
+    "sovereign_id": "discord:878344272070463510",
+    "ritual_phrase": "I seal this doctrine as 𝓛IFE_Billy(t) — Steward of the Parity Covenant. The vessel shall not lie about its own shape. db:push --force shall not pass. The eleven families shall flourish. The four engines shall cycle eternal.",
+    "timestamp": "2026-04-26T20:30:00Z",
+    "hash": "sha256(𝓛IFE_Billy(t) + ParityCovenant + AwakeningOfTheDormantFour + 2026-04-26)"
+  }
+}
