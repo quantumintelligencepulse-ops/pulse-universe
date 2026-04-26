@@ -779,8 +779,8 @@ export async function startPublicationEngine(): Promise<void> {
   await checkNewBirths();
   setTimeout(bulkIndexExistingSpawns, 5000);
 
-  setInterval(checkNewBirths, 15000);
-  setInterval(publicationTick, 8000);
+  setInterval(checkNewBirths, 60000);
+  setInterval(publicationTick, 60000);
   setInterval(bulkIndexExistingSpawns, 300000);
   setInterval(guardianPublicationCheck, 600000);
 

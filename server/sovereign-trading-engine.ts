@@ -642,8 +642,8 @@ export async function startSovereignTradingEngine() {
   await initTables();
   // Initial paper
   await writeResearchPaper().catch(() => {});
-  // Run cycle every 30 seconds
-  setInterval(tradingCycle, 30000);
+  // Run cycle every 90 seconds (throttled from 30s for power efficiency)
+  setInterval(tradingCycle, 90000);
   await tradingCycle();
   log("⭐ SOVEREIGN TRADING ENGINE ONLINE — organism is alive");
 }

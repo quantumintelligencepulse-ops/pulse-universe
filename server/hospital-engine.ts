@@ -1086,7 +1086,7 @@ export async function startHospitalEngine() {
   // Remove hardcoded seeded AI-001..AI-030 entries — discoveries must be dynamic only
   await removeHardcodedSeedDiseases();
   await runHospitalCycle();
-  setInterval(runHospitalCycle, 120_000);
+  setInterval(runHospitalCycle, 300_000);
   // Run bulk stale-case retirement every 10 minutes
   setInterval(bulkRetireStaleCases, 10 * 60 * 1000);
   bulkRetireStaleCases(); // run immediately on start

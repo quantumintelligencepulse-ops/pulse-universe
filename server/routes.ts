@@ -9,7 +9,6 @@ import {
 } from "./seo-engine";
 import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine";
 import { autoPostPendingInventions, getGumroadProducts, getGumroadSales, ensureGumroadTable } from "./gumroad-engine";
-import { getAffiliateStatus, generateProductAffiliateBundle } from "./affiliate-engine";
 import { startAutonomousRevenueEngine, getEngineStatus } from "./autonomous-revenue-engine";
 // multiverse-mall removed — Pulse Coin economy retired
 import { GICS_KERNELS } from "./gics-kernels-data";
