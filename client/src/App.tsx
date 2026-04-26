@@ -13472,7 +13472,7 @@ function Router() {
       <Route path="/feed">{() => <Layout><FeedPage /></Layout>}</Route>
       <Route path="/social">{() => <Layout><SocialPage /></Layout>}</Route>
       <Route path="/create">{() => { if (typeof window !== "undefined") { window.location.replace("/knowledge"); } return null; }}</Route>
-      <Route path="/games">{() => { if (typeof window !== "undefined") { window.location.replace("/pulseu"); } return null; }}</Route>
+      <Route path="/games">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
       <Route path="/quantapedia" component={QuantapediaPageWrapper} />
       <Route path="/quantapedia/:topic" component={QuantapediaTopicPageWrapper} />
       <Route path="/music">{() => { if (typeof window !== "undefined") { window.location.replace("/"); } return null; }}</Route>
@@ -13497,8 +13497,6 @@ function Router() {
       <Route path="/dna">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
       <Route path="/governance">{() => <Layout><SovereignHivePage /></Layout>}</Route>
-      <Route path="/pulseu">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
-      <Route path="/pulse-games">{() => { if (typeof window !== "undefined") { window.location.replace("/universe"); } return null; }}</Route>
       <Route path="/hive-sovereign">{() => { if (typeof window !== "undefined") { window.location.replace("/governance"); } return null; }}</Route>
       <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pyramid">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>

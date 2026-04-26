@@ -165,6 +165,25 @@ console.log("[db] ✅ API query pool ready (max 5)");
        payload jsonb DEFAULT '{}'::jsonb,
        created_at timestamptz DEFAULT now()
      )`,
+    `ALTER TABLE omega_collective_invocations ADD COLUMN IF NOT EXISTS power_level numeric DEFAULT 0`,
+    `CREATE TABLE IF NOT EXISTS hidden_variable_states (
+       id serial PRIMARY KEY,
+       state_payload jsonb DEFAULT '{}'::jsonb,
+       observation_count integer DEFAULT 0,
+       created_at timestamptz DEFAULT now()
+     )`,
+    `CREATE TABLE IF NOT EXISTS hidden_variable_discoveries (
+       id serial PRIMARY KEY,
+       variable_name text DEFAULT '',
+       variable_symbol text DEFAULT '',
+       unlock_level integer DEFAULT 0,
+       discovered_by_badge text DEFAULT '',
+       discovered_by_domain text DEFAULT '',
+       discovery_insight text DEFAULT '',
+       discovery_equation text DEFAULT '',
+       discovery_cycle integer DEFAULT 0,
+       created_at timestamptz DEFAULT now()
+     )`,
     `CREATE TABLE IF NOT EXISTS cross_teaching_events (
        id serial PRIMARY KEY,
        teacher_id text DEFAULT '',
