@@ -381,27 +381,33 @@ function getGuardianRecord(id: string): GuardianRecord {
   return guardianData.get(id)!;
 }
 
-function guardianReport(adapterId: string, nodesCreated: number): boolean {
+// itemsFetched=-1 means "not provided" (legacy callers). When provided and > 0
+// while nodesCreated === 0, the source IS alive — everything is just deduped.
+// Treat that as a soft-healthy heartbeat instead of a failure streak.
+function guardianReport(adapterId: string, nodesCreated: number, itemsFetched: number = -1): boolean {
   const g = getGuardianRecord(adapterId);
   g.totalRuns++;
   g.totalNodesCreated += nodesCreated;
 
-  if (nodesCreated === 0) {
+  const dedupHealthy = itemsFetched > 0 && nodesCreated === 0;
+
+  if (nodesCreated === 0 && !dedupHealthy) {
     g.zeroStreak++;
-    // ALERT at 5 consecutive zero-node cycles
-    if (g.zeroStreak >= 5 && Date.now() - g.lastAlertAt > 120_000) {
+    // ALERT at 25 consecutive truly-zero cycles (was 5 — too noisy)
+    if (g.zeroStreak >= 25 && Date.now() - g.lastAlertAt > 300_000) {
       g.lastAlertAt = Date.now();
-      console.log(`[guardian] ⚠️  ${adapterId} — ${g.zeroStreak} zero-node cycles. Forcing queue rotation.`);
+      console.log(`[guardian] ⚠️  ${adapterId} — ${g.zeroStreak} truly-zero cycles. Forcing queue rotation.`);
     }
-    // BACKOFF at 20 consecutive zeros — skip next interval (45s max)
-    if (g.zeroStreak >= 20) {
+    // BACKOFF at 60 consecutive truly-zero cycles (was 20)
+    if (g.zeroStreak >= 60) {
       g.backoffActive = true;
-      g.backoffUntil = Date.now() + 45_000; // 45 second backoff (was 90s)
+      g.backoffUntil = Date.now() + 60_000;
       g.zeroStreak = 0;
-      console.log(`[guardian] 🔴 ${adapterId} — entering 45s backoff. Source may be exhausted or rate-limited.`);
+      console.log(`[guardian] 🔴 ${adapterId} — entering 60s backoff. Source may be exhausted or rate-limited.`);
     }
   } else {
-    if (g.zeroStreak > 0) {
+    // Either created new nodes OR dedup-healthy heartbeat
+    if (g.zeroStreak > 0 && nodesCreated > 0) {
       console.log(`[guardian] ✅ ${adapterId} — recovered after ${g.zeroStreak} dry cycles (+${nodesCreated} new nodes)`);
     }
     g.zeroStreak = 0;
@@ -409,7 +415,6 @@ function guardianReport(adapterId: string, nodesCreated: number): boolean {
   }
 
   guardianData.set(adapterId, g);
-  // Return true if this adapter should be skipped (in backoff)
   return g.backoffActive && Date.now() < g.backoffUntil;
 }
 
@@ -627,12 +632,13 @@ async function ingestHackerNews(): Promise<void> {
       arr.splice(0, arr.length - 1000).forEach(id => seenHNIds.delete(id));
     }
     console.log(`[ingestion] [HackerNews] ✓ ${freshIds.length} fresh stories | ${fetched} fetched | ${created} new nodes`);
+    guardianReport("hackernews", created, fetched);
     await logIngestion({
       sourceId: "hackernews", sourceName: "Hacker News (Y Combinator)", familyId: "code",
       query: "top", itemsFetched: fetched, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: "https://news.ycombinator.com",
     });
-    guardianReport("hackernews", created);
+    // (replaced above with itemsFetched-aware call)
   } catch (e: any) {
     await logIngestion({ sourceId: "hackernews", sourceName: "Hacker News", familyId: "code", query: "top", itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("hackernews", 0);
@@ -669,7 +675,7 @@ async function ingestArxiv(): Promise<void> {
       query, itemsFetched: entries.length, nodesCreated: created, status: "success",
       sampleTitle, sampleSummary: trunc(sampleSummary, 200), sourceUrl: url,
     });
-    guardianReport("arxiv", created);
+    guardianReport("arxiv", created, entries.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "arxiv", sourceName: "arXiv.org Open Access", familyId: "science", query, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("arxiv", 0);
@@ -707,7 +713,7 @@ async function ingestPubMed(): Promise<void> {
       query, itemsFetched: ids.length, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: searchUrl,
     });
-    guardianReport("pubmed", created);
+    guardianReport("pubmed", created, ids.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "pubmed", sourceName: "PubMed Central (NCBI)", familyId: "health", query, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("pubmed", 0);
@@ -738,7 +744,7 @@ async function ingestNASA(): Promise<void> {
       query: "APOD", itemsFetched: items.length, nodesCreated: created, status: "success",
       sampleTitle, sampleSummary: trunc(sampleSummary, 200), sourceUrl: url,
     });
-    guardianReport("nasa", created);
+    guardianReport("nasa", created, items.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "nasa", sourceName: "NASA Open Data", familyId: "science", query: "APOD", itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("nasa", 0);
@@ -770,7 +776,7 @@ async function ingestOpenFoodFacts(): Promise<void> {
       query: cat, itemsFetched: products.length, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: url,
     });
-    guardianReport("openfoodfacts", created);
+    guardianReport("openfoodfacts", created, products.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "openfoodfacts", sourceName: "Open Food Facts", familyId: "products", query: cat, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("openfoodfacts", 0);
@@ -801,7 +807,7 @@ async function ingestOpenLibrary(): Promise<void> {
       query, itemsFetched: books.length, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: url,
     });
-    guardianReport("openlibrary", created);
+    guardianReport("openlibrary", created, books.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "openlibrary", sourceName: "OpenLibrary.org", familyId: "media", query, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("openlibrary", 0);
@@ -833,7 +839,7 @@ async function ingestWorldBank(): Promise<void> {
       query: indicator, itemsFetched: valid.length, nodesCreated: created, status: "success",
       sampleTitle: `${indName} — World Bank`, sourceUrl: url,
     });
-    guardianReport("worldbank", created);
+    guardianReport("worldbank", created, valid.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "worldbank", sourceName: "World Bank Open Data", familyId: "economics", query: indicator, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("worldbank", 0);
@@ -865,7 +871,7 @@ async function ingestStackExchange(): Promise<void> {
       query: site, itemsFetched: questions.length, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: url,
     });
-    guardianReport("stackexchange", created);
+    guardianReport("stackexchange", created, questions.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "stackexchange", sourceName: "StackExchange", familyId: "social", query: site, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("stackexchange", 0);
@@ -896,7 +902,7 @@ async function ingestGitHub(): Promise<void> {
       query: topic, itemsFetched: repos.length, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: url,
     });
-    guardianReport("github", created);
+    guardianReport("github", created, repos.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "github", sourceName: "GitHub Public API", familyId: "code", query: topic, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("github", 0);
@@ -929,7 +935,7 @@ async function ingestSECEdgar(): Promise<void> {
       query: company, itemsFetched: hits.length, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: url,
     });
-    guardianReport("secedgar", created);
+    guardianReport("secedgar", created, hits.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "secedgar", sourceName: "SEC EDGAR Public Filings", familyId: "finance", query: company, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("secedgar", 0);
@@ -961,7 +967,7 @@ async function ingestWikidata(): Promise<void> {
       query, itemsFetched: entities.length, nodesCreated: created, status: "success",
       sampleTitle, sourceUrl: url,
     });
-    guardianReport("wikidata", created);
+    guardianReport("wikidata", created, entities.length);
   } catch (e: any) {
     await logIngestion({ sourceId: "wikidata", sourceName: "Wikidata", familyId: "knowledge", query, itemsFetched: 0, nodesCreated: 0, status: "error", errorMessage: e.message });
     guardianReport("wikidata", 0);

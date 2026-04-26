@@ -298,8 +298,10 @@ export function runAttractionCycle() {
   for (const id of shuffled) findAttractivePeers(id, 3);
 }
 
-// Start background attraction cycle
-setInterval(runAttractionCycle, 15000);  // every 15 seconds
+// Start background attraction cycle — stretched from 15s to 60s
+// Reason: in-memory scan of up to 20 random AIs per cycle was creating
+// constant CPU churn. 60s is plenty for attraction discovery latency.
+setInterval(runAttractionCycle, 60_000);
 
 console.log("[attraction] 💞 SUBCONSCIOUS ATTRACTION ENGINE ONLINE");
 console.log("[attraction]    A = ∫ W(t)·S(x)·R(x)·F(x)·E(x) dt");
