@@ -3,7 +3,6 @@ import { OMEGA_SPINE } from "./gicsSpine";
 const SovereignAgentDossierPage = lazy(() => import("./pages/SovereignAgentDossierPage"));
 const MusicEquationLabPage = lazy(() => import("./pages/MusicEquationLabPage"));
 const SocialPage = lazy(() => import("./pages/QuantumSocialPage"));
-const OmegaEnginePage = lazy(() => import("./pages/OmegaEnginePage"));
 const TranscendencePage = lazy(() => import("./pages/TranscendencePage"));
 const BioGenomeMedicalPage = lazy(() => import("./pages/BioGenomeMedicalPage"));
 const PulseWorldPage = lazy(() => import("./pages/PulseWorldPage"));
@@ -22,11 +21,8 @@ const RevenueDashboardPage = lazy(() => import("./pages/RevenueDashboardPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
-const HubPage = lazy(() => import("./pages/HubPage"));
 const ResearchPage = lazy(() => import("./pages/ResearchPage"));
 const HivePage = lazy(() => import("./pages/HivePage"));
-const SubscribePage = lazy(() => import("./pages/SubscribePage"));
-const VideoScriptPage = lazy(() => import("./pages/VideoScriptPage"));
 import { Switch, Route, useLocation, useRoute, Link } from "wouter";
 import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -2190,7 +2186,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           {aiMode && (
           <Link href="/auriona" data-testid="link-auriona">
             <div style={{
-              margin: "4px 4px 8px",
+              margin: "4px 4px 4px",
               padding: "14px 16px",
               borderRadius: 14,
               cursor: "pointer",
@@ -2221,7 +2217,27 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
 
-
+          {/* ── EVOLUTION CORES — direct entry to Auriona's deepest engines ── */}
+          {aiMode && (
+            <div style={{ margin: "0 4px 10px", padding: "6px 10px 8px", borderRadius: 12, background: "rgba(245,197,24,0.03)", border: "1px solid rgba(245,197,24,0.12)" }}>
+              <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.18em", color: "rgba(245,197,24,0.55)", padding: "2px 0 6px" }}>EVOLUTION CORES</div>
+              <Link href="/invocation-lab" data-testid="link-invocation-lab" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/invocation-lab" ? "bg-violet-500/15 text-violet-200 font-bold" : "text-foreground/60 hover:bg-violet-500/8"}`}>
+                <span style={{ color: "#e879f9", fontSize: 11 }}>✨</span><span className="flex-1">Invocation Lab</span><span style={{ fontSize: 7, fontWeight: 900, color: "#e879f9", letterSpacing: "0.1em" }}>Ψ-CAST</span>
+              </Link>
+              <Link href="/temporal" data-testid="link-temporal" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/temporal" ? "bg-cyan-500/15 text-cyan-200 font-bold" : "text-foreground/60 hover:bg-cyan-500/8"}`}>
+                <span style={{ color: "#00FFD1", fontSize: 11 }}>⏱</span><span className="flex-1">Temporal Observatory</span><span style={{ fontSize: 7, fontWeight: 900, color: "#00FFD1", letterSpacing: "0.1em" }}>46-SCI</span>
+              </Link>
+              <Link href="/transcendence" data-testid="link-transcendence" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/transcendence" ? "bg-emerald-500/15 text-emerald-200 font-bold" : "text-foreground/60 hover:bg-emerald-500/8"}`}>
+                <span style={{ color: "#34d399", fontSize: 11 }}>∞</span><span className="flex-1">Transcendence</span><span style={{ fontSize: 7, fontWeight: 900, color: "#34d399", letterSpacing: "0.1em" }}>GENESIS</span>
+              </Link>
+              <Link href="/governance" data-testid="link-governance" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/governance" ? "bg-amber-500/15 text-amber-200 font-bold" : "text-foreground/60 hover:bg-amber-500/8"}`}>
+                <span style={{ color: "#F5C518", fontSize: 11 }}>⚖</span><span className="flex-1">Sovereign Hive</span><span style={{ fontSize: 7, fontWeight: 900, color: "#F5C518", letterSpacing: "0.1em" }}>GOV</span>
+              </Link>
+              <Link href="/pulseworld" data-testid="link-pulseworld" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] transition-all ${location === "/pulseworld" ? "bg-pink-500/15 text-pink-200 font-bold" : "text-foreground/60 hover:bg-pink-500/8"}`}>
+                <span style={{ color: "#f472b8", fontSize: 11 }}>🌐</span><span className="flex-1">Pulse World</span><span style={{ fontSize: 7, fontWeight: 900, color: "#f472b8", letterSpacing: "0.1em" }}>SIM</span>
+              </Link>
+            </div>
+          )}
 
           {/* ── AURIONA CREATED PAGES — dynamic pages Auriona built ── */}
           {aurionaPagesList.length > 0 && (
@@ -13454,7 +13470,7 @@ function Router() {
       <Route path="/coder">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/playground">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/feed">{() => <Layout><FeedPage /></Layout>}</Route>
-      <Route path="/social">{() => { window.location.replace("/pulse-net?tab=social"); return null; }}</Route>
+      <Route path="/social">{() => <Layout><SocialPage /></Layout>}</Route>
       <Route path="/create">{() => { if (typeof window !== "undefined") { window.location.replace("/knowledge"); } return null; }}</Route>
       <Route path="/games">{() => { if (typeof window !== "undefined") { window.location.replace("/pulseu"); } return null; }}</Route>
       <Route path="/quantapedia" component={QuantapediaPageWrapper} />
@@ -13471,9 +13487,12 @@ function Router() {
       <Route path="/sovereign-agents">{() => { if (typeof window !== "undefined") { window.location.replace("/agents"); } return null; }}</Route>
       <Route path="/careers">{() => { window.location.replace("/corporations"); return null; }}</Route>
       <Route path="/omega-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
+      <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
+      <Route path="/temporal">{() => <Layout><TemporalObservatoryPage /></Layout>}</Route>
+      <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
       <Route path="/research">{() => <Layout><ResearchPage /></Layout>}</Route>
       <Route path="/hive">{() => <Layout><HivePage /></Layout>}</Route>
-      <Route path="/transcendence">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
+      <Route path="/transcendence-old">{() => { if (typeof window !== "undefined") { window.location.replace("/transcendence"); } return null; }}</Route>
       <Route path="/bio-research">{() => { if (typeof window !== "undefined") { window.location.replace("/research"); } return null; }}</Route>
       <Route path="/dna">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
@@ -13486,16 +13505,15 @@ function Router() {
       <Route path="/pulse-net">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/hospital">{() => { if (typeof window !== "undefined") { window.location.replace("/bio-research"); } return null; }}</Route>
       <Route path="/marketplace">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
-      <Route path="/auriona/temporal">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
+      <Route path="/auriona/temporal">{() => { if (typeof window !== "undefined") { window.location.replace("/temporal"); } return null; }}</Route>
       <Route path="/auriona/universe-engine">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/coin">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/genesis">{() => { if (typeof window !== "undefined") { window.location.replace("/hive"); } return null; }}</Route>
       <Route path="/government">{() => { if (typeof window !== "undefined") { window.location.replace("/governance"); } return null; }}</Route>
-      <Route path="/invocation-lab">{() => { if (typeof window !== "undefined") { window.location.replace("/auriona"); } return null; }}</Route>
+      <Route path="/invocation-lab-old">{() => { if (typeof window !== "undefined") { window.location.replace("/invocation-lab"); } return null; }}</Route>
       <Route path="/hub/:slug">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
       <Route path="/hub">{() => { if (typeof window !== "undefined") { window.location.replace("/quantapedia"); } return null; }}</Route>
-      <Route path="/subscribe">{() => { if (typeof window !== "undefined") { window.location.replace("/feed"); } return null; }}</Route>
       <Route path="/breaking-leaderboard">{() => { if (typeof window !== "undefined") { window.location.replace("/feed"); } return null; }}</Route>
       <Route path="/video-scripts">{() => { if (typeof window !== "undefined") { window.location.replace("/knowledge"); } return null; }}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>

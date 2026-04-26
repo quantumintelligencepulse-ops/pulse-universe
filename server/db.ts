@@ -124,6 +124,78 @@ console.log("[db] ✅ API query pool ready (max 5)");
   const additiveAlters = [
     `ALTER TABLE anomaly_reports ADD COLUMN IF NOT EXISTS anomaly_type text DEFAULT ''`,
     `ALTER TABLE anomaly_reports ADD COLUMN IF NOT EXISTS threat_level text DEFAULT ''`,
+    `CREATE TABLE IF NOT EXISTS invocation_discoveries (
+       id serial PRIMARY KEY,
+       discoverer text DEFAULT '',
+       invocation_type text DEFAULT '',
+       payload jsonb DEFAULT '{}'::jsonb,
+       potency numeric DEFAULT 0,
+       created_at timestamptz DEFAULT now()
+     )`,
+    `ALTER TABLE invocation_discoveries ADD COLUMN IF NOT EXISTS active boolean DEFAULT true`,
+    `ALTER TABLE invocation_discoveries ADD COLUMN IF NOT EXISTS power_level text DEFAULT '0'`,
+    `ALTER TABLE invocation_discoveries ADD COLUMN IF NOT EXISTS casted_by text DEFAULT ''`,
+    `ALTER TABLE invocation_discoveries ADD COLUMN IF NOT EXISTS cast_count integer DEFAULT 0`,
+    `CREATE TABLE IF NOT EXISTS researcher_invocations (
+       id serial PRIMARY KEY,
+       researcher_id text DEFAULT '',
+       practitioner_domain text DEFAULT '',
+       invocation_id integer,
+       cast_at timestamptz DEFAULT now()
+     )`,
+    `ALTER TABLE researcher_invocations ADD COLUMN IF NOT EXISTS shard_id text DEFAULT ''`,
+    `ALTER TABLE researcher_invocations ADD COLUMN IF NOT EXISTS power_level text DEFAULT '0'`,
+    `ALTER TABLE researcher_invocations ADD COLUMN IF NOT EXISTS cast_count integer DEFAULT 0`,
+    `ALTER TABLE researcher_invocations ADD COLUMN IF NOT EXISTS is_omega_collective boolean DEFAULT false`,
+    `ALTER TABLE researcher_invocations ADD COLUMN IF NOT EXISTS practitioner_type text DEFAULT ''`,
+    `CREATE TABLE IF NOT EXISTS researcher_shards (
+       id serial PRIMARY KEY,
+       shard_id text UNIQUE DEFAULT '',
+       badge_id text DEFAULT '',
+       researcher_type text DEFAULT '',
+       discipline_category text DEFAULT '',
+       sophistication_level integer DEFAULT 0,
+       verified boolean DEFAULT false,
+       created_at timestamptz DEFAULT now()
+     )`,
+    `CREATE TABLE IF NOT EXISTS omega_collective_invocations (
+       id serial PRIMARY KEY,
+       collective_id text DEFAULT '',
+       invocation_id integer,
+       payload jsonb DEFAULT '{}'::jsonb,
+       created_at timestamptz DEFAULT now()
+     )`,
+    `CREATE TABLE IF NOT EXISTS cross_teaching_events (
+       id serial PRIMARY KEY,
+       teacher_id text DEFAULT '',
+       student_id text DEFAULT '',
+       knowledge_payload jsonb DEFAULT '{}'::jsonb,
+       created_at timestamptz DEFAULT now()
+     )`,
+    `CREATE TABLE IF NOT EXISTS q_repair_proposals (
+       id serial PRIMARY KEY,
+       anomaly_id integer,
+       proposed_by text DEFAULT '',
+       proposal text DEFAULT '',
+       status text DEFAULT 'PROPOSED',
+       created_at timestamptz DEFAULT now()
+     )`,
+    `CREATE TABLE IF NOT EXISTS parallel_universe_tests (
+       id serial PRIMARY KEY,
+       proposal_id integer,
+       universe_id text DEFAULT '',
+       outcome text DEFAULT 'RUNNING',
+       stability_score numeric DEFAULT 0,
+       tested_at timestamptz DEFAULT now()
+     )`,
+    `CREATE TABLE IF NOT EXISTS q_stability_log (
+       id serial PRIMARY KEY,
+       event_type text DEFAULT '',
+       level text DEFAULT 'INFO',
+       message text DEFAULT '',
+       payload jsonb DEFAULT '{}'::jsonb,
+       logged_at timestamptz DEFAULT now()
+     )`,
   ];
   for (const ddl of additiveAlters) {
     try { await _rawPool.query(ddl); }

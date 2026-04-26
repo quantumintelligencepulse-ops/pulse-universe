@@ -5,7 +5,6 @@ import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import InvocationLabPage from "./InvocationLabPage";
 import TranscendencePage from "./TranscendencePage";
 import TemporalObservatoryPage from "./TemporalObservatoryPage";
-import UniverseEnginePage from "./UniverseEnginePage";
 
 // ─── Ω UNIVERSE VECTOR TIME ────────────────────────────────────────────────────
 const OMEGA_EPOCH = new Date("2024-11-01T00:00:00Z").getTime();
@@ -647,7 +646,6 @@ export default function AurionaPage() {
   const HUB_TABS = [
     { id: "command",       label: "⚡  Command",         badge: "LIVE",        color: GOLD   },
     { id: "invocations",   label: "✨  Invocations",     badge: "Ψ-CAST",      color: "#e879f9" },
-    { id: "structure",     label: "⭐  Structure",        badge: "Ω-ENGINE",    color: "#818cf8" },
     { id: "transcendence", label: "∞  Transcendence",    badge: "GENESIS",     color: "#34d399" },
     { id: "temporal",      label: "⏱  Temporal",         badge: "46-SCI",      color: CYAN   },
   ];
@@ -1242,7 +1240,6 @@ export default function AurionaPage() {
 
       {/* ── OTHER HUB TABS — rendered full-width outside the maxWidth container ── */}
       {hubTab === "invocations"   && <InvocationLabPage />}
-      {hubTab === "structure"     && <UniverseEnginePage />}
       {hubTab === "transcendence" && <TranscendencePage />}
       {hubTab === "temporal"      && <TemporalObservatoryPage />}
 

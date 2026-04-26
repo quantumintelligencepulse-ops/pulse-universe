@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import PulseNetPage from "./PulseNetPage";
+import QuantumSocialPage from "./QuantumSocialPage";
 import CorporationsListPage from "./CorporationsListPage";
 import { useDomainPing } from "@/lib/universeResonance";
 
@@ -72,7 +72,7 @@ export default function HivePage() {
         ))}
       </div>
 
-      {active === "social" && <PulseNetPage />}
+      {active === "social" && <QuantumSocialPage />}
       {active === "corps"  && <CorporationsListPage />}
     </div>
   );

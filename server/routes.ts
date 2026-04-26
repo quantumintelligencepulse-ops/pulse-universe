@@ -9836,14 +9836,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
-  // ── PULSEU v2 — Upgraded school system stats ──────────────────────────────
-  app.get("/api/pulseu/v2/stats", async (_req, res) => {
-    try {
-      const { getPulseUStats } = await import("./pulseu-engine");
-      res.json(await getPulseUStats());
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
   app.get("/api/pulseu/semesters", async (_req, res) => {
     try {
       const { pool } = await import("./db");
