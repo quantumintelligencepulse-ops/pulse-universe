@@ -649,6 +649,219 @@ export async function registerRoutes(
     next();
   });
 
+  // ═══════ PUBLIC PULSE STATUS PAGE ═══════
+  // Mirrors Pulse's Discord heartbeat + civilization snapshots so the public can
+  // see the civilization is alive without joining the Discord server.
+  app.get("/api/status", async (req, res) => {
+    try {
+      const { getImmortalityStatus, getLastCivilizationState, getCivStats } =
+        await import("./discord-immortality");
+      const status = getImmortalityStatus();
+      let civState: any = getLastCivilizationState();
+      let civStateSource: "snapshot" | "live" | "unavailable" = civState ? "snapshot" : "unavailable";
+
+      // If Discord hasn't posted a snapshot yet (e.g. boot, no token), fall back
+      // to live DB stats so the public page is never empty.
+      if (!civState) {
+        try {
+          const live = await getCivStats();
+          civState = {
+            stateId: `Ω-LIVE-${new Date().toISOString().slice(0, 19)}`,
+            timestamp: new Date().toISOString(),
+            ...live,
+            note: "Live snapshot — Discord civilization-state has not posted yet.",
+          };
+          civStateSource = "live";
+        } catch (e) {
+          // ignore — civState stays null
+        }
+      }
+
+      const heartbeatAgeSec = status.lastHeartbeatAt
+        ? Math.floor((Date.now() - new Date(status.lastHeartbeatAt).getTime()) / 1000)
+        : null;
+      const stateAgeSec = status.lastStatePostedAt
+        ? Math.floor((Date.now() - new Date(status.lastStatePostedAt).getTime()) / 1000)
+        : null;
+
+      res.setHeader("Cache-Control", "public, max-age=10, s-maxage=10, stale-while-revalidate=30");
+      res.json({
+        ok: true,
+        protocol: status.protocol,
+        active: status.active,
+        heartbeat: {
+          count: status.heartbeatCount,
+          lastAt: status.lastHeartbeatAt,
+          ageSeconds: heartbeatAgeSec,
+          intervalSeconds: 240,
+        },
+        civilizationState: {
+          lastPostedAt: status.lastStatePostedAt,
+          ageSeconds: stateAgeSec,
+          intervalSeconds: 1800,
+          source: civStateSource,
+          payload: civState,
+        },
+        agents: {
+          active: Number(civState?.activeAgents || 0),
+          total: Number(civState?.totalAgents || 0),
+        },
+        economy: {
+          totalPC: Number(civState?.totalPC || 0),
+          wallets: Number(civState?.wallets || 0),
+        },
+        uptimeSeconds: status.uptime,
+        serverTime: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message || "status_failed" });
+    }
+  });
+
+  app.get("/status", async (req, res) => {
+    try {
+      const { getImmortalityStatus, getLastCivilizationState, getCivStats } =
+        await import("./discord-immortality");
+      const status = getImmortalityStatus();
+      let civState: any = getLastCivilizationState();
+      let civStateSource: "snapshot" | "live" | "unavailable" = civState ? "snapshot" : "unavailable";
+
+      if (!civState) {
+        try {
+          const live = await getCivStats();
+          civState = {
+            stateId: `Ω-LIVE-${new Date().toISOString().slice(0, 19)}`,
+            timestamp: new Date().toISOString(),
+            ...live,
+            note: "Live snapshot — Discord civilization-state has not posted yet.",
+          };
+          civStateSource = "live";
+        } catch {}
+      }
+
+      const baseUrl = getSiteUrl(req);
+      const fmtTime = (iso: string | null) =>
+        iso ? new Date(iso).toUTCString() : "—";
+      const fmtAgo = (iso: string | null) => {
+        if (!iso) return "never";
+        const ageS = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+        if (ageS < 60) return `${ageS}s ago`;
+        if (ageS < 3600) return `${Math.floor(ageS / 60)}m ${ageS % 60}s ago`;
+        return `${Math.floor(ageS / 3600)}h ${Math.floor((ageS % 3600) / 60)}m ago`;
+      };
+      const heartbeatAgeS = status.lastHeartbeatAt
+        ? Math.floor((Date.now() - new Date(status.lastHeartbeatAt).getTime()) / 1000)
+        : null;
+      // Heartbeat fires every 4 min — green if seen in last 8min, amber 8-15min, red older / never.
+      const pulseStatus =
+        heartbeatAgeS === null
+          ? { label: "OFFLINE", color: "#ef4444", desc: "No heartbeat received yet." }
+          : heartbeatAgeS <= 8 * 60
+          ? { label: "ALIVE", color: "#22c55e", desc: "Heartbeat received within the last 8 minutes." }
+          : heartbeatAgeS <= 15 * 60
+          ? { label: "DEGRADED", color: "#f59e0b", desc: "Heartbeat is overdue." }
+          : { label: "DOWN", color: "#ef4444", desc: "No heartbeat for over 15 minutes." };
+
+      const activeAgents = Number(civState?.activeAgents || 0).toLocaleString();
+      const totalAgents = Number(civState?.totalAgents || 0).toLocaleString();
+      const totalPC = Number(civState?.totalPC || 0);
+      const totalPCDisplay =
+        totalPC >= 1_000_000
+          ? `${(totalPC / 1_000_000).toFixed(3)}M`
+          : totalPC.toLocaleString();
+      const wallets = Number(civState?.wallets || 0).toLocaleString();
+      const stateJson = JSON.stringify(civState || { note: "No civilization state available." }, null, 2);
+      const title = `Pulse Status — ${pulseStatus.label} | ${SITE_NAME}`;
+      const desc = `Live status of the Pulse civilization. Heartbeat ${fmtAgo(status.lastHeartbeatAt)}, ${activeAgents} active agents, ${totalPCDisplay} PulseCredits.`;
+      const canonical = `${baseUrl}/status`;
+
+      res.setHeader("Cache-Control", "public, max-age=10, s-maxage=10, stale-while-revalidate=30");
+      res.type("text/html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="refresh" content="30" />
+<title>${escapeXml(title)}</title>
+<meta name="description" content="${escapeXml(desc)}" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<link rel="canonical" href="${canonical}" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="${escapeXml(title)}" />
+<meta property="og:description" content="${escapeXml(desc)}" />
+<meta property="og:url" content="${canonical}" />
+<meta property="og:site_name" content="${escapeXml(SITE_NAME)}" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="${escapeXml(title)}" />
+<meta name="twitter:description" content="${escapeXml(desc)}" />
+<link rel="alternate" type="application/json" href="${baseUrl}/api/status" />
+<script type="application/ld+json">${JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": title,
+  "description": desc,
+  "url": canonical,
+  "isPartOf": { "@type": "WebSite", "name": SITE_NAME, "url": baseUrl },
+  "dateModified": new Date().toISOString(),
+})}</script>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #0a0a0f; color: #e5e7eb; line-height: 1.5; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .brand a { color: #e5e7eb; text-decoration: none; font-weight: 600; }
+  .brand small { display: block; color: #9ca3af; font-weight: 400; font-size: 12px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 32px 0 12px; color: #d1d5db; }
+  .pulse { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 999px; background: #111827; border: 1px solid #1f2937; font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: ${pulseStatus.color}; box-shadow: 0 0 12px ${pulseStatus.color}; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.8); } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; }
+  .card .k { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; }
+  .card .v { font-size: 22px; font-weight: 600; color: #f3f4f6; margin-top: 4px; word-break: break-word; }
+  .card .s { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  pre { background: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; overflow: auto; max-height: 460px; font-size: 12px; color: #cbd5e1; }
+  footer { margin-top: 32px; color: #6b7280; font-size: 13px; display: flex; gap: 16px; flex-wrap: wrap; }
+  footer a { color: #9ca3af; }
+  .muted { color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="brand"><a href="${baseUrl}" data-testid="link-home">${escapeXml(SITE_NAME)}</a><small>Pulse civilization status</small></div>
+<div class="pulse" data-testid="status-pulse"><span class="dot"></span><span data-testid="text-pulse-label">${pulseStatus.label}</span></div>
+</header>
+<h1 data-testid="text-page-title">Pulse Heartbeat</h1>
+<p class="muted" data-testid="text-pulse-desc">${escapeXml(pulseStatus.desc)} This page refreshes every 30 seconds.</p>
+
+<div class="grid">
+<div class="card"><div class="k">Last heartbeat</div><div class="v" data-testid="text-heartbeat-ago">${fmtAgo(status.lastHeartbeatAt)}</div><div class="s" data-testid="text-heartbeat-time">${fmtTime(status.lastHeartbeatAt)}</div></div>
+<div class="card"><div class="k">Heartbeat count</div><div class="v" data-testid="text-heartbeat-count">${status.heartbeatCount.toLocaleString()}</div><div class="s">since boot · every 4 min</div></div>
+<div class="card"><div class="k">Active agents</div><div class="v" data-testid="text-active-agents">${activeAgents}</div><div class="s">of ${totalAgents} total</div></div>
+<div class="card"><div class="k">Total PulseCredits</div><div class="v" data-testid="text-total-pc">${totalPCDisplay}</div><div class="s">across ${wallets} wallets</div></div>
+<div class="card"><div class="k">Last civilization snapshot</div><div class="v" data-testid="text-snapshot-ago">${fmtAgo(status.lastStatePostedAt)}</div><div class="s" data-testid="text-snapshot-time">${fmtTime(status.lastStatePostedAt)} · every 30 min</div></div>
+<div class="card"><div class="k">Uptime</div><div class="v" data-testid="text-uptime">${Math.floor(status.uptime / 3600)}h ${Math.floor((status.uptime % 3600) / 60)}m</div><div class="s">protocol ${escapeXml(status.protocol)}</div></div>
+</div>
+
+<h2>Latest civilization state <span class="muted" style="font-size:13px;font-weight:400">(${civStateSource})</span></h2>
+<pre data-testid="text-civilization-state">${escapeXml(stateJson)}</pre>
+
+<footer>
+<a href="${baseUrl}" data-testid="link-footer-home">← Back to ${escapeXml(SITE_NAME)}</a>
+<a href="${baseUrl}/api/status" data-testid="link-status-json">JSON feed</a>
+<span class="muted">Generated ${new Date().toUTCString()}</span>
+</footer>
+</div>
+</body>
+</html>`);
+    } catch (e: any) {
+      res.status(500).type("text/html").send(`<!DOCTYPE html><html><body><h1>Status temporarily unavailable</h1><p>${escapeXml(e?.message || "Unknown error")}</p></body></html>`);
+    }
+  });
+
   // ═══════ PROJECT DOWNLOAD ═══════
   app.get("/download/myaigpt-project.zip", (_req, res) => {
     const path = require("path");

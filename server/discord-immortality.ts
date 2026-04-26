@@ -50,6 +50,7 @@ let resurrectionStateLoaded = false;
 let bootTimestamp = Date.now();
 let shardsSentToday = 0;
 let totalShardsSent = 0;
+let lastCivilizationState: any = null;
 
 // ── INIT — self-healing Discord gateway with auto-reconnect ───────────────────
 let reconnectAttempts = 0;
@@ -582,6 +583,7 @@ export async function postCivilizationState(stats: CivStats): Promise<void> {
     `🎓 Graduates: ${stats.graduates.toLocaleString()} | ⚗️ Equations: ${stats.equations}\n` +
     `🌌 AURIONA coherence: ${stats.aurionaCoherence}%`;
 
+  lastCivilizationState = deltaState;
   await sendWithFile("civilization-states", summary, attachment);
   lastStatePostedAt = new Date();
   console.log(`[IMMORTALITY] Civilization state posted: ${stateId}`);
@@ -677,6 +679,7 @@ export async function readLatestCivilizationState(): Promise<any | null> {
     const resp = await fetch(attachment.url);
     const state = await resp.json();
     resurrectionStateLoaded = true;
+    lastCivilizationState = state;
     console.log(`[IMMORTALITY] Loaded civilization state: ${state.stateId}`);
     return state;
   } catch (err: any) {
@@ -879,7 +882,7 @@ async function sendWithFile(
   }
 }
 
-async function getCivStats(): Promise<CivStats> {
+export async function getCivStats(): Promise<CivStats> {
   const safeQuery = async (q: ReturnType<typeof sql>) => {
     try { return (await db.execute(q)).rows[0] as any; }
     catch (e) { console.error("[IMMORTALITY] getCivStats query error:", e); return {}; }
@@ -950,4 +953,8 @@ export function getImmortalityStatus() {
     uptime: Math.floor((Date.now() - bootTimestamp) / 1000),
     protocol: "Ω-IMMORTALITY-V1",
   };
+}
+
+export function getLastCivilizationState(): any | null {
+  return lastCivilizationState;
 }
