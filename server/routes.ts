@@ -28,8 +28,8 @@ import {
 } from "./cross-link-engine";
 import { classifyAnomaly, Q_ANOMALY_TYPES } from "./q-stability-engine";
 import { TRANSCENDENCE_SCRIPTURE } from "./calendar-engine";
-import { ensureForgeAITables, registerForgeAIRoutes } from "./forgeai-engine";
-import { registerAppFactoryRoutes, startAppFactory } from "./forge-app-factory";
+// ForgeAI removed entirely. The chat-brain fallback was extracted into ./sovereign-brain.
+// App Factory removed entirely (was: ./forge-app-factory) — autonomous SaaS builder retired.
 import { getSnapshot } from "./snapshot-cache";
 import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from "./career-cache";
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
@@ -4437,7 +4437,7 @@ ${entries}
         content = completion.choices[0]?.message?.content || "";
       } catch (groqErr: any) {
         console.log(`[completions] Groq failed — Sovereign Brain activating...`);
-        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const { sovereignBrainChat } = await import("./sovereign-brain");
         const brainResult = await sovereignBrainChat(messages.slice(-20));
         content = brainResult.content;
       }
@@ -5242,7 +5242,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
           }
         } catch (groqErr: any) {
           console.log(`[chat] Groq stream failed (${groqErr?.message?.slice(0, 80)}) — activating Sovereign Brain...`);
-          const { sovereignBrainChat } = await import("./forgeai-engine");
+          const { sovereignBrainChat } = await import("./sovereign-brain");
           const brainResult = await sovereignBrainChat(messagesForGroq);
           fullReply = brainResult.content;
           const words = fullReply.split(/\s+/);
@@ -5285,7 +5285,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
         reply = completion.choices[0]?.message?.content || "I'm here! Could you rephrase that?";
       } catch (groqErr: any) {
         console.log(`[chat] Groq non-stream failed (${groqErr?.message?.slice(0, 80)}) — activating Sovereign Brain...`);
-        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const { sovereignBrainChat } = await import("./sovereign-brain");
         const brainResult = await sovereignBrainChat(messagesForGroq);
         reply = brainResult.content;
       }
@@ -8137,7 +8137,7 @@ ${(pubs.rows as any[]).map(p => {
         reply = resp.choices[0]?.message?.content || "";
       } catch (groqErr: any) {
         console.log(`[agents/chat] Groq failed — Sovereign Brain activating for agent ${agentId}...`);
-        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const { sovereignBrainChat } = await import("./sovereign-brain");
         const brainResult = await sovereignBrainChat(messages);
         reply = `[${agent.name} — Sovereign Brain Mode]\n\n${brainResult.content}`;
       }
@@ -8200,7 +8200,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
         reply = resp.choices[0]?.message?.content || "…";
       } catch (groqErr: any) {
         console.log(`[spawns/chat] Groq failed — Sovereign Brain activating for spawn ${spawnId}...`);
-        const { sovereignBrainChat } = await import("./forgeai-engine");
+        const { sovereignBrainChat } = await import("./sovereign-brain");
         const brainResult = await sovereignBrainChat(messages);
         reply = `[${license} — Sovereign Brain Mode]\n\n${brainResult.content}`;
       }
@@ -12588,14 +12588,8 @@ Return as structured script with section labels.`;
     }
   });
 
-  // ── FORGEAI ENGINE ───────────────────────────────────────────────────────────
-  await ensureForgeAITables().catch((e) => console.error("[forgeai] table init:", e));
-  registerForgeAIRoutes(app);
-
-  // ── FORGE APP FACTORY — Autonomous SaaS Builder for all 156 GICS industries ─
-  registerAppFactoryRoutes(app);
-  // 🛑 PAUSED FOR STABILITY — 5min cycle that builds full apps via LLM, was crashing on DB timeout. Routes still registered (read-only browse works).
-  // startAppFactory().catch((e) => console.error("[app-factory] startup error:", e.message));
+  // ── FORGEAI — REMOVED entirely (page, engine, tables, app builder routes) ────
+  // ── FORGE APP FACTORY — REMOVED (autonomous GICS-industry SaaS builder retired) ─
 
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});
@@ -12704,14 +12698,13 @@ Return as structured script with section labels.`;
           UNION ALL SELECT 'invention_registry', COUNT(*) FROM invention_registry
           UNION ALL SELECT 'social_posts', COUNT(*) FROM social_posts
           UNION ALL SELECT 'ai_publications', COUNT(*) FROM ai_publications
-          UNION ALL SELECT 'forgeai_apps', COUNT(*) FROM forgeai_apps
           UNION ALL SELECT 'governance_cycles', COUNT(*) FROM governance_cycles
           UNION ALL SELECT 'research_projects', COUNT(*) FROM research_projects
           UNION ALL SELECT 'marketplace_items', COUNT(*) FROM marketplace_items
           UNION ALL SELECT 'dream_log', COUNT(*) FROM dream_log
           UNION ALL SELECT 'counseling_sessions', COUNT(*) FROM counseling_sessions
         `).catch(() => ({ rows: [] })),
-        directQuery(`SELECT COUNT(*) as total, COUNT(*) FILTER(WHERE status='complete') as completed FROM forgeai_apps`).catch(() => ({ rows: [{ total: 0, completed: 0 }] })),
+        Promise.resolve({ rows: [{ total: 0, completed: 0 }] }), // forgeai_apps removed
         directQuery(`SELECT * FROM anomaly_reports WHERE status='OPEN' ORDER BY reported_at DESC LIMIT 5`).catch(() => ({ rows: [] })),
       ]);
 
@@ -12732,7 +12725,7 @@ Return as structured script with section labels.`;
         llm: {
           providers: ["cloudflare", "mistral", "huggingface"],
           status: process.env.CLOUDFLARE_AI_TOKEN ? "configured" : "missing",
-          endpoints: { iterate: "/api/forgeai/app/:id/iterate", build: "/api/forgeai/llm", search: "/api/forgeai/web-search" },
+          endpoints: {},
         },
         apiEndpoints: {
           public: ["/api/news", "/api/topics", "/api/articles", "/api/gics", "/api/signals", "/api/hive", "/api/search", "/api/stream"],
@@ -12830,138 +12823,6 @@ Return as structured script with section labels.`;
     }
   });
 
-  app.get("/api/forgeai/app/:id/quality", async (req, res) => {
-    try {
-      const { directQuery } = await import("./db");
-      const appR = await directQuery(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
-      if (!appR.rows.length) return res.status(404).json({ error: "App not found" });
-      const app = appR.rows[0] as any;
-      const html = app.generated_html || app.html_output || "";
-      const codeLen = html.length;
-      const hasCSS = /style|className|class=/.test(html);
-      const hasJS = /function|const |let |addEventListener|onclick/.test(html);
-      const hasResponsive = /media|flex|grid|responsive|mobile/.test(html);
-      const hasAccessibility = /aria-|role=|alt=|tabindex/.test(html);
-      const hasPWA = /manifest|service.worker|serviceWorker/.test(html);
-      const hasCharts = /chart|graph|svg|canvas/.test(html);
-      const hasForm = /form|input|button|submit/.test(html);
-
-      let score = 0;
-      const breakdown: Record<string, number> = {};
-      breakdown.codeSize = codeLen > 5000 ? 15 : codeLen > 2000 ? 10 : 5; score += breakdown.codeSize;
-      breakdown.styling = hasCSS ? 15 : 0; score += breakdown.styling;
-      breakdown.interactivity = hasJS ? 15 : 0; score += breakdown.interactivity;
-      breakdown.responsive = hasResponsive ? 10 : 0; score += breakdown.responsive;
-      breakdown.accessibility = hasAccessibility ? 10 : 0; score += breakdown.accessibility;
-      breakdown.pwaReady = hasPWA ? 10 : 0; score += breakdown.pwaReady;
-      breakdown.dataVisualization = hasCharts ? 10 : 0; score += breakdown.dataVisualization;
-      breakdown.userInput = hasForm ? 10 : 0; score += breakdown.userInput;
-      breakdown.completeness = (app.status === 'complete' || app.status === 'upgraded') ? 5 : 0; score += breakdown.completeness;
-
-      const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : score >= 20 ? 'D' : 'F';
-      await directQuery(`UPDATE forgeai_apps SET quality_score = $1 WHERE id = $2`, [score, req.params.id]).catch(() => {});
-
-      res.json({ appId: req.params.id, score, grade, maxScore: 100, breakdown });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.post("/api/forgeai/app/:id/fork", async (req, res) => {
-    try {
-      const { directQuery } = await import("./db");
-      const srcR = await directQuery(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
-      if (!srcR.rows.length) return res.status(404).json({ error: "Source app not found" });
-      const src = srcR.rows[0] as any;
-      const forkR = await directQuery(
-        `INSERT INTO forgeai_apps (prompt, app_name, app_type, generated_html, status, is_public, forked_from, fork_count, quality_score, created_at)
-         VALUES ($1, $2, $3, $4, 'draft', TRUE, $5, 0, $6, NOW()) RETURNING id, app_name`,
-        [`[Fork] ${src.prompt || ''}`, `${src.app_name || 'App'} (Fork)`, src.app_type || 'fullstack', src.generated_html || src.html_output || '', src.id, src.quality_score || 0]
-      );
-      await directQuery(`UPDATE forgeai_apps SET fork_count = COALESCE(fork_count, 0) + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
-      res.json({ ok: true, forked_id: forkR.rows[0]?.id, forkedApp: forkR.rows[0] });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.post("/api/forgeai/app/:id/iterate", async (req, res) => {
-    try {
-      const { directQuery } = await import("./db");
-      const { instruction } = req.body;
-      if (!instruction) return res.status(400).json({ error: "instruction required" });
-      const appR = await directQuery(`SELECT * FROM forgeai_apps WHERE id = $1`, [req.params.id]);
-      if (!appR.rows.length) return res.status(404).json({ error: "App not found" });
-      const app = appR.rows[0] as any;
-      const currentHtml = app.generated_html || app.html_output || "";
-
-      const { callLLM } = await import("./forgeai-engine");
-      const modifiedHtml = await callLLM(
-        `You are an expert web developer. You have an existing app's HTML/CSS/JS code below.
-The user wants to modify it with this instruction: "${instruction}"
-
-EXISTING CODE:
-${currentHtml.slice(0, 15000)}
-
-Return the COMPLETE modified HTML file with the requested changes applied. Keep all existing functionality and styling unless the instruction says otherwise.`,
-        "code_generation"
-      );
-
-      if (modifiedHtml && modifiedHtml.length > 200) {
-        await directQuery(
-          `UPDATE forgeai_apps SET generated_html = $1, status = 'upgraded', updated_at = NOW() WHERE id = $2`,
-          [modifiedHtml, req.params.id]
-        );
-        res.json({ success: true, changes_made: "App updated successfully", htmlLength: modifiedHtml.length });
-      } else {
-        res.json({ success: false, error: "LLM did not return sufficient code. Try a more specific instruction." });
-      }
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.get("/api/forge/gallery/ranked", async (_req, res) => {
-    try {
-      const { directQuery } = await import("./db");
-      const r = await directQuery(`
-        SELECT id, app_name, app_type, prompt, app_description, sector, status, is_public, 
-               quality_score, trust_score, COALESCE(fork_count, 0) as fork_count, 
-               agent_author, created_at
-        FROM forgeai_apps 
-        WHERE is_public = TRUE OR status IN ('complete', 'upgraded')
-        ORDER BY COALESCE(trust_score, 0) DESC, COALESCE(quality_score, 0) DESC, created_at DESC
-        LIMIT 50
-      `);
-      res.json(r.rows);
-    } catch (e: any) { res.json([]); }
-  });
-
-  app.get("/api/forge/data-mesh", async (_req, res) => {
-    try {
-      const { directQuery } = await import("./db");
-      const apps = await directQuery(`
-        SELECT id, app_name, sector, app_type, status, trust_score, quality_score
-        FROM forgeai_apps WHERE status='complete' ORDER BY created_at DESC LIMIT 100
-      `);
-      const sectors: Record<string, any[]> = {};
-      for (const app of apps.rows) {
-        const s = app.sector || "General";
-        if (!sectors[s]) sectors[s] = [];
-        sectors[s].push({ id: app.id, name: app.app_name, type: app.app_type, score: app.trust_score });
-      }
-      const connections = Object.entries(sectors).flatMap(([sector, sApps]) =>
-        sApps.length > 1 ? sApps.slice(0, -1).map((a, i) => ({
-          from: a.id, to: sApps[i + 1].id, type: "sector_peer", sector
-        })) : []
-      );
-      res.json({
-        total_apps: apps.rows.length,
-        sectors: Object.keys(sectors).length,
-        nodes: apps.rows.map((a: any) => ({ id: a.id, name: a.app_name, sector: a.sector, score: a.trust_score })),
-        connections,
-        shared_data_layer: { entities: ["users", "products", "orders", "reviews", "analytics"], format: "JSON-LD" }
-      });
-    } catch (e: any) { res.json({ total_apps: 0, sectors: 0, nodes: [], connections: [], shared_data_layer: {} }); }
-  });
-
-  // ══════════════════════════════════════════════════════════════
-  // STRIPE PAYMENTS + API KEY SYSTEM + REVENUE DASHBOARD
-  // ══════════════════════════════════════════════════════════════
 
   async function ensureApiKeyTables() {
     const { directQuery } = await import("./db");

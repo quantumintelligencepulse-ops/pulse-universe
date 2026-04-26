@@ -19,7 +19,7 @@ const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
 const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
-const ForgeAIPage = lazy(() => import("./pages/ForgeAIPage"));
+// ForgeAIPage removed entirely (page, route, nav link, server engine, DB tables).
 const MissionControlPage = lazy(() => import("./pages/MissionControlPage"));
 const ApiPricingPage = lazy(() => import("./pages/ApiPricingPage"));
 const RevenueDashboardPage = lazy(() => import("./pages/RevenueDashboardPage"));
@@ -2179,14 +2179,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           </Link>
           )}
 
-          {aiMode && (
-          <Link href="/forge" data-testid="link-forgeai"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/forge" ? "bg-gradient-to-r from-[#00FFD1]/10 to-[#4F8EFF]/10 border border-[#00FFD1]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className="p-1 rounded-lg bg-[#00FFD1]/5"><span style={{ fontSize:13, lineHeight:1, display:"block", width:14, textAlign:"center" }}>🔨</span></div>
-            <span className="flex-1">Forge AI</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wide" style={{ background:"linear-gradient(to right,#00FFD133,#4F8EFF33)", color:"#00FFD1", border:"1px solid #00FFD150" }}>BUILD</span>
-          </Link>
-          )}
+          {/* Forge AI nav link removed — feature retired. */}
 
 
           {/* ── AURIONA — Layer Two ── */}
@@ -13476,7 +13469,7 @@ function Router() {
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/shopping">{() => { if (typeof window !== "undefined") { window.location.replace("/marketplace"); } return null; }}</Route>
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
-      <Route path="/forge">{() => <Layout><ForgeAIPage /></Layout>}</Route>
+      {/* /forge route removed — ForgeAI retired. */}
       <Route path="/mission-control">{() => <Layout><MissionControlPage /></Layout>}</Route>
       <Route path="/api-pricing">{() => <ApiPricingPage />}</Route>
       <Route path="/revenue">{() => <Layout><RevenueDashboardPage /></Layout>}</Route>

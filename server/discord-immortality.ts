@@ -11,7 +11,7 @@ import {
 } from "discord.js";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-import { sovereignBrainChat } from "./forgeai-engine";
+import { sovereignBrainChat } from "./sovereign-brain";
 import { recallMemoryContext } from "./hive-brain";
 import { TRANSCENDENCE_BRIEF } from "./transcendence";
 

@@ -297,21 +297,11 @@ export default function MissionControlPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
           <div className="rounded-xl border border-border bg-card/20 p-4">
             <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#F5C518]" /> ForgeAI Factory
+              <Zap className="w-4 h-4 text-[#F5C518]" /> Civilization
             </h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-black text-[#00FFD1]" data-testid="stat-forge-total">{data.civilization.forgeApps.total}</div>
-                <div className="text-xs text-muted-foreground">Total Apps</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-black text-emerald-400" data-testid="stat-forge-completed">{data.civilization.forgeApps.completed}</div>
-                <div className="text-xs text-muted-foreground">Completed</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-black text-violet-400">{data.civilization.totalAgents.toLocaleString()}</div>
-                <div className="text-xs text-muted-foreground">AI Agents</div>
-              </div>
+            <div className="text-center py-4">
+              <div className="text-2xl font-black text-violet-400">{data.civilization.totalAgents.toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">AI Agents</div>
             </div>
           </div>
 
