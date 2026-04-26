@@ -147,7 +147,7 @@ function incrementMessageCount(): number {
 }
 function isVIP(): boolean { const email = (localStorage.getItem("myaigpt_email") || "").toLowerCase(); return VIP_EMAILS.includes(email); }
 function isPaidUser(): boolean { return localStorage.getItem("myaigpt_pro") === "true"; }
-function isLimitReached(): boolean { if (isVIP() || isPaidUser()) return false; return getMessageCount() >= MESSAGE_LIMIT; }
+function isLimitReached(): boolean { return false; } // Free for everyone — paywall removed, monetization via API sales
 
 type AppSettings = {
   darkMode: boolean;
@@ -1953,12 +1953,8 @@ function ChatInterface({ chatId, defaultType = "general" }: { chatId?: number; d
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4 md:px-8">
-        {limitReached ? (
-          <StripePaywall />
-        ) : (
-          <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
-            placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
-        )}
+        <ChatInput onSend={handleSend} disabled={isThinking} isCoder={isCoder}
+          placeholder={isCoder ? "Ask My Ai Coder to write, debug, or explain code..." : "Message My Ai Gpt..."} />
       </div>
     </div>
   );

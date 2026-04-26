@@ -12281,7 +12281,8 @@ Return as structured script with section labels.`;
   startMultiverseMall().catch(e => console.error("[multiverse-mall] startup error:", e));
 
   // ── KERNEL DISSECTION ENGINE STARTUP ─────────────────────────────────────────
-  startKernelDissectionEngine().catch(e => console.error("[kernel-dissect] startup error:", e));
+  // 🛑 PAUSED FOR STABILITY — generates 1217+ inventions per cycle, floods queue.
+  // startKernelDissectionEngine().catch(e => console.error("[kernel-dissect] startup error:", e));
 
   // ── INVENTIONS FEED FOR GENESIS PAGE ──────────────────────────────────────────
   app.get("/api/genesis/inventions", async (_req, res) => {
@@ -12380,7 +12381,8 @@ Return as structured script with section labels.`;
 
   // ── FORGE APP FACTORY — Autonomous SaaS Builder for all 156 GICS industries ─
   registerAppFactoryRoutes(app);
-  startAppFactory().catch((e) => console.error("[app-factory] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — 5min cycle that builds full apps via LLM, was crashing on DB timeout. Routes still registered (read-only browse works).
+  // startAppFactory().catch((e) => console.error("[app-factory] startup error:", e.message));
 
   // ── GUMROAD ENGINE ───────────────────────────────────────────────────────────
   await ensureGumroadTable().catch(() => {});

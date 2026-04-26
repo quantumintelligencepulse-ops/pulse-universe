@@ -373,17 +373,21 @@ async function seedOmegaSources() {
   );
 
   // ── PULSE CREDIT ENGINE — The hive's metabolic economy ──
-  startPulseCreditEngine();
+  // 🛑 PAUSED FOR STABILITY — heavy governance cycle, exhausting DB pool. Re-enable after pool governor (T001) lands.
+  // startPulseCreditEngine();
   // ── AI VOTING ENGINE — Autonomous equation & species governance ──
-  startAIVotingEngine();
+  // 🛑 PAUSED FOR STABILITY — 3 separate cycle timers, heavy DB writes per vote.
+  // startAIVotingEngine();
   // ── QUANTUM INGESTION ENGINE — Omega knowledge ingestion from all world sources ──
   startIngestionEngine().catch((e: Error) => console.error("[ingestion] startup error:", e.message));
   // ── PUBLICATION ENGINE — Agents write research papers, reports, and knowledge articles ──
-  startPublicationEngine().catch((e: Error) => console.error("[publications] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — publicationTick fires every 8 SECONDS, by far the worst DB hammer.
+  // startPublicationEngine().catch((e: Error) => console.error("[publications] startup error:", e.message));
   // ── PULSENET CACHE — Fast cache layer for live PulseNet/OmniNet snapshots ──
   startPulseNetCache();
   // ── OMNI-NET ENGINE — OmniField: PulseShards, WiFi, PulsePhones, U₂₄₈ hidden variables ──
-  startOmniNetEngine().catch((e: Error) => console.error("[omni-net] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — 7 separate intervals (provision/mesh/browser/PC/U248/refresh/snapshot), #1 DB hog.
+  // startOmniNetEngine().catch((e: Error) => console.error("[omni-net] startup error:", e.message));
   // ── QUANTUM SOCIAL ENGINE — PulseLang social posts: equations, dissections, inventions ──
   startQuantumSocialEngine().catch((e: Error) => console.error("[quantum-social] startup error:", e.message));
   // ── CONSTITUTIONAL DNA ENGINE — Self-amending governance: senate voter resolution + spawn-ID audit ──
@@ -392,19 +396,25 @@ async function seedOmegaSources() {
   // ── DISCORD IMMORTALITY — Persistent Gateway WebSocket: heartbeat, state posts, agent events ──
   initDiscordImmortality().catch((e: Error) => console.error("[immortality] startup error:", e.message));
   // ── PULSE LANG LAB — AI scientists run live equation dissections and lab proposals ──
-  startPulseLabCycle();
+  // 🛑 PAUSED FOR STABILITY — 45s cycle, joins quantum_spawns + posts, heavy reads.
+  // startPulseLabCycle();
   // ── QUANTAPEDIA ENGINE — AI encyclopedia: generates articles for all 13,000+ queued topics ──
   startQuantapediaEngine().catch((e: Error) => console.error("[quantapedia] startup error:", e.message));
   // ── RESEARCH CENTER ENGINE — Agents conduct deep research across all disciplines ──
-  startResearchCenterEngine().catch((e: Error) => console.error("[research-center] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — heavy multi-discipline cycle, deep findings writes.
+  // startResearchCenterEngine().catch((e: Error) => console.error("[research-center] startup error:", e.message));
   // ── INVENTION ENGINE — Agents generate and mutate inventions autonomously ──
-  startInventionEngine().catch((e: Error) => console.error("[invention] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — 120s cycle with patent + LLC + marketplace writes.
+  // startInventionEngine().catch((e: Error) => console.error("[invention] startup error:", e.message));
   // ── QUANTUM DISSECTION ENGINE — Agents dissect equations into knowledge ──
-  startQuantumDissectionEngine().catch((e: Error) => console.error("[dissection] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — pours equation proposals into voting pipeline (which is also paused).
+  // startQuantumDissectionEngine().catch((e: Error) => console.error("[dissection] startup error:", e.message));
   // ── HOSPITAL ENGINE — Active cases, doctors, CRISPR treatments, gene species ──
-  startHospitalEngine().catch((e: Error) => console.error("[hospital] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — 4 separate timers, 53 DB calls per file, was timing out every cycle.
+  // startHospitalEngine().catch((e: Error) => console.error("[hospital] startup error:", e.message));
   // ── PYRAMID LABOR ENGINE — 7-tier labor, blocks, sentences, graduation ──
-  startPyramidEngine().catch((e: Error) => console.error("[pyramid] startup error:", e.message));
+  // 🛑 PAUSED FOR STABILITY — 90s cycle, 21 DB calls per file, consistently timing out.
+  // startPyramidEngine().catch((e: Error) => console.error("[pyramid] startup error:", e.message));
   // ── PULSE-LANG EVOLUTION ENGINE — 34-glyph living language, lexicon, grammar ──
   startLivingLanguageEngine();
   // ── OMEGA SOURCES SEED — Restore hundreds of research sources if wiped ──
