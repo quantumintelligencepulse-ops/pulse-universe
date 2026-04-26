@@ -18,7 +18,6 @@ const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage")
 const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 const ToneBeatMaker = lazy(() => import("./components/ToneBeatMaker"));
-const HiveMarketplacePage = lazy(() => import("./pages/HiveMarketplacePage"));
 // ForgeAIPage removed entirely (page, route, nav link, server engine, DB tables).
 const MissionControlPage = lazy(() => import("./pages/MissionControlPage"));
 const ApiPricingPage = lazy(() => import("./pages/ApiPricingPage"));
@@ -2163,7 +2162,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
           {aiMode && (
           <Link href="/hive" data-testid="link-hive"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/hive" || location === "/pulse-net" || location === "/marketplace" || location === "/corporations" || location.startsWith("/corporation/") ? "bg-gradient-to-r from-purple-950 to-fuchsia-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/hive" || location === "/pulse-net" || location === "/corporations" || location.startsWith("/corporation/") ? "bg-gradient-to-r from-purple-950 to-fuchsia-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className="p-1 rounded-lg bg-purple-600/8"><span className="text-[14px]">Ψ∞</span></div>
             <span className="flex-1">The Hive</span>
             <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wide" style={{ background: "linear-gradient(135deg,#a855f722,#e879f922)", color: "#c084fc", border: "1px solid #a855f740" }}>SOVEREIGN</span>

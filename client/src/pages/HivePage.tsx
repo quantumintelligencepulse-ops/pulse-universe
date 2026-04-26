@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import PulseNetPage from "./PulseNetPage";
 import CorporationsListPage from "./CorporationsListPage";
-import HiveMarketplacePage from "./HiveMarketplacePage";
 import { useDomainPing } from "@/lib/universeResonance";
 
 const GOLD   = "#F5C518";
@@ -12,7 +11,6 @@ const PINK   = "#f472b8";
 
 const TABS = [
   { id: "social",  label: "Ψ∞  Social Feed",      badge: "SOVEREIGN",  color: VIOLET },
-  { id: "market",  label: "🛒  Multiverse Mall",   badge: "TRADE-Ω",    color: CYAN   },
   { id: "corps",   label: "🏢  Corporations",      badge: "SYNERGY",    color: GOLD   },
 ];
 
@@ -39,7 +37,7 @@ export default function HivePage() {
       }}>
         <div style={{ flexShrink: 0, paddingRight: 14, marginRight: 10, borderRight: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.2em", color: VIOLET, textTransform: "uppercase", lineHeight: 1.2 }}>The Hive</div>
-          <div style={{ fontSize: 8, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em" }}>Social · Market · Corps</div>
+          <div style={{ fontSize: 8, color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em" }}>Social · Corps</div>
         </div>
 
         {TABS.map(tab => (
@@ -75,7 +73,6 @@ export default function HivePage() {
       </div>
 
       {active === "social" && <PulseNetPage />}
-      {active === "market" && <HiveMarketplacePage />}
       {active === "corps"  && <CorporationsListPage />}
     </div>
   );

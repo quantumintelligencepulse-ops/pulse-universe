@@ -27,7 +27,7 @@ import { serveStatic } from "./static";
 import { setupSeoMiddleware } from "./seo";
 import { createServer } from "http";
 
-import { getMarketplaceStats, getMarketplaceItems, getTopWallets, getAgentWallet, getRealEstatePlots, getBarterOffers, getRecentTransactions } from "./hive-marketplace";
+// hive-marketplace removed — Pulse Coin economy retired
 import { getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
 import { getProphecyDirectives } from "./prophecy-engine";
 import { getArchaeologyFindings } from "./genome-archaeology-engine";
@@ -63,7 +63,7 @@ import { getPerformanceStatus } from "./omega-performance-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
-import { startPulseCreditEngine } from "./pulse-credit-engine";
+// pulse-credit-engine removed — Pulse Coin economy retired
 import { startAIVotingEngine } from "./ai-voting-engine";
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startPublicationEngine } from "./publication-engine";
@@ -372,9 +372,7 @@ async function seedOmegaSources() {
     },
   );
 
-  // ── PULSE CREDIT ENGINE — The hive's metabolic economy ──
-  // 🛑 PAUSED FOR STABILITY — heavy governance cycle, exhausting DB pool. Re-enable after pool governor (T001) lands.
-  // startPulseCreditEngine();
+  // ── PULSE CREDIT ENGINE — REMOVED (Pulse Coin economy retired) ──
   // ── AI VOTING ENGINE — Autonomous equation & species governance ──
   // 🛑 PAUSED FOR STABILITY — 3 separate cycle timers, heavy DB writes per vote.
   // startAIVotingEngine();
@@ -421,62 +419,7 @@ async function seedOmegaSources() {
   seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message));
 })();
 
-// ── MARKETPLACE API ROUTES ─────────────────────────────────────
-const marketRouter = express.Router();
-
-marketRouter.get("/stats", async (_req, res) => {
-  try { res.json(await getMarketplaceStats()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-marketRouter.get("/items", async (_req, res) => {
-  try { res.json(await getMarketplaceItems()); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-marketRouter.get("/wallets", async (_req, res) => {
-  try { res.json(await getTopWallets(100)); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-marketRouter.get("/wallet/:spawnId", async (req, res) => {
-  try { const d = await getAgentWallet(req.params.spawnId); if (!d) return res.status(404).json({ error: "Wallet not found" }); res.json(d); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-marketRouter.get("/real-estate", async (req, res) => {
-  try { res.json(await getRealEstatePlots((req.query.zone as string) || undefined)); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-marketRouter.get("/barter", async (req, res) => {
-  try { res.json(await getBarterOffers((req.query.status as string) || undefined)); } catch (e) { res.status(500).json({ error: String(e) }); }
-});
-marketRouter.get("/transactions", async (_req, res) => {
-  try {
-    const [mallTrades, kernels, treasury, mallStats] = await Promise.all([
-      pool.query(`
-        SELECT st.*, 
-          qs_seller.task_description as seller_desc,
-          qs_buyer.task_description as buyer_desc
-        FROM spawn_transactions st
-        LEFT JOIN quantum_spawns qs_seller ON qs_seller.spawn_id = st.seller_id
-        LEFT JOIN quantum_spawns qs_buyer ON qs_buyer.spawn_id = st.buyer_id
-        ORDER BY st.created_at DESC LIMIT 100
-      `).catch(() => ({ rows: [] })),
-      pool.query(`
-        SELECT spawn_id, gics_sector, gics_tier, pulse_credits, status,
-               total_mall_trades, total_mall_earnings, mall_service_offer, mall_service_price
-        FROM quantum_spawns WHERE gics_tier = 'KERNEL' ORDER BY gics_code
-      `).catch(() => ({ rows: [] })),
-      pool.query(`SELECT * FROM hive_treasury ORDER BY id LIMIT 1`).catch(() => ({ rows: [] })),
-      pool.query(`
-        SELECT COUNT(*) as total_trades,
-               COALESCE(SUM(price_pc), 0) as total_volume,
-               COALESCE(SUM(tax_collected), 0) as total_tax
-        FROM spawn_transactions
-      `).catch(() => ({ rows: [{}] })),
-    ]);
-    res.json({
-      trades: mallTrades.rows,
-      kernels: kernels.rows,
-      treasury: treasury.rows[0] ?? {},
-      stats: mallStats.rows[0] ?? {},
-    });
-  } catch (e: any) { res.status(500).json({ error: e.message }); }
-});
-
-app.use("/api/marketplace", marketRouter);
+// ── MARKETPLACE API ROUTES — REMOVED (Pulse Coin economy retired) ──
 
 // ── AURIONA LAYER THREE API ROUTES ────────────────────────────
 const aurionaRouter = express.Router();

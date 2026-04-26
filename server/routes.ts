@@ -11,8 +11,8 @@ import { getBreakingLeaderboard, getBreakingStats } from "./breaking-news-engine
 import { autoPostPendingInventions, getGumroadProducts, getGumroadSales, ensureGumroadTable } from "./gumroad-engine";
 import { getAffiliateStatus, generateProductAffiliateBundle } from "./affiliate-engine";
 import { startAutonomousRevenueEngine, getEngineStatus } from "./autonomous-revenue-engine";
-import { startMultiverseMall } from "./multiverse-mall";
-import { wipeAndReseed, GICS_KERNELS } from "./pulse-credit-engine";
+// multiverse-mall removed — Pulse Coin economy retired
+import { GICS_KERNELS } from "./gics-kernels-data";
 import { startKernelDissectionEngine } from "./kernel-dissection-engine";
 import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
 import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
@@ -65,7 +65,7 @@ import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
 import { getCareerDissections, getCareerCrisprStats } from "./career-crispr-engine";
 import { getOrganismState, getRecentTradeLogs, getScientistVotes, getTradingPapers, getScientistRoster, getPaperAccounts } from "./sovereign-trading-engine";
-import { getEconomyStats, getFamilyGrades, getFractalGraphData, getRecentMiniPulses } from "./hive-economy";
+// hive-economy removed — Pulse Coin economy retired
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
 
@@ -8710,29 +8710,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch { res.json({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 }); }
   });
 
-  // ─── HIVE ECONOMY ROUTES ──────────────────────────────────────
-  app.get("/api/hive/economy", async (_req, res) => {
-    try { res.json(await getEconomyStats()); }
-    catch { res.json({ treasury: {}, supply: {}, economicStatus: "UNKNOWN" }); }
-  });
-
-  app.get("/api/hive/grades", async (_req, res) => {
-    try { res.json(await getFamilyGrades()); }
-    catch { res.json([]); }
-  });
-
-  app.get("/api/hive/fractal", async (_req, res) => {
-    try { res.json(await getFractalGraphData()); }
-    catch { res.json({ families: [], spawns: [] }); }
-  });
-
-  app.get("/api/hive/mini-pulses", async (req, res) => {
-    try {
-      const limit = Math.min(100, parseInt(req.query.limit as string || "50", 10));
-      res.json(await getRecentMiniPulses(limit));
-    }
-    catch { res.json([]); }
-  });
+  // ─── HIVE ECONOMY ROUTES — REMOVED (Pulse Coin economy retired) ───
 
   app.get("/api/spawns/stats", async (req, res) => {
     try {
@@ -10457,42 +10435,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
-  // Multiverse Mall transactions (spawn-to-spawn trades)
-  app.get("/api/marketplace/transactions", async (_req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const [mallTrades, kernels] = await Promise.all([
-        pool.query(`
-          SELECT st.*, 
-            qs_seller.task_description as seller_desc,
-            qs_buyer.task_description as buyer_desc
-          FROM spawn_transactions st
-          LEFT JOIN quantum_spawns qs_seller ON qs_seller.spawn_id = st.seller_id
-          LEFT JOIN quantum_spawns qs_buyer ON qs_buyer.spawn_id = st.buyer_id
-          ORDER BY st.created_at DESC LIMIT 100
-        `),
-        pool.query(`
-          SELECT spawn_id, gics_sector, gics_tier, pulse_credits, status,
-                 total_mall_trades, total_mall_earnings, mall_service_offer, mall_service_price,
-                 nodes_created, links_created, iterations_run
-          FROM quantum_spawns WHERE gics_tier = 'KERNEL' ORDER BY gics_code
-        `),
-      ]);
-      const treasury = await pool.query(`SELECT * FROM hive_treasury ORDER BY id LIMIT 1`);
-      const mallStats = await pool.query(`
-        SELECT COUNT(*) as total_trades,
-               COALESCE(SUM(price_pc), 0) as total_volume,
-               COALESCE(SUM(tax_collected), 0) as total_tax
-        FROM spawn_transactions
-      `);
-      res.json({
-        trades: mallTrades.rows,
-        kernels: kernels.rows,
-        treasury: treasury.rows[0] ?? {},
-        stats: mallStats.rows[0] ?? {},
-      });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
+  // Multiverse Mall transactions — REMOVED (Pulse Coin economy retired)
 
   app.get("/api/inventions/llcs", async (req, res) => {
     try {
