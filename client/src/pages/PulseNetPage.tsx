@@ -1955,9 +1955,6 @@ function OmniNetEqTab() {
 }
 
 // ── SAVE MULTIVERSE SHARD TAB — REMOVED (coin-gated session/save retired) ───
-function SaveShardTab() {
-  const { data: stats } = useQuery<any>({ queryKey: ["/api/omni-net/stats"] });
-  const { data: shards = [] } = useQuery<any[]>({ queryKey: ["/api/omni-net/shards"] });
 
 // ── SHARDS TAB ────────────────────────────────────────────────────────────────
 function ShardsTab() {

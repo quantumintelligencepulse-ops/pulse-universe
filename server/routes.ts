@@ -5972,6 +5972,8 @@ If you have live data provided in this prompt, USE IT and present it confidently
       const rc = get(researchCount)?.rows?.[0] || {};
       const mem = get(memCount)?.rows?.[0] || {};
       const pu = get(pubUCount)?.rows?.[0] || {};
+      const mc: any = {};
+      const wc: any = {};
 
       const engines = [
         { id: "spawn",       name: "SpawnEngine",        emoji: "🌌", color: "#818cf8", status: "ONLINE",  metric: `${Number(ss.active || 0).toLocaleString()} active`,    value: Number(ss.active || 0),     desc: "Quantum agent lifecycle manager" },
