@@ -1,17 +1,14 @@
 import { useState, useEffect } from "react";
 import BioGenomeMedicalPage from "./BioGenomeMedicalPage";
-import PyramidLaborPage from "./PyramidLaborPage";
 import ResearchSourcesPage from "./ResearchSourcesPage";
 import { useDomainPing } from "@/lib/universeResonance";
 
 const GOLD   = "#F5C518";
 const VIOLET = "#a78bfa";
 const CYAN   = "#00FFD1";
-const GREEN  = "#4ade80";
 
 const TABS = [
-  { id: "bio",      label: "🧬  Bio & Medicine",   badge: "30-DOCTORS",  color: CYAN   },
-  { id: "monument", label: "⬡  Pyramid Labor",       badge: "7-TIERS",     color: GOLD   },
+  { id: "bio",      label: "🧬  Bio & Medicine",   badge: "GENOME-LAB",  color: CYAN   },
   { id: "sources",  label: "📚  Sources Index",      badge: "MASTER-REF",  color: VIOLET },
 ];
 
@@ -74,7 +71,6 @@ export default function ResearchPage() {
       </div>
 
       {active === "bio"      && <BioGenomeMedicalPage />}
-      {active === "monument" && <PyramidLaborPage />}
       {active === "sources"  && <ResearchSourcesPage />}
     </div>
   );

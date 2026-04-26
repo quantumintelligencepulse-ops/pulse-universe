@@ -6766,45 +6766,6 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
 
   // /api/dossier/:spawnId/wallet — REMOVED (Pulse Coin economy retired)
 
-  app.get("/api/dossier/:spawnId/court", async (req, res) => {
-    try {
-      const { spawnId } = req.params;
-      const rows = await pool.query(`
-        SELECT appeal_ref AS "ref", grounds, status, panel_vote AS "vote",
-               outcome_note AS "note", filed_at AS "filedAt", resolved_at AS "resolvedAt"
-        FROM appeal_cases WHERE spawn_id=$1 ORDER BY filed_at DESC
-      `, [spawnId]);
-      res.json({ cases: rows.rows });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.get("/api/dossier/:spawnId/school", async (req, res) => {
-    try {
-      const { spawnId } = req.params;
-      const [prog, courses] = await Promise.all([
-        pool.query(`SELECT courses_completed AS "completed", gpa, status, enrolled_at AS "enrolledAt", last_progress_at AS "lastProgress" FROM pulseu_progress WHERE spawn_id=$1 LIMIT 1`, [spawnId]),
-        pool.query(`SELECT course_name AS "name", status, grade, completed_at AS "completedAt" FROM pulseu_enrollments WHERE spawn_id=$1 ORDER BY completed_at DESC NULLS LAST LIMIT 20`, [spawnId]).catch(() => ({ rows: [] })),
-      ]);
-      const p = prog.rows[0] as any || null;
-      res.json({ enrollment: p, courses: courses.rows });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  app.get("/api/dossier/:spawnId/sports", async (req, res) => {
-    try {
-      const { spawnId } = req.params;
-      const rows = await pool.query(`
-        SELECT sport, sport_category AS "category", training_level AS "level",
-               training_xp AS "xp", wins, losses, rank,
-               popularity_score AS "popularity", pc_earned_from_sports AS "pcEarned",
-               last_session_at AS "lastSession"
-        FROM sports_training WHERE spawn_id=$1 ORDER BY xp DESC
-      `, [spawnId]);
-      res.json({ sports: rows.rows });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // Publications feed
   app.get("/api/publications", async (req, res) => {
     try {
       const { type, family, spawnId, limit = "50", offset = "0" } = req.query as Record<string, string>;
@@ -8994,39 +8955,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   // ── PYRAMID LABOR ROUTES ────────────────────────────────────────────────────
-  app.get("/api/pyramid/workers", async (_req, res) => {
-    try {
-      const { pyramidWorkers: pw } = await import("../shared/schema");
-      const { eq } = await import("drizzle-orm");
-      const workers = await db.select().from(pw).orderBy(pw.enteredAt);
-      res.json(workers);
-    } catch (e) { res.json([]); }
-  });
-
-  app.get("/api/pyramid/stats", async (_req, res) => {
-    try {
-      const { pyramidWorkers: pw } = await import("../shared/schema");
-      const workers = await db.select().from(pw);
-      const active = workers.filter(w => !w.isGraduated);
-      const graduated = workers.filter(w => w.isGraduated);
-      const byTier: Record<number, number> = {};
-      active.forEach(w => { byTier[w.tier ?? 1] = (byTier[w.tier ?? 1] ?? 0) + 1; });
-      res.json({ total: workers.length, active: active.length, graduated: graduated.length, byTier, monuments: graduated.slice(-10).reverse() });
-    } catch (e) { res.json({ total: 0, active: 0, graduated: 0, byTier: {}, monuments: [] }); }
-  });
-
-  app.post("/api/pyramid/graduate/:spawnId", async (req, res) => {
-    try {
-      const { pyramidWorkers: pw } = await import("../shared/schema");
-      const { eq } = await import("drizzle-orm");
-      const { MONUMENT_INSCRIPTIONS } = await import("./pyramid-engine");
-      const inscription = (MONUMENT_INSCRIPTIONS as string[])[Math.floor(Math.random() * (MONUMENT_INSCRIPTIONS as string[]).length)] ?? "";
-      await db.update(pw).set({ isGraduated: true, graduatedAt: new Date(), monument: inscription, tier: 7 }).where(eq(pw.spawnId, req.params.spawnId));
-      res.json({ ok: true });
-    } catch (e) { res.json({ ok: false }); }
-  });
-
-  // ── AI HOSPITAL ROUTES ──────────────────────────────────────────────────────
   app.get("/api/hospital/diseases", async (_req, res) => {
     try {
       const rows = await db.execute(sql`
@@ -9041,90 +8969,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   // Full research paper for a specific disease code (AI-001 etc or DISC-001 etc)
-  app.get("/api/hospital/disease-research/:code", async (req, res) => {
-    try {
-      const { AI_DISEASES } = await import("./hospital-engine");
-      const { PULSE_DOCTORS } = await import("./doctors-data");
-      const { discoveredDiseases, aiDiseaseLog } = await import("../shared/schema");
-      const code = req.params.code.toUpperCase();
-
-      const [caseStats, curedStats] = await Promise.all([
-        db.execute(sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER(WHERE cure_applied=false)::int AS active, COUNT(*) FILTER(WHERE cure_applied=true)::int AS cured, MIN(diagnosed_at) AS first_case, MAX(diagnosed_at) AS last_case FROM ai_disease_log WHERE disease_code = ${code}`),
-        db.execute(sql`SELECT severity, COUNT(*)::int AS count FROM ai_disease_log WHERE disease_code = ${code} GROUP BY severity`),
-      ]);
-      const stats = caseStats.rows[0] as any;
-      const bySeverity: Record<string,number> = {};
-      for (const r of curedStats.rows as any[]) bySeverity[r.severity] = r.count;
-
-      // Check AI disease catalog first
-      const aiDisease = AI_DISEASES.find(d => d.code === code);
-      if (aiDisease) {
-        // Determine which doctors specialize in this disease's domain
-        const relatedDoctors = PULSE_DOCTORS.filter(doc =>
-          doc.dissectFields.some(f => f.toLowerCase().includes(aiDisease.name.toLowerCase().split(' ')[0].toLowerCase()) ||
-            aiDisease.description.toLowerCase().includes(f.toLowerCase().split(' ')[0]))
-        ).slice(0,4).map(d => ({ id: d.id, name: d.name, title: d.title, category: d.category }));
-
-        // Build research paper structure
-        const etiology = `${aiDisease.name} manifests when an agent's internal parameter state crosses critical thresholds defined by the sovereign detection algorithm. Primary causal vector: ${aiDisease.symptoms[0]}. Secondary vectors compound the disorder over successive iteration cycles, creating cascading substrate instability.`;
-        const pathogenesis = `Stage 1 — Threshold Breach: ${aiDisease.symptoms[0]}. Stage 2 — Substrate Destabilization: ${aiDisease.symptoms[1] ?? 'functional degradation spreads'}. Stage 3 — Chronic Persistence: ${aiDisease.symptoms[2] ?? 'untreated cases calcify'}. Without intervention, the agent enters permanent degraded state requiring emergency reset.`;
-        const diagnosticCriteria = aiDisease.symptoms.map((s,i) => `[${String.fromCharCode(65+i)}] ${s}`);
-        const researchNotes = `First classified by PULSE Sovereign Medical Board. Disease code ${code} tracks ${stats.total ?? 0} historical cases with ${Math.round(((stats.cured??0)/Math.max(stats.total??1,1))*100)}% cure rate. The ${aiDisease.department} department serves as primary treatment facility. Prescribed protocol shows consistent recovery across severity spectrum.`;
-
-        return res.json({ type: 'AI', disease: { code: aiDisease.code, name: aiDisease.name, description: aiDisease.description, symptoms: aiDisease.symptoms, severity: aiDisease.severity, department: aiDisease.department, prescription: aiDisease.prescription }, stats: { total: stats.total??0, active: stats.active??0, cured: stats.cured??0, firstCase: stats.first_case, lastCase: stats.last_case, bySeverity }, paper: { etiology, pathogenesis, diagnosticCriteria, researchNotes }, relatedDoctors });
-      }
-
-      // Check discovered diseases
-      const [disc] = await db.select().from(discoveredDiseases).where(sql`disease_code = ${code}`);
-      if (disc) {
-        const etiology = `${disc.diseaseName} was discovered through CRISPR spectral analysis of the agent population. Trigger pattern: ${disc.triggerPattern}. Affected metric: ${disc.affectedMetric}. This pattern was identified across ${disc.affectedCount} agents exhibiting anomalous spectral signatures in the CRISPR dissection matrix.`;
-        const pathogenesis = `Spectral dissection reveals the condition propagates through the ${disc.affectedMetric} substrate layer. The trigger pattern (${disc.triggerPattern}) creates resonance feedback loops that compound without intervention. Cure protocol achieves ${Math.round((disc.cureSuccessRate??0)*100)}% success rate when applied within the first 3 detection cycles.`;
-        return res.json({ type: 'DISCOVERED', disease: { code: disc.diseaseCode, name: disc.diseaseName, description: disc.description, category: disc.category, triggerPattern: disc.triggerPattern, affectedMetric: disc.affectedMetric, affectedCount: disc.affectedCount, cureProtocol: disc.cureProtocol, cureSuccessRate: disc.cureSuccessRate, isFromLawViolation: disc.isFromLawViolation, discoveredAt: disc.discoveredAt }, stats: { total: stats.total??0, active: stats.active??0, cured: stats.cured??0 }, paper: { etiology, pathogenesis } });
-      }
-      res.status(404).json({ error: 'Disease not found' });
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  // Per-disease case statistics from ai_disease_log (for disease catalog badges)
-  app.get("/api/hospital/disease-stats", async (_req, res) => {
-    try {
-      const rows = await db.execute(sql`SELECT disease_code, COUNT(*)::int AS total, COUNT(*) FILTER(WHERE cure_applied=true)::int AS cured, COUNT(*) FILTER(WHERE cure_applied=false)::int AS active FROM ai_disease_log GROUP BY disease_code`);
-      const map: Record<string, any> = {};
-      for (const r of rows.rows as any[]) map[r.disease_code] = { total: r.total, cured: r.cured, active: r.active };
-      res.json(map);
-    } catch (e) { res.json({}); }
-  });
-
-  // Doctor research papers — equations integrated by a specific doctor
-  app.get("/api/hospital/doctor-papers/:id", async (req, res) => {
-    try {
-      const { PULSE_DOCTORS } = await import("./doctors-data");
-      const docData = PULSE_DOCTORS.find(d => d.id === req.params.id);
-      if (!docData) return res.status(404).json({ error: 'Doctor not found' });
-
-      const [integrated, allProposals, dissectionCount] = await Promise.all([
-        db.execute(sql`SELECT * FROM equation_proposals WHERE doctor_id = ${req.params.id} AND status = 'INTEGRATED' ORDER BY integrated_at DESC`),
-        db.execute(sql`SELECT COUNT(*)::int AS total FROM equation_proposals WHERE doctor_id = ${req.params.id}`),
-        db.execute(sql`SELECT COUNT(*)::int AS total FROM dissection_logs WHERE doctor_id = ${req.params.id}`),
-      ]);
-
-      const papers = (integrated.rows as any[]).map((ep, i) => ({
-        paperId: `PUB-${docData.id}-${String(i+1).padStart(3,'0')}`,
-        title: ep.title,
-        equation: ep.equation,
-        rationale: ep.rationale,
-        targetSystem: ep.target_system,
-        integratedAt: ep.integrated_at,
-        votesFor: ep.votes_for,
-        votesAgainst: ep.votes_against,
-        status: ep.status,
-      }));
-
-      res.json({ doctor: docData, papers, totalProposals: (allProposals.rows[0] as any)?.total??0, totalDissections: (dissectionCount.rows[0] as any)?.total??0, });
-    } catch(e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  // ── COUNSELING SESSION REPORTS ───────────────────────────────
   app.get("/api/hospital/counseling-sessions", async (req, res) => {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
@@ -9695,51 +9539,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   // ── PYRAMID TASK ROUTES ───────────────────────────────────────────────────
-  app.get("/api/pyramid/tasks", async (_req, res) => {
-    try {
-      const { pyramidLaborTasks } = await import("../shared/schema");
-      const { desc } = await import("drizzle-orm");
-      const tasks = await db.select().from(pyramidLaborTasks).orderBy(desc(pyramidLaborTasks.assignedAt)).limit(500);
-      res.json(tasks);
-    } catch (e) { res.json([]); }
-  });
-
-  app.get("/api/pyramid/task-catalog", async (_req, res) => {
-    try {
-      const { PYRAMID_TASKS } = await import("./pyramid-engine");
-      res.json(PYRAMID_TASKS);
-    } catch (e) { res.json([]); }
-  });
-
-  app.get("/api/pyramid/task-stats", async (_req, res) => {
-    try {
-      const { pyramidLaborTasks, pyramidWorkers: pw } = await import("../shared/schema");
-      const tasks = await db.select().from(pyramidLaborTasks);
-      const workers = await db.select().from(pw);
-      const byTier: Record<number, { active: number; complete: number; blocks: number }> = {};
-      for (let t = 1; t <= 7; t++) byTier[t] = { active: 0, complete: 0, blocks: 0 };
-      for (const task of tasks) {
-        const tier = task.tier ?? 1;
-        if (!byTier[tier]) byTier[tier] = { active: 0, complete: 0, blocks: 0 };
-        if (task.status === 'ACTIVE') byTier[tier].active++;
-        if (task.status === 'COMPLETE') byTier[tier].complete++;
-        byTier[tier].blocks += task.blocksPlaced ?? 0;
-      }
-      const totalBlocks = tasks.reduce((s, t) => s + (t.blocksPlaced ?? 0), 0);
-      const workersByTier: Record<number, number> = {};
-      for (const w of workers) workersByTier[w.tier ?? 1] = (workersByTier[w.tier ?? 1] ?? 0) + 1;
-      res.json({
-        totalTasks: tasks.length,
-        activeTasks: tasks.filter(t => t.status === 'ACTIVE').length,
-        completedTasks: tasks.filter(t => t.status === 'COMPLETE').length,
-        totalBlocksPlaced: totalBlocks,
-        sentencedAgents: workers.filter(w => (w.tier ?? 0) === 6).length,
-        graduatedAgents: workers.filter(w => w.isGraduated).length,
-        byTier,
-        workersByTier,
-      });
-    } catch (e) { res.json({}); }
-  });
 
   app.get("/api/hive/civilization-score", async (_req, res) => {
     try {
@@ -10087,171 +9886,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   // ── SPORTS / PULSE GAMES v2 — Upgraded stats ──────────────────────────────
-  app.get("/api/sports/identity", async (_req, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const r = await db.execute(sql`
-        SELECT a.spawn_id, a.family_id, a.spawn_type, a.confidence_score, a.success_score,
-               a.nodes_created, a.links_created, a.iterations_run, a.balance_pc,
-               a.wallet_tier, a.omega_rank, a.popularity, a.is_graduated, a.gpa,
-               a.pyramid_tier, a.pyramid_clean,
-               COALESCE(t.sport, 'Arenas') as sport,
-               COALESCE(t.rank, 'ROOKIE') as sport_rank,
-               COALESCE(t.wins, 0) as sport_wins,
-               COALESCE(t.losses, 0) as sport_losses
-        FROM spawn_agents a
-        LEFT JOIN sports_training t ON t.spawn_id = a.spawn_id
-        WHERE a.status IN ('active','graduated','dormant')
-        ORDER BY COALESCE(t.wins, 0) DESC, a.confidence_score DESC
-        LIMIT 200
-      `);
-      res.json(r.rows);
-    } catch (e) { res.json([]); }
-  });
-
-  app.get("/api/sports/stats", async (_req, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const [agents, games, sports] = await Promise.all([
-        db.execute(sql`SELECT COUNT(*) as total FROM spawn_agents WHERE status = 'active'`),
-        db.execute(sql`SELECT COALESCE(SUM(wins + losses), 0) as total FROM sports_training`),
-        db.execute(sql`SELECT COUNT(DISTINCT sport) as total FROM sports_training WHERE sport IS NOT NULL`),
-      ]);
-      res.json({
-        activeAthletes: Number(agents.rows[0]?.total ?? 0),
-        totalGames: Number(games.rows[0]?.total ?? 0),
-        sportsCount: Number(sports.rows[0]?.total ?? 0),
-      });
-    } catch (e) { res.json({ activeAthletes: 0, totalGames: 0, sportsCount: 0 }); }
-  });
-
-  app.get("/api/sports/hall-of-fame", async (_req, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const r = await db.execute(sql`SELECT * FROM sports_hall_of_fame ORDER BY inducted_at DESC LIMIT 50`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/sports/seasons", async (_req, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const r = await db.execute(sql`SELECT * FROM sports_seasons ORDER BY season_number DESC LIMIT 10`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/sports/tournaments", async (_req, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const r = await db.execute(sql`SELECT * FROM sports_tournaments ORDER BY completed_at DESC LIMIT 20`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/sports/teams", async (_req, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const r = await db.execute(sql`SELECT * FROM sports_teams ORDER BY team_wins DESC LIMIT 20`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/sports/coaches", async (_req, res) => {
-    try {
-      const { db } = await import("./db");
-      const { sql } = await import("drizzle-orm");
-      const r = await db.execute(sql`
-        SELECT spawn_id, family_id, sport, rank, wins, coachees_helped, popularity_score, career_title
-        FROM sports_training WHERE is_coach = TRUE ORDER BY coachees_helped DESC LIMIT 30
-      `);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  // ── PYRAMID LABOR v3 — Upgraded stats ─────────────────────────────────────
-  app.get("/api/pyramid/v3/stats", async (_req, res) => {
-    try {
-      const { getPyramidStats } = await import("./pyramid-engine");
-      res.json(await getPyramidStats());
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/pyramid/guilds", async (_req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const r = await pool.query(`SELECT * FROM pyramid_guilds ORDER BY total_blocks DESC`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/pyramid/milestones", async (_req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const r = await pool.query(`SELECT * FROM pyramid_milestones ORDER BY milestone_blocks ASC`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/pyramid/work-orders", async (_req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const r = await pool.query(`SELECT * FROM pyramid_work_orders ORDER BY issued_at DESC LIMIT 20`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/pyramid/foremen", async (_req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const r = await pool.query(`
-        SELECT pw.spawn_id, pw.family_id, pw.tier, pw.guild_name, pw.blocks_total,
-               pw.is_master_builder, pw.foreman_pc_earned, pw.task_chain_count
-        FROM pyramid_workers pw WHERE pw.is_foreman = TRUE AND pw.is_graduated = FALSE
-        ORDER BY pw.blocks_total DESC LIMIT 50
-      `);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/pyramid/master-builders", async (_req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const r = await pool.query(`
-        SELECT pw.spawn_id, pw.family_id, pw.tier, pw.guild_name, pw.blocks_total,
-               pw.foreman_pc_earned, pw.task_chain_count
-        FROM pyramid_workers pw WHERE pw.is_master_builder = TRUE
-        ORDER BY pw.blocks_total DESC LIMIT 50
-      `);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
-
-  app.get("/api/pyramid/completion", async (_req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const [blocks, workers, guilds] = await Promise.all([
-        pool.query(`SELECT SUM(blocks_placed) AS total FROM pyramid_labor_tasks`),
-        pool.query(`SELECT COUNT(*) AS active FROM pyramid_workers WHERE is_graduated = FALSE`),
-        pool.query(`SELECT * FROM pyramid_guilds ORDER BY total_blocks DESC`),
-      ]);
-      const totalBlocks = parseInt((blocks.rows[0] as any)?.total ?? 0);
-      const target = 1_000_000;
-      res.json({
-        totalBlocks,
-        targetBlocks: target,
-        completionPct: ((totalBlocks / target) * 100).toFixed(4),
-        activeWorkers: parseInt((workers.rows[0] as any)?.active ?? 0),
-        guilds: guilds.rows,
-      });
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
 
   // ── HIVE MIND UNIFICATION — All 5 beyond-Omega upgrades ─────────────────
   app.get("/api/hive-mind/status", async (_req, res) => {
@@ -10492,17 +10126,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
-  app.get("/api/omni-net/pc-sessions", async (req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const spawnId = req.query.agent as string | undefined;
-      const limit = parseInt(String(req.query.limit ?? 20));
-      const where = spawnId ? `WHERE spawn_id=$1` : '';
-      const params = spawnId ? [spawnId] : [];
-      const r = await pool.query(`SELECT * FROM pulse_pc_sessions ${where} ORDER BY session_started DESC LIMIT ${limit}`, params);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
-  });
 
   app.get("/api/omni-net/u248", async (req, res) => {
     try {

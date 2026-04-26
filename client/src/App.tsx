@@ -10,7 +10,6 @@ const PulseWorldPage = lazy(() => import("./pages/PulseWorldPage"));
 const PulseUPage = lazy(() => import("./pages/PulseUPage"));
 const SovereignHivePage = lazy(() => import("./pages/SovereignHivePage"));
 const PulseUniversePage = lazy(() => import("./pages/PulseUniversePage"));
-const PyramidLaborPage = lazy(() => import("./pages/PyramidLaborPage"));
 const PulseNetPage = lazy(() => import("./pages/PulseNetPage"));
 const AIProfilePage = lazy(() => import("./pages/AIProfilePage"));
 const CorporationPage = lazy(() => import("./pages/CorporationPage"));
@@ -2153,7 +2152,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
 
           {aiMode && (
           <Link href="/research" data-testid="link-research"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/research" || location === "/bio-research" || location === "/pyramid" ? "bg-gradient-to-r from-[#f5c518]/10 to-[#00FFD1]/10 border border-[#f5c518]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/research" || location === "/bio-research" ? "bg-gradient-to-r from-[#f5c518]/10 to-[#00FFD1]/10 border border-[#f5c518]/30 font-semibold text-white" : "text-foreground/70 hover:bg-black/5"}`}>
             <div className="p-1 rounded-lg bg-[#f5c518]/5"><span style={{ fontSize: 13, lineHeight: 1, display: "block", width: 14, textAlign: "center", color: "#f5c518" }}>🧬</span></div>
             <span className="flex-1">Research</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse tracking-wide" style={{ background: "linear-gradient(to right, #f5c51833, #00FFD133)", color: "#00FFD1", border: "1px solid #00FFD150" }}>DISSECT</span>

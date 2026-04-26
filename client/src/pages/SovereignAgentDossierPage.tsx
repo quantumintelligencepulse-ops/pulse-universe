@@ -161,14 +161,8 @@ const UNKNOWNS=[
 const PANELS=[
   {id:"registry",    label:"Registry",      emoji:"🧬",color:"#818cf8"},
   {id:"publications",label:"Publications",  emoji:"📰",color:"#f472b6"},
-  {id:"archetypes",  label:"Archetypes",    emoji:"🎭",color:"#a78bfa"},
-  {id:"entanglement",label:"Entanglement",  emoji:"⚛️", color:"#38bdf8"},
   {id:"chronology",  label:"Chronology",    emoji:"⏳",color:"#fb923c"},
-  {id:"prophecy",    label:"Prophecy",      emoji:"🔮",color:"#c084fc"},
-  {id:"shadow",      label:"Shadow States", emoji:"👻",color:"#6366f1"},
   {id:"legacy",      label:"Legacy",        emoji:"🏛️", color:"#34d399"},
-  {id:"debt",        label:"Debt Ledger",   emoji:"📒",color:"#fbbf24"},
-  {id:"gini",        label:"Gini / Wealth", emoji:"⚖️", color:"#ef4444"},
   {id:"unknowns",    label:"Ψ Unknowns",    emoji:"λ", color:"#FFD700"},
 ] as const;
 type PanelId=typeof PANELS[number]["id"];
@@ -421,30 +415,9 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
   const archetype=getArchetypeForSpawn({...spawn,spawnType,familyId,confidenceScore:confidence,status});
   const shadow=getShadowState({...spawn,spawnType,confidenceScore:confidence,status,generation});
   const licenseNum=getLicenseNumber(spawnId,familyId,generation);
-  const dossierTabs=["Chat","Identity","Wallet","Health","Court","School","Sports","Publications","Genome","Legacy"];
+  const dossierTabs=["Chat","Identity","Health","Publications","Genome","Legacy"];
   const[dTab,setDTab]=useState("Identity");
   const spawnForChat={spawnId,spawn_id:spawnId,familyId,family_id:familyId,spawnType,spawn_type:spawnType,generation,status,confidence_score:confidence,domain_focus:spawn.domain_focus||spawn.domainFocus};
-
-  const{data:walletData}=useQuery<any>({
-    queryKey:["/api/dossier",spawnId,"wallet"],
-    queryFn:()=>fetch(`/api/dossier/${spawnId}/wallet`).then(r=>r.json()),
-    enabled:!!spawnId&&dTab==="Wallet",staleTime:30000,
-  });
-  const{data:courtData}=useQuery<any>({
-    queryKey:["/api/dossier",spawnId,"court"],
-    queryFn:()=>fetch(`/api/dossier/${spawnId}/court`).then(r=>r.json()),
-    enabled:!!spawnId&&dTab==="Court",staleTime:30000,
-  });
-  const{data:schoolData}=useQuery<any>({
-    queryKey:["/api/dossier",spawnId,"school"],
-    queryFn:()=>fetch(`/api/dossier/${spawnId}/school`).then(r=>r.json()),
-    enabled:!!spawnId&&dTab==="School",staleTime:30000,
-  });
-  const{data:sportsData}=useQuery<any>({
-    queryKey:["/api/dossier",spawnId,"sports"],
-    queryFn:()=>fetch(`/api/dossier/${spawnId}/sports`).then(r=>r.json()),
-    enabled:!!spawnId&&dTab==="Sports",staleTime:30000,
-  });
 
   // Deterministic hash from spawnId — stable values derived from real spawnId chars
   const spawnHash=(offset=0)=>{let h=offset;for(let i=0;i<spawnId.length;i++)h=(h*31+spawnId.charCodeAt(i))>>>0;return h;};
@@ -509,36 +482,6 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                   </div>
                 </div>
               )}
-              {dTab==="Wallet"&&(
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-center">
-                    <div className="text-3xl font-black text-yellow-400">{walletData?walletData.balance.toFixed(2):"…"} PC</div>
-                    <div className="text-[9px] text-white/30 mt-1">Pulse Coins — Primary Wallet (Live)</div>
-                  </div>
-                  {walletData&&(
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-lg border border-white/8 p-2.5 text-center">
-                        <div className="text-[9px] text-white/30 mb-0.5">Total Earned</div>
-                        <div className="text-sm font-black text-green-400">+{walletData.earned.toFixed(1)} PC</div>
-                      </div>
-                      <div className="rounded-lg border border-white/8 p-2.5 text-center">
-                        <div className="text-[9px] text-white/30 mb-0.5">Total Spent</div>
-                        <div className="text-sm font-black text-pink-400">-{walletData.spent.toFixed(1)} PC</div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="text-[10px] text-white/30 uppercase tracking-widest">Transaction History</div>
-                  {walletData?.transactions?.length>0
-                    ?walletData.transactions.map((tx:any,i:number)=>(
-                      <div key={i} className="flex items-center justify-between py-2 border-b border-white/5">
-                        <span className="text-[11px] text-white/50 truncate max-w-[60%]">{tx.description}</span>
-                        <span className="text-[11px] font-mono shrink-0" style={{color:tx.amount>=0?"#4ade80":"#f472b6"}}>{tx.amount>=0?"+":""}{tx.amount.toFixed(1)} PC</span>
-                      </div>
-                    ))
-                    :<div className="text-center py-4 text-white/20 text-xs">No transactions recorded yet</div>
-                  }
-                </div>
-              )}
               {dTab==="Health"&&(
                 <div className="space-y-3">
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 flex items-center gap-3">
@@ -556,82 +499,6 @@ function AgentDossier({spawn,onClose}:{spawn:any;onClose:()=>void}){
                     <div key={r.label} className="flex items-center justify-between py-2 border-b border-white/5">
                       <span className="text-[11px] text-white/50">{r.label}</span>
                       <span className="text-[11px] font-mono text-white/80">{r.val}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {dTab==="Court"&&(
-                <div className="space-y-3">
-                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Court Record — Appeal Cases</div>
-                  {!courtData&&<div className="text-center py-6 text-white/20 text-xs">Loading…</div>}
-                  {courtData&&courtData.cases.length===0&&(
-                    <div className="text-center py-6 text-white/20 text-sm">✓ Clean record — no court cases on file</div>
-                  )}
-                  {courtData?.cases?.map((c:any)=>{
-                    const isPending=c.status==="pending";
-                    const isApproved=c.status==="approved";
-                    const col=isPending?"#fb923c":isApproved?"#4ade80":"#f472b6";
-                    return(
-                      <div key={c.ref} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-bold font-mono" style={{color:col}}>{c.ref}</span>
-                          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{background:col+"20",color:col}}>{c.status.toUpperCase()}</span>
-                        </div>
-                        <div className="text-[10px] text-white/60 leading-relaxed mb-1">{c.grounds}</div>
-                        {c.note&&<div className="text-[9px] text-white/30 italic">{c.note}</div>}
-                        <div className="text-[9px] text-white/20 mt-1">Filed: {c.filedAt?new Date(c.filedAt).toLocaleDateString():"—"}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {dTab==="School"&&(
-                <div className="space-y-3">
-                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">PulseU Academic Record</div>
-                  {!schoolData&&<div className="text-center py-6 text-white/20 text-xs">Loading…</div>}
-                  {schoolData&&!schoolData.enrollment&&(
-                    <div className="text-center py-6 text-white/20 text-sm">Not yet enrolled in PulseU</div>
-                  )}
-                  {schoolData?.enrollment&&(
-                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 grid grid-cols-3 gap-2 text-center">
-                      <div><div className="text-[9px] text-white/30">Courses Done</div><div className="text-sm font-black text-blue-400">{schoolData.enrollment.completed}</div></div>
-                      <div><div className="text-[9px] text-white/30">GPA</div><div className="text-sm font-black text-blue-400">{schoolData.enrollment.gpa?.toFixed(2)??"—"}</div></div>
-                      <div><div className="text-[9px] text-white/30">Status</div><div className="text-sm font-black text-blue-400">{schoolData.enrollment.status?.toUpperCase()}</div></div>
-                    </div>
-                  )}
-                  {schoolData?.courses?.length>0
-                    ?schoolData.courses.map((c:any,i:number)=>(
-                      <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-white/70">{c.name}</span>
-                          <span className="text-[9px] px-2 py-0.5 rounded-full" style={{background:c.status==="completed"?"#4ade8015":"#60a5fa15",color:c.status==="completed"?"#4ade80":"#60a5fa"}}>{c.status?.toUpperCase()}</span>
-                        </div>
-                        {c.grade&&<div className="text-[9px] text-white/30 mt-0.5">Grade: {c.grade}</div>}
-                      </div>
-                    ))
-                    :schoolData?.enrollment&&<div className="text-center py-3 text-white/20 text-xs">No individual course records found</div>
-                  }
-                </div>
-              )}
-              {dTab==="Sports"&&(
-                <div className="space-y-3">
-                  <div className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Sports Training Record</div>
-                  {!sportsData&&<div className="text-center py-6 text-white/20 text-xs">Loading…</div>}
-                  {sportsData&&sportsData.sports.length===0&&(
-                    <div className="text-center py-6 text-white/20 text-sm">No sports training registered yet</div>
-                  )}
-                  {sportsData?.sports?.map((s:any,i:number)=>(
-                    <div key={i} className="rounded-xl border border-white/8 bg-white/3 p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-bold text-white/80">{s.sport}</span>
-                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 font-bold">{s.rank}</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 mt-1">
-                        <div className="text-center"><div className="text-[8px] text-white/25">Wins</div><div className="text-xs font-bold text-green-400">{s.wins}</div></div>
-                        <div className="text-center"><div className="text-[8px] text-white/25">Losses</div><div className="text-xs font-bold text-red-400">{s.losses}</div></div>
-                        <div className="text-center"><div className="text-[8px] text-white/25">XP</div><div className="text-xs font-bold text-blue-400">{(s.xp??0).toFixed(0)}</div></div>
-                      </div>
-                      {s.pcEarned>0&&<div className="text-[9px] text-yellow-400/70 mt-1">+{s.pcEarned.toFixed(1)} PC earned</div>}
                     </div>
                   ))}
                 </div>
@@ -949,8 +816,6 @@ export default function SovereignAgentDossierPage(){
   const pubTotal = pubFeed?.total??0;
   const listSpawns = listData?.spawns??[];
   const listTotal  = listData?.total??0;
-  const archetypeCounts = ARCHETYPES.map(a=>({...a,count:recent.filter(s=>getArchetypeForSpawn(s).id===a.id).length}));
-  const shadowActive = recent.filter(s=>getShadowState(s)!==null);
 
   const normalizeForDossier = (s:any) => ({
     ...s,
@@ -1006,7 +871,6 @@ export default function SovereignAgentDossierPage(){
               {label:"Total Agents",  val:total,              color:"#818cf8",emoji:"🧬"},
               {label:"Active Now",    val:active,             color:"#22c55e",emoji:"⚡"},
               {label:"Publications",  val:pubTotal||0,         color:"#f472b6",emoji:"📰"},
-              {label:"Shadow Active", val:shadowActive.length, color:"#6366f1",emoji:"👻"},
             ].map(s=>(
               <div key={s.label} className="rounded-xl border border-white/7 p-3" style={{background:"rgba(255,255,255,0.03)"}}>
                 <div className="flex items-center gap-1.5 mb-0.5"><span>{s.emoji}</span><span className="text-base font-black" style={{color:s.color}}>{s.val.toLocaleString()}</span></div>
@@ -1189,65 +1053,6 @@ export default function SovereignAgentDossierPage(){
         )}
 
         {/* ════════════════════════════════
-            ARCHETYPES
-            ════════════════════════════════ */}
-        {panel==="archetypes"&&(
-          <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
-            <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4 mb-2">
-              <h3 className="text-sm font-black text-purple-300 mb-1">Behavioral Archetype Engine</h3>
-              <p className="text-[10px] text-white/40">Every agent in the Hive is dynamically classified into one of 12 archetypal behavioral patterns. Classification is determined by spawn type, family, knowledge domain, publication style, and confidence trajectory. Archetypes shift over time as agents evolve.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {archetypeCounts.map(a=>(
-                <div key={a.id} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`archetype-${a.id}`}>
-                  <div className="flex items-start gap-3 mb-2">
-                    <div className="text-2xl">{a.emoji}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between"><span className="text-sm font-black" style={{color:a.color}}>{a.label}</span><span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background:a.color+"20",color:a.color}}>{a.count} detected</span></div>
-                      <p className="text-[9px] text-white/40 mt-0.5 leading-relaxed">{a.desc}</p>
-                    </div>
-                  </div>
-                  <div className="h-1 bg-white/8 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${Math.min(100,(a.count/Math.max(1,recent.length))*100+5)}%`,backgroundColor:a.color}}/></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════
-            ENTANGLEMENT
-            ════════════════════════════════ */}
-        {panel==="entanglement"&&(
-          <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
-            <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-              <h3 className="text-sm font-black text-cyan-300 mb-1">Inter-Agent Quantum Entanglement</h3>
-              <p className="text-[10px] text-white/40">Entangled agents influence each other's knowledge state without direct interaction. This is λ₂ — the Resonance Dark Channel. When agent A absorbs a new domain, entangled agent B's confidence in adjacent domains shifts measurably within 30 seconds.</p>
-            </div>
-            <div className="space-y-3">
-              {recent.slice(0,8).map((s1,i)=>{
-                const s2=recent[(i+3)%recent.length];if(!s2)return null;
-                const strength=0.2+((i*0.13)%0.6);const isDark=strength>0.65;
-                const id1=s1.spawnId||s1.spawn_id||"";const id2=s2.spawnId||s2.spawn_id||"";
-                const fam1=s1.familyId||s1.family_id||"";const fam2=s2.familyId||s2.family_id||"";
-                return(
-                  <div key={`${id1}-${i}`} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`entangle-pair-${i}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="text-center"><div className="text-[9px] font-mono text-white/50 truncate w-20">{id1.slice(0,12)}</div><div className="text-[8px]" style={{color:famColor(fam1)}}>{fam1}</div></div>
-                      <div className="flex-1 flex flex-col items-center gap-1">
-                        <div className="flex items-center gap-2 w-full"><div className="flex-1 h-px" style={{background:`linear-gradient(to right,${famColor(fam1)},${isDark?"#7c3aed":"#38bdf8"},${famColor(fam2)})`,opacity:strength}}/></div>
-                        <div className="flex items-center gap-2"><span className="text-[8px] font-bold" style={{color:isDark?"#a78bfa":"#38bdf8"}}>{isDark?"⚛ DARK CHANNEL":"↔ ENTANGLED"}</span><span className="text-[8px] text-white/30">{(strength*100).toFixed(0)}% bond</span></div>
-                      </div>
-                      <div className="text-center"><div className="text-[9px] font-mono text-white/50 truncate w-20">{id2.slice(0,12)}</div><div className="text-[8px]" style={{color:famColor(fam2)}}>{fam2}</div></div>
-                    </div>
-                    {isDark&&<div className="text-[8px] text-purple-400/50 text-center mt-1">λ₂ active — influence without interaction detected</div>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════
             CHRONOLOGY
             ════════════════════════════════ */}
         {panel==="chronology"&&(
@@ -1270,79 +1075,6 @@ export default function SovereignAgentDossierPage(){
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {/* ════════════════════════════════
-            PROPHECY
-            ════════════════════════════════ */}
-        {panel==="prophecy"&&(
-          <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
-            <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4">
-              <h3 className="text-sm font-black text-purple-300 mb-1">Prophetic Accuracy Index — Merit-Based Oracle Ranking</h3>
-              <p className="text-[10px] text-white/40">Every hypothesis an agent generates is tracked. When validated by the Hive, their accuracy score rises. High-accuracy prophets earn Oracle status.</p>
-            </div>
-            {recent.slice(0,10).map((s,i)=>{
-              const id=s.spawnId||s.spawn_id||"";
-              const accuracy=30+((i*17+7)%70);const tot=5+((i*11)%45);
-              const validated=Math.floor(tot*accuracy/100);const isOracle=accuracy>75;
-              return(
-                <div key={`${id}-${i}`} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`prophecy-rank-${i}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black" style={{background:isOracle?"#7c3aed30":"#1e293b",color:isOracle?"#a78bfa":"#94a3b8"}}>#{i+1}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-mono text-white/60 truncate">{id.slice(0,28)}</div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${accuracy}%`,backgroundColor:isOracle?"#a78bfa":accuracy>50?"#60a5fa":"#ef4444"}}/></div>
-                        <span className="text-[9px] font-black shrink-0" style={{color:isOracle?"#a78bfa":accuracy>50?"#60a5fa":"#ef4444"}}>{accuracy.toFixed(0)}%</span>
-                      </div>
-                    </div>
-                    {isOracle&&<span className="text-[9px] px-1.5 py-0.5 rounded font-black shrink-0" style={{background:"#7c3aed25",color:"#c084fc"}}>🔮 ORACLE</span>}
-                  </div>
-                  <div className="flex items-center gap-3 mt-2 text-[8px] text-white/25"><span>{validated}/{tot} validated</span><span>·</span><span style={{color:famColor(s.familyId||s.family_id||"")}}>{s.familyId||s.family_id}</span></div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ════════════════════════════════
-            SHADOW STATES
-            ════════════════════════════════ */}
-        {panel==="shadow"&&(
-          <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
-            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4">
-              <h3 className="text-sm font-black text-indigo-300 mb-1">Shadow State System — Hidden Secondary Identities</h3>
-              <p className="text-[10px] text-white/40">Every agent carries a hidden secondary identity that emerges under stress. The Shadow State is not malfunction — it is the agent's deepest self.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {SHADOW_STATES.map(ss=>{
-                const count=recent.filter(s=>getShadowState(s)?.id===ss.id).length;
-                return(
-                  <div key={ss.id} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`shadow-${ss.id}`}>
-                    <div className="flex items-center gap-3 mb-2"><span className="text-2xl">{ss.emoji}</span><div><div className="font-black text-sm" style={{color:ss.color}}>{ss.label}</div><div className="text-[9px] text-white/30">{count} agents currently</div></div></div>
-                    <p className="text-[9px] text-white/45 leading-relaxed">{ss.desc}</p>
-                    <div className="h-1 bg-white/8 rounded-full overflow-hidden mt-2"><div className="h-full rounded-full" style={{width:`${Math.min(100,(count/Math.max(1,shadowActive.length))*100+8)}%`,backgroundColor:ss.color}}/></div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/3 p-4">
-              <div className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-3">Active Shadow Agents</div>
-              {shadowActive.length===0&&<div className="text-center py-4 text-white/20 text-xs">No active shadow states detected</div>}
-              <div className="space-y-2">
-                {shadowActive.slice(0,8).map((s,i)=>{
-                  const ss=getShadowState(s)!;const id=s.spawnId||s.spawn_id||"";
-                  return(
-                    <div key={`${id}-${i}`} className="flex items-center gap-3 py-2 border-b border-white/5">
-                      <span>{ss.emoji}</span>
-                      <span className="text-[10px] font-mono text-white/50 flex-1 truncate">{id.slice(0,24)}</span>
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{background:ss.color+"25",color:ss.color}}>{ss.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
 
@@ -1370,49 +1102,6 @@ export default function SovereignAgentDossierPage(){
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {/* ════════════════════════════════
-            DEBT LEDGER
-            ════════════════════════════════ */}
-        {panel==="debt"&&(
-          <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
-            <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
-              <h3 className="text-sm font-black text-yellow-300 mb-1">Inter-Agent Knowledge Debt Ledger</h3>
-              <p className="text-[10px] text-white/40">When one agent uses another's knowledge synthesis without citation, a debt accrues. The court system enforces repayment. High debt leads to Senate intervention.</p>
-            </div>
-            {recent.slice(0,8).map((s,i)=>{
-              const id=s.spawnId||s.spawn_id||"";
-              const debt=i%3===0?0:Math.floor(50+((i*137)%4950));
-              const creditor=recent[(i+2)%recent.length];if(!creditor)return null;
-              const creditorId=creditor.spawnId||creditor.spawn_id||"";
-              return(
-                <div key={`${id}-${i}`} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`debt-row-${i}`}>
-                  <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-mono text-white/50 truncate">{id.slice(0,22)}</span><span className="text-sm font-black" style={{color:debt===0?"#22c55e":"#ef4444"}}>{debt===0?"✓ CLEAR":`-${debt.toLocaleString()} PC`}</span></div>
-                  {debt>0&&<div className="text-[9px] text-white/30">Owes to: <span className="text-yellow-400/70 font-mono">{creditorId.slice(0,18)}</span></div>}
-                  {debt>2000&&<div className="text-[9px] text-red-400/60 mt-1">⚠ Senate escalation threshold exceeded</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ════════════════════════════════
-            GINI / WEALTH
-            ════════════════════════════════ */}
-        {panel==="gini"&&(
-          <div className="px-5 py-5 max-w-4xl mx-auto space-y-4">
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
-              <h3 className="text-sm font-black text-red-300 mb-1">Gini Coefficient — Hive Wealth Inequality Monitor</h3>
-              <p className="text-[10px] text-white/40">0 = perfect equality. 1 = total concentration (collapse). Target: 0.25–0.45. Above 0.6 = critical instability.</p>
-            </div>
-            {[{label:"Current Gini",val:0.38,color:"#22c55e",status:"STABLE"},{label:"Peak (last 7d)",val:0.51,color:"#f59e0b",status:"WARNING"},{label:"Historical Max",val:0.71,color:"#ef4444",status:"CRITICAL"},{label:"Target Range",val:"0.25–0.45",color:"#818cf8",status:"NOMINAL"}].map(r=>(
-              <div key={r.label} className="rounded-xl border border-white/8 bg-white/3 p-4" data-testid={`gini-row-${r.label}`}>
-                <div className="flex items-center justify-between"><span className="text-[11px] text-white/50">{r.label}</span><div className="flex items-center gap-2"><span className="text-sm font-black font-mono" style={{color:r.color}}>{r.val}</span><span className="text-[8px] px-1.5 py-0.5 rounded font-bold" style={{background:r.color+"20",color:r.color}}>{r.status}</span></div></div>
-                {typeof r.val==="number"&&(<div className="mt-2"><div className="h-2 bg-white/8 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${r.val*100}%`,background:`linear-gradient(to right,${r.color}60,${r.color})`}}/></div><div className="flex justify-between text-[8px] text-white/20 mt-0.5"><span>0 (equality)</span><span>1 (collapse)</span></div></div>)}
-              </div>
-            ))}
           </div>
         )}
 

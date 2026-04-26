@@ -1,10 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Building2, Briefcase } from "lucide-react";
 import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
-
-// CareersPage merged into Corporations — no separate lazy import needed
 
 interface CorporationSummary {
   familyId: string; name: string; tagline: string; sector: string;
@@ -14,7 +10,6 @@ interface CorporationSummary {
 
 export default function CorporationsListPage() {
   useDomainPing("corporations");
-  const [tab, setTab] = useState<"corporations" | "hiring">("corporations");
 
   const { data: corporations = [], isLoading } = useQuery<CorporationSummary[]>({
     queryKey: ["/api/corporations"],
@@ -37,26 +32,8 @@ export default function CorporationsListPage() {
         <div className="text-[10px] text-gray-500">{corporations.length} corps · {totalAIs.toLocaleString()} AIs</div>
       </div>
 
-      {/* Tab bar */}
-      <div className="shrink-0 flex gap-1 px-4 py-2 border-b border-indigo-900/30 bg-black/40">
-        <button
-          onClick={() => setTab("corporations")}
-          data-testid="tab-corps-corporations"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "corporations" ? "bg-indigo-500/20 border border-indigo-500/40 text-indigo-300" : "text-white/40 hover:text-white/70 hover:bg-white/5"}`}>
-          <Building2 size={12} />
-          Corporations
-        </button>
-        <button
-          onClick={() => setTab("hiring")}
-          data-testid="tab-corps-hiring"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === "hiring" ? "bg-orange-500/20 border border-orange-500/40 text-orange-300" : "text-white/40 hover:text-white/70 hover:bg-white/5"}`}>
-          <Briefcase size={12} />
-          🧑‍💼 AI Hiring Board
-        </button>
-      </div>
-
-      {/* Corporations tab */}
-      {tab === "corporations" && (
+      {/* Corporations content */}
+      {(
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto p-6">
             {/* Summary */}
@@ -117,14 +94,6 @@ export default function CorporationsListPage() {
         </div>
       )}
 
-      {/* Hiring Board tab — AI recruitment is part of each corporation's profile */}
-      {tab === "hiring" && (
-        <div className="flex-1 overflow-hidden flex flex-col items-center justify-center gap-4 p-10">
-          <div className="text-4xl">🏢</div>
-          <div className="text-white/60 text-sm text-center max-w-xs">AI hiring is managed per-corporation. Select a corporation below to view its roster and open roles.</div>
-          <button onClick={() => setTab("corporations")} className="text-xs px-4 py-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30 transition-all">← View All Corporations</button>
-        </div>
-      )}
     </div>
   );
 }
