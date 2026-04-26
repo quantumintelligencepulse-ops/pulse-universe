@@ -118,6 +118,20 @@ apiPool.on('connect', (client) => {
 });
 console.log("[db] ✅ API query pool ready (max 5)");
 
+// ── SCHEMA SELF-HEAL — additive ALTERs only, idempotent. NEVER drops anything. ──
+// Brings the live DB up to parity with shared/schema.ts for columns that drifted.
+(async () => {
+  const additiveAlters = [
+    `ALTER TABLE anomaly_reports ADD COLUMN IF NOT EXISTS anomaly_type text DEFAULT ''`,
+    `ALTER TABLE anomaly_reports ADD COLUMN IF NOT EXISTS threat_level text DEFAULT ''`,
+  ];
+  for (const ddl of additiveAlters) {
+    try { await _rawPool.query(ddl); }
+    catch (e: any) { console.error(`[schema-heal] skipped: ${ddl.slice(0, 60)} — ${e.message}`); }
+  }
+  console.log(`[schema-heal] ✅ ${additiveAlters.length} additive checks complete`);
+})();
+
 export async function directQuery(sql: string, params?: any[]): Promise<pg.QueryResult> {
   return apiPool.query(sql, params);
 }

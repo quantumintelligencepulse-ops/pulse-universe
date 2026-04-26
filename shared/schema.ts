@@ -1521,6 +1521,8 @@ export const anomalyReports = pgTable("anomaly_reports", {
   assignedTo:      text("assigned_to").default(""),               // researcher/invocator name
   resolution:      text("resolution").default(""),
   equationDissect: text("equation_dissect").default(""),          // Auriona-generated dissection
+  anomalyType:     text("anomaly_type").default(""),              // classified anomaly category
+  threatLevel:     text("threat_level").default(""),              // LOW | MEDIUM | HIGH | CRITICAL
   reportedAt:      timestamp("reported_at").defaultNow().notNull(),
   resolvedAt:      timestamp("resolved_at"),
 });

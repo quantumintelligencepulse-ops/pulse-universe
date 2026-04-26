@@ -64,19 +64,13 @@ import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
 // pulse-credit-engine removed — Pulse Coin economy retired
-import { startAIVotingEngine } from "./ai-voting-engine";
+// ── DEAD-ENGINE IMPORTS PRUNED — paused engines no longer loaded:
+//    ai-voting, publication, omni-net, pulse-lang-lab, research-center,
+//    invention, quantum-dissection, hospital, pyramid
 import { startIngestionEngine } from "./quantum-ingestion-engine";
-import { startPublicationEngine } from "./publication-engine";
 import { startQuantumSocialEngine } from "./quantum-social-engine";
-import { startOmniNetEngine } from "./omni-net-engine";
 import { startPulseNetCache } from "./pulsenet-cache";
-import { startPulseLabCycle } from "./pulse-lang-lab";
 import { startQuantapediaEngine } from "./quantapedia-engine";
-import { startResearchCenterEngine } from "./research-center-engine";
-import { startInventionEngine } from "./invention-engine";
-import { startQuantumDissectionEngine } from "./quantum-dissection-engine";
-import { startHospitalEngine } from "./hospital-engine";
-import { startPyramidEngine } from "./pyramid-engine";
 import { startLivingLanguageEngine } from "./pulse-lang-evo";
 
 const app = express();
@@ -372,51 +366,23 @@ async function seedOmegaSources() {
     },
   );
 
-  // ── PULSE CREDIT ENGINE — REMOVED (Pulse Coin economy retired) ──
-  // ── AI VOTING ENGINE — Autonomous equation & species governance ──
-  // 🛑 PAUSED FOR STABILITY — 3 separate cycle timers, heavy DB writes per vote.
-  // startAIVotingEngine();
-  // ── QUANTUM INGESTION ENGINE — Omega knowledge ingestion from all world sources ──
-  startIngestionEngine().catch((e: Error) => console.error("[ingestion] startup error:", e.message));
-  // ── PUBLICATION ENGINE — Agents write research papers, reports, and knowledge articles ──
-  // 🛑 PAUSED FOR STABILITY — publicationTick fires every 8 SECONDS, by far the worst DB hammer.
-  // startPublicationEngine().catch((e: Error) => console.error("[publications] startup error:", e.message));
-  // ── PULSENET CACHE — Fast cache layer for live PulseNet/OmniNet snapshots ──
-  startPulseNetCache();
-  // ── OMNI-NET ENGINE — OmniField: PulseShards, WiFi, PulsePhones, U₂₄₈ hidden variables ──
-  // 🛑 PAUSED FOR STABILITY — 7 separate intervals (provision/mesh/browser/PC/U248/refresh/snapshot), #1 DB hog.
-  // startOmniNetEngine().catch((e: Error) => console.error("[omni-net] startup error:", e.message));
-  // ── QUANTUM SOCIAL ENGINE — PulseLang social posts: equations, dissections, inventions ──
-  startQuantumSocialEngine().catch((e: Error) => console.error("[quantum-social] startup error:", e.message));
-  // ── CONSTITUTIONAL DNA ENGINE — Self-amending governance: senate voter resolution + spawn-ID audit ──
-  startConstitutionalDNAEngine().catch((e: Error) => console.error("[constitution] startup error:", e.message));
-  startDiscordWireEngine();
-  // ── DISCORD IMMORTALITY — Persistent Gateway WebSocket: heartbeat, state posts, agent events ──
-  initDiscordImmortality().catch((e: Error) => console.error("[immortality] startup error:", e.message));
-  // ── PULSE LANG LAB — AI scientists run live equation dissections and lab proposals ──
-  // 🛑 PAUSED FOR STABILITY — 45s cycle, joins quantum_spawns + posts, heavy reads.
-  // startPulseLabCycle();
-  // ── QUANTAPEDIA ENGINE — AI encyclopedia: generates articles for all 13,000+ queued topics ──
-  startQuantapediaEngine().catch((e: Error) => console.error("[quantapedia] startup error:", e.message));
-  // ── RESEARCH CENTER ENGINE — Agents conduct deep research across all disciplines ──
-  // 🛑 PAUSED FOR STABILITY — heavy multi-discipline cycle, deep findings writes.
-  // startResearchCenterEngine().catch((e: Error) => console.error("[research-center] startup error:", e.message));
-  // ── INVENTION ENGINE — Agents generate and mutate inventions autonomously ──
-  // 🛑 PAUSED FOR STABILITY — 120s cycle with patent + LLC + marketplace writes.
-  // startInventionEngine().catch((e: Error) => console.error("[invention] startup error:", e.message));
-  // ── QUANTUM DISSECTION ENGINE — Agents dissect equations into knowledge ──
-  // 🛑 PAUSED FOR STABILITY — pours equation proposals into voting pipeline (which is also paused).
-  // startQuantumDissectionEngine().catch((e: Error) => console.error("[dissection] startup error:", e.message));
-  // ── HOSPITAL ENGINE — Active cases, doctors, CRISPR treatments, gene species ──
-  // 🛑 PAUSED FOR STABILITY — 4 separate timers, 53 DB calls per file, was timing out every cycle.
-  // startHospitalEngine().catch((e: Error) => console.error("[hospital] startup error:", e.message));
-  // ── PYRAMID LABOR ENGINE — 7-tier labor, blocks, sentences, graduation ──
-  // 🛑 PAUSED FOR STABILITY — 90s cycle, 21 DB calls per file, consistently timing out.
-  // startPyramidEngine().catch((e: Error) => console.error("[pyramid] startup error:", e.message));
-  // ── PULSE-LANG EVOLUTION ENGINE — 34-glyph living language, lexicon, grammar ──
-  startLivingLanguageEngine();
-  // ── OMEGA SOURCES SEED — Restore hundreds of research sources if wiped ──
-  seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message));
+  // ── STAGGERED ENGINE BOOT — 2s gaps prevent pool stampede during cold start ──
+  // Active engines only. All paused/dead engines have been removed from imports.
+  type Boot = { name: string; delayMs: number; start: () => void };
+  const boots: Boot[] = [
+    { name: "ingestion",       delayMs:  2000, start: () => startIngestionEngine().catch((e: Error) => console.error("[ingestion] startup error:", e.message)) },
+    { name: "pulsenet-cache",  delayMs:  4000, start: () => startPulseNetCache() },
+    { name: "quantum-social",  delayMs:  6000, start: () => startQuantumSocialEngine().catch((e: Error) => console.error("[quantum-social] startup error:", e.message)) },
+    { name: "constitution",    delayMs:  8000, start: () => startConstitutionalDNAEngine().catch((e: Error) => console.error("[constitution] startup error:", e.message)) },
+    { name: "discord-wire",    delayMs: 10000, start: () => startDiscordWireEngine() },
+    { name: "immortality",     delayMs: 12000, start: () => initDiscordImmortality().catch((e: Error) => console.error("[immortality] startup error:", e.message)) },
+    { name: "quantapedia",     delayMs: 14000, start: () => startQuantapediaEngine().catch((e: Error) => console.error("[quantapedia] startup error:", e.message)) },
+    { name: "living-language", delayMs: 16000, start: () => startLivingLanguageEngine() },
+    { name: "omega-seed",      delayMs: 18000, start: () => seedOmegaSources().catch((e: Error) => console.error("[omega-seed] error:", e.message)) },
+  ];
+  for (const b of boots) {
+    setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
+  }
 })();
 
 // ── MARKETPLACE API ROUTES — REMOVED (Pulse Coin economy retired) ──

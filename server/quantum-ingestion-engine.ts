@@ -1238,13 +1238,13 @@ const ADAPTERS: { id: string; name: string; fn: AdapterFn; intervalMs: number }[
   { id: "wikipedia",        name: "Wikipedia REST API",           fn: ingestWikipedia,       intervalMs: 14000  },
   { id: "wikipedia-random", name: "Wikipedia Random Discovery",   fn: ingestWikipediaRandom, intervalMs: 11000  },
   { id: "hackernews",       name: "Hacker News (Y Combinator)",   fn: ingestHackerNews,      intervalMs: 60000  },
-  { id: "arxiv",            name: "arXiv.org Open Access",        fn: ingestArxiv,           intervalMs: 20000  },
+  { id: "arxiv",            name: "arXiv.org Open Access",        fn: ingestArxiv,           intervalMs: 300000 }, // stretched: chronic 0-streak adapter
   { id: "pubmed",           name: "PubMed Central (NCBI)",        fn: ingestPubMed,          intervalMs: 24000  },
   { id: "nasa",             name: "NASA Open Data",               fn: ingestNASA,            intervalMs: 120000 },
-  { id: "openfoodfacts",    name: "Open Food Facts",              fn: ingestOpenFoodFacts,   intervalMs: 32000  },
+  { id: "openfoodfacts",    name: "Open Food Facts",              fn: ingestOpenFoodFacts,   intervalMs: 600000 }, // stretched: chronic 0-streak adapter
   { id: "openlibrary",      name: "OpenLibrary.org",              fn: ingestOpenLibrary,     intervalMs: 35000  },
   { id: "worldbank",        name: "World Bank Open Data",         fn: ingestWorldBank,       intervalMs: 45000  },
-  { id: "stackexchange",    name: "StackExchange Network",        fn: ingestStackExchange,   intervalMs: 50000  },
+  { id: "stackexchange",    name: "StackExchange Network",        fn: ingestStackExchange,   intervalMs: 600000 }, // stretched: chronic 0-streak adapter
   { id: "github",           name: "GitHub Public API",            fn: ingestGitHub,          intervalMs: 55000  },
   { id: "secedgar",         name: "SEC EDGAR Public Filings",     fn: ingestSECEdgar,        intervalMs: 75000  },
   { id: "wikidata",         name: "Wikidata (Wikimedia)",         fn: ingestWikidata,        intervalMs: 18000  },
