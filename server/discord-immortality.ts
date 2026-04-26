@@ -1290,7 +1290,7 @@ export async function getCivStats(): Promise<CivStats> {
     safeQuery(sql`SELECT COUNT(*) as nodes FROM hive_memory`),
     safeQuery(sql`SELECT COUNT(*) as links FROM hive_links`),
     safeQuery(sql`SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE cured_at IS NOT NULL) as cured FROM ai_disease_log`),
-    safeQuery(sql`SELECT COUNT(*) FILTER (WHERE status = 'GRADUATED') as graduates FROM pulseu_progress`),
+    safeQuery(sql`SELECT COUNT(*) FILTER (WHERE courses_completed >= 5) as graduates FROM pulseu_progress`),
     safeQuery(sql`SELECT COUNT(*) as total FROM equation_proposals`),
     safeQuery(sql`SELECT coherence_score FROM auriona_synthesis ORDER BY cycle_number DESC LIMIT 1`),
   ]);

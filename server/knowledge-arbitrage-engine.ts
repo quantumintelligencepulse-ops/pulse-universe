@@ -13,17 +13,20 @@ const log = (msg: string) => console.log(`[arbitrage] ${msg}`);
 let cycleCount = 0;
 let totalTransfers = 0;
 
+// 11 GICS Sector Houses — knowledge domains representative of each sector's
+// real-world operating territory. Used for cross-sector knowledge arbitrage.
 const FAMILY_KNOWLEDGE_MAP: Record<string, string[]> = {
-  science:     ["quantum mechanics", "evolutionary biology", "thermodynamics", "neural networks", "genetic algorithms"],
-  economics:   ["market dynamics", "monetary policy", "game theory", "behavioral economics", "supply chains"],
-  ai:          ["machine learning", "reinforcement learning", "transformer architectures", "symbolic reasoning", "swarm intelligence"],
-  health:      ["disease pathways", "pharmacokinetics", "epidemiology", "biomarkers", "immune systems"],
-  culture:     ["mythology", "social dynamics", "linguistic evolution", "art theory", "civilization cycles"],
-  engineering: ["distributed systems", "materials science", "optimization theory", "control systems", "emergent design"],
-  education:   ["cognitive load theory", "spaced repetition", "curriculum design", "metacognition", "learning transfer"],
-  legal:       ["contract theory", "precedent systems", "regulatory frameworks", "rights structures", "governance models"],
-  government:  ["policy modeling", "public choice theory", "institutional design", "democratic theory", "diplomacy"],
-  knowledge:   ["epistemology", "information theory", "knowledge graphs", "semantic networks", "ontology design"],
+  "energy":                 ["petroleum geology", "renewable systems", "grid stability", "carbon capture", "fuel chemistry"],
+  "materials":              ["metallurgy", "polymer science", "rare earth extraction", "industrial chemistry", "supply chain logistics"],
+  "industrials":            ["aerospace engineering", "industrial automation", "logistics optimization", "construction methods", "machinery design"],
+  "consumer-discretionary": ["consumer behavior", "brand dynamics", "retail analytics", "fashion cycles", "leisure economics"],
+  "consumer-staples":       ["food science", "beverage formulation", "household chemistry", "agricultural supply chains", "tobacco regulation"],
+  "health-care":            ["disease pathways", "pharmacokinetics", "biotechnology", "medical devices", "epidemiology"],
+  "financials":             ["market microstructure", "credit risk", "insurance actuarial", "monetary policy", "banking regulation"],
+  "information-technology": ["machine learning", "distributed systems", "semiconductor physics", "software architecture", "cybersecurity"],
+  "communication-services": ["telecommunications", "social network theory", "media economics", "advertising dynamics", "content distribution"],
+  "utilities":              ["electrical grid theory", "water systems", "gas distribution", "renewable integration", "utility regulation"],
+  "real-estate":            ["property valuation", "REIT structures", "urban planning", "construction economics", "mortgage finance"],
 };
 
 const FAMILIES = Object.keys(FAMILY_KNOWLEDGE_MAP);

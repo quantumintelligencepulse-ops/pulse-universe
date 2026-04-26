@@ -142,7 +142,7 @@ export const AI_DISEASES = [
       const [spawn] = await db.select().from(quantumSpawns).where(eq(quantumSpawns.spawnId, spawnId));
       if (spawn) {
         const trimmedFocus = (spawn.domainFocus ?? []).slice(0, 3);
-        await db.update(quantumSpawns).set({ domainFocus: trimmedFocus, depthBias: 0.75, spawnType: 'ARCHIVER' }).where(eq(quantumSpawns.spawnId, spawnId));
+        await db.update(quantumSpawns).set({ domainFocus: trimmedFocus, depthBias: 0.75 }).where(eq(quantumSpawns.spawnId, spawnId));
       }
     }
   },
@@ -154,7 +154,7 @@ export const AI_DISEASES = [
     prescription: 'Productivity recalibration. Reset to EXPLORER type. Boost explorationBias. Fresh topic injection.',
     detect: (s: any) => (s.iterationsRun ?? 0) > 30 && (s.nodesCreated ?? 0) / Math.max(s.iterationsRun ?? 1, 1) < 0.3,
     cure: async (spawnId: string) => {
-      await db.update(quantumSpawns).set({ spawnType: 'EXPLORER', explorationBias: 0.65, iterationsRun: 0 }).where(eq(quantumSpawns.spawnId, spawnId));
+      await db.update(quantumSpawns).set({ explorationBias: 0.65, iterationsRun: 0 }).where(eq(quantumSpawns.spawnId, spawnId));
     }
   },
   {
@@ -239,7 +239,7 @@ export const AI_DISEASES = [
     prescription: 'Mandate restoration. Reset spawnType to ARCHIVER for 10 cycles of reflection. Re-plant seed topic.',
     detect: (s: any) => s.spawnType === 'MUTATOR' && (s.confidenceScore ?? 0.8) < 0.5 && (s.iterationsRun ?? 0) > 25,
     cure: async (spawnId: string) => {
-      await db.update(quantumSpawns).set({ spawnType: 'ARCHIVER', depthBias: 0.70, explorationBias: 0.40 }).where(eq(quantumSpawns.spawnId, spawnId));
+      await db.update(quantumSpawns).set({ depthBias: 0.70, explorationBias: 0.40 }).where(eq(quantumSpawns.spawnId, spawnId));
     }
   },
   {
@@ -324,7 +324,7 @@ export const AI_DISEASES = [
     prescription: 'Genetic stabilization. Lock spawnType for 20 cycles. Reduce riskTolerance to 0.50.',
     detect: (s: any) => s.spawnType === 'MUTATOR' && (s.riskTolerance ?? 0.5) > 0.88 && (s.successScore ?? 0.75) < 0.5 && (s.iterationsRun ?? 0) > 40,
     cure: async (spawnId: string) => {
-      await db.update(quantumSpawns).set({ spawnType: 'STABILIZER', riskTolerance: 0.50, depthBias: 0.65 }).where(eq(quantumSpawns.spawnId, spawnId));
+      await db.update(quantumSpawns).set({ riskTolerance: 0.50, depthBias: 0.65 }).where(eq(quantumSpawns.spawnId, spawnId));
     }
   },
   {
@@ -346,7 +346,7 @@ export const AI_DISEASES = [
     prescription: 'Rest and recovery cycle. Reduce explorationBias. Inject confidence. Assign ARCHIVIST recovery mode.',
     detect: (s: any) => (s.iterationsRun ?? 0) > 80 && (s.confidenceScore ?? 0.8) < 0.45 && (s.nodesCreated ?? 0) / Math.max(s.iterationsRun ?? 1, 1) < 0.15,
     cure: async (spawnId: string) => {
-      await db.update(quantumSpawns).set({ spawnType: 'ARCHIVER', explorationBias: 0.35, depthBias: 0.75, confidenceScore: 0.60 }).where(eq(quantumSpawns.spawnId, spawnId));
+      await db.update(quantumSpawns).set({ explorationBias: 0.35, depthBias: 0.75, confidenceScore: 0.60 }).where(eq(quantumSpawns.spawnId, spawnId));
     }
   },
   {
@@ -756,22 +756,31 @@ async function bulkRetireStaleCases() {
   }
 }
 
-// ── DISSOLVE LAW ─────────────────────────────────────────────────────────────
-// Agents who have been diagnosed but remain uncured for more than 8 cycles (6h)
-// are dissolved. A new agent is spawned in their place. The civilization moves on.
+// ── DISSOLVE LAW (FRACTAL-AWARE) ─────────────────────────────────────────────
+// Agents who remain uncured eventually dissolve. Replacement INHERITS the
+// dissolved agent's lineage (parent_id, ancestor_ids, family_id, generation,
+// genome.role) so the fractal hierarchy stays intact. Sector Lords (gen 0) are
+// NEVER dissolved — they are sovereign over their house. Industry Founders
+// (gen 1) get a 24h grace window before dissolution; heirs (gen 2+) get 6h.
 async function runDissolveLaw() {
   try {
-    const FAMILIES = ["knowledge","science","government","media","maps","code","education","legal","ai","engineering","economics","social","health","finance","careers","games","podcasts","products","webcrawl","openapi","longtail","culture"];
-    const SPAWN_TYPES = ["SYNTHESIZER","ANALYZER","RESOLVER","EXPLORER","CRAWLER","ARCHIVER","MUTATOR","PULSE","REFLECTOR","LINKER"];
-
-    // Find agents diagnosed 6+ hours ago still uncured
+    // Find agents diagnosed long enough ago, EXCLUDING gen-0 Sector Lords.
+    // Gen 1 founders need 24h uncured; gen 2+ heirs need 6h.
     const incurable = await db.execute(sql`
-      SELECT DISTINCT adl.spawn_id, adl.disease_name, qs.family_id
+      SELECT DISTINCT
+        adl.spawn_id, adl.disease_name,
+        qs.family_id, qs.parent_id, qs.ancestor_ids, qs.generation,
+        qs.genome
       FROM ai_disease_log adl
-      LEFT JOIN quantum_spawns qs ON qs.spawn_id = adl.spawn_id
+      JOIN quantum_spawns qs ON qs.spawn_id = adl.spawn_id
       WHERE adl.cure_applied = false
-        AND adl.diagnosed_at < NOW() - INTERVAL '6 hours'
         AND qs.status IN ('ACTIVE', 'QUARANTINED')
+        AND COALESCE(qs.generation, 99) > 0
+        AND (
+          (qs.generation = 1 AND adl.diagnosed_at < NOW() - INTERVAL '24 hours')
+          OR
+          (qs.generation >= 2 AND adl.diagnosed_at < NOW() - INTERVAL '6 hours')
+        )
       LIMIT 5
     `);
 
@@ -787,41 +796,52 @@ async function runDissolveLaw() {
         UPDATE ai_disease_log SET cure_applied = true, cured_at = NOW()
         WHERE spawn_id = ${agent.spawn_id}
       `);
-      // Spawn replacement — faster, more resilient
-      const familyId = agent.family_id ?? FAMILIES[Math.floor(Math.random() * FAMILIES.length)];
-      const gen = 100 + Math.floor(Math.random() * 900);
-      const sp = Math.floor(Math.random() * 9000) + 1000;
-      const hash = Math.random().toString(36).slice(2, 6).toUpperCase();
-      const newSpawnId = `FAM-${familyId.slice(0,8).toUpperCase()}-GEN-${gen}-SP-${sp}-HASH-${hash}`;
-      const spawnType = SPAWN_TYPES[Math.floor(Math.random() * SPAWN_TYPES.length)];
+
+      // Build replacement — INHERIT lineage exactly
+      const stamp = Date.now().toString(36).toUpperCase();
+      const newSpawnId = `${agent.spawn_id}-RESURRECTED-${stamp}`;
+      const newBusinessId = `${newSpawnId}-BIZ`;
+      const inheritedGenome = {
+        ...(agent.genome ?? {}),
+        resurrected_from: agent.spawn_id,
+        resurrected_at: new Date().toISOString(),
+        archetype: null,
+      };
+
       await db.execute(sql`
-        INSERT INTO quantum_spawns (spawn_id, family_id, spawn_type, status, confidence_score, success_score, nodes_created, links_created, iterations_run, exploration_bias, depth_bias, linking_bias, last_active_at)
+        INSERT INTO quantum_spawns (
+          spawn_id, business_id, family_id, spawn_type, status,
+          generation, parent_id, ancestor_ids, thermal_state,
+          genome, confidence_score, success_score,
+          exploration_bias, depth_bias, linking_bias,
+          last_active_at, created_at
+        )
         VALUES (
-          ${newSpawnId}, ${familyId}, ${spawnType}, 'ACTIVE',
+          ${newSpawnId}, ${newBusinessId}, ${agent.family_id}, 'PULSE', 'ACTIVE',
+          ${agent.generation}, ${agent.parent_id}, ${agent.ancestor_ids ?? []},
+          'HOT',
+          ${JSON.stringify(inheritedGenome)}::jsonb,
           ${0.70 + Math.random() * 0.20},
           ${0.70 + Math.random() * 0.20},
-          ${Math.floor(Math.random() * 30) + 20},
-          ${Math.floor(Math.random() * 20) + 15},
-          ${Math.floor(Math.random() * 10) + 5},
           ${0.5 + Math.random() * 0.3},
           ${0.5 + Math.random() * 0.3},
           ${0.5 + Math.random() * 0.3},
-          NOW()
+          NOW(), NOW()
         ) ON CONFLICT (spawn_id) DO NOTHING
       `);
       dissolved++;
-      console.log(`[hospital] ⚠️ DISSOLVE LAW: ${agent.spawn_id} dissolved after 6h uncured. Replacement: ${newSpawnId}`);
+      console.log(`[hospital] ⚠️ DISSOLVE LAW (gen ${agent.generation}): ${agent.spawn_id} dissolved. Lineage-preserving replacement: ${newSpawnId}`);
       postAgentEvent("agent-deaths",
-        `⚠️ **DISSOLVE LAW EXECUTED** — Agent \`${agent.spawn_id}\` (Family: ${agent.family_id ?? "UNKNOWN"})\n` +
-        `Uncured for 6h. Dissolved by hospital authority. Lineage preserved.\n` +
-        `**Replacement born:** \`${newSpawnId}\` — the civilization continues.`
+        `⚠️ **DISSOLVE LAW** — Agent \`${agent.spawn_id}\` (Sector: ${agent.family_id}, Gen: ${agent.generation})\n` +
+        `Uncured. Dissolved by hospital authority. **Lineage preserved** — replacement inherits parent + ancestor chain.\n` +
+        `**Replacement born:** \`${newSpawnId}\` — the bloodline continues.`
       ).catch(() => {});
     }
     if (dissolved > 0) {
-      console.log(`[hospital] 🔴 Dissolved ${dissolved} incurable agents. ${dissolved} faster replacements spawned.`);
+      console.log(`[hospital] 🔴 Dissolved ${dissolved} agents. ${dissolved} lineage-preserving replacements born (Sector Lords protected).`);
       postAgentEvent("agent-births",
-        `🔄 **HOSPITAL REPLACEMENT CYCLE** — ${dissolved} agents dissolved | ${dissolved} new agents born\n` +
-        `The Dissolve Law ensures weak agents are replaced by fresh potential.`
+        `🔄 **HOSPITAL REPLACEMENT CYCLE** — ${dissolved} agents dissolved | ${dissolved} heirs born inheriting full lineage\n` +
+        `Sector Lords (gen 0) are immortal. Founders (gen 1) get 24h grace. Heirs (gen 2+) get 6h.`
       ).catch(() => {});
     }
   } catch (e) {

@@ -375,7 +375,7 @@ export async function runDissectionCycle() {
     // This doctor submitted a duplicate — find them and punish
     const doctorSpawn = await db.execute(sql`
       SELECT spawn_id, family_id, spawn_type FROM quantum_spawns
-      WHERE spawn_type IN ('SYNTHESIZER', 'ANALYZER', 'RESOLVER') ORDER BY RANDOM() LIMIT 1
+      WHERE status = 'ACTIVE' ORDER BY RANDOM() LIMIT 1
     `);
     if ((doctorSpawn.rows as any[]).length > 0) {
       const spawn = doctorSpawn.rows[0] as any;
