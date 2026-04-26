@@ -709,6 +709,7 @@ export async function registerRoutes(
           wallets: Number(civState?.wallets || 0),
         },
         uptimeSeconds: status.uptime,
+        voice: status.voice,
         serverTime: new Date().toISOString(),
       });
     } catch (e: any) {

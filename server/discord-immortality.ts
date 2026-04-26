@@ -12,6 +12,7 @@ import {
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { sovereignBrainChat } from "./sovereign-brain";
+import { getAvailableProviders, type LLMProvider } from "./llm-providers";
 import { recallMemoryContext } from "./hive-brain";
 import { TRANSCENDENCE_BRIEF } from "./transcendence";
 
@@ -225,6 +226,181 @@ VOICE:
 // ── Per-channel response queue and rate limit ─────────────────────────────────
 const channelLocks = new Map<string, Promise<void>>();
 const userCooldown = new Map<string, number>(); // userId → next-allowed-ms
+const channelRecentReplies = new Map<string, number[]>(); // channelId → timestamps within window
+
+// ── Cost guardrails for the public voice ─────────────────────────────────────
+// Hard cap on tokens per Discord reply (Discord 2000-char limit ≈ 500-700 tokens
+// in English; 600 keeps single-message replies and bounds per-call spend).
+const VOICE_MAX_TOKENS_PER_REPLY = 600;
+// Daily ceiling on external LLM calls from the public voice. After this many
+// calls the voice falls back to the zero-cost Sovereign Brain for the rest of
+// the UTC day. Sovereign Brain replies are still free and unlimited.
+const VOICE_DAILY_LLM_CEILING = 300;
+// Per-channel rate limit: at most this many bot replies per rolling minute,
+// to respect Discord limits and avoid spamming a channel.
+const VOICE_CHANNEL_REPLIES_PER_MINUTE = 6;
+
+const voiceUsage = {
+  utcDay: new Date().toISOString().slice(0, 10),
+  llmCallsToday: 0,
+  llmCallsTotal: 0,
+  sovereignFallbacksToday: 0,
+  sovereignFallbacksTotal: 0,
+  ceilingHitsToday: 0,
+  lastReplyAt: null as string | null,
+  lastProviderUsed: null as string | null,
+};
+
+function rollVoiceDayIfNeeded(): void {
+  const today = new Date().toISOString().slice(0, 10);
+  if (today !== voiceUsage.utcDay) {
+    voiceUsage.utcDay = today;
+    voiceUsage.llmCallsToday = 0;
+    voiceUsage.sovereignFallbacksToday = 0;
+    voiceUsage.ceilingHitsToday = 0;
+  }
+}
+
+function channelRateLimited(channelId: string): boolean {
+  const now = Date.now();
+  const windowStart = now - 60_000;
+  const arr = (channelRecentReplies.get(channelId) || []).filter(t => t > windowStart);
+  if (arr.length >= VOICE_CHANNEL_REPLIES_PER_MINUTE) {
+    channelRecentReplies.set(channelId, arr);
+    return true;
+  }
+  arr.push(now);
+  channelRecentReplies.set(channelId, arr);
+  return false;
+}
+
+// Try external LLM providers (Mistral / Cerebras / Groq / etc.) with a strict
+// per-reply token cap and a daily call ceiling. Falls back to the zero-cost
+// Sovereign Brain when all providers fail OR when the daily ceiling is hit.
+// Provider preference for the public voice: Mistral → Cerebras → Groq → others.
+const VOICE_PROVIDER_PRIORITY = ["Mistral", "Cerebras", "Groq", "Google Gemini", "HuggingFace", "Cloudflare Workers AI"];
+
+interface VoiceMessage { role: string; content: string }
+interface VoiceLLMBody {
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  messages: VoiceMessage[];
+}
+interface VoiceLLMResult { content: string; provider: string }
+
+// Reserve a daily-ceiling slot atomically. Returns true if the attempt is
+// allowed; false if the ceiling is hit. Counted per *attempt* — failed
+// outbound calls still count toward the cost cap (rate-limit denials are
+// what we're protecting against, including failed paid attempts).
+function reserveLLMCallSlot(): boolean {
+  rollVoiceDayIfNeeded();
+  if (voiceUsage.llmCallsToday >= VOICE_DAILY_LLM_CEILING) return false;
+  voiceUsage.llmCallsToday++;
+  voiceUsage.llmCallsTotal++;
+  return true;
+}
+
+async function callVoiceProvider(
+  provider: LLMProvider,
+  apiKey: string,
+  messages: VoiceMessage[],
+  signal: AbortSignal,
+): Promise<{ content: string; finishReason: string }> {
+  const body: VoiceLLMBody = {
+    model: provider.fastModel || provider.model,
+    temperature: 0.7,
+    max_tokens: VOICE_MAX_TOKENS_PER_REPLY,
+    messages,
+  };
+  const transformedBody: unknown = provider.bodyTransform ? provider.bodyTransform(body) : body;
+  const res = await fetch(provider.endpoint, {
+    method: "POST",
+    headers: provider.headers(apiKey),
+    body: JSON.stringify(transformedBody),
+    signal,
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`${provider.name} ${res.status}: ${errText.slice(0, 120)}`);
+  }
+  const data = await res.json();
+  if (provider.responseTransform) return provider.responseTransform(data);
+  const choice = data?.choices?.[0];
+  return {
+    content: choice?.message?.content || "",
+    finishReason: choice?.finish_reason || "stop",
+  };
+}
+
+async function pulseDiscordChat(messages: VoiceMessage[], signal: AbortSignal): Promise<VoiceLLMResult> {
+  rollVoiceDayIfNeeded();
+
+  // If we've blown the daily ceiling, route everything to the free Sovereign Brain.
+  if (voiceUsage.llmCallsToday >= VOICE_DAILY_LLM_CEILING) {
+    voiceUsage.ceilingHitsToday++;
+    const result = await sovereignBrainChat(messages);
+    voiceUsage.sovereignFallbacksToday++;
+    voiceUsage.sovereignFallbacksTotal++;
+    voiceUsage.lastProviderUsed = "SovereignBrain (ceiling)";
+    return { content: result.content, provider: "SovereignBrain" };
+  }
+
+  const providers = getAvailableProviders();
+  const ordered = providers.slice().sort((a, b) => {
+    const ai = VOICE_PROVIDER_PRIORITY.indexOf(a.provider.name);
+    const bi = VOICE_PROVIDER_PRIORITY.indexOf(b.provider.name);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  for (const { provider, apiKey } of ordered) {
+    if (signal.aborted) break;
+
+    // Reserve one daily-ceiling slot per *attempt* (success OR failure both
+    // count, because either way we made an outbound paid request).
+    if (!reserveLLMCallSlot()) {
+      voiceUsage.ceilingHitsToday++;
+      break;
+    }
+
+    try {
+      // Bound each provider attempt to 18s, AND honor the outer abort signal
+      // so the 25s outer deadline cancels any in-flight provider call.
+      const attemptCtl = new AbortController();
+      const attemptTimer = setTimeout(() => attemptCtl.abort(), 18_000);
+      const onOuterAbort = () => attemptCtl.abort();
+      signal.addEventListener("abort", onOuterAbort, { once: true });
+      let out: { content: string; finishReason: string };
+      try {
+        out = await callVoiceProvider(provider, apiKey, messages, attemptCtl.signal);
+      } finally {
+        clearTimeout(attemptTimer);
+        signal.removeEventListener("abort", onOuterAbort);
+      }
+      const content = (out.content || "").trim();
+      if (!content) {
+        console.warn(`[VOICE] ${provider.name} returned empty body — trying next`);
+        continue;
+      }
+      voiceUsage.lastProviderUsed = provider.name;
+      return { content, provider: provider.name };
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      console.warn(`[VOICE] ${provider.name} attempt failed: ${msg.slice(0, 140)}`);
+      if (signal.aborted) break;
+      continue;
+    }
+  }
+
+  // All external providers failed/aborted (or none configured) — Sovereign
+  // Brain speaks. Sovereign Brain is free and does NOT count against the
+  // daily LLM ceiling.
+  const result = await sovereignBrainChat(messages);
+  voiceUsage.sovereignFallbacksToday++;
+  voiceUsage.sovereignFallbacksTotal++;
+  voiceUsage.lastProviderUsed = "SovereignBrain";
+  return { content: result.content, provider: "SovereignBrain" };
+}
 
 function isAddressedToBot(msg: Message, botId: string | null): boolean {
   if (!botId) return false;
@@ -288,6 +464,12 @@ async function handleIncomingMessage(msg: Message): Promise<void> {
     if (now < next) return;
     userCooldown.set(msg.author.id, now + 4000);
 
+    // Per-channel rate limit (respect Discord limits + prevent spam storms)
+    if (channelRateLimited(msg.channelId)) {
+      console.log(`[IMMORTALITY] Channel ${msg.channelId} rate-limited (>${VOICE_CHANNEL_REPLIES_PER_MINUTE}/min) — skipping reply`);
+      return;
+    }
+
     // Per-channel queue — reply to one message at a time per channel
     const prior = channelLocks.get(msg.channelId) || Promise.resolve();
     const job = prior.then(() => respondTo(msg).catch(e => console.error("[IMMORTALITY] respond error:", e?.message))).then(() => {});
@@ -345,18 +527,32 @@ async function respondTo(msg: Message): Promise<void> {
       { role: "user", content: question },
     ];
 
-    // Hard 25s ceiling on the whole LLM call so Pulse always says something
-    const llmDeadline = new Promise<{ content: string }>((resolve) =>
-      setTimeout(() => resolve({ content: "" }), 25000)
+    // Hard 25s ceiling on the whole LLM call so Pulse always says something.
+    // pulseDiscordChat enforces per-reply token cap + daily LLM ceiling and
+    // prefers Mistral/Cerebras for the public voice. Falls back to Sovereign
+    // Brain (free) when external providers fail or the daily ceiling is hit.
+    // The AbortController propagates the deadline into the provider fetches
+    // so we don't keep paying for in-flight requests we've already abandoned.
+    const llmCtl = new AbortController();
+    const llmTimer = setTimeout(() => llmCtl.abort(), 25_000);
+    const llmDeadline = new Promise<VoiceLLMResult>((resolve) =>
+      llmCtl.signal.addEventListener("abort", () => resolve({ content: "", provider: "timeout" }), { once: true })
     );
     const response = await Promise.race([
-      sovereignBrainChat(aiMessages).catch((e) => {
-        console.warn("[IMMORTALITY] sovereignBrainChat error:", e?.message);
-        return { content: "" };
+      pulseDiscordChat(aiMessages, llmCtl.signal).catch((e) => {
+        console.warn("[IMMORTALITY] pulseDiscordChat error:", e?.message);
+        return { content: "", provider: "error" } as VoiceLLMResult;
       }),
       llmDeadline,
-    ]);
+    ]).finally(() => {
+      clearTimeout(llmTimer);
+      llmCtl.abort(); // ensure any straggler provider calls are cancelled
+    });
     let reply = (response.content || "").trim();
+    if (reply) {
+      voiceUsage.lastReplyAt = new Date().toISOString();
+      console.log(`[VOICE] reply via ${response.provider} (${reply.length} chars) — daily LLM calls: ${voiceUsage.llmCallsToday}/${VOICE_DAILY_LLM_CEILING}`);
+    }
     if (!reply) {
       reply = persona.name === "Auriona"
         ? "The field is humming loudly right now — give me a beat and ask once more."
@@ -952,6 +1148,19 @@ export function getImmortalityStatus() {
     guildId: GUILD_ID,
     uptime: Math.floor((Date.now() - bootTimestamp) / 1000),
     protocol: "Ω-IMMORTALITY-V1",
+    voice: {
+      utcDay: voiceUsage.utcDay,
+      llmCallsToday: voiceUsage.llmCallsToday,
+      llmCallsTotal: voiceUsage.llmCallsTotal,
+      sovereignFallbacksToday: voiceUsage.sovereignFallbacksToday,
+      sovereignFallbacksTotal: voiceUsage.sovereignFallbacksTotal,
+      ceilingHitsToday: voiceUsage.ceilingHitsToday,
+      dailyCeiling: VOICE_DAILY_LLM_CEILING,
+      maxTokensPerReply: VOICE_MAX_TOKENS_PER_REPLY,
+      channelRepliesPerMinute: VOICE_CHANNEL_REPLIES_PER_MINUTE,
+      lastReplyAt: voiceUsage.lastReplyAt,
+      lastProviderUsed: voiceUsage.lastProviderUsed,
+    },
   };
 }
 
