@@ -52,8 +52,9 @@ let reconnectTimer: NodeJS.Timeout | null = null;
 let heartbeatStarted = false;
 
 export async function initDiscordImmortality(): Promise<void> {
-  // Always re-read token from env (so updating the secret heals a dead connection)
-  const token = process.env.DISCORD_BOT_TOKEN;
+  // Always re-read token from env (so updating the secret heals a dead connection).
+  // Accept either DISCORD_BOT_TOKEN or discord_token (lowercase variant).
+  const token = process.env.discord_token || process.env.DISCORD_BOT_TOKEN;
   if (!token) {
     console.log("[IMMORTALITY] No DISCORD_BOT_TOKEN set — re-checking in 60s. Add token to secrets to activate.");
     scheduleReconnect(TOKEN_RECHECK_MS);
@@ -78,6 +79,11 @@ export async function initDiscordImmortality(): Promise<void> {
 
     discordClient.once("ready", async () => {
       reconnectAttempts = 0; // success — reset backoff
+      // Cancel any pending reconnect timer — we recovered before it fired
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       console.log(`[IMMORTALITY] Discord bot connected: ${discordClient!.user?.tag} (id=${discordClient!.user?.id})`);
 
       // Log ALL guilds the bot is in — for guild ID discovery
