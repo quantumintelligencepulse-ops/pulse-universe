@@ -60,6 +60,7 @@ import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus, startGeneEditorEngine } from "./gene-editor-engine";
 import { startHospitalEngine } from "./hospital-engine";
+import { startSpawnEngine } from "./quantum-spawn-engine";
 // pulse-credit-engine removed — Pulse Coin economy retired
 // ── 2026-04-26: re-enabled omni-net, research-center, hospital, gene-editor
 //    after audit revealed they had been imported but never started → tables
@@ -382,6 +383,7 @@ async function seedOmegaSources() {
     { name: "research-center", delayMs: 24000, start: () => startResearchCenterEngine().catch((e: Error) => console.error("[research-center] startup error:", e.message)) },
     { name: "hospital",        delayMs: 26000, start: () => startHospitalEngine().catch((e: Error) => console.error("[hospital] startup error:", e.message)) },
     { name: "gene-editor",     delayMs: 28000, start: () => startGeneEditorEngine().catch((e: Error) => console.error("[gene-editor] startup error:", e.message)) },
+    { name: "quantum-spawn",   delayMs: 30000, start: () => startSpawnEngine().catch((e: Error) => console.error("[quantum-spawn] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
