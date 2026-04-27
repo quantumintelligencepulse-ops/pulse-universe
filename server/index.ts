@@ -76,10 +76,13 @@ import { startLivePriceEngine } from "./live-price-engine";
 import { startPulseCreditEngine } from "./pulse-credit-engine";
 import { startPyramidEngine } from "./pyramid-engine";
 import { startSportsEngine } from "./sports-engine";
+// 2026-04-27: T007 — restored ai-voting + invention + quantum-dissection
+import { startAIVotingEngine } from "./ai-voting-engine";
+import { startInventionEngine } from "./invention-engine";
+import { startQuantumDissectionEngine } from "./quantum-dissection-engine";
 // ── 2026-04-26: re-enabled omni-net, research-center, hospital, gene-editor
 //    after audit revealed they had been imported but never started → tables
-//    frozen for weeks. Still paused: ai-voting, publication, pulse-lang-lab,
-//    invention, quantum-dissection, pyramid.
+//    frozen for weeks. Still paused: publication, pulse-lang-lab.
 import { startIngestionEngine } from "./quantum-ingestion-engine";
 import { startQuantumSocialEngine } from "./quantum-social-engine";
 import { startPulseNetCache } from "./pulsenet-cache";
@@ -413,6 +416,9 @@ async function seedOmegaSources() {
     { name: "multiverse-mall", delayMs: 56000, start: () => startMultiverseMall().catch((e: Error) => console.error("[multiverse-mall] startup error:", e.message)) },
     { name: "pyramid",         delayMs: 58000, start: () => startPyramidEngine().catch((e: Error) => console.error("[pyramid] startup error:", e.message)) },
     { name: "sports",          delayMs: 60000, start: () => startSportsEngine().catch((e: Error) => console.error("[sports] startup error:", e.message)) },
+    { name: "ai-voting",       delayMs: 62000, start: () => startAIVotingEngine().catch((e: Error) => console.error("[ai-voting] startup error:", e.message)) },
+    { name: "invention",       delayMs: 64000, start: () => startInventionEngine().catch((e: Error) => console.error("[invention] startup error:", e.message)) },
+    { name: "quantum-dissect", delayMs: 66000, start: () => startQuantumDissectionEngine().catch((e: Error) => console.error("[quantum-dissect] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);

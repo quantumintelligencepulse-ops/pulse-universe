@@ -119,7 +119,20 @@ async function pollAllPrices() {
 
 // ── START ENGINE ─────────────────────────────────────────────────────────────
 export function startLivePriceEngine(httpServer: Server) {
-  const wss = new WebSocketServer({ server: httpServer, path: "/ws/prices" });
+  // 2026-04-27 FIX: use noServer + manual upgrade routing so we don't hijack
+  // vite HMR upgrades. The previous {server, path} pattern aborted ALL upgrades
+  // whose path didn't match /ws/prices — including vite's /vite-hmr — causing
+  // an HMR death loop that flashed the dev iframe black every ~1s.
+  const wss = new WebSocketServer({ noServer: true });
+
+  httpServer.on("upgrade", (req, socket, head) => {
+    if (req.url === "/ws/prices") {
+      wss.handleUpgrade(req, socket as any, head, (ws) => {
+        wss.emit("connection", ws, req);
+      });
+    }
+    // else: leave alone — vite HMR / other handlers will pick it up
+  });
 
   wss.on("connection", (ws: WebSocket, _req: IncomingMessage) => {
     subscribers.add(ws);
