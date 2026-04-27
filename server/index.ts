@@ -63,6 +63,14 @@ import { startHospitalEngine } from "./hospital-engine";
 import { startSpawnEngine } from "./quantum-spawn-engine";
 import { startUniverseRebirthEngine } from "./universe-rebirth-engine";
 import { startDomainKernelEngine } from "./domain-kernel-engine";
+import "./subconscious-attraction-engine"; // 2026-04-27: top-level setInterval auto-starts 60s attraction cycle
+import { startPipEngine } from "./pip-engine";
+import { startDbCompressionEngine } from "./db-compression-engine";
+import { startJobIngestionEngine } from "./job-ingestion-engine";
+import { startChurchResearchEngine } from "./church-research-engine";
+import { startQuantumNewsEngine } from "./quantum-news-engine";
+import { startQuantumProductEngine } from "./quantum-product-engine";
+import { startLivePriceEngine } from "./live-price-engine";
 // pulse-credit-engine removed — Pulse Coin economy retired
 // ── 2026-04-26: re-enabled omni-net, research-center, hospital, gene-editor
 //    after audit revealed they had been imported but never started → tables
@@ -388,6 +396,13 @@ async function seedOmegaSources() {
     { name: "quantum-spawn",   delayMs: 30000, start: () => startSpawnEngine().catch((e: Error) => console.error("[quantum-spawn] startup error:", e.message)) },
     { name: "universe-rebirth",delayMs: 32000, start: () => startUniverseRebirthEngine().catch((e: Error) => console.error("[universe-rebirth] startup error:", e.message)) },
     { name: "domain-kernel",   delayMs: 34000, start: () => startDomainKernelEngine().catch((e: Error) => console.error("[domain-kernel] startup error:", e.message)) },
+    { name: "pip",             delayMs: 36000, start: () => startPipEngine().catch((e: Error) => console.error("[pip] startup error:", e.message)) },
+    { name: "db-compression",  delayMs: 38000, start: () => startDbCompressionEngine().catch((e: Error) => console.error("[db-compression] startup error:", e.message)) },
+    { name: "job-ingestion",   delayMs: 40000, start: () => { try { startJobIngestionEngine(); } catch (e: any) { console.error("[job-ingestion] startup error:", e.message); } } },
+    { name: "church-research", delayMs: 42000, start: () => startChurchResearchEngine().catch((e: Error) => console.error("[church-research] startup error:", e.message)) },
+    { name: "quantum-news",    delayMs: 44000, start: () => startQuantumNewsEngine().catch((e: Error) => console.error("[quantum-news] startup error:", e.message)) },
+    { name: "quantum-product", delayMs: 46000, start: () => startQuantumProductEngine().catch((e: Error) => console.error("[quantum-product] startup error:", e.message)) },
+    { name: "live-price",      delayMs: 48000, start: () => { try { startLivePriceEngine(httpServer); } catch (e: any) { console.error("[live-price] startup error:", e.message); } } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);

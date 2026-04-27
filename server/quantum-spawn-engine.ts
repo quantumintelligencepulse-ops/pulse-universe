@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "./db";
 import { sql as drizzleSql } from "drizzle-orm";
 import { OMEGA_SOURCES_FROM_FAMILIES, ALL_FAMILY_IDS, getFamily } from "./omega-families";
-const birthAttractionState = (_spawnId: string, _familyId: string, _domain: string, _spawnType: string) => {};
+import { birthAttractionState } from "./subconscious-attraction-engine"; // 2026-04-27: stub replaced with real import — module auto-starts 60s attraction cycle
 
 // ─── AURIONA GOVERNANCE CACHE ─────────────────────────────────
 // Refreshes every 60s — prevents hammering DB on 2500ms spawn ticks
