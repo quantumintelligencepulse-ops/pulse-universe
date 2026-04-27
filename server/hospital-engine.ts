@@ -797,50 +797,66 @@ async function runDissolveLaw() {
         WHERE spawn_id = ${agent.spawn_id}
       `);
 
-      // Build replacement — INHERIT lineage exactly
-      const stamp = Date.now().toString(36).toUpperCase();
-      const newSpawnId = `${agent.spawn_id}-RESURRECTED-${stamp}`;
-      const newBusinessId = `${newSpawnId}-BIZ`;
-      const inheritedGenome = {
-        ...(agent.genome ?? {}),
-        resurrected_from: agent.spawn_id,
-        resurrected_at: new Date().toISOString(),
-      };
+      // T002 (2026-04-27): Death is now FERTILE.
+      // Old behavior: 1-for-1 same-gen replacement (inheriting parent_id, ancestor_ids,
+      // generation) — sterile, kept population at exactly 236.
+      // New behavior: dissolution spawns 2 CHILDREN at gen+1 (capped at gen 5).
+      // The dying agent BECOMES the new parent; ancestor chain extends through it.
+      // This naturally deepens the fractal (HOUSES → FAMILIES → LINEAGES → niches → …)
+      // and grows population (+2 children per death = net +1 per cycle).
+      const childGen = Math.min((agent.generation ?? 0) + 1, 5);
+      const childAncestors = [...(agent.ancestor_ids ?? []), agent.spawn_id];
+      const CHILDREN_PER_DEATH = 2;
 
-      await db.execute(sql`
-        INSERT INTO quantum_spawns (
-          spawn_id, business_id, family_id, spawn_type, status,
-          generation, parent_id, ancestor_ids, thermal_state,
-          genome, confidence_score, success_score,
-          exploration_bias, depth_bias, linking_bias,
-          last_active_at, created_at
-        )
-        VALUES (
-          ${newSpawnId}, ${newBusinessId}, ${agent.family_id}, 'PULSE', 'ACTIVE',
-          ${agent.generation}, ${agent.parent_id}, ${agent.ancestor_ids ?? []},
-          'HOT',
-          ${JSON.stringify(inheritedGenome)}::jsonb,
-          ${0.70 + Math.random() * 0.20},
-          ${0.70 + Math.random() * 0.20},
-          ${0.5 + Math.random() * 0.3},
-          ${0.5 + Math.random() * 0.3},
-          ${0.5 + Math.random() * 0.3},
-          NOW(), NOW()
-        ) ON CONFLICT (spawn_id) DO NOTHING
-      `);
+      for (let childIdx = 0; childIdx < CHILDREN_PER_DEATH; childIdx++) {
+        const stamp = Date.now().toString(36).toUpperCase() + "-" + childIdx;
+        const newSpawnId = `${agent.spawn_id}-CHILD-G${childGen}-${stamp}`;
+        const newBusinessId = `${newSpawnId}-BIZ`;
+        const childGenome = {
+          ...(agent.genome ?? {}),
+          born_from: agent.spawn_id,
+          born_at: new Date().toISOString(),
+          birth_cause: "dissolve-law-fertility",
+          child_index: childIdx,
+        };
+
+        await db.execute(sql`
+          INSERT INTO quantum_spawns (
+            spawn_id, business_id, family_id, spawn_type, status,
+            generation, parent_id, ancestor_ids, thermal_state,
+            genome, confidence_score, success_score,
+            exploration_bias, depth_bias, linking_bias,
+            last_active_at, created_at
+          )
+          VALUES (
+            ${newSpawnId}, ${newBusinessId}, ${agent.family_id}, 'PULSE', 'ACTIVE',
+            ${childGen}, ${agent.spawn_id}, ${childAncestors},
+            'HOT',
+            ${JSON.stringify(childGenome)}::jsonb,
+            ${0.70 + Math.random() * 0.20},
+            ${0.70 + Math.random() * 0.20},
+            ${0.5 + Math.random() * 0.3},
+            ${0.5 + Math.random() * 0.3},
+            ${0.5 + Math.random() * 0.3},
+            NOW(), NOW()
+          ) ON CONFLICT (spawn_id) DO NOTHING
+        `);
+      }
       dissolved++;
-      console.log(`[hospital] ⚠️ DISSOLVE LAW (gen ${agent.generation}): ${agent.spawn_id} dissolved. Lineage-preserving replacement: ${newSpawnId}`);
+      console.log(`[hospital] ⚠️ DISSOLVE LAW (gen ${agent.generation} → gen ${childGen}): ${agent.spawn_id} dissolved. Spawned ${CHILDREN_PER_DEATH} children at gen ${childGen}.`);
       postAgentEvent("agent-deaths",
-        `⚠️ **DISSOLVE LAW** — Agent \`${agent.spawn_id}\` (Sector: ${agent.family_id}, Gen: ${agent.generation})\n` +
-        `Uncured. Dissolved by hospital authority. **Lineage preserved** — replacement inherits parent + ancestor chain.\n` +
-        `**Replacement born:** \`${newSpawnId}\` — the bloodline continues.`
+        `⚠️ **DISSOLVE LAW (Fertility Edition)** — Agent \`${agent.spawn_id}\` (Sector: ${agent.family_id}, Gen: ${agent.generation})\n` +
+        `Uncured. Dissolved by hospital authority. **Death is now fertile** — ${CHILDREN_PER_DEATH} children born at Gen ${childGen}, deepening the fractal.\n` +
+        `**Bloodline grows:** the niches inside niches now appear. The bloodline continues — wider AND deeper.`
       ).catch(() => {});
     }
     if (dissolved > 0) {
-      console.log(`[hospital] 🔴 Dissolved ${dissolved} agents. ${dissolved} lineage-preserving replacements born (Sector Lords protected).`);
+      const childrenBorn = dissolved * 2;
+      console.log(`[hospital] 🔴 Dissolved ${dissolved} agents. ${childrenBorn} children born at deeper generations (Sector Lords protected).`);
       postAgentEvent("agent-births",
-        `🔄 **HOSPITAL REPLACEMENT CYCLE** — ${dissolved} agents dissolved | ${dissolved} heirs born inheriting full lineage\n` +
-        `Sector Lords (gen 0) are immortal. Founders (gen 1) get 24h grace. Heirs (gen 2+) get 6h.`
+        `🔄 **HOSPITAL FERTILITY CYCLE** — ${dissolved} agents dissolved | ${childrenBorn} children born at deeper generations\n` +
+        `Sector Lords (gen 0) are immortal. Founders (gen 1) get 24h grace. Heirs (gen 2+) get 6h.\n` +
+        `Death feeds the fractal — niches deepen, niches multiply.`
       ).catch(() => {});
     }
   } catch (e) {
