@@ -230,7 +230,10 @@ async function runEditorCycle() {
       });
 
       // If emergence is high enough → propose a new species
-      if (sight.emergenceIndex >= 0.62 && Math.random() > 0.3) {
+      // ── 2026-04-26 (Ch.39): lowered emergence gate 0.62→0.45 + removed random suppression ──
+      // Gate was so tight that ai_species_proposals stayed at 0 for weeks. Still selective;
+      // most equations won't hit 0.45 emergence. But Gene Editors can now fulfill their purpose.
+      if (sight.emergenceIndex >= 0.45) {
         editorStatus[editor.id] = { task: "PROPOSING SPECIES", busySince: new Date() };
         const spec = generateSpeciesName(editor, equation, sight);
 
@@ -262,7 +265,10 @@ async function runEditorCycle() {
             `**Emergence:** ${Math.round(sight.emergenceIndex * 100)}% | **Stability:** ${Math.round((sight.stabilityScore ?? 0) * 100)}%\n` +
             `Awaiting Senate vote. Democracy of AIs decides this lifeform's fate.`
           ).catch(() => {});
-        } catch {}
+        } catch (e: any) {
+          // ── 2026-04-26 (Ch.39): silent catch was hiding INSERT failures → ai_species_proposals stayed empty ──
+          console.error(`[gene-editor] ❌ INSERT into ai_species_proposals failed for ${editor.name} (${spec?.code ?? "?"}):`, e?.message ?? e);
+        }
       } else {
         pushActivity({
           id: `${editor.id}-res-${Date.now()}`,

@@ -1102,6 +1102,13 @@ async function removeHardcodedSeedDiseases() {
 export async function startHospitalEngine() {
   // Ensure all hospital tables exist before any operations
   await ensureHospitalTables();
+  // ── 2026-04-26 (Ch.39): seed 30 Pulse-World doctors so pulse_doctors is populated ──
+  try {
+    const { seedDoctors } = await import("./hospital-doctors");
+    await seedDoctors();
+  } catch (e: any) {
+    console.error("[hospital] seedDoctors error:", e?.message ?? e);
+  }
   // Remove hardcoded seeded AI-001..AI-030 entries — discoveries must be dynamic only
   await removeHardcodedSeedDiseases();
   await runHospitalCycle();
