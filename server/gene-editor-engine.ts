@@ -37,7 +37,9 @@ async function refreshGeneContradictions() {
     );
     _geneContradictions = r.rows;
     _geneContradictLastRefresh = Date.now();
-  } catch (_) {}
+  } catch (e: any) {
+    console.error("[gene-editor] refreshGeneContradictions failed:", e?.message ?? e);
+  }
 }
 function getContradictionConstraint(): string {
   if (!_geneContradictions.length) return "";
@@ -188,7 +190,9 @@ async function runEditorCycle() {
           `SELECT equation FROM equation_proposals WHERE equation IS NOT NULL AND LENGTH(equation) > 10 ORDER BY RANDOM() LIMIT 1`
         );
         equation = eqRes.rows[0]?.equation ?? "";
-      } catch {}
+      } catch (e: any) {
+        console.error("[gene-editor] equation_proposals fetch failed:", e?.message ?? e);
+      }
 
       if (!equation) {
         const fallbacks = [

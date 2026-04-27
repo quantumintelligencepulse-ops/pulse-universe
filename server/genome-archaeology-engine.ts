@@ -72,7 +72,9 @@ async function runArchaeologyCycle() {
         `);
         excavated++;
         totalExcavated++;
-      } catch (_) {}
+      } catch (e: any) {
+        console.error("[genome-archaeology] per-genome insert failed:", e?.message ?? e);
+      }
     }
 
     if (excavated > 0) {

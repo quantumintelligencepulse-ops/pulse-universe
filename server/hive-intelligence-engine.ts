@@ -209,7 +209,9 @@ async function runContradictionScan() {
         }
       }
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] runContradictionScan failed:", e?.message ?? e);
+  }
 }
 
 // ── UPGRADE 3: PREDICTIVE PRE-FETCH ENGINE ───────────────────────────────────
@@ -262,7 +264,9 @@ async function runPredictivePrefetch() {
         severity: "low",
       });
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] runPredictivePrefetch failed:", e?.message ?? e);
+  }
 }
 
 // ── UPGRADE 4: AUTONOMOUS SEARCH LOOP ────────────────────────────────────────
@@ -306,7 +310,9 @@ async function pollSSCSystemsForEvents() {
         });
       }
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] pollSSC weather/anomaly failed:", e?.message ?? e);
+  }
 
   try {
     // Poll recent equation integrations (voting results)
@@ -337,7 +343,9 @@ async function pollSSCSystemsForEvents() {
         });
       }
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] pollSSC equation-votes failed:", e?.message ?? e);
+  }
 
   try {
     // Poll recent species births/deaths (gene editor - research_gene_queue)
@@ -362,7 +370,9 @@ async function pollSSCSystemsForEvents() {
         });
       }
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] pollSSC species-births failed:", e?.message ?? e);
+  }
 
   try {
     // Poll hive economy state
@@ -385,7 +395,9 @@ async function pollSSCSystemsForEvents() {
         });
       }
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] pollSSC economy failed:", e?.message ?? e);
+  }
 
   try {
     // Poll legends inducted
@@ -410,7 +422,9 @@ async function pollSSCSystemsForEvents() {
         });
       }
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] pollSSC legends failed:", e?.message ?? e);
+  }
 
   try {
     // Poll prophecy directives
@@ -435,7 +449,9 @@ async function pollSSCSystemsForEvents() {
         });
       }
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] pollSSC prophecy failed:", e?.message ?? e);
+  }
 
   // Process autonomous search queue (fire top 2 per cycle)
   await processAutonomousSearchQueue();
@@ -482,7 +498,9 @@ async function processAutonomousSearchQueue() {
           detail: `Trigger: ${item.trigger}. The Hive autonomously initiated research on this topic and injected results into the knowledge pipeline.`,
           severity: "low",
         });
-      } catch {}
+      } catch (e: any) {
+        console.error("[hive-intelligence] processAutonomousSearchQueue per-item failed:", e?.message ?? e);
+      }
     }
   } finally {
     autonomousSearchActive = false;
@@ -555,7 +573,9 @@ async function runKnowledgeAgeScoring() {
         severity: "low",
       });
     }
-  } catch {}
+  } catch (e: any) {
+    console.error("[hive-intelligence] runKnowledgeAgeScoring failed:", e?.message ?? e);
+  }
 }
 
 // ── PUBLIC API GETTERS ────────────────────────────────────────────────────────
