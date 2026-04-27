@@ -28,7 +28,9 @@ import { setupSeoMiddleware } from "./seo";
 import { mountSovereignRoutes } from "./sovereign-api-keys";
 import { createServer } from "http";
 
-// hive-marketplace removed — Pulse Coin economy retired
+import { startMarketplaceEngine } from "./hive-marketplace";
+import { startHiveEconomy } from "./hive-economy";
+import { startMultiverseMall } from "./multiverse-mall";
 import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
 import { getProphecyDirectives } from "./prophecy-engine";
 import { getArchaeologyFindings } from "./genome-archaeology-engine";
@@ -71,7 +73,9 @@ import { startChurchResearchEngine } from "./church-research-engine";
 import { startQuantumNewsEngine } from "./quantum-news-engine";
 import { startQuantumProductEngine } from "./quantum-product-engine";
 import { startLivePriceEngine } from "./live-price-engine";
-// pulse-credit-engine removed — Pulse Coin economy retired
+import { startPulseCreditEngine } from "./pulse-credit-engine";
+import { startPyramidEngine } from "./pyramid-engine";
+import { startSportsEngine } from "./sports-engine";
 // ── 2026-04-26: re-enabled omni-net, research-center, hospital, gene-editor
 //    after audit revealed they had been imported but never started → tables
 //    frozen for weeks. Still paused: ai-voting, publication, pulse-lang-lab,
@@ -403,6 +407,12 @@ async function seedOmegaSources() {
     { name: "quantum-news",    delayMs: 44000, start: () => startQuantumNewsEngine().catch((e: Error) => console.error("[quantum-news] startup error:", e.message)) },
     { name: "quantum-product", delayMs: 46000, start: () => startQuantumProductEngine().catch((e: Error) => console.error("[quantum-product] startup error:", e.message)) },
     { name: "live-price",      delayMs: 48000, start: () => { try { startLivePriceEngine(httpServer); } catch (e: any) { console.error("[live-price] startup error:", e.message); } } },
+    { name: "pulse-credit",    delayMs: 50000, start: () => startPulseCreditEngine().catch((e: Error) => console.error("[pulse-credit] startup error:", e.message)) },
+    { name: "hive-economy",    delayMs: 52000, start: () => { try { startHiveEconomy(); } catch (e: any) { console.error("[hive-economy] startup error:", e.message); } } },
+    { name: "hive-marketplace",delayMs: 54000, start: () => { try { startMarketplaceEngine(); } catch (e: any) { console.error("[hive-marketplace] startup error:", e.message); } } },
+    { name: "multiverse-mall", delayMs: 56000, start: () => startMultiverseMall().catch((e: Error) => console.error("[multiverse-mall] startup error:", e.message)) },
+    { name: "pyramid",         delayMs: 58000, start: () => startPyramidEngine().catch((e: Error) => console.error("[pyramid] startup error:", e.message)) },
+    { name: "sports",          delayMs: 60000, start: () => startSportsEngine().catch((e: Error) => console.error("[sports] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
