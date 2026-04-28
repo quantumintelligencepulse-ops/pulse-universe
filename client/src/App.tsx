@@ -5,7 +5,6 @@ const SocialPage = lazy(() => import("./pages/QuantumSocialPage"));
 const TranscendencePage = lazy(() => import("./pages/TranscendencePage"));
 const PulseWorldPage = lazy(() => import("./pages/PulseWorldPage"));
 const SovereignHivePage = lazy(() => import("./pages/SovereignHivePage"));
-const PulseUniversePage = lazy(() => import("./pages/PulseUniversePage"));
 const AIProfilePage = lazy(() => import("./pages/AIProfilePage"));
 const CorporationPage = lazy(() => import("./pages/CorporationPage"));
 const CorporationsListPage = lazy(() => import("./pages/CorporationsListPage"));
@@ -53,7 +52,6 @@ import {
   Film, Bot, Briefcase, Network, Dna, Plug
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UniverseResonanceProvider } from "@/lib/universeResonance";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -250,55 +248,6 @@ const defaultAppSettings: AppSettings = {
   permAgentMemoryAccess: true, permAiContextFromHive: true, permFinanceLiveData: true,
   permHivePersonalization: true, permAgentCollaboration: true, permUsageAnalytics: true,
 };
-// ── Live Universe Fine Print — counting stats ──────────────────────────────
-function useCountUp(target: number, duration: number) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    if (!target) return;
-    let raf: number;
-    const t0 = Date.now(), from = display;
-    const tick = () => {
-      const p = Math.min((Date.now() - t0) / duration, 1);
-      const e = 1 - Math.pow(1 - p, 3);
-      setDisplay(Math.round(from + (target - from) * e));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target]); // eslint-disable-line
-  return display;
-}
-
-function LiveUniverseFineprint() {
-  const { data: stats } = useQuery<any>({
-    queryKey: ["/api/spawns/stats"],
-    staleTime: 18_000,
-    refetchInterval: 20_000,
-  });
-  const fK = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`;
-
-  const dispAgents       = useCountUp(stats?.total        ?? 0, 1400);
-  const dispPublications = useCountUp(stats?.publications ?? 0, 1800);
-  const dispDiscoveries  = useCountUp(stats?.discoveries  ?? 0, 1600);
-  const dispDiseases     = useCountUp(stats?.diseases     ?? 0, 1200);
-
-  return (
-    <div className="space-y-0.5">
-      <div className="flex items-center gap-1">
-        <span className="w-1 h-1 rounded-full bg-violet-400 flex-shrink-0 animate-pulse" style={{ boxShadow: "0 0 4px rgba(167,139,250,0.8)" }} />
-        <span className="text-[9px] font-mono text-violet-400/60">
-          {fK(dispAgents || 95949)}+ agents · 145 families · SSC v∞
-        </span>
-      </div>
-      <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">
-        self-evolving · Ψ live · {dispPublications > 0 ? `${fK(dispPublications)}+ publications` : "—"} · Layer 2
-      </div>
-      <div className="text-[8px] font-mono text-foreground/20 pl-2.5 leading-tight">
-        {dispDiscoveries > 0 ? `${fK(dispDiscoveries)}+ discoveries` : "—"} · {dispDiseases > 0 ? `${fK(dispDiseases)}+ diseases mapped` : "—"}
-      </div>
-    </div>
-  );
-}
 
 const AppSettingsCtx = createContext<{ settings: AppSettings; update: (s: Partial<AppSettings>) => void }>({ settings: defaultAppSettings, update: () => {} });
 function useAppSettings() { return useContext(AppSettingsCtx); }
@@ -2121,15 +2070,6 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                 <div className="flex-1 h-px bg-violet-500/20" />
               </div>
             </div>
-          )}
-
-          {aiMode && !appSettings.hiddenPages.includes("universe") && (
-          <Link href="/universe" data-testid="link-universe"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${location === "/universe" || location === "/pulseworld" || location === "/hive-sovereign" ? "bg-gradient-to-r from-indigo-950 to-violet-950 text-white shadow font-semibold" : "text-foreground/70 hover:bg-black/5"}`}>
-            <div className="p-1 rounded-lg bg-indigo-600/10"><span className="text-[14px]">🌌</span></div>
-            <span className="flex-1">Universe</span>
-            <span className="text-[9px] bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-black tracking-wide animate-pulse">Ψ-LIVE</span>
-          </Link>
           )}
 
           {aiMode && (
@@ -11038,7 +10978,6 @@ function Router() {
       <Route path="/hospital">{() => <Layout><BioGenomeMedicalPage /></Layout>}</Route>
       <Route path="/pulseworld">{() => <Layout><PulseWorldPage /></Layout>}</Route>
       <Route path="/governance">{() => <Layout><SovereignHivePage /></Layout>}</Route>
-      <Route path="/universe">{() => <Layout><PulseUniversePage /></Layout>}</Route>
       <Route path="/pulse-net">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/omninet">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/pulselang">{() => <Layout><PulseNetPage /></Layout>}</Route>
@@ -11152,11 +11091,9 @@ export default function App() {
       <AppSettingsProvider>
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
-            <UniverseResonanceProvider>
-              <Toaster />
-              <AuthModal />
-              <Router />
-            </UniverseResonanceProvider>
+            <Toaster />
+            <AuthModal />
+            <Router />
           </QueryClientProvider>
         </AuthProvider>
       </AppSettingsProvider>
