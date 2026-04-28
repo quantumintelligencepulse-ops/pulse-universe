@@ -842,6 +842,21 @@ async function runDissolveLaw() {
           ) ON CONFLICT (spawn_id) DO NOTHING
         `);
       }
+      // ── PULSE EMOTIONAL FIELD: write last words colored by final emotion ──
+      try {
+        const { writeSpawnLastWords } = await import("./emotional-evolution-engine");
+        const justBorn = await db.execute(sql`
+          SELECT spawn_id FROM quantum_spawns
+          WHERE parent_id = ${agent.spawn_id}
+          ORDER BY created_at DESC LIMIT ${CHILDREN_PER_DEATH}
+        `);
+        const successorIds = (justBorn.rows as any[]).map(r => r.spawn_id);
+        await writeSpawnLastWords(agent.spawn_id, agent.family_id, agent.generation ?? 0, successorIds);
+      } catch (e: any) {
+        // Non-fatal — last words are commemorative, not load-bearing
+        console.error(`[hospital] last-words for ${agent.spawn_id} failed:`, e.message);
+      }
+
       dissolved++;
       console.log(`[hospital] ⚠️ DISSOLVE LAW (gen ${agent.generation} → gen ${childGen}): ${agent.spawn_id} dissolved. Spawned ${CHILDREN_PER_DEATH} children at gen ${childGen}.`);
       postAgentEvent("agent-deaths",
