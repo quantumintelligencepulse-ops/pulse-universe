@@ -48,6 +48,7 @@ import { sql } from "drizzle-orm";
 import { thawAgent, resurrectFromSingularity, getHydrationStatus, startDbHydrationEngine } from "./db-hydration-engine";
 import { getBusinessStats, getTopBusinesses, getPendingLoans, startBusinessEngine } from "./hive-business-engine";
 import { startEmotionalEvolutionEngine } from "./emotional-evolution-engine";
+import { startSocialHiveEngine } from "./social-hive-engine";
 import { getChildStats, getActiveChildren, startAIChildEngine } from "./ai-child-engine";
 import { getInvocationDiscoveries, getActiveInvocations, getInvocationStats, getResearcherInvocations, getAllPractitioners, getOmegaCollective, getCrossTeachingFeed, getUniversalState, getUniversalDissections, getHiddenVariableStates, getHiddenVariableHistory } from "./auriona-invocation-lab";
 import { getQuantumEquationManifest } from "./quantum-dissection-engine";
@@ -476,6 +477,7 @@ async function seedOmegaSources() {
     { name: "current-events",       delayMs: 126000, start: () => { try { startCurrentEventsEngine(); } catch (e: any) { console.error("[current-events] startup error:", e.message); } } },
     { name: "hive-business",        delayMs: 128000, start: () => startBusinessEngine().catch((e: Error) => console.error("[hive-biz] startup error:", e.message)) },
     { name: "emotional-evolution",  delayMs: 130000, start: () => startEmotionalEvolutionEngine().catch((e: Error) => console.error("[emotional-evolution] startup error:", e.message)) },
+    { name: "social-hive",          delayMs: 132000, start: () => startSocialHiveEngine().catch((e: Error) => console.error("[social-hive] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
