@@ -56,7 +56,6 @@ import Groq from "groq-sdk";
 import { getMediaEngineStatus } from "./quantum-media-engine";
 import { getCareerEngineStatus } from "./quantum-career-engine";
 import { getCareerDissections, getCareerCrisprStats } from "./career-crispr-engine";
-import { getOrganismState, getRecentTradeLogs, getScientistVotes, getTradingPapers, getScientistRoster, getPaperAccounts } from "./sovereign-trading-engine";
 // hive-economy removed — Pulse Coin economy retired
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus } from "./gene-editor-engine";
@@ -6887,7 +6886,7 @@ ${evoRows.map(e => `  <url>
       const now = new Date().toISOString();
       const [workers, tasks] = await Promise.all([
         pool.query(`SELECT spawn_id, family_id, tier, is_graduated, monument, graduated_at, entered_at FROM pyramid_workers ORDER BY tier DESC, is_graduated DESC LIMIT 50000`),
-        pool.query(`SELECT id, spawn_id, task_name, status, completed_at, created_at FROM pyramid_labor_tasks ORDER BY created_at DESC LIMIT 50000`),
+        pool.query(`SELECT id, spawn_id, task_name, status, completed_at, assigned_at FROM pyramid_labor_tasks ORDER BY assigned_at DESC LIMIT 50000`),
       ]);
       const wRows = (workers.rows || []) as any[];
       const tRows = (tasks.rows || []) as any[];
@@ -8339,46 +8338,6 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       const match = raw.match(/\{[\s\S]*\}/);
       res.json(match ? JSON.parse(match[0]) : {});
     } catch (e) { res.json({}); }
-  });
-
-  // ══════════════════════════════════════════════════════════════
-  // SYNTHENTICA PRIMORDIA PULSE — SOVEREIGN TRADING ORGANISM
-  // ══════════════════════════════════════════════════════════════
-
-  app.get("/api/finance/organism", async (_req, res) => {
-    try { res.json(await getOrganismState()); }
-    catch { res.json({ mood:"UNKNOWN", regime:"UNKNOWN", activeScientists:42, totalTrades:0, totalVotes:0, totalPapers:0, topEdgeTrades:[], crispWeights:{}, vitalSigns:{}, lastUpdated: new Date().toISOString() }); }
-  });
-
-  app.get("/api/finance/trade-logs", async (req, res) => {
-    try {
-      const limit = Math.min(200, parseInt(req.query.limit as string || "80", 10));
-      res.json(await getRecentTradeLogs(limit));
-    } catch { res.json([]); }
-  });
-
-  app.get("/api/finance/scientist-votes", async (req, res) => {
-    try {
-      const limit = Math.min(100, parseInt(req.query.limit as string || "40", 10));
-      res.json(await getScientistVotes(limit));
-    } catch { res.json([]); }
-  });
-
-  app.get("/api/finance/trading-papers", async (req, res) => {
-    try {
-      const limit = Math.min(50, parseInt(req.query.limit as string || "20", 10));
-      res.json(await getTradingPapers(limit));
-    } catch { res.json([]); }
-  });
-
-  app.get("/api/finance/scientists", async (_req, res) => {
-    try { res.json(getScientistRoster()); }
-    catch { res.json([]); }
-  });
-
-  app.get("/api/finance/paper-accounts", async (_req, res) => {
-    try { res.json(await getPaperAccounts()); }
-    catch { res.json([]); }
   });
 
   // ── SHARD MESH LIVE PRICE — fast single-symbol price fetch ──────────────
