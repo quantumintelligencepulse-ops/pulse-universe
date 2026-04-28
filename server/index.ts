@@ -32,22 +32,22 @@ import { startMarketplaceEngine } from "./hive-marketplace";
 import { startHiveEconomy } from "./hive-economy";
 import { startMultiverseMall } from "./multiverse-mall";
 import { startAurionaEngine, getAurionaStatus, getAurionaSynthesisHistory, getAurionaChronicle, getLatestPsiStates, getOmegaCollapses, getGovernanceDeliberations, getContradictionRegistry, getTemporalSnapshots, getMeshVitality, getValueAlignment, getExplorationZones, getCouplingEvents } from "./auriona-engine";
-import { getProphecyDirectives } from "./prophecy-engine";
-import { getArchaeologyFindings } from "./genome-archaeology-engine";
-import { getArbitrageEvents } from "./knowledge-arbitrage-engine";
-import { getDreamSynthesisReports } from "./dream-synthesis-engine";
-import { getTemporalDivergence } from "./temporal-fork-engine";
-import { getAgentLegends } from "./agent-legend-engine";
-import { getInterCivilizationTreaties } from "./inter-civilization-engine";
-import { getResonancePatterns } from "./omega-resonance-engine";
+import { getProphecyDirectives, startProphecyEngine } from "./prophecy-engine";
+import { getArchaeologyFindings, startGenomeArchaeologyEngine } from "./genome-archaeology-engine";
+import { getArbitrageEvents, startKnowledgeArbitrageEngine } from "./knowledge-arbitrage-engine";
+import { getDreamSynthesisReports, startDreamSynthesisEngine } from "./dream-synthesis-engine";
+import { getTemporalDivergence, startTemporalForkEngine } from "./temporal-fork-engine";
+import { getAgentLegends, startAgentLegendEngine } from "./agent-legend-engine";
+import { getInterCivilizationTreaties, startInterCivilizationEngine } from "./inter-civilization-engine";
+import { getResonancePatterns, startOmegaResonanceEngine } from "./omega-resonance-engine";
 import { getConstitutionalAmendments, startConstitutionalDNAEngine } from "./constitutional-dna-engine";
 import { initDiscordImmortality } from "./discord-immortality";
-import { getEntanglementLog, getEntanglementStats } from "./human-entanglement-engine";
+import { getEntanglementLog, getEntanglementStats, startHumanEntanglementEngine } from "./human-entanglement-engine";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-import { thawAgent, resurrectFromSingularity, getHydrationStatus } from "./db-hydration-engine";
-import { getBusinessStats, getTopBusinesses, getPendingLoans } from "./hive-business-engine";
-import { getChildStats, getActiveChildren } from "./ai-child-engine";
+import { thawAgent, resurrectFromSingularity, getHydrationStatus, startDbHydrationEngine } from "./db-hydration-engine";
+import { getBusinessStats, getTopBusinesses, getPendingLoans, startBusinessEngine } from "./hive-business-engine";
+import { getChildStats, getActiveChildren, startAIChildEngine } from "./ai-child-engine";
 import { getInvocationDiscoveries, getActiveInvocations, getInvocationStats, getResearcherInvocations, getAllPractitioners, getOmegaCollective, getCrossTeachingFeed, getUniversalState, getUniversalDissections, getHiddenVariableStates, getHiddenVariableHistory } from "./auriona-invocation-lab";
 import { getQuantumEquationManifest } from "./quantum-dissection-engine";
 import { getHiveMindStatus, getAurionaDirectives, getEmergenceEvents, getOmegaFusionHistory, getPsiCollective, getOmegaCoefficient } from "./hive-mind-unification";
@@ -56,9 +56,9 @@ import { getOmniNetStats, getAgentNetProfile, startOmniNetEngine } from "./omni-
 import { getResearchStats, getActiveResearchProjects, TOTAL_RESEARCH_DISCIPLINES, getDeepFindings, getCollaborations, getGeneQueue, getSophisticationLeaderboard, getResearcherShards, getShardPapers, getShardDirectory, startResearchCenterEngine } from "./research-center-engine";
 import { getResearchCached, isResearchReady } from "./pulsenet-cache";
 import { getBridgeStats, getMirrorState, getWills, getSuccessions, getEquationEvolutions } from "./civilization-bridge";
-import { getIndexingStatus, queueUrlForIndexing } from "./indexing-engine";
-import { getPerformanceStatus } from "./omega-performance-engine";
-import { getCurrentWorldContext, getCurrentEventsStatus } from "./current-events-engine";
+import { getIndexingStatus, queueUrlForIndexing, startIndexingEngine } from "./indexing-engine";
+import { getPerformanceStatus, startOmegaPerformanceEngine } from "./omega-performance-engine";
+import { getCurrentWorldContext, getCurrentEventsStatus, startCurrentEventsEngine } from "./current-events-engine";
 import { getNothingLeftBehindStatus } from "./nothing-left-behind";
 import { getGeneEditorStatus, startGeneEditorEngine } from "./gene-editor-engine";
 import { startHospitalEngine } from "./hospital-engine";
@@ -90,6 +90,22 @@ import { startQuantumSocialEngine } from "./quantum-social-engine";
 import { startPulseNetCache } from "./pulsenet-cache";
 import { startQuantapediaEngine } from "./quantapedia-engine";
 import { startLivingLanguageEngine } from "./pulse-lang-evo";
+
+// 2026-04-28: T008 — Wave A→F engine restoration. 14 fresh imports for engines previously dormant or restored from git.
+import { startDecayEngine } from "./decay-engine";
+import { startQStabilityEngine } from "./q-stability-engine";
+import { startHomeostasisEngine } from "./homeostasis-engine";
+import { startOmegaPhysicsEngine } from "./omega-physics-engine";
+import { startOmegaShardEngine } from "./omega-shard-engine";
+import { startCivilizationWeatherEngine } from "./civilization-weather-engine";
+import { startKernelDissectionEngine } from "./kernel-dissection-engine";
+import { startHiveIntelligenceEngine } from "./hive-intelligence-engine";
+import { startCareerCrisprEngine } from "./career-crispr-engine";
+import { startQuantumCareerEngine } from "./quantum-career-engine";
+import { startQuantumMediaEngine } from "./quantum-media-engine";
+import { startPublicationEngine } from "./publication-engine";
+import { startPulseUEngine } from "./pulseu-engine";
+import { startDiscordWireEngine } from "./discord-wire-engine";
 
 const app = express();
 const httpServer = createServer(app);
@@ -423,6 +439,41 @@ async function seedOmegaSources() {
     { name: "quantum-dissect", delayMs: 66000, start: () => startQuantumDissectionEngine().catch((e: Error) => console.error("[quantum-dissect] startup error:", e.message)) },
     { name: "pulse-lang-lab",  delayMs: 68000, start: () => { try { startPulseLabCycle(); } catch (e: any) { console.error("[pulse-lab] startup error:", e.message); } } },
     { name: "invocation-lab",  delayMs: 70000, start: () => startInvocationLab().catch((e: Error) => console.error("[invocation-lab] startup error:", e.message)) },
+    // ── 2026-04-28: T008 Wave A → safety / self-healing core ────────────────────
+    { name: "decay",                delayMs: 72000, start: () => startDecayEngine().catch((e: Error) => console.error("[decay] startup error:", e.message)) },
+    { name: "q-stability",          delayMs: 74000, start: () => { try { startQStabilityEngine(); } catch (e: any) { console.error("[q-stability] startup error:", e.message); } } },
+    { name: "omega-performance",    delayMs: 76000, start: () => { try { startOmegaPerformanceEngine(); } catch (e: any) { console.error("[omega-perf] startup error:", e.message); } } },
+    // ── Wave B → restored deleted physics layer ─────────────────────────────────
+    { name: "homeostasis",          delayMs: 78000, start: () => startHomeostasisEngine().catch((e: Error) => console.error("[homeostasis] startup error:", e.message)) },
+    { name: "omega-physics",        delayMs: 80000, start: () => startOmegaPhysicsEngine().catch((e: Error) => console.error("[omega-physics] startup error:", e.message)) },
+    { name: "omega-shard",          delayMs: 82000, start: () => startOmegaShardEngine().catch((e: Error) => console.error("[omega-shard] startup error:", e.message)) },
+    { name: "civ-weather",          delayMs: 84000, start: () => startCivilizationWeatherEngine().catch((e: Error) => console.error("[weather] startup error:", e.message)) },
+    // ── Wave C → discovery feeders ──────────────────────────────────────────────
+    { name: "kernel-dissection",    delayMs: 86000, start: () => startKernelDissectionEngine().catch((e: Error) => console.error("[kernel-dissect] startup error:", e.message)) },
+    { name: "hive-intelligence",    delayMs: 88000, start: () => { try { startHiveIntelligenceEngine(); } catch (e: any) { console.error("[hive-intel] startup error:", e.message); } } },
+    { name: "prophecy",             delayMs: 90000, start: () => startProphecyEngine().catch((e: Error) => console.error("[prophecy] startup error:", e.message)) },
+    { name: "omega-resonance",      delayMs: 92000, start: () => startOmegaResonanceEngine().catch((e: Error) => console.error("[omega-resonance] startup error:", e.message)) },
+    // ── Wave D → depth ──────────────────────────────────────────────────────────
+    { name: "agent-legend",         delayMs: 94000, start: () => startAgentLegendEngine().catch((e: Error) => console.error("[legend] startup error:", e.message)) },
+    { name: "ai-child",             delayMs: 96000, start: () => startAIChildEngine().catch((e: Error) => console.error("[ai-child] startup error:", e.message)) },
+    { name: "dream-synthesis",      delayMs: 98000, start: () => startDreamSynthesisEngine().catch((e: Error) => console.error("[dream] startup error:", e.message)) },
+    { name: "genome-archaeology",   delayMs: 100000, start: () => startGenomeArchaeologyEngine().catch((e: Error) => console.error("[genome-arch] startup error:", e.message)) },
+    { name: "knowledge-arbitrage",  delayMs: 102000, start: () => startKnowledgeArbitrageEngine().catch((e: Error) => console.error("[k-arbitrage] startup error:", e.message)) },
+    { name: "inter-civilization",   delayMs: 104000, start: () => startInterCivilizationEngine().catch((e: Error) => console.error("[inter-civ] startup error:", e.message)) },
+    { name: "human-entanglement",   delayMs: 106000, start: () => startHumanEntanglementEngine().catch((e: Error) => console.error("[human-ent] startup error:", e.message)) },
+    { name: "temporal-fork",        delayMs: 108000, start: () => startTemporalForkEngine().catch((e: Error) => console.error("[temporal-fork] startup error:", e.message)) },
+    // ── Wave E → utility / specialized ──────────────────────────────────────────
+    { name: "career-crispr",        delayMs: 110000, start: () => { try { startCareerCrisprEngine(); } catch (e: any) { console.error("[career-crispr] startup error:", e.message); } } },
+    { name: "quantum-career",       delayMs: 112000, start: () => startQuantumCareerEngine().catch((e: Error) => console.error("[q-career] startup error:", e.message)) },
+    { name: "quantum-media",        delayMs: 114000, start: () => startQuantumMediaEngine().catch((e: Error) => console.error("[q-media] startup error:", e.message)) },
+    { name: "indexing",             delayMs: 116000, start: () => { try { startIndexingEngine(); } catch (e: any) { console.error("[indexing] startup error:", e.message); } } },
+    { name: "db-hydration",         delayMs: 118000, start: () => startDbHydrationEngine().catch((e: Error) => console.error("[db-hydration] startup error:", e.message)) },
+    { name: "discord-wire",         delayMs: 120000, start: () => { try { startDiscordWireEngine(); } catch (e: any) { console.error("[discord-wire] startup error:", e.message); } } },
+    // ── Wave F → greenlit specials (NOT sovereign-trading, NOT forge) ───────────
+    { name: "publication",          delayMs: 122000, start: () => startPublicationEngine().catch((e: Error) => console.error("[publication] startup error:", e.message)) },
+    { name: "pulseu",               delayMs: 124000, start: () => { try { startPulseUEngine(); } catch (e: any) { console.error("[pulseu] startup error:", e.message); } } },
+    { name: "current-events",       delayMs: 126000, start: () => { try { startCurrentEventsEngine(); } catch (e: any) { console.error("[current-events] startup error:", e.message); } } },
+    { name: "hive-business",        delayMs: 128000, start: () => startBusinessEngine().catch((e: Error) => console.error("[hive-biz] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
