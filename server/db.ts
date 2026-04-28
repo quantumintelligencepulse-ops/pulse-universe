@@ -10,6 +10,22 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// ── Per-connection tuning applied to every pool. Safe SET-LOCAL-equivalents
+// applied at session level — no SUPERUSER, no ALTER SYSTEM, fully reversible
+// by reconnecting. Effects:
+//  - work_mem 32MB: aggregations/sorts that need memory get it (was spilling to disk)
+//  - effective_cache_size 1GB: planner picks index scans more often
+//  - jit off: OLTP workload, JIT setup overhead > benefit on <10ms queries
+//  - maintenance_work_mem 256MB: future CREATE INDEX runs ~4x faster
+const _tuneSession = (client: any) => {
+  client.query(`
+    SET work_mem = '32MB';
+    SET effective_cache_size = '1GB';
+    SET jit = off;
+    SET maintenance_work_mem = '256MB';
+  `).catch((e: any) => console.error('[pool] session tune failed:', e.message));
+};
+
 const _rawPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 70,
@@ -21,6 +37,7 @@ const _rawPool = new Pool({
 _rawPool.on('error', (err) => {
   console.error('[pool] idle client error (main):', err.message);
 });
+_rawPool.on('connect', _tuneSession);
 
 let _bgQueryActive = 0;
 const _BG_CONCURRENCY = 6;
@@ -67,6 +84,7 @@ export const priorityPool = new Pool({
 priorityPool.on('error', (err) => {
   console.error('[pool] idle client error (priority):', err.message);
 });
+priorityPool.on('connect', _tuneSession);
 
 export const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -79,6 +97,7 @@ export const sessionPool = new Pool({
 sessionPool.on('error', (err) => {
   console.error('[pool] idle client error (session):', err.message);
 });
+sessionPool.on('connect', _tuneSession);
 
 let bgQueryQueue: Array<{ resolve: (v: any) => void; reject: (e: any) => void; fn: () => Promise<any> }> = [];
 let bgActive = 0;
@@ -114,7 +133,13 @@ apiPool.on('error', (err) => {
   console.error('[pool] idle client error (api):', err.message);
 });
 apiPool.on('connect', (client) => {
-  client.query('SET statement_timeout = 15000').catch(() => {});
+  client.query(`
+    SET statement_timeout = 15000;
+    SET work_mem = '32MB';
+    SET effective_cache_size = '1GB';
+    SET jit = off;
+    SET maintenance_work_mem = '256MB';
+  `).catch(() => {});
 });
 console.log("[db] ✅ API query pool ready (max 5)");
 

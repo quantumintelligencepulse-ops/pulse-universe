@@ -448,7 +448,7 @@ async function spawnNext(): Promise<void> {
     if (status === "ACTIVE") {
       const key = `${family.familyId}_${Date.now()}`;
       inMemoryCache.set(key, { spawnId, familyId: family.familyId, generation, spawnType, ...profile, ancestorIds });
-      if (inMemoryCache.size > 2000) {
+      if (inMemoryCache.size > 10000) {
         const firstKey = inMemoryCache.keys().next().value;
         if (firstKey) inMemoryCache.delete(firstKey);
       }
@@ -532,11 +532,12 @@ export async function startSpawnEngine(): Promise<void> {
   // THROTTLED FOR 20-CONNECTION POOL — original was 2500ms / 8000ms (would exhaust pool).
   // Restored 2026-04-27 after previous session deleted this engine 2026-04-26.
   // Watch quantum_spawns count climb; speed up (lower these numbers) once pool headroom confirmed.
-  spawnInterval = setInterval(spawnNext, 15000);      // was 2500
-  pulseInterval = setInterval(runQPulse, 60000);      // was 30000
-  seedInterval = setInterval(runQSeed, 30000);        // was 8000
-  discoveryInterval = setInterval(runQDiscovery, 45000); // was 12000
-  resonanceInterval = setInterval(runQResonance, 60000); // was 20000
+  // Tier-2 speedup (Apr 28, 2026): pool 5x bigger now, engines tick faster
+  spawnInterval = setInterval(spawnNext, 8000);       // 15s → 8s = ~2x more births
+  pulseInterval = setInterval(runQPulse, 30000);      // 60s → 30s = 2x iterations
+  seedInterval = setInterval(runQSeed, 30000);
+  discoveryInterval = setInterval(runQDiscovery, 45000);
+  resonanceInterval = setInterval(runQResonance, 30000); // 60s → 30s
   console.log("[spawn] [SpawnEngine] 🚀 ALL 7 OMEGA MODULES ONLINE (THROTTLED) — Universe expansion active");
 }
 
