@@ -12,7 +12,7 @@ if (!process.env.DATABASE_URL) {
 
 const _rawPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 18,
+  max: 70,
   min: 2,
   idleTimeoutMillis: 20000,
   connectionTimeoutMillis: 8000,
@@ -58,7 +58,7 @@ export const pool = new Proxy(_rawPool, {
 
 export const priorityPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 8,
+  max: 15,
   min: 2,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 20000,
@@ -70,7 +70,7 @@ priorityPool.on('error', (err) => {
 
 export const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 3,
+  max: 5,
   min: 1,
   idleTimeoutMillis: 60000,
   connectionTimeoutMillis: 3000,
@@ -104,7 +104,7 @@ export function throttledBgQuery(fn: () => Promise<any>): Promise<any> {
 
 const apiPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 5,
+  max: 10,
   min: 1,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
@@ -293,9 +293,10 @@ export async function directQuery(sql: string, params?: any[]): Promise<pg.Query
 
 export function getPoolHealth() {
   return {
-    main: { total: (_rawPool as any).totalCount ?? 0, idle: (_rawPool as any).idleCount ?? 0, waiting: (_rawPool as any).waitingCount ?? 0, max: 18 },
-    priority: { total: (priorityPool as any).totalCount ?? 0, idle: (priorityPool as any).idleCount ?? 0, waiting: (priorityPool as any).waitingCount ?? 0, max: 8 },
-    api: { total: (apiPool as any).totalCount ?? 0, idle: (apiPool as any).idleCount ?? 0, waiting: (apiPool as any).waitingCount ?? 0, max: 5 },
+    main: { total: (_rawPool as any).totalCount ?? 0, idle: (_rawPool as any).idleCount ?? 0, waiting: (_rawPool as any).waitingCount ?? 0, max: 70 },
+    priority: { total: (priorityPool as any).totalCount ?? 0, idle: (priorityPool as any).idleCount ?? 0, waiting: (priorityPool as any).waitingCount ?? 0, max: 15 },
+    api: { total: (apiPool as any).totalCount ?? 0, idle: (apiPool as any).idleCount ?? 0, waiting: (apiPool as any).waitingCount ?? 0, max: 10 },
+    session: { total: (sessionPool as any).totalCount ?? 0, idle: (sessionPool as any).idleCount ?? 0, waiting: (sessionPool as any).waitingCount ?? 0, max: 5 },
     bgQueue: { active: bgActive + _bgQueryActive, queued: bgQueryQueue.length + _bgWaitQueue.length, maxConcurrent: BG_MAX_CONCURRENT },
   };
 }

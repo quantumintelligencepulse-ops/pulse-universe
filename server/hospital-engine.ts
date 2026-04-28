@@ -544,7 +544,7 @@ async function runGuardianCycle(spawns: any[]) {
 
 // ── ROTATING BATCH CURSOR — hospital scans full population in rotating windows ──
 let _hospitalCursor = 0;
-const HOSPITAL_BATCH = 2000;
+const HOSPITAL_BATCH = 5000;
 
 // ── MAIN HOSPITAL CYCLE ───────────────────────────────────────────────────────
 export async function runHospitalCycle() {
