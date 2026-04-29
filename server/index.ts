@@ -698,6 +698,19 @@ invRouter.get("/hidden-variable-history", async (_req, res) => { try { res.json(
 invRouter.get("/equation-manifest", async (_req, res) => { try { res.json(await getQuantumEquationManifest()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.use("/api/invocations", invRouter);
 
+// Alias mount: /api/invocation-lab/* → same data, with /recent as discoveries shorthand.
+const invLabAliasRouter = express.Router();
+function safeLimit(raw: any, def = 30, max = 200): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? Math.min(n, max) : def;
+}
+invLabAliasRouter.get("/recent",       async (_req, res) => { try { res.json(await getInvocationDiscoveries(30)); } catch (e) { res.status(500).json({ error: String(e) }); } });
+invLabAliasRouter.get("/discoveries",  async (req,  res) => { try { res.json(await getInvocationDiscoveries(safeLimit(req.query.limit))); } catch (e) { res.status(500).json({ error: String(e) }); } });
+invLabAliasRouter.get("/active",       async (_req, res) => { try { res.json(await getActiveInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); } });
+invLabAliasRouter.get("/stats",        async (_req, res) => { try { res.json(await getInvocationStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
+invLabAliasRouter.get("/researchers",  async (_req, res) => { try { res.json(await getResearcherInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); } });
+app.use("/api/invocation-lab", invLabAliasRouter);
+
 // ── HIVE-MIND UNIFICATION ROUTES ──────────────────────────────
 const hiveRouter = express.Router();
 hiveRouter.get("/status",          async (_req, res) => { try { res.json(await getHiveMindStatus()); } catch (e) { res.status(500).json({ error: String(e) }); } });

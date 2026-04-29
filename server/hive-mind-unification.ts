@@ -524,15 +524,20 @@ async function runOmegaKnowledgeFusion(psi: number, cycle: number) {
                 NOW())
       `).catch(() => {});
 
-      // Also insert as equation proposal for Senate consideration
-      const doctor = await db.execute(sql`SELECT id FROM pulse_doctors ORDER BY RANDOM() LIMIT 1`);
+      // Also insert as equation proposal for Senate consideration.
+      // Canonical schema (shared/schema.ts:785) requires doctor_name as NOT NULL —
+      // previous insert silently failed in the .catch(() => {}). Fixed here.
+      const doctor = await db.execute(sql`SELECT id, name FROM pulse_doctors ORDER BY RANDOM() LIMIT 1`);
       if (doctor.rows.length > 0) {
-        const docId = (doctor.rows[0] as any).id;
+        const doc: any = doctor.rows[0];
+        const docId = String(doc.id);
+        const docName = String(doc.name ?? "Hive-Mind Doctor");
         await db.execute(sql`
-          INSERT INTO equation_proposals (doctor_id, title, equation, rationale, target_system, status, votes_for, votes_against, created_at)
-          VALUES (${docId}, ${paperTitle.slice(0,200)}, ${fusedEq}, ${paperContent.slice(0,500)},
+          INSERT INTO equation_proposals
+            (doctor_id, doctor_name, title, equation, rationale, target_system, status, votes_for, votes_against, created_at)
+          VALUES (${docId}, ${docName}, ${paperTitle.slice(0,200)}, ${fusedEq}, ${paperContent.slice(0,500)},
                   ${'OMEGA_FUSION_LAYER'}, ${'PENDING'}, ${Math.round(psi * 5)}, 0, NOW())
-        `).catch(() => {});
+        `).catch((e: any) => console.error(`[hive-mind→senate] insert error: ${e?.message}`));
       }
       papersPublished++;
     }
