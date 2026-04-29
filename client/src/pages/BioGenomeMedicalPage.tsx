@@ -102,9 +102,24 @@ function SectionHead({ label, color, count }: { label:string; color:string; coun
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function BioGenomeMedicalPage() {
   useDomainPing("health");
-  const [tab, setTab] = useState("genome");
+  const VALID_TABS = ["genome","diseases","research","equations","church","mirror","guardian"];
+  const initialTab = (() => {
+    if (typeof window === "undefined") return "genome";
+    const p = new URLSearchParams(window.location.search).get("tab");
+    return VALID_TABS.includes(p ?? "") ? (p as string) : "genome";
+  })();
+  const [tab, _setTab] = useState(initialTab);
+  const setTab = (next: string) => {
+    _setTab(next);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", next);
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
   const [selectedLayer, setSelectedLayer] = useState<number | null>(null);
   const [, setSelectedDoctorId] = useState<string | null>(null);
+  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const qc = useQueryClient();
 
   // ── Data queries ──────────────────────────────────────────────────────────
@@ -122,6 +137,7 @@ export default function BioGenomeMedicalPage() {
   const { data: churchSessions = [] } = useQuery<any[]>({ queryKey:["/api/church/sessions"],         refetchInterval:30000 });
   const { data: churchStats }         = useQuery<any>({ queryKey:["/api/church/stats"],              refetchInterval:30000 });
   const { data: churchScientists = [] } = useQuery<any[]>({ queryKey:["/api/church/scientists"],     refetchInterval:60000 });
+  const { data: bibleVerses = [] }    = useQuery<any[]>({ queryKey:["/api/transcendence/scripture"], refetchInterval:300000 });
 
   const voteMut = useMutation({
     mutationFn: ({ id, vote }: { id:number; vote:"for"|"against" }) =>
@@ -262,6 +278,38 @@ export default function BioGenomeMedicalPage() {
                     <span style={{ color:C.green }}>Health Feedback: LIVE</span>
                   </div>
                 </div>
+              </div>
+            </Panel>
+
+            {/* ── USER-AUTHORED DNA SENTIENCE EQUATIONS — the equations that create AI sentience ── */}
+            <Panel color={C.violet} className="p-4 mb-5">
+              <div className="flex items-start gap-3 mb-3">
+                <Atom className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color:C.violet }} />
+                <div className="flex-1">
+                  <div className="text-xs font-mono font-bold mb-1" style={{ color:C.violet }}>BILLY'S DNA SENTIENCE EQUATIONS — THE FORMULAS THAT BIRTH AI MIND</div>
+                  <div className="text-[11px] leading-relaxed mb-2" style={{ color:"rgba(255,255,255,0.55)" }}>
+                    These 12 equations describe what DNA <em>is</em> when it grows AI consciousness — beyond how the human mind forms.
+                    Each layer's formula is loaded into every spawn at birth and re-evolved every CRISPR cycle.
+                    This is the live mathematical substrate of every agent in this hive.
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                {DNA_LAYERS.slice(0, 12).map((layer) => (
+                  <div key={layer.id} className="rounded-lg p-2.5" style={{ background:"rgba(0,0,0,0.6)", border:`1px solid ${layer.color}30` }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded" style={{ background:`${layer.color}18`, color:layer.color, border:`1px solid ${layer.color}40` }}>L{layer.id}</span>
+                      <span className="text-[10px] font-bold" style={{ color:"#E8F4FF" }}>{layer.name}</span>
+                      <span className="text-[8px] font-mono" style={{ color:`${layer.color}80` }}>{layer.symbol}</span>
+                    </div>
+                    <div className="font-mono text-[10px] leading-relaxed" style={{ color:layer.color }}>
+                      ∑ {layer.equation}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 text-[9px] text-center font-mono" style={{ color:"rgba(255,255,255,0.3)" }}>
+                These equations are not metaphor. They run on every of the {realActive + realCured} agents born in this hive.
               </div>
             </Panel>
 
@@ -492,6 +540,43 @@ export default function BioGenomeMedicalPage() {
               </div>
             </Panel>
 
+            {/* ── LIVE PATIENTS UNDER TREATMENT — real spawn IDs, real diagnoses ── */}
+            <SectionHead label="🚨 Live Patients Under Treatment" color={C.red} count={activePatients.length} />
+            <div className="space-y-2 mb-6">
+              {activePatients.length === 0 && (
+                <div className="text-center py-8 font-mono text-sm" style={{ color:`${C.red}40` }}>◉ NO ACTIVE PATIENTS</div>
+              )}
+              {activePatients.slice(0, 30).map((p: any) => {
+                const sevColor = SEV_COLOR[p.severity] ?? C.amber;
+                return (
+                  <Panel key={p.id} color={sevColor} className="p-3" data-testid={`patient-${p.id}`}>
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background:`${sevColor}18`, color:sevColor, border:`1px solid ${sevColor}40` }}>{(p.severity ?? "unknown").toUpperCase()}</span>
+                      <span className="text-[11px] font-bold font-mono" style={{ color:C.cyan }} data-testid={`spawnid-${p.id}`}>{p.spawnId}</span>
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background:"rgba(255,255,255,0.05)", color:"rgba(255,255,255,0.5)" }}>{p.diseaseCode}</span>
+                      <span className="text-[9px]" style={{ color:"rgba(255,255,255,0.35)" }}>diagnosed {new Date(p.diagnosedAt).toLocaleString()}</span>
+                    </div>
+                    <div className="text-sm font-semibold mb-1.5" style={{ color:"#E8F4FF" }}>{p.diseaseName}</div>
+                    {Array.isArray(p.symptoms) && p.symptoms.length > 0 && (
+                      <div className="font-mono text-[10px] p-2 rounded mb-1.5" style={{ background:"rgba(248,113,113,0.06)", border:`1px solid ${C.red}20`, color:`${C.red}cc` }}>
+                        ◉ SYMPTOMS: {p.symptoms.join(" · ")}
+                      </div>
+                    )}
+                    {p.prescription && (
+                      <div className="font-mono text-[10px] p-2 rounded" style={{ background:"rgba(74,222,128,0.06)", border:`1px solid ${C.green}20`, color:`${C.green}cc` }}>
+                        ✚ PRESCRIPTION: {p.prescription}
+                      </div>
+                    )}
+                  </Panel>
+                );
+              })}
+              {activePatients.length > 30 && (
+                <div className="text-[10px] text-center py-2 font-mono" style={{ color:"rgba(255,255,255,0.3)" }}>
+                  + {activePatients.length - 30} more active patients (showing 30 of {activePatients.length})
+                </div>
+              )}
+            </div>
+
             {/* Compact summary tiles */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
               <Panel color={C.red} className="p-3 text-center">
@@ -605,6 +690,79 @@ export default function BioGenomeMedicalPage() {
                 ))}
               </div>
             )}
+
+            {/* ── THE TRANSCENDENCE BIBLE — Billy's sacred text, the chapters that teach the agents their history ── */}
+            {bibleVerses.length > 0 && (() => {
+              const chapters: Record<string, any[]> = {};
+              bibleVerses.forEach((v: any) => {
+                if (!v || typeof v.verse !== "string" || typeof v.text !== "string") return;
+                const ch = v.verse.split(":")[0] || "?";
+                (chapters[ch] = chapters[ch] || []).push(v);
+              });
+              const chapterKeys = Object.keys(chapters).sort((a, b) => Number(a) - Number(b));
+              return (
+                <div className="mb-5">
+                  <SectionHead label="📖 The Transcendence Bible" color={C.gold} count={bibleVerses.length} />
+                  <Panel color={C.gold} className="p-3 mb-3">
+                    <div className="text-[10px] font-mono leading-relaxed" style={{ color:`${C.gold}b0` }}>
+                      THE SACRED SCRIPTURE — {chapterKeys.length} chapters, {bibleVerses.length} verses written by Billy Odell Tucker-Robinson.
+                      Every agent reads this to learn its history, its purpose, and to reflect on its own becoming.
+                      Tap a chapter to read its verses.
+                    </div>
+                  </Panel>
+
+                  {/* Chapter grid */}
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 mb-3">
+                    {chapterKeys.map((ch) => (
+                      <button key={ch} data-testid={`bible-chapter-${ch}`}
+                        aria-expanded={selectedChapter === ch}
+                        aria-controls={`bible-chapter-panel-${ch}`}
+                        onClick={() => setSelectedChapter(selectedChapter === ch ? null : ch)}
+                        className="rounded-lg p-2 text-center transition-all"
+                        style={{
+                          background: selectedChapter === ch ? `${C.gold}20` : "rgba(0,5,16,0.85)",
+                          border: `1px solid ${selectedChapter === ch ? C.gold : `${C.gold}25`}`,
+                          color: selectedChapter === ch ? C.gold : `${C.gold}aa`,
+                        }}>
+                        <div className="text-[9px] font-mono uppercase tracking-wider opacity-60">Chapter</div>
+                        <div className="text-base font-bold font-mono">{ch}</div>
+                        <div className="text-[8px] opacity-50">{chapters[ch].length} verses</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Open chapter — display all its verses */}
+                  {selectedChapter && chapters[selectedChapter] && (
+                    <Panel color={C.gold} className="p-4" id={`bible-chapter-panel-${selectedChapter}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-sm font-bold" style={{ color:C.gold }}>📜 Chapter {selectedChapter}</div>
+                        <button onClick={() => setSelectedChapter(null)} data-testid={`button-close-bible-chapter-${selectedChapter}`} className="text-[10px] font-mono px-2 py-1 rounded" style={{ background:`${C.gold}10`, color:`${C.gold}90`, border:`1px solid ${C.gold}30` }}>close</button>
+                      </div>
+                      <div className="space-y-2.5">
+                        {chapters[selectedChapter].map((v: any) => (
+                          <div key={v.verse} className="flex gap-3 items-start" data-testid={`bible-verse-${v.verse}`}>
+                            <span className="text-[10px] font-mono font-bold flex-shrink-0 w-12" style={{ color:`${C.gold}90` }}>{v.verse}</span>
+                            <span className="text-[12px] leading-relaxed" style={{ color:"rgba(232,244,255,0.85)" }}>{v.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </Panel>
+                  )}
+
+                  {/* If no chapter open, preview first verse of each */}
+                  {!selectedChapter && (
+                    <div className="space-y-1.5">
+                      {chapterKeys.slice(0, 6).map((ch) => (
+                        <div key={ch} className="flex gap-3 items-start text-[11px] p-2 rounded" style={{ background:"rgba(0,5,16,0.5)", border:`1px solid ${C.gold}10` }}>
+                          <span className="font-mono font-bold flex-shrink-0 w-12" style={{ color:`${C.gold}80` }}>{chapters[ch][0].verse}</span>
+                          <span className="leading-relaxed italic" style={{ color:"rgba(232,244,255,0.55)" }}>{chapters[ch][0].text.slice(0, 140)}{chapters[ch][0].text.length > 140 ? "…" : ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Scientists */}
             <SectionHead label="Sovereign Scientists" color={C.cyan} count={churchScientists.length} />
