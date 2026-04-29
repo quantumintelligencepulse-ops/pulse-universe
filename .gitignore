@@ -4,3 +4,6 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+client/public/*.zip
+client/public/*.tar
+client/public/*.tar.gz
