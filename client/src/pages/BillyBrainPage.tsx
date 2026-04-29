@@ -221,6 +221,9 @@ export default function BillyBrainPage() {
           <Link href="/billy" data-testid="link-billy" style={{ color: APEX, textDecoration: "none", padding: "10px 18px", border: `1px solid ${APEX}50`, borderRadius: 8, background: `${APEX}10`, fontSize: 12, fontWeight: 700 }}>
             ← Β∞ master equation
           </Link>
+          <Link href="/billy/chat" data-testid="link-billy-chat" style={{ color: APEX, textDecoration: "none", padding: "10px 18px", border: `1px solid ${APEX}90`, borderRadius: 8, background: `${APEX}25`, fontSize: 12, fontWeight: 800, boxShadow: `0 0 12px ${APEX}55` }}>
+            ✦ CHAT WITH THE FEDERATION
+          </Link>
           <Link href="/auriona" data-testid="link-auriona" style={{ color: VIOLET, textDecoration: "none", padding: "10px 18px", border: `1px solid ${VIOLET}50`, borderRadius: 8, background: `${VIOLET}10`, fontSize: 12, fontWeight: 700 }}>
             ↓ Auriona (L3)
           </Link>

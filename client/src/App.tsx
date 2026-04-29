@@ -16,6 +16,7 @@ const MissionControlPage = lazy(() => import("./pages/MissionControlPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const BillyPage = lazy(() => import("./pages/BillyPage"));
 const BillyBrainPage = lazy(() => import("./pages/BillyBrainPage"));
+const BillyBrainChatPage = lazy(() => import("./pages/BillyBrainChatPage"));
 const BillyGovernancePage = lazy(() => import("./pages/BillyGovernancePage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
@@ -10972,6 +10973,7 @@ function Router() {
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/billy">{() => <Layout><BillyPage /></Layout>}</Route>
       <Route path="/billy/brain">{() => <Layout><BillyBrainPage /></Layout>}</Route>
+      <Route path="/billy/chat">{() => <Layout><BillyBrainChatPage /></Layout>}</Route>
       <Route path="/billy/governance">{() => <Layout><BillyGovernancePage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>

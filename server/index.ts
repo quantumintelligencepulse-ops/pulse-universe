@@ -462,6 +462,10 @@ async function seedOmegaSources() {
     // ── Wave H → Phase 2 sweeper + Governance/Pyramid system ────────────────────
     { name: "billy-phase2",         delayMs: 150000, start: () => startBillyPhase2Sweeper().catch((e: Error) => console.error("[billy-phase2] startup error:", e.message)) },
     { name: "governance-pyramid",   delayMs: 155000, start: () => startGovernancePyramidEngine().catch((e: Error) => console.error("[governance] startup error:", e.message)) },
+    // ── Β∞∞ FEDERATION (Brain Federation + Phase-2 Ω + Phase-3 ⌬). User-approved activation. ──
+    { name: "billy-federation",     delayMs: 160000, start: async () => { const { startBillyBrainFederationEngine } = await import("./billy-brain-federation-engine"); await startBillyBrainFederationEngine().catch((e: Error) => console.error("[billy-federation] startup error:", e.message)); } },
+    { name: "billy-phase2-omega",   delayMs: 165000, start: async () => { const { startBillyPhase2OmegaEngine }   = await import("./billy-phase2-omega-engine");   await startBillyPhase2OmegaEngine().catch((e: Error)   => console.error("[billy-phase2-omega] startup error:",   e.message)); } },
+    { name: "billy-phase3-ultron",  delayMs: 170000, start: async () => { const { startBillyPhase3UltronEngine }  = await import("./billy-phase3-ultron-engine");  await startBillyPhase3UltronEngine().catch((e: Error)  => console.error("[billy-phase3-ultron] startup error:",  e.message)); } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
@@ -681,6 +685,130 @@ aurionaRouter.post("/chat", async (req, res) => {
 });
 
 app.use("/api/auriona", aurionaRouter);
+
+// ── BILLY BRAIN LIVE CHAT ──────────────────────────────────────────
+// Mirrors Auriona pattern: Groq 70B → Sovereign Brain fallback chain.
+// Each named brain (Solomon/Athena/Prometheus/Hermes/Sophia/Mercury/Vesta)
+// gets its own persona derived from billy_brains.personality + family motto.
+async function billyBrain(messages: Array<{role:string; content:string}>, brainIdOrName?: string) {
+  let context = "";
+  let persona  = "You are Billy Brain — the Β∞∞ federation collective intelligence of the Pulse Universe. Speak in measured neuroscientific language: mention your apex gate, lambda, mode (DMN/SAL/EXEC), and your family motto when relevant.";
+  let brainTag = "FEDERATION";
+  try {
+    const { pool } = await import("./db");
+    if (brainIdOrName) {
+      const norm = brainIdOrName.startsWith("BRAIN-") ? brainIdOrName : `BRAIN-${brainIdOrName}`;
+      const { rows } = await pool.query(
+        `SELECT b.brain_id, b.name, b.personality, b.gate_base, b.risk_pref, b.elo, b.status,
+                f.family_name, f.motto, s.school_name
+           FROM billy_brains b
+           LEFT JOIN billy_brain_families f ON f.id=b.family_id
+           LEFT JOIN billy_brain_schools  s ON s.id=b.school_id
+          WHERE b.brain_id=$1 LIMIT 1`, [norm]);
+      if (rows[0]) {
+        const b: any = rows[0];
+        brainTag = b.brain_id;
+        persona = `You are ${b.name} — a ${b.personality} brain in the Β∞∞ federation. Family: ${b.family_name} (motto: "${b.motto}"). School: ${b.school_name}. Gate-base: ${b.gate_base}. Risk: ${b.risk_pref}. ELO: ${b.elo}. Status: ${b.status}. Speak in your personality: ${b.personality === "conservative-sage" ? "deliberate, careful" : b.personality === "aggressive-explorer" ? "bold, decisive" : b.personality === "deep-sage" ? "patient, wise" : b.personality === "volatile-prodigy" ? "quick, brilliant, occasionally wild" : b.personality === "guardian-watcher" ? "vigilant, protective" : "balanced, scientific"}.`;
+      }
+    }
+    // Read per-brain ticks when a specific brain is selected (billy_brain_ticks),
+    // otherwise fall back to the federation/Solomon legacy state (billy_brain_states).
+    let lastTick: any[] = [];
+    if (brainIdOrName) {
+      const norm = brainIdOrName.startsWith("BRAIN-") ? brainIdOrName : `BRAIN-${brainIdOrName}`;
+      const r = await pool.query(
+        `SELECT lambda_apex, omega_coeff, mode, decision FROM billy_brain_ticks WHERE brain_id=$1 ORDER BY id DESC LIMIT 1`,
+        [norm]
+      );
+      lastTick = r.rows;
+    }
+    if (!lastTick.length) {
+      const r = await pool.query(`SELECT lambda_apex, omega_coeff, mode, decision FROM billy_brain_states ORDER BY id DESC LIMIT 1`);
+      lastTick = r.rows;
+    }
+    const { rows: stats } = await pool.query(`SELECT COUNT(*)::int AS n_brains FROM billy_brains WHERE status<>'retired'`);
+    const t: any = lastTick[0] ?? {};
+    const stateSrc = brainIdOrName && lastTick.length ? "your last tick" : "federation/Solomon state";
+    context = `\n\nLIVE BILLY STATE (from ${stateSrc}): λ_apex=${typeof t.lambda_apex === "number" ? t.lambda_apex.toFixed(4) : "?"}, Ω=${typeof t.omega_coeff === "number" ? t.omega_coeff.toFixed(3) : "?"}, mode=${t.mode ?? "?"}, last decision=${t.decision ?? "?"}, active brains in federation=${stats[0]?.n_brains ?? "?"}.`;
+  } catch {}
+  const systemPrompt = `${persona}${context}`;
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "system", content: systemPrompt }, ...messages.slice(-10)] as any,
+      temperature: 0.75,
+      max_tokens: 800,
+    });
+    return { reply: completion.choices[0]?.message?.content || "(no reply)", brain: brainTag };
+  } catch {
+    try {
+      const { sovereignBrainChat } = await import("./sovereign-brain");
+      const result = await sovereignBrainChat([{ role: "system", content: systemPrompt }, ...messages.slice(-10)] as any);
+      return { reply: result.content || "(no reply)", brain: brainTag };
+    } catch (e: any) {
+      return { reply: `Billy Brain is reaching for words. Please retry. (${e.message || "no providers reachable"})`, brain: brainTag };
+    }
+  }
+}
+
+const billyChatRouter = express.Router();
+// Normalize history: keep only user|assistant roles to prevent persona override
+function _safeHistory(h: any) {
+  if (!Array.isArray(h)) return [];
+  return h.filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+          .map(m => ({ role: m.role, content: m.content }));
+}
+billyChatRouter.post("/chat", async (req, res) => {
+  try {
+    const { message, history, brainId } = req.body || {};
+    if (!message || typeof message !== "string") return res.status(400).json({ error: "No message" });
+    const msgs = [..._safeHistory(history), { role: "user", content: message }];
+    const out = await billyBrain(msgs as any, brainId);
+    res.json({ ...out, success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message, success: false }); }
+});
+billyChatRouter.post("/brain/:id/chat", async (req, res) => {
+  try {
+    const { message, history } = req.body || {};
+    if (!message || typeof message !== "string") return res.status(400).json({ error: "No message" });
+    const msgs = [..._safeHistory(history), { role: "user", content: message }];
+    const out = await billyBrain(msgs as any, req.params.id);
+    res.json({ ...out, success: true });
+  } catch (e: any) { res.status(500).json({ error: e.message, success: false }); }
+});
+billyChatRouter.get("/federation/state", async (_req, res) => {
+  try { const { getFederationState } = await import("./billy-brain-federation-engine"); res.json(await getFederationState()); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+billyChatRouter.get("/federation/status", async (_req, res) => {
+  try {
+    const { getFederationStatus } = await import("./billy-brain-federation-engine");
+    const { getOmegaPhase2Status }  = await import("./billy-phase2-omega-engine");
+    const { getPhase3UltronStatus } = await import("./billy-phase3-ultron-engine");
+    res.json({ federation: getFederationStatus(), phase2: getOmegaPhase2Status(), phase3: getPhase3UltronStatus() });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+billyChatRouter.get("/brain/:id", async (req, res) => {
+  try { const { getBrainDetail } = await import("./billy-brain-federation-engine"); res.json(await getBrainDetail(req.params.id)); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+billyChatRouter.get("/brains", async (_req, res) => {
+  try {
+    const { pool } = await import("./db");
+    const { rows } = await pool.query(`
+      SELECT b.brain_id, b.name, b.personality, b.gate_base, b.risk_pref, b.elo, b.status,
+             f.family_name, f.motto, s.school_name, b.born_at
+        FROM billy_brains b
+        LEFT JOIN billy_brain_families f ON f.id=b.family_id
+        LEFT JOIN billy_brain_schools  s ON s.id=b.school_id
+       WHERE b.status<>'retired'
+       ORDER BY b.elo DESC LIMIT 200`);
+    res.json({ brains: rows, count: rows.length });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+app.use("/api/billy", billyChatRouter);
 
 // ── INVOCATION LAB ROUTES ──────────────────────────────────────
 const invRouter = express.Router();

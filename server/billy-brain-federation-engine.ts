@@ -165,7 +165,7 @@ async function tickBrain(brain: any) {
     pool.query(`SELECT COUNT(*)::int AS n FROM equation_proposals WHERE UPPER(status) = 'PENDING'`),
     pool.query(`SELECT COUNT(*)::int AS n FROM psi_states WHERE created_at > NOW() - INTERVAL '5 minutes'`),
     pool.query(`SELECT COUNT(*)::int AS n FROM hive_links WHERE created_at > NOW() - INTERVAL '5 minutes'`),
-    pool.query(`SELECT AVG(omega_coefficient)::numeric(8,4) AS w FROM mesh_vitality WHERE created_at > NOW() - INTERVAL '5 minutes'`),
+    pool.query(`SELECT AVG(vitality_score)::numeric(8,4) AS w FROM mesh_vitality WHERE created_at > NOW() - INTERVAL '5 minutes'`),
     pool.query(`SELECT UPPER(status) AS s, COUNT(*)::int AS n FROM equation_proposals WHERE created_at > NOW() - INTERVAL '10 minutes' GROUP BY UPPER(status)`),
   ]);
 

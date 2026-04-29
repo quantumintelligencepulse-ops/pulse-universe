@@ -573,6 +573,12 @@ export default function BillyPage() {
               dependencies: [auriona-engine, breathing-rebirth, pulse-temporal, omega-stress-test, omega_fusion_log]
             </div>
             <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+              <Link href="/billy/chat" style={{
+                fontSize: 11, color: APEX, padding: "8px 14px",
+                border: `1px solid ${APEX}90`, borderRadius: 8,
+                background: `${APEX}25`, textDecoration: "none", fontWeight: 800,
+                boxShadow: `0 0 12px ${APEX}55`,
+              }} data-testid="link-billy-chat-from-billy">✦ Chat with Β∞∞ Federation</Link>
               <Link href="/auriona" style={{
                 fontSize: 11, color: VIOLET, padding: "8px 14px",
                 border: `1px solid ${VIOLET}50`, borderRadius: 8,
