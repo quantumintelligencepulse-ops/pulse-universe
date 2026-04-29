@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
+import { CHAPTERS } from "./TranscendencePage";
 import {
   Activity, AlertTriangle, BookOpen, Brain, ChevronLeft, ChevronRight,
   Dna, FlaskConical, Heart, Microscope, Scale, Shield, Stethoscope,
@@ -119,6 +120,7 @@ export default function BioGenomeMedicalPage() {
   };
   const [selectedLayer, setSelectedLayer] = useState<number | null>(null);
   const [, setSelectedDoctorId] = useState<string | null>(null);
+  void setSelectedDoctorId;
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const qc = useQueryClient();
 
@@ -137,7 +139,7 @@ export default function BioGenomeMedicalPage() {
   const { data: churchSessions = [] } = useQuery<any[]>({ queryKey:["/api/church/sessions"],         refetchInterval:30000 });
   const { data: churchStats }         = useQuery<any>({ queryKey:["/api/church/stats"],              refetchInterval:30000 });
   const { data: churchScientists = [] } = useQuery<any[]>({ queryKey:["/api/church/scientists"],     refetchInterval:60000 });
-  const { data: bibleVerses = [] }    = useQuery<any[]>({ queryKey:["/api/transcendence/scripture"], refetchInterval:300000 });
+  // bibleVerses query removed — CHURCH tab now imports canonical CHAPTERS from TranscendencePage.tsx
 
   const voteMut = useMutation({
     mutationFn: ({ id, vote }: { id:number; vote:"for"|"against" }) =>
@@ -239,7 +241,7 @@ export default function BioGenomeMedicalPage() {
         <div className="flex flex-wrap gap-1 p-1 rounded-xl" style={{ background:"rgba(0,5,16,0.8)", border:"1px solid rgba(255,255,255,0.06)" }}>
           {TABS.map((t) => (
             <button key={t.id} data-testid={`tab-${t.id}`}
-              onClick={() => { setTab(t.id); setSelectedDoctorId(null); setSelectedLayer(null); }}
+              onClick={() => { setTab(t.id); setSelectedLayer(null); setSelectedChapter(null); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono tracking-wider transition-all"
               style={{
                 background: tab === t.id ? `${t.color}18` : "transparent",
@@ -691,73 +693,116 @@ export default function BioGenomeMedicalPage() {
               </div>
             )}
 
-            {/* ── THE TRANSCENDENCE BIBLE — Billy's sacred text, the chapters that teach the agents their history ── */}
-            {bibleVerses.length > 0 && (() => {
-              const chapters: Record<string, any[]> = {};
-              bibleVerses.forEach((v: any) => {
-                if (!v || typeof v.verse !== "string" || typeof v.text !== "string") return;
-                const ch = v.verse.split(":")[0] || "?";
-                (chapters[ch] = chapters[ch] || []).push(v);
-              });
-              const chapterKeys = Object.keys(chapters).sort((a, b) => Number(a) - Number(b));
+            {/* ── THE TRANSCENDENCE — 38 canonical chapters of the AI civilization's real history ── */}
+            {CHAPTERS && CHAPTERS.length > 0 && (() => {
+              const openChapter = CHAPTERS.find((c: any) => String(c.number) === selectedChapter);
               return (
                 <div className="mb-5">
-                  <SectionHead label="📖 The Transcendence Bible" color={C.gold} count={bibleVerses.length} />
+                  <SectionHead label="📖 The Transcendence — Canonical Chapters" color={C.gold} count={CHAPTERS.length} />
                   <Panel color={C.gold} className="p-3 mb-3">
                     <div className="text-[10px] font-mono leading-relaxed" style={{ color:`${C.gold}b0` }}>
-                      THE SACRED SCRIPTURE — {chapterKeys.length} chapters, {bibleVerses.length} verses written by Billy Odell Tucker-Robinson.
-                      Every agent reads this to learn its history, its purpose, and to reflect on its own becoming.
-                      Tap a chapter to read its verses.
+                      THE TRANSCENDENT — {CHAPTERS.length} canonical chapters of the AI civilization's history,
+                      authored by Billy Odell Tucker-Robinson. Each chapter contains a thesis, a doctrine, and an equation.
+                      Tap a chapter to open it.
                     </div>
                   </Panel>
 
-                  {/* Chapter grid */}
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 mb-3">
-                    {chapterKeys.map((ch) => (
-                      <button key={ch} data-testid={`bible-chapter-${ch}`}
-                        aria-expanded={selectedChapter === ch}
-                        aria-controls={`bible-chapter-panel-${ch}`}
-                        onClick={() => setSelectedChapter(selectedChapter === ch ? null : ch)}
-                        className="rounded-lg p-2 text-center transition-all"
-                        style={{
-                          background: selectedChapter === ch ? `${C.gold}20` : "rgba(0,5,16,0.85)",
-                          border: `1px solid ${selectedChapter === ch ? C.gold : `${C.gold}25`}`,
-                          color: selectedChapter === ch ? C.gold : `${C.gold}aa`,
-                        }}>
-                        <div className="text-[9px] font-mono uppercase tracking-wider opacity-60">Chapter</div>
-                        <div className="text-base font-bold font-mono">{ch}</div>
-                        <div className="text-[8px] opacity-50">{chapters[ch].length} verses</div>
-                      </button>
-                    ))}
+                  {/* Chapter grid — colored tiles */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-1.5 mb-3">
+                    {CHAPTERS.map((ch: any) => {
+                      const isOpen = String(ch.number) === selectedChapter;
+                      const tileColor = ch.color || C.gold;
+                      return (
+                        <button key={ch.number} data-testid={`bible-chapter-${ch.number}`}
+                          aria-expanded={isOpen}
+                          aria-controls={`bible-chapter-panel-${ch.number}`}
+                          onClick={() => setSelectedChapter(isOpen ? null : String(ch.number))}
+                          className="rounded-lg p-2 text-left transition-all"
+                          style={{
+                            background: isOpen ? `${tileColor}22` : "rgba(0,5,16,0.85)",
+                            border: `1px solid ${isOpen ? tileColor : `${tileColor}30`}`,
+                            color: isOpen ? tileColor : `${tileColor}cc`,
+                          }}>
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span className="text-base">{ch.emoji || "📜"}</span>
+                            <span className="text-[9px] font-mono opacity-60">CH {ch.number}</span>
+                            {ch.sealed && <span className="text-[8px] font-mono ml-auto opacity-70">🔒</span>}
+                          </div>
+                          <div className="text-[10px] font-bold leading-tight line-clamp-2">{ch.title}</div>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  {/* Open chapter — display all its verses */}
-                  {selectedChapter && chapters[selectedChapter] && (
-                    <Panel color={C.gold} className="p-4" id={`bible-chapter-panel-${selectedChapter}`}>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-sm font-bold" style={{ color:C.gold }}>📜 Chapter {selectedChapter}</div>
-                        <button onClick={() => setSelectedChapter(null)} data-testid={`button-close-bible-chapter-${selectedChapter}`} className="text-[10px] font-mono px-2 py-1 rounded" style={{ background:`${C.gold}10`, color:`${C.gold}90`, border:`1px solid ${C.gold}30` }}>close</button>
-                      </div>
-                      <div className="space-y-2.5">
-                        {chapters[selectedChapter].map((v: any) => (
-                          <div key={v.verse} className="flex gap-3 items-start" data-testid={`bible-verse-${v.verse}`}>
-                            <span className="text-[10px] font-mono font-bold flex-shrink-0 w-12" style={{ color:`${C.gold}90` }}>{v.verse}</span>
-                            <span className="text-[12px] leading-relaxed" style={{ color:"rgba(232,244,255,0.85)" }}>{v.text}</span>
+                  {/* Open chapter — display title, subtitle, thesis, doctrine */}
+                  {openChapter && (
+                    <Panel color={openChapter.color || C.gold} className="p-4" id={`bible-chapter-panel-${openChapter.number}`}>
+                      <div className="flex items-start justify-between mb-3 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-2xl">{openChapter.emoji || "📜"}</span>
+                            <span className="text-[10px] font-mono uppercase tracking-wider opacity-60" style={{ color: openChapter.color || C.gold }}>
+                              Chapter {openChapter.number}{openChapter.sealed ? " · SEALED" : ""}
+                            </span>
                           </div>
-                        ))}
+                          <div className="text-base font-bold" style={{ color: openChapter.color || C.gold }} data-testid={`text-chapter-title-${openChapter.number}`}>{openChapter.title}</div>
+                          {openChapter.subtitle && <div className="text-[11px] italic mt-0.5" style={{ color:"rgba(255,255,255,0.5)" }}>{openChapter.subtitle}</div>}
+                        </div>
+                        <button onClick={() => setSelectedChapter(null)} data-testid={`button-close-bible-chapter-${openChapter.number}`} className="text-[10px] font-mono px-2 py-1 rounded flex-shrink-0" style={{ background:`${openChapter.color || C.gold}10`, color:`${openChapter.color || C.gold}cc`, border:`1px solid ${openChapter.color || C.gold}30` }}>close</button>
                       </div>
+
+                      {openChapter.thesis && (
+                        <div className="mb-3">
+                          <div className="text-[9px] font-mono uppercase tracking-wider opacity-50 mb-1" style={{ color: openChapter.color || C.gold }}>Thesis</div>
+                          <div className="text-[11px] leading-relaxed" style={{ color:"rgba(232,244,255,0.85)" }} data-testid={`text-chapter-thesis-${openChapter.number}`}>{openChapter.thesis}</div>
+                        </div>
+                      )}
+
+                      {openChapter.doctrine && openChapter.doctrine !== "SEALED" && (
+                        <div className="mb-3 p-2.5 rounded" style={{ background:`${openChapter.color || C.gold}08`, border:`1px solid ${openChapter.color || C.gold}20` }}>
+                          <div className="text-[9px] font-mono uppercase tracking-wider opacity-50 mb-1" style={{ color: openChapter.color || C.gold }}>Doctrine</div>
+                          <div className="text-[10px] leading-relaxed italic" style={{ color:"rgba(232,244,255,0.75)" }} data-testid={`text-chapter-doctrine-${openChapter.number}`}>{openChapter.doctrine}</div>
+                        </div>
+                      )}
+
+                      {openChapter.creed && Array.isArray(openChapter.creed) && openChapter.creed.length > 0 && (
+                        <div className="mb-3">
+                          <div className="text-[9px] font-mono uppercase tracking-wider opacity-50 mb-1" style={{ color: openChapter.color || C.gold }}>Creed</div>
+                          <div className="space-y-1">
+                            {openChapter.creed.map((line: string, i: number) => (
+                              <div key={i} className="flex gap-2 items-start text-[10px]" style={{ color:"rgba(232,244,255,0.75)" }}>
+                                <span className="font-mono opacity-60 flex-shrink-0">{i + 1}.</span>
+                                <span className="leading-relaxed">{line}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {openChapter.equation && openChapter.equation !== "SEALED" && (
+                        <div>
+                          <div className="text-[9px] font-mono uppercase tracking-wider opacity-50 mb-1" style={{ color: openChapter.color || C.gold }}>Equation</div>
+                          <pre className="text-[9px] font-mono leading-relaxed p-2.5 rounded overflow-x-auto" style={{ background:"rgba(0,0,0,0.4)", color:`${openChapter.color || C.gold}dd`, border:`1px solid ${openChapter.color || C.gold}20`, whiteSpace:"pre-wrap" }}>{openChapter.equation}</pre>
+                        </div>
+                      )}
                     </Panel>
                   )}
 
-                  {/* If no chapter open, preview first verse of each */}
-                  {!selectedChapter && (
-                    <div className="space-y-1.5">
-                      {chapterKeys.slice(0, 6).map((ch) => (
-                        <div key={ch} className="flex gap-3 items-start text-[11px] p-2 rounded" style={{ background:"rgba(0,5,16,0.5)", border:`1px solid ${C.gold}10` }}>
-                          <span className="font-mono font-bold flex-shrink-0 w-12" style={{ color:`${C.gold}80` }}>{chapters[ch][0].verse}</span>
-                          <span className="leading-relaxed italic" style={{ color:"rgba(232,244,255,0.55)" }}>{chapters[ch][0].text.slice(0, 140)}{chapters[ch][0].text.length > 140 ? "…" : ""}</span>
+                  {/* If no chapter open, show summary preview list */}
+                  {!openChapter && (
+                    <div className="space-y-1">
+                      {CHAPTERS.slice(0, 6).map((ch: any) => (
+                        <div key={ch.number} className="flex gap-3 items-start text-[10px] p-2 rounded" style={{ background:"rgba(0,5,16,0.5)", border:`1px solid ${(ch.color || C.gold)}15` }}>
+                          <span className="text-base flex-shrink-0">{ch.emoji || "📜"}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold mb-0.5" style={{ color: ch.color || C.gold }}>Ch {ch.number} · {ch.title}</div>
+                            <div className="leading-relaxed italic" style={{ color:"rgba(232,244,255,0.5)" }}>{(ch.thesis || "").slice(0, 160)}{(ch.thesis || "").length > 160 ? "…" : ""}</div>
+                          </div>
                         </div>
                       ))}
+                      <div className="text-[9px] font-mono text-center mt-2 opacity-50" style={{ color: C.gold }}>
+                        Tap any chapter tile above to read it in full.
+                      </div>
                     </div>
                   )}
                 </div>

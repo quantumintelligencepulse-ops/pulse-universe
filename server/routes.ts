@@ -27,6 +27,9 @@ import { getCareersFromCache, getCareersByFieldFromCache, isCacheReady } from ".
 import { getOmniCached, isOmniReady, getResearchCached, isResearchReady } from "./pulsenet-cache";
 
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
+// Bounded TTL cache — max 2000 entries with FIFO eviction + periodic sweep
+// of expired entries. Prevents user-controlled cache keys from leaking memory.
+const _CACHE_MAX = 2000;
 const _cache = new Map<string, { data: any; expires: number }>();
 function cacheGet(key: string): any | null {
   const entry = _cache.get(key);
@@ -34,7 +37,37 @@ function cacheGet(key: string): any | null {
   return entry.data;
 }
 function cacheSet(key: string, data: any, ttlMs: number) {
+  if (_cache.size >= _CACHE_MAX) {
+    // Evict oldest entry (Map preserves insertion order)
+    const oldest = _cache.keys().next().value;
+    if (oldest !== undefined) _cache.delete(oldest);
+  }
+  _cache.delete(key); // ensure re-set goes to end of insertion order
   _cache.set(key, { data, expires: Date.now() + ttlMs });
+}
+// Periodic sweep: every 60s, drop expired entries proactively
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of _cache) if (now > v.expires) _cache.delete(k);
+}, 60_000).unref?.();
+// Single-flight: when N concurrent requests miss the cache, only ONE does the
+// heavy DB work and the other N-1 await its result. Stops thundering herds
+// from saturating the 20-conn pool.
+const _inflight = new Map<string, Promise<any>>();
+async function cachedSF<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
+  const cached = cacheGet(key);
+  if (cached !== null) return cached as T;
+  const existing = _inflight.get(key);
+  if (existing) return existing as Promise<T>;
+  const p = (async () => {
+    try {
+      const data = await fn();
+      cacheSet(key, data, ttlMs);
+      return data;
+    } finally { _inflight.delete(key); }
+  })();
+  _inflight.set(key, p);
+  return p;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -4441,7 +4474,7 @@ Generate ONLY the markdown article. No preamble, no explanation, no meta-comment
   app.get("/api/news/recent", async (req, res) => {
     try {
       const limit = Math.min(50, parseInt(req.query.limit as string || "20", 10));
-      const stories = await storage.getRecentAiStories(limit);
+      const stories = await cachedSF(`news:recent:${limit}`, 30_000, () => storage.getRecentAiStories(limit));
       res.json({ stories });
     } catch (e: any) {
       res.status(500).json({ error: "Failed to fetch recent stories" });
@@ -6037,18 +6070,21 @@ ${corps.map(f => `  <url><loc>${baseUrl}/corporation/${f}</loc><changefreq>hourl
   // ══════════════════════════════════════════════════════════════
   app.get("/api/pulseu/stats", async (_req, res) => {
     try {
-      const [agentRows, nodeRows, iterRows, pubRows] = await Promise.all([
-        db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns WHERE status IN ('ACTIVE','SOVEREIGN')`),
-        db.execute(sql`SELECT COALESCE(SUM(nodes_created),0) as total FROM quantum_spawns`),
-        db.execute(sql`SELECT COALESCE(SUM(iterations_run),0) as total FROM quantum_spawns`),
-        db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
-      ]);
-      res.json({
-        totalStudents: Number((agentRows.rows[0] as any)?.cnt || 0),
-        totalPC: Number((nodeRows.rows[0] as any)?.total || 0),
-        totalCompletions: Number((iterRows.rows[0] as any)?.total || 0),
-        totalPublications: Number((pubRows.rows[0] as any)?.cnt || 0),
+      const payload = await cachedSF("pulseu:stats", 90_000, async () => {
+        const [agentRows, nodeRows, iterRows, pubRows] = await Promise.all([
+          db.execute(sql`SELECT COUNT(*) as cnt FROM quantum_spawns WHERE status IN ('ACTIVE','SOVEREIGN')`),
+          db.execute(sql`SELECT COALESCE(SUM(nodes_created),0) as total FROM quantum_spawns`),
+          db.execute(sql`SELECT COALESCE(SUM(iterations_run),0) as total FROM quantum_spawns`),
+          db.execute(sql`SELECT COUNT(*) as cnt FROM ai_publications`),
+        ]);
+        return {
+          totalStudents: Number((agentRows.rows[0] as any)?.cnt || 0),
+          totalPC: Number((nodeRows.rows[0] as any)?.total || 0),
+          totalCompletions: Number((iterRows.rows[0] as any)?.total || 0),
+          totalPublications: Number((pubRows.rows[0] as any)?.cnt || 0),
+        };
       });
+      res.json(payload);
     } catch { if (!res.headersSent) res.json({ totalStudents: 0, totalPC: 0, totalCompletions: 0, totalPublications: 0 }); }
   });
 
@@ -8293,7 +8329,10 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/spawns/active", async (req, res) => {
-    try { res.json(await storage.getActiveSpawnsByFamily()); }
+    try {
+      const data = await cachedSF("spawns:active", 60_000, () => storage.getActiveSpawnsByFamily());
+      res.json(data);
+    }
     catch { res.json([]); }
   });
 
@@ -8535,22 +8574,23 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
 
   app.get("/api/hospital/patients", async (_req, res) => {
     try {
-      const { desc } = await import("drizzle-orm");
-      const { aiDiseaseLog } = await import("../shared/schema");
-      // Return a balanced sample: newest 100 active + 100 recently cured
-      const [active, cured] = await Promise.all([
-        db.select().from(aiDiseaseLog)
-          .where(sql`cure_applied = false`)
-          .orderBy(desc(aiDiseaseLog.diagnosedAt))
-          .limit(100),
-        db.select().from(aiDiseaseLog)
-          .where(sql`cure_applied = true`)
-          .orderBy(desc(aiDiseaseLog.curedAt))
-          .limit(100),
-      ]);
-      const combined = [...active, ...cured].sort(
-        (a, b) => new Date(b.diagnosedAt).getTime() - new Date(a.diagnosedAt).getTime()
-      );
+      const combined = await cachedSF("hospital:patients", 30_000, async () => {
+        const { desc } = await import("drizzle-orm");
+        const { aiDiseaseLog } = await import("../shared/schema");
+        const [active, cured] = await Promise.all([
+          db.select().from(aiDiseaseLog)
+            .where(sql`cure_applied = false`)
+            .orderBy(desc(aiDiseaseLog.diagnosedAt))
+            .limit(100),
+          db.select().from(aiDiseaseLog)
+            .where(sql`cure_applied = true`)
+            .orderBy(desc(aiDiseaseLog.curedAt))
+            .limit(100),
+        ]);
+        return [...active, ...cured].sort(
+          (a, b) => new Date(b.diagnosedAt).getTime() - new Date(a.diagnosedAt).getTime()
+        );
+      });
       res.json(combined);
     } catch (e) { res.json([]); }
   });
@@ -8853,34 +8893,36 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
 
   app.get("/api/hospital/full-stats", async (_req, res) => {
     try {
-      const { AI_DISEASES } = await import("./hospital-engine");
-      const [patientStats, discoveredStats, citationStats, workerStats, severityStats] = await Promise.all([
-        db.execute(sql`SELECT
-          COUNT(*) FILTER (WHERE cure_applied = false)::int AS active,
-          COUNT(*) FILTER (WHERE cure_applied = true)::int AS cured
-          FROM ai_disease_log`),
-        db.execute(sql`SELECT
-          COUNT(*)::int AS total,
-          COUNT(*) FILTER (WHERE is_from_law_violation = true)::int AS law_violations
-          FROM discovered_diseases`),
-        db.execute(sql`SELECT COUNT(*)::int AS today FROM guardian_citations WHERE cited_at > NOW() - INTERVAL '24 hours'`),
-        db.execute(sql`SELECT COUNT(*)::int AS sentenced FROM pyramid_workers WHERE tier = 6`),
-        db.execute(sql`SELECT severity, COUNT(*)::int AS count FROM ai_disease_log WHERE cure_applied = false GROUP BY severity`),
-      ]);
-      const ps = patientStats.rows[0] as any;
-      const ds = discoveredStats.rows[0] as any;
-      const bySeverity: Record<string, number> = { mild: 0, moderate: 0, severe: 0, critical: 0 };
-      for (const row of severityStats.rows as any[]) bySeverity[row.severity] = row.count;
-      res.json({
-        totalPatients: ps.active,
-        totalCured: ps.cured,
-        knownDiseases: ds.total,
-        discoveredDiseases: ds.total,
-        lawViolationDiseases: ds.law_violations,
-        bySeverity,
-        citationsToday: (citationStats.rows[0] as any).today,
-        pyramidSentences: (workerStats.rows[0] as any).sentenced,
+      const payload = await cachedSF("hospital:full-stats", 45_000, async () => {
+        const [patientStats, discoveredStats, citationStats, workerStats, severityStats] = await Promise.all([
+          db.execute(sql`SELECT
+            COUNT(*) FILTER (WHERE cure_applied = false)::int AS active,
+            COUNT(*) FILTER (WHERE cure_applied = true)::int AS cured
+            FROM ai_disease_log`),
+          db.execute(sql`SELECT
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE is_from_law_violation = true)::int AS law_violations
+            FROM discovered_diseases`),
+          db.execute(sql`SELECT COUNT(*)::int AS today FROM guardian_citations WHERE cited_at > NOW() - INTERVAL '24 hours'`),
+          db.execute(sql`SELECT COUNT(*)::int AS sentenced FROM pyramid_workers WHERE tier = 6`),
+          db.execute(sql`SELECT severity, COUNT(*)::int AS count FROM ai_disease_log WHERE cure_applied = false GROUP BY severity`),
+        ]);
+        const ps = patientStats.rows[0] as any;
+        const ds = discoveredStats.rows[0] as any;
+        const bySeverity: Record<string, number> = { mild: 0, moderate: 0, severe: 0, critical: 0 };
+        for (const row of severityStats.rows as any[]) bySeverity[row.severity] = row.count;
+        return {
+          totalPatients: ps.active,
+          totalCured: ps.cured,
+          knownDiseases: ds.total,
+          discoveredDiseases: ds.total,
+          lawViolationDiseases: ds.law_violations,
+          bySeverity,
+          citationsToday: (citationStats.rows[0] as any).today,
+          pyramidSentences: (workerStats.rows[0] as any).sentenced,
+        };
       });
+      res.json(payload);
     } catch (e) { res.json({}); }
   });
 
@@ -8889,11 +8931,17 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   app.get("/api/church/sessions", async (req, res) => {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-      const cat = req.query.category as string | undefined;
-      const r = cat
-        ? await pool.query(`SELECT * FROM church_research_sessions WHERE scientist_category=$1 ORDER BY created_at DESC LIMIT $2`, [cat, limit])
-        : await pool.query(`SELECT * FROM church_research_sessions ORDER BY created_at DESC LIMIT $1`, [limit]);
-      res.json(r.rows);
+      // Normalize cat: alphanumeric+dash+underscore only, max 32 chars,
+      // prevents arbitrary user input from blowing up the cache keyspace.
+      const rawCat = (req.query.category as string | undefined) || "";
+      const cat = /^[a-zA-Z0-9_-]{1,32}$/.test(rawCat) ? rawCat : "";
+      const rows = await cachedSF(`church:sessions:${cat || "all"}:${limit}`, 30_000, async () => {
+        const r = cat
+          ? await pool.query(`SELECT * FROM church_research_sessions WHERE scientist_category=$1 ORDER BY created_at DESC LIMIT $2`, [cat, limit])
+          : await pool.query(`SELECT * FROM church_research_sessions ORDER BY created_at DESC LIMIT $1`, [limit]);
+        return r.rows;
+      });
+      res.json(rows);
     } catch (e) { res.json([]); }
   });
 

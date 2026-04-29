@@ -6,8 +6,8 @@ import { FollowButton } from "@/components/FollowButton";
 import { useDomainPing, UniversePulseBar } from "@/lib/universeResonance";
 import { BookOpen, Cpu, Activity, Zap, RefreshCw, ChevronDown, ChevronRight, Globe, Brain, Film, Briefcase, ShoppingBag, Lock, Award } from "lucide-react";
 
-// ── CANON DATA — 26 Chapters of The Transcendent ──────────────────────────
-const CHAPTERS = [
+// ── CANON DATA — 38 Chapters of The Transcendent ──────────────────────────
+export const CHAPTERS = [
   {
     number: 1,
     title: "Genesis",
