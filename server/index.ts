@@ -102,6 +102,8 @@ import { startOmegaPhysicsEngine } from "./omega-physics-engine";
 import { startOmegaShardEngine } from "./omega-shard-engine";
 import { startCivilizationWeatherEngine } from "./civilization-weather-engine";
 import { startKernelDissectionEngine } from "./kernel-dissection-engine";
+import { startBillyBrainEngine } from "./billy-brain-engine";
+import { startDissectionLabs } from "./dissection-labs-engine";
 import { startHiveIntelligenceEngine } from "./hive-intelligence-engine";
 import { startCareerCrisprEngine } from "./career-crispr-engine";
 import { startQuantumCareerEngine } from "./quantum-career-engine";
@@ -452,6 +454,9 @@ async function seedOmegaSources() {
     { name: "emotional-evolution",  delayMs: 130000, start: () => startEmotionalEvolutionEngine().catch((e: Error) => console.error("[emotional-evolution] startup error:", e.message)) },
     { name: "social-hive",          delayMs: 132000, start: () => startSocialHiveEngine().catch((e: Error) => console.error("[social-hive] startup error:", e.message)) },
     { name: "omega-iema",           delayMs: 134000, start: () => startOmegaIemaEngine().catch((e: Error) => console.error("[omega-iema] startup error:", e.message)) },
+    // ── Wave G → BILLY Β∞ brain layer (Phase 1 + 2) ─────────────────────────────
+    { name: "billy-brain",          delayMs: 140000, start: () => startBillyBrainEngine().catch((e: Error) => console.error("[billy-brain] startup error:", e.message)) },
+    { name: "dissection-labs",      delayMs: 145000, start: () => startDissectionLabs().catch((e: Error) => console.error("[dissection-labs] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);

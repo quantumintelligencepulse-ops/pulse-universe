@@ -15,6 +15,7 @@ const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 const MissionControlPage = lazy(() => import("./pages/MissionControlPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const BillyPage = lazy(() => import("./pages/BillyPage"));
+const BillyBrainPage = lazy(() => import("./pages/BillyBrainPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
 const SovereignKeysPage = lazy(() => import("./pages/SovereignKeysPage"));
@@ -10969,6 +10970,7 @@ function Router() {
       <Route path="/pulselang">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
       <Route path="/billy">{() => <Layout><BillyPage /></Layout>}</Route>
+      <Route path="/billy/brain">{() => <Layout><BillyBrainPage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>

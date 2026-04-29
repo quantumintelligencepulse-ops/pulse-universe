@@ -9063,6 +9063,29 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ── BILLY: brain-state stream (X(t) populations) ────────────────────────
+  app.get("/api/billy/brain-state", async (req, res) => {
+    try {
+      const limit = Math.min(Math.max(Number(req.query.limit ?? 60), 1), 500);
+      const { getBrainStateRecent, getBrainEngineStatus } = await import("./billy-brain-engine");
+      const states = await getBrainStateRecent(limit);
+      const latest = states.length ? states[states.length - 1] : null;
+      const eng = getBrainEngineStatus();
+      res.json({ states, latest, engine: eng });
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e), states: [], latest: null });
+    }
+  });
+
+  app.get("/api/billy/labs-status", async (_req, res) => {
+    try {
+      const { getDissectionLabsStatus } = await import("./dissection-labs-engine");
+      res.json(getDissectionLabsStatus());
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e), labs: [], running: false });
+    }
+  });
+
   // ── BILLY: 5 Dissection Labs + Live CRISPR Voting Stream ────────────────
   // Slices the live equation_proposals stream into 5 cortical-interface labs
   // (DT-1..DT-5) and exposes the latest pending proposals being voted on now.
