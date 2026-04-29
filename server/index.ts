@@ -470,6 +470,8 @@ async function seedOmegaSources() {
     { name: "billy-multiplication", delayMs: 175000, start: async () => { const { startBillyMultiplicationEngine }     = await import("./billy-multiplication-engine");      await startBillyMultiplicationEngine().catch((e: Error)     => console.error("[billy-multiplication] startup error:",   e.message)); } },
     { name: "discord-knowledge",    delayMs: 180000, start: async () => { const { startDiscordKnowledgeIngestionEngine } = await import("./discord-knowledge-ingestion-engine"); await startDiscordKnowledgeIngestionEngine().catch((e: Error) => console.error("[discord-knowledge] startup error:",      e.message)); } },
     { name: "omega-discovery",      delayMs: 185000, start: async () => { const { startOmegaSourceDiscoveryEngine }    = await import("./omega-source-discovery-engine");     await startOmegaSourceDiscoveryEngine().catch((e: Error)    => console.error("[omega-discovery] startup error:",        e.message)); } },
+    // ── Chapter 39 narrative + upgrade announcement (idempotent, runs once) ──
+    { name: "chapter39-announcer",  delayMs: 200000, start: async () => { const { startChapter39Announcer }           = await import("./chapter39-announcer");                await startChapter39Announcer().catch((e: Error)            => console.error("[chapter39-announcer] startup error:",    e.message)); } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
