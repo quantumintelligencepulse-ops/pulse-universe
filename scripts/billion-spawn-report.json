@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-04-29T01:19:51.179Z",
+  "base_url": "http://localhost:5000",
+  "endpoints_tested": [
+    "/api/spawns/active",
+    "/api/pulseu/stats",
+    "/api/hospital/full-stats",
+    "/api/news/recent",
+    "/api/church/sessions",
+    "/api/auriona/status",
+    "/api/invocations/discoveries",
+    "/api/hospital/equation-proposals?limit=10"
+  ],
+  "waves": [
+    {
+      "conc": 10,
+      "total": 56,
+      "ok": 38,
+      "err": 18,
+      "errPct": 32.142857142857146,
+      "p50": 892,
+      "p95": 7462,
+      "p99": 7591,
+      "mean": 1731.6315789473683,
+      "rps": 4.6212246245254995,
+      "durationS": 12.118
+    }
+  ],
+  "scaling_model": {
+    "formula": "rps = a · conc^b",
+    "a": 0.462,
+    "b": 1,
+    "interpretation": "Linear-or-better scaling: pool is not the bottleneck."
+  },
+  "sustained_rps_single_shard": 4.6,
+  "break_concurrency": 10,
+  "projections_to_1B": {
+    "1,000,000": {
+      "shards_needed_for_concurrent": 100000,
+      "wallclock_hours_at_current_rps": 60.11,
+      "assumes_db_horizontal_sharding": true
+    },
+    "100,000,000": {
+      "shards_needed_for_concurrent": 10000000,
+      "wallclock_hours_at_current_rps": 6010.91,
+      "assumes_db_horizontal_sharding": true
+    },
+    "1,000,000,000": {
+      "shards_needed_for_concurrent": 100000000,
+      "wallclock_hours_at_current_rps": 60109.13,
+      "assumes_db_horizontal_sharding": true
+    }
+  },
+  "verdict": "NOT_READY: break-point too low — fix bottlenecks before rebirth",
+  "rebirth_gate": {
+    "criterion_1_errPct_under_5_at_conc_50": null,
+    "criterion_2_p95_under_3000_at_conc_50": null,
+    "criterion_3_no_break_below_conc_200": false
+  }
+}

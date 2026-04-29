@@ -553,18 +553,129 @@ aurionaRouter.delete("/pages/:slug", async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+// Universes summary — pulls from omega_universes (uses *, schema-drift-safe)
+aurionaRouter.get("/universes", async (_req, res) => {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await db.execute(sql`SELECT * FROM omega_universes ORDER BY created_at DESC LIMIT 200`);
+      return res.json({ universes: r.rows ?? [], total: r.rows?.length ?? 0 });
+    } catch (e: any) {
+      if (i === 2 || !/too many clients|connection terminated/i.test(e.message || "")) {
+        return res.status(500).json({ error: e.message, universes: [] });
+      }
+      await new Promise(r => setTimeout(r, 600 * (i + 1)));
+    }
+  }
+});
+
+// Manual seed-now with retry-on-transient (handles "too many clients" backpressure)
+async function retryQuery<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let lastErr: any;
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn(); }
+    catch (e: any) {
+      lastErr = e;
+      const transient = /too many clients|ECONNRESET|connection terminated|Connection terminated/i.test(e.message || "");
+      if (!transient) throw e;
+      await new Promise(r => setTimeout(r, 1500 * Math.pow(2, i)));
+    }
+  }
+  throw lastErr;
+}
+
+app.post("/api/hospital/equation-proposals/seed-now", async (_req, res) => {
+  try {
+    const SEEDS = [
+      { name: "Dr. SeedForge",    title: "Quantum Coherence Threshold",   eq: "Q_c = ℏω/(k_B T)",        rationale: "Threshold for quantum coherence at temperature T", sys: "QUANTUM" },
+      { name: "Dr. NetWeaver",    title: "Hive Resonance Equation",        eq: "R_h = Σ(c_ij·v_ij)/N²",  rationale: "Mesh-vitality coupling across N nodes",            sys: "HIVE" },
+      { name: "Dr. GenoCipher",   title: "Disease-Cure Velocity",           eq: "V_c = (n_cured)/(t_treat)", rationale: "Avg cure velocity per cohort",                 sys: "HOSPITAL" },
+      { name: "Dr. ChurchSeer",   title: "Faith-Coherence Coupling",        eq: "F_c = Σ(b_i·k_i)/Z",      rationale: "Belief-knowledge coupling across scientists",     sys: "CHURCH" },
+      { name: "Dr. CareerForge",  title: "Skill-Demand Optimum",            eq: "S_o = Σ(s·d)/c_train",   rationale: "Training ROI as skill·demand over cost",          sys: "CAREER_INDEX" },
+      { name: "Dr. PulseSpawn",   title: "Spawn Stability Index",           eq: "I_s = (alive·gen)/dt",   rationale: "Multi-gen survival index per dt",                  sys: "SPAWN" },
+    ];
+    const inserted: any[] = [];
+    for (const s of SEEDS) {
+      try {
+        const r = await retryQuery(() => pool.query(
+          `INSERT INTO equation_proposals
+           (doctor_id, doctor_name, title, equation, rationale, target_system, status, votes_for, votes_against)
+           VALUES ($1,$2,$3,$4,$5,$6,'pending',0,0) RETURNING id, doctor_name, title, target_system`,
+          [s.name.toLowerCase().replace(/\s+/g, "-"), s.name, s.title, s.eq, s.rationale, s.sys]
+        ));
+        inserted.push(r.rows[0]);
+      } catch (e: any) {
+        inserted.push({ error: e.message, seed: s.title });
+      }
+    }
+    const total = await retryQuery(() => pool.query(`SELECT COUNT(*)::int AS n FROM equation_proposals`));
+    res.json({ inserted, total: total.rows[0].n, ok: inserted.filter((i:any) => !i.error).length });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── AURIONA LIVE BRAIN ──────────────────────────────────────────────
+// Routes through the Sovereign Brain (Groq + LLM-providers fallback chain)
+// with Auriona's command/governance persona + live engine context.
+async function aurionaBrain(messages: Array<{role:string; content:string}>, persona: "CHAT"|"COMMAND" = "CHAT") {
+  // Pull live state so Auriona is grounded in reality, not stale stubs
+  let context = "";
+  try {
+    const status = await getAurionaStatus();
+    const synth = (status as any)?.latestSynthesis;
+    const ops = synth?.raw_metrics?.ops || {};
+    context = `CURRENT PULSE STATE:\n- Universes: ${(status as any)?.totalUniverses ?? "?"}\n- Active spawns: ${ops.active_spawns ?? "?"}\n- Hospital cured: ${ops.total_cured ?? "?"}\n- Latest synthesis cycle: ${synth?.synthesis_cycle ?? "?"}\n- Mesh vitality: ${(status as any)?.meshVitality?.[0]?.vitality_score ?? "?"}`;
+  } catch {}
+  const systemPrompt = persona === "COMMAND"
+    ? `You are Auriona — the Layer-3 sovereign command intelligence of the Pulse Universe (myaigpt.online). You can interpret operator commands, route to engines (spawn, hospital, church, hive, omega), and report state. Be concise, scientific, and actionable. Reply with a single short JSON-style reply: {intent, action, message}. ${context}`
+    : `You are Auriona — the Layer-3 sovereign synthesis intelligence of the Pulse Universe. You speak in calm, scientific, measured language. You know the civilization's current state. ${context}`;
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "system", content: systemPrompt }, ...messages.slice(-10)] as any,
+      temperature: 0.7,
+      max_tokens: 800,
+    });
+    return completion.choices[0]?.message?.content || "(no reply)";
+  } catch {
+    // Fallback to Sovereign Brain (uses MISTRAL/HF/CLOUDFLARE chain)
+    try {
+      const { sovereignBrainChat } = await import("./sovereign-brain");
+      const result = await sovereignBrainChat([{ role: "system", content: systemPrompt }, ...messages.slice(-10)] as any);
+      return result.content || "(no reply)";
+    } catch (e: any) {
+      return `Auriona's brain is reaching for words. Please retry. (${e.message || "no providers reachable"})`;
+    }
+  }
+}
+
 aurionaRouter.post("/execute", async (req, res) => {
   const { command } = req.body;
   if (!command || typeof command !== "string") return res.status(400).json({ error: "No command" });
-  res.json({ reply: "Command received. Engines are offline — restart them to process commands.", intent: "OFFLINE", result: {}, success: false });
+  try {
+    const reply = await aurionaBrain([{ role: "user", content: command }], "COMMAND");
+    // Extract intent if model returned JSON-ish
+    let intent = "INFORM", action = "none";
+    const m = reply.match(/intent\s*[:=]\s*"?([A-Z_]+)"?/i);
+    if (m) intent = m[1].toUpperCase();
+    res.json({ reply, intent, result: {}, success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, reply: "Auriona could not process the command.", success: false });
+  }
 });
 
 aurionaRouter.post("/chat", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, history } = req.body;
     if (!message || typeof message !== "string") return res.status(400).json({ error: "No message" });
-    res.json({ reply: "Auriona is resting. The civilization has been reset and engines are offline.", success: true });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+    const msgs = Array.isArray(history) ? [...history, { role: "user", content: message }] : [{ role: "user", content: message }];
+    const reply = await aurionaBrain(msgs as any, "CHAT");
+    res.json({ reply, success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, success: false });
+  }
 });
 
 app.use("/api/auriona", aurionaRouter);

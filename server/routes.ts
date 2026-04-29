@@ -9021,19 +9021,36 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/hospital/equation-proposals", async (req, res) => {
-    try {
-      const { getEquationProposals, countEquationProposals } = await import("./hospital-doctors");
-      const offset = Number(req.query.offset ?? 0);
-      const pageSize = Number(req.query.pageSize ?? 500);
-      const [proposals, total, byStatusRows] = await Promise.all([
-        getEquationProposals(undefined, offset, pageSize),
-        countEquationProposals(),
-        db.execute(sql`SELECT status, COUNT(*)::int AS count FROM equation_proposals GROUP BY status`),
-      ]);
-      const byStatus: Record<string, number> = {};
-      for (const row of byStatusRows.rows as any[]) byStatus[row.status] = row.count;
-      res.json({ proposals, total, offset, pageSize, byStatus });
-    } catch (e) { res.json({ proposals: [], total: 0, offset: 0, pageSize: 500, byStatus: {} }); }
+    // Raw SQL + retry on transient PG backpressure ("too many clients already")
+    const offset = Number(req.query.offset ?? 0);
+    const pageSize = Math.min(Number(req.query.pageSize ?? 50), 500);
+    const tryOnce = async () => Promise.all([
+      db.execute(sql`SELECT id, doctor_id, doctor_name, title, equation, rationale,
+                            target_system, status, votes_for, votes_against, created_at
+                     FROM equation_proposals
+                     ORDER BY created_at DESC NULLS LAST, id DESC
+                     LIMIT ${pageSize} OFFSET ${offset}`),
+      db.execute(sql`SELECT COUNT(*)::int AS n FROM equation_proposals`),
+      db.execute(sql`SELECT status, COUNT(*)::int AS count FROM equation_proposals GROUP BY status`),
+    ]);
+    let lastErr: any = null;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const [proposalsR, totalR, byStatusR] = await tryOnce();
+        const byStatus: Record<string, number> = {};
+        for (const row of byStatusR.rows as any[]) byStatus[row.status] = row.count;
+        return res.json({
+          proposals: proposalsR.rows ?? [],
+          total: (totalR.rows[0] as any)?.n ?? 0,
+          offset, pageSize, byStatus,
+        });
+      } catch (e: any) {
+        lastErr = e;
+        if (!/too many clients|connection terminated|ECONNRESET/i.test(e.message || "")) break;
+        await new Promise(r => setTimeout(r, 800 * (i + 1)));
+      }
+    }
+    res.json({ proposals: [], total: 0, offset: 0, pageSize: 500, byStatus: {}, error: lastErr?.message });
   });
 
   app.post("/api/hospital/equation-proposals/:id/vote", async (req, res) => {

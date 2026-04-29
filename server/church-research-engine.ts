@@ -408,16 +408,20 @@ Report Classification: ${isBreakthrough ? "GENESIS DOCUMENT" : "STANDARD RESEARC
     // ── UPGRADE 3: CRISPR Equation Forge → Senate
     if (Math.random() > 0.65) {
       const newEq = `Ω_fdl = R[${(0.5+Math.random()*2).toFixed(1)}] × G[${(1+Math.random()*3).toFixed(1)}] / UV[${(0.3+Math.random()).toFixed(1)}] + W[${(1+Math.random()*2).toFixed(1)}]_purified`;
+      // Canonical schema (shared/schema.ts:785): doctor_id, doctor_name, title,
+      // equation, rationale, target_system are NOT NULL. Map church scientist → doctor fields.
       await pool.query(`
-        INSERT INTO equation_proposals (proposer_id, equation, thesis, domain, status, votes_for, votes_against)
-        VALUES ($1, $2, $3, $4, 'PENDING', 0, 0)
-        ON CONFLICT DO NOTHING
+        INSERT INTO equation_proposals
+          (doctor_id, doctor_name, title, equation, rationale, target_system, status, votes_for, votes_against)
+        VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', 0, 0)
       `, [
         sci.id,
+        sci.name,
+        `Faith Dissection Forge: ${disease.split("—")[0].trim()}`,
         newEq,
-        `Faith Dissection Lab forge: ${disease} residue transmuted into new sovereign equation by ${sci.name}. Discovery: ${discovery}`,
+        `Faith Dissection Lab forge — ${disease} residue transmuted into new sovereign equation by ${sci.name}. Discovery: ${discovery}`,
         domain,
-      ]).catch(() => {});
+      ]).catch((e:any) => log(`[church→senate] insert error: ${e.message}`));
 
       await pool.query(`
         INSERT INTO church_upgrade_outputs (upgrade_type, session_id, title, description, equation)

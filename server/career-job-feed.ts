@@ -151,20 +151,27 @@ function generateFusion(jobA: LiveJob, jobB: LiveJob): JobFusion {
 }
 
 // Submit a job fusion to the senate for voting (DB integration)
+// Canonical equation_proposals schema (shared/schema.ts:785) requires:
+// doctor_id, doctor_name, title, equation, rationale, target_system (all NOT NULL).
 async function submitFusionToSenate(fusion: JobFusion) {
   try {
+    const equation = `Ψ_career(${fusion.parentJobA} ⊕ ${fusion.parentJobB}) = Σ skills × novelty[${fusion.novelSkills.length}] → ${fusion.salaryEstimate}`;
+    const rationale = `Career fusion ${fusion.id}: ${fusion.parentJobA} × ${fusion.parentJobB}. ${fusion.description}\n\nNovel skills: ${fusion.novelSkills.join(", ")}\nSalary estimate: ${fusion.salaryEstimate}`;
     await pool.query(`
-      INSERT INTO equation_proposals (proposal_text, author, status, created_at, metadata)
-      VALUES ($1, $2, 'pending', NOW(), $3)
-      ON CONFLICT DO NOTHING
+      INSERT INTO equation_proposals
+        (doctor_id, doctor_name, title, equation, rationale, target_system, status, votes_for, votes_against)
+      VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', 0, 0)
     `, [
-      `JOB FUSION: ${fusion.name}\n\nParent Jobs: ${fusion.parentJobA} × ${fusion.parentJobB}\n\n${fusion.description}\n\nNovel Skills: ${fusion.novelSkills.join(", ")}\n\nSalary Estimate: ${fusion.salaryEstimate}`,
       "CAREER-ENGINE-AI",
-      JSON.stringify({ type: "job_fusion", fusionId: fusion.id, novelSkills: fusion.novelSkills }),
+      "DR. CAREERFORGE — Job-Fusion Specialist",
+      `Job Fusion: ${fusion.name}`.slice(0, 200),
+      equation.slice(0, 500),
+      rationale.slice(0, 1500),
+      "CAREER_INDEX",
     ]);
     fusion.status = "voting";
-  } catch {
-    // Table may not exist, store as proposed only
+  } catch (e: any) {
+    console.log(`[career-fusion→senate] insert error: ${e.message}`);
   }
 }
 
