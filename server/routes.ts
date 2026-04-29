@@ -9063,6 +9063,61 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
+  // ── BILLY: 5 Dissection Labs + Live CRISPR Voting Stream ────────────────
+  // Slices the live equation_proposals stream into 5 cortical-interface labs
+  // (DT-1..DT-5) and exposes the latest pending proposals being voted on now.
+  app.get("/api/billy/dissection-stats", async (_req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const labelSql = `
+        CASE
+          WHEN doctor_id ILIKE 'BILLY%' OR doctor_id ILIKE '%APEX%' OR target_system ILIKE '%apex%' THEN 'DT5_APEX'
+          WHEN doctor_id ILIKE '%career%' OR target_system ILIKE '%career%' OR target_system ILIKE '%action%' THEN 'DT3_BASAL'
+          WHEN title ILIKE 'Cross-Reading%' OR title ILIKE 'Cross %' OR title ILIKE '%Synthesis%' THEN 'DT2_CORTEX'
+          WHEN doctor_id ILIKE 'sci-%' OR doctor_id ILIKE 'KERNEL%' OR doctor_name ILIKE '%Quantalis%' THEN 'DT4_HIPPO'
+          ELSE 'DT1_RETINO'
+        END`;
+      const [labsR, pendingR, totalsR] = await Promise.all([
+        directQuery(`
+          WITH labeled AS (
+            SELECT id, status, created_at, ${labelSql} AS lab,
+                   title, doctor_name
+            FROM equation_proposals
+          )
+          SELECT lab,
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE UPPER(status)='PENDING')::int AS pending,
+            COUNT(*) FILTER (WHERE UPPER(status) IN ('PASSED','INTEGRATED'))::int AS passed,
+            COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '60 minutes')::int AS last_hour,
+            (ARRAY_AGG(title ORDER BY created_at DESC))[1] AS latest_title,
+            (ARRAY_AGG(doctor_name ORDER BY created_at DESC))[1] AS latest_doctor
+          FROM labeled GROUP BY lab ORDER BY lab`),
+        directQuery(`
+          SELECT id, doctor_id, doctor_name, title, target_system,
+                 votes_for, votes_against, created_at,
+                 ${labelSql} AS lab
+          FROM equation_proposals
+          WHERE UPPER(status) = 'PENDING'
+          ORDER BY created_at DESC NULLS LAST, id DESC
+          LIMIT 10`),
+        directQuery(`
+          SELECT UPPER(status) AS status, COUNT(*)::int AS count
+          FROM equation_proposals
+          GROUP BY UPPER(status)`),
+      ]);
+      const totals: Record<string, number> = {};
+      for (const r of (totalsR.rows ?? []) as any[]) totals[r.status] = r.count;
+      res.json({
+        labs: labsR.rows ?? [],
+        pending: pendingR.rows ?? [],
+        totals,
+        ts: Date.now(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e), labs: [], pending: [], totals: {} });
+    }
+  });
+
   // ── EQUATION EVOLUTION ROUTES ────────────────────────────────────────────
   app.post("/api/equations/fuse", async (req, res) => {
     try {

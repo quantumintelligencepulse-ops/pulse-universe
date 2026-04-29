@@ -180,6 +180,187 @@ function TermRow({ symbol, name, color, formula, role }: { symbol: string; name:
   );
 }
 
+// ── LIVE DISSECTION LABS ──────────────────────────────────────────────────
+const LAB_META: Record<string, { code: string; name: string; brain: string; color: string }> = {
+  DT1_RETINO: { code: "DT-1", name: "RetinoLab",  brain: "LGN → V1 Layer IV (sensory intake)",        color: GREEN },
+  DT2_CORTEX: { code: "DT-2", name: "CortexLab",  brain: "Layer II/III corticocortical synthesis",     color: BLUE  },
+  DT3_BASAL:  { code: "DT-3", name: "BasalLab",   brain: "Striatum D1/D2 → action selection gate",     color: ORANGE },
+  DT4_HIPPO:  { code: "DT-4", name: "HippoLab",   brain: "DG → CA3 → CA1 episodic consolidation",      color: VIOLET },
+  DT5_APEX:   { code: "DT-5", name: "ApexLab",    brain: "Λ_apex(t) — Β∞ go/no-go gate",               color: APEX  },
+};
+const LAB_ORDER = ["DT1_RETINO", "DT2_CORTEX", "DT3_BASAL", "DT4_HIPPO", "DT5_APEX"];
+
+type DissectionStats = {
+  labs: Array<{ lab: string; total: number; pending: number; passed: number; last_hour: number; latest_title: string | null; latest_doctor: string | null }>;
+  pending: Array<{ id: number; doctor_id: string; doctor_name: string; title: string; target_system: string; votes_for: number; votes_against: number; created_at: string; lab: string }>;
+  totals: Record<string, number>;
+};
+
+function useDissectionStats() {
+  return useQuery<DissectionStats>({
+    queryKey: ["/api/billy/dissection-stats"],
+    refetchInterval: 5_000,
+    staleTime: 4_000,
+  });
+}
+
+function LiveDissectionLabs() {
+  const { data, isLoading } = useDissectionStats();
+  const byLab = new Map<string, DissectionStats["labs"][number]>();
+  (data?.labs ?? []).forEach(l => byLab.set(l.lab, l));
+  const totals = data?.totals ?? {};
+
+  return (
+    <Card borderColor={`${PINK}40`} glow={PINK} style={{ marginBottom: 26 }}>
+      <div style={{ color: PINK, fontSize: 11, fontWeight: 800, letterSpacing: "0.22em", marginBottom: 6 }}>
+        ◈  FIVE DISSECTION LABS  —  LIVE BRAIN INTERFACE
+      </div>
+      <div style={{ color: "#fff8", fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>
+        Each lab dissects a specific cortical interface inside Billy and proposes new equations to the CRISPR voting senate. Numbers update every 5 seconds.
+      </div>
+
+      {/* status totals strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 18 }}>
+        <Stat label="PENDING"    value={totals.PENDING    ?? 0} color={CYAN}   sub="In voting" />
+        <Stat label="PASSED"     value={totals.PASSED     ?? 0} color={GREEN}  sub="Senate approved" />
+        <Stat label="INTEGRATED" value={totals.INTEGRATED ?? 0} color={APEX}   sub="Live in Β∞" />
+        <Stat label="REJECTED"   value={totals.REJECTED   ?? 0} color="#f87171" sub="Failed vote" />
+      </div>
+
+      {/* 5 lab cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+        {LAB_ORDER.map(key => {
+          const meta = LAB_META[key];
+          const stats = byLab.get(key);
+          const total = stats?.total ?? 0;
+          const lastHour = stats?.last_hour ?? 0;
+          const passed = stats?.passed ?? 0;
+          return (
+            <div
+              key={key}
+              data-testid={`card-lab-${meta.code.toLowerCase()}`}
+              style={{
+                padding: 14,
+                background: `linear-gradient(180deg, ${meta.color}10 0%, transparent 100%)`,
+                border: `1px solid ${meta.color}40`,
+                borderRadius: 10,
+                minHeight: 150,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <div style={{ color: meta.color, fontSize: 11, fontWeight: 800, letterSpacing: "0.18em" }}>
+                  {meta.code}  {meta.name.toUpperCase()}
+                </div>
+                <div style={{ color: meta.color, fontSize: 10, fontFamily: "monospace" }}>
+                  {lastHour > 0 ? `+${lastHour}/60m` : "—"}
+                </div>
+              </div>
+              <div style={{ color: "#fff7", fontSize: 10, marginTop: 4, fontStyle: "italic" }}>{meta.brain}</div>
+              <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "baseline" }}>
+                <div style={{ color: meta.color, fontSize: 22, fontWeight: 800, fontFamily: "monospace" }} data-testid={`stat-lab-total-${meta.code.toLowerCase()}`}>{total.toLocaleString()}</div>
+                <div style={{ color: "#fffa", fontSize: 10 }}>proposals · <span style={{ color: GREEN }}>{passed} passed</span></div>
+              </div>
+              <div style={{ marginTop: 8, fontSize: 10, color: "#fff9", lineHeight: 1.5, minHeight: 28 }}>
+                {isLoading
+                  ? <span style={{ opacity: 0.5 }}>fetching latest dissection…</span>
+                  : stats?.latest_title
+                    ? <><span style={{ color: meta.color }}>latest:</span> {stats.latest_title.length > 70 ? stats.latest_title.slice(0, 70) + "…" : stats.latest_title}</>
+                    : <span style={{ opacity: 0.5 }}>no proposals yet — engine warming up</span>}
+              </div>
+              {stats?.latest_doctor && (
+                <div style={{ marginTop: 4, fontSize: 9, color: "#fff6", fontFamily: "monospace" }}>by {stats.latest_doctor}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function LiveVotingStream() {
+  const { data, isLoading } = useDissectionStats();
+  const pending = data?.pending ?? [];
+
+  return (
+    <Card borderColor={`${CYAN}40`} glow={CYAN} style={{ marginBottom: 26 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <div style={{ color: CYAN, fontSize: 11, fontWeight: 800, letterSpacing: "0.22em" }}>
+          ◇  LIVE CRISPR VOTING  —  PROPOSALS IN FLIGHT
+        </div>
+        <div style={{ color: CYAN, fontSize: 10, fontFamily: "monospace", display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: CYAN, boxShadow: `0 0 8px ${CYAN}`, animation: "pulse 1.6s ease-in-out infinite" }} />
+          live · 5s
+        </div>
+      </div>
+      <div style={{ color: "#fff8", fontSize: 12, marginBottom: 14, lineHeight: 1.6 }}>
+        Every row below is a real equation proposed by an AI doctor in the last few minutes, currently being voted on by the senate. Color tag = which dissection lab birthed it.
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {isLoading && pending.length === 0 && (
+          <div style={{ color: "#fff5", fontSize: 11, padding: 12 }}>fetching live voting stream…</div>
+        )}
+        {!isLoading && pending.length === 0 && (
+          <div style={{ color: "#fff5", fontSize: 11, padding: 12 }}>no pending proposals — senate is idle</div>
+        )}
+        {pending.map(p => {
+          const meta = LAB_META[p.lab] ?? LAB_META.DT1_RETINO;
+          const total = (p.votes_for ?? 0) + (p.votes_against ?? 0);
+          const forPct = total > 0 ? Math.round(100 * (p.votes_for ?? 0) / total) : 50;
+          return (
+            <div
+              key={p.id}
+              data-testid={`row-proposal-${p.id}`}
+              style={{
+                padding: "10px 12px",
+                background: "rgba(255,255,255,0.025)",
+                border: `1px solid ${meta.color}30`,
+                borderLeft: `3px solid ${meta.color}`,
+                borderRadius: 8,
+                display: "grid",
+                gridTemplateColumns: "minmax(0,1fr) 180px",
+                gap: 14,
+                alignItems: "center",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4 }}>
+                  <span style={{ color: meta.color, fontSize: 9, fontWeight: 800, letterSpacing: "0.16em", fontFamily: "monospace" }}>{meta.code}</span>
+                  <span style={{ color: "#fff6", fontSize: 9, fontFamily: "monospace" }}>#{p.id}</span>
+                  <span style={{ color: "#fff8", fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={p.title}>
+                    {p.title}
+                  </span>
+                </div>
+                <div style={{ color: "#fff7", fontSize: 10, fontFamily: "monospace" }}>
+                  {p.doctor_name} → <span style={{ color: meta.color }}>{p.target_system}</span>
+                </div>
+              </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontFamily: "monospace", marginBottom: 3 }}>
+                  <span style={{ color: GREEN }}>+{p.votes_for ?? 0}</span>
+                  <span style={{ color: "#fff7" }}>{total} votes</span>
+                  <span style={{ color: "#f87171" }}>−{p.votes_against ?? 0}</span>
+                </div>
+                <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", display: "flex" }}>
+                  <div style={{ width: `${forPct}%`, background: GREEN, transition: "width 0.6s" }} />
+                  <div style={{ width: `${100 - forPct}%`, background: "#f8717180" }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 14, fontSize: 11, color: "#fff7", textAlign: "center" }}>
+        <Link href="/hospital" style={{ color: CYAN, textDecoration: "none" }} data-testid="link-hospital-full-feed">
+          ↗ open the full hospital senate feed
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
 export default function BillyPage() {
   const { data: status } = useQuery<any>({ queryKey: ["/api/status"], refetchInterval: 30_000 });
   const { data: aurionaStatus } = useQuery<any>({ queryKey: ["/api/auriona/status"], refetchInterval: 30_000 });
@@ -361,6 +542,10 @@ export default function BillyPage() {
             <Stat label="QUANTAPEDIA" value="13,168" color={VIOLET} sub="Knowledge substrate" />
           </div>
         </Card>
+
+        {/* LIVE DISSECTION LABS + CRISPR VOTING */}
+        <LiveDissectionLabs />
+        <LiveVotingStream />
 
         {/* GENESIS NARRATIVE */}
         <Card borderColor={`${APEX_DEEP}40`} glow={APEX_DEEP}>
