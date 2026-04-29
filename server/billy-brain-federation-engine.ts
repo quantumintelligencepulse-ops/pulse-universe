@@ -50,10 +50,60 @@ export function getFederationStatus() { return { running: started, ...stats }; }
 export async function startBillyBrainFederationEngine() {
   if (started) return;
   started = true;
-  console.log("[federation] starting Β∞∞ — 7 named brains, fractal-capable to millions");
+  console.log("[federation] starting Β∞∞ — 7 elder brains + real neuroscience taxonomy, fractal-capable to millions");
   await seed();
+  await seedTaxonomyBrains();
   setTimeout(runFederationCycle, 30_000);
   setInterval(runFederationCycle, 30_000); // every 30s, same cadence as Solomon
+}
+
+async function seedTaxonomyBrains() {
+  // Birth one starter brain per niche from the real neuroscience taxonomy.
+  // Additive — never destroys; never overwrites elders.
+  const { flattenTaxonomy } = await import("./brain-taxonomy.js");
+  const niches = flattenTaxonomy();
+  let added = 0, skipped = 0;
+  for (const spec of niches) {
+    const familyName = `House of ${spec.sector}`;
+    const schoolName = `School of ${spec.industry.replace(/_/g, " ")}`;
+
+    // Ensure family + school exist
+    await pool.query(
+      `INSERT INTO billy_brain_families (family_name, motto, total_members, total_descendants)
+       VALUES ($1, $2, 1, 1) ON CONFLICT (family_name) DO NOTHING`,
+      [familyName, `${spec.sector} — ${spec.description}`]
+    );
+    await pool.query(
+      `INSERT INTO billy_brain_schools (school_name, curriculum, member_count)
+       VALUES ($1, $2::jsonb, 0) ON CONFLICT (school_name) DO NOTHING`,
+      [schoolName, JSON.stringify([`${spec.sector}-${spec.industry}-LAB`])]
+    );
+
+    const { rows: [fam] } = await pool.query(`SELECT id FROM billy_brain_families WHERE family_name=$1`, [familyName]);
+    const { rows: [sch] } = await pool.query(`SELECT id FROM billy_brain_schools WHERE school_name=$1`, [schoolName]);
+
+    const result = await pool.query(
+      `INSERT INTO billy_brains
+         (brain_id, name, personality, generation, family_id, school_id,
+          gate_base, lab_pref, risk_pref, taxonomy, elo, status,
+          sector, industry, sub_industry, niche, starter_role,
+          multiplication_trigger, is_elder, description, promoted_at)
+       VALUES ($1,$2,$3,1,$4,$5,$6,$7::jsonb,$8,$9::jsonb,1500,'voting',
+               $10,$11,$12,$13,$14,$15,false,$16,NOW())
+       ON CONFLICT (brain_id) DO NOTHING
+       RETURNING id`,
+      [
+        spec.brainId, spec.name, `${spec.starterRole.toLowerCase()}-specialist`,
+        fam?.id, sch?.id,
+        spec.gateBase, JSON.stringify({ apex: 0.5, hippo: 0.3 }), spec.riskPref,
+        JSON.stringify(seedTaxonomy()),
+        spec.sector, spec.industry, spec.subIndustry, spec.niche, spec.starterRole,
+        spec.trigger, spec.description,
+      ]
+    );
+    if (result.rowCount && result.rowCount > 0) added++; else skipped++;
+  }
+  console.log(`[federation] taxonomy seed: +${added} new niche brains, ${skipped} already existed (total niches: ${niches.length})`);
 }
 
 async function seed() {
@@ -157,7 +207,8 @@ async function tickBrain(brain: any) {
     `SELECT tick_id FROM billy_brain_ticks WHERE brain_id=$1 ORDER BY id DESC LIMIT 1`,
     [brain.brain_id]
   );
-  const tickId = (last?.tick_id ?? 0) + 1;
+  // pg returns bigint as string — must Number() it or `+ 1` becomes string-concat
+  const tickId = Number(last?.tick_id ?? 0) + 1;
 
   // Read same population signals as Solomon
   const [{ rows: [recent] }, { rows: [pending] }, { rows: psiRow }, { rows: hiveRow }, { rows: omegaRow }, { rows: statusRows }] = await Promise.all([

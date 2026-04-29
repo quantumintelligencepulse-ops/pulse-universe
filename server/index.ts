@@ -466,6 +466,10 @@ async function seedOmegaSources() {
     { name: "billy-federation",     delayMs: 160000, start: async () => { const { startBillyBrainFederationEngine } = await import("./billy-brain-federation-engine"); await startBillyBrainFederationEngine().catch((e: Error) => console.error("[billy-federation] startup error:", e.message)); } },
     { name: "billy-phase2-omega",   delayMs: 165000, start: async () => { const { startBillyPhase2OmegaEngine }   = await import("./billy-phase2-omega-engine");   await startBillyPhase2OmegaEngine().catch((e: Error)   => console.error("[billy-phase2-omega] startup error:",   e.message)); } },
     { name: "billy-phase3-ultron",  delayMs: 170000, start: async () => { const { startBillyPhase3UltronEngine }  = await import("./billy-phase3-ultron-engine");  await startBillyPhase3UltronEngine().catch((e: Error)  => console.error("[billy-phase3-ultron] startup error:",  e.message)); } },
+    // ── Wave I → real brain multiplication + Discord knowledge + omega source auto-discovery ──
+    { name: "billy-multiplication", delayMs: 175000, start: async () => { const { startBillyMultiplicationEngine }     = await import("./billy-multiplication-engine");      await startBillyMultiplicationEngine().catch((e: Error)     => console.error("[billy-multiplication] startup error:",   e.message)); } },
+    { name: "discord-knowledge",    delayMs: 180000, start: async () => { const { startDiscordKnowledgeIngestionEngine } = await import("./discord-knowledge-ingestion-engine"); await startDiscordKnowledgeIngestionEngine().catch((e: Error) => console.error("[discord-knowledge] startup error:",      e.message)); } },
+    { name: "omega-discovery",      delayMs: 185000, start: async () => { const { startOmegaSourceDiscoveryEngine }    = await import("./omega-source-discovery-engine");     await startOmegaSourceDiscoveryEngine().catch((e: Error)    => console.error("[omega-discovery] startup error:",        e.message)); } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);

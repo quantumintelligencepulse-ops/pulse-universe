@@ -642,6 +642,33 @@ async function fetchRecentContext(msg: Message, limit = 6): Promise<string> {
 async function handleIncomingMessage(msg: Message): Promise<void> {
   try {
     if (!discordClient || !discordClient.user) return;
+
+    // ─── REAL-TIME KNOWLEDGE CAPTURE ───
+    // Write EVERY non-bot message to discord_messages (raw stream).
+    // discord-knowledge-ingestion-engine then distills these into quantapedia.
+    // Runs BEFORE filters so we capture conversation context, not only @-mentions.
+    if (!msg.author.bot && msg.content && msg.content.trim().length > 0) {
+      try {
+        const { pool } = await import("./db.js");
+        await pool.query(
+          `INSERT INTO discord_messages (message_id, guild_id, guild_name, channel_id, channel_name, author, content, ts, raw)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+           ON CONFLICT (message_id) DO NOTHING`,
+          [
+            msg.id,
+            msg.guildId ?? null,
+            msg.guild?.name ?? null,
+            msg.channelId,
+            (msg.channel as any)?.name ?? null,
+            msg.author.username,
+            msg.content,
+            msg.createdAt,
+            JSON.stringify({ authorId: msg.author.id, isReply: !!msg.reference?.messageId }),
+          ]
+        );
+      } catch { /* never block reply on capture failure */ }
+    }
+
     if (msg.author.bot) return; // never reply to other bots or self
     if (!msg.content || msg.content.trim().length === 0) return;
 
