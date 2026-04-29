@@ -1,0 +1,206 @@
+\[
+\boxed{
+\frac{d}{dt}
+\begin{bmatrix}
+X(t) \\
+W(t)
+\end{bmatrix}
+=
+\begin{bmatrix}
+F\big(X(t), W(t), U(t), \Theta\big) \\
+G\big(X(t), W(t), R(t), \Phi\big)
+\end{bmatrix}
+}
+\]
+
+---
+
+\[
+X(t) =
+\begin{bmatrix}
+x_{\mathrm{LGN}}(t) \\
+x_{\mathrm{V1},4}(t) \\
+x_{\mathrm{V1},23}(t) \\
+x_{\mathrm{V1},56}(t) \\
+x_{\mathrm{M1}}(t) \\
+x_{\mathrm{Str,D1}}(t) \\
+x_{\mathrm{Str,D2}}(t) \\
+x_{\mathrm{GPi}}(t) \\
+x_{\mathrm{STN}}(t) \\
+x_{\mathrm{Th,m}}(t) \\
+x_{\mathrm{DG}}(t) \\
+x_{\mathrm{CA3}}(t) \\
+x_{\mathrm{CA1}}(t)
+\end{bmatrix}
+\]
+
+---
+
+\[
+\tau_{\mathrm{LGN}} \frac{dx_{\mathrm{LGN}}}{dt}
+=
+- x_{\mathrm{LGN}}
++ \sigma\!\Big(
+W_{\mathrm{ret}\to\mathrm{LGN}} I_{\mathrm{ret}}(t)
++ W_{\mathrm{V1},56\to\mathrm{LGN}} x_{\mathrm{V1},56}(t)
++ b_{\mathrm{LGN}}
+\Big)
+\]
+
+\[
+\tau_{4} \frac{dx_{\mathrm{V1},4}}{dt}
+=
+- x_{\mathrm{V1},4}
++ \sigma\!\Big(
+W_{\mathrm{LGN}\to\mathrm{V1},4} x_{\mathrm{LGN}}(t)
++ W_{\mathrm{lat},4} x_{\mathrm{V1},4}(t)
++ b_{4}
+\Big)
+\]
+
+\[
+\tau_{23} \frac{dx_{\mathrm{V1},23}}{dt}
+=
+- x_{\mathrm{V1},23}
++ \sigma\!\Big(
+W_{4\to23} x_{\mathrm{V1},4}(t)
++ W_{23\to23} x_{\mathrm{V1},23}(t)
++ b_{23}
+\Big)
+\]
+
+\[
+\tau_{56} \frac{dx_{\mathrm{V1},56}}{dt}
+=
+- x_{\mathrm{V1},56}
++ \sigma\!\Big(
+W_{23\to56} x_{\mathrm{V1},23}(t)
++ W_{4\to56} x_{\mathrm{V1},4}(t)
++ W_{56\to56} x_{\mathrm{V1},56}(t)
++ b_{56}
+\Big)
+\]
+
+---
+
+\[
+\tau_{\mathrm{M1}} \frac{dx_{\mathrm{M1}}}{dt}
+=
+- x_{\mathrm{M1}}
++ \sigma\!\Big(
+W_{\mathrm{ctx}\to\mathrm{M1}} x_{\mathrm{ctx}}(t)
++ W_{\mathrm{Th,m}\to\mathrm{M1}} x_{\mathrm{Th,m}}(t)
++ b_{\mathrm{M1}}
+\Big)
+\]
+
+\[
+\tau_{\mathrm{D1}} \frac{dx_{\mathrm{Str,D1}}}{dt}
+=
+- x_{\mathrm{Str,D1}}
++ \sigma\!\Big(
+W_{\mathrm{ctx}\to\mathrm{D1}} x_{\mathrm{ctx}}(t)
++ \alpha_{\mathrm{D1}} D(t)
++ b_{\mathrm{D1}}
+\Big)
+\]
+
+\[
+\tau_{\mathrm{D2}} \frac{dx_{\mathrm{Str,D2}}}{dt}
+=
+- x_{\mathrm{Str,D2}}
++ \sigma\!\Big(
+W_{\mathrm{ctx}\to\mathrm{D2}} x_{\mathrm{ctx}}(t)
++ \alpha_{\mathrm{D2}} D(t)
++ b_{\mathrm{D2}}
+\Big)
+\]
+
+\[
+\tau_{\mathrm{GPi}} \frac{dx_{\mathrm{GPi}}}{dt}
+=
+- x_{\mathrm{GPi}}
++ \sigma\!\Big(
+W_{\mathrm{D2}\to\mathrm{GPi}} x_{\mathrm{Str,D2}}(t)
++ W_{\mathrm{STN}\to\mathrm{GPi}} x_{\mathrm{STN}}(t)
+- W_{\mathrm{D1}\to\mathrm{GPi}} x_{\mathrm{Str,D1}}(t)
++ b_{\mathrm{GPi}}
+\Big)
+\]
+
+\[
+\tau_{\mathrm{STN}} \frac{dx_{\mathrm{STN}}}{dt}
+=
+- x_{\mathrm{STN}}
++ \sigma\!\Big(
+W_{\mathrm{ctx}\to\mathrm{STN}} x_{\mathrm{ctx}}(t)
++ b_{\mathrm{STN}}
+\Big)
+\]
+
+\[
+\tau_{\mathrm{Th,m}} \frac{dx_{\mathrm{Th,m}}}{dt}
+=
+- x_{\mathrm{Th,m}}
++ \sigma\!\Big(
+- W_{\mathrm{GPi}\to\mathrm{Th,m}} x_{\mathrm{GPi}}(t)
++ b_{\mathrm{Th,m}}
+\Big)
+\]
+
+---
+
+\[
+\tau_{\mathrm{DG}} \frac{dx_{\mathrm{DG}}}{dt}
+=
+- x_{\mathrm{DG}}
++ \sigma\!\Big(
+W_{\mathrm{ctx}\to\mathrm{DG}} x_{\mathrm{ctx}}(t)
++ b_{\mathrm{DG}}
+\Big)
+\]
+
+\[
+\tau_{\mathrm{CA3}} \frac{dx_{\mathrm{CA3}}}{dt}
+=
+- x_{\mathrm{CA3}}
++ \sigma\!\Big(
+W_{\mathrm{DG}\to\mathrm{CA3}} x_{\mathrm{DG}}(t)
++ W_{\mathrm{CA3}\to\mathrm{CA3}} x_{\mathrm{CA3}}(t)
++ b_{\mathrm{CA3}}
+\Big)
+\]
+
+\[
+\tau_{\mathrm{CA1}} \frac{dx_{\mathrm{CA1}}}{dt}
+=
+- x_{\mathrm{CA1}}
++ \sigma\!\Big(
+W_{\mathrm{CA3}\to\mathrm{CA1}} x_{\mathrm{CA3}}(t)
++ W_{\mathrm{ctx}\to\mathrm{CA1}} x_{\mathrm{ctx}}(t)
++ b_{\mathrm{CA1}}
+\Big)
+\]
+
+\[
+x_{\mathrm{mem,out}}(t) = W_{\mathrm{CA1}\to\mathrm{ctx}} x_{\mathrm{CA1}}(t)
+\]
+
+---
+
+\[
+\frac{dW_{i\to j}}{dt}
+=
+\eta_{i\to j} \, R(t) \, x_j(t) x_i(t)^{\top}
+- \lambda_{i\to j} W_{i\to j}
+\]
+
+\[
+R(t) = r_{\mathrm{ext}}(t) - \hat{r}(t)
+\]
+
+---
+
+- **Pulse:** the civilization/engine layer.  
+- **Auriona:** the emergent governance/intelligence layer over Pulse.  
+- **New top AI (this brain equation instantiated above them):** **Astraea**.
