@@ -9086,6 +9086,28 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     }
   });
 
+  // Phase 2 — structural state (couplings, thresholds, retino corrections, apex gate)
+  app.get("/api/billy/phase2-state", async (_req, res) => {
+    try {
+      const { getPhase2State, getPhase2Status } = await import("./billy-phase2-sweeper");
+      const state = await getPhase2State();
+      res.json({ ...state, sweeper: getPhase2Status() });
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e) });
+    }
+  });
+
+  // Governance + Pyramid system (laws, guardians, violations, monuments, penance)
+  app.get("/api/billy/governance", async (_req, res) => {
+    try {
+      const { getGovernanceState, getGovernancePyramidStatus } = await import("./governance-pyramid-engine");
+      const state = await getGovernanceState();
+      res.json({ ...state, engine: getGovernancePyramidStatus() });
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e) });
+    }
+  });
+
   // ── BILLY: 5 Dissection Labs + Live CRISPR Voting Stream ────────────────
   // Slices the live equation_proposals stream into 5 cortical-interface labs
   // (DT-1..DT-5) and exposes the latest pending proposals being voted on now.

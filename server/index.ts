@@ -104,6 +104,8 @@ import { startCivilizationWeatherEngine } from "./civilization-weather-engine";
 import { startKernelDissectionEngine } from "./kernel-dissection-engine";
 import { startBillyBrainEngine } from "./billy-brain-engine";
 import { startDissectionLabs } from "./dissection-labs-engine";
+import { startBillyPhase2Sweeper } from "./billy-phase2-sweeper";
+import { startGovernancePyramidEngine } from "./governance-pyramid-engine";
 import { startHiveIntelligenceEngine } from "./hive-intelligence-engine";
 import { startCareerCrisprEngine } from "./career-crispr-engine";
 import { startQuantumCareerEngine } from "./quantum-career-engine";
@@ -457,6 +459,9 @@ async function seedOmegaSources() {
     // ── Wave G → BILLY Β∞ brain layer (Phase 1 + 2) ─────────────────────────────
     { name: "billy-brain",          delayMs: 140000, start: () => startBillyBrainEngine().catch((e: Error) => console.error("[billy-brain] startup error:", e.message)) },
     { name: "dissection-labs",      delayMs: 145000, start: () => startDissectionLabs().catch((e: Error) => console.error("[dissection-labs] startup error:", e.message)) },
+    // ── Wave H → Phase 2 sweeper + Governance/Pyramid system ────────────────────
+    { name: "billy-phase2",         delayMs: 150000, start: () => startBillyPhase2Sweeper().catch((e: Error) => console.error("[billy-phase2] startup error:", e.message)) },
+    { name: "governance-pyramid",   delayMs: 155000, start: () => startGovernancePyramidEngine().catch((e: Error) => console.error("[governance] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);

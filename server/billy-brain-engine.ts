@@ -12,9 +12,13 @@ import { pool } from "./db";
 let tickId = 0;
 let lastPsi = 0;
 let started = false;
+let brainGateOpen = true;
+
+/** True when last brain tick committed; engines that opt-in should respect this. */
+export function isBrainGateOpen() { return brainGateOpen; }
 
 export function getBrainEngineStatus() {
-  return { running: started, tickId };
+  return { running: started, tickId, gateOpen: brainGateOpen };
 }
 
 export async function startBillyBrainEngine() {
@@ -93,7 +97,17 @@ async function runTick() {
 
     const N_omega = Math.max(omegaCoeff * 4, 0.5);          // normalizer
     const lambdaApex = H / N_omega;                         // dimensionless
-    const decision = lambdaApex > 1 ? "aborted_entropy" : "tick";
+
+    // ── consult ApexLab's PASSED gate threshold (Phase 2) ────────────────
+    let thetaApex = 1.0;
+    try {
+      const ph2: any = await import("./billy-phase2-sweeper");
+      if (typeof ph2.getCurrentApexThreshold === "function") {
+        thetaApex = await ph2.getCurrentApexThreshold();
+      }
+    } catch { /* keep default */ }
+    const decision = lambdaApex >= thetaApex ? "aborted_entropy" : "tick";
+    brainGateOpen = (decision === "tick");
 
     // ── reward / TD error ────────────────────────────────────────────────
     const psiNow = ca1;
