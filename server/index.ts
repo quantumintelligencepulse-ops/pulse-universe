@@ -121,20 +121,6 @@ declare module "http" {
 
 app.use(compression({ level: 6, threshold: 1024 }));
 
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const signature = req.headers['stripe-signature'];
-    if (!signature) return res.status(400).json({ error: 'Missing stripe-signature' });
-    const sig = Array.isArray(signature) ? signature[0] : signature;
-    const { WebhookHandlers } = await import('./webhookHandlers');
-    await WebhookHandlers.processWebhook(req.body as Buffer, sig);
-    res.status(200).json({ received: true });
-  } catch (error: any) {
-    console.error('[stripe] Webhook error:', error.message);
-    res.status(400).json({ error: 'Webhook processing error' });
-  }
-});
-
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -354,22 +340,6 @@ async function seedOmegaSources() {
 }
 
 (async () => {
-  (async () => {
-    try {
-      const { runMigrations } = await import('stripe-replit-sync');
-      await runMigrations({ databaseUrl: process.env.DATABASE_URL!, schema: 'stripe' });
-      console.log('[stripe] ✅ Stripe schema ready');
-      const { getStripeSync } = await import('./stripeClient');
-      const stripeSync = await getStripeSync();
-      const webhookBaseUrl = `https://${(process.env.REPLIT_DOMAINS || '').split(',')[0]}`;
-      await stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`);
-      console.log('[stripe] ✅ Webhook configured');
-      stripeSync.syncBackfill().then(() => console.log('[stripe] ✅ Data synced')).catch((e: any) => console.error('[stripe] sync error:', e.message));
-    } catch (e: any) {
-      console.warn('[stripe] Init skipped:', e.message?.slice(0, 100));
-    }
-  })();
-
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

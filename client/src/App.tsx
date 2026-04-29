@@ -13,8 +13,6 @@ const PublicationDetailPage = lazy(() => import("./pages/PublicationDetailPage")
 const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 // ForgeAIPage removed entirely (page, route, nav link, server engine, DB tables).
 const MissionControlPage = lazy(() => import("./pages/MissionControlPage"));
-const ApiPricingPage = lazy(() => import("./pages/ApiPricingPage"));
-const RevenueDashboardPage = lazy(() => import("./pages/RevenueDashboardPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
@@ -407,61 +405,6 @@ function AuthModal() {
           </button>
         </p>
       </div>
-    </div>
-  );
-}
-
-function StripePaywall() {
-  const { user, setShowAuthModal } = useAuth();
-  const paywallRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (user && paywallRef.current && !paywallRef.current.querySelector("stripe-buy-button")) {
-      const btn = document.createElement("stripe-buy-button");
-      btn.setAttribute("buy-button-id", "buy_btn_1T4l1iB1ElS3CRgPLlvxieIS");
-      btn.setAttribute("publishable-key", "pk_live_51LN4UmB1ElS3CRgPDMJle5JfwZh9iwzDtD900oHDTcPQfPaoGSKEUMhq3MYsFv9SfR1e8Ox5FOpDIALB7MIpEdVo0033Y4vBii");
-      btn.setAttribute("client-reference-id", String(user.id));
-      btn.setAttribute("customer-email", user.email);
-      paywallRef.current.appendChild(btn);
-    }
-  }, [user]);
-
-  const handlePaidClick = async () => {
-    try {
-      const r = await fetch("/api/auth/upgrade", { method: "POST", credentials: "include" });
-      if (r.ok) { localStorage.setItem("myaigpt_msg_count", "0"); window.location.reload(); }
-    } catch {}
-  };
-
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center p-6 max-w-md mx-auto text-center" data-testid="paywall-section">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center mb-4 shadow-lg">
-          <Crown size={28} className="text-white" />
-        </div>
-        <h3 className="text-lg font-bold text-foreground mb-1">Sign in to Continue</h3>
-        <p className="text-sm text-muted-foreground mb-4">Create a free account or sign in to keep chatting with My Ai Gpt.</p>
-        <button onClick={() => setShowAuthModal(true)} data-testid="button-paywall-signin"
-          className="px-6 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white font-bold rounded-xl text-sm hover:from-amber-500 hover:to-yellow-600 transition-all shadow-md flex items-center gap-2">
-          <LogIn size={16} /> Sign In / Sign Up
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center p-6 max-w-md mx-auto text-center" data-testid="paywall-section">
-      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mb-4 shadow-lg">
-        <Crown size={28} className="text-white" />
-      </div>
-      <h3 className="text-lg font-bold text-foreground mb-1">Upgrade to Pro</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        You've reached your free message limit. Upgrade to unlock unlimited access to My Ai Gpt and My Ai Coder.
-      </p>
-      <div ref={paywallRef} className="mb-4" />
-      <button onClick={handlePaidClick} data-testid="button-already-paid"
-        className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 mt-2 underline">
-        I already paid — unlock my account
-      </button>
     </div>
   );
 }
@@ -10966,8 +10909,6 @@ function Router() {
       <Route path="/story/:articleId" component={StoryReaderPage} />
       <Route path="/agents">{() => <Layout><SovereignAgentDossierPage /></Layout>}</Route>
       <Route path="/mission-control">{() => <Layout><MissionControlPage /></Layout>}</Route>
-      <Route path="/api-pricing">{() => <ApiPricingPage />}</Route>
-      <Route path="/revenue">{() => <Layout><RevenueDashboardPage /></Layout>}</Route>
       <Route path="/transcendence">{() => <Layout><TranscendencePage /></Layout>}</Route>
       <Route path="/temporal">{() => <Layout><TemporalObservatoryPage /></Layout>}</Route>
       <Route path="/invocation-lab">{() => <Layout><InvocationLabPage /></Layout>}</Route>
