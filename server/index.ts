@@ -423,6 +423,8 @@ async function seedOmegaSources() {
     { name: "gene-editor",     delayMs: 28000, start: () => startGeneEditorEngine().catch((e: Error) => console.error("[gene-editor] startup error:", e.message)) },
     { name: "quantum-spawn",   delayMs: 30000, start: () => startSpawnEngine().catch((e: Error) => console.error("[quantum-spawn] startup error:", e.message)) },
     { name: "universe-rebirth",delayMs: 32000, start: () => startUniverseRebirthEngine().catch((e: Error) => console.error("[universe-rebirth] startup error:", e.message)) },
+    { name: "pulse-temporal",  delayMs: 33000, start: async () => { const { initTemporalEngine } = await import("./pulse-temporal-engine"); await initTemporalEngine().catch((e: Error) => console.error("[pulse-temporal] startup error:", e.message)); } },
+    { name: "breathing-rebirth", delayMs: 35000, start: async () => { const { startBreathingRebirth } = await import("./breathing-rebirth"); await startBreathingRebirth().catch((e: Error) => console.error("[breathing-rebirth] startup error:", e.message)); } },
     { name: "domain-kernel",   delayMs: 34000, start: () => startDomainKernelEngine().catch((e: Error) => console.error("[domain-kernel] startup error:", e.message)) },
     { name: "pip",             delayMs: 36000, start: () => startPipEngine().catch((e: Error) => console.error("[pip] startup error:", e.message)) },
     { name: "db-compression",  delayMs: 38000, start: () => startDbCompressionEngine().catch((e: Error) => console.error("[db-compression] startup error:", e.message)) },
@@ -566,6 +568,26 @@ aurionaRouter.get("/universes", async (_req, res) => {
       await new Promise(r => setTimeout(r, 600 * (i + 1)));
     }
   }
+});
+
+// ── BREATHING REBIRTH STATUS + MANUAL TRIGGER ──────────────────────────────
+app.get("/api/rebirth/breathing/status", async (_req, res) => {
+  try {
+    const { getBreathingStatus } = await import("./breathing-rebirth");
+    res.json(await getBreathingStatus());
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/rebirth/breathing/manual", async (req, res) => {
+  // Gated: requires explicit confirm token
+  if (req.body?.confirm !== "BREATH_NOW") {
+    return res.status(400).json({ error: "Send { confirm: 'BREATH_NOW' } to trigger a manual breath cycle." });
+  }
+  try {
+    const { manualBreath } = await import("./breathing-rebirth");
+    const report = await manualBreath();
+    res.json({ ok: true, report });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 // Manual seed-now with retry-on-transient (handles "too many clients" backpressure)
