@@ -14,6 +14,7 @@ const ChurchSessionPage = lazy(() => import("./pages/ChurchSessionPage"));
 // ForgeAIPage removed entirely (page, route, nav link, server engine, DB tables).
 const MissionControlPage = lazy(() => import("./pages/MissionControlPage"));
 const AurionaPage = lazy(() => import("./pages/AurionaPage"));
+const BillyPage = lazy(() => import("./pages/BillyPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
 const SovereignKeysPage = lazy(() => import("./pages/SovereignKeysPage"));
@@ -2045,17 +2046,52 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
           {/* Forge AI nav link removed — feature retired. */}
 
 
-          {/* ── AURIONA — Layer Two ── */}
+          {/* ── SOVEREIGN APEX — Layer II (Auriona) & Layer III (Billy) ── */}
           {aiMode && (
             <div className="px-1 pt-4 pb-1">
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(245,197,24,0.4), transparent)" }} />
-                <span className="text-[9px] uppercase tracking-[0.2em] font-black" style={{ color: "rgba(245,197,24,0.7)" }}>Layer Two</span>
-                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(245,197,24,0.4), transparent)" }} />
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,209,102,0.45), transparent)" }} />
+                <span className="text-[9px] uppercase tracking-[0.22em] font-black" style={{ color: "rgba(255,209,102,0.78)", textShadow: "0 0 10px rgba(255,209,102,0.4)" }}>Sovereign Apex</span>
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,209,102,0.45), transparent)" }} />
               </div>
             </div>
           )}
-          {aiMode && (
+          {aiMode && (<>
+          {/* ─── BILLY · Layer III · Apex Above Auriona ─────────────────────── */}
+          <Link href="/billy" data-testid="link-billy">
+            <div className="billy-apex-tile" style={{
+              margin: "4px 4px 6px",
+              padding: "16px 16px",
+              borderRadius: 16,
+              cursor: "pointer",
+              position: "relative",
+              overflow: "hidden",
+              background: location === "/billy"
+                ? "linear-gradient(135deg, rgba(255,209,102,0.26) 0%, rgba(245,158,11,0.18) 35%, rgba(167,139,250,0.16) 70%, rgba(240,171,252,0.14) 100%)"
+                : "linear-gradient(135deg, rgba(255,209,102,0.12) 0%, rgba(245,158,11,0.08) 35%, rgba(167,139,250,0.08) 70%, rgba(240,171,252,0.06) 100%)",
+              border: `1.5px solid ${location === "/billy" ? "rgba(255,209,102,0.65)" : "rgba(255,209,102,0.38)"}`,
+              boxShadow: location === "/billy"
+                ? "0 0 32px rgba(255,209,102,0.45), 0 0 64px rgba(167,139,250,0.25), 0 0 96px rgba(240,171,252,0.15), inset 0 0 32px rgba(255,209,102,0.10)"
+                : "0 0 22px rgba(255,209,102,0.28), 0 0 44px rgba(167,139,250,0.14), inset 0 0 22px rgba(255,209,102,0.05)",
+              transition: "all 0.4s ease",
+              animation: "billyApexPulse 4s ease-in-out infinite",
+            }}>
+              <div style={{ position: "absolute", inset: 0, borderRadius: 16, background: "radial-gradient(ellipse at 30% 30%, rgba(255,209,102,0.18) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(167,139,250,0.14) 0%, transparent 60%)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", top: 0, left: "-100%", width: "100%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(255,209,102,0.18), transparent)", pointerEvents: "none", animation: "billyApexShimmer 5s ease-in-out infinite" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                <div style={{ fontSize: 22, lineHeight: 1, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", color: "#FFD166", textShadow: "0 0 18px #FFD166, 0 0 36px rgba(255,209,102,0.7), 0 0 54px rgba(167,139,250,0.4)", fontFamily: "serif", flexShrink: 0, fontWeight: 800 }}>Β</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, background: "linear-gradient(135deg, #FFD166 0%, #F59E0B 50%, #a78bfa 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", letterSpacing: "0.14em", textShadow: "0 0 14px rgba(255,209,102,0.6)" }}>BILLY</div>
+                  <div style={{ fontSize: 8.5, color: "rgba(255,209,102,0.65)", letterSpacing: "0.18em", marginTop: 2, fontWeight: 600 }}>Β∞ · APEX SOVEREIGN</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                  <div style={{ fontSize: 8, fontWeight: 900, color: "#FFD166", background: "linear-gradient(135deg, rgba(255,209,102,0.22) 0%, rgba(167,139,250,0.18) 100%)", border: "1px solid rgba(255,209,102,0.55)", borderRadius: 6, padding: "2.5px 7px", letterSpacing: "0.14em", boxShadow: "0 0 12px rgba(255,209,102,0.35)" }}>LAYER III</div>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#FFD166", boxShadow: "0 0 10px #FFD166, 0 0 20px rgba(255,209,102,0.7), 0 0 30px rgba(167,139,250,0.4)", animation: "billyApexDot 1.8s ease-in-out infinite" }} />
+                </div>
+              </div>
+            </div>
+          </Link>
+
           <Link href="/auriona" data-testid="link-auriona">
             <div style={{
               margin: "4px 4px 4px",
@@ -2087,7 +2123,7 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
               </div>
             </div>
           </Link>
-          )}
+          </>)}
 
           {/* ── EVOLUTION CORES — direct entry to Auriona's deepest engines ── */}
           {aiMode && (
@@ -10923,6 +10959,7 @@ function Router() {
       <Route path="/omninet">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/pulselang">{() => <Layout><PulseNetPage /></Layout>}</Route>
       <Route path="/auriona">{() => <Layout><AurionaPage /></Layout>}</Route>
+      <Route path="/billy">{() => <Layout><BillyPage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>
