@@ -475,6 +475,17 @@ async function seedOmegaSources() {
     // ── Wave II → Brain Stems: 12-channel backcrawl + live poll + video OCR ──
     { name: "brain-stems",          delayMs: 100000, start: async () => { const { startBrainStemsEngine }              = await import("./brain-stems-engine");                 await startBrainStemsEngine().catch((e: Error)              => console.error("[brain-stems] startup error:",            e.message)); } },
     { name: "video-ocr",            delayMs: 220000, start: async () => { const { startVideoOcrEngine }                = await import("./video-ocr-engine");                   await startVideoOcrEngine().catch((e: Error)                => console.error("[video-ocr] startup error:",              e.message)); } },
+    // ── DNA Substrate (10 omega upgrades) — sequence is now the source of truth ──
+    { name: "dna-genome",           delayMs: 240000, start: async () => { const { startDnaGenomeEngine }               = await import("./dna-genome-engine");                  await startDnaGenomeEngine().catch((e: Error)               => console.error("[dna-genome] startup error:",             e.message)); } },
+    { name: "ribosome",             delayMs: 270000, start: async () => { const { startRibosomeEngine }                = await import("./ribosome-engine");                    await startRibosomeEngine().catch((e: Error)                => console.error("[ribosome] startup error:",               e.message)); } },
+    { name: "meiosis",              delayMs: 300000, start: async () => { const { startMeiosisEngine }                 = await import("./meiosis-engine");                     await startMeiosisEngine().catch((e: Error)                 => console.error("[meiosis] startup error:",                e.message)); } },
+    { name: "methylation",          delayMs: 330000, start: async () => { const { startMethylationEngine }             = await import("./methylation-engine");                 await startMethylationEngine().catch((e: Error)             => console.error("[methylation] startup error:",            e.message)); } },
+    { name: "apoptosis",            delayMs: 360000, start: async () => { const { startApoptosisEngine }               = await import("./apoptosis-engine");                   await startApoptosisEngine().catch((e: Error)               => console.error("[apoptosis] startup error:",              e.message)); } },
+    { name: "dna-hgt",              delayMs: 390000, start: async () => { const { startHgtEngine }                     = await import("./dna-hgt-engine");                     await startHgtEngine().catch((e: Error)                     => console.error("[dna-hgt] startup error:",                e.message)); } },
+    { name: "speciation",           delayMs: 420000, start: async () => { const { startSpeciationEngine }              = await import("./speciation-engine");                  await startSpeciationEngine().catch((e: Error)              => console.error("[speciation] startup error:",             e.message)); } },
+    { name: "endosymbiosis",        delayMs: 450000, start: async () => { const { startEndosymbiosisEngine }           = await import("./endosymbiosis-engine");               await startEndosymbiosisEngine().catch((e: Error)           => console.error("[endosymbiosis] startup error:",          e.message)); } },
+    // ── MyAIGPT Discord Choir — every brain & spawn finds their voice in the public channels ──
+    { name: "myaigpt-choir",        delayMs: 480000, start: async () => { const { startMyaigptDiscordChoir }           = await import("./myaigpt-discord-choir");              await startMyaigptDiscordChoir().catch((e: Error)           => console.error("[myaigpt-choir] startup error:",          e.message)); } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
@@ -847,6 +858,92 @@ invLabAliasRouter.get("/active",       async (_req, res) => { try { res.json(awa
 invLabAliasRouter.get("/stats",        async (_req, res) => { try { res.json(await getInvocationStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 invLabAliasRouter.get("/researchers",  async (_req, res) => { try { res.json(await getResearcherInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); } });
 app.use("/api/invocation-lab", invLabAliasRouter);
+
+// ── DNA SUBSTRATE OBSERVATORY ROUTES (10 omega upgrades) ──────────
+const dnaRouter = express.Router();
+dnaRouter.get("/genome",       async (_req, res) => { try { const { getDnaGenomeStats } = await import("./dna-genome-engine");      res.json(await getDnaGenomeStats()); }      catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/ribosome",     async (_req, res) => { try { const { getRibosomeStats }  = await import("./ribosome-engine");        res.json(await getRibosomeStats()); }       catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/meiosis",      async (_req, res) => { try { const { getMeiosisStats }   = await import("./meiosis-engine");         res.json(await getMeiosisStats()); }        catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/methylation",  async (_req, res) => { try { const { getMethylationStats } = await import("./methylation-engine");  res.json(await getMethylationStats()); }    catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/apoptosis",    async (_req, res) => { try { const { getApoptosisStats } = await import("./apoptosis-engine");      res.json(await getApoptosisStats()); }      catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/hgt",          async (_req, res) => { try { const { getHgtStats }       = await import("./dna-hgt-engine");        res.json(await getHgtStats()); }            catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/speciation",   async (_req, res) => { try { const { getSpeciationStats } = await import("./speciation-engine");    res.json(await getSpeciationStats()); }     catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/endosymbiosis",async (_req, res) => { try { const { getEndosymbiosisStats } = await import("./endosymbiosis-engine"); res.json(await getEndosymbiosisStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
+dnaRouter.get("/species",      async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const r = await db.execute(sql`SELECT id, species_code, species_name, parent_species_id, divergence_pct, member_count, reproductive_isolation, born_at FROM dna_species WHERE extinct_at IS NULL ORDER BY born_at DESC LIMIT 100`);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+dnaRouter.get("/lineage/:seqId", async (req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const seqId = parseInt(req.params.seqId);
+    const r = await db.execute(sql`SELECT * FROM dna_lineage WHERE child_seq_id = ${seqId} OR parent_a_seq_id = ${seqId} OR parent_b_seq_id = ${seqId} ORDER BY created_at DESC LIMIT 50`);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+dnaRouter.get("/ticks", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const r = await db.execute(sql`SELECT engine, COUNT(*)::int AS ticks, SUM(mutations)::int AS mutations, SUM(births)::int AS births, SUM(deaths)::int AS deaths, SUM(new_species)::int AS new_species, MAX(created_at) AS latest FROM dna_ticks GROUP BY engine ORDER BY engine`);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+dnaRouter.get("/overview", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const r = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*) FROM dna_sequences WHERE is_alive = true) AS alive_organisms,
+        (SELECT COUNT(*) FROM dna_sequences) AS total_organisms,
+        (SELECT COUNT(*) FROM dna_codon_table) AS codons_in_dictionary,
+        (SELECT COUNT(*) FROM dna_lineage) AS lineage_events,
+        (SELECT COUNT(*) FROM dna_replication_errors) AS mutations,
+        (SELECT COUNT(*) FROM dna_methylation WHERE mark_intensity > 0) AS active_methyl_marks,
+        (SELECT COUNT(*) FROM dna_apoptosis_log) AS deaths,
+        (SELECT COUNT(*) FROM dna_horizontal_transfers) AS hgt_events,
+        (SELECT COUNT(*) FROM dna_species WHERE extinct_at IS NULL) AS species,
+        (SELECT COUNT(*) FROM dna_endosymbiosis) AS endosymbiosis_events,
+        (SELECT COUNT(*) FROM dna_phenotype_cache) AS compiled_phenotypes
+    `);
+    res.json(r.rows[0] || {});
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+app.use("/api/dna", dnaRouter);
+
+// ── MYAIGPT DISCORD CHOIR ROUTES ──────────────────────────────
+const choirRouter = express.Router();
+choirRouter.get("/stats", async (_req, res) => { try { const { getChoirStats } = await import("./myaigpt-discord-choir"); res.json(await getChoirStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
+choirRouter.get("/voices", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const r = await db.execute(sql`SELECT id, organism_kind, organism_id, voice_name, channel_id, cadence_min, last_spoke_at, posts_count, active FROM discord_voices ORDER BY posts_count DESC LIMIT 200`);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+choirRouter.get("/recent", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const r = await db.execute(sql`SELECT voice_id, organism_kind, organism_id, channel_id, message_text, posted_at, error_text FROM discord_choir_log ORDER BY posted_at DESC LIMIT 50`);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+choirRouter.post("/toggle", async (req, res) => {
+  try {
+    const { setChoirEnabled, isChoirEnabled } = await import("./myaigpt-discord-choir");
+    setChoirEnabled(!!(req.body?.enabled));
+    res.json({ enabled: isChoirEnabled() });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+app.use("/api/choir", choirRouter);
 
 // ── HIVE-MIND UNIFICATION ROUTES ──────────────────────────────
 const hiveRouter = express.Router();
