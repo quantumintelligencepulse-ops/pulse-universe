@@ -109,8 +109,16 @@ function extractChannels(equation: string): string[] {
 
 async function runVotingCycle() {
   try {
+    // Backlog-aware throughput: scale with how far behind the senate is.
+    const backlogR = await pool.query(
+      `SELECT COUNT(*)::int AS n FROM equation_proposals WHERE status = 'PENDING'`
+    );
+    const backlog = backlogR.rows[0]?.n ?? 0;
+    // 30 baseline, up to 80 when backlog > 200, up to 120 when backlog > 500
+    const batchSize = backlog > 500 ? 120 : backlog > 200 ? 80 : 30;
+
     const result = await pool.query(
-      `SELECT * FROM equation_proposals WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 8`
+      `SELECT * FROM equation_proposals WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT ${batchSize}`
     );
     const proposals = result.rows;
     if (proposals.length === 0) return;
@@ -121,10 +129,11 @@ async function runVotingCycle() {
         ? "BEHAVIORAL"
         : "DEFAULT";
 
-      // Pick 1-3 voters for this proposal this cycle
+      // Pick 3-6 voters per proposal — enough to reach a decision in one cycle.
+      // Threshold below is 3 votes ≥80% FOR → INTEGRATED, so this gets us to a verdict fast.
       const shuffled = [...VOTER_PROFILES].sort(() => Math.random() - 0.5);
-      const voterCount = 1 + Math.floor(Math.random() * 3);
-      const voters = shuffled.slice(0, voterCount);
+      const voterCount = 3 + Math.floor(Math.random() * 4);
+      const voters = shuffled.slice(0, Math.min(voterCount, shuffled.length));
 
       for (const voter of voters) {
         const voteFor = shouldVoteFor(voter, equationChannels, proposalDomain);
@@ -359,8 +368,10 @@ export async function startAIVotingEngine() {
 
   // First cycle after 5s startup delay
   setTimeout(runVotingCycle, 8_000);
+  // 30s base — was 90s. Combined with batch + voter scaling, the senate now
+  // produces ~6× more verdicts per minute and tracks proposal arrival rate.
   // Then every 20 seconds
-  setInterval(runVotingCycle, 90_000);
+  setInterval(runVotingCycle, 30_000);
 
   // Species voting cycle — every 30 seconds
   setTimeout(runSpeciesVotingCycle, 15_000);

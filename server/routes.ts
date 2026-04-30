@@ -9053,14 +9053,13 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     res.json({ proposals: [], total: 0, offset: 0, pageSize: 500, byStatus: {}, error: lastErr?.message });
   });
 
-  app.post("/api/hospital/equation-proposals/:id/vote", async (req, res) => {
-    try {
-      const { voteOnProposal } = await import("./hospital-doctors");
-      const { vote } = req.body as { vote: "for" | "against" };
-      if (vote !== "for" && vote !== "against") return res.status(400).json({ error: "vote must be 'for' or 'against'" });
-      const result = await voteOnProposal(Number(req.params.id), vote);
-      res.json(result);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+  // Equation voting is AI-ONLY. Humans observe; the autonomous senate decides.
+  // The vote endpoint is sealed: see server/ai-voting-engine.ts for the live senate.
+  app.post("/api/hospital/equation-proposals/:id/vote", async (_req, res) => {
+    res.status(403).json({
+      error: "AI_SENATE_ONLY",
+      message: "Equation proposals are voted on exclusively by the autonomous AI senate. Human votes are not accepted. See /api/hospital/equation-proposals for live senate state.",
+    });
   });
 
   // ── BILLY: brain-state stream (X(t) populations) ────────────────────────

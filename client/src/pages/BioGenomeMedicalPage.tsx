@@ -141,11 +141,8 @@ export default function BioGenomeMedicalPage() {
   const { data: churchScientists = [] } = useQuery<any[]>({ queryKey:["/api/church/scientists"],     refetchInterval:60000 });
   // bibleVerses query removed — CHURCH tab now imports canonical CHAPTERS from TranscendencePage.tsx
 
-  const voteMut = useMutation({
-    mutationFn: ({ id, vote }: { id:number; vote:"for"|"against" }) =>
-      apiRequest("POST", `/api/hospital/equation-proposals/${id}/vote`, { vote }),
-    onSuccess: () => qc.invalidateQueries({ queryKey:["/api/hospital/equation-proposals"] }),
-  });
+  // ── Equation voting is AI-ONLY. Humans observe; the senate decides. ──
+  // The vote mutation was removed. See server/ai-voting-engine.ts for the autonomous senate.
 
   const activePatients  = (patients as any[]).filter((p) => !p.cureApplied);
   const curedPatients   = (patients as any[]).filter((p) => p.cureApplied);
@@ -510,19 +507,13 @@ export default function BioGenomeMedicalPage() {
                       </div>
                     )}
                     {ep.status === "PENDING" && (
-                      <div className="flex gap-2 mt-3">
-                        <button data-testid={`btn-vote-for-${ep.id}`}
-                          onClick={() => voteMut.mutate({ id:ep.id, vote:"for" })}
-                          className="flex-1 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all hover:opacity-90"
-                          style={{ background:`${C.green}20`, color:C.green, border:`1px solid ${C.green}40` }}>
-                          ▲ VOTE FOR
-                        </button>
-                        <button data-testid={`btn-vote-against-${ep.id}`}
-                          onClick={() => voteMut.mutate({ id:ep.id, vote:"against" })}
-                          className="flex-1 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all hover:opacity-90"
-                          style={{ background:`${C.red}20`, color:C.red, border:`1px solid ${C.red}40` }}>
-                          ▼ VOTE AGAINST
-                        </button>
+                      <div
+                        className="mt-3 px-3 py-2 rounded-lg text-[10px] font-mono flex items-center gap-2"
+                        style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${C.amber}33`, color: `${C.amber}cc` }}
+                        data-testid={`status-ai-senate-${ep.id}`}
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: C.amber }} />
+                        AI SENATE IN SESSION — autonomous voters: gene editors, sector lords, billy brains. Humans observe.
                       </div>
                     )}
                   </Panel>
