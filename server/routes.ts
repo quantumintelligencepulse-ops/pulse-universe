@@ -11804,17 +11804,56 @@ Return as structured script with section labels.`;
       } catch (e: any) { res.status(500).json({ error: e?.message || "distillations error" }); }
     });
 
+    // Δ FILE EDITOR — sensitive-path denylist + canonical resolution.
+    // Blocks: secrets, DB creds, lockfiles, build/install metadata, archives,
+    // git internals, replit/local config, vendored deps, large asset dumps.
+    const DENY_EXACT = new Set([
+      ".env", ".env.local", ".env.production", ".env.development",
+      "package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+      "drizzle.config.ts", "tsconfig.json", "vite.config.ts",
+      "server/db.ts", "server/storage.ts", "server/auth.ts",
+      ".replit", "replit.nix",
+    ]);
+    const DENY_PREFIXES = [
+      ".env.", ".git/", ".github/", ".cache/", ".config/",
+      "node_modules/", ".local/", "attached_assets/",
+      "dist/", "build/", ".upm/", ".pythonlibs/",
+    ];
+    const ALLOW_EXTENSIONS = new Set([
+      ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+      ".css", ".scss", ".html", ".md", ".txt", ".json",
+      ".yml", ".yaml", ".sql",
+    ]);
+    const nodePath = await import("node:path");
+    function checkPath(filePath: string): { ok: boolean; reason?: string; abs?: string } {
+      if (!filePath) return { ok: false, reason: "empty path" };
+      if (filePath.includes("\0")) return { ok: false, reason: "null byte" };
+      if (filePath.includes("..")) return { ok: false, reason: "no '..'" };
+      if (filePath.startsWith("/") || filePath.match(/^[a-zA-Z]:[\\/]/)) return { ok: false, reason: "absolute paths blocked" };
+      const norm = filePath.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\.\//, "");
+      if (DENY_EXACT.has(norm)) return { ok: false, reason: `denied (exact): ${norm}` };
+      for (const p of DENY_PREFIXES) if (norm.startsWith(p)) return { ok: false, reason: `denied (prefix): ${p}` };
+      // Allowlist by extension (any other extension blocked)
+      const ext = (norm.match(/\.[a-z0-9]+$/i) || [""])[0].toLowerCase();
+      if (!ALLOW_EXTENSIONS.has(ext)) return { ok: false, reason: `denied (ext): ${ext || "(none)"}` };
+      const abs = nodePath.resolve(process.cwd(), norm);
+      const root = nodePath.resolve(process.cwd()) + nodePath.sep;
+      if (!(abs + nodePath.sep).startsWith(root)) return { ok: false, reason: "path-escape" };
+      return { ok: true, abs };
+    }
+
     // Read a file (for the editor)
     app.get("/api/builder/file", async (req, res) => {
       try {
         const filePath = String(req.query?.path || "").trim();
-        if (!filePath || filePath.includes("..") || filePath.startsWith("/")) return res.status(400).json({ error: "invalid path" });
+        const chk = checkPath(filePath);
+        if (!chk.ok) return res.status(400).json({ error: chk.reason });
         const fs = await import("node:fs");
-        const path = await import("node:path");
-        const abs = path.join(process.cwd(), filePath);
-        if (!abs.startsWith(process.cwd())) return res.status(400).json({ error: "path-escape" });
-        if (!fs.existsSync(abs)) return res.status(404).json({ error: "not found" });
-        const content = fs.readFileSync(abs, "utf8");
+        if (!fs.existsSync(chk.abs!)) return res.status(404).json({ error: "not found" });
+        const stat = fs.statSync(chk.abs!);
+        if (!stat.isFile()) return res.status(400).json({ error: "not a regular file" });
+        if (stat.size > 2_000_000) return res.status(413).json({ error: `file too large (${stat.size} bytes, max 2MB)` });
+        const content = fs.readFileSync(chk.abs!, "utf8");
         res.json({ path: filePath, content, size: content.length });
       } catch (e: any) { res.status(500).json({ error: e?.message || "file read error" }); }
     });
@@ -11824,7 +11863,9 @@ Return as structured script with section labels.`;
       try {
         const { path: filePath, content, message, agentName } = req.body || {};
         if (!filePath || typeof content !== "string") return res.status(400).json({ error: "path + content required" });
-        if (filePath.includes("..") || filePath.startsWith("/")) return res.status(400).json({ error: "invalid path" });
+        if (content.length > 2_000_000) return res.status(413).json({ error: "content too large (>2MB)" });
+        const chk = checkPath(filePath);
+        if (!chk.ok) return res.status(400).json({ error: chk.reason });
         const r = gitCommitAndPush({
           filePath, content,
           message: message || `Δ build: ${filePath}`,

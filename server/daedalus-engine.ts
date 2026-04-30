@@ -204,21 +204,33 @@ export interface GitPushOptions {
   branch?: string;
 }
 
+// Defense-in-depth denylist (also enforced at the route layer)
+const GIT_PUSH_DENY_PREFIXES = [".git/", ".github/", "node_modules/", ".local/", ".cache/", ".config/", ".env"];
+const GIT_PUSH_DENY_EXACT = new Set([".env", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "server/db.ts"]);
+
 export function gitCommitAndPush(opts: GitPushOptions): { ok: boolean; sha?: string; error?: string } {
   const token = process.env.GITHUB_TOKEN;
   if (!token) return { ok: false, error: "GITHUB_TOKEN not set" };
+  // Path safety
+  const fs = require("node:fs") as typeof import("node:fs");
+  const path = require("node:path") as typeof import("node:path");
+  const filePath = (opts.filePath || "").replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\.\//, "");
+  if (!filePath || filePath.includes("..") || filePath.startsWith("/") || filePath.includes("\0")) {
+    return { ok: false, error: "invalid path" };
+  }
+  if (GIT_PUSH_DENY_EXACT.has(filePath)) return { ok: false, error: `denied: ${filePath}` };
+  for (const p of GIT_PUSH_DENY_PREFIXES) if (filePath.startsWith(p)) return { ok: false, error: `denied prefix: ${p}` };
+  const root = path.resolve(process.cwd()) + path.sep;
+  const abs = path.resolve(process.cwd(), filePath);
+  if (!(abs + path.sep).startsWith(root)) return { ok: false, error: "path-escape" };
   // Write file
   try {
-    const fs = require("node:fs") as typeof import("node:fs");
-    const path = require("node:path") as typeof import("node:path");
-    const abs = path.join(process.cwd(), opts.filePath);
-    if (abs.indexOf(process.cwd()) !== 0) return { ok: false, error: "path-escape" };
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, opts.content);
   } catch (e: any) { return { ok: false, error: `fs: ${e?.message || e}` }; }
   // git add + commit
   const author = opts.agentName ? `${opts.agentName} <daedalus@pulse.universe>` : "Daedalus <daedalus@pulse.universe>";
-  const add = spawnSync("git", ["--no-optional-locks", "add", opts.filePath], { cwd: process.cwd(), encoding: "utf8" });
+  const add = spawnSync("git", ["--no-optional-locks", "add", "--", filePath], { cwd: process.cwd(), encoding: "utf8" });
   if (add.status !== 0) return { ok: false, error: `git add: ${add.stderr}` };
   const commit = spawnSync("git", ["--no-optional-locks", "commit", "-m", opts.message, "--author", author, "--no-verify"], { cwd: process.cwd(), encoding: "utf8" });
   if (commit.status !== 0 && !/nothing to commit/i.test(commit.stdout + commit.stderr)) return { ok: false, error: `git commit: ${commit.stderr}` };
@@ -238,12 +250,19 @@ export function gitCommitAndPush(opts: GitPushOptions): { ok: boolean; sha?: str
 }
 
 // ─── ONE CYCLE ────────────────────────────────────────────────────────────────
+let cycleInFlight = false;
 async function runCycle(): Promise<void> {
-  stats.cycles++;
-  stats.lastCycleAt = new Date().toISOString();
-  try { await studyRecentChats(); } catch (e: any) { stats.lastError = `study: ${String(e?.message || e).slice(0, 200)}`; }
-  try { await recordChatStudyAsWork(); } catch (e: any) { stats.lastError = `work: ${String(e?.message || e).slice(0, 200)}`; }
-  try { await maybeSpawnOffspring(); } catch (e: any) { stats.lastError = `spawn: ${String(e?.message || e).slice(0, 200)}`; }
+  if (cycleInFlight) return;             // overlap guard — never run two cycles concurrently
+  cycleInFlight = true;
+  try {
+    stats.cycles++;
+    stats.lastCycleAt = new Date().toISOString();
+    try { await studyRecentChats(); } catch (e: any) { stats.lastError = `study: ${String(e?.message || e).slice(0, 200)}`; }
+    try { await recordChatStudyAsWork(); } catch (e: any) { stats.lastError = `work: ${String(e?.message || e).slice(0, 200)}`; }
+    try { await maybeSpawnOffspring(); } catch (e: any) { stats.lastError = `spawn: ${String(e?.message || e).slice(0, 200)}`; }
+  } finally {
+    cycleInFlight = false;
+  }
 }
 
 export function getDaedalusStats() { return { ...stats, running: started }; }
