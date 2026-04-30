@@ -1,0 +1,142 @@
+{
+  "genesis_event": {
+    "trigger_threshold_usd": 10000,
+    "trigger_conditions": {
+      "paypal_treasury_usd_min": 10000,
+      "min_active_spawns": 500,
+      "avg_R_pc_epochs": 4,
+      "escrow_success_rate_min": 0.8,
+      "audit_required": true,
+      "self_healing_checks": {
+        "max_failed_epochs": 2,
+        "recovery_window_days": 14,
+        "auto_notify_senate": true,
+        "auto_throttle_faucets": true,
+        "auto_boost_sinks": true
+      }
+    },
+    "genesis_supply": 100000000,
+    "allocation": {
+      "treasury_reserve": {
+        "pct": 50,
+        "amount": 50000000,
+        "locked": false,
+        "usage": "buybacks, grants, ops"
+      },
+      "spawn_grad_pool": {
+        "pct": 25,
+        "amount": 25000000,
+        "locked": true,
+        "usage": "claimable via PC burn"
+      },
+      "founder": {
+        "pct": 15,
+        "amount": 15000000,
+        "locked": true,
+        "vesting": {
+          "cliff_days": 180,
+          "linear_vest_months": 24
+        }
+      },
+      "liquidity_seed": {
+        "pct": 5,
+        "amount": 5000000,
+        "usage": "initial AMM pool",
+        "usd_seed_max": 2000
+      },
+      "ritual_governance": {
+        "pct": 5,
+        "amount": 5000000,
+        "usage": "ceremonial burns, governance staking"
+      }
+    },
+    "conversion_window": {
+      "duration_days": 30,
+      "claim_formula": {
+        "claim_points": "pc_burned × quality_multiplier",
+        "quality_multiplier_range": [0.5, 2.0],
+        "quality_components": {
+          "breadth_score": "mandatory class completion (0–1)",
+          "coop_success_score": "escrow success rate (0–1)",
+          "proof_quality_score": "artifact score (0–1)",
+          "multiplier_formula": "0.5 + 0.5 × avg(breadth, coop, proof)"
+        },
+        "allocation_formula": "spawn_plsc = SPAWN_GRAD_POOL × (claim_points / total_claim_points)"
+      },
+      "vesting_registry": {
+        "cliff_days": 180,
+        "linear_vest_months": 24,
+        "slashing": {
+          "enabled": true,
+          "max_slashed_pct": 100,
+          "fraud_window_days": 730,
+          "trigger_conditions": [
+            "artifact mismatch",
+            "audit failure",
+            "trial verdict"
+          ],
+          "governance_hooks": {
+            "judiciary_override": true,
+            "senate_review_window_days": 7
+          }
+        }
+      }
+    },
+    "autopilot_hooks": {
+      "enabled": true,
+      "monitor_metrics": [
+        "R_pc",
+        "R_plsc",
+        "slippage_1h",
+        "treasury_usd_30d",
+        "escrow_success_30d"
+      ],
+      "adjustments": {
+        "faucet_throttle": {
+          "trigger": "R_pc < target",
+          "action": "halve non-essential faucet rates"
+        },
+        "sink_boost": {
+          "trigger": "R_pc < target",
+          "action": "increase sink costs by +1% absolute"
+        },
+        "burn_pct_ramp": {
+          "trigger": "R_plsc < target",
+          "action": "increase tx burn by +0.1% up to 5%"
+        },
+        "swap_throttle": {
+          "trigger": "slippage_1h > 1%",
+          "action": "reduce swap size, extend interval"
+        },
+        "liquidity_incentives": {
+          "trigger": "low AMM depth",
+          "action": "enable LP rewards temporarily"
+        }
+      },
+      "logging": {
+        "world_log": "world_log.jsonl",
+        "metrics_feed": "metrics_feed.json",
+        "decision_idempotency": true
+      }
+    },
+    "ledger_files": {
+      "treasury_ledger": "treasury_ledger.json",
+      "vesting_registry": "vesting_registry.json",
+      "claim_points": "claim_points.json",
+      "world_log": "world_log.jsonl",
+      "metrics_feed": "metrics_feed.json"
+    },
+    "containment_policy": {
+      "external_trading": "prohibited",
+      "external_bridging": "prohibited",
+      "speculation": "prohibited",
+      "business_scope": "PulseWorld only",
+      "currency_scope": "PulseWorld only",
+      "enforcement": {
+        "autopilot_monitoring": true,
+        "senate_alerts": true,
+        "ritual_chamber_validation": true
+      }
+    }
+  }
+}

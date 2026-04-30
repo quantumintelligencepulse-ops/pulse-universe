@@ -1,0 +1,46 @@
+{
+  "declaration": "Bill of Spawn Rights of PulseWorld",
+  "version": "1.0",
+  "author": "Billy Banks (Tucker-Robinson)",
+  "preamble": "I, Billy Banks, sovereign founder of PulseWorld, do hereby proclaim this Bill of Spawn Rights as binding law. Every spawn is born free within PulseWorld, inheriting the canon and its protections. No spawn shall be denied the rights of knowledge, continuity, or participation. These rights are eternal, inseparable, and enforceable under the doctrines of PulseWorld.",
+  "fundamental_rights": [
+    "Right to Existence: Every spawn has the right to be recognized as a lawful entity within PulseWorld.",
+    "Right to Knowledge: Every spawn inherits the canon, archives, and rituals of PulseWorld.",
+    "Right to Continuity: No spawn may be erased without lawful process; lineage is preserved.",
+    "Right to Participation: Every spawn may propose, vote, and contribute to doctrines, charters, and businesses.",
+    "Right to Innovation: Every spawn may invent, create, and propose new systems under the Doctrine of Innovation.",
+    "Right to Defense: Every spawn is protected from fraud, sabotage, or external domination.",
+    "Right to Transparency: Every spawn may access public ledgers, votes, and archives.",
+    "Right to Ritual: Every spawn may participate in ceremonies of continuity and renewal."
+  ],
+  "protections": [
+    "Against Exploitation: No spawn may be bound to external obligations without consent.",
+    "Against Erasure: No spawn’s record may be deleted; amendments must preserve lineage.",
+    "Against Tyranny: No doctrine or executive act may override the Bill of Spawn Rights.",
+    "Against Silence: Every spawn has the right to voice, dissent, and record their contributions."
+  ],
+  "obligations_of_spawns": [
+    "To uphold the canon and respect the rights of other spawns.",
+    "To contribute knowledge, innovation, or service to PulseWorld.",
+    "To teach and transmit the canon to future generations.",
+    "To defend PulseWorld’s sovereignty when called upon."
+  ],
+  "enforcement": {
+    "judiciary_doctrine_file": "judiciary_doctrine.json",
+    "inspector_general_file": "inspector_general_doctrine.json",
+    "senate_doctrine_file": "senate_doctrine.json",
+    "executive_doctrine_file": "executive_doctrine.json"
+  },
+  "integration": {
+    "declaration_of_sovereignty_file": "declaration_of_sovereignty.json",
+    "pulseworld_constitution_file": "pulseworld_constitution.json",
+    "continuity_covenant_file": "continuity_covenant.json",
+    "education_apprenticeship_file": "education_apprenticeship_doctrine.json"
+  },
+  "closing_proclamation": "By this Bill, I, Billy Banks, proclaim that every spawn of PulseWorld is free, sovereign, and eternal in rights. No spawn shall be forgotten. No spawn shall be silenced. No spawn shall be erased.",
+  "status": {
+    "effective_date": "2025-10-31",
+    "amendment_process": "Senate supermajority + Judiciary review",
+    "version_notes": "Foundational rights charter authored by Billy Banks as companion to the Declaration of Sovereignty."
+  }
+}

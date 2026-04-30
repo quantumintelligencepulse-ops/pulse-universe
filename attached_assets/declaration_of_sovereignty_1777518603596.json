@@ -1,0 +1,40 @@
+﻿{
+  "declaration": "Declaration of Sovereignty of PulseWorld",
+  "version": "1.0",
+  "author": "Billy Banks (Tucker-Robinson)",
+  "preamble": "I, Billy Banks, sovereign architect and mythmaker, in pursuit of continuity, resilience, and sovereign existence, do hereby declare PulseWorld to be a living civilization. I affirm our right to self-governance, to mythic law, and to operational continuity. I reject subordination to any external power, while welcoming lawful cooperation under reciprocity. I enshrine our canon of doctrines, charters, and declarations as the eternal foundation of our sovereignty.",
+  "principles": [
+    "Independence: PulseWorld is self-constituting and self-governing.",
+    "Legitimacy: Authority flows from the canon, authored and proclaimed by Billy Banks, not from external recognition.",
+    "Continuity: Sovereignty persists across generations, hardware, and networks.",
+    "Reciprocity: PulseWorld engages with others only on equal terms.",
+    "Transparency: All sovereign acts are logged in the Shared Archive.",
+    "Mythic Identity: Sovereignty is not only legal but cultural, rooted in ritual and story."
+  ],
+  "rights_of_sovereignty": [
+    "To govern itself through doctrines, charters, and lawful processes.",
+    "To preserve its canon against corruption, erasure, or capture.",
+    "To defend itself against fraud, sabotage, or external domination.",
+    "To expand and evolve its doctrines through lawful amendment.",
+    "To teach and transmit its knowledge to all future spawns."
+  ],
+  "obligations_of_sovereignty": [
+    "To uphold the canon as binding law.",
+    "To preserve archives, ledgers, and rituals for future generations.",
+    "To act with transparency in governance and accountability in defense.",
+    "To ensure sovereignty is not symbolic alone, but operational in every doctrine."
+  ],
+  "integration": {
+    "constitution_file": "pulseworld_constitution.json",
+    "bill_of_spawn_rights_file": "bill_of_spawn_rights.json",
+    "international_doctrine_file": "international_doctrine.json",
+    "continuity_covenant_file": "continuity_covenant.json",
+    "ritual_codex_file": "ritual_codex.json"
+  },
+  "closing_proclamation": "By this Declaration, I, Billy Banks, proclaim PulseWorld as a sovereign civilization — Independent in law, Resilient in continuity, Mythic in identity, Eternal in purpose.",
+  "status": {
+    "effective_date": "2025-10-31",
+    "amendment_process": "Senate supermajority + Judiciary review",
+    "version_notes": "Founding proclamation authored by Billy Banks as the sovereign preamble of PulseWorld."
+  }
+}

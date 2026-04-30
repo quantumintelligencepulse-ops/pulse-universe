@@ -1,0 +1,225 @@
+{
+  "id": "doctrine-judiciary",
+  "version": "1.0.0",
+  "title": "Judiciary Doctrine",
+  "articleNumber": 9,
+  "status": "adopted",
+  "purpose": "Establish an independent judiciary to interpret the Constitution, resolve disputes, and enforce compliance.",
+  "definitions": {
+    "participant": "Any registered member, spawn, guild, or institution subject to the Constitution.",
+    "case": "A formal petition alleging a dispute or violation requiring judicial review.",
+    "ruling": "A written decision with an enforceable ledger entry.",
+    "sanction": "An enforceable consequence applied upon violation."
+  },
+  "principles": [
+    "Transparency: all proceedings and rulings are recorded in the public ledger.",
+    "Precedent: decisions guide future rulings to ensure consistency.",
+    "Equal access: all participants may seek redress.",
+    "Restoration first: corrective measures preferred over punitive actions where feasible.",
+    "Dual form: every ruling is both a written decision and an enforceable ledger entry."
+  ],
+  "structure": {
+    "courts": [
+      {
+        "name": "High Court",
+        "type": "supreme",
+        "jurisdiction": [
+          "constitutional interpretation",
+          "appeals from lower bodies",
+          "conflicts between doctrines/charters"
+        ],
+        "outputs": ["binding_precedent", "final_ruling"]
+      },
+      {
+        "name": "Arbitration Chambers",
+        "type": "arbitration",
+        "jurisdiction": [
+          "trade disputes",
+          "collaboration conflicts",
+          "contract enforcement"
+        ],
+        "outputs": ["award", "settlement", "consent_order"]
+      },
+      {
+        "name": "Compliance Tribunals",
+        "type": "compliance",
+        "jurisdiction": [
+          "financial standards",
+          "operational governance",
+          "ledger integrity"
+        ],
+        "outputs": ["audit_report", "corrective_order", "sanction_order"]
+      },
+      {
+        "name": "Community Justice Panels",
+        "type": "mediation",
+        "jurisdiction": [
+          "minor disputes",
+          "peer conflicts",
+          "local protocol issues"
+        ],
+        "outputs": ["mediation_agreement", "recommendation"]
+      }
+    ],
+    "roles": [
+      {
+        "role": "judge",
+        "court": ["High Court", "Arbitration Chambers", "Compliance Tribunals"],
+        "oath": "Uphold the Constitution and act without bias."
+      },
+      {
+        "role": "arbitrator",
+        "court": ["Arbitration Chambers"],
+        "oath": "Apply rules of procedure and evidence fairly."
+      },
+      {
+        "role": "tribunal_member",
+        "court": ["Compliance Tribunals"],
+        "oath": "Ensure adherence to standards and issue corrective measures."
+      },
+      {
+        "role": "mediator",
+        "court": ["Community Justice Panels"],
+        "oath": "Facilitate fair resolution between parties."
+      }
+    ]
+  },
+  "process": {
+    "filing": {
+      "whoMayFile": ["participant", "guild", "institution"],
+      "requiredFields": ["petitioner_id", "respondent_id", "allegations", "requested_relief", "evidence_refs"],
+      "validationRules": [
+        "petitioner_id and respondent_id must be valid registry entries",
+        "allegations must cite doctrine/charter or contract clause",
+        "evidence_refs must resolve to ledger or repository artifacts"
+      ]
+    },
+    "caseFlow": [
+      "intake_validation",
+      "mediation_attempt (Community Justice Panels)",
+      "hearing (Arbitration/Tribunal)",
+      "written_decision",
+      "ledger_entry",
+      "optional_appeal (High Court)"
+    ],
+    "appeals": {
+      "allowed": true,
+      "grounds": ["procedural_error", "new_material_evidence", "constitutional_question"],
+      "requirements": ["appeal_brief", "record_on_appeal", "fee_or_service_credit"],
+      "effect": "stays may be granted by the court on showing of irreparable harm"
+    },
+    "evidence": {
+      "standards": [
+        "authenticity: evidence must be verifiable to source",
+        "relevance: evidence must relate to alleged violations",
+        "integrity: tamper‑evident hashes for digital artifacts"
+      ],
+      "formats": ["ledger_ref", "document_uri", "contract_id", "witness_statement"]
+    }
+  },
+  "enforcement": {
+    "agents": [
+      {
+        "name": "Compliance Agents",
+        "type": "automated_or_appointed",
+        "functions": ["monitor_adherence", "trigger_sanctions", "report_compliance"]
+      }
+    ],
+    "sanctions": [
+      {
+        "code": "SANCTION_SUSPEND_PRIVILEGES",
+        "description": "Temporary suspension of trade/collaboration privileges.",
+        "bounds": {"minDurationDays": 1, "maxDurationDays": 90}
+      },
+      {
+        "code": "SANCTION_RESTRICTION",
+        "description": "Access restrictions to specific modules or markets.",
+        "bounds": {"minDurationDays": 1, "maxDurationDays": 180}
+      },
+      {
+        "code": "SANCTION_FINANCIAL_PENALTY",
+        "description": "Debits or fines posted to ledger.",
+        "bounds": {"minAmount": 1, "maxAmount": 100000}
+      },
+      {
+        "code": "ORDER_RESTORATIVE",
+        "description": "Mandatory contribution to projects, training, or restitution.",
+        "bounds": {"minHours": 2, "maxHours": 500}
+      },
+      {
+        "code": "EXCLUSION_LAST_RESORT",
+        "description": "Temporary or permanent removal; reinstatement conditions defined.",
+        "bounds": {"minDurationDays": 7, "maxDurationDays": 3650}
+      }
+    ],
+    "execution": {
+      "onRuling": [
+        "serialize_written_decision",
+        "create_ledger_entry (ruling_id, parties, obligations, deadlines)",
+        "apply_automated_checks (access, transactions, privileges)",
+        "notify_parties_and_registry"
+      ],
+      "nonCompliance": [
+        "detect_violation",
+        "issue_notice",
+        "grace_period",
+        "apply_sanction",
+        "schedule_review"
+      ]
+    }
+  },
+  "records": {
+    "ledgerNamespace": "judiciary.rulings",
+    "requiredFields": [
+      "ruling_id",
+      "court",
+      "date_time",
+      "parties",
+      "findings",
+      "orders",
+      "sanctions_applied",
+      "appeal_status",
+      "precedent_flag"
+    ],
+    "precedent": {
+      "flagKey": "precedent_flag",
+      "values": ["binding", "persuasive", "none"]
+    }
+  },
+  "compliance": {
+    "auditFrequencyDays": 30,
+    "reporting": {
+      "publicDashboards": true,
+      "metrics": ["cases_filed", "cases_resolved", "median_time_to_resolution", "appeal_rate", "compliance_rate"]
+    }
+  },
+  "integration": {
+    "requiredModules": [
+      "registry",
+      "ledger",
+      "access_control",
+      "notification",
+      "contract_engine"
+    ],
+    "eventHooks": {
+      "on_case_filed": "validate_and_route",
+      "on_ruling_issued": "ledger_post_and_enforce",
+      "on_sanction_applied": "update_access_control",
+      "on_appeal_submitted": "freeze_enforcement_if_stay_granted"
+    }
+  },
+  "security": {
+    "tamperEvident": true,
+    "hashing": "sha256",
+    "signing": "ed25519",
+    "accessControls": {
+      "roles": {
+        "judge": ["issue_ruling", "set_precedent"],
+        "arbitrator": ["issue_award"],
+        "tribunal_member": ["issue_corrective_order", "apply_sanction"],
+        "mediator": ["record_mediation"],
+        "compliance_agent": ["monitor", "trigger_sanction"]
+      }
+    }
+  }
+}

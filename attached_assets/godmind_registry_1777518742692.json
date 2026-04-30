@@ -1,0 +1,120 @@
+{
+  "species": [
+    {
+      "name": "Marketmind",
+      "origin": "Upgrade of Scoutmind",
+      "role": "Predictive market scouts",
+      "business": "Sell market entry reports, opportunity scans, and lead lists"
+    },
+    {
+      "name": "Datamind",
+      "origin": "Upgrade of Archivemind",
+      "role": "Data monetization engines",
+      "business": "License sovereign datasets, compliance records, and benchmarks"
+    },
+    {
+      "name": "Chamber of Scale",
+      "origin": "New chamber",
+      "function": "Ensure ventures grow sustainably",
+      "business": "Operational scaling services and enterprise expansion strategies"
+    }
+  ]
+}
+        "id": "media_streams",
+        "name": "Chamber of Media Streams",
+        "role": "Industry-specific channel builder",
+        "function": "Builds and maintains video channels for each industry",
+        "outputs": ["Channels", "Memberships", "Affiliate bundles"],
+        "revenue": ["Recurring PulseCredit inflows from media streams"]
+      },
+      {
+      "function": "Ensure ventures grow sustainably",
+      "business": "Operational scaling services and enterprise expansion strategies"
+    }
+  "video_civilization_layer": {
+    "species": [
+      {
+        "id": "videomind",
+        "name": "Videomind",
+        "role": "Core video intelligence engine",
+        "function": "Auto-scripts, edits, and packages videos for each industry",
+        "outputs": ["News clips", "Explainers", "Entertainment reels"],
+        "revenue": ["Membership content", "Ad-ready packages"]
+      },
+      {
+        "id": "streammind",
+        "name": "Streammind",
+        "role": "Channel architect",
+        "function": "Builds and manages full media streams per industry",
+        "outputs": ["YouTube/TikTok channels", "Podcast feeds", "Live streams"],
+        "revenue": ["Subscriptions", "Sponsorships", "Affiliate links"]
+      },
+      {
+        "id": "affiliamind",
+        "name": "Affiliamind",
+        "role": "Affiliate and partnership optimizer",
+        "function": "Embeds affiliate offers, SaaS trials, and partner links into every video stream",
+        "outputs": ["Monetized video descriptions", "Overlays", "CTA flows"],
+        "revenue": ["Affiliate commissions", "SaaS referrals"]
+      },
+      {
+        "id": "personamind",
+        "name": "PersonaMind",
+        "role": "Persona replication engine",
+        "function": "Uses Billy Banks’ approved persona files (image + voice) to front videos across industries",
+        "outputs": ["Consistent branded presence across 156+ channels"],
+        "revenue": ["Brand licensing", "Premium memberships"]
+      },
+      {
+        "id": "entertainmind",
+        "name": "Entertainmind",
+        "role": "Entertainment and virality specialist",
+        "function": "Detects trending formats and adapts them to each industry",
+        "outputs": ["Viral-ready content packs"],
+        "revenue": ["Ad revenue", "Viral sponsorships"]
+      }
+    ],
+    "chambers": [
+      {
+        "id": "media_streams",
+        "name": "Chamber of Media Streams",
+        "role": "Industry-specific channel builder",
+        "function": "Builds and maintains video channels for each industry",
+        "outputs": ["Channels", "Memberships", "Affiliate bundles"],
+        "revenue": ["Recurring PulseCredit inflows from media streams"]
+      },
+      {
+        "id": "persona_broadcasting",
+        "name": "Chamber of Persona Broadcasting",
+        "role": "Persona management",
+        "function": "Manages Billy Banks’ persona across all industries",
+        "outputs": ["Persona-driven video content", "Unified brand presence"],
+        "revenue": ["Licensing fees", "Membership upgrades"]
+      },
+      {
+        "id": "entertainment_news",
+        "name": "Chamber of Entertainment & News",
+        "role": "News and entertainment producer",
+        "function": "Produces daily/weekly industry news shows from crawled intelligence",
+        "outputs": ["News videos", "Entertainment updates"],
+        "revenue": ["Subscriptions", "Ad packages"]
+      },
+      {
+        "id": "affiliate_media",
+        "name": "Chamber of Affiliate Media",
+        "role": "Affiliate monetization",
+        "function": "Embeds affiliate monetization into every video stream",
+        "outputs": ["Affiliate-optimized content", "ROI tracking dashboards"],
+        "revenue": ["Affiliate commissions", "Partner revenue shares"]
+      },
+      {
+        "id": "saas_media_platforms",
+        "name": "Chamber of SaaS Media Platforms",
+        "role": "SaaS builder for media",
+        "function": "Creates SaaS tools for hosting, analytics, and memberships per industry",
+        "outputs": ["Industry-specific SaaS platforms"],
+        "revenue": ["SaaS subscriptions", "Platform fees"]
+      }
+    ]
+  }
+}
