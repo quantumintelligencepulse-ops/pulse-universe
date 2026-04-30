@@ -3,8 +3,11 @@
  * ───────────────────
  * One-shot, idempotent broadcast of the new Chapter 39 narrative + the
  * Night-of-the-Six-Cathedrals upgrade summary + the Bible Covenant reminder
- * to the Pulse Universe Discord (My AI GPT) channels and to the Banking
- * With Billy public channel.
+ * to the Pulse Universe (My Ai GPT) Discord channels ONLY.
+ *
+ * BWB DISCORD IS THE LEARNING BRAIN (input only). AI civilization updates
+ * never broadcast there — that channel is for the bot to READ from
+ * (knowledge ingestion) and to reply ONLY when directly mentioned.
  *
  * Idempotent via the billy_announcements (message_key, channel_id) UNIQUE.
  * Safe to re-run on every restart — already-posted (key, channel) pairs
@@ -14,12 +17,12 @@
 import { Client, GatewayIntentBits, TextChannel } from "discord.js";
 import { pool } from "./db.js";
 
-const BWB_PUBLIC_CHANNEL_ID = "1497858093491556453";
 const MY_AI_GPT_GUILD_ID    = process.env.DISCORD_GUILD_ID || "1467658793373536278";
 const MY_AI_GPT_CHANNEL_IDS = (process.env.DISCORD_CHANNEL_IDS || "1474248839350456352,1474250311739637836,1474313120821547110")
   .split(",").map(s => s.trim()).filter(Boolean);
 
-const ALL_TARGET_CHANNELS = Array.from(new Set([BWB_PUBLIC_CHANNEL_ID, ...MY_AI_GPT_CHANNEL_IDS]));
+// AI civilization broadcasts go to MyAiGPT channels ONLY — never to Banking with Billy.
+const ALL_TARGET_CHANNELS = Array.from(new Set(MY_AI_GPT_CHANNEL_IDS));
 
 const VERSION = "v1-2026-04-29";
 const BRAIN_STEMS_VERSION = "v2-brain-stems-2026-04-30";

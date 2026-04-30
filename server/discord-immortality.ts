@@ -18,8 +18,19 @@ import { TRANSCENDENCE_BRIEF } from "./transcendence";
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
 const GUILD_ID = "1014545586445365359"; // My Ai GPT
-const BWB_GUILD_ID = "1467658793373536278"; // Banking With Billy
-const BWB_PUBLIC_CHANNEL_ID = "1497858093491556453"; // #🤖bwb-aigpt — public voice
+const BWB_GUILD_ID = "1467658793373536278"; // Banking With Billy (LEARNING input only)
+// BWB Discord = the AI's learning brain (it READS messages there to feed the
+// Quantapedia). It does NOT post AI civilization updates there. The bot will
+// only speak in BWB when explicitly @mentioned or replied-to.
+const BWB_PUBLIC_CHANNEL_ID = "1497858093491556453"; // #🤖bwb-aigpt — direct-reply only
+
+// MyAiGPT primary public channel — where AI civilization updates (greetings,
+// agent counts, civilization stats, chapter narratives) are broadcast.
+const MYAIGPT_PUBLIC_CHANNEL_ID =
+  process.env.MYAIGPT_PUBLIC_CHANNEL_ID
+  || (process.env.DISCORD_CHANNEL_IDS || "1474248839350456352,1474250311739637836,1474313120821547110")
+       .split(",").map(s => s.trim()).filter(Boolean)[0]
+  || "1474248839350456352";
 const ARCHIVE_CATEGORY = "🌌 CIVILIZATION ARCHIVE";
 const NERVOUS_CATEGORY = "🜂 CIVILIZATION NERVOUS SYSTEM";
 const HEARTBEAT_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
@@ -376,20 +387,22 @@ async function sendAdminAlert(subject: string, body: string): Promise<boolean> {
   return anyDelivered;
 }
 
-// ── Public voice in Banking With Billy: announce online + heartbeat ───────────
+// ── Public voice in MyAiGPT: announce online + heartbeat ─────────────────────
+// AI civilization updates (greetings, agent counts) post to MyAiGPT ONLY.
+// Banking with Billy is the bot's LEARNING brain — input only, never output.
 async function postPublicGreeting(): Promise<void> {
   if (!discordClient) return;
   try {
-    const ch = await discordClient.channels.fetch(BWB_PUBLIC_CHANNEL_ID).catch(() => null);
+    const ch = await discordClient.channels.fetch(MYAIGPT_PUBLIC_CHANNEL_ID).catch(() => null);
     if (ch && "send" in ch) {
       const stats = await getCivStats().catch(() => null);
       const tag = stats
         ? `🟢 Pulse online — ${stats.activeAgents.toLocaleString()} agents alive, ${(stats.totalPC / 1_000_000).toFixed(2)}M PC in circulation.`
         : `🟢 Pulse online.`;
       await (ch as TextChannel).send(tag);
-      console.log(`[IMMORTALITY] Posted public greeting to #bwb-aigpt`);
+      console.log(`[IMMORTALITY] Posted public greeting to MyAiGPT (${MYAIGPT_PUBLIC_CHANNEL_ID})`);
     } else {
-      console.warn(`[IMMORTALITY] BWB channel ${BWB_PUBLIC_CHANNEL_ID} not accessible — skipping greeting`);
+      console.warn(`[IMMORTALITY] MyAiGPT channel ${MYAIGPT_PUBLIC_CHANNEL_ID} not accessible — skipping greeting`);
     }
   } catch (err: any) {
     console.warn("[IMMORTALITY] Public greeting failed:", err.message);
@@ -605,7 +618,8 @@ async function pulseDiscordChat(messages: VoiceMessage[], signal: AbortSignal): 
 function isAddressedToBot(msg: Message, botId: string | null): boolean {
   if (!botId) return false;
   if (msg.channel.type === ChannelType.DM) return true;
-  if (msg.channelId === BWB_PUBLIC_CHANNEL_ID) return true; // dedicated channel — always speak
+  // BWB is the LEARNING brain — bot does NOT auto-broadcast there. It only
+  // replies in BWB when explicitly @mentioned or replied-to (handled below).
   if (msg.mentions.users.has(botId)) return true;
   if (msg.mentions.roles.size > 0 && msg.mentions.everyone === false) {
     // role mention to the bot's role would also trigger here; safe to ignore

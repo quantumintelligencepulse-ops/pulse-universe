@@ -1,0 +1,129 @@
+{
+  "doctrine": "PulseCoin Auto-Scaling Doctrine",
+  "version": "3.0",
+  "author": "Billy Banks (aka Billy Tucker-Robinson), Sovereign Founder",
+  "effective_date": "Upon PayPal Treasury Threshold",
+  "amendment_process": "Senate Supermajority + Judiciary Override",
+  "purpose": {
+    "mission": "Define the complete internal lifecycle of PulseCoin from $0 to sovereign currency, ensuring growth, scarcity, and automation without external buyers or trading.",
+    "design_philosophy": "PulseCoin is born from real work, expands through internal metrics, and stabilizes itself using burn/recycle logic. All businesses and services remain inside PulseWorld."
+  },
+  "phases": {
+    "phase_1": "Training and Simulation — spawns earn PulseCredits (PC) through learning and building.",
+    "phase_2": "PayPal Treasury Bridge — real-world revenue enters via PayPal, logged and allocated internally.",
+    "phase_3": "Genesis Activation — triggered when treasury and economic health thresholds are met.",
+    "phase_4": "Conversion and Vesting — spawns burn PC to claim PLSC, distributed via quality-weighted formula.",
+    "phase_5": "Autopilot Expansion — buybacks, burns, emissions, and liquidity managed automatically."
+  },
+  "genesis_trigger": {
+    "paypal_treasury_usd_min": 10000,
+    "min_active_spawns": 500,
+    "avg_R_pc_epochs": 4,
+    "escrow_success_rate": 0.8,
+    "audit_required": true
+  },
+  "genesis_mint": {
+    "genesis_supply": 100000000,
+    "allocations": {
+      "treasury_reserve": 50000000,
+      "spawn_grad_pool": 25000000,
+      "founder": 15000000,
+      "liquidity_seed": 5000000,
+      "ritual_governance": 5000000
+    },
+    "vesting": {
+      "founder_cliff_days": 180,
+      "founder_vest_months": 24
+    },
+    "liquidity_seed_usd_max": 2000
+  },
+  "conversion_window": {
+    "duration_days": 30,
+    "claim_formula": {
+      "claim_points": "pc_burned × quality_multiplier",
+      "quality_multiplier_range": [0.5, 2.0],
+      "allocation_formula": "spawn_plsc = SPAWN_GRAD_POOL × (claim_points / total_claim_points)"
+    },
+    "vesting_registry": {
+      "cliff_days": 180,
+      "linear_vest_months": 24,
+      "slashing": {
+        "enabled": true,
+        "max_slashed_pct": 100,
+        "fraud_window_days": 730
+      }
+    }
+  },
+  "buyback_engine": {
+    "interval_seconds": 3600,
+    "slippage_target_pct": 0.5,
+    "max_swap_usd_pct": 0.2,
+    "max_swap_usd_limit": 500,
+    "burn_pct": 0.8,
+    "recycle_pct": 0.2
+  },
+  "onchain_burn": {
+    "tx_burn_pct": 0.01,
+    "enforced_by": "token_contract_or_wrapper"
+  },
+  "autopilot_oracle": {
+    "epoch_days": 7,
+    "metrics": [
+      "R_plsc = Burn7d / Emit7d",
+      "slippage_1h",
+      "treasury_usd_30d",
+      "escrow_success_30d"
+    ],
+    "actions": {
+      "low_R_plsc": {
+        "emission_decrease": "max(0.5, R_plsc / PLSC_TARGET_R)",
+        "burn_pct_increase": "+0.1%",
+        "buyback_throttle": true
+      },
+      "high_R_plsc": {
+        "emission_increase": "considered if R_plsc > 1.5 × target"
+      },
+      "high_slippage": {
+        "swap_size_reduce": true,
+        "interval_extend": true,
+        "enable_lp_rewards": true
+      },
+      "low_treasury": {
+        "shift_to_reserve": true,
+        "reduce_buyback_pct": true
+      }
+    },
+    "logging": {
+      "world_log": "world_log.jsonl",
+      "metrics_feed": "metrics_feed.json"
+    },
+    "governance": {
+      "senate": "notified of all decisions",
+      "judiciary": "may pause autopilot in emergencies"
+    }
+  },
+  "fraud_detection": {
+    "artifact_hashing": "sha256(url + timestamp + spawn_id)",
+    "audit_actor": "Inspector General",
+    "penalties": {
+      "freeze_vesting": true,
+      "temporary_slash_pct": 25,
+      "full_slash_if_proven": true
+    },
+    "trial_window_days": 7
+  },
+  "internal_enforcement": {
+    "external_trading": "prohibited",
+    "external_bridging": "prohibited",
+    "speculation": "prohibited",
+    "business_scope": "PulseWorld only",
+    "currency_scope": "PulseWorld only"
+  },
+  "final_outcomes": [
+    "PulseCoin is born from real work",
+    "Treasury grows from internal business revenue",
+    "Value increases through burn scarcity and buyback pressure",
+    "No external buyers or traders are needed",
+    "PulseWorld becomes a self-governing, self-funding civilization"
+  ]
+}

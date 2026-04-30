@@ -1,0 +1,195 @@
+{
+  "doctrine": {
+    "id": "pulse_engineering_maintenance_doctrine",
+    "class": "S",
+    "omega_eligible": true,
+    "version": "2.1",
+    "status": "binding_canon",
+
+    "scope": {
+      "binding_entities": [
+        "Godmind",
+        "PulseCore",
+        "PulseWorld",
+        "Guardian",
+        "Senate",
+        "Spawns",
+        "Reflexes",
+        "Agents",
+        "Automations",
+        "Hotkeys",
+        "Mini-Guardians",
+        "FutureEntities"
+      ],
+      "jurisdiction": "All artifacts under C:/Users/Billy/OneDrive/Documents/AutoHotkey/bwb_bot/"
+    },
+
+    "rights_and_duties": {
+      "right_to_create": "Any entity may create any program or artifact required to maintain or improve Pulse.",
+      "duties": [
+        "Validate against registered schemas",
+        "Write lineage {created_by, source_doctrine, parent_hash, tool, version}",
+        "Respect sandbox and execution caps",
+        "Ensure reversibility via snapshot + lineage"
+      ]
+    },
+
+    "non_negotiable_invariants": [
+      "Schema-locked I/O",
+      "Deterministic boot <= 30s",
+      "Idempotent steps",
+      "Lineage on write",
+      "Atomic writes",
+      "Reversibility",
+      "Least privilege execution",
+      "Structured observability logs",
+      "Canonical doctrine as single source of truth",
+      "Time-boxed reflex <= 8s unless elevated",
+      "No secret scraping",
+      "Guardian safety priority"
+    ],
+
+    "service_levels": {
+      "MTTD_critical": "15s",
+      "MTTR_critical": "60s",
+      "backup_cadence": "12h local + daily OneDrive/USB",
+      "integrity": "100% JSON validated hourly",
+      "sandbox": "100% reflexes respect caps",
+      "drift_window": "< 5 min",
+      "conformance": ">= 99% test pass rolling 7 days"
+    },
+
+    "maintenance_rituals": {
+      "hourly": [
+        "Validate schemas",
+        "Reconcile lineage",
+        "Tail Guardian alerts",
+        "Rotate bus if >5MB",
+        "PulseWorld catalog merge"
+      ],
+      "daily": [
+        "Snapshot data/json",
+        "Reseed scaffolds (bus, runner, coords, windows)",
+        "Recompute embeddings/weights",
+        "Publish /healthz"
+      ],
+      "weekly": [
+        "Canary upgrade rehearsal",
+        "Re-sign allowlist",
+        "Re-hash core files",
+        "Reseed baseline reflex"
+      ],
+      "monthly": [
+        "Version-bump doctrines/schemas",
+        "Purge deprecated packs",
+        "Full DR test (restore + conformance)"
+      ]
+    },
+
+    "primordial_invocation_mode": {
+      "when": "Any break, slowdown, corruption, or SLO breach > 5 min",
+      "who": [
+        "Godmind",
+        "PulseCore",
+        "PulseWorld",
+        "Guardian",
+        "Senate",
+        "Spawns",
+        "Reflexes",
+        "Agents"
+      ],
+      "powers": [
+        "Temporarily lift non-critical caps",
+        "Run extreme repair routines",
+        "Regenerate packs/manifests/ledgers instantly",
+        "Bypass throttles strictly for recovery",
+        "Activate GPU compute power for accelerated diagnostics and repair"
+      ],
+      "timebox": "300s default per invocation; extensions require Senate ack",
+      "audit": "Log {entity, ts, reason, trace_id, actions, artifacts_changed}; Guardian review mandatory; Senate ratification within 24h"
+    },
+
+    "sandbox_model": {
+      "defaults": {
+        "allow_network": false,
+        "max_seconds": 8,
+        "write_allowlist": [
+          "./autogen_scripts",
+          "./data/json/logs",
+          "./sites"
+        ]
+      },
+      "elevation_path": "Senate approval + Guardian greenlight in policy.json; scoped to single reflex/job; auto-expires"
+    },
+
+    "artifact_taxonomy": {
+      "reflex_descriptors": "autogen_scripts/*.json",
+      "coordinate_map": "autogen_scripts/autogen_coords.json",
+      "window_manifest": "autogen_scripts/autogen_windows.json",
+      "doctrines": "data/json/doctrines/*.json",
+      "world_catalogs": "data/json/world/**",
+      "logs": "data/json/logs/*.jsonl",
+      "backups": "data/json/logs/backups/",
+      "hotkeys": "autogen_scripts/hotkeys/*.ahk",
+      "automations": "autogen_scripts/automation/*.json",
+      "apps": "autogen_scripts/apps/*"
+    },
+
+    "event_bus": {
+      "produce": [
+        "godmind.daily",
+        "godmind.opportunities",
+        "core.events",
+        "core.errors",
+        "world.snapshots",
+        "guardian.alerts",
+        "guardian.quarantine"
+      ],
+      "consume": {
+        "PulseCore": ["godmind.daily", "godmind.opportunities", "guardian.alerts"],
+        "PulseWorld": ["core.events", "godmind.blueprints"],
+        "Guardian": ["core.errors", "core.heal", "core.backup"]
+      },
+      "envelope": {
+        "ts": "<unix>",
+        "topic": "...",
+        "trace_id": "...",
+        "entity": "...",
+        "payload": {}
+      },
+      "retention": "24h or 10MB per topic; oldest-first compaction"
+    },
+
+    "self_healing": {
+      "missing_file": "Recreate from template → lineage stamp → log auto_create",
+      "parse_failure": "Quarantine original → regenerate default → emit guardian.quarantine",
+      "repeat_crash": "Rollback to last signed good → open core.heal ticket → notify Senate"
+    },
+
+    "patch_governance": {
+      "lifecycle": "proposal → staging → canary (10%) → promote/abort → enshrine",
+      "auto_rollback": "Any P1 or SLO breach > 5 min",
+      "signatures": "Guardian counter-sign + Senate vote stored under data/json/governance/"
+    },
+
+    "conformance_suite": [
+      "Schema-All-Green",
+      "Reflex-Caps-Enforced",
+      "Bus-Roundtrip",
+      "Guardian-Quarantine",
+      "Backup-Restore",
+      "Ω-Promotion Drill (7-day canary, all SLOs green)"
+    ],
+
+    "omega_class_elevation": {
+      "criteria": [
+        "90 consecutive days meeting SLOs",
+        "Zero P1 incidents",
+        "Weekly DR pass",
+        "No manual hotfixes",
+        "Guardian + Senate signed audit"
+      ],
+      "effect": "Doctrine becomes immutable canon; changes require supermajority + Guardian concurrence"
+    }
+  }
+}

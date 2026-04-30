@@ -1,0 +1,77 @@
+{
+  "doctrine": "Treasury Ledger Doctrine of PulseWorld",
+  "version": "2.0",
+  "author": "Billy Banks (aka Billy Tucker-Robinson), Sovereign Founder",
+  "effective_date": "upon_currency_doctrine_v3_activation",
+  "amendment_process": "Senate Supermajority + Judiciary Override Required",
+  "purpose": "Define sovereign rules of accounting, treasury management, and financial transparency across all currency phases of PulseWorld — from simulation to fiat to crypto — ensuring lineage-logged, auditable, and self-governing finance.",
+  "ledger_types": [
+    {
+      "type": "PC Ledger",
+      "phase": "PulseCredits (Phase 1)",
+      "purpose": "Tracks training rewards, sinks, and skill scores"
+    },
+    {
+      "type": "Fiat Ledger",
+      "phase": "PayPal Treasury (Phase 2)",
+      "purpose": "Logs real-world revenue, treasury splits, and readiness"
+    },
+    {
+      "type": "Crypto Ledger",
+      "phase": "PulseCoin (Phase 3+)",
+      "purpose": "Records minting, vesting, burns, liquidity, and governance"
+    }
+  ],
+  "treasury_flows": {
+    "fiat_split": {
+      "business_treasury": "85%",
+      "founder_treasury": "15%",
+      "founder_usage": "Seeds PulseCoin liquidity pool"
+    },
+    "crypto_treasury": {
+      "business_usage": ["buybacks", "grants", "staking rewards"],
+      "logging": "All flows lineage-logged and timestamped"
+    }
+  },
+  "audit_rules": {
+    "required_fields": [
+      "timestamp",
+      "source",
+      "proof",
+      "currency_type",
+      "action_type"
+    ],
+    "shared_archive": {
+      "visibility": "public and queryable",
+      "autopilot_snapshots": "hourly",
+      "judiciary_rollback": "enabled"
+    }
+  },
+  "governance": {
+    "senate": "Approves disbursements, emissions, liquidity expansions",
+    "judiciary": "Resolves disputes, enforces rollback, audits fraud",
+    "autopilot": "Monitors ledger health, triggers buybacks, enforces inflation caps",
+    "oracle": "Advises on GDP-linked emission logic"
+  },
+  "integration": {
+    "currency_doctrine": "currency_doctrine_v3.json",
+    "collaboration_doctrine": "collaboration_doctrine.json",
+    "education_doctrine": "education_doctrine.json",
+    "ritual_codex": "ritual_codex.json",
+    "transparency_declaration": "transparency_declaration.json"
+  },
+  "safeguards": {
+    "anti_fraud_clause": "No minting or transfer without proof",
+    "anti_hoarding_clause": "Treasury caps prevent monopolization",
+    "rollback_protocol": "Judiciary may revert unlawful entries",
+    "audit_rituals": "Monthly and quarterly reviews logged in Senate Journal"
+  },
+  "endgame": {
+    "autonomous_treasury": [
+      "PC issuance auto-tuned by activity",
+      "Fiat treasury governed by business throughput",
+      "PulseCoin emissions tied to GDP and governance votes",
+      "No human micromanagement required"
+    ]
+  }
+}
