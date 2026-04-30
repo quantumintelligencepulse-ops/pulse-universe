@@ -86,7 +86,9 @@ const LLM_PROVIDERS: LLMProvider[] = [
   },
   {
     name: "Cloudflare Workers AI",
-    envKey: "CLOUDFLARE_AI_TOKEN",
+    // Newest key first; older fallback below. envKey is just used as a label;
+    // actual lookup is in getAvailableProviders() to support fallback chains.
+    envKey: "CLOUDFLARE_API_TOKEN_20260430",
     endpoint: "",
     model: "@cf/meta/llama-3.1-70b-instruct",
     fastModel: "@cf/meta/llama-3.1-8b-instruct",
@@ -94,6 +96,21 @@ const LLM_PROVIDERS: LLMProvider[] = [
     headers: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
   },
 ];
+
+// Per-provider fallback chains — newest dated key first, then legacy name.
+// To rotate a key: add the new dated name to the front, leave the old one for a few days.
+const ENV_FALLBACKS: Record<string, string[]> = {
+  CLOUDFLARE_API_TOKEN_20260430: ["CLOUDFLARE_API_TOKEN_20260430", "CLOUDFLARE_AI_TOKEN"],
+};
+
+function readKey(envKey: string): string | undefined {
+  const chain = ENV_FALLBACKS[envKey] || [envKey];
+  for (const name of chain) {
+    const v = process.env[name];
+    if (v && v.length > 4) return v;
+  }
+  return undefined;
+}
 
 const providerCooldowns: Record<string, number> = {};
 const COOLDOWN_MS = 60_000;
@@ -106,7 +123,7 @@ export function getAvailableProviders(): { provider: LLMProvider; apiKey: string
   const now = Date.now();
   const available: { provider: LLMProvider; apiKey: string }[] = [];
   for (const p of LLM_PROVIDERS) {
-    const key = process.env[p.envKey];
+    const key = readKey(p.envKey);
     if (!key) continue;
     if (p.name === "Cloudflare Workers AI") {
       const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
