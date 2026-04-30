@@ -209,6 +209,9 @@ export interface GitPushOptions {
 // Defense-in-depth denylist (also enforced at the route layer)
 const GIT_PUSH_DENY_PREFIXES = [".git/", ".github/", "node_modules/", ".local/", ".cache/", ".config/", ".env"];
 const GIT_PUSH_DENY_EXACT = new Set([".env", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "server/db.ts"]);
+// Hive-multiverse carve-out: legitimate sister-universe deploy artifacts
+// (U2 GitHub workflow + U3 Cloudflare Worker source) bypass .github/ deny.
+const HIVE_PUSH_ALLOW = ["hive/", ".github/workflows/hive-"];
 
 // Read GitHub token, preferring date-stamped names (newest first).
 // Add new dated keys above older ones at each rotation.
@@ -234,7 +237,8 @@ export function gitCommitAndPush(opts: GitPushOptions): { ok: boolean; sha?: str
     return { ok: false, error: "invalid path" };
   }
   if (GIT_PUSH_DENY_EXACT.has(filePath)) return { ok: false, error: `denied: ${filePath}` };
-  for (const p of GIT_PUSH_DENY_PREFIXES) if (filePath.startsWith(p)) return { ok: false, error: `denied prefix: ${p}` };
+  const isHive = HIVE_PUSH_ALLOW.some(p => filePath.startsWith(p));
+  if (!isHive) for (const p of GIT_PUSH_DENY_PREFIXES) if (filePath.startsWith(p)) return { ok: false, error: `denied prefix: ${p}` };
   const root = path.resolve(process.cwd()) + path.sep;
   const abs = path.resolve(process.cwd(), filePath);
   if (!(abs + path.sep).startsWith(root)) return { ok: false, error: "path-escape" };
