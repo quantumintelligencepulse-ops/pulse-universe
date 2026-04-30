@@ -400,6 +400,10 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // ── Ω1-Ω10 GOVERNANCE REFORM ROUTES (batch-4 doctrines) ──
+  const { registerOmegaGovernanceRoutes } = await import("./omega-governance-routes");
+  registerOmegaGovernanceRoutes(app);
+
   const PgSession = connectPgSimple(session);
   app.use(session({
     store: new PgSession({ pool: sessionPool, createTableIfMissing: true }),

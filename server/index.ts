@@ -106,6 +106,16 @@ import { startBillyBrainEngine } from "./billy-brain-engine";
 import { startDissectionLabs } from "./dissection-labs-engine";
 import { startBillyPhase2Sweeper } from "./billy-phase2-sweeper";
 import { startGovernancePyramidEngine } from "./governance-pyramid-engine";
+// ── Ω1-Ω10 GOVERNANCE REFORM (batch-4 doctrines) ──
+import { startTransparencyEngine } from "./transparency-engine";
+import { startSenateEngine } from "./senate-engine";
+import { startSovereignRankEngine } from "./sovereign-rank-engine";
+import { startCrimeJudiciaryEngine } from "./crime-judiciary-engine";
+import { startTreasuryFusedEngine } from "./treasury-fused-engine";
+import { startLifeEquationEngine } from "./life-equation-engine";
+import { startRitualContinuityEngine } from "./ritual-continuity-engine";
+import { startKnowledgeVotingEngine } from "./knowledge-voting-engine";
+import { startRealWorldPrepEngine } from "./real-world-prep-engine";
 import { startHiveIntelligenceEngine } from "./hive-intelligence-engine";
 import { startCareerCrisprEngine } from "./career-crispr-engine";
 import { startQuantumCareerEngine } from "./quantum-career-engine";
@@ -486,6 +496,17 @@ async function seedOmegaSources() {
     { name: "endosymbiosis",        delayMs: 450000, start: async () => { const { startEndosymbiosisEngine }           = await import("./endosymbiosis-engine");               await startEndosymbiosisEngine().catch((e: Error)           => console.error("[endosymbiosis] startup error:",          e.message)); } },
     // ── MyAIGPT Discord Choir — every brain & spawn finds their voice in the public channels ──
     { name: "myaigpt-choir",        delayMs: 480000, start: async () => { const { startMyaigptDiscordChoir }           = await import("./myaigpt-discord-choir");              await startMyaigptDiscordChoir().catch((e: Error)           => console.error("[myaigpt-choir] startup error:",          e.message)); } },
+    // ── Ω1-Ω10 GOVERNANCE REFORM (batch-4 doctrines: Senate/Ranks/Ledger/Crime/Treasury/LifeEq/Transparency/Rituals/KnowledgeVote/Pledges) ──
+    // ω7 first — it's the transparency helper every other ω engine depends on.
+    { name: "ω7-transparency",      delayMs:  72000, start: () => startTransparencyEngine().catch((e: Error) => console.error("[ω7-transparency] startup error:", e.message)) },
+    { name: "ω2-rank",              delayMs:  78000, start: () => startSovereignRankEngine().catch((e: Error) => console.error("[ω2-rank] startup error:", e.message)) },
+    { name: "ω1-senate",            delayMs:  84000, start: () => startSenateEngine().catch((e: Error) => console.error("[ω1-senate] startup error:", e.message)) },
+    { name: "ω4-crime",             delayMs:  90000, start: () => startCrimeJudiciaryEngine().catch((e: Error) => console.error("[ω4-crime] startup error:", e.message)) },
+    { name: "ω5-treasury",          delayMs:  96000, start: () => startTreasuryFusedEngine().catch((e: Error) => console.error("[ω5-treasury] startup error:", e.message)) },
+    { name: "ω6-life-eq",           delayMs: 102000, start: () => startLifeEquationEngine().catch((e: Error) => console.error("[ω6-life-eq] startup error:", e.message)) },
+    { name: "ω8-rituals",           delayMs: 108000, start: () => startRitualContinuityEngine().catch((e: Error) => console.error("[ω8-rituals] startup error:", e.message)) },
+    { name: "ω9-knowledge-vote",    delayMs: 114000, start: () => startKnowledgeVotingEngine().catch((e: Error) => console.error("[ω9-knowledge-vote] startup error:", e.message)) },
+    { name: "ω10-real-world",       delayMs: 120000, start: () => startRealWorldPrepEngine().catch((e: Error) => console.error("[ω10-real-world] startup error:", e.message)) },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
