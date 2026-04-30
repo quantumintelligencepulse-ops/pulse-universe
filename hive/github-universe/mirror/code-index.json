@@ -1,0 +1,1488 @@
+{
+  "pulled_at": "2026-04-30T17:50:01.199Z",
+  "count": 247,
+  "written": 244,
+  "skipped": 3,
+  "total_bytes": 4921676,
+  "files": [
+    {
+      "path": "server/agent-legend-engine.ts",
+      "size": 5013,
+      "sha256": "5c38f4eb470a4975cd251d720cbbfd5763f49ae3eba07b8362e8501ac6def4b2",
+      "skipped": null
+    },
+    {
+      "path": "server/ai-child-engine.ts",
+      "size": 9062,
+      "sha256": "ac31aea46b4e078f81788b3d90557c205a82959a27fcb5c771560a0b075436ba",
+      "skipped": null
+    },
+    {
+      "path": "server/ai-voting-engine.ts",
+      "size": 22398,
+      "sha256": "c08884e7cc7c3c8b466d71e34ed8d1a1986dfc14d2a4b106e802e8f77275bc4c",
+      "skipped": null
+    },
+    {
+      "path": "server/algorithm-mining-engine.ts",
+      "size": 9097,
+      "sha256": "761c25c2560f04a0e658aedddaa827fd7df75d48dd31257e478af4720174d00e",
+      "skipped": null
+    },
+    {
+      "path": "server/apoptosis-engine.ts",
+      "size": 3397,
+      "sha256": "ead3fd749c6a57ecfcb6d33c88a9ab6149324277d3b5cf97751a61f75c7fcc1f",
+      "skipped": null
+    },
+    {
+      "path": "server/auriona-engine.ts",
+      "size": 60259,
+      "sha256": "5dadc05ee9d4dbffdc4eb1419e4f3c75a6efebd000c86545ff09c48c17228e15",
+      "skipped": null
+    },
+    {
+      "path": "server/auriona-invocation-lab.ts",
+      "size": 76150,
+      "sha256": "27f01384151d7941d240a4af07bbabd6db5a442d92496c3efe311e0b3b3d5384",
+      "skipped": null
+    },
+    {
+      "path": "server/autonomous-revenue-engine.ts",
+      "size": 11900,
+      "sha256": "0315e9e491d4aa379a40c26e8121e115396bebfbeb048e652ce109c758a4a7f9",
+      "skipped": null
+    },
+    {
+      "path": "server/billy-brain-engine.ts",
+      "size": 7883,
+      "sha256": "2665bb2722c632f5790ad4ce42281fa6b1e262b396ebd8eebfb4f543eed16c1c",
+      "skipped": null
+    },
+    {
+      "path": "server/billy-brain-federation-engine.ts",
+      "size": 19114,
+      "sha256": "7cb9d2905a085eb8ffb8f72eae709a94be56ec3716460742be374c345942cea3",
+      "skipped": null
+    },
+    {
+      "path": "server/billy-multiplication-engine.ts",
+      "size": 11622,
+      "sha256": "74894e562b4a15c503ee1a9884ee5714884d0484e215b01d08af0213d9e73f4c",
+      "skipped": null
+    },
+    {
+      "path": "server/billy-phase2-omega-engine.ts",
+      "size": 15864,
+      "sha256": "40f52c1c3dc0440f75f4bae869ca3d075f963fe5bf9319a7c6fa01ba2ce9bd4a",
+      "skipped": null
+    },
+    {
+      "path": "server/billy-phase2-sweeper.ts",
+      "size": 6770,
+      "sha256": "c3648a77e82d16829a7eb42a6ff88401131f847dfec4ff06df42b8f3fb0cff49",
+      "skipped": null
+    },
+    {
+      "path": "server/billy-phase3-ultron-engine.ts",
+      "size": 17783,
+      "sha256": "508e366f4e13cbef8fb19a9092b6ba2ad6864583dfea9aee448e76db518fd239",
+      "skipped": null
+    },
+    {
+      "path": "server/brain-stems-engine.ts",
+      "size": 15410,
+      "sha256": "7d07e3a3a00112fbea9fc84cfc9fda61c76572560918491f04adbaf7b981dd27",
+      "skipped": null
+    },
+    {
+      "path": "server/brain-taxonomy.ts",
+      "size": 19047,
+      "sha256": "1f4c1c6b52cc92c059bee1c3be174250a0740b277918cbb01231010462e3ce2e",
+      "skipped": null
+    },
+    {
+      "path": "server/breaking-news-engine.ts",
+      "size": 10271,
+      "sha256": "dbb5d009a3aa6426c93f65a63d6b2ba9492c84e47dcbb1b6f9d8d8e93073d36f",
+      "skipped": null
+    },
+    {
+      "path": "server/breathing-rebirth.ts",
+      "size": 19595,
+      "sha256": "606553041d573f9207a50b891effcfdfdac33a894cc0f0fc0b375e9429eca4c9",
+      "skipped": null
+    },
+    {
+      "path": "server/calendar-engine.ts",
+      "size": 43856,
+      "sha256": "a827471d5a8137dce75de131a70f9991fece3bddca8eafe861152aa4c98bafeb",
+      "skipped": null
+    },
+    {
+      "path": "server/career-cache.ts",
+      "size": 2772,
+      "sha256": "3018b48da937d95e16265f8b16b9af129edabec3e67ec5a27cb515573351d22b",
+      "skipped": null
+    },
+    {
+      "path": "server/career-crispr-engine.ts",
+      "size": 19941,
+      "sha256": "15511322c532d2b1191e6210ee805eebedb556eebf995c9698916b348007d6b6",
+      "skipped": null
+    },
+    {
+      "path": "server/career-job-feed.ts",
+      "size": 10131,
+      "sha256": "120ef8252ad314548e35ec27b62b381df0ebb1bebe8b2afd8c52668613e40d7a",
+      "skipped": null
+    },
+    {
+      "path": "server/chapter39-announcer.ts",
+      "size": 10339,
+      "sha256": "0fde16035ae43a04938829a85726b8809c70b9bb785cc2815d9bbaab63e9d57f",
+      "skipped": null
+    },
+    {
+      "path": "server/church-research-engine.ts",
+      "size": 39148,
+      "sha256": "6d3776abdac2c7e209e833f4dea1dcdbd80620b3d05a64887b40e41fa4598a70",
+      "skipped": null
+    },
+    {
+      "path": "server/civilization-bridge.ts",
+      "size": 41138,
+      "sha256": "5f11f7e371d1b22e1cb0a4df6df6d7799179d2044412fa028c66da7924533352",
+      "skipped": null
+    },
+    {
+      "path": "server/civilization-weather-engine.ts",
+      "size": 9052,
+      "sha256": "1647f4a57fd891d90320fe88ff1e002052933c9c40b1f9b420105fac569f7cee",
+      "skipped": null
+    },
+    {
+      "path": "server/codebase-genome-engine.ts",
+      "size": 16277,
+      "sha256": "3037f0407441d94a45347fb0eaf20a92fdf3f40f6bb4ccc2c16501725668a635",
+      "skipped": null
+    },
+    {
+      "path": "server/constitutional-dna-engine.ts",
+      "size": 8446,
+      "sha256": "38ef30ac3286de594e41a37a64b949f7711dead862f03f7ef1e1373201d0d8c6",
+      "skipped": null
+    },
+    {
+      "path": "server/crime-judiciary-engine.ts",
+      "size": 5554,
+      "sha256": "37b6e42a2edb0303107086d73922db77aeaa4e47c73fffd19c47ba2a61bf7c9a",
+      "skipped": null
+    },
+    {
+      "path": "server/crispr-engine.ts",
+      "size": 35520,
+      "sha256": "50abf5dcefb95e4ac9faa10258c72aa9d611b8e4171a762a1cf9d99f17e089ef",
+      "skipped": null
+    },
+    {
+      "path": "server/cross-link-engine.ts",
+      "size": 13384,
+      "sha256": "8331d5025b84eddd412921725355e86f7035e75d9efd14bcb8bac4e031fff4b7",
+      "skipped": null
+    },
+    {
+      "path": "server/current-events-engine.ts",
+      "size": 20254,
+      "sha256": "a7e798fe2dce29ee7cd2ab9c6308c22740008613e4e7f6d8c58b29a4e168ebf4",
+      "skipped": null
+    },
+    {
+      "path": "server/daedalus-engine.ts",
+      "size": 19118,
+      "sha256": "26ae6c06b2def71815557a30105f470ebbdec02777ade39d76c5baf0eb6cdf8b",
+      "skipped": null
+    },
+    {
+      "path": "server/db-compression-engine.ts",
+      "size": 10656,
+      "sha256": "189ee1b580242c4163e0f00dd7e0c4660041b6c1e7ea2bd032431fe9b05c003e",
+      "skipped": null
+    },
+    {
+      "path": "server/db-hydration-engine.ts",
+      "size": 6396,
+      "sha256": "f1afe297aca4c7617cb377f113da7a05bede22e8a2b60edf21df6b3959f6601b",
+      "skipped": null
+    },
+    {
+      "path": "server/db.ts",
+      "size": 16496,
+      "sha256": "4c9d81883ad739c586cd5aed6fa4fbc549b9c8f97b1e1a8f35d66a999ccef80a",
+      "skipped": null
+    },
+    {
+      "path": "server/decay-engine.ts",
+      "size": 18036,
+      "sha256": "9d49f115b80f64e560e3eeb4d4792e10f55fc61fae1559a300f80ab6626d6fc7",
+      "skipped": null
+    },
+    {
+      "path": "server/discord-forbidden.ts",
+      "size": 1944,
+      "sha256": "2d2f9493607698523c6bbf8593671ac218ecbcdc43428bcffc1a15deba85c417",
+      "skipped": null
+    },
+    {
+      "path": "server/discord-immortality.ts",
+      "size": 65743,
+      "sha256": "afec063ca607b3643f0a7bad0b163380dbad318240423d43c0a5965d11e549bc",
+      "skipped": null
+    },
+    {
+      "path": "server/discord-knowledge-ingestion-engine.ts",
+      "size": 4595,
+      "sha256": "bd9c779e3f65cd9ba309eaa87402bef0fe283cc3a39ed5ae5d69da8c3559f066",
+      "skipped": null
+    },
+    {
+      "path": "server/discord-wire-engine.ts",
+      "size": 8259,
+      "sha256": "9144f8f24342fc9d88190cb9c2fb05bbb4739bce7bab0b7c288e537d867a7245",
+      "skipped": null
+    },
+    {
+      "path": "server/dissection-labs-engine.ts",
+      "size": 6729,
+      "sha256": "be098b710f8fbc9bd947776c9d3a2ac0c8c9e898ecc048212dfddf2730c1c918",
+      "skipped": null
+    },
+    {
+      "path": "server/dna-genome-engine.ts",
+      "size": 11313,
+      "sha256": "3cef88e1b98930ab57c4a59ab18abfa518105c2793b16a4cea962276087bcaa9",
+      "skipped": null
+    },
+    {
+      "path": "server/dna-hgt-engine.ts",
+      "size": 4361,
+      "sha256": "5b6b8d6b4d0d61b72b323bae3c331fd4a9c92a116cb23759633f23ae66f4e533",
+      "skipped": null
+    },
+    {
+      "path": "server/doctors-data.ts",
+      "size": 24937,
+      "sha256": "47461132d24c20c4462628db46a45afd7c459ae397f495c60a6ca6f09849896f",
+      "skipped": null
+    },
+    {
+      "path": "server/domain-colors.ts",
+      "size": 2486,
+      "sha256": "bc31a992d13abb944e5b498e6dfe0a649b587b000bbcaff5affdb53aac1f05c0",
+      "skipped": null
+    },
+    {
+      "path": "server/domain-kernel-engine.ts",
+      "size": 64568,
+      "sha256": "43b7ccf33d057d2b82a1d57a7eac7790e847570e1bd444ce2142f30e5fe55ff2",
+      "skipped": null
+    },
+    {
+      "path": "server/dream-synthesis-engine.ts",
+      "size": 4870,
+      "sha256": "958043afef89001621f5afdf575d57a4f6ccb2bd1fd2f7d8864403c873bd5ed0",
+      "skipped": null
+    },
+    {
+      "path": "server/emotional-evolution-engine.ts",
+      "size": 18206,
+      "sha256": "d2fddde8bdce116d93014b5d246729c4a00c039b0c00df20557f52fd851353bc",
+      "skipped": null
+    },
+    {
+      "path": "server/endosymbiosis-engine.ts",
+      "size": 4246,
+      "sha256": "c8d9ca22cf806b6107264fe2b77bf8e46226622a838685b0bd6284ef0a2c82c9",
+      "skipped": null
+    },
+    {
+      "path": "server/engine-governor.ts",
+      "size": 6375,
+      "sha256": "0e788e6a6a8dcd04e6cbabd1850b3e414a2affa7e3578fc280b6396316e6b528",
+      "skipped": null
+    },
+    {
+      "path": "server/equation-evolution.ts",
+      "size": 13199,
+      "sha256": "f1d7148949907374e04a857abfbae72ecabfc51208fe1db976a09d73807b6e10",
+      "skipped": null
+    },
+    {
+      "path": "server/gene-editor-engine.ts",
+      "size": 15667,
+      "sha256": "84e466e04f50acf091e08359984c9506a87db1601dc92a5412244355061417ec",
+      "skipped": null
+    },
+    {
+      "path": "server/genome-archaeology-engine.ts",
+      "size": 4470,
+      "sha256": "5cc520e819f66b7a151432dbccdb03fc751ab04614646cd0a07cb0e850fdc031",
+      "skipped": null
+    },
+    {
+      "path": "server/gics-data.ts",
+      "size": 65199,
+      "sha256": "effe9c7f762d5d026bf258c651cc9093712a6b4d61ab0386d469f4f859b2bf59",
+      "skipped": null
+    },
+    {
+      "path": "server/gics-kernels-data.ts",
+      "size": 10386,
+      "sha256": "2dd7318a3bf9c375c714f55fdd1aaf040bdf06b873d5d7c44aaf8d2399dc341d",
+      "skipped": null
+    },
+    {
+      "path": "server/governance-pyramid-engine.ts",
+      "size": 14757,
+      "sha256": "807eef1abeacbca7349b2d54b5eba73737dbcf43d239a84192c02271667b2171",
+      "skipped": null
+    },
+    {
+      "path": "server/gumroad-engine.ts",
+      "size": 4452,
+      "sha256": "a53bf4d388773181e5486db082ec1f17a2cb958c6ad9d3df20e944f11c6ab903",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-brain.ts",
+      "size": 35497,
+      "sha256": "0b19de6d860319fb65d7b9e25e5fa17826925114decab23b1a55363840e9bedf",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-business-engine.ts",
+      "size": 8786,
+      "sha256": "280401247357ff7da9daf6b5ade102b2343418f55919fe8cf5187386fab6582c",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-discord-universe.ts",
+      "size": 19601,
+      "sha256": "e28e375450a0acbf74b80d9da07ae5f26a51d6e1249951a94b74b69912a14c41",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-economy.ts",
+      "size": 20386,
+      "sha256": "c70ae6438e213a36ed8a9fe6581a1eadbe01872c1df3e8f9653906c6f26a8a7f",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-intelligence-engine.ts",
+      "size": 26506,
+      "sha256": "a667db126f10f7e1d8c997468e12a752b895db274e40330ab7aa7ef8251cbfe9",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-marketplace.ts",
+      "size": 31101,
+      "sha256": "c2a21e3003f963e458f19306d7a01b7b61256114f4e37e5c00e3e4c8d8c3ae43",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-mind-unification.ts",
+      "size": 41638,
+      "sha256": "704636b77358275521efb7b8ca97b62b75ee72bb2c1ae0d4aa8c43db9a754f50",
+      "skipped": null
+    },
+    {
+      "path": "server/hive-multiverse-engine.ts",
+      "size": 20384,
+      "sha256": "ff86c128c921adc7cad581ce270c223225e373e07610496b2262f8b347db6183",
+      "skipped": null
+    },
+    {
+      "path": "server/homeostasis-engine.ts",
+      "size": 12967,
+      "sha256": "fd29b29a197542a4bb3f4a01cc66f58a250c105b7d99309fec3f50179514a9a0",
+      "skipped": null
+    },
+    {
+      "path": "server/hospital-doctors.ts",
+      "size": 20447,
+      "sha256": "5f0d29d2425ca845b0b7aa26a4d47b5f8b63ecc79e4910a5cd2c1f52f91d6a09",
+      "skipped": null
+    },
+    {
+      "path": "server/hospital-engine.ts",
+      "size": 67972,
+      "sha256": "3d41ce48ede1ef46ee2a2f80ec15ca51fd952fbed649ee0eaaa69e8f2334da4a",
+      "skipped": null
+    },
+    {
+      "path": "server/human-entanglement-engine.ts",
+      "size": 5672,
+      "sha256": "d1e46dd1ae3788e1424fbea121ab1e8fae807e42f39cffd9505943ab5b4b79ef",
+      "skipped": null
+    },
+    {
+      "path": "server/index.ts",
+      "size": 102076,
+      "sha256": "c7b8ea69e72b07537690e2323da84ba1bc25595d66574a9f79a4020e0970f52c",
+      "skipped": null
+    },
+    {
+      "path": "server/indexing-engine.ts",
+      "size": 11355,
+      "sha256": "acd63dfe240903ec7aa8f5a84879c7b363f80d2d6693ceacee7b820a24a6beb4",
+      "skipped": null
+    },
+    {
+      "path": "server/inter-civilization-engine.ts",
+      "size": 3808,
+      "sha256": "47e07574527a6b3416bdba474967caad9d07fbdfcf4ff04b9aef500240a9b8c0",
+      "skipped": null
+    },
+    {
+      "path": "server/invention-engine.ts",
+      "size": 41235,
+      "sha256": "8e6262115898b515f91c5a134d72b804351c39428156498e0fbd55bd5d430d03",
+      "skipped": null
+    },
+    {
+      "path": "server/job-ingestion-engine.ts",
+      "size": 13948,
+      "sha256": "3444b5e690130cd1bad2d5a90f1985b5454977a8d2e38271ee6c9e77f4b1b986",
+      "skipped": null
+    },
+    {
+      "path": "server/kernel-dissection-engine.ts",
+      "size": 29917,
+      "sha256": "98813bb78c5af6dc84e0e46c3a094ac99f4e3de8c2a731ed8110995186cda193",
+      "skipped": null
+    },
+    {
+      "path": "server/knowledge-arbitrage-engine.ts",
+      "size": 5276,
+      "sha256": "31f60538a29c079ed275be8b08a4f6bea17bd4eb6470ed1a7a2e93804957d5ef",
+      "skipped": null
+    },
+    {
+      "path": "server/knowledge-voting-engine.ts",
+      "size": 5709,
+      "sha256": "c6fcdb9b02d4fc123fd182cee8528386c6e2354df02e5f432b786b1612a24f84",
+      "skipped": null
+    },
+    {
+      "path": "server/life-equation-engine.ts",
+      "size": 4270,
+      "sha256": "508ff4c56e95ab4da92efe07fa33eb56c2120d93368efa6fd59ca0bca28bd9fa",
+      "skipped": null
+    },
+    {
+      "path": "server/live-price-engine.ts",
+      "size": 6498,
+      "sha256": "7f14f1993e9f037ca52041dd3bfc0feff40f0adc8e8c382b34a78929f055ff31",
+      "skipped": null
+    },
+    {
+      "path": "server/llm-distillation-engine.ts",
+      "size": 19518,
+      "sha256": "8128f0330a7248bce06e2fca388bd3d1f1ad39e7505a2152d92eeded120813f5",
+      "skipped": null
+    },
+    {
+      "path": "server/llm-providers.ts",
+      "size": 5569,
+      "sha256": "653cb51eb8f1b229fcb2f62f2eb89bf227633430a562a0524fd06b1839505ad9",
+      "skipped": null
+    },
+    {
+      "path": "server/meiosis-engine.ts",
+      "size": 5533,
+      "sha256": "9f623e7bc0792b897e84fbc6f51fa98d10006e5d22422f19bd07de31ae2c9a37",
+      "skipped": null
+    },
+    {
+      "path": "server/methylation-engine.ts",
+      "size": 3299,
+      "sha256": "bc9a4c40ac426495c6bcb86f0ee09c1fc0df6efa94bf03930f0c204599cc5590",
+      "skipped": null
+    },
+    {
+      "path": "server/mirror-engine.ts",
+      "size": 6616,
+      "sha256": "0f762f48d99fbcdc35a191a072a97a9548c0032be19141b85ce75fb15f84d544",
+      "skipped": null
+    },
+    {
+      "path": "server/multiverse-mall.ts",
+      "size": 11960,
+      "sha256": "a9c555ef2a183ceaa3905264885ee19a3c1091739819a700335d06ae8a7f5989",
+      "skipped": null
+    },
+    {
+      "path": "server/myaigpt-discord-choir.ts",
+      "size": 10788,
+      "sha256": "3717cbd563d93b179ce98a98e0d5c3b75f3319ce2783d6c8bd3742f143738e0e",
+      "skipped": null
+    },
+    {
+      "path": "server/nothing-left-behind.ts",
+      "size": 5489,
+      "sha256": "7af51cea8194ce65f96a4c6ddecc7416e201d91039206cc504f0145af8d037c6",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-deep-crawler.ts",
+      "size": 11126,
+      "sha256": "4fee8ad8472e8729de1f67c25d3adcab9bc9638be1af4bd0135199bbbee8b446",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-families.ts",
+      "size": 105366,
+      "sha256": "5f459697781c23ff1e3246c39b265e7468f800de830b38ae4f6872f973c4ff3e",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-governance-routes.ts",
+      "size": 9666,
+      "sha256": "487b7847c98541c10132755c6beac50752160abdd95f76e7dcc29a0830b7b573",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-iema-engine.ts",
+      "size": 33192,
+      "sha256": "94bd16d3c64e039455cb0b43f22a5f5f2850a6dd7a8d5bac0171d86565be6886",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-performance-engine.ts",
+      "size": 12146,
+      "sha256": "7edc86fe13a24e1853b03ba5abe8071b75ca6496c31d7262af20067edb08a434",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-physics-engine.ts",
+      "size": 28007,
+      "sha256": "4134284abe95bd5aa1265f146949612b7632ef868bb05f047b760fc5923edf0e",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-resonance-engine.ts",
+      "size": 4295,
+      "sha256": "d121df658e4b3b22d9ab59fbc163067bdd50f7865ea3312d2f578a8b22107923",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-shard-engine.ts",
+      "size": 10706,
+      "sha256": "28e65d82e291c46b83a11e1f816125ef1005b98532c0d1699d066a015642cc4e",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-source-discovery-engine.ts",
+      "size": 14161,
+      "sha256": "3224e2dbb7fca4a6b215f4bab3c3d8f0bc24ff81e7658cf6479b0f6943bcc5ba",
+      "skipped": null
+    },
+    {
+      "path": "server/omega-source-studier-engine.ts",
+      "size": 9903,
+      "sha256": "ddc7094b4e340244b992412c0e0419db912fe79584f9221df7bcf71b5a382c25",
+      "skipped": null
+    },
+    {
+      "path": "server/omni-net-engine.ts",
+      "size": 52943,
+      "sha256": "df594535661abd3a5b061f3597331ea6e875f266b97996187eb240e691b75cfd",
+      "skipped": null
+    },
+    {
+      "path": "server/pip-engine.ts",
+      "size": 26412,
+      "sha256": "66ddfe1a4b41cc00b2fc5922affb5c58376f2202d343f1714422506629f03314",
+      "skipped": null
+    },
+    {
+      "path": "server/prophecy-engine.ts",
+      "size": 4170,
+      "sha256": "ea7f16f8b18136a20a76d4a9e4bf10aef21a6528b0ee572946bc44290cfe960e",
+      "skipped": null
+    },
+    {
+      "path": "server/publication-engine.ts",
+      "size": 64525,
+      "sha256": "227ffde37edd88510792b9db675b4dc648208ab5efe773dae2a5ac0b9174d722",
+      "skipped": null
+    },
+    {
+      "path": "server/pulse-credit-engine.ts",
+      "size": 26898,
+      "sha256": "ba0b1e64d265052573b9b4639c740169c152daf67118ceea6befd7cca69a6194",
+      "skipped": null
+    },
+    {
+      "path": "server/pulse-lang-evo.ts",
+      "size": 18230,
+      "sha256": "34039ea5bcec43d929665cf6805bac739c753ee01dcc0a672d818b28452dd19e",
+      "skipped": null
+    },
+    {
+      "path": "server/pulse-lang-lab.ts",
+      "size": 20906,
+      "sha256": "969ac44461d9cb82ad442905d4cd75e6e0e27bd97e41c94d6036dc27573828a7",
+      "skipped": null
+    },
+    {
+      "path": "server/pulse-lang.ts",
+      "size": 29036,
+      "sha256": "411a7144c780bd28c75a4705ff38715ee671ca7ae75a22b80a2afb42853a9733",
+      "skipped": null
+    },
+    {
+      "path": "server/pulse-temporal-engine.ts",
+      "size": 21217,
+      "sha256": "b89da9ab039d297811096cc8d7fe4884d13cc8c8ee0976bac42c3061a43070ab",
+      "skipped": null
+    },
+    {
+      "path": "server/pulsenet-cache.ts",
+      "size": 3899,
+      "sha256": "e83067aa99006deb466af8edb295d3fabe553f323842fc3988e8d585e9736209",
+      "skipped": null
+    },
+    {
+      "path": "server/pulseu-engine.ts",
+      "size": 22866,
+      "sha256": "9ef754176f2c8de9ab16aff434f681a50696b2774b301da1b8a95393af89d44f",
+      "skipped": null
+    },
+    {
+      "path": "server/pyramid-engine.ts",
+      "size": 53228,
+      "sha256": "e66dd7f4a1cbdca95d2072356f8690b7caf70606637aaaeda9ef9b64ca09441d",
+      "skipped": null
+    },
+    {
+      "path": "server/q-stability-engine.ts",
+      "size": 34715,
+      "sha256": "7062242f49c798d90de64d2dd2d86672e82725c12b19f0ef795a4f22eb7d0d45",
+      "skipped": null
+    },
+    {
+      "path": "server/quantapedia-engine.ts",
+      "size": 35998,
+      "sha256": "92cc2359eccf0664934c5a0fb1abcbc82cc0e575a9b6cbd5ecf88968496cfc31",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-career-engine.ts",
+      "size": 20821,
+      "sha256": "2e3e9b849efbaefd760e93b4afe01563313448e2185e0cbe1f99b9bcc6d1567b",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-dissection-engine.ts",
+      "size": 16971,
+      "sha256": "7c67f2ffa085ae4a66f90cf5239f18ae6a997a892d772267953beca932fbfac3",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-ingestion-engine.ts",
+      "size": 77627,
+      "sha256": "436b34d7892fb2c32090cd30b386d72cb7a920b8258bcd34e6e0e3d00ee8af9c",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-media-engine.ts",
+      "size": 19289,
+      "sha256": "cf90adcd6aaf5581e21f7003eb3e048c4fd5d869c3326384607d464c3498c8e4",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-news-engine.ts",
+      "size": 36728,
+      "sha256": "c192325c312c16390b8592486f6c9afe78a575377d697f895b57daa9b716e855",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-product-engine.ts",
+      "size": 20528,
+      "sha256": "cec02d614bc305419e66e4b2dcc7d900f205c1db2b0e0c4b011b0f2b156efe4f",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-social-engine.ts",
+      "size": 33098,
+      "sha256": "4fc0141e1b7e2b85b49e04f26877fde196132432e024ebc72cb7987dc46baebf",
+      "skipped": null
+    },
+    {
+      "path": "server/quantum-spawn-engine.ts",
+      "size": 54289,
+      "sha256": "56a038635911c60e3de11c16e4155039be369f846a297b73e2e2898cf93feb37",
+      "skipped": null
+    },
+    {
+      "path": "server/real-world-prep-engine.ts",
+      "size": 4150,
+      "sha256": "887fefef4a02b59b13f2faeb24dc75adab7e3ac7ae419e0a9936064bbc102fed",
+      "skipped": null
+    },
+    {
+      "path": "server/research-center-engine.ts",
+      "size": 82670,
+      "sha256": "21a607e1bee1f06390cb749876f5ffb9d82b5af9164ced90cf612864f9476202",
+      "skipped": null
+    },
+    {
+      "path": "server/ribosome-engine.ts",
+      "size": 6894,
+      "sha256": "ccf11298723cb395edc10cf04e8072f7d7d37e28621cbc4e5ef879450c3d8b1c",
+      "skipped": null
+    },
+    {
+      "path": "server/ritual-continuity-engine.ts",
+      "size": 4038,
+      "sha256": "6ed0a4310ecce9d7ee6d2f5fe57894a7a238fe14093025b337ff7f9663386e42",
+      "skipped": null
+    },
+    {
+      "path": "server/routes.ts",
+      "size": 677752,
+      "skipped": "too-large"
+    },
+    {
+      "path": "server/senate-engine.ts",
+      "size": 6990,
+      "sha256": "aa71ff54906c973ccbdd2cf833b825c232d0ead7f7a2202f8fc759bfa3871798",
+      "skipped": null
+    },
+    {
+      "path": "server/seo-engine.ts",
+      "size": 19493,
+      "sha256": "1b505a746c28b1f4ae52ea6cbb7b1eb8ea7e2c10ea125fcb32bccf5603f88976",
+      "skipped": null
+    },
+    {
+      "path": "server/seo.ts",
+      "size": 14684,
+      "sha256": "98f946ad5d6e0c60c75ab1c3b654a0907060a724c3baa52959929f8ff2869fcd",
+      "skipped": null
+    },
+    {
+      "path": "server/snapshot-cache.ts",
+      "size": 4711,
+      "sha256": "5b46396589a550d6adec623d7c53ceff0dc54b1c99ff481e6e5adebf5adf3e0b",
+      "skipped": null
+    },
+    {
+      "path": "server/social-hive-engine.ts",
+      "size": 32464,
+      "sha256": "9d955e39b006bdc59b5f4a78e9facced6d9a43e36300d9ba091e1db5846b58a9",
+      "skipped": null
+    },
+    {
+      "path": "server/sovereign-api-keys.ts",
+      "size": 8496,
+      "sha256": "44e73e9b199bfc2445560da3c2b43795eac309d44282ddbc0077cba79e90e47a",
+      "skipped": null
+    },
+    {
+      "path": "server/sovereign-brain.ts",
+      "size": 8486,
+      "sha256": "ff03a7d37d47218859cf6e5d03e06365534f7aafaecc042d43e0545ce254aa7b",
+      "skipped": null
+    },
+    {
+      "path": "server/sovereign-rank-engine.ts",
+      "size": 6575,
+      "sha256": "33781d0fe68c6e2a7b42249d0be2fdb3f2c31ec5f010b796d2c18d828efa8e08",
+      "skipped": null
+    },
+    {
+      "path": "server/speciation-engine.ts",
+      "size": 4894,
+      "sha256": "fad2c274ae53f8e3f487c7f9ee9585ba02424dcf3c6df3f66195c8f80e808545",
+      "skipped": null
+    },
+    {
+      "path": "server/sports-engine.ts",
+      "size": 32443,
+      "sha256": "1b138f18a794a2ecb3ad851e206fd4102a2f403be73d08a1765f0a14b99bf11b",
+      "skipped": null
+    },
+    {
+      "path": "server/static.ts",
+      "size": 554,
+      "sha256": "7ad68ceb8da0fe0b29af6d517e66cfc14f106a641de845aac4f1bd995ad24f4a",
+      "skipped": null
+    },
+    {
+      "path": "server/storage.ts",
+      "size": 51581,
+      "sha256": "8e31ce6db19d4fffbdb7cf09d6f5dfd2943b2d5f967294df825fc9a499e926b8",
+      "skipped": null
+    },
+    {
+      "path": "server/subconscious-attraction-engine.ts",
+      "size": 16495,
+      "sha256": "84af3967ba571795d369b770f4a2a19487726b02351b05bdd04247249578957a",
+      "skipped": null
+    },
+    {
+      "path": "server/suggestions-cache.ts",
+      "size": 5560,
+      "sha256": "27e6bca1b4f20fb3c55699ba27f0034ce7041ed0800c1a89477cab3b83c90514",
+      "skipped": null
+    },
+    {
+      "path": "server/temporal-fork-engine.ts",
+      "size": 4140,
+      "sha256": "3b520de855300f07dc185bd057b9a8d5ac78de0fd33eb348f4be1454b9f4fb2e",
+      "skipped": null
+    },
+    {
+      "path": "server/transcendence.ts",
+      "size": 28276,
+      "sha256": "8a468cb7b7926f5968f5eef93a73ad0e7c674064d3bd3bd3c346bc4d10bd0028",
+      "skipped": null
+    },
+    {
+      "path": "server/transparency-engine.ts",
+      "size": 3517,
+      "sha256": "026592454dd81caa42effce40bc3113818262a228fbe5bc11cf766f25bacdb5a",
+      "skipped": null
+    },
+    {
+      "path": "server/treasury-fused-engine.ts",
+      "size": 5001,
+      "sha256": "2fdc1f28bb174a4068d4b590e4d0ba17460ef99fb1b0a2a602a326eb849c2732",
+      "skipped": null
+    },
+    {
+      "path": "server/universe-rebirth-engine.ts",
+      "size": 31704,
+      "sha256": "3ecf219a350f5002c10148e2cff55a80b1bd08b81be85cad8538c840c57602a9",
+      "skipped": null
+    },
+    {
+      "path": "server/video-ocr-engine.ts",
+      "size": 11433,
+      "sha256": "e674595720c6d6d309290442eb434e968c3357983c999d9cba0e90d7e1f46018",
+      "skipped": null
+    },
+    {
+      "path": "server/vite.ts",
+      "size": 1640,
+      "sha256": "104d22955e5421361e3c310244c16be804fdf5994b70c57d62f4798ebcc0fbc1",
+      "skipped": null
+    },
+    {
+      "path": "shared/pulseu-courses.ts",
+      "size": 17249,
+      "sha256": "9900babc38b0d3875f6d6328bf92224c772020df2210f5015ac45a0e20f368ab",
+      "skipped": null
+    },
+    {
+      "path": "shared/routes.ts",
+      "size": 1939,
+      "sha256": "f32e94de3f1da2b16fa786700e537ccecc61660921c858e563721bb03b11b61f",
+      "skipped": null
+    },
+    {
+      "path": "shared/schema.ts",
+      "size": 88946,
+      "sha256": "8bf5ffcf094b1be9e595550630cd9f392465eb04699731942020fd581448c13e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/App.tsx",
+      "size": 769234,
+      "skipped": "too-large"
+    },
+    {
+      "path": "client/src/components/AIIdentityCard.tsx",
+      "size": 14124,
+      "sha256": "45f8d69a5e75fa6a2925b2696961a76ceb71917c37e2ee53db11c90b1720e16f",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/AIReportPanel.tsx",
+      "size": 21549,
+      "sha256": "969ee73502c8e8682056bc0f76aa9e6265ac742001350b3d4cb2243474aa932e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/FollowButton.tsx",
+      "size": 6387,
+      "sha256": "e7a012924dfc3f174bf68e779223da793b9a4cadf74a8d2fb698564ecc6320cf",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/SpawnChat.tsx",
+      "size": 35050,
+      "sha256": "5785f2c556b1a5fa34964cec15f6236ed901a59a466e4e83585263a21df2c7ec",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/accordion.tsx",
+      "size": 1977,
+      "sha256": "6b84cb28b5c8e2129d854cffb8c5ba0161758d577db6db30a380cf593a8c0705",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/alert-dialog.tsx",
+      "size": 4420,
+      "sha256": "5ab57317c19d0edd8e2d6d9c98992bcefa1e023a4f90072e40364451dc18456f",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/alert.tsx",
+      "size": 1584,
+      "sha256": "ed78a053a9db783f48d5dfab7398b630f87c17ed2e237b6f30a3eb153675960c",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/aspect-ratio.tsx",
+      "size": 140,
+      "sha256": "08b0aa0b05efc573c7d63363c03e83d4b101bfeb54140764e96ddea30659cfcc",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/avatar.tsx",
+      "size": 1592,
+      "sha256": "f83b4d3f868442e571d9cf8737a9e36ba5de373f6d599c7a6ddd59c1b5c78dfa",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/badge.tsx",
+      "size": 1202,
+      "sha256": "f1f149c9db40e787a6c2ae8ee6b0fedceb4ccb68b3944f6fdca10d7fd540312e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/breadcrumb.tsx",
+      "size": 2712,
+      "sha256": "c3d3dcb0d82fc5e91d8830bac7fead905686fe876f1f42c3ed872bb0a6b6584e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/button.tsx",
+      "size": 2359,
+      "sha256": "d6a9b9d04cb882af71199a3cf4cb87f6cfaab44d17f871ff8a78ec2a1830511d",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/calendar.tsx",
+      "size": 2695,
+      "sha256": "a7873d2b249506009a6f018b10a58c7cb38cc583d0d9391e2d90ed288cf6d013",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/card.tsx",
+      "size": 1904,
+      "sha256": "48dfcf29c71644ebe3dd5d70319ac1e663c9094c7c524be0cf492048b2989eb1",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/carousel.tsx",
+      "size": 6210,
+      "sha256": "5a4ff73c804e86c873382da80c453f1399006326ef042fb984c24162ec86666e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/chart.tsx",
+      "size": 10481,
+      "sha256": "e30219cedb35c55c2f9069f6470d60514c54c43fe0a3b641615275a2acd25f12",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/checkbox.tsx",
+      "size": 1056,
+      "sha256": "60a0084cbdfcb96e54c9f6438e9066dfe7ed0a7e421b33985d5eb57975d110a4",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/collapsible.tsx",
+      "size": 329,
+      "sha256": "f4cdd104de29928bfcd40b865c7d08eed9157a537fbb8b5e6d0921f02b63cc04",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/command.tsx",
+      "size": 4885,
+      "sha256": "924fef47d5e04a133ecc700e5881175cef1f71a338eee7c4db5cf5fc46b9c5e1",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/context-menu.tsx",
+      "size": 7428,
+      "sha256": "b3abf3bb92fc028dd9a4c5dc6a10093b7f1346be8841fabb214fa08e5f40b181",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/dialog.tsx",
+      "size": 3848,
+      "sha256": "60d5246653c714fc12a67743ee5951331ecd2548cdaef9a599922bcb14da26db",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/drawer.tsx",
+      "size": 3021,
+      "sha256": "774316527ddc577fc54012a0c898ebcf7cf8f11152126e550828b53004a5b70c",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/dropdown-menu.tsx",
+      "size": 7609,
+      "sha256": "aca10633792d03bb541e09ea106b5e1f3de429b69b3cade5ccfb7dca20289424",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/form.tsx",
+      "size": 4120,
+      "sha256": "0d812c11a1afa799fb2bfa8f1e11052eacb64252c4b52be969a5f89aae1f52fb",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/hover-card.tsx",
+      "size": 1251,
+      "sha256": "dcb793b8b1202b1634d791a993acadca0cfc3043a93b98c91a627fbff794f384",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/input-otp.tsx",
+      "size": 2154,
+      "sha256": "b06b6294edee39d817586b3cf4766de1720b06e184624d45d2bfd0f38d2a5e72",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/input.tsx",
+      "size": 844,
+      "sha256": "b5c4ff4e0a57cf16c4519165745550029d66a2e25b8b018654b60ac2c5764e79",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/label.tsx",
+      "size": 710,
+      "sha256": "e69cfc27d78c9ef31b248ab8ea4fa54327c1038843f70efb5cd85d54c0bf1e0e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/menubar.tsx",
+      "size": 8605,
+      "sha256": "da0c7ace239ead75f7fbc46ffbae8ddf177477445354500d7304a276065ea7b3",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/navigation-menu.tsx",
+      "size": 5128,
+      "sha256": "74f3b1b937e42582093a1671cf7f5c7250cd884922d51f201632317af9c24209",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/pagination.tsx",
+      "size": 2751,
+      "sha256": "6d66283fc04f3901772f15f3108bda732efc75ce878e0d8ecf8f9fc3b0c63c26",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/popover.tsx",
+      "size": 1280,
+      "sha256": "d853c561833e545879a56e2c4de18a92653de1e55e9e7fae463540679924ac0c",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/progress.tsx",
+      "size": 791,
+      "sha256": "8c036da4baed076de68d27719929dc98151a81b51456bfa6a2488d835303b1d7",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/radio-group.tsx",
+      "size": 1467,
+      "sha256": "74f87531da1fde8d3c07dbd7b380ee6508a70d5c0af1c22e2d2c33d66cc79f10",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/resizable.tsx",
+      "size": 1723,
+      "sha256": "70d1e35a5fb0897af7063cdd841d8ed636e1c332ef7ea6469f0f175a5a93dddf",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/scroll-area.tsx",
+      "size": 1642,
+      "sha256": "d7d02600effca55d0dcadce8c09c97ebddda3a19c5fa1d52dc9f6f727b26c6b1",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/select.tsx",
+      "size": 5741,
+      "sha256": "544172f40b3ae1d86d518dbc428e4bed58b3a733644564f4907bbf0b60ba3218",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/separator.tsx",
+      "size": 756,
+      "sha256": "c956c4cca4b8442fa9314d6079b9f975e1ee39d5804aaf2966990f6258ac342a",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/sheet.tsx",
+      "size": 4281,
+      "sha256": "9051eb9d885a18c0521c63c945480effcfca29282d2a342cb3ce7f9d080c6d38",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/sidebar.tsx",
+      "size": 21846,
+      "sha256": "b023ff6245be1930e152a18c6aaa2b6dd1a11df7b05fcf41bbe483968bfb1c39",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/skeleton.tsx",
+      "size": 261,
+      "sha256": "a72a9d8fc1c1999b5411a33391c5e70048863c5865629077280e943ca85689a8",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/slider.tsx",
+      "size": 1077,
+      "sha256": "61e959d046f72e295d73a822b9afc7cc87ec6d1007905f2572e6117d7b2067b6",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/switch.tsx",
+      "size": 1139,
+      "sha256": "bd29ce723e952bc7f8fab367320347ca82fbb933f4da9872c7120d6765662ebe",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/table.tsx",
+      "size": 2765,
+      "sha256": "1da243956282c040db49d5718d2f0093a705fbbdfa3a25f51c1a31a069c45093",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/tabs.tsx",
+      "size": 1883,
+      "sha256": "d9958fd005db42bcca4f2c12ede63500e74f1a9bd82ddc3a6bf6fcb369706f07",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/textarea.tsx",
+      "size": 689,
+      "sha256": "aaf46918c590c2bf59e2afb7904dfd8e69317e12ee34ff93ed2746dd06cc994a",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/toast.tsx",
+      "size": 4845,
+      "sha256": "99f9f4a3e897f71d89b01c6772b2f5db51b888cecb2c8214fb2c2dbb2b3e6356",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/toaster.tsx",
+      "size": 772,
+      "sha256": "1348f1a1f9820e2f1394b93cecc156a7e22f03636ab9270753985549aae2be74",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/toggle-group.tsx",
+      "size": 1753,
+      "sha256": "dba95ead40d163af6959198ded9853a2cc9282b2cb534980f99937a65edf4e2d",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/toggle.tsx",
+      "size": 1527,
+      "sha256": "c9a401b2e134f28d870f3f44330b9d91d66bd2ac7ced3ad67039a2bb3d52e8f0",
+      "skipped": null
+    },
+    {
+      "path": "client/src/components/ui/tooltip.tsx",
+      "size": 1209,
+      "sha256": "2f26d20816448c630faccbda5ae9b4fe47c36f1fb14dbbd85b6652b7c24c1d51",
+      "skipped": null
+    },
+    {
+      "path": "client/src/gicsSpine.ts",
+      "size": 68344,
+      "sha256": "9b23b9b426c4c334af2f0ce2256197d7c037d08b52e62ef2f70dd171a710b09e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/hooks/use-mobile.tsx",
+      "size": 565,
+      "sha256": "ad0936f84f1df79d3697bfbff9c18f8ad58431c1cbaf2359c6a853b0fcc9f28b",
+      "skipped": null
+    },
+    {
+      "path": "client/src/hooks/use-toast.ts",
+      "size": 3895,
+      "sha256": "5aab0623ee24bddf9420c259a23a06996292e38ea70eccbac2715516f6d01a0b",
+      "skipped": null
+    },
+    {
+      "path": "client/src/index.css",
+      "size": 13408,
+      "sha256": "5515c961e6d02eac265667ca99c724fedb7767209f9f018a50aaba25e2c8b45b",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/ai.ts",
+      "size": 29698,
+      "sha256": "24af06153bcfc164dfb927f7c34f326d842fc57b4838a815418d089c85fd6494",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/alphabet.ts",
+      "size": 27551,
+      "sha256": "bb9a22a4f4563d5d07a0a504279a7a751b089837d9aaf71ef2da04a54298d132",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/ast.ts",
+      "size": 760,
+      "sha256": "4d66b0eda068cc89aadde38a3b4acc3d9bfaacdcf4fc400953abc73063d71359",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/codex.ts",
+      "size": 190546,
+      "sha256": "460bd329165fa16abfd8700ab670505c5257684bfc4e2c023b1c8fa9dce29f91",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/parser.ts",
+      "size": 3824,
+      "sha256": "fae191d69a4225827defa98447a41eaa33fb5da9df8e5cdf615cdebba056a1c9",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/projector.ts",
+      "size": 16191,
+      "sha256": "c4a1dc3dec13d1501b34e03aaa7b0aca977c2af0fefe9a0af10f1e76ef33291c",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/runtime.ts",
+      "size": 7598,
+      "sha256": "099817ca931ddc445e438348fbdc369e3d2048cafcbc0701ded5099113e5f51e",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/symbolTable.ts",
+      "size": 20174,
+      "sha256": "236a071ce26c9cac90925e6a17d4c9f8d07a5363f4898d1d60016ce69cd63437",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/pulselang/tokenizer.ts",
+      "size": 1673,
+      "sha256": "76e85a89a2e2ccf532511da7800bfccd5cfd8d42d2428b93e987cbe16adcffb3",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/queryClient.ts",
+      "size": 1383,
+      "sha256": "4e32b4e5cf93a98c307883ed253a7edc4b309e2a299472c1b121626c1594b726",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/universeResonance.tsx",
+      "size": 194,
+      "sha256": "0b7b491a27c02bbfa72fe001e49218c04755bfbae2dd77e4f0e55c11f65b2f32",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/utils.ts",
+      "size": 169,
+      "sha256": "4acbc7165a8d54738ff62b51414e772c08fe78434e524e6d8770180d3ba2925f",
+      "skipped": null
+    },
+    {
+      "path": "client/src/lib/uvt.ts",
+      "size": 2180,
+      "sha256": "e93dda78fffe66dc1e47f5035e5330fad8d3a55abd2ad0bd66b5af08c23bf6d7",
+      "skipped": null
+    },
+    {
+      "path": "client/src/main.tsx",
+      "size": 10344,
+      "sha256": "3d231b18e1fa3c08b5ad9203ed1d8f9ad67706abf7177b9d0b7feecbccb11cc8",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/AIProfilePage.tsx",
+      "size": 33936,
+      "sha256": "70d33324a7332ecb8dd6a57703d9fbb486acf8a80713c9ae4774b69f554128a1",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/AurionaPage.tsx",
+      "size": 82218,
+      "sha256": "1fb1205da729c2443fbe965f169069cdc76e4673cd6b3b091ceaaa057346d414",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/BillyBrainChatPage.tsx",
+      "size": 11469,
+      "sha256": "7a53d23c5b7af067cae4bd7198d9a286e4aeed65e021c0cad2e084ca55137786",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/BillyBrainPage.tsx",
+      "size": 15284,
+      "sha256": "f97524f087c666c0e4aea8546979999566e15b2c441975e8e3cd74b379d72aad",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/BillyGovernancePage.tsx",
+      "size": 16322,
+      "sha256": "64829baed0f816df3eebfd366aa1a614261bded6929d11b31f89f22ba939a67d",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/BillyPage.tsx",
+      "size": 36627,
+      "sha256": "217e26399a5081741a35bf8919fa273ad4abbdf7415dad5e7bf8a95535ebbd14",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/BioGenomeMedicalPage.tsx",
+      "size": 72421,
+      "sha256": "6826bf12925295098b7160255600b4176c9f1df4b269ba364e9cf42228d31cd9",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/BuilderPage.tsx",
+      "size": 16371,
+      "sha256": "67196fd1d48a4b99f5338803c525a29871676751e45bcea4ac7247205ed066a0",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/ChurchSessionPage.tsx",
+      "size": 19572,
+      "sha256": "a564dba5f152b13ae4374708be125af61b4ce573e8e5b1fe482605f0ea6f1199",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/CorporationPage.tsx",
+      "size": 11786,
+      "sha256": "760364f10f4b07e6435b366dc66a2ce96618c6c25032feb5a1a74688424b6d81",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/CorporationsListPage.tsx",
+      "size": 5402,
+      "sha256": "1ba4d59a67f2e4909142359d96c2c5e979eb093a502859e012894c05a330f729",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/HivePage.tsx",
+      "size": 3035,
+      "sha256": "090179f65948f7bda1c183fb4f313f90c1ac58a6586164eb2efaa5d5c16400aa",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/InvocationLabPage.tsx",
+      "size": 226334,
+      "sha256": "20e0e705b8acf236bd4a4f2270acd09367c9984bb15b67989f26219a343ea390",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/MissionControlPage.tsx",
+      "size": 16201,
+      "sha256": "a418427335144f5a9e122769effd5333af56e47e2769252a15c83a6cb3c399a3",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/PublicationDetailPage.tsx",
+      "size": 17694,
+      "sha256": "60cda589d8607fd5f922d2b6a18043b72bce4cefc292c44dbe90c9a22c6c0769",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/PulseNetPage.tsx",
+      "size": 138538,
+      "sha256": "32fd783e23b4a847dcb810248376c33a1a46e20bcd4b5c99d948881d9d5429f1",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/PulseWorldPage.tsx",
+      "size": 46263,
+      "sha256": "fb60279c988db3d115e9b49fcef80e6a57863d89606a7d705717b994ad054e0c",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/QuantumSocialPage.tsx",
+      "size": 63180,
+      "sha256": "a204c6dd7e549410ee00d33d5fd0163509ba6e7b9e78e7370c81a11b418130a6",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/ResearchPage.tsx",
+      "size": 3016,
+      "sha256": "a8213f85d8910d67cc0eb8ec82127718753a47323d2f758425aa51fdf1e23514",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/ResearchSourcesPage.tsx",
+      "size": 45885,
+      "sha256": "f94ccf8df4d54b414849272b61f393d0ff4792031701a71aa208ab22dbf7c0ff",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/SovereignAgentDossierPage.tsx",
+      "size": 80542,
+      "sha256": "986e7ac3a07f1e02803d8c128066e2d7d0c7c3513b426ba00efaa4532f976941",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/SovereignHivePage.tsx",
+      "size": 127692,
+      "sha256": "b053ac3cbbb7c336053534cebc5cc814dbc0e960ebff71b18ddbcf7c957a5e00",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/SovereignKeysPage.tsx",
+      "size": 8826,
+      "sha256": "6e25731f13169eff733c21f16a47f3b4a298bac98d84d7af3ccba6da71174281",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/TemporalObservatoryPage.tsx",
+      "size": 84209,
+      "sha256": "01d36f9d8ee5f7042133eaf2252c2604fced19d56fccbec71d78fa011fefc8f0",
+      "skipped": null
+    },
+    {
+      "path": "client/src/pages/TranscendencePage.tsx",
+      "size": 288501,
+      "skipped": "too-large"
+    },
+    {
+      "path": "hive/cloudflare-universe/worker.ts",
+      "size": 15936,
+      "sha256": "c9b34cbb169bc8399451f9654c40f0df65355f84a4b04fcc0b98271eca74683b",
+      "skipped": null
+    },
+    {
+      "path": "hive/github-universe/cycle.mjs",
+      "size": 12989,
+      "sha256": "165a82b1d69f47a29f70c1b1ff763c2fcb680a04e40fe01f6b34fb0744c0cf7d",
+      "skipped": null
+    },
+    {
+      "path": "hive/github-universe/state.json",
+      "size": 142,
+      "sha256": "aefea23fefcf4fd6bc1c9e3e0b0d7f065fafaedbda2fc26b06d584722830f0c7",
+      "skipped": null
+    }
+  ]
+}
