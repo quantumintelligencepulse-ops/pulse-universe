@@ -1,8 +1,8 @@
 {
   "universe_id": "u2-github-tide",
   "kind": "tide",
-  "cycles": 0,
+  "cycles": 1,
   "first_cycle_at": null,
-  "last_cycle_at": null,
+  "last_cycle_at": "2026-04-30T13:22:29.434Z",
   "peers_seen": {}
 }
