@@ -618,8 +618,11 @@ async function pulseDiscordChat(messages: VoiceMessage[], signal: AbortSignal): 
 function isAddressedToBot(msg: Message, botId: string | null): boolean {
   if (!botId) return false;
   if (msg.channel.type === ChannelType.DM) return true;
-  // BWB is the LEARNING brain — bot does NOT auto-broadcast there. It only
-  // replies in BWB when explicitly @mentioned or replied-to (handled below).
+  // BWB rule: the bot's ONLY talk channel in Banking with Billy is
+  // BWB_PUBLIC_CHANNEL_ID. There it auto-speaks when people post. Every
+  // other BWB channel is a knowledge feed — read & learn ONLY (enforced
+  // again at the send site below).
+  if (msg.channelId === BWB_PUBLIC_CHANNEL_ID) return true;
   if (msg.mentions.users.has(botId)) return true;
   if (msg.mentions.roles.size > 0 && msg.mentions.everyone === false) {
     // role mention to the bot's role would also trigger here; safe to ignore
@@ -698,6 +701,16 @@ async function handleIncomingMessage(msg: Message): Promise<void> {
     }
 
     if (!isReplyToBot && !isAddressedToBot(msg, botId)) return;
+
+    // ── HARD BWB GUARD ──────────────────────────────────────────────────────
+    // In the Banking with Billy guild, the bot is allowed to post in EXACTLY
+    // ONE channel: BWB_PUBLIC_CHANNEL_ID (the talk channel). Every other BWB
+    // channel is a real-news knowledge feed — read & learn ONLY, never post.
+    // This guard cannot be bypassed by @mentions, replies, or future code paths.
+    if (msg.guildId === BWB_GUILD_ID && msg.channelId !== BWB_PUBLIC_CHANNEL_ID) {
+      console.log(`[IMMORTALITY] ⛔ BWB knowledge channel ${msg.channelId} — read-only, refusing to post`);
+      return;
+    }
 
     // Per-user cooldown: 4 seconds between replies to the same user
     const now = Date.now();
