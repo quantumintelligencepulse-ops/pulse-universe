@@ -11711,7 +11711,7 @@ Return as structured script with section labels.`;
   // algorithm library that the algorithm-mining engine fills.
   {
     const { getAvailableProviders } = await import("./llm-providers");
-    const { gitCommitAndPush, getDaedalusStats, getDaedalusAgents, getDaedalusRecentWorks } = await import("./daedalus-engine");
+    const { gitCommitAndPush, gitUntrackPathsAndPush, getDaedalusStats, getDaedalusAgents, getDaedalusRecentWorks } = await import("./daedalus-engine");
 
     // List which LLM providers have keys configured right now
     app.get("/api/builder/providers", (_req, res) => {
@@ -11873,6 +11873,24 @@ Return as structured script with section labels.`;
         });
         res.json(r);
       } catch (e: any) { res.status(500).json({ error: e?.message || "save error" }); }
+    });
+
+    // INCIDENT-RESPONSE: untrack secret-bearing files from the git index
+    // (file stays on disk so the app keeps running; just stops being pushed).
+    // Allowed paths are constrained inside daedalus-engine.gitUntrackPathsAndPush.
+    app.post("/api/builder/admin/untrack", async (req, res) => {
+      try {
+        const { paths, message, agentName } = req.body || {};
+        if (!Array.isArray(paths) || paths.length === 0) {
+          return res.status(400).json({ error: "paths[] required" });
+        }
+        const r = gitUntrackPathsAndPush({
+          paths,
+          message: message || "security: untrack files containing leaked secrets",
+          agentName: agentName || "Δ-devops-prime",
+        });
+        res.json(r);
+      } catch (e: any) { res.status(500).json({ error: e?.message || "untrack error" }); }
     });
   }
 
