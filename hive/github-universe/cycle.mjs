@@ -173,8 +173,11 @@ const [manifest, code, equations, agents, publications, ledger] = await Promise.
   pullSection("ledger"),
 ]);
 
-if (manifest?.manifest) {
-  safeWrite(join(MIRROR_DIR, "manifest.json"), JSON.stringify({ ...manifest.manifest, mirrored_at: new Date().toISOString() }, null, 2));
+// pullSection now unwraps payload[section]; manifest section may already be the inner manifest object
+// or, for legacy fallback, a wrapper still containing .manifest. Handle both.
+const manifestObj = manifest?.manifest ?? manifest;
+if (manifestObj && typeof manifestObj === "object") {
+  safeWrite(join(MIRROR_DIR, "manifest.json"), JSON.stringify({ ...manifestObj, mirrored_at: new Date().toISOString() }, null, 2));
 }
 
 if (code?.files) {
