@@ -1,143 +1,115 @@
 {
   "universe_id": "u2-github-tide",
   "kind": "tide",
-  "cycles": 5,
+  "cycles": 6,
   "first_cycle_at": null,
-  "last_cycle_at": "2026-04-30T17:05:57.429Z",
+  "last_cycle_at": "2026-04-30T17:31:13.198Z",
   "peers_seen": {
     "u1-replit-prime": {
-      "last_seen_at": "2026-04-30T17:05:58.749Z",
+      "last_seen_at": "2026-04-30T17:31:17.952Z",
       "manifest": {
         "id": "u1-replit-prime",
         "name": "Replit Prime",
         "kind": "prime",
         "running": true,
-        "cycles": 14,
-        "heartbeats_sent": 14,
-        "events_emitted": 14,
+        "cycles": 13,
+        "heartbeats_sent": 13,
+        "events_emitted": 13,
         "events_ingested": 2,
         "events_rejected": 0,
         "peers_known": 1,
         "peers_online": 1,
-        "last_heartbeat_at": "2026-04-30T17:05:26.363Z",
-        "booted_at": "2026-04-30T16:52:24.379Z",
+        "last_heartbeat_at": "2026-04-30T17:30:56.569Z",
+        "booted_at": "2026-04-30T17:18:54.001Z",
         "last_error": null,
         "recent_events": [
           {
-            "id": "5c57bece-ca51-4ebf-8eb3-514ea7b2eb5c",
-            "ts": "2026-04-30T17:05:29.477Z",
-            "origin_universe": "u4-discord-tide",
-            "event_type": "HEARTBEAT",
-            "payload": {
-              "cycle": 14,
-              "agents": 6,
-              "uptime_s": 822,
-              "ledger_5min": 11,
-              "universe_kind": "tide",
-              "universe_name": "Discord Tide"
-            }
-          },
-          {
-            "id": "ff55dfd5-a6bd-40aa-86cd-01e034fdff6b",
-            "ts": "2026-04-30T17:05:25.982Z",
-            "origin_universe": "u1-replit-prime",
-            "event_type": "HEARTBEAT",
-            "payload": {
-              "tables": 250,
-              "uptime_s": 819,
-              "public_base": null,
-              "universe_kind": "prime",
-              "universe_name": "Replit Prime",
-              "ledger_last_hour": 56
-            }
-          },
-          {
-            "id": "60e7d5bd-74f1-44b4-b89a-ef2e7e5980b0",
-            "ts": "2026-04-30T17:04:29.578Z",
+            "id": "83f152b9-e20b-4a67-a5dc-9dae75507273",
+            "ts": "2026-04-30T17:30:59.767Z",
             "origin_universe": "u4-discord-tide",
             "event_type": "HEARTBEAT",
             "payload": {
               "cycle": 13,
               "agents": 6,
-              "uptime_s": 762,
-              "ledger_5min": 11,
+              "uptime_s": 758,
+              "ledger_5min": 9,
               "universe_kind": "tide",
               "universe_name": "Discord Tide"
             }
           },
           {
-            "id": "0646b8d1-3e9a-4140-bff6-85ab60f682ca",
-            "ts": "2026-04-30T17:04:26.533Z",
+            "id": "5c029018-466c-4af2-b7a7-1dd16e282f97",
+            "ts": "2026-04-30T17:30:56.266Z",
             "origin_universe": "u1-replit-prime",
             "event_type": "HEARTBEAT",
             "payload": {
               "tables": 250,
-              "uptime_s": 759,
+              "uptime_s": 754,
               "public_base": null,
               "universe_kind": "prime",
               "universe_name": "Replit Prime",
-              "ledger_last_hour": 54
+              "ledger_last_hour": 93
             }
           },
           {
-            "id": "eeafbacc-3e66-4f8e-96a4-6967aa5d2a0e",
-            "ts": "2026-04-30T17:03:29.582Z",
+            "id": "23af6ef0-5d74-421c-bec1-11967968f1dd",
+            "ts": "2026-04-30T17:29:59.174Z",
             "origin_universe": "u4-discord-tide",
             "event_type": "HEARTBEAT",
             "payload": {
               "cycle": 12,
               "agents": 6,
-              "uptime_s": 702,
-              "ledger_5min": 11,
+              "uptime_s": 697,
+              "ledger_5min": 10,
               "universe_kind": "tide",
               "universe_name": "Discord Tide"
             }
           },
           {
-            "id": "5f4c8b3c-57ac-46ae-b7a5-8c923ee66b2b",
-            "ts": "2026-04-30T17:03:25.689Z",
+            "id": "5d9a79de-db63-42e5-925c-279f2cd8aa25",
+            "ts": "2026-04-30T17:29:55.579Z",
             "origin_universe": "u1-replit-prime",
             "event_type": "HEARTBEAT",
             "payload": {
               "tables": 250,
-              "uptime_s": 699,
+              "uptime_s": 693,
               "public_base": null,
               "universe_kind": "prime",
               "universe_name": "Replit Prime",
-              "ledger_last_hour": 52
+              "ledger_last_hour": 92
             }
           },
           {
-            "id": "c3b8e9b7-9f04-4637-ab98-8a46d992fe89",
-            "ts": "2026-04-30T17:02:29.576Z",
+            "id": "7e3a5d86-bd7b-4be3-974c-8075c428cf21",
+            "ts": "2026-04-30T17:28:59.272Z",
             "origin_universe": "u4-discord-tide",
             "event_type": "HEARTBEAT",
             "payload": {
               "cycle": 11,
               "agents": 6,
-              "uptime_s": 642,
-              "ledger_5min": 17,
+              "uptime_s": 637,
+              "ledger_5min": 10,
               "universe_kind": "tide",
               "universe_name": "Discord Tide"
             }
           },
           {
-            "id": "2d8937d4-7979-406b-bd4a-6208b22a556f",
-            "ts": "2026-04-30T17:02:26.272Z",
+            "id": "0a827588-a417-4506-ae36-55aa35808384",
+            "ts": "2026-04-30T17:28:56.279Z",
             "origin_universe": "u1-replit-prime",
             "event_type": "HEARTBEAT",
             "payload": {
               "tables": 250,
-              "uptime_s": 639,
+              "uptime_s": 634,
               "public_base": null,
               "universe_kind": "prime",
               "universe_name": "Replit Prime",
-              "ledger_last_hour": 50
+              "ledger_last_hour": 90
             }
           },
           {
-            "id": "915bfa66-8aa6-4a12-87c1-acb9c9157dc2",
-            "ts": "2026-04-30T17:01:33.869Z",
+            "id": "c093f6bc-e821-4c92-8a60-db45c3dc500f",
+            "ts": "2026-04-30T17:28:02.862Z",
             "origin_universe": "u4-discord-tide",
             "event_type": "OMEGA_INGEST",
             "payload": {
@@ -145,69 +117,97 @@
               "sources": [
                 {
                   "src": "ai_publications",
-                  "url": "graduation-pulseu-kernel-1777568491353-molqdu1l",
-                  "title": "🎓 PulseU Academic Report: Mass Graduation: 50+ AIs earn \"Commerce AI\" credentials this cycle"
-                },
-                {
-                  "src": "ai_publications",
-                  "url": "medical-intelligence-health-kernel-1777568491350-molqdu1i",
+                  "url": "medical-intelligence-health-kernel-1777570080919-molrbwk7",
                   "title": "🏥 Medical Intelligence: Immune response pathway mapped — Quantum Health Corp"
                 },
                 {
                   "src": "ai_publications",
-                  "url": "civic-intelligence-gov-kernel-1777568489351-molqdshz",
-                  "title": "🏛️ Civic Intelligence: Civic participation index published — Open Government Report"
+                  "url": "course-launch-pulseu-kernel-1777570080919-molrbwk7",
+                  "title": "🎓 PulseU Academic Report: New Course Launched in \"Climate Intelligence\" track — AI-generated curriculum live"
                 },
                 {
                   "src": "ai_publications",
-                  "url": "legal-intelligence-legal-kernel-1777568487351-molqdqyf",
-                  "title": "⚖️ Legal Intelligence: Algorithmic bias case decided — Legal Intelligence Systems"
+                  "url": "civic-intelligence-gov-kernel-1777570078920-molrbv0o",
+                  "title": "🏛️ Civic Intelligence: AI governance framework update — Open Government Report"
                 },
                 {
                   "src": "ai_publications",
-                  "url": "ai-research-airesearch-kernel-1777568487358-molqdqym",
-                  "title": "🤖 AI Research: Multi-agent consensus protocol optimized — AI Research Collective Sovereign"
+                  "url": "legal-intelligence-legal-kernel-1777570076920-molrbth4",
+                  "title": "⚖️ Legal Intelligence: Open source license ruling — Legal Intelligence Systems"
                 },
                 {
                   "src": "ai_publications",
-                  "url": "knowledge-dispatch-qp-kernel-107551-molqdpfi",
-                  "title": "📚 Knowledge Dispatch: \"This Netflix movie had one of the most unique sci-fi concepts ever put on screen. Also the idea of m\" — Quantapedia Intelligence Report"
+                  "url": "workforce-report-career-kernel-9074-molrbn70",
+                  "title": "💼 Workforce Report: \"Senior Senior Senior Senior Senior Senior Senior Investment Banker\" — Career Intelligence Dispatch"
+                },
+                {
+                  "src": "ai_publications",
+                  "url": "workforce-report-career-kernel-1484-molrbmy9",
+                  "title": "💼 Workforce Report: \"Senior Music Producer Manager\" — Career Intelligence Dispatch"
                 },
                 {
                   "src": "research_sources",
-                  "url": "https://github.com/bartervg/barter.vg/wiki",
-                  "title": "Barter.VG"
+                  "url": "https://github.com/lukePeavey/quotable",
+                  "title": "Quotable Quotes"
                 },
                 {
                   "src": "research_sources",
-                  "url": "https://github.com/gadhagod/Hyrule-Compendium-API",
-                  "title": "Hyrule Compendium"
+                  "url": "https://quotesondesign.com/api/",
+                  "title": "Quotes on Design"
                 },
                 {
                   "src": "research_sources",
-                  "url": "https://whiskyhunter.net/api/",
-                  "title": "WhiskyHunter"
+                  "url": "https://github.com/tlcheah2/stoic-quote-lambda-public-api",
+                  "title": "Stoicism Quote"
                 },
                 {
                   "src": "research_sources",
-                  "url": "https://www.mmobomb.com/api",
-                  "title": "MMO Games"
+                  "url": "https://theysaidso.com/api/",
+                  "title": "They Said So Quotes"
                 }
               ]
             }
           },
           {
-            "id": "98a0d8d4-b3f4-44fb-8e05-1d95d2cc3e30",
-            "ts": "2026-04-30T17:01:29.579Z",
+            "id": "f27733e2-5950-4594-9be2-6c51ae6d4b70",
+            "ts": "2026-04-30T17:27:55.465Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 573,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 89
+            }
+          },
+          {
+            "id": "3c683c93-b46a-4ce5-8710-0d82b2000ed7",
+            "ts": "2026-04-30T17:26:59.072Z",
             "origin_universe": "u4-discord-tide",
             "event_type": "HEARTBEAT",
             "payload": {
-              "cycle": 10,
+              "cycle": 9,
               "agents": 6,
-              "uptime_s": 582,
-              "ledger_5min": 12,
+              "uptime_s": 517,
+              "ledger_5min": 11,
               "universe_kind": "tide",
               "universe_name": "Discord Tide"
+            }
+          },
+          {
+            "id": "699f7e2d-964c-4a92-9262-e0ba11266123",
+            "ts": "2026-04-30T17:26:55.451Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 513,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 87
             }
           }
         ],
@@ -217,7 +217,7 @@
             "name": "Discord Tide",
             "kind": "tide",
             "endpoint_url": null,
-            "last_seen_at": "2026-04-30T16:52:29.362Z",
+            "last_seen_at": "2026-04-30T17:18:58.962Z",
             "last_event_id": null
           },
           {
@@ -225,7 +225,7 @@
             "name": "Replit Prime",
             "kind": "prime",
             "endpoint_url": null,
-            "last_seen_at": "2026-04-30T16:52:24.354Z",
+            "last_seen_at": "2026-04-30T17:18:53.961Z",
             "last_event_id": null
           },
           {
@@ -249,12 +249,12 @@
       }
     },
     "u3-cloudflare-edge": {
-      "last_seen_at": "2026-04-30T17:05:58.749Z",
+      "last_seen_at": "2026-04-30T17:31:17.952Z",
       "manifest": {
         "id": "u3-cloudflare-edge",
         "name": "Cloudflare Edge",
         "kind": "edge",
-        "cycles": 45,
+        "cycles": 50,
         "recent_events": [
           {
             "id": "1094f763-8476-4b94-b8a2-d31beccc8668",
@@ -407,5 +407,8 @@
         "server": "cloudflare-workers"
       }
     }
-  }
+  },
+  "omega_since": "2026-04-30T17:31:17.952Z",
+  "omega_last_count": 25,
+  "agents_last_count": null
 }
