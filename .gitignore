@@ -26,6 +26,13 @@ yarn-error.log*
 *.pem
 *.key
 
+# Replit platform config — contains [userenv.shared] secret values, never push
+.replit
+replit.nix
+
+# user-pasted attachments — frequently contain pasted API keys
+attached_assets/
+
 # replit-local agent state
 .local/
 .cache/
