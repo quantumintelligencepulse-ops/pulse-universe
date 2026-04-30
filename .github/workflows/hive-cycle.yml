@@ -1,0 +1,59 @@
+# ──────────────────────────────────────────────────────────────────────────────
+#  U2 GITHUB UNIVERSE — TIDE
+# ──────────────────────────────────────────────────────────────────────────────
+#  Wakes every 15 minutes, runs one hive cycle, and commits its new state back
+#  into the repo. The repo IS this universe's persistent state.
+#
+#  GATED: schedule is commented out by default so this doesn't auto-run on
+#  push. To activate: uncomment the `schedule` block + add the secrets below.
+#
+#  REQUIRED SECRETS (set in repo Settings → Secrets and variables → Actions):
+#    HIVE_BUS_SECRET    — same value as the Replit prime universe
+#    HIVE_PEERS_JSON    — JSON array of peers, e.g.
+#       [{"id":"u1-replit-prime","kind":"prime","endpoint_url":"https://myaigpt.online"},
+#        {"id":"u3-cloudflare-edge","kind":"edge","endpoint_url":"https://hive.<your-cf-subdomain>.workers.dev"}]
+# ──────────────────────────────────────────────────────────────────────────────
+name: hive-cycle
+
+on:
+  workflow_dispatch:        # manual trigger always available
+  # Uncomment once secrets are configured:
+  # schedule:
+  #   - cron: "*/15 * * * *"
+
+permissions:
+  contents: write           # so the cycle can commit + push state.json
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: hive-cycle
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: run cycle
+        env:
+          HIVE_UNIVERSE_ID:   "u2-github-tide"
+          HIVE_UNIVERSE_NAME: "GitHub Tide"
+          HIVE_UNIVERSE_KIND: "tide"
+          HIVE_BUS_SECRET:    ${{ secrets.HIVE_BUS_SECRET }}
+          HIVE_PEERS_JSON:    ${{ secrets.HIVE_PEERS_JSON }}
+        run: node hive/github-universe/cycle.mjs
+
+      - name: commit + push new state (if changed)
+        run: |
+          if git diff --quiet hive/github-universe/state.json; then
+            echo "no state change"
+          else
+            git config user.name  "Δ DAEDALUS [github-tide]"
+            git config user.email "daedalus@pulse.universe"
+            git add hive/github-universe/state.json hive/github-universe/ledger.ndjson
+            git commit -m "U2: hive cycle $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
