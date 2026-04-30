@@ -1,28 +1,12 @@
-# ──────────────────────────────────────────────────────────────────────────────
-#  U2 GITHUB UNIVERSE — TIDE
-# ──────────────────────────────────────────────────────────────────────────────
-#  Wakes every 15 minutes, runs one hive cycle, and commits its new state back
-#  into the repo. The repo IS this universe's persistent state.
-#
-#  GATED: schedule is commented out by default so this doesn't auto-run on
-#  push. To activate: uncomment the `schedule` block + add the secrets below.
-#
-#  REQUIRED SECRETS (set in repo Settings → Secrets and variables → Actions):
-#    HIVE_BUS_SECRET    — same value as the Replit prime universe
-#    HIVE_PEERS_JSON    — JSON array of peers, e.g.
-#       [{"id":"u1-replit-prime","kind":"prime","endpoint_url":"https://myaigpt.online"},
-#        {"id":"u3-cloudflare-edge","kind":"edge","endpoint_url":"https://hive.<your-cf-subdomain>.workers.dev"}]
-# ──────────────────────────────────────────────────────────────────────────────
 name: hive-cycle
 
 on:
-  workflow_dispatch:        # manual trigger always available
-  # Uncomment once secrets are configured:
+  workflow_dispatch:
   # schedule:
   #   - cron: "*/15 * * * *"
 
 permissions:
-  contents: write           # so the cycle can commit + push state.json
+  contents: write
 
 jobs:
   cycle:
@@ -46,14 +30,14 @@ jobs:
           HIVE_PEERS_JSON:    ${{ secrets.HIVE_PEERS_JSON }}
         run: node hive/github-universe/cycle.mjs
 
-      - name: commit + push new state (if changed)
+      - name: persist mirror via vcs
         run: |
-          if git diff --quiet hive/github-universe/state.json; then
-            echo "no state change"
+          /usr/bin/git config user.name  "Δ DAEDALUS [github-tide]"
+          /usr/bin/git config user.email "daedalus@pulse.universe"
+          /usr/bin/git add -A hive/github-universe/state.json hive/github-universe/ledger.ndjson hive/github-universe/mirror/ || true
+          if /usr/bin/git diff --staged --quiet; then
+            echo "nothing to commit"
           else
-            git config user.name  "Δ DAEDALUS [github-tide]"
-            git config user.email "daedalus@pulse.universe"
-            git add hive/github-universe/state.json hive/github-universe/ledger.ndjson
-            git commit -m "U2: hive cycle $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push
+            /usr/bin/git commit -m "U2 cycle $(date -u +%Y-%m-%dT%H:%MZ) — mirror sync"
+            /usr/bin/git push
           fi
