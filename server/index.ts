@@ -137,6 +137,7 @@ app.use(compression({ level: 6, threshold: 1024 }));
 
 app.use(
   express.json({
+    limit: "5mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
@@ -416,6 +417,7 @@ async function seedOmegaSources() {
     { name: "codebase-genome",    delayMs: 400000, start: async () => { const { startCodebaseGenomeEngine } = await import("./codebase-genome-engine"); await startCodebaseGenomeEngine().catch((e: Error) => console.error("[codebase-genome] startup error:", e.message)); } },
     { name: "algorithm-mining",   delayMs: 410000, start: async () => { const { startAlgorithmMiningEngine } = await import("./algorithm-mining-engine"); await startAlgorithmMiningEngine().catch((e: Error) => console.error("[algorithm-mining] startup error:", e.message)); } },
     { name: "daedalus",           delayMs: 420000, start: async () => { const { startDaedalusEngine } = await import("./daedalus-engine"); await startDaedalusEngine().catch((e: Error) => console.error("[daedalus] startup error:", e.message)); } },
+    { name: "hive-multiverse",    delayMs: 425000, start: async () => { const { startHiveMultiverseEngine } = await import("./hive-multiverse-engine"); await startHiveMultiverseEngine().catch((e: Error) => console.error("[hive-multiverse] startup error:", e.message)); } },
     { name: "db-compression",  delayMs: 38000, start: () => startDbCompressionEngine().catch((e: Error) => console.error("[db-compression] startup error:", e.message)) },
     { name: "job-ingestion",   delayMs: 40000, start: () => { try { startJobIngestionEngine(); } catch (e: any) { console.error("[job-ingestion] startup error:", e.message); } } },
     { name: "church-research", delayMs: 42000, start: () => startChurchResearchEngine().catch((e: Error) => console.error("[church-research] startup error:", e.message)) },
