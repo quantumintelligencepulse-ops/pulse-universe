@@ -1,8 +1,356 @@
 {
   "universe_id": "u2-github-tide",
   "kind": "tide",
-  "cycles": 1,
+  "cycles": 2,
   "first_cycle_at": null,
-  "last_cycle_at": "2026-04-30T13:22:29.434Z",
-  "peers_seen": {}
+  "last_cycle_at": "2026-04-30T13:36:51.848Z",
+  "peers_seen": {
+    "u1-replit-prime": {
+      "last_seen_at": "2026-04-30T13:36:52.502Z",
+      "manifest": {
+        "id": "u1-replit-prime",
+        "name": "Replit Prime",
+        "kind": "prime",
+        "running": true,
+        "cycles": 24,
+        "heartbeats_sent": 24,
+        "events_emitted": 24,
+        "events_ingested": 1,
+        "events_rejected": 1,
+        "peers_known": 1,
+        "peers_online": 1,
+        "last_heartbeat_at": "2026-04-30T13:36:43.276Z",
+        "booted_at": "2026-04-30T13:12:21.354Z",
+        "last_error": null,
+        "recent_events": [
+          {
+            "id": "c51fd65e-0cda-4a41-8c59-44582d386c8f",
+            "ts": "2026-04-30T13:36:43.079Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1494,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 22
+            }
+          },
+          {
+            "id": "417662d7-3e90-4c70-a4ab-1960e17f8875",
+            "ts": "2026-04-30T13:35:41.699Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1432,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 21
+            }
+          },
+          {
+            "id": "f4e8f1d8-5ccf-4738-a085-b750bf13b1d1",
+            "ts": "2026-04-30T13:34:47.885Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1378,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 20
+            }
+          },
+          {
+            "id": "e04d8452-8379-442c-b7b8-046e6e0a4dcf",
+            "ts": "2026-04-30T13:33:56.379Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1327,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 19
+            }
+          },
+          {
+            "id": "037bf2da-eec9-4adf-8386-f77431163c90",
+            "ts": "2026-04-30T13:32:40.984Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1251,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 18
+            }
+          },
+          {
+            "id": "4c4b5826-769e-4d97-82f8-2a8cdca3c0f2",
+            "ts": "2026-04-30T13:31:44.865Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1195,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 17
+            }
+          },
+          {
+            "id": "02051e89-dfb4-444e-b730-7a75d6f85c59",
+            "ts": "2026-04-30T13:31:04.063Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1155,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 16
+            }
+          },
+          {
+            "id": "9f510ef1-5efd-447c-89d7-0794e04ff88e",
+            "ts": "2026-04-30T13:28:55.770Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 1026,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 15
+            }
+          },
+          {
+            "id": "bdc42e49-ea25-4ca2-8203-decb624cf4ca",
+            "ts": "2026-04-30T13:27:47.690Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 958,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 14
+            }
+          },
+          {
+            "id": "a4a04974-6e7a-4ba5-a2c7-60af5ec22e3c",
+            "ts": "2026-04-30T13:26:38.981Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "tables": 250,
+              "uptime_s": 889,
+              "public_base": null,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "ledger_last_hour": 13
+            }
+          }
+        ],
+        "peers": [
+          {
+            "id": "u1-replit-prime",
+            "name": "Replit Prime",
+            "kind": "prime",
+            "endpoint_url": "https://8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
+            "last_seen_at": "2026-04-30T13:30:36.901Z",
+            "last_event_id": null
+          },
+          {
+            "id": "u2-github-tide",
+            "name": "GitHub Tide",
+            "kind": "tide",
+            "endpoint_url": null,
+            "last_seen_at": "2026-04-30T13:21:16.864Z",
+            "last_event_id": null
+          },
+          {
+            "id": "u3-cloudflare-edge",
+            "name": "Cloudflare Edge",
+            "kind": "edge",
+            "endpoint_url": "https://hive-edge.quantumintelligencepulse.workers.dev",
+            "last_seen_at": "2026-04-30T13:21:16.278Z",
+            "last_event_id": null
+          }
+        ],
+        "server": "replit-prime"
+      }
+    },
+    "u3-cloudflare-edge": {
+      "last_seen_at": "2026-04-30T13:36:52.502Z",
+      "manifest": {
+        "id": "u3-cloudflare-edge",
+        "name": "Cloudflare Edge",
+        "kind": "edge",
+        "cycles": 3,
+        "recent_events": [
+          {
+            "id": "1094f763-8476-4b94-b8a2-d31beccc8668",
+            "ts": "2026-04-30T13:21:35.868Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 9,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 586
+            },
+            "signature": "721157d6f02dab1f9b13d443cb2ed4243979ddaa2e45b67e054d5d66ad5c1599"
+          },
+          {
+            "id": "ae6e5fb1-869d-45d0-872c-bb0c4187c4e7",
+            "ts": "2026-04-30T13:22:37.473Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 10,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 648
+            },
+            "signature": "311e048993d7ed5523ce8ed90b0b53b0a6eecbf2a8768a3a4f072ace6f47b6fa"
+          },
+          {
+            "id": "c1696447-dd88-4f53-8d9f-14d03c969d47",
+            "ts": "2026-04-30T13:23:40.167Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 11,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 711
+            },
+            "signature": "8d9e4cfb07b9045f44eaf1aca104efeb5cd72f1f19f3822b72111ab7a751aeed"
+          },
+          {
+            "id": "68dd211c-5368-4f15-a075-383d21ac1ea0",
+            "ts": "2026-04-30T13:24:47.480Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 12,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 778
+            },
+            "signature": "47d26c9f106f60aacd6866dcf3377c3397e0a3b9c2b6c090be77828f51ad2ada"
+          },
+          {
+            "id": "297a9545-7af0-4a42-a740-563acad8ec81",
+            "ts": "2026-04-30T13:25:40.680Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 13,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 831
+            },
+            "signature": "52148f2a69ecf086bacd10ee6dd8b63571b1fd33b8d90c2169fdbfceafc6a18a"
+          },
+          {
+            "id": "c8fd2311-b1fb-4544-b980-423112c75662",
+            "ts": "2026-04-30T13:25:45.018Z",
+            "origin_universe": "u3-cloudflare-edge",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "universe_kind": "edge",
+              "universe_name": "Cloudflare Edge",
+              "cycle": 1,
+              "runner": "cloudflare-workers"
+            },
+            "signature": "16e2863acad987ee9ab78f270df77699efcbffeccc0b36314c910e982aa22bf3"
+          },
+          {
+            "id": "a4a04974-6e7a-4ba5-a2c7-60af5ec22e3c",
+            "ts": "2026-04-30T13:26:38.981Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 13,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 889
+            },
+            "signature": "ad2c2e8f1541aca3c3f054264e0b3d9a35418acbf931de0099e1d0087fbeec40"
+          },
+          {
+            "id": "bdc42e49-ea25-4ca2-8203-decb624cf4ca",
+            "ts": "2026-04-30T13:27:47.690Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 14,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 958
+            },
+            "signature": "7681cac6ff750b1ef82286f2089de77d0839ae677a8bdf1034fa61e597e6c97f"
+          },
+          {
+            "id": "9f510ef1-5efd-447c-89d7-0794e04ff88e",
+            "ts": "2026-04-30T13:28:55.770Z",
+            "origin_universe": "u1-replit-prime",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "ledger_last_hour": 15,
+              "tables": 250,
+              "universe_kind": "prime",
+              "universe_name": "Replit Prime",
+              "public_base": null,
+              "uptime_s": 1026
+            },
+            "signature": "b8a8f6b60e29a90a596dc6d17d48addc13a0ba079915b25e31e0df48af605568"
+          },
+          {
+            "id": "456cca9a-e029-4ad0-b722-bbcd4634d62d",
+            "ts": "2026-04-30T13:30:45.022Z",
+            "origin_universe": "u3-cloudflare-edge",
+            "event_type": "HEARTBEAT",
+            "payload": {
+              "universe_kind": "edge",
+              "universe_name": "Cloudflare Edge",
+              "cycle": 2,
+              "runner": "cloudflare-workers"
+            },
+            "signature": "4ecedd5ba568d1f853cf18665ac0d84e398eb920a58654b874a7657a08a1325c"
+          }
+        ],
+        "public_base": null,
+        "server": "cloudflare-workers"
+      }
+    }
+  }
 }
