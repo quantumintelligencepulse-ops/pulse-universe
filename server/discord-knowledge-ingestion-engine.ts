@@ -15,7 +15,7 @@ let started = false;
 const stats = { running: false, cyclesRun: 0, msgsIngested: 0, entriesCreated: 0, lastIngestAt: null as string | null };
 
 const POLL_MS  = 5_000;        // every 5 seconds
-const BATCH    = 100;
+const BATCH    = 500;          // boosted to keep up with brain-stems backcrawl burst
 const MIN_LEN  = 20;           // ignore tiny messages
 const BAD_PREFIX = ["!", "/", "?"]; // bot commands
 

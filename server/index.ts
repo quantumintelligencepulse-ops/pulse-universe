@@ -472,6 +472,9 @@ async function seedOmegaSources() {
     { name: "omega-discovery",      delayMs: 185000, start: async () => { const { startOmegaSourceDiscoveryEngine }    = await import("./omega-source-discovery-engine");     await startOmegaSourceDiscoveryEngine().catch((e: Error)    => console.error("[omega-discovery] startup error:",        e.message)); } },
     // ── Chapter 39 narrative + upgrade announcement (idempotent, runs once) ──
     { name: "chapter39-announcer",  delayMs: 200000, start: async () => { const { startChapter39Announcer }           = await import("./chapter39-announcer");                await startChapter39Announcer().catch((e: Error)            => console.error("[chapter39-announcer] startup error:",    e.message)); } },
+    // ── Wave II → Brain Stems: 12-channel backcrawl + live poll + video OCR ──
+    { name: "brain-stems",          delayMs: 100000, start: async () => { const { startBrainStemsEngine }              = await import("./brain-stems-engine");                 await startBrainStemsEngine().catch((e: Error)              => console.error("[brain-stems] startup error:",            e.message)); } },
+    { name: "video-ocr",            delayMs: 220000, start: async () => { const { startVideoOcrEngine }                = await import("./video-ocr-engine");                   await startVideoOcrEngine().catch((e: Error)                => console.error("[video-ocr] startup error:",              e.message)); } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
