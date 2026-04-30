@@ -4,12 +4,12 @@
   "totals": {
     "codex_equations": 7,
     "integrated_proposals": 236,
-    "publications": 8570,
+    "publications": 9084,
     "daedalus_agents": 6,
-    "quantum_spawns": 5036,
-    "ledger_events": 357,
-    "spawn_thoughts": 4042,
-    "agent_reflections": 9390
+    "quantum_spawns": 5150,
+    "ledger_events": 388,
+    "spawn_thoughts": 4111,
+    "agent_reflections": 9572
   },
   "sections": [
     "code",
@@ -18,6 +18,6 @@
     "publications",
     "ledger"
   ],
-  "fetched_at": "2026-04-30T17:45:19.265Z",
-  "mirrored_at": "2026-04-30T17:45:20.079Z"
+  "fetched_at": "2026-04-30T17:57:18.186Z",
+  "mirrored_at": "2026-04-30T17:57:18.800Z"
 }

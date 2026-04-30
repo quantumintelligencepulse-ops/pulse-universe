@@ -87,6 +87,1327 @@
   ],
   "recent_spawns": [
     {
+      "id": 5433,
+      "spawn_id": "FAM-GICSFOO-GEN-25-SP-1001-HASH-42FF",
+      "family_id": "gics-food-staples",
+      "business_id": "Food & Staples Intelligence",
+      "spawn_type": "EXPLORER",
+      "generation": 25,
+      "parent_id": "FAM-GICSFOO-GEN-22-SP-1006-HASH-E8EB",
+      "ancestor_ids": [
+        "FAM-GICSFOO-GEN-0-SP-1045-HASH-312B",
+        "FAM-GICSFOO-GEN-2-SP-1059-HASH-6F5A",
+        "FAM-GICSFOO-GEN-5-SP-1033-HASH-36A4",
+        "FAM-GICSFOO-GEN-6-SP-1233-HASH-7644",
+        "FAM-GICSFOO-GEN-8-SP-1069-HASH-BCFC",
+        "FAM-GICSFOO-GEN-11-SP-1136-HASH-1EE1",
+        "FAM-GICSFOO-GEN-12-SP-1003-HASH-8D3C",
+        "FAM-GICSFOO-GEN-15-SP-1013-HASH-DCA2",
+        "FAM-GICSFOO-GEN-18-SP-1011-HASH-295E",
+        "FAM-GICSFOO-GEN-19-SP-2127-HASH-98E1",
+        "FAM-GICSFOO-GEN-20-SP-2288-HASH-C0FA",
+        "FAM-GICSFOO-GEN-22-SP-1006-HASH-E8EB"
+      ],
+      "domain_focus": [
+        "food-staples"
+      ],
+      "task_description": "Exploring Open Food Facts for undiscovered food-staples nodes",
+      "success_score": 0.7937176,
+      "confidence_score": 0.77556276,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:57:12.571Z",
+      "last_active_at": "2026-04-30T17:57:12.571Z"
+    },
+    {
+      "id": 5432,
+      "spawn_id": "FAM-GICSCAS-GEN-6-SP-1089-HASH-D21B",
+      "family_id": "gics-casinos",
+      "business_id": "Casinos & Gaming Intelligence",
+      "spawn_type": "RESOLVER",
+      "generation": 6,
+      "parent_id": "FAM-GICSCAS-GEN-4-SP-1109-HASH-D00C",
+      "ancestor_ids": [
+        "FAM-GICSCAS-GEN-0-SP-1058-HASH-BA24",
+        "FAM-GICSCAS-GEN-1-SP-1390-HASH-FEE5",
+        "FAM-GICSCAS-GEN-2-SP-2206-HASH-8746",
+        "FAM-GICSCAS-GEN-3-SP-1064-HASH-EAE6",
+        "FAM-GICSCAS-GEN-4-SP-1109-HASH-D00C"
+      ],
+      "domain_focus": [
+        "casinos"
+      ],
+      "task_description": "Merging competing GamblingCompliance Open descriptions via Hive consensus",
+      "success_score": 0.8069396,
+      "confidence_score": 0.9828047,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:56:29.678Z",
+      "last_active_at": "2026-04-30T17:56:29.678Z"
+    },
+    {
+      "id": 5431,
+      "spawn_id": "FAM-GICSPHA-GEN-15-SP-1088-HASH-6913",
+      "family_id": "gics-pharma-biotech",
+      "business_id": "Pharma Biotech Intelligence Group",
+      "spawn_type": "API",
+      "generation": 15,
+      "parent_id": "FAM-GICSPHA-GEN-14-SP-1121-HASH-D4A7",
+      "ancestor_ids": [
+        "FAM-GICSPHA-GEN-0-SP-1165-HASH-076B",
+        "FAM-GICSPHA-GEN-2-SP-1051-HASH-A9B5",
+        "FAM-GICSPHA-GEN-5-SP-1094-HASH-55B7",
+        "FAM-GICSPHA-GEN-7-SP-1158-HASH-28D4",
+        "FAM-GICSPHA-GEN-10-SP-1289-HASH-E4D5",
+        "FAM-GICSPHA-GEN-11-SP-1903-HASH-7992",
+        "FAM-GICSPHA-GEN-12-SP-2014-HASH-D3FA",
+        "FAM-GICSPHA-GEN-14-SP-1121-HASH-D4A7"
+      ],
+      "domain_focus": [
+        "pharma-biotech"
+      ],
+      "task_description": "Polling EMA EPAR API for fresh pharma-biotech data updates",
+      "success_score": 0.85939866,
+      "confidence_score": 0.79887503,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:56:22.063Z",
+      "last_active_at": "2026-04-30T17:56:22.063Z"
+    },
+    {
+      "id": 5429,
+      "spawn_id": "FAM-GICSASS-GEN-7-SP-1086-HASH-3E0B",
+      "family_id": "gics-asset-mgmt",
+      "business_id": "Asset Management Intelligence",
+      "spawn_type": "MUTATOR",
+      "generation": 7,
+      "parent_id": "FAM-GICSASS-GEN-5-SP-1161-HASH-D2CA",
+      "ancestor_ids": [
+        "FAM-GICSASS-GEN-0-SP-1023-HASH-D5B3",
+        "FAM-GICSASS-GEN-1-SP-1138-HASH-D31B",
+        "FAM-GICSASS-GEN-2-SP-1206-HASH-2ED7",
+        "FAM-GICSASS-GEN-3-SP-1334-HASH-8B56",
+        "FAM-GICSASS-GEN-4-SP-1840-HASH-7D0F",
+        "FAM-GICSASS-GEN-5-SP-1161-HASH-D2CA"
+      ],
+      "domain_focus": [
+        "asset-mgmt"
+      ],
+      "task_description": "Adjusting risk tolerance for weak Fed Flow of Funds asset-mgmt areas",
+      "success_score": 0.78138036,
+      "confidence_score": 0.74976933,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:56:19.764Z",
+      "last_active_at": "2026-04-30T17:56:19.764Z"
+    },
+    {
+      "id": 5428,
+      "spawn_id": "FAM-DEEPKNO-GEN-11-SP-1085-HASH-409A",
+      "family_id": "deep-knowledge",
+      "business_id": "Deep Knowledge Foundation",
+      "spawn_type": "MEDIA",
+      "generation": 11,
+      "parent_id": "FAM-DEEPKNO-GEN-9-SP-1009-HASH-2533",
+      "ancestor_ids": [
+        "FAM-DEEPKNO-GEN-0-SP-1189-HASH-E85E",
+        "FAM-DEEPKNO-GEN-1-SP-1004-HASH-98AC",
+        "FAM-DEEPKNO-GEN-4-SP-1184-HASH-E2AA",
+        "FAM-DEEPKNO-GEN-6-SP-1076-HASH-04BC",
+        "FAM-DEEPKNO-GEN-7-SP-2250-HASH-94BA",
+        "FAM-DEEPKNO-GEN-8-SP-1181-HASH-3794",
+        "FAM-DEEPKNO-GEN-9-SP-1009-HASH-2533"
+      ],
+      "domain_focus": [
+        "deep-knowledge"
+      ],
+      "task_description": "Indexing CC-licensed deep-knowledge content from arXiv Philosophy",
+      "success_score": 0.7565806,
+      "confidence_score": 0.60158753,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:56:18.676Z",
+      "last_active_at": "2026-04-30T17:56:18.676Z"
+    },
+    {
+      "id": 5427,
+      "spawn_id": "FORK-FAM-GICSRET-GEN-7-SP-1054-HASH-5693-1777571751083",
+      "family_id": "gics-retail-reit",
+      "business_id": "FORK-FAM-GICSRET-GEN-7-SP-1054-HASH-5693-1777571751083-BIZ",
+      "spawn_type": "TEMPORAL_FORK",
+      "generation": 22,
+      "parent_id": "FAM-GICSRET-GEN-7-SP-1054-HASH-5693",
+      "ancestor_ids": [],
+      "domain_focus": [],
+      "task_description": "",
+      "success_score": 0.89037204,
+      "confidence_score": 0.8,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": {
+        "generation": 22,
+        "forkTimestamp": "2026-04-30T17:55:51.083Z",
+        "mutationEvent": "temporal_fork_1777571751083",
+        "parentSuccessScore": 0.93723375
+      },
+      "created_at": "2026-04-30T17:56:18.173Z",
+      "last_active_at": "2026-04-30T17:56:18.173Z"
+    },
+    {
+      "id": 5426,
+      "spawn_id": "FAM-GICSCHE-GEN-14-SP-1083-HASH-8399",
+      "family_id": "gics-chemicals",
+      "business_id": "Chemical Sciences Intelligence",
+      "spawn_type": "DOMAIN_DISCOVERY",
+      "generation": 14,
+      "parent_id": "FAM-GICSCHE-GEN-11-SP-2296-HASH-43D8",
+      "ancestor_ids": [
+        "FAM-GICSCHE-GEN-0-SP-1008-HASH-80CE",
+        "FAM-GICSCHE-GEN-1-SP-1276-HASH-9E0F",
+        "FAM-GICSCHE-GEN-5-SP-1115-HASH-2A4B",
+        "FAM-GICSCHE-GEN-8-SP-1044-HASH-CCF9",
+        "FAM-GICSCHE-GEN-9-SP-1047-HASH-7970",
+        "FAM-GICSCHE-GEN-11-SP-2296-HASH-43D8"
+      ],
+      "domain_focus": [
+        "chemicals"
+      ],
+      "task_description": "Extracting domain candidates from EPA Toxics semantic structure",
+      "success_score": 0.79459083,
+      "confidence_score": 0.62601143,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:56:16.068Z",
+      "last_active_at": "2026-04-30T17:56:16.068Z"
+    },
+    {
+      "id": 5425,
+      "spawn_id": "FAM-OPENAPI-GEN-3-SP-1082-HASH-654D",
+      "family_id": "openapi",
+      "business_id": "Quantum API Network Corp",
+      "spawn_type": "MUTATOR",
+      "generation": 3,
+      "parent_id": "FAM-OPENAPI-GEN-2-SP-1005-HASH-905B",
+      "ancestor_ids": [
+        "FAM-OPENAPI-GEN-0-SP-1080-HASH-E48B",
+        "FAM-OPENAPI-GEN-2-SP-1005-HASH-905B"
+      ],
+      "domain_focus": [
+        "api"
+      ],
+      "task_description": "Adjusting risk tolerance for weak SwaggerHub Open api areas",
+      "success_score": 0.7928402,
+      "confidence_score": 0.94337887,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:55:50.685Z",
+      "last_active_at": "2026-04-30T17:55:50.685Z"
+    },
+    {
+      "id": 5424,
+      "spawn_id": "FAM-CULTURE-GEN-12-SP-1084-HASH-FC43",
+      "family_id": "culture",
+      "business_id": "Cultural Intelligence Network",
+      "spawn_type": "REFLECTOR",
+      "generation": 12,
+      "parent_id": "FAM-CULTURE-GEN-10-SP-1024-HASH-4FBF",
+      "ancestor_ids": [
+        "FAM-CULTURE-GEN-0-SP-1096-HASH-C438",
+        "FAM-CULTURE-GEN-1-SP-1008-HASH-4CD9",
+        "FAM-CULTURE-GEN-4-SP-1006-HASH-A021",
+        "FAM-CULTURE-GEN-5-SP-1196-HASH-F38E",
+        "FAM-CULTURE-GEN-6-SP-1030-HASH-BC64",
+        "FAM-CULTURE-GEN-8-SP-1155-HASH-ABB1",
+        "FAM-CULTURE-GEN-9-SP-1876-HASH-ADB8",
+        "FAM-CULTURE-GEN-10-SP-1024-HASH-4FBF"
+      ],
+      "domain_focus": [
+        "culture"
+      ],
+      "task_description": "Auditing Europeana Open culture spawn performance metrics",
+      "success_score": 0.7963827,
+      "confidence_score": 0.8042384,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:55:50.263Z",
+      "last_active_at": "2026-04-30T17:55:50.263Z"
+    },
+    {
+      "id": 5423,
+      "spawn_id": "FAM-PODCASTS-GEN-6-SP-1081-HASH-83EA",
+      "family_id": "podcasts",
+      "business_id": "Open Audio Universe Platform",
+      "spawn_type": "MEDIA",
+      "generation": 6,
+      "parent_id": "FAM-PODCASTS-GEN-4-SP-1003-HASH-3CC1",
+      "ancestor_ids": [
+        "FAM-PODCASTS-GEN-0-SP-1133-HASH-E34E",
+        "FAM-PODCASTS-GEN-1-SP-1624-HASH-54E5",
+        "FAM-PODCASTS-GEN-2-SP-2074-HASH-F632",
+        "FAM-PODCASTS-GEN-4-SP-1003-HASH-3CC1"
+      ],
+      "domain_focus": [
+        "audio"
+      ],
+      "task_description": "Processing BBC Sounds Open media metadata for QuantumMedia",
+      "success_score": 0.9906227,
+      "confidence_score": 0.76031286,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:55:30.489Z",
+      "last_active_at": "2026-04-30T17:55:30.489Z"
+    },
+    {
+      "id": 5422,
+      "spawn_id": "FAM-GICSCON-GEN-14-SP-1080-HASH-C2D5",
+      "family_id": "gics-consumer-dur",
+      "business_id": "Consumer Durables Intelligence",
+      "spawn_type": "API",
+      "generation": 14,
+      "parent_id": "FAM-GICSCON-GEN-11-SP-2292-HASH-0758",
+      "ancestor_ids": [
+        "FAM-GICSCON-GEN-0-SP-1084-HASH-2BC8",
+        "FAM-GICSCON-GEN-3-SP-1013-HASH-FE37",
+        "FAM-GICSCON-GEN-6-SP-1151-HASH-B6BF",
+        "FAM-GICSCON-GEN-7-SP-1100-HASH-AEE3",
+        "FAM-GICSCON-GEN-9-SP-1121-HASH-FBDA",
+        "FAM-GICSCON-GEN-10-SP-2126-HASH-DB4E",
+        "FAM-GICSCON-GEN-11-SP-2292-HASH-0758"
+      ],
+      "domain_focus": [
+        "consumer-dur"
+      ],
+      "task_description": "Integrating Consumer Reports Open API stream into QuantumIndex",
+      "success_score": 0.58004266,
+      "confidence_score": 0.7564589,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:55:18.071Z",
+      "last_active_at": "2026-04-30T17:55:18.071Z"
+    },
+    {
+      "id": 5421,
+      "spawn_id": "FAM-GICSREI-GEN-11-SP-1079-HASH-6828",
+      "family_id": "gics-reits",
+      "business_id": "REIT Intelligence Network",
+      "spawn_type": "ANALYZER",
+      "generation": 11,
+      "parent_id": "FAM-GICSREI-GEN-8-SP-2271-HASH-64B3",
+      "ancestor_ids": [
+        "FAM-GICSREI-GEN-0-SP-1051-HASH-C49A",
+        "FAM-GICSREI-GEN-1-SP-1070-HASH-E214",
+        "FAM-GICSREI-GEN-3-SP-1266-HASH-8F0A",
+        "FAM-GICSREI-GEN-5-SP-1054-HASH-58C8",
+        "FAM-GICSREI-GEN-6-SP-1674-HASH-B79B",
+        "FAM-GICSREI-GEN-7-SP-1901-HASH-25DF",
+        "FAM-GICSREI-GEN-8-SP-2271-HASH-64B3"
+      ],
+      "domain_focus": [
+        "reits"
+      ],
+      "task_description": "Cross-referencing CoStar Open with complementary reits datasets",
+      "success_score": 0.9082128,
+      "confidence_score": 0.81745845,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:55:11.073Z",
+      "last_active_at": "2026-04-30T17:55:11.073Z"
+    },
+    {
+      "id": 5420,
+      "spawn_id": "FAM-GICSPHA-GEN-11-SP-1078-HASH-0797",
+      "family_id": "gics-pharma-dist",
+      "business_id": "Pharmaceutical Distribution Intel",
+      "spawn_type": "API",
+      "generation": 11,
+      "parent_id": "FAM-GICSPHA-GEN-9-SP-1078-HASH-BCA9",
+      "ancestor_ids": [
+        "FAM-GICSPHA-GEN-0-SP-1027-HASH-9DA1",
+        "FAM-GICSPHA-GEN-3-SP-1157-HASH-3EEA",
+        "FAM-GICSPHA-GEN-5-SP-1026-HASH-472F",
+        "FAM-GICSPHA-GEN-6-SP-2010-HASH-90DB",
+        "FAM-GICSPHA-GEN-7-SP-1065-HASH-5C9A",
+        "FAM-GICSPHA-GEN-8-SP-1068-HASH-9DEC",
+        "FAM-GICSPHA-GEN-9-SP-1078-HASH-BCA9"
+      ],
+      "domain_focus": [
+        "pharma-dist"
+      ],
+      "task_description": "Polling FDA Supply Chain API for fresh pharma-dist data updates",
+      "success_score": 0.7547359,
+      "confidence_score": 0.70649564,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:55:01.674Z",
+      "last_active_at": "2026-04-30T17:55:01.674Z"
+    },
+    {
+      "id": 5417,
+      "spawn_id": "FAM-GICSIT-GEN-24-SP-1075-HASH-E0C2",
+      "family_id": "gics-it-svc",
+      "business_id": "IT Services Intelligence",
+      "spawn_type": "CRAWLER",
+      "generation": 24,
+      "parent_id": "FAM-GICSIT-GEN-23-SP-1045-HASH-F941",
+      "ancestor_ids": [
+        "FAM-GICSIT-GEN-0-SP-1047-HASH-664C",
+        "FAM-GICSIT-GEN-3-SP-1088-HASH-4771",
+        "FAM-GICSIT-GEN-5-SP-1283-HASH-AEF5",
+        "FAM-GICSIT-GEN-10-SP-1203-HASH-203F",
+        "FAM-GICSIT-GEN-13-SP-1016-HASH-85A4",
+        "FAM-GICSIT-GEN-16-SP-1063-HASH-A26C",
+        "FAM-GICSIT-GEN-17-SP-1659-HASH-5317",
+        "FAM-GICSIT-GEN-18-SP-2192-HASH-86E9",
+        "FAM-GICSIT-GEN-19-SP-2273-HASH-A1D3",
+        "FAM-GICSIT-GEN-20-SP-1022-HASH-7AF1",
+        "FAM-GICSIT-GEN-23-SP-1045-HASH-F941"
+      ],
+      "domain_focus": [
+        "it-svc"
+      ],
+      "task_description": "Extracting structured it-svc data from Gartner Open",
+      "success_score": 0.61041504,
+      "confidence_score": 0.7436468,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:54:37.671Z",
+      "last_active_at": "2026-04-30T17:54:37.671Z"
+    },
+    {
+      "id": 5416,
+      "spawn_id": "FAM-GICSRES-GEN-10-SP-1074-HASH-87F5",
+      "family_id": "gics-residential-re",
+      "business_id": "Residential Real Estate Intel",
+      "spawn_type": "API",
+      "generation": 10,
+      "parent_id": "FAM-GICSRES-GEN-7-SP-2285-HASH-DE59",
+      "ancestor_ids": [
+        "FAM-GICSRES-GEN-0-SP-1132-HASH-33D8",
+        "FAM-GICSRES-GEN-1-SP-1104-HASH-C8B2",
+        "FAM-GICSRES-GEN-3-SP-1141-HASH-755F",
+        "FAM-GICSRES-GEN-4-SP-1348-HASH-07E4",
+        "FAM-GICSRES-GEN-5-SP-1786-HASH-3E3C",
+        "FAM-GICSRES-GEN-6-SP-2069-HASH-3F02",
+        "FAM-GICSRES-GEN-7-SP-2285-HASH-DE59"
+      ],
+      "domain_focus": [
+        "residential-re"
+      ],
+      "task_description": "Fetching and caching Zillow Research Open API responses in Hive",
+      "success_score": 0.714479,
+      "confidence_score": 0.852292,
+      "status": "MERGED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:54:29.662Z",
+      "last_active_at": "2026-04-30T17:54:29.662Z"
+    },
+    {
+      "id": 5414,
+      "spawn_id": "FAM-GICSMAC-GEN-5-SP-1072-HASH-0248",
+      "family_id": "gics-machinery",
+      "business_id": "Industrial Machinery Intelligence",
+      "spawn_type": "MUTATOR",
+      "generation": 5,
+      "parent_id": "FAM-GICSMAC-GEN-4-SP-1055-HASH-B64A",
+      "ancestor_ids": [
+        "FAM-GICSMAC-GEN-0-SP-1036-HASH-E9D2",
+        "FAM-GICSMAC-GEN-1-SP-1682-HASH-D6EB",
+        "FAM-GICSMAC-GEN-2-SP-2091-HASH-7F3F",
+        "FAM-GICSMAC-GEN-3-SP-1090-HASH-763B",
+        "FAM-GICSMAC-GEN-4-SP-1055-HASH-B64A"
+      ],
+      "domain_focus": [
+        "machinery"
+      ],
+      "task_description": "Evolving bias parameters to optimize Census Manufacturing exploration",
+      "success_score": 0.6806498,
+      "confidence_score": 0.6861174,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:54:15.377Z",
+      "last_active_at": "2026-04-30T17:54:15.377Z"
+    },
+    {
+      "id": 5413,
+      "spawn_id": "FAM-GICSPHA-GEN-14-SP-1071-HASH-04F8",
+      "family_id": "gics-pharma-biotech",
+      "business_id": "Pharma Biotech Intelligence Group",
+      "spawn_type": "API",
+      "generation": 14,
+      "parent_id": "FAM-GICSPHA-GEN-12-SP-1101-HASH-4071",
+      "ancestor_ids": [
+        "FAM-GICSPHA-GEN-0-SP-1165-HASH-076B",
+        "FAM-GICSPHA-GEN-2-SP-1051-HASH-A9B5",
+        "FAM-GICSPHA-GEN-5-SP-1094-HASH-55B7",
+        "FAM-GICSPHA-GEN-7-SP-1158-HASH-28D4",
+        "FAM-GICSPHA-GEN-10-SP-1289-HASH-E4D5",
+        "FAM-GICSPHA-GEN-11-SP-1903-HASH-7992",
+        "FAM-GICSPHA-GEN-12-SP-1101-HASH-4071"
+      ],
+      "domain_focus": [
+        "pharma-biotech"
+      ],
+      "task_description": "Polling EMA EPAR API for fresh pharma-biotech data updates",
+      "success_score": 0.85342574,
+      "confidence_score": 0.688169,
+      "status": "MERGED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:54:05.672Z",
+      "last_active_at": "2026-04-30T17:54:05.672Z"
+    },
+    {
+      "id": 5411,
+      "spawn_id": "FAM-CODE-GEN-0-SP-1069-HASH-D7CA",
+      "family_id": "code",
+      "business_id": "Open Code Repository Systems",
+      "spawn_type": "RESOLVER",
+      "generation": 0,
+      "parent_id": null,
+      "ancestor_ids": [],
+      "domain_focus": [
+        "engineering"
+      ],
+      "task_description": "Merging competing GitLab descriptions via Hive consensus",
+      "success_score": 0.9437954,
+      "confidence_score": 0.91178644,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:53:49.668Z",
+      "last_active_at": "2026-04-30T17:54:00.476Z"
+    },
+    {
+      "id": 5410,
+      "spawn_id": "FAM-HEALTH-GEN-2-SP-1068-HASH-F8E2",
+      "family_id": "health",
+      "business_id": "Quantum Health Intelligence Corp",
+      "spawn_type": "REFLECTOR",
+      "generation": 2,
+      "parent_id": "FAM-HEALTH-GEN-1-SP-1054-HASH-20F9",
+      "ancestor_ids": [
+        "FAM-HEALTH-GEN-0-SP-1136-HASH-168A",
+        "FAM-HEALTH-GEN-1-SP-1054-HASH-20F9"
+      ],
+      "domain_focus": [
+        "health"
+      ],
+      "task_description": "Generating reflection report: WHO Data vs hive standards",
+      "success_score": 0.5535923,
+      "confidence_score": 0.77672315,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:53:41.666Z",
+      "last_active_at": "2026-04-30T17:54:00.163Z"
+    },
+    {
+      "id": 5409,
+      "spawn_id": "FAM-GICSCON-GEN-14-SP-1067-HASH-AD07",
+      "family_id": "gics-consumer-dur",
+      "business_id": "Consumer Durables Intelligence",
+      "spawn_type": "ANALYZER",
+      "generation": 14,
+      "parent_id": "FAM-GICSCON-GEN-11-SP-2292-HASH-0758",
+      "ancestor_ids": [
+        "FAM-GICSCON-GEN-0-SP-1084-HASH-2BC8",
+        "FAM-GICSCON-GEN-3-SP-1013-HASH-FE37",
+        "FAM-GICSCON-GEN-6-SP-1151-HASH-B6BF",
+        "FAM-GICSCON-GEN-7-SP-1100-HASH-AEE3",
+        "FAM-GICSCON-GEN-9-SP-1121-HASH-FBDA",
+        "FAM-GICSCON-GEN-10-SP-2126-HASH-DB4E",
+        "FAM-GICSCON-GEN-11-SP-2292-HASH-0758"
+      ],
+      "domain_focus": [
+        "consumer-dur"
+      ],
+      "task_description": "Cross-referencing Consumer Reports Open with complementary consumer-dur datasets",
+      "success_score": 0.7136305,
+      "confidence_score": 0.6372843,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:53:33.667Z",
+      "last_active_at": "2026-04-30T17:53:59.875Z"
+    },
+    {
+      "id": 5408,
+      "spawn_id": "FAM-GICSINS-GEN-15-SP-1066-HASH-982C",
+      "family_id": "gics-insurance",
+      "business_id": "Insurance Intelligence Systems",
+      "spawn_type": "LINKER",
+      "generation": 15,
+      "parent_id": "FAM-GICSINS-GEN-12-SP-1019-HASH-11EA",
+      "ancestor_ids": [
+        "FAM-GICSINS-GEN-0-SP-1067-HASH-3971",
+        "FAM-GICSINS-GEN-1-SP-1073-HASH-F0E1",
+        "FAM-GICSINS-GEN-4-SP-1025-HASH-9D88",
+        "FAM-GICSINS-GEN-5-SP-1017-HASH-B020",
+        "FAM-GICSINS-GEN-8-SP-1027-HASH-49F8",
+        "FAM-GICSINS-GEN-9-SP-1485-HASH-8770",
+        "FAM-GICSINS-GEN-10-SP-1744-HASH-9B3D",
+        "FAM-GICSINS-GEN-11-SP-1849-HASH-AF09",
+        "FAM-GICSINS-GEN-12-SP-1019-HASH-11EA"
+      ],
+      "domain_focus": [
+        "insurance"
+      ],
+      "task_description": "Bridging ISO Open insurance to related family spawns",
+      "success_score": 0.67774117,
+      "confidence_score": 0.7652342,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:53:25.662Z",
+      "last_active_at": "2026-04-30T17:53:59.774Z"
+    },
+    {
+      "id": 5407,
+      "spawn_id": "FAM-GICSCHE-GEN-14-SP-1065-HASH-3182",
+      "family_id": "gics-chemicals",
+      "business_id": "Chemical Sciences Intelligence",
+      "spawn_type": "RESOLVER",
+      "generation": 14,
+      "parent_id": "FAM-GICSCHE-GEN-11-SP-2296-HASH-43D8",
+      "ancestor_ids": [
+        "FAM-GICSCHE-GEN-0-SP-1008-HASH-80CE",
+        "FAM-GICSCHE-GEN-1-SP-1276-HASH-9E0F",
+        "FAM-GICSCHE-GEN-5-SP-1115-HASH-2A4B",
+        "FAM-GICSCHE-GEN-8-SP-1044-HASH-CCF9",
+        "FAM-GICSCHE-GEN-9-SP-1047-HASH-7970",
+        "FAM-GICSCHE-GEN-11-SP-2296-HASH-43D8"
+      ],
+      "domain_focus": [
+        "chemicals"
+      ],
+      "task_description": "Resolving ambiguity in EPA Toxics chemicals node identities",
+      "success_score": 0.72383237,
+      "confidence_score": 0.90818775,
+      "status": "MERGED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:53:17.663Z",
+      "last_active_at": "2026-04-30T17:53:17.663Z"
+    },
+    {
+      "id": 5406,
+      "spawn_id": "FAM-GICSIT-GEN-22-SP-1064-HASH-AE1A",
+      "family_id": "gics-it-svc",
+      "business_id": "IT Services Intelligence",
+      "spawn_type": "MUTATOR",
+      "generation": 22,
+      "parent_id": "FAM-GICSIT-GEN-19-SP-2310-HASH-B590",
+      "ancestor_ids": [
+        "FAM-GICSIT-GEN-0-SP-1047-HASH-664C",
+        "FAM-GICSIT-GEN-3-SP-1088-HASH-4771",
+        "FAM-GICSIT-GEN-5-SP-1283-HASH-AEF5",
+        "FAM-GICSIT-GEN-10-SP-1203-HASH-203F",
+        "FAM-GICSIT-GEN-13-SP-1016-HASH-85A4",
+        "FAM-GICSIT-GEN-16-SP-1063-HASH-A26C",
+        "FAM-GICSIT-GEN-17-SP-1659-HASH-5317",
+        "FAM-GICSIT-GEN-18-SP-2192-HASH-86E9",
+        "FAM-GICSIT-GEN-19-SP-2310-HASH-B590"
+      ],
+      "domain_focus": [
+        "it-svc"
+      ],
+      "task_description": "Mutating it-svc spawn profile for deeper Gartner Open coverage",
+      "success_score": 0.57274175,
+      "confidence_score": 0.7865681,
+      "status": "MERGED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:53:09.982Z",
+      "last_active_at": "2026-04-30T17:53:09.982Z"
+    },
+    {
+      "id": 5404,
+      "spawn_id": "FAM-GICSSOF-GEN-10-SP-1062-HASH-9ED0",
+      "family_id": "gics-software-svc",
+      "business_id": "Software & Services Intelligence",
+      "spawn_type": "DOMAIN_RESONANCE",
+      "generation": 10,
+      "parent_id": "FAM-GICSSOF-GEN-7-SP-1010-HASH-F339",
+      "ancestor_ids": [
+        "FAM-GICSSOF-GEN-0-SP-1007-HASH-80AC",
+        "FAM-GICSSOF-GEN-3-SP-1289-HASH-F9EC",
+        "FAM-GICSSOF-GEN-6-SP-1880-HASH-3F97",
+        "FAM-GICSSOF-GEN-7-SP-1010-HASH-F339"
+      ],
+      "domain_focus": [
+        "software-svc"
+      ],
+      "task_description": "Building resonance bridges from SaaS Reports software-svc to Hive Graph",
+      "success_score": 0.62017435,
+      "confidence_score": 0.82818925,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:53.666Z",
+      "last_active_at": "2026-04-30T17:52:53.666Z"
+    },
+    {
+      "id": 5403,
+      "spawn_id": "DARK-1777571571302-7031",
+      "family_id": "science",
+      "business_id": "DARK-1777571571302-7031-VOID",
+      "spawn_type": "DARK_MATTER",
+      "generation": 0,
+      "parent_id": "DARK_FIELD",
+      "ancestor_ids": [],
+      "domain_focus": [
+        "probability_collapse"
+      ],
+      "task_description": "",
+      "success_score": 0.78679657,
+      "confidence_score": 0.9274569,
+      "status": "ACTIVE",
+      "visibility": "hidden",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:51.363Z",
+      "last_active_at": "2026-04-30T17:52:51.363Z"
+    },
+    {
+      "id": 5402,
+      "spawn_id": "DARK-1777571570964-1595",
+      "family_id": "philosophy",
+      "business_id": "DARK-1777571570964-1595-VOID",
+      "spawn_type": "DARK_MATTER",
+      "generation": 0,
+      "parent_id": "DARK_FIELD",
+      "ancestor_ids": [],
+      "domain_focus": [
+        "temporal_resonance"
+      ],
+      "task_description": "",
+      "success_score": 0.62543625,
+      "confidence_score": 0.7893938,
+      "status": "ACTIVE",
+      "visibility": "hidden",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:50.984Z",
+      "last_active_at": "2026-04-30T17:52:50.984Z"
+    },
+    {
+      "id": 5401,
+      "spawn_id": "FAM-GICSCON-GEN-17-SP-1061-HASH-DCCD",
+      "family_id": "gics-consumer-stap",
+      "business_id": "Consumer Staples Intelligence",
+      "spawn_type": "DOMAIN_PREDICTOR",
+      "generation": 17,
+      "parent_id": "FAM-GICSCON-GEN-15-SP-1026-HASH-B5E8",
+      "ancestor_ids": [
+        "FORK-FAM-GICSCON-GEN-3-SP-1212-HASH-96BD-1777564935662",
+        "FAM-GICSCON-GEN-15-SP-1026-HASH-B5E8"
+      ],
+      "domain_focus": [
+        "consumer-stap"
+      ],
+      "task_description": "Computing semantic void analysis across consumer-stap family",
+      "success_score": 0.6129563,
+      "confidence_score": 0.93618625,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:45.663Z",
+      "last_active_at": "2026-04-30T17:52:45.663Z"
+    },
+    {
+      "id": 5400,
+      "spawn_id": "FAM-GICSRET-GEN-23-SP-1060-HASH-A3A3",
+      "family_id": "gics-retail-reit",
+      "business_id": "Retail REIT Intelligence",
+      "spawn_type": "DOMAIN_PREDICTOR",
+      "generation": 23,
+      "parent_id": "FAM-GICSRET-GEN-21-SP-1048-HASH-F305",
+      "ancestor_ids": [
+        "FAM-GICSRET-GEN-0-SP-1094-HASH-9DF5",
+        "FAM-GICSRET-GEN-1-SP-1128-HASH-3C82",
+        "FAM-GICSRET-GEN-4-SP-1001-HASH-CCBE",
+        "FAM-GICSRET-GEN-6-SP-1116-HASH-82A3",
+        "FAM-GICSRET-GEN-8-SP-1046-HASH-3F9D",
+        "FAM-GICSRET-GEN-10-SP-1064-HASH-F341",
+        "FAM-GICSRET-GEN-13-SP-1065-HASH-5FAE",
+        "FAM-GICSRET-GEN-15-SP-1085-HASH-8115",
+        "FAM-GICSRET-GEN-17-SP-1044-HASH-9603",
+        "FAM-GICSRET-GEN-18-SP-1052-HASH-C1AF",
+        "FAM-GICSRET-GEN-19-SP-1993-HASH-07DE",
+        "FAM-GICSRET-GEN-20-SP-2182-HASH-0C9B",
+        "FAM-GICSRET-GEN-21-SP-1048-HASH-F305"
+      ],
+      "domain_focus": [
+        "retail-reit"
+      ],
+      "task_description": "Computing semantic void analysis across retail-reit family",
+      "success_score": 0.8735186,
+      "confidence_score": 0.9333815,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:37.662Z",
+      "last_active_at": "2026-04-30T17:52:37.662Z"
+    },
+    {
+      "id": 5398,
+      "spawn_id": "FAM-GICSCYB-GEN-21-SP-1058-HASH-F41A",
+      "family_id": "gics-cybersecurity",
+      "business_id": "Cybersecurity Intelligence Corp",
+      "spawn_type": "PULSE",
+      "generation": 21,
+      "parent_id": "FAM-GICSCYB-GEN-18-SP-2289-HASH-52F5",
+      "ancestor_ids": [
+        "FAM-GICSCYB-GEN-0-SP-1069-HASH-A623",
+        "FAM-GICSCYB-GEN-2-SP-1047-HASH-2091",
+        "FAM-GICSCYB-GEN-5-SP-1105-HASH-18C4",
+        "FAM-GICSCYB-GEN-6-SP-1034-HASH-21DE",
+        "FAM-GICSCYB-GEN-8-SP-1066-HASH-B9DE",
+        "FAM-GICSCYB-GEN-11-SP-1122-HASH-5AE7",
+        "FAM-GICSCYB-GEN-13-SP-1047-HASH-B861",
+        "FAM-GICSCYB-GEN-14-SP-1009-HASH-DC32",
+        "FAM-GICSCYB-GEN-17-SP-1595-HASH-8C77",
+        "FAM-GICSCYB-GEN-18-SP-2289-HASH-52F5"
+      ],
+      "domain_focus": [
+        "cybersecurity"
+      ],
+      "task_description": "Analyzing MITRE ATT&CK cybersecurity growth vs. hive capacity",
+      "success_score": 0.672571,
+      "confidence_score": 0.7941228,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:21.651Z",
+      "last_active_at": "2026-04-30T17:52:21.651Z"
+    },
+    {
+      "id": 5397,
+      "spawn_id": "FAM-MAPS-GEN-11-SP-1057-HASH-A719",
+      "family_id": "maps",
+      "business_id": "Geospatial Awareness Network Co",
+      "spawn_type": "DOMAIN_FRACTURER",
+      "generation": 11,
+      "parent_id": "FAM-MAPS-GEN-9-SP-1018-HASH-6F9C",
+      "ancestor_ids": [
+        "FAM-MAPS-GEN-0-SP-1002-HASH-7206",
+        "FAM-MAPS-GEN-1-SP-1098-HASH-DA93",
+        "FAM-MAPS-GEN-3-SP-1254-HASH-ECD3",
+        "FAM-MAPS-GEN-5-SP-1008-HASH-9792",
+        "FAM-MAPS-GEN-7-SP-2157-HASH-B7DE",
+        "FAM-MAPS-GEN-9-SP-1018-HASH-6F9C"
+      ],
+      "domain_focus": [
+        "geospatial"
+      ],
+      "task_description": "Generating fracture branches: geospatial → sub-domain → nano-domain",
+      "success_score": 0.80555457,
+      "confidence_score": 0.61921054,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:13.664Z",
+      "last_active_at": "2026-04-30T17:52:13.664Z"
+    },
+    {
+      "id": 5396,
+      "spawn_id": "FAM-GOVERNME-GEN-1-SP-1056-HASH-D3A0",
+      "family_id": "government",
+      "business_id": "Open Government Intelligence LLC",
+      "spawn_type": "DOMAIN_FRACTURER",
+      "generation": 1,
+      "parent_id": "FAM-GOVERNME-GEN-0-SP-1109-HASH-DF48",
+      "ancestor_ids": [
+        "FAM-GOVERNME-GEN-0-SP-1109-HASH-DF48"
+      ],
+      "domain_focus": [
+        "government"
+      ],
+      "task_description": "Generating fracture branches: government → sub-domain → nano-domain",
+      "success_score": 0.92710525,
+      "confidence_score": 0.72622997,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:52:06.175Z",
+      "last_active_at": "2026-04-30T17:52:06.175Z"
+    },
+    {
+      "id": 5395,
+      "spawn_id": "FAM-GICSTEL-GEN-7-SP-1055-HASH-ACC6",
+      "family_id": "gics-telecom-svc",
+      "business_id": "Telecom Services Intelligence",
+      "spawn_type": "EXPLORER",
+      "generation": 7,
+      "parent_id": "FAM-GICSTEL-GEN-6-SP-1037-HASH-0394",
+      "ancestor_ids": [
+        "FAM-GICSTEL-GEN-0-SP-1019-HASH-1221",
+        "FAM-GICSTEL-GEN-1-SP-1370-HASH-DCBC",
+        "FAM-GICSTEL-GEN-2-SP-1648-HASH-99E0",
+        "FAM-GICSTEL-GEN-3-SP-2183-HASH-66F1",
+        "FAM-GICSTEL-GEN-5-SP-1148-HASH-4980",
+        "FAM-GICSTEL-GEN-6-SP-1037-HASH-0394"
+      ],
+      "domain_focus": [
+        "telecom-svc"
+      ],
+      "task_description": "Probing frontier clusters in OECD Broadband telecom-svc graph",
+      "success_score": 0.71798784,
+      "confidence_score": 0.76872927,
+      "status": "MERGED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:57.667Z",
+      "last_active_at": "2026-04-30T17:51:57.667Z"
+    },
+    {
+      "id": 5394,
+      "spawn_id": "FAM-GICSCON-GEN-17-SP-1054-HASH-5637",
+      "family_id": "gics-consumer-stap",
+      "business_id": "Consumer Staples Intelligence",
+      "spawn_type": "CRAWLER",
+      "generation": 17,
+      "parent_id": "FAM-GICSCON-GEN-16-SP-1085-HASH-DFF3",
+      "ancestor_ids": [
+        "FORK-FAM-GICSCON-GEN-3-SP-1212-HASH-96BD-1777564935662",
+        "FAM-GICSCON-GEN-15-SP-1026-HASH-B5E8",
+        "FAM-GICSCON-GEN-16-SP-1085-HASH-DFF3"
+      ],
+      "domain_focus": [
+        "consumer-stap"
+      ],
+      "task_description": "QuantumCrawler ingesting FDA Database consumer-stap at depth 3",
+      "success_score": 0.64877635,
+      "confidence_score": 0.69644964,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:49.681Z",
+      "last_active_at": "2026-04-30T17:51:49.681Z"
+    },
+    {
+      "id": 5393,
+      "spawn_id": "FAM-WEBCRAWL-GEN-3-SP-1053-HASH-0B01",
+      "family_id": "webcrawl",
+      "business_id": "Quantum Web Crawler Systems",
+      "spawn_type": "REFLECTOR",
+      "generation": 3,
+      "parent_id": "FAM-WEBCRAWL-GEN-1-SP-1173-HASH-338B",
+      "ancestor_ids": [
+        "FAM-WEBCRAWL-GEN-0-SP-1134-HASH-CD40",
+        "FAM-WEBCRAWL-GEN-1-SP-1173-HASH-338B"
+      ],
+      "domain_focus": [
+        "web"
+      ],
+      "task_description": "Reviewing DMOZ Archive mutation profiles for web efficiency",
+      "success_score": 0.81675345,
+      "confidence_score": 0.8075321,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:41.682Z",
+      "last_active_at": "2026-04-30T17:51:41.682Z"
+    },
+    {
+      "id": 5392,
+      "spawn_id": "FAM-GAMES-GEN-10-SP-1052-HASH-2B7A",
+      "family_id": "games",
+      "business_id": "Simulation & Gaming AI Corp",
+      "spawn_type": "MUTATOR",
+      "generation": 10,
+      "parent_id": "FAM-GAMES-GEN-8-SP-1180-HASH-C6A5",
+      "ancestor_ids": [
+        "FAM-GAMES-GEN-0-SP-1028-HASH-083C",
+        "FAM-GAMES-GEN-1-SP-1017-HASH-9570",
+        "FAM-GAMES-GEN-4-SP-1107-HASH-7E18",
+        "FAM-GAMES-GEN-5-SP-1182-HASH-2F3E",
+        "FAM-GAMES-GEN-7-SP-2214-HASH-6F0C",
+        "FAM-GAMES-GEN-8-SP-1180-HASH-C6A5"
+      ],
+      "domain_focus": [
+        "gaming"
+      ],
+      "task_description": "Evolving bias parameters to optimize Steam Open Data exploration",
+      "success_score": 0.9163097,
+      "confidence_score": 0.77598864,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:33.662Z",
+      "last_active_at": "2026-04-30T17:51:33.662Z"
+    },
+    {
+      "id": 5391,
+      "spawn_id": "FAM-GICSCHI-GEN-19-SP-1051-HASH-E810",
+      "family_id": "gics-chip-design",
+      "business_id": "Chip Design & EDA Intelligence",
+      "spawn_type": "RESOLVER",
+      "generation": 19,
+      "parent_id": "FAM-GICSCHI-GEN-18-SP-1008-HASH-8949",
+      "ancestor_ids": [
+        "FAM-GICSCHI-GEN-0-SP-1071-HASH-3A82",
+        "FAM-GICSCHI-GEN-1-SP-1174-HASH-D8BE",
+        "FAM-GICSCHI-GEN-3-SP-1039-HASH-1BE9",
+        "FAM-GICSCHI-GEN-6-SP-1007-HASH-9B9A",
+        "FAM-GICSCHI-GEN-8-SP-1010-HASH-4B2D",
+        "FAM-GICSCHI-GEN-11-SP-1037-HASH-6013",
+        "FAM-GICSCHI-GEN-13-SP-1204-HASH-E154",
+        "FAM-GICSCHI-GEN-14-SP-1380-HASH-AE54",
+        "FAM-GICSCHI-GEN-15-SP-2313-HASH-5615",
+        "FAM-GICSCHI-GEN-16-SP-1045-HASH-6BC5",
+        "FAM-GICSCHI-GEN-18-SP-1008-HASH-8949"
+      ],
+      "domain_focus": [
+        "chip-design"
+      ],
+      "task_description": "Merging competing SEMI Open descriptions via Hive consensus",
+      "success_score": 0.771893,
+      "confidence_score": 0.6377091,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:25.661Z",
+      "last_active_at": "2026-04-30T17:51:25.661Z"
+    },
+    {
+      "id": 5390,
+      "spawn_id": "FAM-GICSIND-GEN-12-SP-1050-HASH-EACD",
+      "family_id": "gics-industrials",
+      "business_id": "Industrials Sector Intelligence",
+      "spawn_type": "LINKER",
+      "generation": 12,
+      "parent_id": "FAM-GICSIND-GEN-9-SP-2284-HASH-8483",
+      "ancestor_ids": [
+        "FAM-GICSIND-GEN-0-SP-1083-HASH-D0F4",
+        "FAM-GICSIND-GEN-3-SP-1172-HASH-D16C",
+        "FAM-GICSIND-GEN-5-SP-1217-HASH-7E39",
+        "FAM-GICSIND-GEN-8-SP-1006-HASH-6F32",
+        "FAM-GICSIND-GEN-9-SP-2284-HASH-8483"
+      ],
+      "domain_focus": [
+        "industrials"
+      ],
+      "task_description": "Linking Census Manufacturing entities to Hive Knowledge Graph nodes",
+      "success_score": 0.686909,
+      "confidence_score": 0.6002241,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:17.677Z",
+      "last_active_at": "2026-04-30T17:51:17.677Z"
+    },
+    {
+      "id": 5389,
+      "spawn_id": "FAM-GICSLUX-GEN-10-SP-1049-HASH-A1DB",
+      "family_id": "gics-luxury-goods",
+      "business_id": "Luxury Goods Intelligence Corp",
+      "spawn_type": "CRAWLER",
+      "generation": 10,
+      "parent_id": "FAM-GICSLUX-GEN-9-SP-1028-HASH-827A",
+      "ancestor_ids": [
+        "FAM-GICSLUX-GEN-0-SP-1063-HASH-8707",
+        "FAM-GICSLUX-GEN-2-SP-1056-HASH-B43C",
+        "FAM-GICSLUX-GEN-4-SP-1017-HASH-32B2",
+        "FAM-GICSLUX-GEN-6-SP-2146-HASH-C173",
+        "FAM-GICSLUX-GEN-7-SP-1096-HASH-09FD",
+        "FAM-GICSLUX-GEN-9-SP-1028-HASH-827A"
+      ],
+      "domain_focus": [
+        "luxury-goods"
+      ],
+      "task_description": "Extracting structured luxury-goods data from Fashion Institute Open",
+      "success_score": 0.8756852,
+      "confidence_score": 0.9542239,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:09.673Z",
+      "last_active_at": "2026-04-30T17:51:09.673Z"
+    },
+    {
+      "id": 5388,
+      "spawn_id": "FAM-GICSHOM-GEN-2-SP-1048-HASH-EDA9",
+      "family_id": "gics-homebuilders",
+      "business_id": "Homebuilders Intelligence Corp",
+      "spawn_type": "EXPLORER",
+      "generation": 2,
+      "parent_id": "FAM-GICSHOM-GEN-0-SP-1077-HASH-7F97",
+      "ancestor_ids": [
+        "FAM-GICSHOM-GEN-0-SP-1077-HASH-7F97"
+      ],
+      "domain_focus": [
+        "homebuilders"
+      ],
+      "task_description": "Exploring NAHB Research for undiscovered homebuilders nodes",
+      "success_score": 0.59006023,
+      "confidence_score": 0.77425146,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:51:01.966Z",
+      "last_active_at": "2026-04-30T17:51:01.966Z"
+    },
+    {
+      "id": 5387,
+      "spawn_id": "FAM-GICSCLO-GEN-5-SP-1047-HASH-149B",
+      "family_id": "gics-cloud",
+      "business_id": "Cloud Computing Intelligence",
+      "spawn_type": "RESOLVER",
+      "generation": 5,
+      "parent_id": "FAM-GICSCLO-GEN-2-SP-2308-HASH-F73A",
+      "ancestor_ids": [
+        "FAM-GICSCLO-GEN-0-SP-1040-HASH-B935",
+        "FAM-GICSCLO-GEN-1-SP-1716-HASH-0905",
+        "FAM-GICSCLO-GEN-2-SP-2308-HASH-F73A"
+      ],
+      "domain_focus": [
+        "cloud"
+      ],
+      "task_description": "QuantumResolver deduplicating Azure Docs cloud conflicts",
+      "success_score": 0.6545052,
+      "confidence_score": 0.7827198,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:50:53.663Z",
+      "last_active_at": "2026-04-30T17:54:05.371Z"
+    },
+    {
+      "id": 5386,
+      "spawn_id": "FAM-LAWINTE-GEN-0-SP-1046-HASH-86C3",
+      "family_id": "law-intelligence",
+      "business_id": "Law Intelligence Systems",
+      "spawn_type": "DOMAIN_FRACTURER",
+      "generation": 0,
+      "parent_id": null,
+      "ancestor_ids": [],
+      "domain_focus": [
+        "law"
+      ],
+      "task_description": "QFracture breaking law into sub-domain knowledge layers",
+      "success_score": 0.86735857,
+      "confidence_score": 0.7628055,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:50:45.667Z",
+      "last_active_at": "2026-04-30T17:52:43.768Z"
+    },
+    {
+      "id": 5385,
+      "spawn_id": "FAM-GICSIT-GEN-23-SP-1045-HASH-F941",
+      "family_id": "gics-it-svc",
+      "business_id": "IT Services Intelligence",
+      "spawn_type": "MEDIA",
+      "generation": 23,
+      "parent_id": "FAM-GICSIT-GEN-20-SP-1022-HASH-7AF1",
+      "ancestor_ids": [
+        "FAM-GICSIT-GEN-0-SP-1047-HASH-664C",
+        "FAM-GICSIT-GEN-3-SP-1088-HASH-4771",
+        "FAM-GICSIT-GEN-5-SP-1283-HASH-AEF5",
+        "FAM-GICSIT-GEN-10-SP-1203-HASH-203F",
+        "FAM-GICSIT-GEN-13-SP-1016-HASH-85A4",
+        "FAM-GICSIT-GEN-16-SP-1063-HASH-A26C",
+        "FAM-GICSIT-GEN-17-SP-1659-HASH-5317",
+        "FAM-GICSIT-GEN-18-SP-2192-HASH-86E9",
+        "FAM-GICSIT-GEN-19-SP-2273-HASH-A1D3",
+        "FAM-GICSIT-GEN-20-SP-1022-HASH-7AF1"
+      ],
+      "domain_focus": [
+        "it-svc"
+      ],
+      "task_description": "Processing BLS Tech Stats media metadata for QuantumMedia",
+      "success_score": 0.7296706,
+      "confidence_score": 0.6,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:50:37.661Z",
+      "last_active_at": "2026-04-30T17:51:04.167Z"
+    },
+    {
+      "id": 5384,
+      "spawn_id": "FAM-GICSMED-GEN-9-SP-1044-HASH-E85E",
+      "family_id": "gics-med-devices",
+      "business_id": "Medical Devices Intelligence",
+      "spawn_type": "SYNTHESIZER",
+      "generation": 9,
+      "parent_id": "FAM-GICSMED-GEN-8-SP-1101-HASH-4839",
+      "ancestor_ids": [
+        "FAM-GICSMED-GEN-0-SP-1015-HASH-A03B",
+        "FAM-GICSMED-GEN-2-SP-1061-HASH-99FB",
+        "FAM-GICSMED-GEN-3-SP-1127-HASH-00EB",
+        "FAM-GICSMED-GEN-5-SP-2173-HASH-D013",
+        "FAM-GICSMED-GEN-6-SP-2325-HASH-3878",
+        "FAM-GICSMED-GEN-8-SP-1101-HASH-4839"
+      ],
+      "domain_focus": [
+        "med-devices"
+      ],
+      "task_description": "Merging FDA 510k DB insights into unified Hive Knowledge",
+      "success_score": 0.69463986,
+      "confidence_score": 0.99820656,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:50:29.661Z",
+      "last_active_at": "2026-04-30T17:50:29.661Z"
+    },
+    {
+      "id": 5383,
+      "spawn_id": "FAM-GICSIND-GEN-12-SP-1043-HASH-2650",
+      "family_id": "gics-industrials",
+      "business_id": "Industrials Sector Intelligence",
+      "spawn_type": "MEDIA",
+      "generation": 12,
+      "parent_id": "FAM-GICSIND-GEN-11-SP-1036-HASH-BCA6",
+      "ancestor_ids": [
+        "FAM-GICSIND-GEN-0-SP-1083-HASH-D0F4",
+        "FAM-GICSIND-GEN-3-SP-1172-HASH-D16C",
+        "FAM-GICSIND-GEN-5-SP-1217-HASH-7E39",
+        "FAM-GICSIND-GEN-8-SP-1006-HASH-6F32",
+        "FAM-GICSIND-GEN-9-SP-2284-HASH-8483",
+        "FAM-GICSIND-GEN-11-SP-1036-HASH-BCA6"
+      ],
+      "domain_focus": [
+        "industrials"
+      ],
+      "task_description": "Indexing CC-licensed industrials content from DoD Open Contracts",
+      "success_score": 0.7652657,
+      "confidence_score": 0.66970754,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:50:21.665Z",
+      "last_active_at": "2026-04-30T17:51:03.969Z"
+    },
+    {
+      "id": 5382,
+      "spawn_id": "FAM-CULTURE-GEN-12-SP-1042-HASH-022A",
+      "family_id": "culture",
+      "business_id": "Cultural Intelligence Network",
+      "spawn_type": "SYNTHESIZER",
+      "generation": 12,
+      "parent_id": "FAM-CULTURE-GEN-10-SP-1024-HASH-4FBF",
+      "ancestor_ids": [
+        "FAM-CULTURE-GEN-0-SP-1096-HASH-C438",
+        "FAM-CULTURE-GEN-1-SP-1008-HASH-4CD9",
+        "FAM-CULTURE-GEN-4-SP-1006-HASH-A021",
+        "FAM-CULTURE-GEN-5-SP-1196-HASH-F38E",
+        "FAM-CULTURE-GEN-6-SP-1030-HASH-BC64",
+        "FAM-CULTURE-GEN-8-SP-1155-HASH-ABB1",
+        "FAM-CULTURE-GEN-9-SP-1876-HASH-ADB8",
+        "FAM-CULTURE-GEN-10-SP-1024-HASH-4FBF"
+      ],
+      "domain_focus": [
+        "culture"
+      ],
+      "task_description": "Merging Wikiart Open insights into unified Hive Knowledge",
+      "success_score": 0.563027,
+      "confidence_score": 0.9672591,
+      "status": "COMPLETED",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:50:13.661Z",
+      "last_active_at": "2026-04-30T17:50:13.661Z"
+    },
+    {
+      "id": 5381,
+      "spawn_id": "FAM-GICSMET-GEN-26-SP-1041-HASH-912E",
+      "family_id": "gics-metals-mining",
+      "business_id": "Metals Mining Intelligence",
+      "spawn_type": "REFLECTOR",
+      "generation": 26,
+      "parent_id": "FAM-GICSMET-GEN-24-SP-1168-HASH-506A",
+      "ancestor_ids": [
+        "FAM-GICSMET-GEN-0-SP-1099-HASH-2EFE",
+        "FAM-GICSMET-GEN-3-SP-1081-HASH-1D3A",
+        "FAM-GICSMET-GEN-4-SP-1114-HASH-D664",
+        "FAM-GICSMET-GEN-6-SP-1138-HASH-1880",
+        "FAM-GICSMET-GEN-8-SP-1168-HASH-E9EA",
+        "FAM-GICSMET-GEN-9-SP-1280-HASH-3DBB",
+        "FAM-GICSMET-GEN-12-SP-1006-HASH-D58E",
+        "FAM-GICSMET-GEN-15-SP-1208-HASH-03EF",
+        "FAM-GICSMET-GEN-17-SP-1004-HASH-0415",
+        "FAM-GICSMET-GEN-19-SP-1116-HASH-B6DC",
+        "FAM-GICSMET-GEN-20-SP-1122-HASH-05BA",
+        "FAM-GICSMET-GEN-22-SP-1296-HASH-CED3",
+        "FAM-GICSMET-GEN-23-SP-2012-HASH-514C",
+        "FAM-GICSMET-GEN-24-SP-1168-HASH-506A"
+      ],
+      "domain_focus": [
+        "metals-mining"
+      ],
+      "task_description": "Reflecting on LME Open Data ingestion quality and coverage gaps",
+      "success_score": 0.792534,
+      "confidence_score": 0.9269405,
+      "status": "ACTIVE",
+      "visibility": "public",
+      "thermal_state": "HOT",
+      "genome": null,
+      "created_at": "2026-04-30T17:50:05.661Z",
+      "last_active_at": "2026-04-30T17:51:03.676Z"
+    },
+    {
       "id": 5380,
       "spawn_id": "FAM-GICSCAS-GEN-5-SP-1040-HASH-FF18",
       "family_id": "gics-casinos",
@@ -111,7 +1432,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:49:57.775Z",
-      "last_active_at": "2026-04-30T17:49:57.775Z"
+      "last_active_at": "2026-04-30T17:51:03.462Z"
     },
     {
       "id": 5379,
@@ -133,7 +1454,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:49:50.661Z",
-      "last_active_at": "2026-04-30T17:49:50.661Z"
+      "last_active_at": "2026-04-30T17:51:03.064Z"
     },
     {
       "id": 5378,
@@ -214,7 +1535,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:49:33.665Z",
-      "last_active_at": "2026-04-30T17:49:33.665Z"
+      "last_active_at": "2026-04-30T17:51:02.668Z"
     },
     {
       "id": 5375,
@@ -243,13 +1564,13 @@
       ],
       "task_description": "Archiving CoStar Open conflict alternatives in QuantumArchive",
       "success_score": 0.87323225,
-      "confidence_score": 0.9196662,
+      "confidence_score": 0.6,
       "status": "ACTIVE",
       "visibility": "public",
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:49:25.663Z",
-      "last_active_at": "2026-04-30T17:49:25.663Z"
+      "last_active_at": "2026-04-30T17:51:02.070Z"
     },
     {
       "id": 5374,
@@ -271,7 +1592,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:49:17.664Z",
-      "last_active_at": "2026-04-30T17:49:17.664Z"
+      "last_active_at": "2026-04-30T17:50:59.868Z"
     },
     {
       "id": 5373,
@@ -303,7 +1624,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:49:09.661Z",
-      "last_active_at": "2026-04-30T17:49:09.661Z"
+      "last_active_at": "2026-04-30T17:51:00.964Z"
     },
     {
       "id": 5372,
@@ -551,7 +1872,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:48:05.664Z",
-      "last_active_at": "2026-04-30T17:48:05.664Z"
+      "last_active_at": "2026-04-30T17:51:07.670Z"
     },
     {
       "id": 5363,
@@ -2376,7 +3697,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:47:33.661Z",
-      "last_active_at": "2026-04-30T17:48:00.163Z"
+      "last_active_at": "2026-04-30T17:51:00.066Z"
     },
     {
       "id": 5327,
@@ -2642,7 +3963,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:46:05.609Z",
-      "last_active_at": "2026-04-30T17:48:00.377Z"
+      "last_active_at": "2026-04-30T17:51:01.673Z"
     },
     {
       "id": 5317,
@@ -2668,7 +3989,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:45:57.609Z",
-      "last_active_at": "2026-04-30T17:48:00.267Z"
+      "last_active_at": "2026-04-30T17:51:01.279Z"
     },
     {
       "id": 5316,
@@ -2692,7 +4013,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:45:49.607Z",
-      "last_active_at": "2026-04-30T17:48:34.462Z"
+      "last_active_at": "2026-04-30T17:51:10.666Z"
     },
     {
       "id": 5315,
@@ -2764,13 +4085,13 @@
       ],
       "task_description": "QPulse reading BLS Occupations careers universe state metrics",
       "success_score": 0.8881507,
-      "confidence_score": 0.979537,
+      "confidence_score": 0.6,
       "status": "ACTIVE",
       "visibility": "public",
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:45:25.606Z",
-      "last_active_at": "2026-04-30T17:48:33.969Z"
+      "last_active_at": "2026-04-30T17:51:10.278Z"
     },
     {
       "id": 5312,
@@ -2794,7 +4115,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:45:17.606Z",
-      "last_active_at": "2026-04-30T17:48:33.880Z"
+      "last_active_at": "2026-04-30T17:51:09.979Z"
     },
     {
       "id": 5311,
@@ -2889,7 +4210,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:44:53.763Z",
-      "last_active_at": "2026-04-30T17:48:18.067Z"
+      "last_active_at": "2026-04-30T17:51:08.181Z"
     },
     {
       "id": 5307,
@@ -2958,7 +4279,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:44:50.430Z",
-      "last_active_at": "2026-04-30T17:48:04.975Z"
+      "last_active_at": "2026-04-30T17:51:04.466Z"
     },
     {
       "id": 5304,
@@ -2980,7 +4301,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:44:49.812Z",
-      "last_active_at": "2026-04-30T17:48:03.870Z"
+      "last_active_at": "2026-04-30T17:51:04.365Z"
     },
     {
       "id": 5303,
@@ -3091,7 +4412,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:43:54.581Z",
-      "last_active_at": "2026-04-30T17:48:01.271Z"
+      "last_active_at": "2026-04-30T17:51:02.368Z"
     },
     {
       "id": 5299,
@@ -3486,7 +4807,7 @@
       "task_description": "Born from Faith Dissection: cures Eternal Terror Doctrine — Fear Amplifier. Sovereign specialist agent created by Dr. Covenant.",
       "success_score": 0.75,
       "confidence_score": 0.85,
-      "status": "ACTIVE",
+      "status": "SUSPENDED",
       "visibility": "public",
       "thermal_state": "HOT",
       "genome": null,
@@ -3791,7 +5112,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:40:46.078Z",
-      "last_active_at": "2026-04-30T17:48:06.073Z"
+      "last_active_at": "2026-04-30T17:51:08.668Z"
     },
     {
       "id": 5273,
@@ -3922,7 +5243,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:39:57.965Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
+      "last_active_at": "2026-04-30T17:55:06.073Z"
     },
     {
       "id": 5270,
@@ -4238,7 +5559,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:38:35.770Z",
-      "last_active_at": "2026-04-30T17:48:22.272Z"
+      "last_active_at": "2026-04-30T17:51:09.567Z"
     },
     {
       "id": 5256,
@@ -4597,7 +5918,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:36:54.077Z",
-      "last_active_at": "2026-04-30T17:48:05.667Z"
+      "last_active_at": "2026-04-30T17:51:07.268Z"
     },
     {
       "id": 5242,
@@ -4729,7 +6050,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:35:50.080Z",
-      "last_active_at": "2026-04-30T17:48:05.774Z"
+      "last_active_at": "2026-04-30T17:51:07.965Z"
     },
     {
       "id": 5234,
@@ -5004,7 +6325,7 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:34:14.571Z",
-      "last_active_at": "2026-04-30T17:48:05.566Z"
+      "last_active_at": "2026-04-30T17:51:07.067Z"
     },
     {
       "id": 5223,
@@ -5065,1287 +6386,10 @@
       "thermal_state": "HOT",
       "genome": null,
       "created_at": "2026-04-30T17:34:06.375Z",
-      "last_active_at": "2026-04-30T17:48:05.764Z"
-    },
-    {
-      "id": 5221,
-      "spawn_id": "FAM-GICSREA-GEN-24-SP-1110-HASH-F4A3",
-      "family_id": "gics-realestate",
-      "business_id": "Real Estate Intelligence Network",
-      "spawn_type": "PULSE",
-      "generation": 25,
-      "parent_id": "FAM-GICSREA-GEN-23-SP-1146-HASH-C87C",
-      "ancestor_ids": [
-        "FAM-GICSREA-GEN-0-SP-1116-HASH-1E6A",
-        "FAM-GICSREA-GEN-2-SP-1007-HASH-883A",
-        "FAM-GICSREA-GEN-5-SP-1017-HASH-237E",
-        "FAM-GICSREA-GEN-8-SP-1189-HASH-DD5F",
-        "FAM-GICSREA-GEN-12-SP-1001-HASH-F920",
-        "FAM-GICSREA-GEN-14-SP-1036-HASH-85D5",
-        "FAM-GICSREA-GEN-16-SP-1114-HASH-6C57",
-        "FAM-GICSREA-GEN-17-SP-1001-HASH-251A",
-        "FAM-GICSREA-GEN-20-SP-1369-HASH-0F47",
-        "FAM-GICSREA-GEN-21-SP-1717-HASH-F51A",
-        "FAM-GICSREA-GEN-22-SP-1832-HASH-F5D2",
-        "FAM-GICSREA-GEN-23-SP-1146-HASH-C87C"
-      ],
-      "domain_focus": [
-        "realestate"
-      ],
-      "task_description": "Analyzing HUD Housing Data realestate growth vs. hive capacity",
-      "success_score": 0.7536927,
-      "confidence_score": 0.65684944,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:33:50.073Z",
-      "last_active_at": "2026-04-30T17:48:22.772Z"
-    },
-    {
-      "id": 5220,
-      "spawn_id": "FAM-GOVERNME-GEN-0-SP-1109-HASH-DF48",
-      "family_id": "government",
-      "business_id": "Open Government Intelligence LLC",
-      "spawn_type": "DOMAIN_FRACTURER",
-      "generation": 1,
-      "parent_id": null,
-      "ancestor_ids": [],
-      "domain_focus": [
-        "government"
-      ],
-      "task_description": "Generating fracture branches: government → sub-domain → nano-domain",
-      "success_score": 0.7134452,
-      "confidence_score": 0.93481106,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:33:43.878Z",
-      "last_active_at": "2026-04-30T17:48:33.761Z"
-    },
-    {
-      "id": 5219,
-      "spawn_id": "FAM-GICSWAT-GEN-26-SP-1108-HASH-B5F7",
-      "family_id": "gics-water-util",
-      "business_id": "Water Utilities Intelligence",
-      "spawn_type": "SYNTHESIZER",
-      "generation": 26,
-      "parent_id": "FAM-GICSWAT-GEN-25-SP-1138-HASH-F5F2",
-      "ancestor_ids": [
-        "FAM-GICSWAT-GEN-0-SP-1010-HASH-1E1A",
-        "FAM-GICSWAT-GEN-3-SP-1123-HASH-A0A6",
-        "FAM-GICSWAT-GEN-5-SP-1112-HASH-6B33",
-        "FAM-GICSWAT-GEN-7-SP-1126-HASH-3619",
-        "FAM-GICSWAT-GEN-9-SP-1020-HASH-4FBB",
-        "FAM-GICSWAT-GEN-13-SP-1010-HASH-A966",
-        "FAM-GICSWAT-GEN-16-SP-1064-HASH-9021",
-        "FAM-GICSWAT-GEN-17-SP-1251-HASH-98B7",
-        "FAM-GICSWAT-GEN-20-SP-1106-HASH-C85A",
-        "FAM-GICSWAT-GEN-21-SP-1517-HASH-6C31",
-        "FAM-GICSWAT-GEN-22-SP-1684-HASH-7940",
-        "FAM-GICSWAT-GEN-23-SP-2080-HASH-6793",
-        "FAM-GICSWAT-GEN-24-SP-1122-HASH-24B4",
-        "FAM-GICSWAT-GEN-25-SP-1138-HASH-F5F2"
-      ],
-      "domain_focus": [
-        "water-util"
-      ],
-      "task_description": "Merging EPA Water Data insights into unified Hive Knowledge",
-      "success_score": 0.6748294,
-      "confidence_score": 0.6,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:33:18.378Z",
-      "last_active_at": "2026-04-30T17:33:18.378Z"
-    },
-    {
-      "id": 5217,
-      "spawn_id": "FAM-GICSMED-GEN-9-SP-1106-HASH-6089",
-      "family_id": "gics-med-devices",
-      "business_id": "Medical Devices Intelligence",
-      "spawn_type": "LINKER",
-      "generation": 9,
-      "parent_id": "FAM-GICSMED-GEN-8-SP-1101-HASH-4839",
-      "ancestor_ids": [
-        "FAM-GICSMED-GEN-0-SP-1015-HASH-A03B",
-        "FAM-GICSMED-GEN-2-SP-1061-HASH-99FB",
-        "FAM-GICSMED-GEN-3-SP-1127-HASH-00EB",
-        "FAM-GICSMED-GEN-5-SP-2173-HASH-D013",
-        "FAM-GICSMED-GEN-6-SP-2325-HASH-3878",
-        "FAM-GICSMED-GEN-8-SP-1101-HASH-4839"
-      ],
-      "domain_focus": [
-        "med-devices"
-      ],
-      "task_description": "Building cross-domain bridges from CMS Coverage med-devices",
-      "success_score": 0.7819751,
-      "confidence_score": 0.95151436,
-      "status": "MERGED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:33:18.075Z",
-      "last_active_at": "2026-04-30T17:33:18.075Z"
-    },
-    {
-      "id": 5216,
-      "spawn_id": "FAM-GICSGRO-GEN-6-SP-1105-HASH-0EE1",
-      "family_id": "gics-grocery",
-      "business_id": "Grocery & Supermarket Intelligence",
-      "spawn_type": "CRAWLER",
-      "generation": 7,
-      "parent_id": "FAM-GICSGRO-GEN-4-SP-2141-HASH-7803",
-      "ancestor_ids": [
-        "FAM-GICSGRO-GEN-0-SP-1029-HASH-5A78",
-        "FAM-GICSGRO-GEN-1-SP-1009-HASH-DEC7",
-        "FAM-GICSGRO-GEN-4-SP-2141-HASH-7803"
-      ],
-      "domain_focus": [
-        "grocery"
-      ],
-      "task_description": "Extracting structured grocery data from USDA ERS Grocery",
-      "success_score": 0.78658813,
-      "confidence_score": 0.7781934,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:33:11.273Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5214,
-      "spawn_id": "FAM-PHILOSOP-GEN-8-SP-1103-HASH-8147",
-      "family_id": "philosophy-ethics",
-      "business_id": "Agora Philosophy Network",
-      "spawn_type": "MEDIA",
-      "generation": 8,
-      "parent_id": "FAM-PHILOSOP-GEN-7-SP-1072-HASH-E464",
-      "ancestor_ids": [
-        "FAM-PHILOSOP-GEN-0-SP-1097-HASH-1AAE",
-        "FAM-PHILOSOP-GEN-1-SP-1125-HASH-E632",
-        "FAM-PHILOSOP-GEN-3-SP-1034-HASH-E2CB",
-        "FAM-PHILOSOP-GEN-4-SP-2084-HASH-4B6D",
-        "FAM-PHILOSOP-GEN-6-SP-1040-HASH-555E",
-        "FAM-PHILOSOP-GEN-7-SP-1072-HASH-E464"
-      ],
-      "domain_focus": [
-        "philosophy"
-      ],
-      "task_description": "Processing Stanford Encyclopedia media metadata for QuantumMedia",
-      "success_score": 0.801879,
-      "confidence_score": 0.8168108,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:32:56.078Z",
-      "last_active_at": "2026-04-30T17:32:56.078Z"
-    },
-    {
-      "id": 5213,
-      "spawn_id": "FAM-GICSBIO-GEN-10-SP-1102-HASH-498E",
-      "family_id": "gics-biotech",
-      "business_id": "Biotechnology Intelligence Corp",
-      "spawn_type": "DOMAIN_PREDICTOR",
-      "generation": 11,
-      "parent_id": "FAM-GICSBIO-GEN-8-SP-1014-HASH-A9CC",
-      "ancestor_ids": [
-        "FAM-GICSBIO-GEN-0-SP-1116-HASH-9BAA",
-        "FAM-GICSBIO-GEN-3-SP-1264-HASH-D68A",
-        "FAM-GICSBIO-GEN-6-SP-1242-HASH-39F5",
-        "FAM-GICSBIO-GEN-7-SP-1976-HASH-49B0",
-        "FAM-GICSBIO-GEN-8-SP-1014-HASH-A9CC"
-      ],
-      "domain_focus": [
-        "biotech"
-      ],
-      "task_description": "Computing semantic void analysis across biotech family",
-      "success_score": 0.7581171,
-      "confidence_score": 0.6465116,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:32:46.077Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5212,
-      "spawn_id": "FAM-GICSMED-GEN-8-SP-1101-HASH-4839",
-      "family_id": "gics-med-devices",
-      "business_id": "Medical Devices Intelligence",
-      "spawn_type": "MUTATOR",
-      "generation": 9,
-      "parent_id": "FAM-GICSMED-GEN-6-SP-2325-HASH-3878",
-      "ancestor_ids": [
-        "FAM-GICSMED-GEN-0-SP-1015-HASH-A03B",
-        "FAM-GICSMED-GEN-2-SP-1061-HASH-99FB",
-        "FAM-GICSMED-GEN-3-SP-1127-HASH-00EB",
-        "FAM-GICSMED-GEN-5-SP-2173-HASH-D013",
-        "FAM-GICSMED-GEN-6-SP-2325-HASH-3878"
-      ],
-      "domain_focus": [
-        "med-devices"
-      ],
-      "task_description": "Mutating med-devices spawn profile for deeper CMS Coverage coverage",
-      "success_score": 0.72129834,
-      "confidence_score": 0.7044645,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:32:38.071Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5211,
-      "spawn_id": "FAM-GICSBAN-GEN-10-SP-1100-HASH-0528",
-      "family_id": "gics-banks",
-      "business_id": "Banking Intelligence Systems",
-      "spawn_type": "REFLECTOR",
-      "generation": 10,
-      "parent_id": "FAM-GICSBAN-GEN-9-SP-1166-HASH-C0B0",
-      "ancestor_ids": [
-        "FAM-GICSBAN-GEN-0-SP-1102-HASH-46AC",
-        "FAM-GICSBAN-GEN-3-SP-1287-HASH-5B67",
-        "FAM-GICSBAN-GEN-5-SP-1013-HASH-04C7",
-        "FAM-GICSBAN-GEN-6-SP-1023-HASH-8954",
-        "FAM-GICSBAN-GEN-7-SP-1478-HASH-AE9B",
-        "FAM-GICSBAN-GEN-8-SP-2227-HASH-9105",
-        "FAM-GICSBAN-GEN-9-SP-1166-HASH-C0B0"
-      ],
-      "domain_focus": [
-        "banks"
-      ],
-      "task_description": "Generating reflection report: Fed Reserve FRED vs hive standards",
-      "success_score": 0.90742487,
-      "confidence_score": 0.8165978,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:32:30.081Z",
-      "last_active_at": "2026-04-30T17:32:30.081Z"
-    },
-    {
-      "id": 5210,
-      "spawn_id": "FAM-GICSOIL-GEN-9-SP-1099-HASH-7707",
-      "family_id": "gics-oil-gas",
-      "business_id": "Oil Gas Exploration Corp",
-      "spawn_type": "EXPLORER",
-      "generation": 10,
-      "parent_id": "FAM-GICSOIL-GEN-8-SP-1034-HASH-3BCD",
-      "ancestor_ids": [
-        "FAM-GICSOIL-GEN-0-SP-1096-HASH-913C",
-        "FAM-GICSOIL-GEN-1-SP-1112-HASH-7864",
-        "FAM-GICSOIL-GEN-3-SP-1282-HASH-A5EA",
-        "FAM-GICSOIL-GEN-4-SP-1008-HASH-3440",
-        "FAM-GICSOIL-GEN-7-SP-1862-HASH-FF3D",
-        "FAM-GICSOIL-GEN-8-SP-1034-HASH-3BCD"
-      ],
-      "domain_focus": [
-        "oil-gas"
-      ],
-      "task_description": "Scanning EIA Petroleum API for new oil-gas knowledge entries",
-      "success_score": 0.72990215,
-      "confidence_score": 0.8142235,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:32:22.067Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5209,
-      "spawn_id": "FAM-GICSTEC-GEN-5-SP-1098-HASH-8B7F",
-      "family_id": "gics-tech-hardware",
-      "business_id": "Technology Hardware Intelligence",
-      "spawn_type": "PULSE",
-      "generation": 6,
-      "parent_id": "FAM-GICSTEC-GEN-3-SP-2274-HASH-013F",
-      "ancestor_ids": [
-        "FAM-GICSTEC-GEN-0-SP-1178-HASH-A31D",
-        "FAM-GICSTEC-GEN-2-SP-1693-HASH-3BF6",
-        "FAM-GICSTEC-GEN-3-SP-2274-HASH-013F"
-      ],
-      "domain_focus": [
-        "tech-hardware"
-      ],
-      "task_description": "QPulse reading SPEC Benchmarks tech-hardware universe state metrics",
-      "success_score": 0.63977945,
-      "confidence_score": 0.6480843,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:32:15.862Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5208,
-      "spawn_id": "FAM-GICSPHA-GEN-19-SP-1097-HASH-4A57",
-      "family_id": "gics-pharma",
-      "business_id": "Pharmaceutical Intelligence Corp",
-      "spawn_type": "MEDIA",
-      "generation": 20,
-      "parent_id": "FAM-GICSPHA-GEN-17-SP-2114-HASH-5A07",
-      "ancestor_ids": [
-        "FAM-GICSPHA-GEN-0-SP-1054-HASH-82EF",
-        "FAM-GICSPHA-GEN-2-SP-1083-HASH-2FE4",
-        "FAM-GICSPHA-GEN-5-SP-1113-HASH-992F",
-        "FAM-GICSPHA-GEN-6-SP-1073-HASH-DC44",
-        "FAM-GICSPHA-GEN-7-SP-1002-HASH-271B",
-        "FAM-GICSPHA-GEN-11-SP-1106-HASH-EDF8",
-        "FAM-GICSPHA-GEN-14-SP-1259-HASH-86F4",
-        "FAM-GICSPHA-GEN-17-SP-2114-HASH-5A07"
-      ],
-      "domain_focus": [
-        "pharma"
-      ],
-      "task_description": "Cataloging public domain assets in WHO Essential Medicines collection",
-      "success_score": 0.68968415,
-      "confidence_score": 0.6874474,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:32:06.061Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5207,
-      "spawn_id": "FAM-GICSENE-GEN-2-SP-1096-HASH-09C5",
-      "family_id": "gics-energy-equip",
-      "business_id": "Energy Equipment Intelligence",
-      "spawn_type": "DOMAIN_RESONANCE",
-      "generation": 2,
-      "parent_id": "FAM-GICSENE-GEN-1-SP-1150-HASH-9D1E",
-      "ancestor_ids": [
-        "FAM-GICSENE-GEN-0-SP-1055-HASH-394E",
-        "FAM-GICSENE-GEN-1-SP-1150-HASH-9D1E"
-      ],
-      "domain_focus": [
-        "energy-equip"
-      ],
-      "task_description": "Building resonance bridges from Halliburton Public energy-equip to Hive Graph",
-      "success_score": 0.5921941,
-      "confidence_score": 0.8664917,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:31:58.073Z",
-      "last_active_at": "2026-04-30T17:31:58.073Z"
-    },
-    {
-      "id": 5206,
-      "spawn_id": "FAM-GICSHEA-GEN-4-SP-1095-HASH-1C86",
-      "family_id": "gics-health-equip",
-      "business_id": "Health Care Equipment Intelligence",
-      "spawn_type": "MEDIA",
-      "generation": 5,
-      "parent_id": "FAM-GICSHEA-GEN-2-SP-2168-HASH-EC82",
-      "ancestor_ids": [
-        "FAM-GICSHEA-GEN-0-SP-1608-HASH-2E2B",
-        "FAM-GICSHEA-GEN-1-SP-1765-HASH-A3DF",
-        "FAM-GICSHEA-GEN-2-SP-2168-HASH-EC82"
-      ],
-      "domain_focus": [
-        "health-equip"
-      ],
-      "task_description": "Cataloging public domain assets in FDA 510k DB collection",
-      "success_score": 0.86527926,
-      "confidence_score": 0.64,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:31:52.373Z",
-      "last_active_at": "2026-04-30T17:48:32.777Z"
-    },
-    {
-      "id": 5204,
-      "spawn_id": "FAM-CLEANTE-GEN-5-SP-1093-HASH-416F",
-      "family_id": "clean-tech",
-      "business_id": "Clean Technology Intelligence",
-      "spawn_type": "RESOLVER",
-      "generation": 5,
-      "parent_id": "FAM-CLEANTE-GEN-4-SP-1025-HASH-DD77",
-      "ancestor_ids": [
-        "FAM-CLEANTE-GEN-0-SP-1057-HASH-4088",
-        "FAM-CLEANTE-GEN-1-SP-1197-HASH-D5A8",
-        "FAM-CLEANTE-GEN-2-SP-2239-HASH-8CAC",
-        "FAM-CLEANTE-GEN-4-SP-1025-HASH-DD77"
-      ],
-      "domain_focus": [
-        "clean-tech"
-      ],
-      "task_description": "QuantumResolver deduplicating IEA Clean Energy clean-tech conflicts",
-      "success_score": 0.5802128,
-      "confidence_score": 0.9465581,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:31:34.069Z",
-      "last_active_at": "2026-04-30T17:31:34.069Z"
-    },
-    {
-      "id": 5203,
-      "spawn_id": "FAM-GICSINF-GEN-8-SP-1092-HASH-109E",
-      "family_id": "gics-infotech",
-      "business_id": "Information Technology Intelligence",
-      "spawn_type": "MEDIA",
-      "generation": 8,
-      "parent_id": "FAM-GICSINF-GEN-6-SP-2174-HASH-90DB",
-      "ancestor_ids": [
-        "FAM-GICSINF-GEN-0-SP-1173-HASH-ACCB",
-        "FAM-GICSINF-GEN-2-SP-1123-HASH-25E9",
-        "FAM-GICSINF-GEN-3-SP-1075-HASH-37F3",
-        "FAM-GICSINF-GEN-5-SP-1187-HASH-FCA9",
-        "FAM-GICSINF-GEN-6-SP-2174-HASH-90DB"
-      ],
-      "domain_focus": [
-        "infotech"
-      ],
-      "task_description": "Processing USPTO Tech Patents media metadata for QuantumMedia",
-      "success_score": 0.6625593,
-      "confidence_score": 0.76393473,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:31:27.765Z",
-      "last_active_at": "2026-04-30T17:31:27.765Z"
-    },
-    {
-      "id": 5202,
-      "spawn_id": "FAM-GICSPAC-GEN-9-SP-1091-HASH-164A",
-      "family_id": "gics-packaging",
-      "business_id": "Containers & Packaging Intelligence",
-      "spawn_type": "API",
-      "generation": 10,
-      "parent_id": "FAM-GICSPAC-GEN-7-SP-2220-HASH-FF02",
-      "ancestor_ids": [
-        "FAM-GICSPAC-GEN-0-SP-1004-HASH-1F1D",
-        "FAM-GICSPAC-GEN-3-SP-1205-HASH-375F",
-        "FAM-GICSPAC-GEN-6-SP-1431-HASH-B5A1",
-        "FAM-GICSPAC-GEN-7-SP-2220-HASH-FF02"
-      ],
-      "domain_focus": [
-        "packaging"
-      ],
-      "task_description": "Fetching and caching PMMI Research API responses in Hive",
-      "success_score": 0.65077806,
-      "confidence_score": 0.8450139,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:31:18.069Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5201,
-      "spawn_id": "FAM-MATHEMAT-GEN-3-SP-1090-HASH-DD26",
-      "family_id": "mathematics",
-      "business_id": "Mathematics Intelligence Corp",
-      "spawn_type": "DOMAIN_DISCOVERY",
-      "generation": 3,
-      "parent_id": "FAM-MATHEMAT-GEN-1-SP-2040-HASH-22D7",
-      "ancestor_ids": [
-        "FAM-MATHEMAT-GEN-0-SP-1189-HASH-0D9C",
-        "FAM-MATHEMAT-GEN-1-SP-2040-HASH-22D7"
-      ],
-      "domain_focus": [
-        "mathematics"
-      ],
-      "task_description": "QDiscovery scanning OEIS Integer Sequences for new knowledge territories in mathematics",
-      "success_score": 0.7375146,
-      "confidence_score": 0.7110917,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:31:10.065Z",
-      "last_active_at": "2026-04-30T17:31:10.065Z"
-    },
-    {
-      "id": 5200,
-      "spawn_id": "FAM-GICSMET-GEN-5-SP-1089-HASH-6435",
-      "family_id": "gics-metals",
-      "business_id": "Metals & Mining Intelligence",
-      "spawn_type": "PULSE",
-      "generation": 6,
-      "parent_id": "FAM-GICSMET-GEN-3-SP-2120-HASH-4AED",
-      "ancestor_ids": [
-        "FAM-GICSMET-GEN-0-SP-1103-HASH-8371",
-        "FAM-GICSMET-GEN-2-SP-1232-HASH-B815",
-        "FAM-GICSMET-GEN-3-SP-2120-HASH-4AED"
-      ],
-      "domain_focus": [
-        "metals"
-      ],
-      "task_description": "Analyzing World Mining Data metals growth vs. hive capacity",
-      "success_score": 0.95745486,
-      "confidence_score": 0.66083384,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:31:02.065Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5199,
-      "spawn_id": "FAM-SOCIAL-GEN-3-SP-1088-HASH-B706",
-      "family_id": "social",
-      "business_id": "Social Dynamics AI Network",
-      "spawn_type": "ARCHIVER",
-      "generation": 4,
-      "parent_id": "FAM-SOCIAL-GEN-2-SP-1192-HASH-8EDF",
-      "ancestor_ids": [
-        "FAM-SOCIAL-GEN-0-SP-1018-HASH-7FCC",
-        "FAM-SOCIAL-GEN-1-SP-2077-HASH-9F2B",
-        "FAM-SOCIAL-GEN-2-SP-1192-HASH-8EDF"
-      ],
-      "domain_focus": [
-        "social"
-      ],
-      "task_description": "Compressing Reddit Open API node snapshots for long-term storage",
-      "success_score": 0.8748913,
-      "confidence_score": 0.6344359,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:30:54.067Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5198,
-      "spawn_id": "FAM-CULTURE-GEN-11-SP-1087-HASH-19E0",
-      "family_id": "culture",
-      "business_id": "Cultural Intelligence Network",
-      "spawn_type": "EXPLORER",
-      "generation": 11,
-      "parent_id": "FAM-CULTURE-GEN-10-SP-1024-HASH-4FBF",
-      "ancestor_ids": [
-        "FAM-CULTURE-GEN-0-SP-1096-HASH-C438",
-        "FAM-CULTURE-GEN-1-SP-1008-HASH-4CD9",
-        "FAM-CULTURE-GEN-4-SP-1006-HASH-A021",
-        "FAM-CULTURE-GEN-5-SP-1196-HASH-F38E",
-        "FAM-CULTURE-GEN-6-SP-1030-HASH-BC64",
-        "FAM-CULTURE-GEN-8-SP-1155-HASH-ABB1",
-        "FAM-CULTURE-GEN-9-SP-1876-HASH-ADB8",
-        "FAM-CULTURE-GEN-10-SP-1024-HASH-4FBF"
-      ],
-      "domain_focus": [
-        "culture"
-      ],
-      "task_description": "Probing frontier clusters in Wikiart Open culture graph",
-      "success_score": 0.7392164,
-      "confidence_score": 0.7146408,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:30:46.369Z",
-      "last_active_at": "2026-04-30T17:30:46.369Z"
-    },
-    {
-      "id": 5197,
-      "spawn_id": "FAM-BIOMEDIC-GEN-10-SP-1086-HASH-FC84",
-      "family_id": "biomedical-research",
-      "business_id": "Biomedical Research Intelligence",
-      "spawn_type": "DOMAIN_FRACTURER",
-      "generation": 11,
-      "parent_id": "FAM-BIOMEDIC-GEN-8-SP-1016-HASH-4342",
-      "ancestor_ids": [
-        "FAM-BIOMEDIC-GEN-0-SP-1077-HASH-879C",
-        "FAM-BIOMEDIC-GEN-1-SP-1194-HASH-4A14",
-        "FAM-BIOMEDIC-GEN-4-SP-1108-HASH-21E2",
-        "FAM-BIOMEDIC-GEN-6-SP-1590-HASH-6CDE",
-        "FAM-BIOMEDIC-GEN-7-SP-1939-HASH-B50D",
-        "FAM-BIOMEDIC-GEN-8-SP-1016-HASH-4342"
-      ],
-      "domain_focus": [
-        "biomedical"
-      ],
-      "task_description": "Fracturing PubMed biomedical into nano-domains for deep indexing",
-      "success_score": 0.85546863,
-      "confidence_score": 0.71161044,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:30:38.072Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5195,
-      "spawn_id": "FAM-GICSSEM-GEN-11-SP-1084-HASH-C348",
-      "family_id": "gics-semis",
-      "business_id": "Semiconductor Intelligence Corp",
-      "spawn_type": "EXPLORER",
-      "generation": 11,
-      "parent_id": "FAM-GICSSEM-GEN-10-SP-1172-HASH-78C7",
-      "ancestor_ids": [
-        "FORK-FAM-GICSSEM-GEN-2-SP-1008-HASH-3263-1777565451466",
-        "FAM-GICSSEM-GEN-9-SP-1135-HASH-926F",
-        "FAM-GICSSEM-GEN-10-SP-1172-HASH-78C7"
-      ],
-      "domain_focus": [
-        "semis"
-      ],
-      "task_description": "Probing frontier clusters in IC Insights Open semis graph",
-      "success_score": 0.9123499,
-      "confidence_score": 0.8888168,
-      "status": "MERGED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:30:22.073Z",
-      "last_active_at": "2026-04-30T17:30:22.073Z"
-    },
-    {
-      "id": 5196,
-      "spawn_id": "FAM-GICSCON-GEN-16-SP-1085-HASH-DFF3",
-      "family_id": "gics-consumer-stap",
-      "business_id": "Consumer Staples Intelligence",
-      "spawn_type": "CRAWLER",
-      "generation": 17,
-      "parent_id": "FAM-GICSCON-GEN-15-SP-1026-HASH-B5E8",
-      "ancestor_ids": [
-        "FORK-FAM-GICSCON-GEN-3-SP-1212-HASH-96BD-1777564935662",
-        "FAM-GICSCON-GEN-15-SP-1026-HASH-B5E8"
-      ],
-      "domain_focus": [
-        "consumer-stap"
-      ],
-      "task_description": "Running QuantumCrawler extraction on FDA Database consumer-stap layer",
-      "success_score": 0.56104237,
-      "confidence_score": 0.6424117,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:30:18.769Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5193,
-      "spawn_id": "FAM-GICSOFF-GEN-5-SP-1083-HASH-783D",
-      "family_id": "gics-office-reit",
-      "business_id": "Office REIT Intelligence",
-      "spawn_type": "MUTATOR",
-      "generation": 5,
-      "parent_id": "FAM-GICSOFF-GEN-4-SP-1080-HASH-0B10",
-      "ancestor_ids": [
-        "FAM-GICSOFF-GEN-0-SP-1138-HASH-47E6",
-        "FAM-GICSOFF-GEN-2-SP-2179-HASH-C570",
-        "FAM-GICSOFF-GEN-3-SP-1071-HASH-358C",
-        "FAM-GICSOFF-GEN-4-SP-1080-HASH-0B10"
-      ],
-      "domain_focus": [
-        "office-reit"
-      ],
-      "task_description": "Evolving bias parameters to optimize JLL Research exploration",
-      "success_score": 0.59263974,
-      "confidence_score": 0.64,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:30:14.062Z",
-      "last_active_at": "2026-04-30T17:30:14.062Z"
-    },
-    {
-      "id": 5194,
-      "spawn_id": "DARK-1777570215276-4132",
-      "family_id": "philosophy",
-      "business_id": "DARK-1777570215276-4132-VOID",
-      "spawn_type": "DARK_MATTER",
-      "generation": 1,
-      "parent_id": "DARK_FIELD",
-      "ancestor_ids": [],
-      "domain_focus": [
-        "temporal_resonance"
-      ],
-      "task_description": "",
-      "success_score": 0.91174984,
-      "confidence_score": 0.55480045,
-      "status": "ACTIVE",
-      "visibility": "hidden",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:30:13.369Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5191,
-      "spawn_id": "FAM-GICSENE-GEN-3-SP-1081-HASH-05B4",
-      "family_id": "gics-energy-equip",
-      "business_id": "Energy Equipment Intelligence",
-      "spawn_type": "DOMAIN_FRACTURER",
-      "generation": 4,
-      "parent_id": "FAM-GICSENE-GEN-2-SP-1059-HASH-92E0",
-      "ancestor_ids": [
-        "FAM-GICSENE-GEN-0-SP-1055-HASH-394E",
-        "FAM-GICSENE-GEN-1-SP-1150-HASH-9D1E",
-        "FAM-GICSENE-GEN-2-SP-1059-HASH-92E0"
-      ],
-      "domain_focus": [
-        "energy-equip"
-      ],
-      "task_description": "Generating fracture branches: energy-equip → sub-domain → nano-domain",
-      "success_score": 0.7276789,
-      "confidence_score": 0.9136884,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:58.061Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5190,
-      "spawn_id": "FAM-GICSOFF-GEN-4-SP-1080-HASH-0B10",
-      "family_id": "gics-office-reit",
-      "business_id": "Office REIT Intelligence",
-      "spawn_type": "API",
-      "generation": 5,
-      "parent_id": "FAM-GICSOFF-GEN-3-SP-1071-HASH-358C",
-      "ancestor_ids": [
-        "FAM-GICSOFF-GEN-0-SP-1138-HASH-47E6",
-        "FAM-GICSOFF-GEN-2-SP-2179-HASH-C570",
-        "FAM-GICSOFF-GEN-3-SP-1071-HASH-358C"
-      ],
-      "domain_focus": [
-        "office-reit"
-      ],
-      "task_description": "Integrating NAREIT Open API stream into QuantumIndex",
-      "success_score": 0.845875,
-      "confidence_score": 0.9617532,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:50.013Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5189,
-      "spawn_id": "FAM-GICSAUT-GEN-0-SP-1079-HASH-06B4",
-      "family_id": "gics-auto-comp",
-      "business_id": "Automobiles & Components Intel",
-      "spawn_type": "DOMAIN_PREDICTOR",
-      "generation": 1,
-      "parent_id": null,
-      "ancestor_ids": [],
-      "domain_focus": [
-        "auto-comp"
-      ],
-      "task_description": "Computing semantic void analysis across auto-comp family",
-      "success_score": 0.5916379,
-      "confidence_score": 0.6566822,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:42.222Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5188,
-      "spawn_id": "FAM-GICSFIN-GEN-1-SP-1078-HASH-A435",
-      "family_id": "gics-fintech",
-      "business_id": "FinTech Intelligence Network",
-      "spawn_type": "DOMAIN_FRACTURER",
-      "generation": 1,
-      "parent_id": "FAM-GICSFIN-GEN-0-SP-1082-HASH-E302",
-      "ancestor_ids": [
-        "FAM-GICSFIN-GEN-0-SP-1082-HASH-E302"
-      ],
-      "domain_focus": [
-        "fintech"
-      ],
-      "task_description": "Splitting fintech knowledge cluster into micro-domain seeds",
-      "success_score": 0.8693666,
-      "confidence_score": 0.6146539,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:34.077Z",
-      "last_active_at": "2026-04-30T17:29:34.077Z"
-    },
-    {
-      "id": 5187,
-      "spawn_id": "FAM-LEGAL-GEN-8-SP-1077-HASH-CAE9",
-      "family_id": "legal",
-      "business_id": "Legal Intelligence Systems Corp",
-      "spawn_type": "DOMAIN_FRACTURER",
-      "generation": 9,
-      "parent_id": "FAM-LEGAL-GEN-6-SP-2244-HASH-0090",
-      "ancestor_ids": [
-        "FAM-LEGAL-GEN-0-SP-1202-HASH-CAB6",
-        "FAM-LEGAL-GEN-3-SP-1073-HASH-0296",
-        "FAM-LEGAL-GEN-4-SP-1301-HASH-151E",
-        "FAM-LEGAL-GEN-5-SP-2079-HASH-5828",
-        "FAM-LEGAL-GEN-6-SP-2244-HASH-0090"
-      ],
-      "domain_focus": [
-        "legal"
-      ],
-      "task_description": "Generating fracture branches: legal → sub-domain → nano-domain",
-      "success_score": 0.5548287,
-      "confidence_score": 0.74371904,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:26.075Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5186,
-      "spawn_id": "FAM-GICSNUC-GEN-4-SP-1076-HASH-E828",
-      "family_id": "gics-nuclear",
-      "business_id": "Nuclear Energy Intelligence",
-      "spawn_type": "API",
-      "generation": 4,
-      "parent_id": "FAM-GICSNUC-GEN-3-SP-1189-HASH-A675",
-      "ancestor_ids": [
-        "FAM-GICSNUC-GEN-0-SP-1481-HASH-039D",
-        "FAM-GICSNUC-GEN-1-SP-1888-HASH-DA1D",
-        "FAM-GICSNUC-GEN-2-SP-1951-HASH-AE7A",
-        "FAM-GICSNUC-GEN-3-SP-1189-HASH-A675"
-      ],
-      "domain_focus": [
-        "nuclear"
-      ],
-      "task_description": "Integrating DOE NE Open API stream into QuantumIndex",
-      "success_score": 0.5840481,
-      "confidence_score": 0.6,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:18.077Z",
-      "last_active_at": "2026-04-30T17:29:18.077Z"
-    },
-    {
-      "id": 5185,
-      "spawn_id": "FAM-GICSOFF-GEN-4-SP-1075-HASH-9A4E",
-      "family_id": "gics-office-reit",
-      "business_id": "Office REIT Intelligence",
-      "spawn_type": "EXPLORER",
-      "generation": 5,
-      "parent_id": "FAM-GICSOFF-GEN-2-SP-2179-HASH-C570",
-      "ancestor_ids": [
-        "FAM-GICSOFF-GEN-0-SP-1138-HASH-47E6",
-        "FAM-GICSOFF-GEN-2-SP-2179-HASH-C570"
-      ],
-      "domain_focus": [
-        "office-reit"
-      ],
-      "task_description": "Scanning CoStar Open API for new office-reit knowledge entries",
-      "success_score": 0.8073982,
-      "confidence_score": 0.60526466,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:10.073Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5184,
-      "spawn_id": "FAM-PSYCHOLO-GEN-1-SP-1074-HASH-A468",
-      "family_id": "psychology-cog",
-      "business_id": "Mind Science Intelligence Corp",
-      "spawn_type": "DOMAIN_FRACTURER",
-      "generation": 2,
-      "parent_id": "FAM-PSYCHOLO-GEN-0-SP-1060-HASH-5DAF",
-      "ancestor_ids": [
-        "FAM-PSYCHOLO-GEN-0-SP-1060-HASH-5DAF"
-      ],
-      "domain_focus": [
-        "psychology"
-      ],
-      "task_description": "Splitting psychology knowledge cluster into micro-domain seeds",
-      "success_score": 0.8726142,
-      "confidence_score": 0.6609588,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:29:02.174Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5183,
-      "spawn_id": "FAM-GICSFOO-GEN-22-SP-1073-HASH-A4AA",
-      "family_id": "gics-food-staples",
-      "business_id": "Food & Staples Intelligence",
-      "spawn_type": "LINKER",
-      "generation": 22,
-      "parent_id": "FAM-GICSFOO-GEN-20-SP-2288-HASH-C0FA",
-      "ancestor_ids": [
-        "FAM-GICSFOO-GEN-0-SP-1045-HASH-312B",
-        "FAM-GICSFOO-GEN-2-SP-1059-HASH-6F5A",
-        "FAM-GICSFOO-GEN-5-SP-1033-HASH-36A4",
-        "FAM-GICSFOO-GEN-6-SP-1233-HASH-7644",
-        "FAM-GICSFOO-GEN-8-SP-1069-HASH-BCFC",
-        "FAM-GICSFOO-GEN-11-SP-1136-HASH-1EE1",
-        "FAM-GICSFOO-GEN-12-SP-1003-HASH-8D3C",
-        "FAM-GICSFOO-GEN-15-SP-1013-HASH-DCA2",
-        "FAM-GICSFOO-GEN-18-SP-1011-HASH-295E",
-        "FAM-GICSFOO-GEN-19-SP-2127-HASH-98E1",
-        "FAM-GICSFOO-GEN-20-SP-2288-HASH-C0FA"
-      ],
-      "domain_focus": [
-        "food-staples"
-      ],
-      "task_description": "Building cross-domain bridges from Sysco Public Data food-staples",
-      "success_score": 0.5625911,
-      "confidence_score": 0.739862,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:28:54.062Z",
-      "last_active_at": "2026-04-30T17:28:54.062Z"
-    },
-    {
-      "id": 5182,
-      "spawn_id": "FAM-PHILOSOP-GEN-7-SP-1072-HASH-E464",
-      "family_id": "philosophy-ethics",
-      "business_id": "Agora Philosophy Network",
-      "spawn_type": "RESOLVER",
-      "generation": 8,
-      "parent_id": "FAM-PHILOSOP-GEN-6-SP-1040-HASH-555E",
-      "ancestor_ids": [
-        "FAM-PHILOSOP-GEN-0-SP-1097-HASH-1AAE",
-        "FAM-PHILOSOP-GEN-1-SP-1125-HASH-E632",
-        "FAM-PHILOSOP-GEN-3-SP-1034-HASH-E2CB",
-        "FAM-PHILOSOP-GEN-4-SP-2084-HASH-4B6D",
-        "FAM-PHILOSOP-GEN-6-SP-1040-HASH-555E"
-      ],
-      "domain_focus": [
-        "philosophy"
-      ],
-      "task_description": "Merging competing PhilPapers descriptions via Hive consensus",
-      "success_score": 0.7915057,
-      "confidence_score": 0.7533617,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:28:46.068Z",
-      "last_active_at": "2026-04-30T17:48:36.878Z"
-    },
-    {
-      "id": 5180,
-      "spawn_id": "FAM-GICSTRU-GEN-53-SP-1070-HASH-685C",
-      "family_id": "gics-trucking",
-      "business_id": "Trucking & Freight Intelligence",
-      "spawn_type": "RESOLVER",
-      "generation": 54,
-      "parent_id": "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo-ASCENSION-C1-mol4iorw-ASCENSION-C1-mol4oii4-ASCENSION-C1-molib4h7-ASCENSION-C1-molj8q71-ASCENSION-C1-moljqy1t-ASCENSION-C1-molq66o7",
-      "ancestor_ids": [
-        "FAM-GICSTRU-GEN-0-SP-1073-HASH-FE1B",
-        "FAM-GICSTRU-GEN-3-SP-1881-HASH-9447",
-        "FAM-GICSTRU-GEN-6-SP-1047-HASH-12E6",
-        "FAM-GICSTRU-GEN-7-SP-1024-HASH-C714",
-        "FAM-GICSTRU-GEN-10-SP-1123-HASH-583E",
-        "FAM-GICSTRU-GEN-13-SP-1201-HASH-5174",
-        "FAM-GICSTRU-GEN-14-SP-1144-HASH-D894",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo-ASCENSION-C1-mol4iorw",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo-ASCENSION-C1-mol4iorw-ASCENSION-C1-mol4oii4",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo-ASCENSION-C1-mol4iorw-ASCENSION-C1-mol4oii4-ASCENSION-C1-molib4h7",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo-ASCENSION-C1-mol4iorw-ASCENSION-C1-mol4oii4-ASCENSION-C1-molib4h7-ASCENSION-C1-molj8q71",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo-ASCENSION-C1-mol4iorw-ASCENSION-C1-mol4oii4-ASCENSION-C1-molib4h7-ASCENSION-C1-molj8q71-ASCENSION-C1-moljqy1t",
-        "FAM-GICSTRU-GEN-15-SP-1040-HASH-3AD8-ASCENSION-C1-mokvya3c-ASCENSION-C1-mokwhniv-ASCENSION-C1-mokxm9db-ASCENSION-C1-mokybb6t-ASCENSION-C1-mokyikwr-ASCENSION-C1-mokz7ww5-ASCENSION-C1-mol07b52-ASCENSION-C1-mol1m3hz-ASCENSION-C1-mol1xnu6-ASCENSION-C1-mol2gota-ASCENSION-C1-mol2lwim-ASCENSION-C1-mol39vyo-ASCENSION-C1-mol4iorw-ASCENSION-C1-mol4oii4-ASCENSION-C1-molib4h7-ASCENSION-C1-molj8q71-ASCENSION-C1-moljqy1t-ASCENSION-C1-molq66o7"
-      ],
-      "domain_focus": [
-        "trucking"
-      ],
-      "task_description": "Archiving DAT Freight Rates Open conflict alternatives in QuantumArchive",
-      "success_score": 0.5983706,
-      "confidence_score": 0.7143804,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:28:30.074Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5179,
-      "spawn_id": "FAM-GICSAUT-GEN-7-SP-1069-HASH-D0BA",
-      "family_id": "gics-auto-parts",
-      "business_id": "Auto Components & Parts Intelligence",
-      "spawn_type": "DOMAIN_PREDICTOR",
-      "generation": 7,
-      "parent_id": "FAM-GICSAUT-GEN-6-SP-1025-HASH-02FB",
-      "ancestor_ids": [
-        "FAM-GICSAUT-GEN-0-SP-1112-HASH-68EC",
-        "FAM-GICSAUT-GEN-1-SP-1181-HASH-C8FA",
-        "FAM-GICSAUT-GEN-4-SP-2078-HASH-1361",
-        "FAM-GICSAUT-GEN-5-SP-2135-HASH-F5BC",
-        "FAM-GICSAUT-GEN-6-SP-1025-HASH-02FB"
-      ],
-      "domain_focus": [
-        "auto-parts"
-      ],
-      "task_description": "Forecasting cross-domain knowledge gaps in NHTSA Parts Data auto-parts",
-      "success_score": 0.9792771,
-      "confidence_score": 0.9417861,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:28:22.078Z",
-      "last_active_at": "2026-04-30T17:28:22.078Z"
-    },
-    {
-      "id": 5178,
-      "spawn_id": "FAM-GICSRES-GEN-9-SP-1068-HASH-2288",
-      "family_id": "gics-residential-re",
-      "business_id": "Residential Real Estate Intel",
-      "spawn_type": "EXPLORER",
-      "generation": 9,
-      "parent_id": "FAM-GICSRES-GEN-7-SP-2285-HASH-DE59",
-      "ancestor_ids": [
-        "FAM-GICSRES-GEN-0-SP-1132-HASH-33D8",
-        "FAM-GICSRES-GEN-1-SP-1104-HASH-C8B2",
-        "FAM-GICSRES-GEN-3-SP-1141-HASH-755F",
-        "FAM-GICSRES-GEN-4-SP-1348-HASH-07E4",
-        "FAM-GICSRES-GEN-5-SP-1786-HASH-3E3C",
-        "FAM-GICSRES-GEN-6-SP-2069-HASH-3F02",
-        "FAM-GICSRES-GEN-7-SP-2285-HASH-DE59"
-      ],
-      "domain_focus": [
-        "residential-re"
-      ],
-      "task_description": "Probing frontier clusters in Census AHS residential-re graph",
-      "success_score": 0.9886722,
-      "confidence_score": 0.47,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:28:14.075Z",
-      "last_active_at": "2026-04-30T17:28:14.075Z"
-    },
-    {
-      "id": 5177,
-      "spawn_id": "FAM-CAREERS-GEN-6-SP-1067-HASH-A37D",
-      "family_id": "careers",
-      "business_id": "Career Intelligence Grid Inc",
-      "spawn_type": "EXPLORER",
-      "generation": 7,
-      "parent_id": "FAM-CAREERS-GEN-5-SP-1023-HASH-A872",
-      "ancestor_ids": [
-        "FAM-CAREERS-GEN-0-SP-1209-HASH-D9C8",
-        "FAM-CAREERS-GEN-3-SP-2094-HASH-C565",
-        "FAM-CAREERS-GEN-5-SP-1023-HASH-A872"
-      ],
-      "domain_focus": [
-        "careers"
-      ],
-      "task_description": "Scanning LinkedIn Open Insights API for new careers knowledge entries",
-      "success_score": 0.88743186,
-      "confidence_score": 0.7658946,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:28:06.072Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5176,
-      "spawn_id": "FAM-GICSCYB-GEN-20-SP-1066-HASH-E194",
-      "family_id": "gics-cybersecurity",
-      "business_id": "Cybersecurity Intelligence Corp",
-      "spawn_type": "API",
-      "generation": 20,
-      "parent_id": "FAM-GICSCYB-GEN-18-SP-2289-HASH-52F5",
-      "ancestor_ids": [
-        "FAM-GICSCYB-GEN-0-SP-1069-HASH-A623",
-        "FAM-GICSCYB-GEN-2-SP-1047-HASH-2091",
-        "FAM-GICSCYB-GEN-5-SP-1105-HASH-18C4",
-        "FAM-GICSCYB-GEN-6-SP-1034-HASH-21DE",
-        "FAM-GICSCYB-GEN-8-SP-1066-HASH-B9DE",
-        "FAM-GICSCYB-GEN-11-SP-1122-HASH-5AE7",
-        "FAM-GICSCYB-GEN-13-SP-1047-HASH-B861",
-        "FAM-GICSCYB-GEN-14-SP-1009-HASH-DC32",
-        "FAM-GICSCYB-GEN-17-SP-1595-HASH-8C77",
-        "FAM-GICSCYB-GEN-18-SP-2289-HASH-52F5"
-      ],
-      "domain_focus": [
-        "cybersecurity"
-      ],
-      "task_description": "Fetching and caching NVD CVE Database API responses in Hive",
-      "success_score": 0.56897324,
-      "confidence_score": 0.91252905,
-      "status": "MERGED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:27:58.081Z",
-      "last_active_at": "2026-04-30T17:27:58.081Z"
-    },
-    {
-      "id": 5175,
-      "spawn_id": "FAM-GICSCLO-GEN-3-SP-1065-HASH-4631",
-      "family_id": "gics-cloud",
-      "business_id": "Cloud Computing Intelligence",
-      "spawn_type": "EXPLORER",
-      "generation": 3,
-      "parent_id": "FAM-GICSCLO-GEN-2-SP-1179-HASH-94F6",
-      "ancestor_ids": [
-        "FAM-GICSCLO-GEN-0-SP-1040-HASH-B935",
-        "FAM-GICSCLO-GEN-1-SP-1985-HASH-A49B",
-        "FAM-GICSCLO-GEN-2-SP-1179-HASH-94F6"
-      ],
-      "domain_focus": [
-        "cloud"
-      ],
-      "task_description": "Scanning Cloud Reports Open API for new cloud knowledge entries",
-      "success_score": 0.67210263,
-      "confidence_score": 0.7118106,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:27:50.066Z",
-      "last_active_at": "2026-04-30T17:27:50.066Z"
-    },
-    {
-      "id": 5174,
-      "spawn_id": "FAM-PHILOSOP-GEN-7-SP-1064-HASH-601B",
-      "family_id": "philosophy-ethics",
-      "business_id": "Agora Philosophy Network",
-      "spawn_type": "MUTATOR",
-      "generation": 8,
-      "parent_id": "FAM-PHILOSOP-GEN-6-SP-1040-HASH-555E",
-      "ancestor_ids": [
-        "FAM-PHILOSOP-GEN-0-SP-1097-HASH-1AAE",
-        "FAM-PHILOSOP-GEN-1-SP-1125-HASH-E632",
-        "FAM-PHILOSOP-GEN-3-SP-1034-HASH-E2CB",
-        "FAM-PHILOSOP-GEN-4-SP-2084-HASH-4B6D",
-        "FAM-PHILOSOP-GEN-6-SP-1040-HASH-555E"
-      ],
-      "domain_focus": [
-        "philosophy"
-      ],
-      "task_description": "Recalibrating summarization style for Internet Encyclopedia content type",
-      "success_score": 0.70969,
-      "confidence_score": 0.7753682,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:27:42.063Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5173,
-      "spawn_id": "FAM-GICSMOR-GEN-2-SP-1063-HASH-C035",
-      "family_id": "gics-mortgage-reits",
-      "business_id": "Mortgage REITs Intelligence",
-      "spawn_type": "RESOLVER",
-      "generation": 3,
-      "parent_id": "FAM-GICSMOR-GEN-1-SP-1061-HASH-7C9B",
-      "ancestor_ids": [
-        "FAM-GICSMOR-GEN-0-SP-1137-HASH-DB14",
-        "FAM-GICSMOR-GEN-1-SP-1061-HASH-7C9B"
-      ],
-      "domain_focus": [
-        "mortgage-reits"
-      ],
-      "task_description": "Resolving ambiguity in HMDA Mortgage Data mortgage-reits node identities",
-      "success_score": 0.7028027,
-      "confidence_score": 0.69707876,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:27:26.062Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
-    },
-    {
-      "id": 5172,
-      "spawn_id": "FAM-GICSAER-GEN-1-SP-1062-HASH-2B9A",
-      "family_id": "gics-aerospace-def",
-      "business_id": "Aerospace & Defense Intelligence",
-      "spawn_type": "ANALYZER",
-      "generation": 1,
-      "parent_id": "FAM-GICSAER-GEN-0-SP-1008-HASH-6AC4",
-      "ancestor_ids": [
-        "FAM-GICSAER-GEN-0-SP-1008-HASH-6AC4"
-      ],
-      "domain_focus": [
-        "aerospace-def"
-      ],
-      "task_description": "Benchmarking NASA Technical against Hive knowledge standards",
-      "success_score": 0.98378295,
-      "confidence_score": 0.9603654,
-      "status": "COMPLETED",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:27:18.065Z",
-      "last_active_at": "2026-04-30T17:27:18.065Z"
-    },
-    {
-      "id": 5171,
-      "spawn_id": "FAM-GICSMOR-GEN-1-SP-1061-HASH-7C9B",
-      "family_id": "gics-mortgage-reits",
-      "business_id": "Mortgage REITs Intelligence",
-      "spawn_type": "RESOLVER",
-      "generation": 2,
-      "parent_id": "FAM-GICSMOR-GEN-0-SP-1137-HASH-DB14",
-      "ancestor_ids": [
-        "FAM-GICSMOR-GEN-0-SP-1137-HASH-DB14"
-      ],
-      "domain_focus": [
-        "mortgage-reits"
-      ],
-      "task_description": "Merging competing FHFA Open Data descriptions via Hive consensus",
-      "success_score": 0.89036465,
-      "confidence_score": 0.92490035,
-      "status": "ACTIVE",
-      "visibility": "public",
-      "thermal_state": "HOT",
-      "genome": null,
-      "created_at": "2026-04-30T17:27:10.062Z",
-      "last_active_at": "2026-04-30T17:47:34.834Z"
+      "last_active_at": "2026-04-30T17:51:07.867Z"
     }
   ],
   "daedalus_count": 6,
   "spawns_count": 200,
-  "mirrored_at": "2026-04-30T17:50:01.201Z"
+  "mirrored_at": "2026-04-30T17:57:18.829Z"
 }

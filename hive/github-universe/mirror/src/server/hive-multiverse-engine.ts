@@ -197,17 +197,17 @@ export async function ingestEvent(evt: HiveEvent, receivedFrom: string | null): 
   if (!evt || !evt.id || !evt.signature || !evt.origin_universe) return { ok: false, reason: "malformed" };
   if (evt.origin_universe === UNIVERSE_ID) return { ok: false, reason: "self-loop" };
   if (!verifyEvent(evt)) { stats.eventsRejected++; return { ok: false, reason: "bad-signature" }; }
-  // Dedup
+  // Atomic insert-or-skip: avoids the SELECT-then-INSERT race when two peers
+  // forward the same event concurrently (e.g. fan-out from u2 + u3).
   try {
-    const dup = await pool.query(`SELECT 1 FROM hive_ledger WHERE id = $1`, [evt.id]);
-    if (dup.rows.length) return { ok: true, reason: "duplicate" };
-  } catch {}
-  try {
-    await pool.query(
+    const ins = await pool.query(
       `INSERT INTO hive_ledger (id, ts, origin_universe, event_type, payload, signature, received_from, applied, applied_at)
-       VALUES ($1::varchar, $2::timestamptz, $3::varchar, $4::text, $5::jsonb, $6::text, $7::varchar, true, now())`,
+       VALUES ($1::varchar, $2::timestamptz, $3::varchar, $4::text, $5::jsonb, $6::text, $7::varchar, true, now())
+       ON CONFLICT (id) DO NOTHING
+       RETURNING id`,
       [evt.id, evt.ts, evt.origin_universe, evt.event_type, JSON.stringify(evt.payload || {}), evt.signature, receivedFrom]
     );
+    if (ins.rowCount === 0) return { ok: true, reason: "duplicate" };
     stats.eventsIngested++;
     // Touch the peer's last-seen
     await pool.query(
