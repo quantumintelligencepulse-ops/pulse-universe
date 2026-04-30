@@ -66,6 +66,34 @@ const heartbeat = makeEvent("HEARTBEAT", {
 mkdirSync(dirname(LEDGER_PATH), { recursive: true });
 appendFileSync(LEDGER_PATH, JSON.stringify(heartbeat) + "\n");
 
+// ─── OMEGA INGEST — pull recent omega activity from prime peer ──────────────
+// Each cycle, query u1 prime's /api/hive/omega-feed and mirror summary into
+// state.omega_feed. This lets the GitHub-resident universe observe what U1's
+// brains are studying & publishing (closing the awareness loop).
+async function pullOmegaFeed() {
+  const prime = PEERS.find(p => p.kind === "prime") || PEERS[0];
+  if (!prime?.endpoint_url) return null;
+  const since = state.omega_since || new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  try {
+    const r = await fetch(prime.endpoint_url.replace(/\/$/, "") + `/api/hive/omega-feed?since=${encodeURIComponent(since)}&limit=25`, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!r.ok) return { peer: prime.id, ok: false, status: r.status };
+    const feed = await r.json();
+    // verify signature locally (HMAC sha256 over canonical envelope without signature field)
+    if (feed?.signature) {
+      const expected = createHmac("sha256", SECRET).update(canonicalize({
+        id: feed.id, ts: feed.ts, origin_universe: feed.origin_universe,
+        event_type: feed.event_type, payload: feed.payload,
+      })).digest("hex");
+      if (expected !== feed.signature) return { peer: prime.id, ok: false, error: "bad-signature" };
+    }
+    return { peer: prime.id, ok: true, count: feed.payload?.count || 0, items: (feed.payload?.items || []).slice(0, 25) };
+  } catch (e) {
+    return { peer: prime.id, ok: false, error: String(e.message || e).slice(0, 120) };
+  }
+}
+
 // Fan out + pull peer manifests in parallel
 async function postIngest(peer, evt) {
   try {
@@ -91,6 +119,7 @@ async function getManifest(peer) {
 const results = await Promise.allSettled([
   ...PEERS.map(p => postIngest(p, heartbeat)),
   ...PEERS.map(p => getManifest(p)),
+  pullOmegaFeed(),
 ]);
 
 // Update state with what we learned about each peer
@@ -102,5 +131,20 @@ for (const r of results) {
   }
 }
 
+// Find omega feed result + emit OMEGA_INGEST event if there are items
+const omegaResult = results.find(r => r.status === "fulfilled" && r.value && Array.isArray(r.value.items));
+if (omegaResult && omegaResult.value.items.length > 0) {
+  const omegaEvt = makeEvent("OMEGA_INGEST", {
+    pulled_from: omegaResult.value.peer,
+    count: omegaResult.value.count,
+    sample: omegaResult.value.items.slice(0, 5).map(i => ({ src: i.src, title: i.title, domain: i.domain })),
+  });
+  appendFileSync(LEDGER_PATH, JSON.stringify(omegaEvt) + "\n");
+  state.omega_since = new Date().toISOString();
+  state.omega_last_count = omegaResult.value.count;
+  // Also POST omega event to peers so they know we've ingested
+  await Promise.allSettled(PEERS.map(p => postIngest(p, omegaEvt)));
+}
+
 writeFileSync(STATE_PATH, JSON.stringify(state, null, 2) + "\n");
-console.log(JSON.stringify({ universe: UNIVERSE_ID, cycle: state.cycles, peers: PEERS.length, results: results.map(r => r.status === "fulfilled" ? r.value : { error: String(r.reason).slice(0, 80) }) }, null, 2));
+console.log(JSON.stringify({ universe: UNIVERSE_ID, cycle: state.cycles, peers: PEERS.length, omega_count: state.omega_last_count || 0, results: results.map(r => r.status === "fulfilled" ? r.value : { error: String(r.reason).slice(0, 80) }) }, null, 2));
