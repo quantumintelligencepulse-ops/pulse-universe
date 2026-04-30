@@ -98,7 +98,10 @@ async function pullSection(section) {
     if (!r.ok) return null;
     const feed = await r.json();
     if (!verifyEnvelope(feed)) return null;
-    return feed.payload;
+    // Server returns { section, since, [section_name]: {...payload} }.
+    // Unwrap to the inner object so callers can use code.files / equations.codex / etc.
+    const inner = feed.payload?.[section];
+    return inner ?? feed.payload;
   } catch (e) { return null; }
 }
 
