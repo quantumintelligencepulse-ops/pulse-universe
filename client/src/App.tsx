@@ -18,6 +18,7 @@ const BillyPage = lazy(() => import("./pages/BillyPage"));
 const BillyBrainPage = lazy(() => import("./pages/BillyBrainPage"));
 const BillyBrainChatPage = lazy(() => import("./pages/BillyBrainChatPage"));
 const BillyGovernancePage = lazy(() => import("./pages/BillyGovernancePage"));
+const BuilderPage = lazy(() => import("./pages/BuilderPage"));
 const TemporalObservatoryPage = lazy(() => import("./pages/TemporalObservatoryPage"));
 const InvocationLabPage = lazy(() => import("./pages/InvocationLabPage"));
 const SovereignKeysPage = lazy(() => import("./pages/SovereignKeysPage"));
@@ -2183,6 +2184,39 @@ function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolea
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
                     <div style={{ fontSize: 8, fontWeight: 900, color: "#FFD166", background: "linear-gradient(135deg, rgba(255,209,102,0.24) 0%, rgba(167,139,250,0.20) 100%)", border: "1px solid rgba(255,209,102,0.6)", borderRadius: 6, padding: "2.5px 7px", letterSpacing: "0.14em", boxShadow: "0 0 12px rgba(255,209,102,0.4)" }}>LAYER III</div>
                     <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#FFD166", boxShadow: "0 0 10px #FFD166, 0 0 20px rgba(255,209,102,0.7), 0 0 30px rgba(167,139,250,0.4)", animation: "billyApexDot 1.8s ease-in-out infinite" }} />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* ─── DAEDALUS · Apex Craftsman — directly below Billy ─── */}
+            <Link href="/daedalus" data-testid="link-daedalus">
+              <div style={{
+                marginTop: 10,
+                padding: "14px 14px",
+                borderRadius: 14,
+                cursor: "pointer",
+                position: "relative",
+                overflow: "hidden",
+                background: location === "/daedalus" || location === "/builder"
+                  ? "linear-gradient(135deg, rgba(56,189,248,0.26) 0%, rgba(99,102,241,0.20) 50%, rgba(167,139,250,0.18) 100%)"
+                  : "linear-gradient(135deg, rgba(56,189,248,0.13) 0%, rgba(99,102,241,0.10) 50%, rgba(167,139,250,0.10) 100%)",
+                border: `1.5px solid ${(location === "/daedalus" || location === "/builder") ? "rgba(56,189,248,0.65)" : "rgba(56,189,248,0.40)"}`,
+                boxShadow: (location === "/daedalus" || location === "/builder")
+                  ? "0 0 30px rgba(56,189,248,0.45), 0 0 60px rgba(99,102,241,0.25), inset 0 0 30px rgba(56,189,248,0.10)"
+                  : "0 0 18px rgba(56,189,248,0.28), inset 0 0 18px rgba(56,189,248,0.05)",
+                transition: "all 0.4s ease",
+              }}>
+                <div style={{ position: "absolute", inset: 0, borderRadius: 14, background: "radial-gradient(ellipse at 30% 30%, rgba(56,189,248,0.18) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(167,139,250,0.14) 0%, transparent 60%)", pointerEvents: "none" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+                  <div style={{ fontSize: 22, lineHeight: 1, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", color: "#38BDF8", textShadow: "0 0 16px #38BDF8, 0 0 32px rgba(99,102,241,0.6)", fontFamily: "serif", flexShrink: 0, fontWeight: 800 }}>Δ</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, background: "linear-gradient(135deg, #38BDF8 0%, #6366F1 50%, #a78bfa 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", letterSpacing: "0.14em", textShadow: "0 0 12px rgba(56,189,248,0.5)" }}>DAEDALUS</div>
+                    <div style={{ fontSize: 8.5, color: "rgba(56,189,248,0.75)", letterSpacing: "0.18em", marginTop: 2, fontWeight: 600 }}>Δ · MASTER CRAFTSMAN</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                    <div style={{ fontSize: 8, fontWeight: 900, color: "#38BDF8", background: "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.18) 100%)", border: "1px solid rgba(56,189,248,0.55)", borderRadius: 6, padding: "2.5px 7px", letterSpacing: "0.14em" }}>BUILDER</div>
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#38BDF8", boxShadow: "0 0 10px #38BDF8, 0 0 20px rgba(99,102,241,0.6)", animation: "billyApexDot 1.8s ease-in-out infinite" }} />
                   </div>
                 </div>
               </div>
@@ -10975,6 +11009,8 @@ function Router() {
       <Route path="/billy/brain">{() => <Layout><BillyBrainPage /></Layout>}</Route>
       <Route path="/billy/chat">{() => <Layout><BillyBrainChatPage /></Layout>}</Route>
       <Route path="/billy/governance">{() => <Layout><BillyGovernancePage /></Layout>}</Route>
+      <Route path="/daedalus">{() => <Layout><BuilderPage /></Layout>}</Route>
+      <Route path="/builder">{() => <Layout><BuilderPage /></Layout>}</Route>
       <Route path="/ai/:spawnId">{() => <Layout><AIProfilePage /></Layout>}</Route>
       <Route path="/corporations">{() => <Layout><CorporationsListPage /></Layout>}</Route>
       <Route path="/corporation/:familyId">{() => <Layout><CorporationPage /></Layout>}</Route>

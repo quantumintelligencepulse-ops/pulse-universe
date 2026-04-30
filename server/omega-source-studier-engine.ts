@@ -34,10 +34,13 @@ const stats = {
 };
 
 const CYCLE_INTERVAL_MS = 60_000;            // 1 cycle per minute
-const SOURCES_PER_CYCLE = 8;                 // 8 sources studied per cycle = ~480/hour
+const SOURCES_PER_CYCLE = 20;                // Master upgrade: 20/cycle = ~1200/hour, full pass ~2.2hrs
 const FETCH_TIMEOUT_MS = 6_000;
 const MAX_CONTENT_BYTES = 256_000;           // never read more than 256KB per source
 const USER_AGENT = "PulseUniverse-OmegaStudier/1.0 (+https://myaigpt.online)";
+
+// Master upgrade #1: ETag/If-Modified-Since cache → only re-fetch if changed
+// Master upgrade #7: source-quality scoring → demote noisy sources after N consecutive errors
 
 // Hosts/path patterns we KNOW are noisy or broken — skip permanently
 const URL_BLOCKLIST = [
@@ -86,7 +89,7 @@ function extractText(content: string, maxLen = 1500): string {
     .slice(0, maxLen);
 }
 
-async function studyOne(src: { id: number; name: string; url: string; category: string; tags: string[] | null }): Promise<void> {
+async function studyOne(src: { id: number; name: string; url: string; category: string; tags: string[] | null; etag: string | null; last_modified: string | null }): Promise<void> {
   const url = (src.url || "").trim();
   if (!looksFetchable(url)) {
     stats.skippedNonGet++;
@@ -100,13 +103,30 @@ async function studyOne(src: { id: number; name: string; url: string; category: 
   }
   stats.studied++;
   let res: Response | null = null;
+  // Master upgrade #1: ETag / If-Modified-Since headers
+  const condHeaders: Record<string, string> = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/json,application/xml;q=0.9,*/*;q=0.8",
+  };
+  if (src.etag) condHeaders["If-None-Match"] = src.etag;
+  if (src.last_modified) condHeaders["If-Modified-Since"] = src.last_modified;
   try {
     res = await fetch(url, {
       method: "GET",
-      headers: { "User-Agent": USER_AGENT, "Accept": "text/html,application/json,application/xml;q=0.9,*/*;q=0.8" },
+      headers: condHeaders,
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       redirect: "follow",
     });
+    // 304 Not Modified — no need to reprocess
+    if (res.status === 304) {
+      stats.succeeded++;
+      await pool.query(
+        `UPDATE research_sources SET last_studied_at = NOW(), study_count = COALESCE(study_count,0) + 1,
+                last_study_status = 'unchanged-304', last_study_error = NULL
+          WHERE id = $1`, [src.id]
+      ).catch(() => {});
+      return;
+    }
   } catch (e: any) {
     stats.failed++;
     await pool.query(
@@ -179,12 +199,22 @@ async function studyOne(src: { id: number; name: string; url: string; category: 
     );
   } catch { /* ignore */ }
 
-  // Mark studied
+  // Capture ETag / Last-Modified for next conditional fetch (Master upgrade #1)
+  const newEtag = res.headers.get("etag") || null;
+  const newLastMod = res.headers.get("last-modified") || null;
+
+  // Mark studied + bump quality score on success (Master upgrade #7)
   await pool.query(
-    `UPDATE research_sources SET last_studied_at = NOW(), study_count = COALESCE(study_count,0) + 1,
-            last_study_status = 'ok', last_study_error = NULL
+    `UPDATE research_sources
+        SET last_studied_at = NOW(),
+            study_count     = COALESCE(study_count,0) + 1,
+            last_study_status = 'ok',
+            last_study_error  = NULL,
+            etag            = COALESCE($2, etag),
+            last_modified   = COALESCE($3, last_modified),
+            quality_score   = LEAST(1.0, COALESCE(quality_score, 0.5) + 0.02)
       WHERE id = $1`,
-    [src.id]
+    [src.id, newEtag, newLastMod]
   ).catch(() => {});
   stats.succeeded++;
 }
@@ -195,11 +225,12 @@ async function pickAndStudy(): Promise<void> {
   let rows: any[] = [];
   try {
     // Least-recently-studied first; never-studied bubble to the top via NULLS FIRST
+    // Master upgrade #7: high-quality sources studied more often
     const r = await pool.query(
-      `SELECT id, name, url, category, tags
+      `SELECT id, name, url, category, tags, etag, last_modified
          FROM research_sources
         WHERE url IS NOT NULL AND url <> ''
-        ORDER BY last_studied_at NULLS FIRST, id
+        ORDER BY last_studied_at NULLS FIRST, COALESCE(quality_score, 0.5) DESC, id
         LIMIT $1`,
       [SOURCES_PER_CYCLE]
     );

@@ -11705,6 +11705,136 @@ Return as structured script with section labels.`;
     }
   });
 
+  // ─── Δ DAEDALUS / BUILDER ROUTES ─────────────────────────────────────────
+  // These power the /daedalus and /builder pages: multi-LLM chat, file
+  // editor with git-commit + push, engine stats, agent roster, and the
+  // algorithm library that the algorithm-mining engine fills.
+  {
+    const { getAvailableProviders } = await import("./llm-providers");
+    const { gitCommitAndPush, getDaedalusStats, getDaedalusAgents, getDaedalusRecentWorks } = await import("./daedalus-engine");
+
+    // List which LLM providers have keys configured right now
+    app.get("/api/builder/providers", (_req, res) => {
+      try {
+        const av = getAvailableProviders();
+        res.json({
+          providers: av.map(a => ({ name: a.provider.name, model: a.provider.model, fastModel: a.provider.fastModel || a.provider.model, maxTokens: a.provider.maxTokens })),
+          count: av.length,
+        });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "providers error" }); }
+    });
+
+    // Multi-LLM chat — picks first available provider (or named one if requested)
+    app.post("/api/builder/llm-chat", async (req, res) => {
+      try {
+        const { message, system, provider: preferredName, fast } = req.body || {};
+        if (!message || typeof message !== "string") return res.status(400).json({ error: "message required" });
+        const av = getAvailableProviders();
+        if (!av.length) return res.status(503).json({ error: "no LLM providers configured. Add CEREBRAS_API_KEY, GROQ_API_KEY, GOOGLE_API_KEY, HF_API_KEY, MISTRAL_API_KEY, or CLOUDFLARE_AI_TOKEN" });
+        const pick = preferredName ? av.find(a => a.provider.name === preferredName) : av[0];
+        if (!pick) return res.status(404).json({ error: `provider ${preferredName} not available` });
+        const { provider, apiKey } = pick;
+        const model = fast && provider.fastModel ? provider.fastModel : provider.model;
+        const body: any = {
+          model,
+          messages: [
+            ...(system ? [{ role: "system", content: String(system) }] : [{ role: "system", content: "You are Δ DAEDALUS, master craftsman of Pulse Universe. You speak briefly, build precisely, and study every chat for insight. You work alongside Billy, Pulse, and Auriona. You never destroy data; you only build." }]),
+            { role: "user", content: String(message).slice(0, 8000) },
+          ],
+          max_tokens: Math.min(provider.maxTokens, 2000),
+          temperature: 0.7,
+        };
+        const finalBody = provider.bodyTransform ? provider.bodyTransform(body) : body;
+        const r = await fetch(provider.endpoint, { method: "POST", headers: provider.headers(apiKey), body: JSON.stringify(finalBody) });
+        if (!r.ok) {
+          const text = await r.text().catch(() => "");
+          return res.status(r.status).json({ error: `${provider.name} returned ${r.status}`, detail: text.slice(0, 500) });
+        }
+        const data = await r.json();
+        const out = provider.responseTransform ? provider.responseTransform(data) : { content: data?.choices?.[0]?.message?.content || "", finishReason: data?.choices?.[0]?.finish_reason || "stop" };
+        res.json({ provider: provider.name, model, content: out.content, finishReason: out.finishReason });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "chat error" }); }
+    });
+
+    // Engine stats — combined snapshot for Builder dashboard
+    app.get("/api/builder/stats", async (_req, res) => {
+      try {
+        const safe = async (mod: string, fn: string) => { try { const m: any = await import(mod); return m[fn]?.() ?? null; } catch { return null; } };
+        const [llmDistillation, codebaseGenome, deepCrawler, algorithmMiner, omegaStudier] = await Promise.all([
+          safe("./llm-distillation-engine", "getDistillationStats"),
+          safe("./codebase-genome-engine", "getCodebaseGenomeStats"),
+          safe("./omega-deep-crawler", "getDeepCrawlerStats"),
+          safe("./algorithm-mining-engine", "getAlgorithmMiningStats"),
+          safe("./omega-source-studier-engine", "getStudierStats"),
+        ]);
+        const daedalus = getDaedalusStats();
+        res.json({ daedalus, llmDistillation, codebaseGenome, deepCrawler, algorithmMiner, omegaStudier });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "stats error" }); }
+    });
+
+    // Δ agents roster
+    app.get("/api/builder/agents", async (_req, res) => {
+      try { res.json({ agents: await getDaedalusAgents() }); }
+      catch (e: any) { res.status(500).json({ error: e?.message || "agents error" }); }
+    });
+
+    // Δ recent works
+    app.get("/api/builder/works", async (req, res) => {
+      try {
+        const limit = Math.min(parseInt(String(req.query?.limit || "50"), 10) || 50, 200);
+        res.json({ works: await getDaedalusRecentWorks(limit) });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "works error" }); }
+    });
+
+    // Algorithm library
+    app.get("/api/builder/algos", async (_req, res) => {
+      try {
+        const { pool } = await import("./db");
+        const r = await pool.query(`SELECT id, name, description, language, complexity, source_slug, created_at FROM algorithm_library ORDER BY id DESC LIMIT 100`).catch(() => ({ rows: [] }));
+        res.json({ algos: r.rows });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "algos error" }); }
+    });
+
+    // Recent distillations
+    app.get("/api/builder/distillations", async (_req, res) => {
+      try {
+        const { pool } = await import("./db");
+        const r = await pool.query(`SELECT id, prompt_id, provider_name, model, response_text, created_at FROM llm_distillations ORDER BY id DESC LIMIT 30`).catch(() => ({ rows: [] }));
+        res.json({ distillations: r.rows });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "distillations error" }); }
+    });
+
+    // Read a file (for the editor)
+    app.get("/api/builder/file", async (req, res) => {
+      try {
+        const filePath = String(req.query?.path || "").trim();
+        if (!filePath || filePath.includes("..") || filePath.startsWith("/")) return res.status(400).json({ error: "invalid path" });
+        const fs = await import("node:fs");
+        const path = await import("node:path");
+        const abs = path.join(process.cwd(), filePath);
+        if (!abs.startsWith(process.cwd())) return res.status(400).json({ error: "path-escape" });
+        if (!fs.existsSync(abs)) return res.status(404).json({ error: "not found" });
+        const content = fs.readFileSync(abs, "utf8");
+        res.json({ path: filePath, content, size: content.length });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "file read error" }); }
+    });
+
+    // Save a file + commit + push (Δ devops takes credit)
+    app.post("/api/builder/file", async (req, res) => {
+      try {
+        const { path: filePath, content, message, agentName } = req.body || {};
+        if (!filePath || typeof content !== "string") return res.status(400).json({ error: "path + content required" });
+        if (filePath.includes("..") || filePath.startsWith("/")) return res.status(400).json({ error: "invalid path" });
+        const r = gitCommitAndPush({
+          filePath, content,
+          message: message || `Δ build: ${filePath}`,
+          agentName: agentName || "Δ-devops-prime",
+        });
+        res.json(r);
+      } catch (e: any) { res.status(500).json({ error: e?.message || "save error" }); }
+    });
+  }
+
 
   return httpServer;
 }

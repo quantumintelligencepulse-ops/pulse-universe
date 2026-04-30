@@ -1,9 +1,70 @@
-node_modules
-dist
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+.turbo/
+.next/
+.vite/
+
+# server build artifact
+server/public/
+
+# logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env / secrets
+.env
+.env.*
+.envrc
+*.pem
+*.key
+
+# replit-local agent state
+.local/
+.cache/
+.config/
+.replit_history
+.upm/
+
+# os
 .DS_Store
-server/public
-vite.config.ts.*
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# temp / archive
+*.tar
 *.tar.gz
+*.tgz
+*.zip
 client/public/*.zip
 client/public/*.tar
 client/public/*.tar.gz
+vite.config.ts.*
+tmp/
+temp/
+
+# database dumps
+*.sql.dump
+*.sqlite
+
+# python (if any)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# coverage
+coverage/
+.nyc_output/
