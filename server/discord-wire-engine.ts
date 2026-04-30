@@ -3,7 +3,10 @@ import { feedMemoryCortex } from "./hive-brain";
 
 const DISCORD_BOT_TOKEN = process.env.discord_token || process.env.DISCORD_BOT_TOKEN || "";
 const GUILD_ID = process.env.DISCORD_GUILD_ID || "1467658793373536278";
-const CHANNEL_IDS = (process.env.DISCORD_CHANNEL_IDS || "1474248839350456352,1474250311739637836,1474313120821547110").split(",").map(s => s.trim()).filter(Boolean);
+// READ-ONLY ingestion: this engine only listens. The two channels in
+// discord-forbidden.ts are still readable here (humans may post there) but
+// nothing this engine does writes to Discord, so no outbound guard is needed.
+const CHANNEL_IDS = (process.env.DISCORD_CHANNEL_IDS || "1474313120821547110").split(",").map(s => s.trim()).filter(Boolean);
 
 const POLL_INTERVAL_MS = 90_000;
 let lastMessageIds: Record<string, string> = {};

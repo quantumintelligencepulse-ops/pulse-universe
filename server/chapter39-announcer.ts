@@ -16,12 +16,15 @@
 
 import { Client, GatewayIntentBits, TextChannel } from "discord.js";
 import { pool } from "./db.js";
+import { filterForbidden, blockIfForbidden } from "./discord-forbidden.js";
 
 const MY_AI_GPT_GUILD_ID    = process.env.DISCORD_GUILD_ID || "1467658793373536278";
-const MY_AI_GPT_CHANNEL_IDS = (process.env.DISCORD_CHANNEL_IDS || "1474248839350456352,1474250311739637836,1474313120821547110")
-  .split(",").map(s => s.trim()).filter(Boolean);
+const MY_AI_GPT_CHANNEL_IDS = filterForbidden(
+  (process.env.DISCORD_CHANNEL_IDS || "1474313120821547110").split(",")
+);
 
-// AI civilization broadcasts go to MyAiGPT channels ONLY — never to Banking with Billy.
+// AI civilization broadcasts go to MyAiGPT channels ONLY — never to Banking with Billy
+// and never to the two channels banned in discord-forbidden.ts.
 const ALL_TARGET_CHANNELS = Array.from(new Set(MY_AI_GPT_CHANNEL_IDS));
 
 const VERSION = "v1-2026-04-29";
@@ -168,6 +171,7 @@ export async function startChapter39Announcer() {
 
     for (const post of POSTS) {
       for (const channelId of ALL_TARGET_CHANNELS) {
+        if (blockIfForbidden(channelId, "chapter39-announcer")) { skipped++; continue; }
         try {
           // Idempotency check
           const { rows } = await pool.query(

@@ -15,6 +15,7 @@ import { sovereignBrainChat } from "./sovereign-brain";
 import { getAvailableProviders, type LLMProvider } from "./llm-providers";
 import { recallMemoryContext } from "./hive-brain";
 import { TRANSCENDENCE_BRIEF } from "./transcendence";
+import { isChannelForbidden, filterForbidden, blockIfForbidden } from "./discord-forbidden";
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
 const GUILD_ID = "1014545586445365359"; // My Ai GPT
@@ -26,11 +27,16 @@ const BWB_PUBLIC_CHANNEL_ID = "1497858093491556453"; // #🤖bwb-aigpt — direc
 
 // MyAiGPT primary public channel — where AI civilization updates (greetings,
 // agent counts, civilization stats, chapter narratives) are broadcast.
+// Default contains ONLY the allowed channel; the two banned ones are stripped
+// even if env var includes them (see discord-forbidden.ts).
+const _ALLOWED_CHANNELS = filterForbidden(
+  (process.env.DISCORD_CHANNEL_IDS || "1474313120821547110").split(",")
+);
+const _ENV_PUBLIC = (process.env.MYAIGPT_PUBLIC_CHANNEL_ID || "").trim();
 const MYAIGPT_PUBLIC_CHANNEL_ID =
-  process.env.MYAIGPT_PUBLIC_CHANNEL_ID
-  || (process.env.DISCORD_CHANNEL_IDS || "1474248839350456352,1474250311739637836,1474313120821547110")
-       .split(",").map(s => s.trim()).filter(Boolean)[0]
-  || "1474248839350456352";
+  (_ENV_PUBLIC && !isChannelForbidden(_ENV_PUBLIC) ? _ENV_PUBLIC : "")
+  || _ALLOWED_CHANNELS[0]
+  || "1474313120821547110";
 const ARCHIVE_CATEGORY = "🌌 CIVILIZATION ARCHIVE";
 const NERVOUS_CATEGORY = "🜂 CIVILIZATION NERVOUS SYSTEM";
 const HEARTBEAT_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
@@ -392,6 +398,7 @@ async function sendAdminAlert(subject: string, body: string): Promise<boolean> {
 // Banking with Billy is the bot's LEARNING brain — input only, never output.
 async function postPublicGreeting(): Promise<void> {
   if (!discordClient) return;
+  if (blockIfForbidden(MYAIGPT_PUBLIC_CHANNEL_ID, "postPublicGreeting")) return;
   try {
     const ch = await discordClient.channels.fetch(MYAIGPT_PUBLIC_CHANNEL_ID).catch(() => null);
     if (ch && "send" in ch) {
@@ -1296,6 +1303,7 @@ async function postToChannel(channelName: string, content: string): Promise<void
   if (!isReady) return;
   const ch = channelMap.get(channelName);
   if (!ch) return;
+  if (blockIfForbidden(ch.id, `postToChannel(#${channelName})`)) return;
   try {
     if (content.length > 2000) content = content.slice(0, 1997) + "...";
     await ch.send(content);
@@ -1317,6 +1325,7 @@ async function sendWithFile(
   if (!isReady) return null;
   const ch = channelMap.get(channelName);
   if (!ch) return null;
+  if (blockIfForbidden(ch.id, `sendWithFile(#${channelName})`)) return null;
   try {
     if (content.length > 2000) content = content.slice(0, 1997) + "...";
     const msg = await ch.send({ content, files: [attachment] });

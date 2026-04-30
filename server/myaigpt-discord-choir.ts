@@ -9,11 +9,13 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { expressSequence } from "./ribosome-engine";
+import { filterForbidden, blockIfForbidden } from "./discord-forbidden";
 
 const DISCORD_TOKEN = process.env.discord_token || process.env.DISCORD_BOT_TOKEN || "";
 const GUILD_ID = process.env.MYAIGPT_GUILD_ID || process.env.DISCORD_GUILD_ID || "1467658793373536278";
-const DEFAULT_CHANNELS = (process.env.MYAIGPT_CHOIR_CHANNELS || process.env.DISCORD_CHANNEL_IDS ||
-  "1474248839350456352,1474250311739637836,1474313120821547110").split(",").map(s => s.trim()).filter(Boolean);
+const DEFAULT_CHANNELS = filterForbidden(
+  (process.env.MYAIGPT_CHOIR_CHANNELS || process.env.DISCORD_CHANNEL_IDS || "1474313120821547110").split(",")
+);
 const TICK_MS = 90_000;
 const MAX_POSTS_PER_TICK = 3; // anti-spam: at most 3 voices speak per cycle
 const GLOBAL_MIN_GAP_MS = 25_000; // at least 25s between any two posts
@@ -111,6 +113,7 @@ const channelBackoffUntil = new Map<string, number>();
 
 async function postToDiscord(channelId: string, content: string): Promise<{ ok: boolean; id?: string; error?: string; backoffMs?: number }> {
   if (!DISCORD_TOKEN) return { ok: false, error: "no token" };
+  if (blockIfForbidden(channelId, "choir.postToDiscord")) return { ok: false, error: "channel forbidden" };
   const until = channelBackoffUntil.get(channelId) || 0;
   if (Date.now() < until) {
     return { ok: false, error: `backoff ${Math.round((until - Date.now()) / 1000)}s` };
