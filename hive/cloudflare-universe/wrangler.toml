@@ -1,0 +1,38 @@
+## ─────────────────────────────────────────────────────────────────────────────
+##  U3 CLOUDFLARE UNIVERSE — wrangler config
+## ─────────────────────────────────────────────────────────────────────────────
+##  Deploy with:
+##     cd hive/cloudflare-universe
+##     ./deploy.sh        # or:  npx wrangler@latest deploy
+##
+##  BEFORE FIRST DEPLOY, set these as Worker SECRETS (not vars):
+##     wrangler secret put HIVE_BUS_SECRET
+##     wrangler secret put HIVE_PEERS_JSON
+##
+##  After deploy, your worker is at: https://hive-edge.<your-subdomain>.workers.dev
+##  Add that URL to the prime universe's HIVE_PEERS so it can be reached.
+## ─────────────────────────────────────────────────────────────────────────────
+
+name = "hive-edge"
+main = "worker.ts"
+compatibility_date = "2026-04-01"
+workers_dev = true
+
+[vars]
+HIVE_UNIVERSE_ID   = "u3-cloudflare-edge"
+HIVE_UNIVERSE_NAME = "Cloudflare Edge"
+HIVE_UNIVERSE_KIND = "edge"
+
+[[kv_namespaces]]
+binding = "HIVE_KV"
+# id is filled in by `./deploy.sh` on first run via:
+#   wrangler kv:namespace create HIVE_KV
+id = ""
+preview_id = ""
+
+[triggers]
+# Cron heartbeat every 5 minutes
+crons = ["*/5 * * * *"]
+
+[observability]
+enabled = true
