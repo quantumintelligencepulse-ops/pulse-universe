@@ -281,13 +281,17 @@ async function runProfessorSystem() {
     `);
     let tutored = 0;
     for (const prof of professors.rows as any[]) {
+      // Postgres does not support ORDER BY/LIMIT inside UPDATE — use IN-subquery to pick the 5 stalest.
       const res = await pool.query(`
-        UPDATE pulseu_progress pp
+        UPDATE pulseu_progress
         SET gpa = LEAST(4.0, gpa + 0.02),
             alumni_mentoring = COALESCE(alumni_mentoring, 0) + 1
-        WHERE family_id = $1 AND status = 'enrolled'
-        ORDER BY last_progress_at ASC NULLS FIRST
-        LIMIT 5
+        WHERE id IN (
+          SELECT id FROM pulseu_progress
+          WHERE family_id = $1 AND status = 'enrolled'
+          ORDER BY last_progress_at ASC NULLS FIRST
+          LIMIT 5
+        )
         RETURNING spawn_id
       `, [prof.family_id]);
       tutored += res.rowCount ?? 0;
@@ -339,13 +343,17 @@ async function runAlumniMentoring() {
     `);
     let helped = 0;
     for (const alum of alumni.rows as any[]) {
+      // Postgres does not support ORDER BY/LIMIT inside UPDATE — use IN-subquery to pick 3 stalest.
       const res = await pool.query(`
         UPDATE pulseu_progress
         SET courses_completed = LEAST($1::int, courses_completed + 8),
             gpa = LEAST(4.0, gpa + 0.01)
-        WHERE family_id = $2 AND status = 'enrolled'
-        ORDER BY last_progress_at ASC NULLS FIRST
-        LIMIT 3
+        WHERE id IN (
+          SELECT id FROM pulseu_progress
+          WHERE family_id = $2 AND status = 'enrolled'
+          ORDER BY last_progress_at ASC NULLS FIRST
+          LIMIT 3
+        )
         RETURNING spawn_id
       `, [PULSEU_TOTAL_COURSES, alum.family_id]);
       helped += res.rowCount ?? 0;
