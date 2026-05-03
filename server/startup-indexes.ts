@@ -199,6 +199,19 @@ const TABLES: string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_chats_user_id ON chats(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id)`,
+  `CREATE TABLE IF NOT EXISTS github_events (
+    id              bigserial PRIMARY KEY,
+    event_type      text NOT NULL DEFAULT '',
+    repo            text,
+    sender          text,
+    delivery_id     text,
+    payload_json    jsonb,
+    signature_valid boolean NOT NULL DEFAULT false,
+    ingested_count  int NOT NULL DEFAULT 0,
+    received_at     timestamptz NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_github_events_received ON github_events(received_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_github_events_type     ON github_events(event_type)`,
 ];
 
 export async function runStartupTables(): Promise<void> {
