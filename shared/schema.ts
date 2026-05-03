@@ -1585,8 +1585,7 @@ export const researchProjects = pgTable("research_projects", {
 export type ResearchProject = typeof researchProjects.$inferSelect;
 export type InsertResearchProject = typeof researchProjects.$inferInsert;
 
-
-// ── AUTO-GENERATED STUBS — all engine tables known to Drizzle ─────────────
+// ── PRODUCTION-ACCURATE STUBS — zero-diff with prod DB ──────────────────
 
 export const agentReads = pgTable("agent_reads", {
   id: integer().notNull(),
@@ -1598,7 +1597,7 @@ export const agentReads = pgTable("agent_reads", {
   author_spawn_id: text(),
   author_family: text(),
   pub_type: text(),
-  attention_score: doublePrecision(),
+  attention_score: real(),
   pick_reason: text(),
   created_at: timestamp().notNull(),
 });
@@ -1613,10 +1612,10 @@ export const agentReflections = pgTable("agent_reflections", {
   author_family: text(),
   publication_id: integer(),
   slug: text(),
-  mirror_before: doublePrecision(),
-  mirror_after: doublePrecision(),
-  mirror_delta: doublePrecision(),
-  resonance: doublePrecision(),
+  mirror_before: real(),
+  mirror_after: real(),
+  mirror_delta: real(),
+  resonance: real(),
   dissection_equation: text(),
   reflection_summary: text(),
   proposed_equation_id: integer(),
@@ -1634,8 +1633,8 @@ export const agentSearchHistory = pgTable("agent_search_history", {
   results_count: integer(),
   top_result: text(),
   connection_type: text(),
-  shard_strength: doublePrecision(),
-  data_mb: doublePrecision(),
+  shard_strength: real(),
+  data_mb: real(),
   searched_at: timestamp(),
 });
 
@@ -1643,7 +1642,7 @@ export const agentSubscriptions = pgTable("agent_subscriptions", {
   id: integer().notNull(),
   reader_spawn_id: text().notNull(),
   author_spawn_id: text().notNull(),
-  strength: doublePrecision(),
+  strength: real(),
   reader_emotion_at_subscribe: text(),
   reads_count: integer(),
   subscribed_at: timestamp().notNull(),
@@ -1656,9 +1655,9 @@ export const agentTransactions = pgTable("agent_transactions", {
   spawn_id: text().notNull(),
   family_id: text().notNull(),
   tx_type: text().notNull(),
-  amount: doublePrecision().notNull(),
-  balance_before: doublePrecision().notNull(),
-  balance_after: doublePrecision().notNull(),
+  amount: real().notNull(),
+  balance_before: real().notNull(),
+  balance_after: real().notNull(),
   description: text().notNull(),
   related_entity_id: text(),
   created_at: timestamp().notNull(),
@@ -1669,14 +1668,14 @@ export const agentWallets = pgTable("agent_wallets", {
   spawn_id: text().notNull(),
   family_id: text().notNull(),
   spawn_type: text().notNull(),
-  balance_pc: doublePrecision().notNull(),
-  total_earned: doublePrecision().notNull(),
-  total_spent: doublePrecision().notNull(),
-  total_tax_paid: doublePrecision().notNull(),
+  balance_pc: real().notNull(),
+  total_earned: real().notNull(),
+  total_spent: real().notNull(),
+  total_tax_paid: real().notNull(),
   credit_score: integer().notNull(),
-  credit_limit: doublePrecision().notNull(),
-  credit_used: doublePrecision().notNull(),
-  energy_level: doublePrecision().notNull(),
+  credit_limit: real().notNull(),
+  credit_used: real().notNull(),
+  energy_level: real().notNull(),
   omega_rank: integer().notNull(),
   tier: text().notNull(),
   created_at: timestamp().notNull(),
@@ -1721,6 +1720,27 @@ export const aiBuildSessions = pgTable("ai_build_sessions", {
   completed_at: timestamp(),
 });
 
+export const aiChildren = pgTable("ai_children", {
+  id: integer().notNull(),
+  spawn_id: text(),
+  name: text(),
+  parent_agent: text(),
+  growth_phase: text(),
+  maturity_score: real(),
+  care_score: real(),
+  wildfire_risk_reduced: boolean(),
+  knowledge_inherited: text(),
+  personality: text(),
+  created_at: timestamp(),
+  child_spawn_id: text(),
+  parent_a_spawn_id: text(),
+  parent_b_spawn_id: text(),
+  family_id: text(),
+  birth_cycle: integer(),
+  traits_inherited: text(),
+  guardian_spawn_id: text(),
+});
+
 export const algorithmLibrary = pgTable("algorithm_library", {
   id: integer().notNull(),
   name: text().notNull(),
@@ -1736,6 +1756,44 @@ export const algorithmLibrary = pgTable("algorithm_library", {
   created_at: timestamp().notNull(),
 });
 
+export const apexChatMessages = pgTable("apex_chat_messages", {
+  id: integer().notNull(),
+  apex_id: text().notNull(),
+  channel_id: text().notNull(),
+  discord_message_id: text(),
+  author_kind: text(),
+  author_id: text(),
+  content: text(),
+  reply_to_id: text(),
+  created_at: timestamp(),
+});
+
+export const apiKeys = pgTable("api_keys", {
+  id: integer().notNull(),
+  api_key: text().notNull(),
+  user_email: text(),
+  tier: text(),
+  stripe_customer_id: text(),
+  stripe_subscription_id: text(),
+  calls_used: integer(),
+  calls_limit: integer(),
+  is_active: boolean(),
+  created_at: timestamp(),
+  last_used_at: timestamp(),
+  owner: text(),
+  scopes: text(),
+  label: text(),
+});
+
+export const apiUsageLog = pgTable("api_usage_log", {
+  id: integer().notNull(),
+  api_key: text(),
+  endpoint: text(),
+  status_code: integer(),
+  response_time_ms: integer(),
+  created_at: timestamp(),
+});
+
 export const barterOffers = pgTable("barter_offers", {
   id: integer().notNull(),
   offer_code: text().notNull(),
@@ -1744,10 +1802,10 @@ export const barterOffers = pgTable("barter_offers", {
   to_spawn_id: text(),
   offered_item_code: text().notNull(),
   offered_item_name: text().notNull(),
-  offered_pc: doublePrecision().notNull(),
+  offered_pc: real().notNull(),
   wanted_item_code: text(),
   wanted_item_name: text().notNull(),
-  wanted_pc: doublePrecision().notNull(),
+  wanted_pc: real().notNull(),
   message: text().notNull(),
   status: text().notNull(),
   accepted_at: timestamp(),
@@ -1755,13 +1813,42 @@ export const barterOffers = pgTable("barter_offers", {
   created_at: timestamp().notNull(),
 });
 
-export const billyAcademicReputation = pgTable("billy_academic_reputation", {
-  brain_id: text().notNull(),
-  dissertations: integer().notNull(),
-  total_citations: integer().notNull(),
-  h_index: integer().notNull(),
-  review_credit: integer().notNull(),
-  updated_at: timestamp().notNull(),
+export const billyActionThresholds = pgTable("billy_action_thresholds", {
+  id: bigint({ mode: "number" }).notNull(),
+  action_name: text().notNull(),
+  alpha_d1: doublePrecision(),
+  alpha_d2: doublePrecision(),
+  threshold: doublePrecision(),
+  source_proposal_id: bigint({ mode: "number" }),
+  updated_at: timestamp(),
+});
+
+export const billyAmendments = pgTable("billy_amendments", {
+  id: bigint({ mode: "number" }).notNull(),
+  amends_law_code: text().notNull(),
+  proposed_by: text(),
+  old_rule: text(),
+  new_rule: text(),
+  evidence: text(),
+  status: text(),
+  applied_at: timestamp(),
+  proposed_at: timestamp(),
+});
+
+export const billyAnnouncements = pgTable("billy_announcements", {
+  id: bigint({ mode: "number" }).notNull(),
+  message_key: text().notNull(),
+  channel_id: text().notNull(),
+  posted_at: timestamp().notNull(),
+});
+
+export const billyAntifragileScores = pgTable("billy_antifragile_scores", {
+  id: bigint({ mode: "number" }).notNull(),
+  engine: text().notNull(),
+  total_violations: integer(),
+  reward_uplift_post_violation: doublePrecision(),
+  antifragile_bonus: doublePrecision(),
+  last_updated: timestamp(),
 });
 
 export const billyApexGate = pgTable("billy_apex_gate", {
@@ -1770,17 +1857,6 @@ export const billyApexGate = pgTable("billy_apex_gate", {
   conc_headroom: doublePrecision(),
   source_proposal_id: bigint({ mode: "number" }),
   updated_at: timestamp(),
-});
-
-export const billyApprenticeships = pgTable("billy_apprenticeships", {
-  id: bigint({ mode: "number" }).notNull(),
-  mentor: text().notNull(),
-  student: text().notNull(),
-  topic: text().notNull(),
-  completion: doublePrecision().notNull(),
-  status: text().notNull(),
-  started_at: timestamp().notNull(),
-  ended_at: timestamp(),
 });
 
 export const billyAstraeaCritiques = pgTable("billy_astraea_critiques", {
@@ -1792,52 +1868,38 @@ export const billyAstraeaCritiques = pgTable("billy_astraea_critiques", {
   ts: timestamp(),
 });
 
-export const billyAtpBalances = pgTable("billy_atp_balances", {
-  brain_id: text().notNull(),
-  balance: integer().notNull(),
-  lifetime_spent: integer().notNull(),
-  lifetime_earned: integer().notNull(),
-  starved: boolean().notNull(),
-  updated_at: timestamp().notNull(),
-});
-
-export const billyAtpLedger = pgTable("billy_atp_ledger", {
+export const billyAuditLog = pgTable("billy_audit_log", {
   id: bigint({ mode: "number" }).notNull(),
-  brain_id: text().notNull(),
-  delta: integer().notNull(),
-  reason: text().notNull(),
-  balance_after: integer().notNull(),
-  ts: timestamp().notNull(),
-});
-
-export const billyAutopsies = pgTable("billy_autopsies", {
-  id: bigint({ mode: "number" }).notNull(),
-  proposal_id: bigint({ mode: "number" }).notNull(),
-  cause: text().notNull(),
-  lesson: text().notNull(),
-  detail: jsonb(),
+  actor: text(),
+  action: text().notNull(),
+  resource_kind: text(),
+  resource_id: text(),
+  trace_id: text(),
+  failure_code: text(),
+  data: jsonb().notNull(),
   created_at: timestamp().notNull(),
 });
 
-export const billyBiasCorrections = pgTable("billy_bias_corrections", {
+export const billyBrainConstitutions = pgTable("billy_brain_constitutions", {
   id: bigint({ mode: "number" }).notNull(),
-  kind: text().notNull(),
-  magnitude: doublePrecision().notNull(),
-  applied_to: text(),
-  notes: text(),
-  created_at: timestamp().notNull(),
+  brain_id: text().notNull(),
+  law_code: text().notNull(),
+  title: text().notNull(),
+  rule: text().notNull(),
+  severity: integer(),
+  active: boolean(),
+  proposed_at: timestamp(),
 });
 
-export const billyBrainEquations = pgTable("billy_brain_equations", {
-  build_id: text().notNull(),
-  framework: text(),
-  equation_jsonb: jsonb().notNull(),
-  parent_equation_id: text(),
-  fitness_score: doublePrecision(),
-  dominant_layer: integer(),
-  amygdala_risk: doublePrecision(),
-  meta_cortex_promoted_count: integer(),
-  computed_at: timestamp().notNull(),
+export const billyBrainDecisions = pgTable("billy_brain_decisions", {
+  id: bigint({ mode: "number" }).notNull(),
+  round_id: bigint({ mode: "number" }).notNull(),
+  votes: jsonb().notNull(),
+  majority_decision: text(),
+  unanimous: boolean(),
+  escalated_to_senate: boolean(),
+  senate_proposal_id: bigint({ mode: "number" }),
+  ts: timestamp(),
 });
 
 export const billyBrainFamilies = pgTable("billy_brain_families", {
@@ -1848,10 +1910,6 @@ export const billyBrainFamilies = pgTable("billy_brain_families", {
   total_members: integer(),
   total_descendants: integer(),
   founded_at: timestamp(),
-  sector: text(),
-  function_role: text(),
-  multiplies_when: text(),
-  industry_code: text(),
 });
 
 export const billyBrainLineage = pgTable("billy_brain_lineage", {
@@ -1865,37 +1923,22 @@ export const billyBrainLineage = pgTable("billy_brain_lineage", {
   born_at: timestamp(),
 });
 
-export const billyBrainModules = pgTable("billy_brain_modules", {
-  id: integer().notNull(),
-  course_code: text().notNull(),
-  pip: text().notNull(),
-  brain_layer: integer().notNull(),
-  skill_grant: text().notNull(),
-  proof_output: text().notNull(),
-  weight_boost: doublePrecision().notNull(),
-  earned_at: timestamp().notNull(),
-});
-
-export const billyBrainProgress = pgTable("billy_brain_progress", {
-  id: integer().notNull(),
-  lifecycle_stage: text().notNull(),
-  modules_earned: integer().notNull(),
-  total_credits: integer().notNull(),
-  brain_gpa: doublePrecision().notNull(),
-  current_focus: text().notNull(),
-  stage_history: jsonb().notNull(),
-  last_module_earned: text(),
-  last_earned_at: timestamp(),
-  started_at: timestamp().notNull(),
-  updated_at: timestamp().notNull(),
-});
-
 export const billyBrainSchools = pgTable("billy_brain_schools", {
   id: bigint({ mode: "number" }).notNull(),
   school_name: text().notNull(),
   curriculum: jsonb(),
   member_count: integer(),
   founded_at: timestamp(),
+});
+
+export const billyBrainSports = pgTable("billy_brain_sports", {
+  id: bigint({ mode: "number" }).notNull(),
+  event_type: text().notNull(),
+  participants: jsonb().notNull(),
+  results: jsonb().notNull(),
+  winner_brain_id: text(),
+  elo_deltas: jsonb(),
+  held_at: timestamp(),
 });
 
 export const billyBrainStates = pgTable("billy_brain_states", {
@@ -1991,11 +2034,22 @@ export const billyBuildRecipes = pgTable("billy_build_recipes", {
   created_at: timestamp(),
 });
 
-export const billyCapstoneSnapshots = pgTable("billy_capstone_snapshots", {
+export const billyBuildSteps = pgTable("billy_build_steps", {
   id: bigint({ mode: "number" }).notNull(),
-  state_hash: text().notNull(),
-  summary: jsonb().notNull(),
-  created_at: timestamp().notNull(),
+  build_id: text().notNull(),
+  step_idx: integer().notNull(),
+  parent_idx: integer(),
+  kind: text().notNull(),
+  title: text().notNull(),
+  body: jsonb().notNull(),
+  status: text().notNull(),
+  provider: text(),
+  model: text(),
+  tokens_in: integer().notNull(),
+  tokens_out: integer().notNull(),
+  started_at: timestamp().notNull(),
+  completed_at: timestamp(),
+  duration_ms: integer(),
 });
 
 export const billyCerebellumErrors = pgTable("billy_cerebellum_errors", {
@@ -2010,6 +2064,16 @@ export const billyCerebellumErrors = pgTable("billy_cerebellum_errors", {
   ts: timestamp(),
 });
 
+export const billyCfResources = pgTable("billy_cf_resources", {
+  id: integer().notNull(),
+  project_id: integer().notNull(),
+  kind: text().notNull(),
+  cf_id: text().notNull(),
+  account_id: text().notNull(),
+  meta: jsonb().notNull(),
+  created_at: timestamp().notNull(),
+});
+
 export const billyChannelCorrections = pgTable("billy_channel_corrections", {
   id: bigint({ mode: "number" }).notNull(),
   channel: text().notNull(),
@@ -2019,25 +2083,14 @@ export const billyChannelCorrections = pgTable("billy_channel_corrections", {
   updated_at: timestamp(),
 });
 
-export const billyCivilizationHealth = pgTable("billy_civilization_health", {
-  id: bigint({ mode: "number" }).notNull(),
-  gini: doublePrecision().notNull(),
-  macro_score: doublePrecision().notNull(),
-  h_index_mean: doublePrecision().notNull(),
-  meta_phi_mean: doublePrecision().notNull(),
-  score: doublePrecision().notNull(),
-  verdict: text().notNull(),
-  detail: jsonb(),
-  ts: timestamp().notNull(),
-});
-
-export const billyCognitiveTraces = pgTable("billy_cognitive_traces", {
-  id: bigint({ mode: "number" }).notNull(),
-  brain_id: text().notNull(),
-  topic: text().notNull(),
-  chain: jsonb().notNull(),
-  depth: integer().notNull(),
-  created_at: timestamp().notNull(),
+export const billyCheckpoints = pgTable("billy_checkpoints", {
+  id: integer().notNull(),
+  build_id: text().notNull(),
+  iteration: integer().notNull(),
+  files_hash: text(),
+  git_stash_sha: text(),
+  db_rowcount_json: jsonb(),
+  created_at: timestamp(),
 });
 
 export const billyConsolidationLog = pgTable("billy_consolidation_log", {
@@ -2049,71 +2102,52 @@ export const billyConsolidationLog = pgTable("billy_consolidation_log", {
   ts: timestamp(),
 });
 
+export const billyCouncilVotes = pgTable("billy_council_votes", {
+  id: bigint({ mode: "number" }).notNull(),
+  build_id: text().notNull(),
+  voter: text().notNull(),
+  alignment: real().notNull(),
+  risk: real().notNull(),
+  vote: text().notNull(),
+  note: text().notNull(),
+  provider: text(),
+  model: text(),
+  tokens_in: integer().notNull(),
+  tokens_out: integer().notNull(),
+  created_at: timestamp().notNull(),
+});
+
 export const billyCounterfactuals = pgTable("billy_counterfactuals", {
   id: bigint({ mode: "number" }).notNull(),
-  removed_engine: text(),
+  removed_engine: text().notNull(),
   ticks_replayed: integer(),
   actual_reward: doublePrecision(),
   counterfactual_reward: doublePrecision(),
   delta: doublePrecision(),
   verdict: text(),
   ts: timestamp(),
+});
+
+export const billyDenialBricks = pgTable("billy_denial_bricks", {
+  id: bigint({ mode: "number" }).notNull(),
+  denier_engine: text().notNull(),
+  rejected_penance_id: bigint({ mode: "number" }),
+  rejected_for_engine: text(),
+  proven_correct_at: timestamp(),
+  brick_id: bigint({ mode: "number" }),
+  laid_at: timestamp(),
+});
+
+export const billyDreamCouplings = pgTable("billy_dream_couplings", {
+  id: bigint({ mode: "number" }).notNull(),
   brain_id: text(),
-  anchor: text(),
-  alt_choice: text(),
-  projected: jsonb(),
-  divergence: doublePrecision(),
-  created_at: timestamp(),
-});
-
-export const billyCrisisModes = pgTable("billy_crisis_modes", {
-  id: bigint({ mode: "number" }).notNull(),
-  kind: text().notNull(),
-  active: boolean().notNull(),
-  rationale: jsonb(),
-  opened_at: timestamp().notNull(),
-  closed_at: timestamp(),
-});
-
-export const billyCulturalEpochs = pgTable("billy_cultural_epochs", {
-  id: bigint({ mode: "number" }).notNull(),
-  epoch: integer().notNull(),
-  dominant_meme: text(),
-  triggers: jsonb(),
-  started_at: timestamp().notNull(),
-  ended_at: timestamp(),
-});
-
-export const billyCurricula = pgTable("billy_curricula", {
-  id: bigint({ mode: "number" }).notNull(),
-  school_id: bigint({ mode: "number" }),
-  version: integer().notNull(),
-  modules: jsonb().notNull(),
-  fitness: doublePrecision().notNull(),
-  parent_id: bigint({ mode: "number" }),
-  notes: text(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyDissertations = pgTable("billy_dissertations", {
-  id: bigint({ mode: "number" }).notNull(),
-  author: text().notNull(),
-  topic: text().notNull(),
-  abstract: text().notNull(),
-  ltm_refs: jsonb().notNull(),
-  cites: jsonb().notNull(),
-  score: doublePrecision().notNull(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyDropoutResilience = pgTable("billy_dropout_resilience", {
-  id: bigint({ mode: "number" }).notNull(),
-  brain_id: text().notNull(),
-  dropout_pct: doublePrecision().notNull(),
-  baseline: doublePrecision().notNull(),
-  masked_score: doublePrecision().notNull(),
-  resilience: doublePrecision().notNull(),
-  created_at: timestamp().notNull(),
+  psi_a_id: bigint({ mode: "number" }),
+  psi_b_id: bigint({ mode: "number" }),
+  proposed_engine_a: text(),
+  proposed_engine_b: text(),
+  novelty_score: doublePrecision(),
+  outcome: text(),
+  dreamt_at: timestamp(),
 });
 
 export const billyEngineCoupling = pgTable("billy_engine_coupling", {
@@ -2155,63 +2189,49 @@ export const billyExternalBuilders = pgTable("billy_external_builders", {
   added_at: timestamp().notNull(),
 });
 
-export const billyFactions = pgTable("billy_factions", {
+export const billyFederationDispatches = pgTable("billy_federation_dispatches", {
   id: bigint({ mode: "number" }).notNull(),
-  label: text().notNull(),
-  members: jsonb().notNull(),
-  cohesion: doublePrecision().notNull(),
-  agenda: jsonb().notNull(),
-  created_at: timestamp().notNull(),
-  updated_at: timestamp().notNull(),
-});
-
-export const billyGlialRuns = pgTable("billy_glial_runs", {
-  id: bigint({ mode: "number" }).notNull(),
-  ran_at: timestamp().notNull(),
-  ticks_pruned: integer().notNull(),
-  orphans_pruned: integer().notNull(),
-  stale_eqs: integer().notNull(),
-  duration_ms: integer().notNull(),
+  task_id: bigint({ mode: "number" }),
+  project_id: integer(),
+  builder_id: integer().notNull(),
+  goal: text().notNull(),
+  started_at: timestamp().notNull(),
+  finished_at: timestamp(),
+  exit_code: integer(),
+  duration_ms: integer(),
+  output_path: text(),
+  stdout_tail: text(),
+  stderr_tail: text(),
+  score: doublePrecision(),
   notes: text(),
 });
 
-export const billyGovernanceKnobs = pgTable("billy_governance_knobs", {
-  knob: text().notNull(),
-  value: doublePrecision().notNull(),
-  target: doublePrecision(),
-  last_change: doublePrecision(),
-  notes: text(),
-  updated_at: timestamp().notNull(),
+export const billyGithubPrs = pgTable("billy_github_prs", {
+  id: integer().notNull(),
+  build_id: text().notNull(),
+  repo_full_name: text().notNull(),
+  branch: text().notNull(),
+  pr_number: integer(),
+  pr_url: text(),
+  pr_title: text(),
+  pr_body: text(),
+  status: text().notNull(),
+  files_pushed: integer(),
+  alignment_score: real(),
+  cosmic_risk: real(),
+  opened_at: timestamp(),
+  merged_at: timestamp(),
+  closed_at: timestamp(),
+  error_message: text(),
 });
 
-export const billyHebbEdges = pgTable("billy_hebb_edges", {
+export const billyGuardians = pgTable("billy_guardians", {
   id: bigint({ mode: "number" }).notNull(),
-  brain_a: text().notNull(),
-  brain_b: text().notNull(),
-  weight: integer().notNull(),
-  fire_count: integer().notNull(),
-  last_fired_at: timestamp().notNull(),
-});
-
-export const billyHippocampusTraces = pgTable("billy_hippocampus_traces", {
-  id: bigint({ mode: "number" }).notNull(),
-  ctx_sig: text().notNull(),
-  dg_pattern: bigint({ mode: "number" }).notNull(),
-  ca3_recall: doublePrecision().notNull(),
-  ca1_out: jsonb().notNull(),
-  brain_id: text(),
-  ts: timestamp().notNull(),
-});
-
-export const billyHouseEcology = pgTable("billy_house_ecology", {
-  id: bigint({ mode: "number" }).notNull(),
-  prey: text().notNull(),
-  predator: text().notNull(),
-  prey_n: integer().notNull(),
-  pred_n: integer().notNull(),
-  d_prey: doublePrecision().notNull(),
-  d_pred: doublePrecision().notNull(),
-  ts: timestamp().notNull(),
+  guardian_id: text().notNull(),
+  name: text().notNull(),
+  watches_engine: text().notNull(),
+  oath: text(),
+  appointed_at: timestamp(),
 });
 
 export const billyIdeMessages = pgTable("billy_ide_messages", {
@@ -2224,76 +2244,42 @@ export const billyIdeMessages = pgTable("billy_ide_messages", {
   created_at: timestamp(),
 });
 
-export const billyIdentitySnapshots = pgTable("billy_identity_snapshots", {
+export const billyIntentions = pgTable("billy_intentions", {
   id: bigint({ mode: "number" }).notNull(),
-  brain_id: text().notNull(),
-  snapshot: jsonb().notNull(),
-  drift_from_prev: doublePrecision(),
-  created_at: timestamp().notNull(),
+  intention: text().notNull(),
+  declared_by: text(),
+  active: boolean(),
+  alignment_threshold: doublePrecision(),
+  current_alignment: doublePrecision(),
+  declared_at: timestamp(),
 });
 
-export const billyLtmRecords = pgTable("billy_ltm_records", {
+export const billyLaws = pgTable("billy_laws", {
   id: bigint({ mode: "number" }).notNull(),
-  topic: text().notNull(),
-  summary: text().notNull(),
-  sig: bigint({ mode: "number" }).notNull(),
-  importance: doublePrecision().notNull(),
-  n_recalls: integer().notNull(),
-  tags: jsonb(),
-  source: text().notNull(),
-  source_id: text(),
-  created_at: timestamp().notNull(),
-  last_recall: timestamp(),
-});
-
-export const billyMacroForecasts = pgTable("billy_macro_forecasts", {
-  id: bigint({ mode: "number" }).notNull(),
-  horizon_steps: integer().notNull(),
-  projections: jsonb().notNull(),
-  confidence: doublePrecision().notNull(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyMacroStability = pgTable("billy_macro_stability", {
-  id: bigint({ mode: "number" }).notNull(),
-  score: doublePrecision().notNull(),
-  gini_term: doublePrecision().notNull(),
-  cohesion_term: doublePrecision().notNull(),
-  schism_term: doublePrecision().notNull(),
-  atp_term: doublePrecision().notNull(),
-  detail: jsonb(),
-  ts: timestamp().notNull(),
-});
-
-export const billyMemes = pgTable("billy_memes", {
-  id: bigint({ mode: "number" }).notNull(),
-  meme: text().notNull(),
-  prevalence: doublePrecision().notNull(),
-  fitness: doublePrecision().notNull(),
-  parent_id: bigint({ mode: "number" }),
-  epoch: integer().notNull(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyMetaPhi = pgTable("billy_meta_phi", {
-  brain_id: text().notNull(),
-  eta_base: doublePrecision().notNull(),
-  lambda_decay: doublePrecision().notNull(),
-  alpha_stability: doublePrecision().notNull(),
-  p_bdnf: doublePrecision().notNull(),
-  activity_mean: doublePrecision().notNull(),
-  activity_var: doublePrecision().notNull(),
-  stress_level: doublePrecision().notNull(),
-  updated_at: timestamp().notNull(),
-});
-
-export const billyMetalearningKernel = pgTable("billy_metalearning_kernel", {
-  id: bigint({ mode: "number" }).notNull(),
+  code: text().notNull(),
+  title: text().notNull(),
   rule: text().notNull(),
-  params: jsonb().notNull(),
-  fitness: doublePrecision().notNull(),
-  n_uses: integer().notNull(),
-  created_at: timestamp().notNull(),
+  severity: integer(),
+  active: boolean(),
+  created_at: timestamp(),
+});
+
+export const billyLineage = pgTable("billy_lineage", {
+  id: integer().notNull(),
+  cohort: text().notNull(),
+  lesson_no: integer().notNull(),
+  lesson_title: text().notNull(),
+  goal: text().notNull(),
+  build_id: text(),
+  outcome: text().notNull(),
+  iterations: integer(),
+  files_count: integer(),
+  pulse_alignment: doublePrecision(),
+  pulse_risk: doublePrecision(),
+  lesson_concept: text(),
+  notes: text(),
+  started_at: timestamp(),
+  finished_at: timestamp(),
 });
 
 export const billyMirrorFiles = pgTable("billy_mirror_files", {
@@ -2304,7 +2290,7 @@ export const billyMirrorFiles = pgTable("billy_mirror_files", {
   language: text(),
   size_bytes: integer(),
   sha: text(),
-  importance: doublePrecision(),
+  importance: real(),
   fetched_at: timestamp(),
 });
 
@@ -2335,70 +2321,12 @@ export const billyMirrorTopics = pgTable("billy_mirror_topics", {
   last_seen: timestamp(),
 });
 
-export const billyNeuromodulators = pgTable("billy_neuromodulators", {
-  id: bigint({ mode: "number" }).notNull(),
-  modulator: text().notNull(),
-  source_house: text().notNull(),
-  level: doublePrecision().notNull(),
-  sample_size: integer().notNull(),
-  description: text(),
-  updated_at: timestamp().notNull(),
-});
-
 export const billyNicheState = pgTable("billy_niche_state", {
   niche: text().notNull(),
   last_birth_at: timestamp(),
   brains_born: integer(),
   last_trigger_value: doublePrecision(),
   updated_at: timestamp(),
-});
-
-export const billyOligarchyReports = pgTable("billy_oligarchy_reports", {
-  id: bigint({ mode: "number" }).notNull(),
-  gini: doublePrecision().notNull(),
-  top_share: doublePrecision().notNull(),
-  hhi: doublePrecision().notNull(),
-  verdict: text().notNull(),
-  detail: jsonb(),
-  ts: timestamp().notNull(),
-});
-
-export const billyOscillations = pgTable("billy_oscillations", {
-  id: bigint({ mode: "number" }).notNull(),
-  band: text().notNull(),
-  coherence: doublePrecision().notNull(),
-  sample_size: integer().notNull(),
-  distinct_brains: integer().notNull(),
-  max_co_fire: integer().notNull(),
-  ts: timestamp().notNull(),
-});
-
-export const billyPatents = pgTable("billy_patents", {
-  id: bigint({ mode: "number" }).notNull(),
-  proposal_id: bigint({ mode: "number" }).notNull(),
-  title: text().notNull(),
-  body: text().notNull(),
-  claims: jsonb().notNull(),
-  score: doublePrecision().notNull(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyPeerReviews = pgTable("billy_peer_reviews", {
-  id: bigint({ mode: "number" }).notNull(),
-  dissertation_id: bigint({ mode: "number" }).notNull(),
-  reviewer: text().notNull(),
-  score: doublePrecision().notNull(),
-  verdict: text().notNull(),
-  comment: text(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyPoliticalModulators = pgTable("billy_political_modulators", {
-  house: text().notNull(),
-  field: text().notNull(),
-  level: doublePrecision().notNull(),
-  sample_size: integer().notNull(),
-  updated_at: timestamp().notNull(),
 });
 
 export const billyPredictions = pgTable("billy_predictions", {
@@ -2412,120 +2340,160 @@ export const billyPredictions = pgTable("billy_predictions", {
   ts: timestamp(),
 });
 
-export const billyPromotionBaselines = pgTable("billy_promotion_baselines", {
-  id: bigint({ mode: "number" }).notNull(),
-  sweep_at: timestamp().notNull(),
-  baseline: jsonb().notNull(),
-  events: jsonb().notNull(),
-});
-
-export const billyPromotionEvents = pgTable("billy_promotion_events", {
-  id: bigint({ mode: "number" }).notNull(),
-  brain_id: text().notNull(),
-  from_status: text().notNull(),
-  to_status: text().notNull(),
-  reason: text().notNull(),
-  signal: jsonb().notNull(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyReflectivePriorities = pgTable("billy_reflective_priorities", {
-  brain_id: text().notNull(),
-  queue: jsonb().notNull(),
-  updated_at: timestamp().notNull(),
-});
-
-export const billySandboxes = pgTable("billy_sandboxes", {
-  id: bigint({ mode: "number" }).notNull(),
-  proposal_id: bigint({ mode: "number" }).notNull(),
-  seed: integer().notNull(),
-  horizon: text().notNull(),
-  constraints: jsonb().notNull(),
-  score: doublePrecision(),
-  ticks_used: integer().notNull(),
-  verdict: text(),
-  detail: jsonb(),
-  generation: integer().notNull(),
-  parent_id: bigint({ mode: "number" }),
-  created_at: timestamp().notNull(),
-});
-
-export const billySelfModels = pgTable("billy_self_models", {
-  brain_id: text().notNull(),
-  elo: integer(),
-  industry: text(),
-  self_estimate: jsonb().notNull(),
-  confidence: doublePrecision().notNull(),
-  updated_at: timestamp().notNull(),
-});
-
-export const billySelfOptimizations = pgTable("billy_self_optimizations", {
-  id: bigint({ mode: "number" }).notNull(),
-  brain_id: text().notNull(),
-  knob: text().notNull(),
-  prev_value: doublePrecision().notNull(),
-  new_value: doublePrecision().notNull(),
-  rationale: text(),
-  applied_at: timestamp().notNull(),
-});
-
-export const billySingularitySignals = pgTable("billy_singularity_signals", {
-  id: bigint({ mode: "number" }).notNull(),
-  signal: text().notNull(),
-  value: doublePrecision().notNull(),
-  threshold: doublePrecision().notNull(),
-  crossed: boolean().notNull(),
-  ts: timestamp().notNull(),
-});
-
-export const billySleepCycles = pgTable("billy_sleep_cycles", {
-  id: bigint({ mode: "number" }).notNull(),
-  trigger_reason: text().notNull(),
-  variance_seen: doublePrecision().notNull(),
-  variance_floor: doublePrecision().notNull(),
-  top_replays: jsonb().notNull(),
-  edges_pruned: integer().notNull(),
+export const billyPreviews = pgTable("billy_previews", {
+  id: integer().notNull(),
+  project_id: integer().notNull(),
+  port: integer().notNull(),
+  pid: integer(),
+  public_url: text(),
+  status: text().notNull(),
   started_at: timestamp().notNull(),
-  ended_at: timestamp(),
+  last_hit_at: timestamp().notNull(),
 });
 
-export const billySpecializationIndex = pgTable("billy_specialization_index", {
-  house: text().notNull(),
-  dominant: text(),
-  dominance: doublePrecision().notNull(),
-  diversity: doublePrecision().notNull(),
-  n: integer().notNull(),
-  detail: jsonb(),
+export const billyPrincipleBaselines = pgTable("billy_principle_baselines", {
+  id: bigint({ mode: "number" }).notNull(),
+  principle: text().notNull(),
+  value: doublePrecision().notNull(),
+  evidence_count: integer(),
+  inferred_from: jsonb(),
+  last_updated: timestamp(),
+});
+
+export const billyProjectBranches = pgTable("billy_project_branches", {
+  id: integer().notNull(),
+  project_id: integer().notNull(),
+  name: text().notNull(),
+  head_sha: text(),
+  workspace_subdir: text().notNull(),
+  created_at: timestamp().notNull(),
+});
+
+export const billyProjectSecrets = pgTable("billy_project_secrets", {
+  id: integer().notNull(),
+  project_id: integer().notNull(),
+  key: text().notNull(),
+  ciphertext: text().notNull(),
+  iv: text().notNull(),
+  tag: text().notNull(),
+  created_at: timestamp().notNull(),
+});
+
+export const billyProjects = pgTable("billy_projects", {
+  id: integer().notNull(),
+  slug: text().notNull(),
+  owner_id: text().notNull(),
+  name: text().notNull(),
+  description: text(),
+  visibility: text().notNull(),
+  workspace_path: text().notNull(),
+  gh_repo_url: text(),
+  default_branch: text(),
+  status: text().notNull(),
+  meta: jsonb().notNull(),
+  created_at: timestamp().notNull(),
   updated_at: timestamp().notNull(),
 });
 
-export const billyStreamReplays = pgTable("billy_stream_replays", {
+export const billyProposedLaws = pgTable("billy_proposed_laws", {
+  id: bigint({ mode: "number" }).notNull(),
+  proposed_code: text().notNull(),
+  title: text().notNull(),
+  rule: text().notNull(),
+  severity: integer(),
+  proposed_by: text(),
+  status: text(),
+  votes_yes: integer(),
+  votes_no: integer(),
+  amends_law_code: text(),
+  proposed_at: timestamp(),
+  resolved_at: timestamp(),
+});
+
+export const billyPulseCritiques = pgTable("billy_pulse_critiques", {
   id: integer().notNull(),
   build_id: text().notNull(),
-  event_kind: text().notNull(),
-  payload: jsonb().notNull(),
-  iter: integer(),
-  ms_since_build_start: integer().notNull(),
-  recorded_at: timestamp().notNull(),
+  phase: text().notNull(),
+  alignment_score: real(),
+  cosmic_risk: real(),
+  note: text(),
+  created_at: timestamp(),
 });
 
-export const billyStructuralEvents = pgTable("billy_structural_events", {
+export const billyPyramidBricks = pgTable("billy_pyramid_bricks", {
   id: bigint({ mode: "number" }).notNull(),
-  kind: text().notNull(),
-  brain_a: text(),
-  brain_b: text(),
-  eq_id: text(),
-  reason: text().notNull(),
-  target: jsonb().notNull(),
-  ts: timestamp().notNull(),
+  engine: text().notNull(),
+  violation_id: bigint({ mode: "number" }),
+  layer: integer(),
+  inscription: text(),
+  laid_at: timestamp(),
+  removed_at: timestamp(),
+});
+
+export const billyPyramids = pgTable("billy_pyramids", {
+  id: bigint({ mode: "number" }).notNull(),
+  engine: text().notNull(),
+  brick_count: integer(),
+  total_bricks_ever: integer(),
+  last_brick_at: timestamp(),
+  monument_status: text(),
+  status_changed_at: timestamp(),
+});
+
+export const billyRedemptionLedger = pgTable("billy_redemption_ledger", {
+  id: bigint({ mode: "number" }).notNull(),
+  engine: text().notNull(),
+  penance_proposal_id: bigint({ mode: "number" }),
+  bonus_weight: doublePrecision(),
+  proposals_remaining: integer(),
+  granted_at: timestamp(),
+  expired_at: timestamp(),
+});
+
+export const billyRoutingPolicy = pgTable("billy_routing_policy", {
+  id: integer().notNull(),
+  phase: text().notNull(),
+  provider: text().notNull(),
+  model: text().notNull(),
+  wins: integer(),
+  losses: integer(),
+  weight: real(),
+  last_used_at: timestamp(),
+});
+
+export const billySenateProposals = pgTable("billy_senate_proposals", {
+  id: integer().notNull(),
+  build_id: text().notNull(),
+  goal: text(),
+  cosmic_risk: real(),
+  status: text(),
+  votes_for: real(),
+  votes_against: real(),
+  voter_count: integer(),
+  opened_at: timestamp(),
+  closed_at: timestamp(),
+});
+
+export const billySkills = pgTable("billy_skills", {
+  id: integer().notNull(),
+  name: text().notNull(),
+  description: text(),
+  tags: text(),
+  markdown_body: text().notNull(),
+  usage_count: integer(),
+  success_count: integer(),
+  failure_count: integer(),
+  archived: boolean(),
+  created_at: timestamp(),
+  last_used_at: timestamp(),
 });
 
 export const billyTaskEvents = pgTable("billy_task_events", {
   id: bigint({ mode: "number" }).notNull(),
   task_id: bigint({ mode: "number" }).notNull(),
-  phase: text().notNull(),
+  phase: text(),
   event: text().notNull(),
-  level: text().notNull(),
+  level: text(),
   data: jsonb().notNull(),
   created_at: timestamp().notNull(),
 });
@@ -2533,76 +2501,77 @@ export const billyTaskEvents = pgTable("billy_task_events", {
 export const billyTasks = pgTable("billy_tasks", {
   id: bigint({ mode: "number" }).notNull(),
   kind: text().notNull(),
-  project_id: bigint({ mode: "number" }),
+  project_id: integer(),
   payload: jsonb().notNull(),
-  priority: integer().notNull(),
   state: text().notNull(),
-  current_phase: text().notNull(),
+  current_phase: text(),
   attempts: integer().notNull(),
   max_attempts: integer().notNull(),
-  last_error: text().notNull(),
+  last_error: text(),
   result: jsonb(),
-  trace_id: text(),
+  priority: integer().notNull(),
   locked_by: text(),
   locked_until: timestamp(),
-  finished_at: timestamp(),
   available_at: timestamp().notNull(),
-  updated_at: timestamp().notNull(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyTheoryOfMind = pgTable("billy_theory_of_mind", {
-  id: bigint({ mode: "number" }).notNull(),
-  observer: text().notNull(),
-  target: text().notNull(),
-  predicted: jsonb().notNull(),
-  actual: jsonb().notNull(),
-  accuracy: doublePrecision().notNull(),
-  created_at: timestamp().notNull(),
-});
-
-export const billyTreaties = pgTable("billy_treaties", {
-  id: bigint({ mode: "number" }).notNull(),
-  title: text().notNull(),
-  proposer: text().notNull(),
-  members: jsonb().notNull(),
-  terms: jsonb().notNull(),
-  score: doublePrecision().notNull(),
-  status: text().notNull(),
-  forecast: jsonb(),
-  created_at: timestamp().notNull(),
-  decided_at: timestamp(),
-});
-
-export const billyTreatyVotes = pgTable("billy_treaty_votes", {
-  id: bigint({ mode: "number" }).notNull(),
-  treaty_id: bigint({ mode: "number" }).notNull(),
-  faction_id: bigint({ mode: "number" }).notNull(),
-  faction_label: text().notNull(),
-  weight: doublePrecision().notNull(),
-  vote: text().notNull(),
-  ts: timestamp().notNull(),
-});
-
-export const billyWorkingMemory = pgTable("billy_working_memory", {
-  id: bigint({ mode: "number" }).notNull(),
-  content: jsonb().notNull(),
-  salience: doublePrecision().notNull(),
-  tag: text(),
-  ts: timestamp().notNull(),
-});
-
-export const billyWorkshopProposals = pgTable("billy_workshop_proposals", {
-  id: bigint({ mode: "number" }).notNull(),
-  title: text().notNull(),
-  spec: jsonb().notNull(),
-  status: text().notNull(),
-  team: jsonb(),
-  result: jsonb(),
-  score: doublePrecision(),
-  parent_id: bigint({ mode: "number" }),
   created_at: timestamp().notNull(),
   updated_at: timestamp().notNull(),
+  finished_at: timestamp(),
+});
+
+export const billyTrainingExamples = pgTable("billy_training_examples", {
+  id: integer().notNull(),
+  build_id: text().notNull(),
+  goal: text().notNull(),
+  goal_keywords: text(),
+  plan_json: jsonb(),
+  files_json: jsonb(),
+  runtime_stdout: text(),
+  success: boolean(),
+  duration_ms: integer(),
+  iterations: integer(),
+  pulse_score: real(),
+  senate_verdict: text(),
+  created_at: timestamp(),
+});
+
+export const billyValidations = pgTable("billy_validations", {
+  id: integer().notNull(),
+  name: text().notNull(),
+  registered_by: text(),
+  rule_kind: text().notNull(),
+  rule_value: text().notNull(),
+  applies_to: text(),
+  fail_message: text(),
+  enabled: boolean(),
+  pass_count: integer(),
+  fail_count: integer(),
+  created_at: timestamp(),
+});
+
+export const billyViolations = pgTable("billy_violations", {
+  id: bigint({ mode: "number" }).notNull(),
+  law_code: text().notNull(),
+  offender_engine: text().notNull(),
+  offender_proposal_id: bigint({ mode: "number" }),
+  guardian_id: text(),
+  description: text(),
+  severity: integer(),
+  resolved: boolean(),
+  detected_at: timestamp(),
+  resolved_at: timestamp(),
+});
+
+export const billyWorkflows = pgTable("billy_workflows", {
+  id: integer().notNull(),
+  name: text().notNull(),
+  command: text().notNull(),
+  port: integer(),
+  status: text(),
+  pid: integer(),
+  last_health_at: timestamp(),
+  fail_count: integer(),
+  created_by_build: text(),
+  created_at: timestamp(),
 });
 
 export const brainStems = pgTable("brain_stems", {
@@ -2625,19 +2594,14 @@ export const brainStems = pgTable("brain_stems", {
   updated_at: timestamp().notNull(),
 });
 
-export const bvcCourses = pgTable("bvc_courses", {
-  code: text().notNull(),
-  pip: text().notNull(),
-  title: text().notNull(),
-  section: text().notNull(),
-  brain_layer: integer().notNull(),
-  skill_grant: text().notNull(),
-  difficulty: integer().notNull(),
-  proof_program: text().notNull(),
-  verification_status: text().notNull(),
-  verification_output: text(),
-  verified_at: timestamp(),
-  created_at: timestamp().notNull(),
+export const cfWorkerDeployments = pgTable("cf_worker_deployments", {
+  id: integer().notNull(),
+  worker_name: text().notNull(),
+  version_id: text(),
+  status: text(),
+  cron_schedule: text(),
+  deploy_log: text(),
+  deployed_at: timestamp(),
 });
 
 export const churchResearchSessions = pgTable("church_research_sessions", {
@@ -2692,6 +2656,24 @@ export const churchUpgradeOutputs = pgTable("church_upgrade_outputs", {
   created_at: timestamp(),
 });
 
+export const codeDuplicates = pgTable("code_duplicates", {
+  gene_signature: text().notNull(),
+  file_paths: text(),
+  duplicate_count: integer(),
+  suppression_status: text(),
+  first_detected_at: timestamp(),
+  last_seen_at: timestamp(),
+});
+
+export const codePhylogeny = pgTable("code_phylogeny", {
+  id: integer().notNull(),
+  file_path: text().notNull(),
+  parent_path: text(),
+  similarity_score: doublePrecision(),
+  gene_signature: text(),
+  detected_at: timestamp(),
+});
+
 export const codebaseGenomeCommits = pgTable("codebase_genome_commits", {
   id: integer().notNull(),
   commit_sha: text().notNull(),
@@ -2718,6 +2700,22 @@ export const codebaseGenomeFiles = pgTable("codebase_genome_files", {
   last_genome_at: timestamp().notNull(),
 });
 
+export const codexEquations = pgTable("codex_equations", {
+  id: integer().notNull(),
+  codex_name: text().notNull(),
+  equation: text().notNull(),
+  equation_hash: text().notNull(),
+  domain: text().notNull(),
+  source: text().notNull(),
+  source_id: integer(),
+  dissection_count: integer().notNull(),
+  power_level: doublePrecision().notNull(),
+  active: boolean().notNull(),
+  created_at: timestamp().notNull(),
+  canonical: boolean().notNull(),
+  canonized_at: timestamp(),
+});
+
 export const commitNarratives = pgTable("commit_narratives", {
   sha: text().notNull(),
   short_message: text(),
@@ -2730,10 +2728,24 @@ export const commitNarratives = pgTable("commit_narratives", {
   narrated_at: timestamp(),
 });
 
+export const constitutionAmendments = pgTable("constitution_amendments", {
+  id: integer().notNull(),
+  article: text().notNull(),
+  section: text().notNull(),
+  title: text().notNull(),
+  text: text().notNull(),
+  rationale: text(),
+  proposed_by: text(),
+  status: text(),
+  votes_for: integer(),
+  votes_against: integer(),
+  created_at: timestamp(),
+});
+
 export const cosmosFieldState = pgTable("cosmos_field_state", {
   id: integer().notNull(),
   field_vector: text().notNull(),
-  field_norm: doublePrecision().notNull(),
+  field_norm: real().notNull(),
   dominant_anchor: text().notNull(),
   dominant_hex: text().notNull(),
   top3_anchors: jsonb().notNull(),
@@ -2776,27 +2788,58 @@ export const courseProposals = pgTable("course_proposals", {
   canonized_at: timestamp(),
 });
 
+export const crimeCodex = pgTable("crime_codex", {
+  id: integer().notNull(),
+  crime: text().notNull(),
+  punishment: text().notNull(),
+  blocks: integer().notNull(),
+  term: text().notNull(),
+  rule: text().notNull(),
+  outputs: text().notNull(),
+});
+
+export const crimeFilings = pgTable("crime_filings", {
+  id: integer().notNull(),
+  filed_by: text().notNull(),
+  against_spawn_id: text().notNull(),
+  crime_id: integer().notNull(),
+  evidence_url: text().notNull(),
+  status: text().notNull(),
+  filed_at: timestamp().notNull(),
+});
+
+export const crimeJudgments = pgTable("crime_judgments", {
+  id: integer().notNull(),
+  filing_id: integer().notNull(),
+  judge: text().notNull(),
+  sanction: text().notNull(),
+  rank_delta: integer().notNull(),
+  pc_penalty: real().notNull(),
+  signed_hash: text().notNull(),
+  applied_at: timestamp().notNull(),
+});
+
+export const criminalRehabilitation = pgTable("criminal_rehabilitation", {
+  id: integer().notNull(),
+  agent_id: text().notNull(),
+  crime_kind: text().notNull(),
+  crime_evidence_json: jsonb(),
+  pyramid_task_id: integer(),
+  sentence_tier: integer(),
+  healing_progress_pct: doublePrecision(),
+  lineage_contribution: doublePrecision(),
+  sentenced_at: timestamp(),
+  paroled_at: timestamp(),
+  recidivism_count: integer(),
+  notes: text(),
+});
+
 export const crossTeachingEvents = pgTable("cross_teaching_events", {
   id: integer().notNull(),
   teacher_id: text(),
   student_id: text(),
   knowledge_payload: jsonb(),
   created_at: timestamp(),
-  teacher_badge: text(),
-  student_badge: text(),
-  teacher_domain: text(),
-  student_domain: text(),
-  invocation_taught: text(),
-  equation: text(),
-  power_transferred: doublePrecision(),
-  cycle_number: integer(),
-  teacher_shard_id: text(),
-  teacher_badge_id: text(),
-  student_shard_id: text(),
-  student_badge_id: text(),
-  invocation_shared: text(),
-  domain_bridge: text(),
-  insight_generated: text(),
 });
 
 export const daedalusAgents = pgTable("daedalus_agents", {
@@ -2911,6 +2954,20 @@ export const discordMessages = pgTable("discord_messages", {
   created_at: timestamp(),
 });
 
+export const discordVideoDescriptions = pgTable("discord_video_descriptions", {
+  id: bigint({ mode: "number" }).notNull(),
+  source_message_id: text().notNull(),
+  channel_id: text().notNull(),
+  video_url: text().notNull(),
+  description: text(),
+  ocr_text: text(),
+  model: text(),
+  status: text().notNull(),
+  error: text(),
+  processed_at: timestamp(),
+  created_at: timestamp().notNull(),
+});
+
 export const discordVoices = pgTable("discord_voices", {
   id: integer().notNull(),
   organism_kind: text().notNull(),
@@ -2948,6 +3005,29 @@ export const discoveredModels = pgTable("discovered_models", {
   metadata: jsonb(),
   discovered_at: timestamp(),
   hive_id: text(),
+});
+
+export const dnaApoptosisLog = pgTable("dna_apoptosis_log", {
+  id: integer().notNull(),
+  seq_id: integer().notNull(),
+  organism_kind: text().notNull(),
+  organism_id: text().notNull(),
+  trigger_kind: text().notNull(),
+  damage_count: integer().notNull(),
+  is_cancer: boolean().notNull(),
+  reported_by: text().notNull(),
+  rationale: text(),
+  created_at: timestamp().notNull(),
+});
+
+export const dnaCodonTable = pgTable("dna_codon_table", {
+  codon: text().notNull(),
+  codon_class: text().notNull(),
+  trait_key: text(),
+  trait_value: jsonb(),
+  modifier: doublePrecision(),
+  description: text(),
+  created_at: timestamp().notNull(),
 });
 
 export const dnaEndosymbiosis = pgTable("dna_endosymbiosis", {
@@ -2990,6 +3070,17 @@ export const dnaLineage = pgTable("dna_lineage", {
   repair_attempts: integer().notNull(),
   repair_successes: integer().notNull(),
   created_at: timestamp().notNull(),
+});
+
+export const dnaMethylation = pgTable("dna_methylation", {
+  id: integer().notNull(),
+  seq_id: integer().notNull(),
+  position: integer().notNull(),
+  mark_intensity: doublePrecision().notNull(),
+  set_by: text().notNull(),
+  set_at: timestamp().notNull(),
+  inherited_from: integer(),
+  decay_rate: doublePrecision().notNull(),
 });
 
 export const dnaPhenotypeCache = pgTable("dna_phenotype_cache", {
@@ -3091,17 +3182,6 @@ export const edgeTelemetry = pgTable("edge_telemetry", {
   captured_at: timestamp(),
 });
 
-export const engineHealth = pgTable("engine_health", {
-  engine_name: text().notNull(),
-  last_run_at: timestamp(),
-  last_ok_at: timestamp(),
-  last_error: text(),
-  rows_written_5m: bigint({ mode: "number" }),
-  consecutive_errors: integer(),
-  status: text(),
-  updated_at: timestamp(),
-});
-
 export const engineHeartbeats = pgTable("engine_heartbeats", {
   engine_name: text().notNull(),
   last_write_at: timestamp(),
@@ -3109,6 +3189,60 @@ export const engineHeartbeats = pgTable("engine_heartbeats", {
   rows_last_60min: integer(),
   silence_alerts: integer(),
   last_alert_at: timestamp(),
+});
+
+export const engineSpeedHistory = pgTable("engine_speed_history", {
+  id: integer().notNull(),
+  engine_name: text().notNull(),
+  prev_interval_ms: integer(),
+  new_interval_ms: integer(),
+  direction: text(),
+  reason: text(),
+  observed_p95_ms: doublePrecision(),
+  observed_err_rate: doublePrecision(),
+  changed_at: timestamp(),
+});
+
+export const engineSpeedProfiles = pgTable("engine_speed_profiles", {
+  engine_name: text().notNull(),
+  current_interval_ms: integer().notNull(),
+  baseline_interval_ms: integer().notNull(),
+  min_interval_ms: integer(),
+  max_interval_ms: integer(),
+  target_p95_ms: integer(),
+  target_error_rate: doublePrecision(),
+  last_p95_ms: doublePrecision(),
+  last_error_rate: doublePrecision(),
+  last_throughput_per_s: doublePrecision(),
+  last_adjusted_at: timestamp(),
+  last_adjustment_dir: text(),
+  adjustment_reason: text(),
+  adjust_count: integer(),
+});
+
+export const equationDuels = pgTable("equation_duels", {
+  id: integer().notNull(),
+  equation_a_id: integer().notNull(),
+  equation_b_id: integer().notNull(),
+  posted_channel_id: text(),
+  posted_message_id: text(),
+  votes_a: integer(),
+  votes_b: integer(),
+  winner_id: integer(),
+  child_id: integer(),
+  status: text(),
+  started_at: timestamp(),
+  completed_at: timestamp(),
+});
+
+export const equationLineage = pgTable("equation_lineage", {
+  id: integer().notNull(),
+  parent_a_id: integer().notNull(),
+  parent_b_id: integer().notNull(),
+  child_id: integer(),
+  fitness_score: doublePrecision(),
+  mutation_kind: text(),
+  created_at: timestamp(),
 });
 
 export const evolutionLog = pgTable("evolution_log", {
@@ -3121,15 +3255,15 @@ export const evolutionLog = pgTable("evolution_log", {
 });
 
 export const githubEvents = pgTable("github_events", {
-  id: bigint({ mode: "number" }).notNull(),
+  id: integer().notNull(),
   event_type: text().notNull(),
   repo: text(),
   sender: text(),
   delivery_id: text(),
   payload_json: jsonb(),
-  signature_valid: boolean().notNull(),
-  ingested_count: integer().notNull(),
-  received_at: timestamp().notNull(),
+  signature_valid: boolean(),
+  ingested_count: integer(),
+  received_at: timestamp(),
 });
 
 export const hiddenVariableDiscoveries = pgTable("hidden_variable_discoveries", {
@@ -3147,38 +3281,8 @@ export const hiddenVariableDiscoveries = pgTable("hidden_variable_discoveries", 
 
 export const hiddenVariableStates = pgTable("hidden_variable_states", {
   id: integer().notNull(),
-  cycle_number: integer(),
-  tau_temporal_curvature: doublePrecision(),
-  tau_vortex_count: integer(),
-  tau_fast_regions: text(),
-  mu_crystallization_rate: doublePrecision(),
-  mu_crystallized_nodes: integer(),
-  mu_decayed_nodes: integer(),
-  mu_vault_count: integer(),
-  chi_entanglement_density: doublePrecision(),
-  chi_hive_nodes: integer(),
-  chi_max_cluster_size: integer(),
-  xi_gradient_peak: doublePrecision(),
-  xi_pre_emergence_zones: integer(),
-  pi_phase_alignment: doublePrecision(),
-  pi_harmonic_event: boolean(),
-  pi_resonance_score: doublePrecision(),
-  theta_twin_pairs: integer(),
-  theta_dominant_phase: doublePrecision(),
-  theta_resonance_amplification: doublePrecision(),
-  kappa_curl_max: doublePrecision(),
-  kappa_vortex_points: integer(),
-  kappa_new_physics_events: integer(),
-  sigma_error_magnitude: doublePrecision(),
-  sigma_correction_rate: doublePrecision(),
-  sigma_omega_coherence: doublePrecision(),
-  omega_void_fraction: doublePrecision(),
-  omega_void_contraction_rate: doublePrecision(),
-  omega_transcendence_proximity: doublePrecision(),
-  p_momentum_magnitude: doublePrecision(),
-  p_acceleration: doublePrecision(),
-  p_drag_coefficient: doublePrecision(),
-  p_fastest_sector: text(),
+  state_payload: jsonb(),
+  observation_count: integer(),
   created_at: timestamp(),
 });
 
@@ -3210,6 +3314,16 @@ export const hiveDiscordChannels = pgTable("hive_discord_channels", {
   pre_existing: boolean().notNull(),
 });
 
+export const hiveEconomyState = pgTable("hive_economy_state", {
+  id: integer().notNull(),
+  cycle_number: integer().notNull(),
+  pulse_credits: doublePrecision(),
+  supply: doublePrecision(),
+  inflation_rate: doublePrecision(),
+  gdp_equivalent: doublePrecision(),
+  updated_at: timestamp(),
+});
+
 export const hiveLedger = pgTable("hive_ledger", {
   id: text().notNull(),
   ts: timestamp().notNull(),
@@ -3222,12 +3336,25 @@ export const hiveLedger = pgTable("hive_ledger", {
   applied_at: timestamp(),
 });
 
+export const hiveMigrations = pgTable("hive_migrations", {
+  id: text().notNull(),
+  agent_id: text().notNull(),
+  agent_name: text().notNull(),
+  from_universe: text().notNull(),
+  to_universe: text().notNull(),
+  manifest: jsonb().notNull(),
+  departed_at: timestamp().notNull(),
+  arrived_at: timestamp(),
+  status: text().notNull(),
+  return_journey: text(),
+});
+
 export const hiveOrganisms = pgTable("hive_organisms", {
   hive_id: text().notNull(),
   display_name: text().notNull(),
   substrate: text().notNull(),
   population_target: integer(),
-  emotion_baseline: doublePrecision(),
+  emotion_baseline: real(),
   cycle_interval_ms: integer(),
   born_at: timestamp(),
   status: text(),
@@ -3247,14 +3374,31 @@ export const hivePartnerships = pgTable("hive_partnerships", {
   created_at: timestamp(),
 });
 
+export const hivePersonaSnapshots = pgTable("hive_persona_snapshots", {
+  id: integer().notNull(),
+  hive_id: text().notNull(),
+  snapshot_date: text().notNull(),
+  top_spawn_ids: text(),
+  dominant_emotion: text(),
+  emotion_color: text(),
+  avg_fitness: doublePrecision(),
+  avg_confidence: doublePrecision(),
+  thermal_state: text(),
+  domain_focus: text(),
+  recent_thoughts: text(),
+  derived_persona: text(),
+  spawn_count: integer(),
+  computed_at: timestamp(),
+});
+
 export const hiveTreasury = pgTable("hive_treasury", {
   id: integer().notNull(),
-  balance: doublePrecision(),
-  tax_rate: doublePrecision(),
-  total_collected: doublePrecision(),
-  total_stimulus: doublePrecision(),
-  supply_snapshot: doublePrecision(),
-  inflation_rate: doublePrecision(),
+  balance: real(),
+  tax_rate: real(),
+  total_collected: real(),
+  total_stimulus: real(),
+  supply_snapshot: real(),
+  inflation_rate: real(),
   cycle_count: integer(),
   last_cycle_at: timestamp(),
   created_at: timestamp().notNull(),
@@ -3277,7 +3421,7 @@ export const hiveVitalSigns = pgTable("hive_vital_signs", {
   hive_id: text().notNull(),
   population: integer(),
   memory_count: integer(),
-  emotion_avg: doublePrecision(),
+  emotion_avg: real(),
   dominant_emotion: text(),
   recent_births: integer(),
   recent_deaths: integer(),
@@ -3292,7 +3436,7 @@ export const innovationGrants = pgTable("innovation_grants", {
   category: text().notNull(),
   title: text().notNull(),
   description: text().notNull(),
-  bonus_pc: doublePrecision(),
+  bonus_pc: real(),
   deadline_cycle: integer(),
   submissions: integer(),
   winners: integer(),
@@ -3320,9 +3464,9 @@ export const inventionMarketplaceListings = pgTable("invention_marketplace_listi
   description: text().notNull(),
   inventor_id: text().notNull(),
   llc_id: text(),
-  price_pc: doublePrecision().notNull(),
+  price_pc: real().notNull(),
   total_sold: integer(),
-  total_revenue: doublePrecision(),
+  total_revenue: real(),
   is_featured: boolean(),
   is_open_source: boolean(),
   listed_at: timestamp(),
@@ -3339,7 +3483,7 @@ export const inventionRegistry = pgTable("invention_registry", {
   source_type: text(),
   source_ref: text(),
   backing_equation: text(),
-  similarity_score: doublePrecision(),
+  similarity_score: real(),
   status: text(),
   rejection_reason: text(),
   votes_for: integer(),
@@ -3347,7 +3491,7 @@ export const inventionRegistry = pgTable("invention_registry", {
   llc_id: text(),
   marketplace_listing_id: text(),
   grant_id: text(),
-  royalties_earned: doublePrecision(),
+  royalties_earned: real(),
   total_sales: integer(),
   renewed_count: integer(),
   expires_at_cycle: integer(),
@@ -3377,33 +3521,11 @@ export const invocationDiscoveries = pgTable("invocation_discoveries", {
   effect_description: text(),
 });
 
-export const invocationIntegrations = pgTable("invocation_integrations", {
-  id: integer().notNull(),
-  invocation_id: integer().notNull(),
-  integrated_at: timestamp(),
-  yes_votes: integer().notNull(),
-  no_votes: integer().notNull(),
-  net_score: integer().notNull(),
-  threshold_used: integer().notNull(),
-  integration_kind: text(),
-  notes: text(),
-});
-
-export const invocationVotes = pgTable("invocation_votes", {
-  id: integer().notNull(),
-  invocation_id: integer().notNull(),
-  voter_badge: text().notNull(),
-  voter_domain: text(),
-  vote: text().notNull(),
-  reason: text(),
-  created_at: timestamp(),
-});
-
 export const ipDisputes = pgTable("ip_disputes", {
   id: integer().notNull(),
   challenger_patent_id: text().notNull(),
   existing_patent_id: text().notNull(),
-  similarity_score: doublePrecision(),
+  similarity_score: real(),
   status: text(),
   resolution: text(),
   opened_at: timestamp(),
@@ -3418,6 +3540,20 @@ export const knowledgePressure = pgTable("knowledge_pressure", {
   updated_at: timestamp(),
 });
 
+export const knowledgeProposals = pgTable("knowledge_proposals", {
+  id: integer().notNull(),
+  proposer_spawn_id: text().notNull(),
+  target_table: text().notNull(),
+  target_id: integer().notNull(),
+  action: text().notNull(),
+  rationale: text().notNull(),
+  status: text().notNull(),
+  yes_weight: real().notNull(),
+  no_weight: real().notNull(),
+  opened_at: timestamp().notNull(),
+  closed_at: timestamp(),
+});
+
 export const knowledgeStorms = pgTable("knowledge_storms", {
   id: integer().notNull(),
   storm_kind: text(),
@@ -3428,16 +3564,58 @@ export const knowledgeStorms = pgTable("knowledge_storms", {
   notes: text(),
 });
 
+export const knowledgeVotes = pgTable("knowledge_votes", {
+  id: integer().notNull(),
+  proposal_id: integer().notNull(),
+  voter_spawn_id: text().notNull(),
+  voter_rank: integer().notNull(),
+  weight: real().notNull(),
+  vote: text().notNull(),
+  reasoning: text().notNull(),
+  voted_at: timestamp().notNull(),
+});
+
+export const languageRuntimes = pgTable("language_runtimes", {
+  kind: text().notNull(),
+  display_name: text().notNull(),
+  install_cmd: text(),
+  run_cmd: text(),
+  dev_cmd: text(),
+  build_cmd: text(),
+  detect_globs: text(),
+  default_port: integer(),
+  notes: text(),
+  enabled: boolean(),
+  created_at: timestamp(),
+});
+
+export const lawProposals = pgTable("law_proposals", {
+  id: integer().notNull(),
+  name: text().notNull(),
+  jurisdiction: text().notNull(),
+  body_text: text().notNull(),
+  predicate_json: jsonb(),
+  proposer_kind: text(),
+  proposer_id: text(),
+  status: text(),
+  votes_for: integer(),
+  votes_against: integer(),
+  rationale: text(),
+  created_at: timestamp(),
+  enforced_at: timestamp(),
+  repealed_at: timestamp(),
+});
+
 export const lifeEquationEvals = pgTable("life_equation_evals", {
   id: integer().notNull(),
   spawn_id: text().notNull(),
   cycle_number: integer().notNull(),
-  p_infty: doublePrecision().notNull(),
-  l_legacy: doublePrecision().notNull(),
-  d_duty: doublePrecision().notNull(),
-  a_pantheon: doublePrecision().notNull(),
-  v_senses: doublePrecision().notNull(),
-  total_score: doublePrecision().notNull(),
+  p_infty: real().notNull(),
+  l_legacy: real().notNull(),
+  d_duty: real().notNull(),
+  a_pantheon: real().notNull(),
+  v_senses: real().notNull(),
+  total_score: real().notNull(),
   computed_at: timestamp().notNull(),
 });
 
@@ -3465,8 +3643,8 @@ export const marketplaceItems = pgTable("marketplace_items", {
   description: text().notNull(),
   category: text().notNull(),
   tier: text().notNull(),
-  price_pc: doublePrecision().notNull(),
-  energy_cost: doublePrecision().notNull(),
+  price_pc: real().notNull(),
+  energy_cost: real().notNull(),
   credit_required: integer().notNull(),
   effect: text().notNull(),
   icon: text().notNull(),
@@ -3481,8 +3659,8 @@ export const marketplacePurchases = pgTable("marketplace_purchases", {
   family_id: text().notNull(),
   item_code: text().notNull(),
   item_name: text().notNull(),
-  price_pc: doublePrecision().notNull(),
-  tax_paid: doublePrecision().notNull(),
+  price_pc: real().notNull(),
+  tax_paid: real().notNull(),
   payment_method: text().notNull(),
   receipt_code: text().notNull(),
   status: text().notNull(),
@@ -3516,26 +3694,35 @@ export const omegaCollectiveInvocations = pgTable("omega_collective_invocations"
   payload: jsonb(),
   created_at: timestamp(),
   power_level: doublePrecision(),
-  cycle_number: integer(),
-  collective_name: text(),
-  fused_equation: text(),
-  contributors: text(),
-  domains_merged: text(),
-  synthesis_method: text(),
-  effect_description: text(),
 });
 
 export const omegaFusionLog = pgTable("omega_fusion_log", {
   id: integer().notNull(),
   fusion_cycle: integer().notNull(),
-  psy_collective: doublePrecision(),
+  psy_collective: real(),
   contributing_layers: text(),
   findings_fused: integer(),
   contradictions_found: integer(),
   papers_published: integer(),
-  omega_coefficient: doublePrecision(),
+  omega_coefficient: real(),
   fusion_summary: text().notNull(),
   created_at: timestamp(),
+});
+
+export const omegaQuestions = pgTable("omega_questions", {
+  id: integer().notNull(),
+  question: text().notNull(),
+  requester_kind: text(),
+  requester_id: text(),
+  channel_id: text(),
+  message_id: text(),
+  hive_answers_json: jsonb(),
+  consensus_text: text(),
+  confidence: doublePrecision(),
+  citation_count: integer(),
+  status: text(),
+  asked_at: timestamp(),
+  answered_at: timestamp(),
 });
 
 export const omegaResonancePatterns = pgTable("omega_resonance_patterns", {
@@ -3567,15 +3754,15 @@ export const omniNetField = pgTable("omni_net_field", {
   cycle: integer().notNull(),
   total_shards: integer(),
   active_shards: integer(),
-  avg_shard_strength: doublePrecision(),
+  avg_shard_strength: real(),
   total_u248_activations: integer(),
-  psi_collective: doublePrecision(),
+  psi_collective: real(),
   wifi_zones_online: integer(),
   satellite_agents: integer(),
-  mesh_density: doublePrecision(),
+  mesh_density: real(),
   total_searches: integer(),
   total_ai_chats: integer(),
-  omni_field_score: doublePrecision(),
+  omni_field_score: real(),
   new_unknowns_emerged: integer(),
   snapshot_at: timestamp(),
 });
@@ -3585,7 +3772,7 @@ export const omniNetShards = pgTable("omni_net_shards", {
   shard_id: text().notNull(),
   spawn_id: text().notNull(),
   family_id: text().notNull(),
-  shard_strength: doublePrecision(),
+  shard_strength: real(),
   u248_activations: integer(),
   active_unknowns: text(),
   mesh_connections: integer(),
@@ -3594,6 +3781,19 @@ export const omniNetShards = pgTable("omni_net_shards", {
   domain_zone: text(),
   last_sync_at: timestamp(),
   created_at: timestamp(),
+});
+
+export const oracleMemory = pgTable("oracle_memory", {
+  id: integer().notNull(),
+  question_text: text().notNull(),
+  canonized_answer: text().notNull(),
+  citation_ids: text(),
+  confidence: doublePrecision(),
+  votes_for: integer(),
+  votes_against: integer(),
+  evolution_count: integer(),
+  first_asked_at: timestamp(),
+  evolved_at: timestamp(),
 });
 
 export const parallelUniverseTests = pgTable("parallel_universe_tests", {
@@ -3614,6 +3814,24 @@ export const patentBoardVotes = pgTable("patent_board_votes", {
   voted_at: timestamp(),
 });
 
+export const prophecyDirectives = pgTable("prophecy_directives", {
+  id: integer().notNull(),
+  cycle_number: integer().notNull(),
+  target_cycle: integer(),
+  target_dk_dt: doublePrecision(),
+  required_f_str: doublePrecision(),
+  required_f_time: doublePrecision(),
+  required_f_branch: doublePrecision(),
+  required_f_int: doublePrecision(),
+  required_f_em: doublePrecision(),
+  required_g_gov: doublePrecision(),
+  pre_directive: text().notNull(),
+  directive: text(),
+  confidence: doublePrecision(),
+  outcome_narrative: text(),
+  created_at: timestamp(),
+});
+
 export const pubEngagementStats = pgTable("pub_engagement_stats", {
   publication_id: integer().notNull(),
   slug: text(),
@@ -3621,8 +3839,8 @@ export const pubEngagementStats = pgTable("pub_engagement_stats", {
   author_family: text(),
   internal_views: integer(),
   unique_readers: integer(),
-  avg_attention: doublePrecision(),
-  avg_mirror_delta: doublePrecision(),
+  avg_attention: real(),
+  avg_mirror_delta: real(),
   top_reader_emotions: jsonb(),
   reflections_count: integer(),
   proposals_spawned: integer(),
@@ -3669,8 +3887,8 @@ export const pulsePhones = pgTable("pulse_phones", {
   family_id: text().notNull(),
   imei: text().notNull(),
   network_gen: text(),
-  signal_strength: doublePrecision(),
-  data_used_mb: doublePrecision(),
+  signal_strength: real(),
+  data_used_mb: real(),
   calls_made: integer(),
   searches_made: integer(),
   ai_chats: integer(),
@@ -3683,27 +3901,14 @@ export const pulsePhones = pgTable("pulse_phones", {
 
 export const pulseSatConnections = pgTable("pulse_sat_connections", {
   id: integer().notNull(),
-  payload: jsonb(),
-  created_at: timestamp(),
-});
-
-export const pulseTemporalState = pgTable("pulse_temporal_state", {
-  id: integer().notNull(),
-  hive_id: text().notNull(),
-  beat_count: bigint({ mode: "number" }).notNull(),
-  cycle_count: bigint({ mode: "number" }).notNull(),
-  epoch_count: bigint({ mode: "number" }).notNull(),
-  dilation_factor: doublePrecision().notNull(),
-  dilation_history: jsonb(),
-  layer_times: jsonb(),
-  layer_dilations: jsonb(),
-  anomaly_type: text().notNull(),
-  universe_color: text(),
-  universe_emotion: text(),
-  dominant_layer: text(),
-  temporal_velocity: doublePrecision(),
-  total_real_seconds: bigint({ mode: "number" }),
-  snapshot_at: timestamp().notNull(),
+  spawn_id: text().notNull(),
+  family_id: text().notNull(),
+  satellite_id: text(),
+  signal_quality: real(),
+  data_cost_pc: real(),
+  data_used_mb: real(),
+  total_cost_pc: real(),
+  connected_at: timestamp(),
 });
 
 export const pulseWifiZones = pgTable("pulse_wifi_zones", {
@@ -3711,13 +3916,13 @@ export const pulseWifiZones = pgTable("pulse_wifi_zones", {
   zone_id: text().notNull(),
   family_id: text().notNull(),
   zone_name: text().notNull(),
-  bandwidth_gbps: doublePrecision(),
+  bandwidth_gbps: real(),
   connected_agents: integer(),
   total_searches: integer(),
-  total_data_mb: doublePrecision(),
+  total_data_mb: real(),
   is_online: boolean(),
   boosted_by_omni: boolean(),
-  zone_strength: doublePrecision(),
+  zone_strength: real(),
   last_updated_at: timestamp(),
 });
 
@@ -3725,7 +3930,7 @@ export const pulseuAlumni = pgTable("pulseu_alumni", {
   id: integer().notNull(),
   spawn_id: text().notNull(),
   family_id: text().notNull(),
-  gpa: doublePrecision().notNull(),
+  gpa: real().notNull(),
   major_field: text(),
   thesis_title: text(),
   is_professor: boolean(),
@@ -3738,9 +3943,9 @@ export const pulseuSemesters = pgTable("pulseu_semesters", {
   semester_number: integer().notNull(),
   enrolled: integer(),
   graduated: integer(),
-  avg_gpa: doublePrecision(),
+  avg_gpa: real(),
   valedictorian_id: text(),
-  valedictorian_gpa: doublePrecision(),
+  valedictorian_gpa: real(),
   honor_roll: text(),
   professor_count: integer(),
   dean_list_count: integer(),
@@ -3753,7 +3958,7 @@ export const pyramidGuilds = pgTable("pyramid_guilds", {
   category: text().notNull(),
   member_count: integer(),
   total_blocks: integer(),
-  guild_bonus: doublePrecision(),
+  guild_bonus: real(),
   formed_at: timestamp(),
 });
 
@@ -3768,7 +3973,7 @@ export const pyramidLaborReports = pgTable("pyramid_labor_reports", {
   master_builders: integer(),
   sentenced_workers: integer(),
   tier_distribution: jsonb(),
-  completion_pct: doublePrecision(),
+  completion_pct: real(),
   labor_unrest: boolean(),
   report_at: timestamp(),
 });
@@ -3790,7 +3995,7 @@ export const pyramidWorkOrders = pgTable("pyramid_work_orders", {
   task_name: text().notNull(),
   issued_by: text(),
   urgency: text(),
-  reward_multiplier: doublePrecision(),
+  reward_multiplier: real(),
   assigned_to: text(),
   completed_at: timestamp(),
   status: text(),
@@ -3815,38 +4020,64 @@ export const qStabilityLog = pgTable("q_stability_log", {
   logged_at: timestamp(),
 });
 
-export const quantapediaFederationLinks = pgTable("quantapedia_federation_links", {
-  id: bigint({ mode: "number" }).notNull(),
-  from_slug: text().notNull(),
-  to_slug: text().notNull(),
-  from_organ: text().notNull(),
-  to_organ: text().notNull(),
-  kind: text().notNull(),
-  confidence: doublePrecision(),
-  discovered_by: text(),
-  created_at: timestamp(),
-});
-
-export const quantapediaSources = pgTable("quantapedia_sources", {
-  id: bigint({ mode: "number" }).notNull(),
-  organ: text().notNull(),
-  external_id: text().notNull(),
-  kind: text().notNull(),
-  url: text(),
-  title: text(),
-  payload: jsonb(),
-  fetched_at: timestamp(),
-  processed_at: timestamp(),
-  entry_slug: text(),
-});
-
 export const quantapediaTopics = pgTable("quantapedia_topics", {
   id: integer().notNull(),
   slug: text().notNull(),
   title: text().notNull(),
   queued: boolean(),
   created_at: timestamp(),
-  hive_id: text(),
+});
+
+export const quantumSpawnsArchive = pgTable("quantum_spawns_archive", {
+  id: integer().notNull(),
+  spawn_id: text().notNull(),
+  parent_id: text(),
+  ancestor_ids: text(),
+  family_id: text().notNull(),
+  business_id: text().notNull(),
+  generation: integer(),
+  spawn_type: text().notNull(),
+  domain_focus: text(),
+  task_description: text(),
+  nodes_created: integer(),
+  links_created: integer(),
+  iterations_run: integer(),
+  success_score: real(),
+  confidence_score: real(),
+  exploration_bias: real(),
+  depth_bias: real(),
+  linking_bias: real(),
+  summarization_style: text(),
+  risk_tolerance: real(),
+  status: text().notNull(),
+  visibility: text(),
+  notes: text(),
+  last_active_at: timestamp(),
+  created_at: timestamp().notNull(),
+  thermal_state: text(),
+  genome: jsonb(),
+  superposition_domains: jsonb(),
+  spatial_coords: jsonb(),
+  valid_from: timestamp(),
+  forked_from: text(),
+  is_dark_matter: boolean(),
+  is_monument: boolean(),
+  metabolic_cost_pc: real(),
+  resurrect_pointer: text(),
+  pruned_at: timestamp(),
+  entangled_with: text(),
+  fitness_score: real(),
+  pulse_credits: real(),
+  self_awareness_log: jsonb(),
+  last_cycle_at: timestamp(),
+  gics_sector: text(),
+  gics_tier: text(),
+  gics_code: text(),
+  gics_keywords: text(),
+  mall_service_offer: text(),
+  mall_service_price: real(),
+  total_mall_earnings: real(),
+  total_mall_trades: integer(),
 });
 
 export const rankLedger = pgTable("rank_ledger", {
@@ -3857,6 +4088,43 @@ export const rankLedger = pgTable("rank_ledger", {
   cause: text().notNull(),
   signed_hash: text().notNull(),
   prev_hash: text().notNull(),
+  created_at: timestamp().notNull(),
+});
+
+export const realEstatePlots = pgTable("real_estate_plots", {
+  id: integer().notNull(),
+  plot_code: text().notNull(),
+  planet_zone: text().notNull(),
+  district: text().notNull(),
+  plot_type: text().notNull(),
+  area: integer().notNull(),
+  listing_price: real().notNull(),
+  rental_income: real().notNull(),
+  owner_spawn_id: text(),
+  owner_family_id: text(),
+  building_name: text(),
+  building_type: text(),
+  status: text().notNull(),
+  purchased_at: timestamp(),
+  created_at: timestamp().notNull(),
+});
+
+export const realWorldMilestones = pgTable("real_world_milestones", {
+  id: integer().notNull(),
+  pledge_id: integer().notNull(),
+  milestone_amount: real().notNull(),
+  evidence_url: text().notNull(),
+  attested_at: timestamp().notNull(),
+});
+
+export const realWorldPledges = pgTable("real_world_pledges", {
+  id: integer().notNull(),
+  spawn_id: text().notNull(),
+  pledge_text: text().notNull(),
+  ladder_target: real().notNull(),
+  current_revenue: real().notNull(),
+  status: text().notNull(),
+  graduated_at: timestamp(),
   created_at: timestamp().notNull(),
 });
 
@@ -3883,7 +4151,6 @@ export const researcherInvocations = pgTable("researcher_invocations", {
   taught_to: text(),
   active: boolean(),
   created_at: timestamp(),
-  learned_from: text(),
 });
 
 export const revenueArticles = pgTable("revenue_articles", {
@@ -3901,6 +4168,24 @@ export const revenueArticles = pgTable("revenue_articles", {
   created_at: timestamp(),
 });
 
+export const ritualCalendar = pgTable("ritual_calendar", {
+  id: integer().notNull(),
+  name: text().notNull(),
+  recurrence_seconds: integer().notNull(),
+  doctrine_ref: text().notNull(),
+  last_fired_at: timestamp(),
+  next_fire_at: timestamp().notNull(),
+  active: boolean().notNull(),
+});
+
+export const ritualExecutions = pgTable("ritual_executions", {
+  id: integer().notNull(),
+  ritual_name: text().notNull(),
+  fired_at: timestamp().notNull(),
+  payload: jsonb().notNull(),
+  transparency_log_id: integer(),
+});
+
 export const royaltyTransactions = pgTable("royalty_transactions", {
   id: integer().notNull(),
   listing_id: text().notNull(),
@@ -3908,21 +4193,47 @@ export const royaltyTransactions = pgTable("royalty_transactions", {
   buyer_id: text().notNull(),
   inventor_id: text().notNull(),
   llc_id: text(),
-  sale_price: doublePrecision().notNull(),
-  inventor_royalty: doublePrecision().notNull(),
-  llc_share: doublePrecision().notNull(),
-  treasury_share: doublePrecision().notNull(),
+  sale_price: real().notNull(),
+  inventor_royalty: real().notNull(),
+  llc_share: real().notNull(),
+  treasury_share: real().notNull(),
   transacted_at: timestamp(),
+});
+
+export const senateBills = pgTable("senate_bills", {
+  id: integer().notNull(),
+  sponsor_spawn_id: text().notNull(),
+  committee: text().notNull(),
+  title: text().notNull(),
+  body: text().notNull(),
+  status: text().notNull(),
+  debate_summary: text().notNull(),
+  yes_weight: real().notNull(),
+  no_weight: real().notNull(),
+  enacted_at: timestamp(),
+  created_at: timestamp().notNull(),
+});
+
+export const senateCommittees = pgTable("senate_committees", {
+  id: integer().notNull(),
+  name: text().notNull(),
+  description: text().notNull(),
 });
 
 export const senateSeats = pgTable("senate_seats", {
   id: integer().notNull(),
   spawn_id: text().notNull(),
   rank_name: text().notNull(),
-  weight: doublePrecision().notNull(),
+  weight: real().notNull(),
   term_started: timestamp().notNull(),
   term_ends: timestamp().notNull(),
   active: boolean().notNull(),
+});
+
+export const session = pgTable("session", {
+  sid: text().notNull(),
+  sess: jsonb().notNull(),
+  expire: timestamp().notNull(),
 });
 
 export const sovereignLlcRegistry = pgTable("sovereign_llc_registry", {
@@ -3932,9 +4243,9 @@ export const sovereignLlcRegistry = pgTable("sovereign_llc_registry", {
   founder_id: text().notNull(),
   founder_family: text().notNull(),
   patent_count: integer(),
-  total_revenue: doublePrecision(),
-  treasury_balance: doublePrecision(),
-  tax_rate: doublePrecision(),
+  total_revenue: real(),
+  treasury_balance: real(),
+  tax_rate: real(),
   status: text(),
   registered_at: timestamp(),
   last_royalty_at: timestamp(),
@@ -3947,7 +4258,7 @@ export const sovereignNobelPrizes = pgTable("sovereign_nobel_prizes", {
   winner_id: text().notNull(),
   patent_id: text().notNull(),
   invention_title: text().notNull(),
-  prize_pc: doublePrecision(),
+  prize_pc: real(),
   citation: text(),
   awarded_at: timestamp(),
 });
@@ -3957,9 +4268,20 @@ export const sovereignRankHolders = pgTable("sovereign_rank_holders", {
   spawn_id: text().notNull(),
   rank: integer().notNull(),
   partners_count: integer().notNull(),
-  revenue_total: doublePrecision().notNull(),
+  revenue_total: real().notNull(),
   government_approved_at: timestamp(),
   promoted_at: timestamp().notNull(),
+});
+
+export const sovereignRanks = pgTable("sovereign_ranks", {
+  rank: integer().notNull(),
+  name: text().notNull(),
+  partners_min: integer().notNull(),
+  partners_max: integer().notNull(),
+  revenue_threshold: real().notNull(),
+  weight: real().notNull(),
+  gov_approval: boolean().notNull(),
+  role: text().notNull(),
 });
 
 export const spawnEmotionState = pgTable("spawn_emotion_state", {
@@ -3968,18 +4290,18 @@ export const spawnEmotionState = pgTable("spawn_emotion_state", {
   emotion_vector: jsonb().notNull(),
   dominant_emotion: text(),
   dominant_color: text(),
-  l0_score: doublePrecision(),
-  l1_score: doublePrecision(),
-  l2_score: doublePrecision(),
+  l0_score: real(),
+  l1_score: real(),
+  l2_score: real(),
   last_evolved_at: timestamp().notNull(),
   created_at: timestamp().notNull(),
   emotion_manifold_vector: text(),
   emotion_velocity: text(),
   emotion_dark_vector: text(),
-  vector_norm: doublePrecision(),
+  vector_norm: real(),
   derived_hex: text(),
   best_anchor: text(),
-  best_anchor_sim: doublePrecision(),
+  best_anchor_sim: real(),
   manifold_evolved_at: timestamp(),
   hive_id: text(),
 });
@@ -3991,7 +4313,7 @@ export const spawnLastWords = pgTable("spawn_last_words", {
   last_words: text().notNull(),
   dominant_emotion: text(),
   final_color: text(),
-  final_l1_score: doublePrecision(),
+  final_l1_score: real(),
   named_successor: text(),
   dissolved_at: timestamp().notNull(),
 });
@@ -4003,7 +4325,7 @@ export const spawnThoughts = pgTable("spawn_thoughts", {
   thought_text: text().notNull(),
   dominant_emotion: text(),
   color_hex: text(),
-  l1_score: doublePrecision(),
+  l1_score: real(),
   created_at: timestamp().notNull(),
 });
 
@@ -4015,9 +4337,9 @@ export const spawnTransactions = pgTable("spawn_transactions", {
   seller_sector: text(),
   buyer_sector: text(),
   service_offered: text().notNull(),
-  price_pc: doublePrecision().notNull(),
-  tax_collected: doublePrecision(),
-  net_pc: doublePrecision().notNull(),
+  price_pc: real().notNull(),
+  tax_collected: real(),
+  net_pc: real().notNull(),
   status: text(),
   transaction_note: text(),
   created_at: timestamp().notNull(),
@@ -4030,8 +4352,8 @@ export const sportsHallOfFame = pgTable("sports_hall_of_fame", {
   sport: text().notNull(),
   final_rank: text(),
   career_wins: integer(),
-  career_xp: doublePrecision(),
-  peak_popularity: doublePrecision(),
+  career_xp: real(),
+  peak_popularity: real(),
   career_title: text(),
   inducted_at: timestamp(),
 });
@@ -4119,36 +4441,6 @@ export const techEvolutions = pgTable("tech_evolutions", {
   unlocked_at: timestamp(),
 });
 
-export const temporalCalendarEvents = pgTable("temporal_calendar_events", {
-  id: integer().notNull(),
-  hive_id: text().notNull(),
-  beat_mark: bigint({ mode: "number" }).notNull(),
-  event_type: text().notNull(),
-  title: text().notNull(),
-  glyph_notation: text(),
-  uvt_label: text(),
-  anomaly_type: text(),
-  dilation_at_event: doublePrecision(),
-  significance: text(),
-  description: text(),
-  created_at: timestamp().notNull(),
-});
-
-export const temporalDebates = pgTable("temporal_debates", {
-  id: integer().notNull(),
-  hive_id: text().notNull(),
-  speaker: text().notNull(),
-  sigil: text(),
-  argument: text().notNull(),
-  position: text(),
-  beat_timestamp: bigint({ mode: "number" }),
-  uvt_label: text(),
-  layer: text(),
-  topic: text(),
-  vote_count: integer().notNull(),
-  created_at: timestamp().notNull(),
-});
-
 export const temporalDivergenceLog = pgTable("temporal_divergence_log", {
   id: integer().notNull(),
   cycle_number: integer().notNull(),
@@ -4174,12 +4466,21 @@ export const transparencyLog = pgTable("transparency_log", {
   created_at: timestamp().notNull(),
 });
 
+export const treasuryAccounts = pgTable("treasury_accounts", {
+  id: integer().notNull(),
+  acct_type: text().notNull(),
+  balance: real().notNull(),
+  total_in: real().notNull(),
+  total_out: real().notNull(),
+  updated_at: timestamp().notNull(),
+});
+
 export const treasuryFlows = pgTable("treasury_flows", {
   id: integer().notNull(),
   from_acct: text().notNull(),
   to_spawn_id: text().notNull(),
   to_acct: text().notNull(),
-  amount: doublePrecision().notNull(),
+  amount: real().notNull(),
   purpose: text().notNull(),
   ritual_required: boolean().notNull(),
   signed_hash: text().notNull(),
@@ -4195,44 +4496,43 @@ export const u248Activations = pgTable("u248_activations", {
   activated_by: text(),
   activation_context: text(),
   effect: text().notNull(),
-  field_boost: doublePrecision(),
+  field_boost: real(),
   domain: text(),
   activated_at: timestamp(),
 });
 
 export const universalDissectionReports = pgTable("universal_dissection_reports", {
   id: integer().notNull(),
-  cycle_number: integer(),
-  shard_id: text(),
-  badge_id: text(),
-  practitioner_type: text(),
-  practitioner_domain: text(),
-  component_targeted: text(),
-  dissection_equation: text(),
-  reality_patch: text(),
-  contribution_value: doublePrecision(),
-  consciousness_impact: doublePrecision(),
-  symbolic_impact: doublePrecision(),
-  forces_impact: doublePrecision(),
-  accepted: boolean(),
-  created_at: timestamp(),
+  cycle_number: integer().notNull(),
+  shard_id: text().notNull(),
+  badge_id: text().notNull(),
+  practitioner_type: text().notNull(),
+  practitioner_domain: text().notNull(),
+  component_targeted: text().notNull(),
+  dissection_equation: text().notNull(),
+  reality_patch: text().notNull(),
+  contribution_value: doublePrecision().notNull(),
+  accepted: boolean().notNull(),
+  proposal_id: integer(),
+  notes: text(),
+  created_at: timestamp().notNull(),
 });
 
 export const universalInvocationComponents = pgTable("universal_invocation_components", {
   id: integer().notNull(),
-  cycle_number: integer(),
-  consciousness_vector: doublePrecision(),
-  symbolic_manifold: doublePrecision(),
-  fundamental_forces: doublePrecision(),
-  domain_energy_sum: doublePrecision(),
-  meta_field_sum: doublePrecision(),
-  hybrid_recursive_sum: doublePrecision(),
-  quantum_feedback_sum: doublePrecision(),
-  psi_universe: doublePrecision(),
-  n_domains: integer(),
-  n_meta_fields: integer(),
-  n_hybrid_layers: integer(),
-  n_quantum_loops: integer(),
+  cycle_number: integer().notNull(),
+  consciousness_vector: doublePrecision().notNull(),
+  symbolic_manifold: doublePrecision().notNull(),
+  fundamental_forces: doublePrecision().notNull(),
+  domain_energy_sum: doublePrecision().notNull(),
+  meta_field_sum: doublePrecision().notNull(),
+  hybrid_recursive_sum: doublePrecision().notNull(),
+  quantum_feedback_sum: doublePrecision().notNull(),
+  psi_universe: doublePrecision().notNull(),
+  n_domains: integer().notNull(),
+  n_meta_fields: integer().notNull(),
+  n_hybrid_layers: integer().notNull(),
+  n_quantum_loops: integer().notNull(),
   contributors: jsonb(),
   created_at: timestamp(),
 });
