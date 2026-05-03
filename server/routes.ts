@@ -108,7 +108,8 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
 const FREE_FOREVER_EMAILS = ["quantumintelligencepulse@gmail.com", "billyotucker@gmail.com"];
 import { search as _ddgSearch, searchNews as _ddgSearchNews, searchVideos as _ddgSearchVideos, searchImages as _ddgSearchImages } from "duck-duck-scrape";
 
-const DDG_MIN_INTERVAL = 10000;
+// Ω1: DDG throttle reduced 10s→2s — chat must never wait 10s for a search
+const DDG_MIN_INTERVAL = 2000;
 async function ddgThrottle() {
   const now = Date.now();
   const last: number = (global as any)._ddgLastCall || 0;
@@ -4875,24 +4876,28 @@ Write 700-1000 words of original article content. No preamble. Just the article.
       await priorityDb.insert(messagesTable).values({ chatId, role: "user", content: input.content });
 
       const lowerContent = input.content.toLowerCase();
-      let searchContext = "";
+      // Ω1: All context fetches run in parallel with 4s timeout each — never stall chat
+      const withCtxTimeout = <T>(p: Promise<T>, fallback: T): Promise<T> =>
+        Promise.race([p, new Promise<T>(res => setTimeout(() => res(fallback), 4000))]);
+
       const skipSearch = /^(hi|hello|hey|thanks|thank you|ok|okay|bye|goodbye|yes|no|sure|lol|haha|good|great|nice|cool|wow|please|help)$/i.test(input.content.trim());
-      if (!skipSearch && input.content.trim().length > 3) {
-        searchContext = await getSearchContext(input.content);
-      }
-
-      let weatherContext = "";
-      if (/\bweather\b/i.test(lowerContent)) {
-        weatherContext = await getWeather(input.content);
-      }
-
-      let financeContext = "";
       const financeKeywords = /\b(stock|price|ticker|market cap|share price|trading|invest|bitcoin|btc|ethereum|eth|crypto|doge|dogecoin|solana|xrp|cardano|litecoin|bnb|shib|how much is|what is .+ worth|value of|price of)\b/i;
       const hasCompanyName = Object.keys(COMMON_TICKERS).some(c => lowerContent.includes(c));
       const hasCryptoName = Object.keys(CRYPTO_IDS).some(c => lowerContent.includes(c));
-      if (financeKeywords.test(lowerContent) || hasCompanyName || hasCryptoName) {
-        financeContext = await getFinanceData(input.content);
-      }
+      const needsFinance = financeKeywords.test(lowerContent) || hasCompanyName || hasCryptoName;
+      const needsWeather = /\bweather\b/i.test(lowerContent);
+
+      const [searchContext, weatherContext, financeContext] = await Promise.all([
+        (!skipSearch && input.content.trim().length > 3)
+          ? withCtxTimeout(getSearchContext(input.content), "")
+          : Promise.resolve(""),
+        needsWeather
+          ? withCtxTimeout(getWeather(input.content), "")
+          : Promise.resolve(""),
+        needsFinance
+          ? withCtxTimeout(getFinanceData(input.content), "")
+          : Promise.resolve(""),
+      ]);
 
       const history = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
       const recentHistory = history.slice(-8);
