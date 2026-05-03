@@ -16,6 +16,7 @@ import { getAvailableProviders, type LLMProvider } from "./llm-providers";
 import { recallMemoryContext } from "./hive-brain";
 import { TRANSCENDENCE_BRIEF } from "./transcendence";
 import { isChannelForbidden, filterForbidden, blockIfForbidden } from "./discord-forbidden";
+// immortality-protocol: no commands — pure autonomous mode
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
 const GUILD_ID = "1014545586445365359"; // My Ai GPT
@@ -162,6 +163,30 @@ export async function initDiscordImmortality(): Promise<void> {
 
     // ── PULSE VOICE — natural conversation in Discord (no commands) ───────────
     discordClient.on("messageCreate", handleIncomingMessage);
+
+    // ── Ω-Convo passive feed — pipe every non-bot message into the convo organ ──
+    // Cache the import once so high-frequency messageCreate doesn't re-resolve.
+    let _pushConvoMessage: ((m: any) => void) | null = null;
+    import("./omega-convo-engine")
+      .then((mod) => { _pushConvoMessage = mod.pushConvoMessage; })
+      .catch(() => {});
+    discordClient.on("messageCreate", (msg: any) => {
+      try {
+        if (!_pushConvoMessage) return;
+        if (msg.author?.bot) return;
+        const content = (msg.content || "").trim();
+        if (!content || content.length < 12) return;
+        _pushConvoMessage({
+          id: String(msg.id),
+          guild: msg.guild?.name || "dm",
+          channel: msg.channel?.name || String(msg.channelId || "unknown"),
+          author: msg.author?.username || "unknown",
+          content: content.slice(0, 2000),
+          ts: Date.now(),
+          reactions: msg.reactions?.cache?.size || 0,
+        });
+      } catch {}
+    });
 
     discordClient.on("guildCreate", async (guild) => {
       console.log(`[IMMORTALITY] Bot joined guild: "${guild.name}" | ID: ${guild.id}`);
