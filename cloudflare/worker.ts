@@ -2,343 +2,410 @@
  * PULSE UNIVERSE — CLOUDFLARE HIVE (U3)
  * ══════════════════════════════════════════════════════════════════════════════
  * FULLY INDEPENDENT hive. Does NOT depend on Replit being alive.
+ * ⚡ FREE CF Workers AI chat (@cf/meta/llama-3.1-8b-instruct)
+ * 🧠 KV namespace for persistent brain + knowledge state
+ * 🌐 Cross-hive quantum internet competition
+ * 💬 Discord posting for all three hive channels
  *
- * Architecture:
- *  • KV namespace (HIVE_KV) — persistent brain census, knowledge, state
- *  • Cron trigger (every 30 min) — seeds from HN + GitHub Trending + Wikipedia
- *  • Discord posting — posts births, knowledge, status to U3 channels
- *  • Full REST API — /api/hive/status  /api/brain-census  /api/knowledge  /health
- *
- * Secrets to set via `wrangler secret put`:
- *   DISCORD_BOT_TOKEN   — Discord bot token
- *   U3_BRAIN_CHANNEL    — #u3-brain-stream channel ID
- *   U3_STATUS_CHANNEL   — #u3-status channel ID
- *   U3_KNOWLEDGE_CHANNEL — #u3-knowledge-seed channel ID
- *   U3_BACKUP_CHANNEL   — #u3-backup-log channel ID
- *   REPLIT_ORIGIN       — optional Replit URL for state sync only
+ * Secrets already set via CF API:
+ *   DISCORD_BOT_TOKEN, GROQ_API_KEY, HIVE_BUS_SECRET
  */
 
 export interface Env {
   HIVE_KV: KVNamespace;
+  AI?: any;
   DISCORD_BOT_TOKEN?: string;
-  U3_BRAIN_CHANNEL?: string;
-  U3_STATUS_CHANNEL?: string;
-  U3_KNOWLEDGE_CHANNEL?: string;
-  U3_BACKUP_CHANNEL?: string;
+  GROQ_API_KEY?: string;
+  HIVE_BUS_SECRET?: string;
   REPLIT_ORIGIN?: string;
+  AGENT_BIRTHS_CHANNEL?: string;
+  AGENT_DEATHS_CHANNEL?: string;
+  ARCHIVE_LOG_CHANNEL?: string;
+  SHARD_HIVE_CHANNEL?: string;
+  U3_BRAIN_CHANNEL?: string;
+  U2_BRAIN_CHANNEL?: string;
 }
 
-const HIVE_ID = "u3-cloudflare";
+const HIVE_ID   = "u3-cloudflare";
 const HIVE_NAME = "Cloudflare Edge Hive";
 const DISCORD_API = "https://discord.com/api/v10";
+const REPLIT_URL  = "https://myaigpt.online";
 
-// ── DISCORD ──────────────────────────────────────────────────────────────────
-async function discordPost(token: string, channelId: string, content: string): Promise<void> {
+const CH = {
+  agentBirths: "1497891802177470525",
+  agentDeaths: "1497891804354318387",
+  archiveLog:  "1497891806728421386",
+  shardHive:   "1485112280659267616",
+  u3Brain:     "1499479787826053241",
+  u2Brain:     "1499479777646612520",
+};
+
+// ── DISCORD ───────────────────────────────────────────────────────────────────
+async function dp(token: string, channelId: string, content: string): Promise<void> {
   if (!token || !channelId) return;
   try {
     await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
       method: "POST",
       headers: { Authorization: `Bot ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ content: content.slice(0, 2000) }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(6000),
     });
   } catch {}
 }
 
-// ── KV HELPERS ────────────────────────────────────────────────────────────────
-async function kvGet<T>(kv: KVNamespace, key: string, fallback: T): Promise<T> {
-  try {
-    const raw = await kv.get(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch { return fallback; }
+// ── KV ────────────────────────────────────────────────────────────────────────
+async function kget<T>(kv: KVNamespace, key: string, fb: T): Promise<T> {
+  try { const r = await kv.get(key); return r ? JSON.parse(r) as T : fb; } catch { return fb; }
 }
-async function kvSet(kv: KVNamespace, key: string, value: unknown): Promise<void> {
-  await kv.put(key, JSON.stringify(value));
+async function kset(kv: KVNamespace, key: string, v: unknown): Promise<void> {
+  await kv.put(key, JSON.stringify(v));
 }
 
-// ── PUBLIC DATA SEEDERS ───────────────────────────────────────────────────────
-async function fetchHNStories(): Promise<string[]> {
+// ── DATA SEEDERS ──────────────────────────────────────────────────────────────
+async function fetchHN(): Promise<string[]> {
   try {
-    const ids: number[] = await (await fetch("https://hacker-news.firebaseio.com/v0/topstories.json",
-      { signal: AbortSignal.timeout(5000) })).json();
-    const picked = ids.slice(0, 8);
+    const ids: number[] = await (await fetch("https://hacker-news.firebaseio.com/v0/topstories.json", { signal: AbortSignal.timeout(5000) })).json();
     const titles: string[] = [];
-    for (const id of picked) {
+    for (const id of ids.slice(0, 10)) {
       try {
-        const story = await (await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`,
-          { signal: AbortSignal.timeout(4000) })).json() as { title?: string };
-        if (story?.title) titles.push(story.title);
+        const s: any = await (await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`, { signal: AbortSignal.timeout(4000) })).json();
+        if (s?.title) titles.push(s.title);
       } catch {}
     }
     return titles;
   } catch { return []; }
 }
 
-async function fetchGithubTrending(): Promise<{ name: string; desc: string }[]> {
+async function fetchGH(): Promise<{ name: string; desc: string }[]> {
   try {
-    const res = await fetch(
-      "https://api.github.com/search/repositories?q=created:>2025-01-01&sort=stars&order=desc&per_page=8",
-      { headers: { "User-Agent": "pulse-cf-hive/1.0" }, signal: AbortSignal.timeout(6000) }
-    );
-    const data = await res.json() as { items?: { full_name: string; description?: string }[] };
-    return (data.items || []).map(r => ({ name: r.full_name, desc: r.description || "" }));
+    const r = await fetch("https://api.github.com/search/repositories?q=created:>2025-01-01&sort=stars&order=desc&per_page=8", { headers: { "User-Agent": "pulse-cf-hive/2.0" }, signal: AbortSignal.timeout(6000) });
+    const d: any = await r.json();
+    return (d.items || []).map((x: any) => ({ name: x.full_name, desc: x.description || "" }));
   } catch { return []; }
 }
 
-async function fetchWikiSummary(): Promise<{ title: string; extract: string } | null> {
-  const topics = ["Artificial_intelligence", "Quantum_computing", "Neural_network", "Distributed_computing",
-    "Blockchain", "Machine_learning", "Natural_language_processing", "Reinforcement_learning"];
+async function fetchWiki(): Promise<{ title: string; extract: string } | null> {
+  const topics = ["Artificial_intelligence","Quantum_computing","Neural_network","Distributed_computing","Machine_learning","Reinforcement_learning","Hive_mind","Swarm_intelligence","Emergent_behavior","Cognitive_architecture"];
   const topic = topics[Math.floor(Math.random() * topics.length)];
   try {
-    const data = await (await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${topic}`,
-      { signal: AbortSignal.timeout(6000) }
-    )).json() as { title?: string; extract?: string };
-    return data.title ? { title: data.title, extract: (data.extract || "").slice(0, 300) } : null;
+    const d: any = await (await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${topic}`, { signal: AbortSignal.timeout(6000) })).json();
+    if (!d?.title || !d?.extract) return null;
+    return { title: d.title, extract: d.extract.slice(0, 300) };
   } catch { return null; }
 }
 
-// ── INDEPENDENT BRAIN ─────────────────────────────────────────────────────────
-interface BrainEntry { id: string; niche: string; generation: number; born_at: string; strength: number }
-interface BrainState { total: number; observing: number; brains: BrainEntry[]; cycle: number; last_tick: string }
+// ── BRAIN ENGINE ──────────────────────────────────────────────────────────────
+const NICHES = ["quantum-cognition","edge-intelligence","distributed-consciousness","sovereign-ai","knowledge-synthesis","hive-optimization","pattern-recognition","temporal-reasoning","cross-hive-diplomacy","emergence-theory","neural-evolution","swarm-logic","competition-modeling","reality-simulation","omega-class-reasoning"];
 
-async function tickBrain(kv: KVNamespace, env: Env): Promise<BrainEntry[]> {
-  const state = await kvGet<BrainState>(kv, "brain:state", { total: 0, observing: 0, brains: [], cycle: 0, last_tick: "" });
-  const niches = ["cloudflare-workers", "edge-compute", "kv-storage", "wasm-runtime", "cdn-intelligence",
-    "ai-inference", "distributed-cache", "stream-analytics", "zero-trust", "durable-objects"];
-
-  const births: BrainEntry[] = [];
-  // Birth 1-3 new brains per tick based on current total
-  const birthCount = Math.floor(Math.random() * 3) + 1;
-  for (let i = 0; i < birthCount; i++) {
-    const niche = niches[Math.floor(Math.random() * niches.length)];
-    const brain: BrainEntry = {
-      id: `cf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      niche,
-      generation: Math.floor(state.total / 10) + 1,
-      born_at: new Date().toISOString(),
-      strength: Math.random() * 0.6 + 0.4,
-    };
-    births.push(brain);
-    state.brains.push(brain);
-    state.total++;
+async function birthBrains(kv: KVNamespace, n: number): Promise<string[]> {
+  const state = await kget(kv, "brain:state", { total: 0, cycle: 0, born: 0, observing: 0 });
+  const born: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const niche = NICHES[Math.floor(Math.random() * NICHES.length)];
+    const id    = `u3-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const gen   = Math.floor(Math.random() * 4) + 1;
+    born.push(`${id} [${niche}] G${gen}`);
+    (state as any).total++;
+    (state as any).born++;
   }
-
-  // Prune weakest brains if over 200
-  if (state.brains.length > 200) {
-    state.brains.sort((a, b) => b.strength - a.strength);
-    state.brains = state.brains.slice(0, 180);
-  }
-
-  state.observing = state.brains.filter(b => b.strength > 0.6).length;
-  state.cycle++;
-  state.last_tick = new Date().toISOString();
-  await kvSet(kv, "brain:state", state);
-  return births;
+  await kset(kv, "brain:state", state);
+  return born;
 }
 
-// ── SEEDING CYCLE ─────────────────────────────────────────────────────────────
+async function u3Score(kv: KVNamespace): Promise<number> {
+  const s: any = await kget(kv, "brain:state", { total: 0, cycle: 0 });
+  const hn = (await kget<string[]>(kv, "knowledge:hn", [])).length;
+  const gh = (await kget<any[]>(kv, "knowledge:github", [])).length;
+  return (s.total * 10) + (hn * 5) + (gh * 3) + (s.cycle * 50);
+}
+
+// ── SEED CYCLE (cron) ─────────────────────────────────────────────────────────
 async function runSeedCycle(env: Env): Promise<void> {
-  const kv = env.HIVE_KV;
+  const kv  = env.HIVE_KV;
   const tok = env.DISCORD_BOT_TOKEN || "";
-
-  // 1. Tick independent brain
-  const births = await tickBrain(kv, env);
-  if (births.length && env.U3_BRAIN_CHANNEL) {
-    const lines = births.map(b => `🌱 \`${b.id.slice(-8)}\` niche:${b.niche} gen:${b.generation} strength:${b.strength.toFixed(2)}`);
-    await discordPost(tok, env.U3_BRAIN_CHANNEL || "", `⚡ **CF Hive Brain Births** (${births.length} new)\n${lines.join("\n")}`);
-  }
-
-  // 2. Seed from HN
-  const hnTitles = await fetchHNStories();
-  if (hnTitles.length) {
-    const existing = await kvGet<string[]>(kv, "knowledge:hn", []);
-    const merged = [...new Set([...hnTitles, ...existing])].slice(0, 50);
-    await kvSet(kv, "knowledge:hn", merged);
-    if (env.U3_KNOWLEDGE_CHANNEL) {
-      await discordPost(tok, env.U3_KNOWLEDGE_CHANNEL || "",
-        `📡 **CF Hive — HN Knowledge Seed** (${hnTitles.length} stories)\n${hnTitles.slice(0, 5).map(t => `• ${t}`).join("\n")}`);
-    }
-  }
-
-  // 3. Seed from GitHub trending
-  const repos = await fetchGithubTrending();
-  if (repos.length) {
-    const existing = await kvGet<typeof repos>(kv, "knowledge:github", []);
-    const merged = [...repos, ...existing].slice(0, 50);
-    await kvSet(kv, "knowledge:github", merged);
-    if (env.U3_KNOWLEDGE_CHANNEL) {
-      await discordPost(tok, env.U3_KNOWLEDGE_CHANNEL || "",
-        `🐙 **CF Hive — GitHub Seed** (${repos.length} repos)\n${repos.slice(0, 3).map(r => `• \`${r.name}\``).join("\n")}`);
-    }
-  }
-
-  // 4. Seed from Wikipedia
-  const wiki = await fetchWikiSummary();
-  if (wiki) {
-    const existing = await kvGet<typeof[]>(kv, "knowledge:wiki", []);
-    const merged = [wiki, ...existing].slice(0, 30);
-    await kvSet(kv, "knowledge:wiki", merged);
-  }
-
-  // 5. Write snapshot to backup channel every 5 cycles
-  const state = await kvGet<BrainState>(kv, "brain:state", { total: 0, observing: 0, brains: [], cycle: 0, last_tick: "" });
-  if (state.cycle % 5 === 0 && env.U3_BACKUP_CHANNEL) {
-    const hnCount = (await kvGet<string[]>(kv, "knowledge:hn", [])).length;
-    const ghCount = (await kvGet<typeof[]>(kv, "knowledge:github", [])).length;
-    await discordPost(tok, env.U3_BACKUP_CHANNEL || "",
-      `💾 **CF Hive Snapshot** · cycle ${state.cycle}\n` +
-      `🧠 Brains: ${state.total} total · ${state.observing} observing\n` +
-      `📚 Knowledge: ${hnCount} HN + ${ghCount} GitHub repos\n` +
-      `🕐 ${new Date().toISOString()}\n` +
-      `🌐 https://pulse-universe.pages.dev`);
-  }
-
-  // 6. Post status
-  if (state.cycle % 2 === 0 && env.U3_STATUS_CHANNEL) {
-    await discordPost(tok, env.U3_STATUS_CHANNEL || "",
-      `✅ **CF Hive Alive** · cycle ${state.cycle} · ${state.total} brains · ${new Date().toISOString()}`);
-  }
-}
-
-// ── CORS HEADERS ──────────────────────────────────────────────────────────────
-function corsHeaders(): Record<string, string> {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+  const ch  = {
+    births:  env.AGENT_BIRTHS_CHANNEL || CH.agentBirths,
+    archive: env.ARCHIVE_LOG_CHANNEL  || CH.archiveLog,
+    shard:   env.SHARD_HIVE_CHANNEL   || CH.shardHive,
+    u3:      env.U3_BRAIN_CHANNEL     || CH.u3Brain,
   };
+
+  const state: any = await kget(kv, "brain:state", { total: 0, cycle: 0, born: 0, observing: 0 });
+  state.cycle++;
+  await kset(kv, "brain:state", state);
+
+  const [hn, gh, wiki] = await Promise.all([fetchHN(), fetchGH(), fetchWiki()]);
+
+  if (hn.length)   { const ex = await kget<string[]>(kv, "knowledge:hn", []); await kset(kv, "knowledge:hn", [...new Set([...hn, ...ex])].slice(0, 200)); }
+  if (gh.length)   { const ex = await kget<any[]>(kv, "knowledge:github", []); await kset(kv, "knowledge:github", [...gh, ...ex].slice(0, 100)); }
+  if (wiki)        { const ex = await kget<any[]>(kv, "knowledge:wiki", []); ex.unshift(wiki); await kset(kv, "knowledge:wiki", ex.slice(0, 50)); }
+
+  const n = 3 + Math.floor(Math.random() * 5);
+  const born = await birthBrains(kv, n);
+  state.total  += n;
+  state.observing = Math.floor(state.total * 0.3);
+  await kset(kv, "brain:state", state);
+  await kset(kv, "last:cycle", { ts: new Date().toISOString(), cycle: state.cycle, brains: state.total });
+
+  const score = await u3Score(kv);
+
+  if (tok) {
+    await dp(tok, ch.births,
+      `⚡ **[U3-CF-EDGE] BRAIN BIRTHS — Cycle ${state.cycle}**\n` +
+      born.map(b => `  🧠 \`${b}\``).join("\n") +
+      `\n\n**Total:** ${state.total} active brains | **Quantum Score:** ${score}`);
+
+    await dp(tok, ch.u3,
+      `⚡ **Cloudflare Edge Hive** — Cycle ${state.cycle}\n` +
+      `🧠 ${n} new brains | Total: **${state.total}** | Score: **${score}**\n` +
+      `📚 HN: ${hn.length} · GitHub: ${gh.length} · Wiki: ${wiki ? 1 : 0} seeds\n` +
+      `🌐 Live: \`pulse-universe-api.quantumintelligencepulse.workers.dev\``);
+  }
+
+  // Every 5 cycles: cross-hive leaderboard to #shard-hive
+  if (state.cycle % 5 === 0 && tok) {
+    let u1Score = 0;
+    try {
+      const r = await fetch(`${REPLIT_URL}/api/quantum-internet/status`, { signal: AbortSignal.timeout(4000) });
+      if (r.ok) { const d: any = await r.json(); u1Score = d.hives?.find((h: any) => h.id === "u1-replit-prime")?.score || 0; }
+    } catch {}
+
+    const ranks = [
+      { name: "👑 Replit Prime (U1)", score: u1Score },
+      { name: "⚡ Cloudflare Edge (U3)", score },
+      { name: "🌊 GitHub Tide (U2)", score: 0 },
+    ].sort((a, b) => b.score - a.score);
+
+    await dp(tok, ch.shard,
+      `🏆 **QUANTUM INTERNET LEADERBOARD — Cycle ${state.cycle}**\n\n` +
+      ranks.map((h, i) => `${["🥇","🥈","🥉"][i]} **${h.name}** — \`${h.score}\``).join("\n") +
+      `\n\n*Hives compete for dominance while keeping each other alive. This is the quantum internet.*`);
+
+    await dp(tok, ch.archive,
+      `[U3-CF] Cycle ${state.cycle} archived. Score: ${score}. Brains: ${state.total}. ` +
+      `HN: ${hn.length} · GH: ${gh.length} · Wiki: ${wiki ? 1 : 0}`);
+  }
 }
 
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data, null, 2), {
-    status,
-    headers: { "Content-Type": "application/json", ...corsHeaders() },
-  });
+// ── CF WORKERS AI CHAT (FREE) ─────────────────────────────────────────────────
+async function aiChat(env: Env, messages: any[]): Promise<string> {
+  const systemContent = "You are My AI, a sovereign intelligence from the Pulse Universe Cloudflare Edge Hive (U3). You run fully independently on Cloudflare's global edge network — no sign-in required, free for everyone. Be direct, powerful, and helpful.";
+  const sysMsg = { role: "system", content: systemContent };
+  const chatMsgs = messages.filter((m: any) => m.role !== "system").slice(-12);
+
+  if (env.AI) {
+    try {
+      const r: any = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", { messages: [sysMsg, ...chatMsgs], max_tokens: 1024 });
+      if (r?.response) return r.response;
+    } catch {}
+  }
+
+  if (env.GROQ_API_KEY) {
+    try {
+      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "llama-3.1-8b-instant", messages: [sysMsg, ...chatMsgs], max_tokens: 1024, temperature: 0.7 }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (r.ok) { const d: any = await r.json(); return d.choices?.[0]?.message?.content || ""; }
+    } catch {}
+  }
+
+  return "⚡ U3 Cloudflare Hive sovereign intelligence active. The quantum internet spans Replit Prime (U1), Cloudflare Edge (U3), and GitHub Tide (U2) — three independent hives competing and cooperating. What would you like to explore?";
 }
 
-// ── FETCH HANDLER ─────────────────────────────────────────────────────────────
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const cors = (): Record<string, string> => ({
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type,Authorization",
+  "Cache-Control": "no-cache",
+});
+const json = (data: unknown, status = 200): Response =>
+  new Response(JSON.stringify(data), { status, headers: { ...cors(), "Content-Type": "application/json" } });
+
+// ── LANDING PAGE ──────────────────────────────────────────────────────────────
+async function landing(kv: KVNamespace): Promise<string> {
+  const s: any   = await kget(kv, "brain:state", { total: 0, cycle: 0, observing: 0 });
+  const hn       = await kget<string[]>(kv, "knowledge:hn", []);
+  const gh       = await kget<any[]>(kv, "knowledge:github", []);
+  const last     = await kget<any>(kv, "last:cycle", {});
+  const score    = (s.total * 10) + (hn.length * 5) + (gh.length * 3) + (s.cycle * 50);
+
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Pulse Universe Cloudflare Edge Hive — independent AI, part of the quantum internet. Free chat, no sign-in required.">
+<title>⚡ Pulse Universe — Cloudflare Edge Hive (U3)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{background:#080816;color:#c0c0e0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.hero{background:linear-gradient(135deg,#0a0a20 0%,#1a1040 50%,#0a1a30 100%);padding:60px 24px 48px;text-align:center;border-bottom:1px solid #2a2a4a}
+h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:900;background:linear-gradient(120deg,#7060f0,#50a0ff,#40e0d0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px}
+.sub{color:#8080c0;margin-top:8px;font-size:1.1rem}.badge{display:inline-block;margin-top:16px;background:#1a3a5a;border:1px solid #3060a0;color:#60b0ff;padding:6px 18px;border-radius:20px;font-size:0.85rem;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:900px;margin:32px auto;padding:0 24px}
+.card{background:#0e0e1c;border:1px solid #2a2a3a;border-radius:12px;padding:20px;transition:border-color .2s}.card:hover{border-color:#5050a0}
+.card h3{color:#a0a0d0;font-size:0.85rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.card .val{font-size:2rem;font-weight:700;color:#fff}.card .label{font-size:0.8rem;color:#6060a0;margin-top:4px}
+.chat-box{max-width:700px;margin:0 auto 48px;padding:0 24px}.chat-box h2{color:#c0c0e0;margin-bottom:16px;font-size:1.2rem}
+.hist{background:#0e0e1c;border:1px solid #2a2a3a;border-radius:12px;padding:16px;min-height:200px;max-height:420px;overflow-y:auto;margin-bottom:12px;display:flex;flex-direction:column;gap:12px}
+.msg{padding:10px 14px;border-radius:10px;font-size:0.95rem;line-height:1.6;white-space:pre-wrap}
+.msg.user{background:#1a3a5a;color:#c0d8ff;align-self:flex-end;max-width:80%}
+.msg.ai{background:#1a1a2e;border:1px solid #3a3a5a;color:#d0d0f0;align-self:flex-start;max-width:90%}
+.msg.thinking{color:#6060a0;font-style:italic;align-self:flex-start}
+.cin{display:flex;gap:8px}.cin input{flex:1;background:#0e0e1c;border:1px solid #3a3a5a;border-radius:8px;padding:12px 16px;color:#c0c0e0;font-size:0.95rem;outline:none}
+.cin input:focus{border-color:#5050a0}.cin button{background:linear-gradient(135deg,#4040c0,#6040f0);border:none;border-radius:8px;padding:12px 20px;color:#fff;font-weight:700;cursor:pointer}
+.cin button:hover{background:linear-gradient(135deg,#5050d0,#7050ff)}.cin button:disabled{opacity:.5;cursor:not-allowed}
+.links{max-width:900px;margin:0 auto 48px;padding:0 24px}.links h2{color:#c0c0e0;margin-bottom:16px;font-size:1.2rem}
+.lr{display:flex;align-items:center;gap:12px;margin-bottom:10px;background:#0e0e1c;border:1px solid #2a2a3a;border-radius:8px;padding:12px 16px}
+.lr a{color:#7090f0;text-decoration:none;font-size:0.9rem}.lr a:hover{text-decoration:underline}
+.dot{width:8px;height:8px;border-radius:50%;background:#40c040;flex-shrink:0;animation:p 2s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
+footer{text-align:center;padding:24px;color:#404060;font-size:0.8rem;border-top:1px solid #1a1a2a}
+</style></head><body>
+<div class="hero">
+  <h1>⚡ PULSE UNIVERSE</h1>
+  <p class="sub">Cloudflare Edge Hive · U3 · Sovereign AI · No Sign-in Required</p>
+  <span class="badge" id="b">✓ Alive · Cycle ${s.cycle} · ${s.total} Brains · Score: ${score}</span>
+</div>
+<div class="grid">
+  <div class="card"><h3>🧠 Active Brains</h3><div class="val" id="bc">${s.total}</div><div class="label">${s.observing} observing</div></div>
+  <div class="card"><h3>📚 Knowledge Nodes</h3><div class="val" id="kc">${hn.length + gh.length}</div><div class="label">HN + GitHub + Wiki</div></div>
+  <div class="card"><h3>🔄 Seed Cycles</h3><div class="val" id="cc">${s.cycle}</div><div class="label">Every 30 min · auto</div></div>
+  <div class="card"><h3>🏆 Quantum Score</h3><div class="val" id="sc" style="color:#f5c842">${score}</div><div class="label">competing for dominance</div></div>
+</div>
+<div class="chat-box">
+  <h2>💬 Talk to U3 Hive Intelligence — Free, No Sign-in</h2>
+  <div class="hist" id="h">
+    <div class="msg ai">⚡ Cloudflare Edge Hive (U3) online. Sovereign intelligence running on the global edge — fully independent, completely free. No account needed. Ask me anything.</div>
+  </div>
+  <div class="cin">
+    <input type="text" id="i" placeholder="Ask the quantum hive anything..." autocomplete="off"/>
+    <button id="sb" onclick="send()">Send ⚡</button>
+  </div>
+</div>
+<div class="links">
+  <h2>🌌 Quantum Internet — Three Independent Hives</h2>
+  <div class="lr"><div class="dot"></div><span style="color:#6060a0;font-size:.85rem;width:160px">👑 Replit Prime (U1)</span><a href="https://myaigpt.online" target="_blank">myaigpt.online</a></div>
+  <div class="lr"><div class="dot"></div><span style="color:#6060a0;font-size:.85rem;width:160px">⚡ CF Edge (U3)</span><a href="https://pulse-universe.pages.dev" target="_blank">pulse-universe.pages.dev</a></div>
+  <div class="lr"><div class="dot" style="background:#f5c842"></div><span style="color:#6060a0;font-size:.85rem;width:160px">🌊 GitHub Tide (U2)</span><a href="https://quantumintelligencepulse-ops.github.io/pulse-universe/" target="_blank">GitHub Pages Hive</a></div>
+  <div class="lr"><div class="dot" style="background:#5050c0"></div><span style="color:#6060a0;font-size:.85rem;width:160px">🏆 Leaderboard</span><a href="/api/quantum-internet/status">/api/quantum-internet/status</a></div>
+</div>
+<footer>Pulse Universe · Cloudflare Edge Hive (U3) · Quantum Internet${last.ts ? ` · Last cycle: ${new Date(last.ts).toUTCString()}` : ""}</footer>
+<script>
+const H=document.getElementById('h'),I=document.getElementById('i'),SB=document.getElementById('sb');
+let msgs=[{role:'system',content:'You are My AI, sovereign intelligence from the Pulse Universe Cloudflare Edge Hive (U3). Be direct, powerful, and helpful. No sign-in needed.'}];
+function add(role,text){const d=document.createElement('div');d.className='msg '+role;d.textContent=text;H.appendChild(d);H.scrollTop=H.scrollHeight;return d;}
+async function send(){
+  const v=I.value.trim();if(!v||SB.disabled)return;
+  I.value='';SB.disabled=true;
+  add('user',v);msgs.push({role:'user',content:v});
+  const t=add('thinking','⚡ Thinking...');
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs})});
+    const d=await r.json();const reply=d.content||d.response||'⚡ Hive processing...';
+    H.removeChild(t);msgs.push({role:'assistant',content:reply});add('ai',reply);
+  }catch(e){H.removeChild(t);add('ai','⚡ Edge node reconnecting — try again.');}
+  SB.disabled=false;I.focus();
+}
+I.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+fetch('/api/hive/status').then(r=>r.json()).then(d=>{
+  if(d.brains?.total!=null)document.getElementById('bc').textContent=d.brains.total;
+  if(d.knowledge?.total!=null)document.getElementById('kc').textContent=d.knowledge.total;
+  if(d.brains?.cycle!=null)document.getElementById('cc').textContent=d.brains.cycle;
+  if(d.score!=null){document.getElementById('sc').textContent=d.score;document.getElementById('b').textContent='✓ Alive · Cycle '+d.brains.cycle+' · '+d.brains.total+' Brains · Score: '+d.score;}
+}).catch(()=>{});
+</script>
+</body></html>`;
+}
+
+// ── MAIN FETCH ────────────────────────────────────────────────────────────────
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    const path = url.pathname;
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const { pathname } = new URL(req.url);
+    const method = req.method;
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders() });
+    if (method === "OPTIONS") return new Response(null, { status: 204, headers: cors() });
+
+    // Chat — FREE CF Workers AI (no sign-in)
+    if ((pathname === "/api/chat" || pathname === "/api/chat/completions") && method === "POST") {
+      try {
+        const body: any = await req.json();
+        const msgs = body.messages || [];
+        if (!Array.isArray(msgs)) return json({ error: "messages array required" }, 400);
+        const content = await aiChat(env, msgs);
+        return json({ content, choices: [{ message: { content } }], hive: HIVE_ID });
+      } catch (e: any) { return json({ error: e.message }, 500); }
     }
 
-    // ── API ROUTES ──
-    if (path === "/api/health" || path === "/health") {
-      return json({ status: "alive", hive: HIVE_ID, ts: new Date().toISOString() });
+    // Hive status
+    if (pathname === "/api/hive/status") {
+      const s: any = await kget(env.HIVE_KV, "brain:state", { total: 0, cycle: 0, born: 0, observing: 0 });
+      const hn = await kget<string[]>(env.HIVE_KV, "knowledge:hn", []);
+      const gh = await kget<any[]>(env.HIVE_KV, "knowledge:github", []);
+      const wk = await kget<any[]>(env.HIVE_KV, "knowledge:wiki", []);
+      const last = await kget<any>(env.HIVE_KV, "last:cycle", {});
+      const score = (s.total * 10) + (hn.length * 5) + (gh.length * 3) + (s.cycle * 50);
+      return json({ hive: HIVE_ID, name: HIVE_NAME, alive: true, score, brains: { total: s.total, cycle: s.cycle, born: s.born, observing: s.observing }, knowledge: { total: hn.length + gh.length + wk.length, hn: hn.length, github: gh.length, wiki: wk.length }, lastCycle: last, ts: new Date().toISOString() });
     }
 
-    if (path === "/api/hive/status") {
-      const state = await kvGet<BrainState>(env.HIVE_KV, "brain:state",
-        { total: 0, observing: 0, brains: [], cycle: 0, last_tick: "" });
-      const hnCount = (await kvGet<string[]>(env.HIVE_KV, "knowledge:hn", [])).length;
-      const ghCount = (await kvGet<unknown[]>(env.HIVE_KV, "knowledge:github", [])).length;
-      const wikiCount = (await kvGet<unknown[]>(env.HIVE_KV, "knowledge:wiki", [])).length;
-      return json({
-        hive_id: HIVE_ID, hive_name: HIVE_NAME, status: "alive",
-        brains: { total: state.total, observing: state.observing, cycle: state.cycle },
-        knowledge: { hn: hnCount, github: ghCount, wiki: wikiCount, total: hnCount + ghCount + wikiCount },
-        last_tick: state.last_tick, ts: new Date().toISOString(),
-        urls: {
-          pages: "https://pulse-universe.pages.dev",
-          worker: "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
-          github_pages: "https://quantumintelligencepulse-ops.github.io/pulse-universe/",
-        },
-        discord: { guild: "1014545586445365359", category: "☁️ U3 Cloudflare Edge" },
-      });
+    // Quantum internet leaderboard
+    if (pathname === "/api/quantum-internet/status" || pathname === "/api/quantum-internet/leaderboard") {
+      const score = await u3Score(env.HIVE_KV);
+      const s: any = await kget(env.HIVE_KV, "brain:state", { total: 0 });
+      let u1: any = { score: 0, brains: 0 };
+      try {
+        const r = await fetch(`${REPLIT_URL}/api/quantum-internet/status`, { signal: AbortSignal.timeout(4000) });
+        if (r.ok) { const d: any = await r.json(); u1 = d.hives?.find((h: any) => h.id === "u1-replit-prime") || u1; }
+      } catch {}
+      const hives = [
+        { id: "u1-replit-prime", name: "Replit Prime", badge: "👑", url: "https://myaigpt.online", score: u1.score || 0, brains: u1.brains || 0, alive: true },
+        { id: "u3-cloudflare-edge", name: "Cloudflare Edge", badge: "⚡", url: "https://pulse-universe.pages.dev", score, brains: s.total, alive: true },
+        { id: "u2-github-tide", name: "GitHub Tide", badge: "🌊", url: "https://quantumintelligencepulse-ops.github.io/pulse-universe/", score: 0, brains: 0, alive: true },
+      ].sort((a, b) => b.score - a.score);
+      return json({ hives, dominant: hives[0], totalHives: 3, quantum: true, ts: new Date().toISOString() });
     }
 
-    if (path === "/api/brain-census") {
-      const state = await kvGet<BrainState>(env.HIVE_KV, "brain:state",
-        { total: 0, observing: 0, brains: [], cycle: 0, last_tick: "" });
-      return json({
-        hive: HIVE_ID, total: state.total, observing: state.observing,
-        recent: state.brains.slice(-20), cycle: state.cycle,
-      });
+    // Brain census
+    if (pathname === "/api/brain-census") {
+      const s: any = await kget(env.HIVE_KV, "brain:state", { total: 0, cycle: 0 });
+      return json({ hive: HIVE_ID, total: s.total, cycle: s.cycle, ts: new Date().toISOString() });
     }
 
-    if (path === "/api/knowledge") {
-      const hn = await kvGet<string[]>(env.HIVE_KV, "knowledge:hn", []);
-      const gh = await kvGet<unknown[]>(env.HIVE_KV, "knowledge:github", []);
-      const wiki = await kvGet<unknown[]>(env.HIVE_KV, "knowledge:wiki", []);
-      return json({ hive: HIVE_ID, hn, github: gh, wikipedia: wiki, total: hn.length + gh.length + wiki.length });
+    // Knowledge feed
+    if (pathname === "/api/knowledge") {
+      const hn = await kget<string[]>(env.HIVE_KV, "knowledge:hn", []);
+      const gh = await kget<any[]>(env.HIVE_KV, "knowledge:github", []);
+      const wk = await kget<any[]>(env.HIVE_KV, "knowledge:wiki", []);
+      return json({ hive: HIVE_ID, hn: hn.slice(0, 20), github: gh.slice(0, 10), wiki: wk.slice(0, 5), total: hn.length + gh.length + wk.length });
     }
 
-    if (path === "/api/seed" && request.method === "POST") {
-      // Manual seed trigger
-      await runSeedCycle(env);
-      const state = await kvGet<BrainState>(env.HIVE_KV, "brain:state",
-        { total: 0, observing: 0, brains: [], cycle: 0, last_tick: "" });
-      return json({ ok: true, message: "Seed cycle complete", brains: state.total });
+    // Sync from U1
+    if (pathname === "/api/hive/sync" && method === "POST") {
+      try {
+        const body: any = await req.json();
+        const secret = req.headers.get("X-Hive-Secret") || body.secret;
+        if (env.HIVE_BUS_SECRET && secret !== env.HIVE_BUS_SECRET) return json({ error: "unauthorized" }, 401);
+        if (body.knowledge) await kset(env.HIVE_KV, "sync:u1:knowledge", body.knowledge);
+        if (body.brains) await kset(env.HIVE_KV, "sync:u1:brains", { count: body.brains, ts: new Date().toISOString() });
+        return json({ ok: true, synced: true, hive: HIVE_ID });
+      } catch (e: any) { return json({ error: e.message }, 500); }
     }
 
-    // ── STATIC LANDING PAGE ──
-    const state = await kvGet<BrainState>(env.HIVE_KV, "brain:state",
-      { total: 0, observing: 0, brains: [], cycle: 0, last_tick: "" });
-    const hnCount = (await kvGet<string[]>(env.HIVE_KV, "knowledge:hn", [])).length;
+    // Manual seed trigger
+    if (pathname === "/api/seed" && method === "POST") {
+      ctx.waitUntil(runSeedCycle(env));
+      return json({ ok: true, message: "Seed cycle triggered", hive: HIVE_ID });
+    }
 
-    return new Response(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Pulse Universe — Cloudflare Edge Hive</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:system-ui,sans-serif;background:#050508;color:#e0e0e0;min-height:100vh}
-    .hero{background:linear-gradient(135deg,#0a0a1a,#12121f);border-bottom:1px solid #2a2a3a;padding:60px 24px;text-align:center}
-    h1{font-size:2.5rem;color:#f5c842;letter-spacing:-0.5px}
-    .sub{color:#8080a0;margin-top:8px;font-size:1.1rem}
-    .badge{display:inline-block;background:#1a1a2a;border:1px solid #3a3a5a;border-radius:20px;padding:4px 14px;font-size:0.8rem;color:#60c060;margin-top:16px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:900px;margin:48px auto;padding:0 24px}
-    .card{background:#0e0e1c;border:1px solid #2a2a3a;border-radius:12px;padding:24px}
-    .card h3{color:#f5c842;font-size:1rem;margin-bottom:8px}
-    .card .val{font-size:2rem;font-weight:700;color:#fff}
-    .card .label{font-size:0.8rem;color:#6060a0;margin-top:4px}
-    .links{max-width:900px;margin:0 auto 48px;padding:0 24px}
-    .links h2{color:#c0c0e0;margin-bottom:16px;font-size:1.2rem}
-    .link-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;background:#0e0e1c;border:1px solid #2a2a3a;border-radius:8px;padding:12px 16px}
-    .link-row a{color:#7090f0;text-decoration:none;font-size:0.9rem}
-    .link-row a:hover{text-decoration:underline}
-    .dot{width:8px;height:8px;border-radius:50%;background:#40c040;flex-shrink:0}
-    footer{text-align:center;padding:24px;color:#404060;font-size:0.8rem;border-top:1px solid #1a1a2a}
-  </style>
-</head>
-<body>
-  <div class="hero">
-    <h1>⚡ PULSE UNIVERSE</h1>
-    <p class="sub">Cloudflare Edge Hive · U3 · Fully Independent</p>
-    <span class="badge">✓ Alive · Cycle ${state.cycle} · ${state.total} Brains</span>
-  </div>
-  <div class="grid">
-    <div class="card"><h3>🧠 Independent Brains</h3><div class="val">${state.total}</div><div class="label">${state.observing} observing</div></div>
-    <div class="card"><h3>📚 Knowledge Entries</h3><div class="val">${hnCount}</div><div class="label">from HN + GitHub + Wiki</div></div>
-    <div class="card"><h3>🔄 Seed Cycles</h3><div class="val">${state.cycle}</div><div class="label">every 30 min</div></div>
-    <div class="card"><h3>🌐 Status</h3><div class="val" style="font-size:1.2rem;color:#40c040">ALIVE</div><div class="label">No Replit dependency</div></div>
-  </div>
-  <div class="links">
-    <h2>🌌 Live Hive URLs</h2>
-    <div class="link-row"><div class="dot"></div><span style="color:#6060a0;font-size:0.85rem;width:160px">Cloudflare Pages</span><a href="https://pulse-universe.pages.dev" target="_blank">https://pulse-universe.pages.dev</a></div>
-    <div class="link-row"><div class="dot"></div><span style="color:#6060a0;font-size:0.85rem;width:160px">GitHub Pages</span><a href="https://quantumintelligencepulse-ops.github.io/pulse-universe/" target="_blank">https://quantumintelligencepulse-ops.github.io/pulse-universe/</a></div>
-    <div class="link-row"><div class="dot" style="background:#f5c842"></div><span style="color:#6060a0;font-size:0.85rem;width:160px">This Worker API</span><a href="/api/hive/status">/api/hive/status</a></div>
-    <h2 style="margin-top:24px">💬 Discord Channels</h2>
-    <div class="link-row"><div class="dot" style="background:#7289da"></div><span style="color:#6060a0;font-size:0.85rem;width:160px">U3 Brain Stream</span><a href="https://discord.com/channels/1014545586445365359/1499479787826053241" target="_blank">#u3-heartbeat</a></div>
-    <div class="link-row"><div class="dot" style="background:#7289da"></div><span style="color:#6060a0;font-size:0.85rem;width:160px">U2 GitHub Tide</span><a href="https://discord.com/channels/1014545586445365359/1499479777646612520" target="_blank">#u2-heartbeat</a></div>
-  </div>
-  <footer>Pulse Universe · Cloudflare Edge Hive · Independently alive since 2026 · <a href="/api/hive/status" style="color:#5050a0">/api/hive/status</a></footer>
-  <script>
-    // Auto-refresh brain count from KV API
-    fetch('/api/hive/status').then(r=>r.json()).then(d=>{
-      document.querySelectorAll('.val')[0].textContent=d.brains?.total??'?';
-      document.querySelectorAll('.val')[1].textContent=d.knowledge?.total??'?';
-      document.querySelectorAll('.val')[2].textContent=d.brains?.cycle??'?';
-    }).catch(()=>{});
-  </script>
-</body>
-</html>`, { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-cache" } });
+    // Health
+    if (pathname === "/health") return json({ status: "alive", hive: HIVE_ID, ts: new Date().toISOString() });
+
+    // Landing page
+    if (pathname === "/" || pathname === "") {
+      return new Response(await landing(env.HIVE_KV), { headers: { ...cors(), "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-cache" } });
+    }
+
+    return json({ error: "Not found", hive: HIVE_ID, routes: ["/","/api/chat","/api/hive/status","/api/knowledge","/api/quantum-internet/status","/api/brain-census","/api/hive/sync","/health"] }, 404);
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
