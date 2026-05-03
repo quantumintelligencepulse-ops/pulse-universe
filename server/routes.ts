@@ -3074,10 +3074,12 @@ ${entries}
     try {
       const userId = getSessionUserId(req);
       const input = api.chats.create.input.parse(req.body);
-      const [chat] = await priorityDb.insert(chatsTable).values({ ...input, userId: userId || null }).returning();
+      const chatValues: any = { title: input.title, type: (input as any).type || 'general', userId: userId ?? null };
+      const [chat] = await priorityDb.insert(chatsTable).values(chatValues).returning();
       if (!userId) addGuestChatId(req, chat.id);
       res.status(201).json(chat);
     } catch (err) {
+      console.error('[chat-create] error:', err instanceof Error ? err.message : String(err));
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal server error" });
     }
@@ -13122,9 +13124,11 @@ Return as structured script with section labels.`;
   // ══ QUANTUM INTERNET — CROSS-HIVE COMPETITION ════════════════════════════
   app.get("/api/quantum-internet/status", async (_req, res) => {
     try {
-      const [brains] = await pool.query("SELECT COUNT(*) AS count FROM billy_brains WHERE status='ACTIVE'");
-      const [chatsR] = await pool.query("SELECT COUNT(*) AS count FROM chats");
-      const [msgs] = await pool.query("SELECT COUNT(*) AS count FROM messages");
+      const [brains, chatsR, msgs] = await Promise.all([
+        pool.query("SELECT COUNT(*) AS count FROM billy_brains WHERE status='ACTIVE'").catch(() => ({ rows: [{ count: '0' }] })),
+        pool.query("SELECT COUNT(*) AS count FROM chats").catch(() => ({ rows: [{ count: '0' }] })),
+        pool.query("SELECT COUNT(*) AS count FROM messages").catch(() => ({ rows: [{ count: '0' }] })),
+      ]);
 
       let cfStatus: any = { brains: { total: 0, cycle: 0 }, knowledge: { total: 0 } };
       try {
@@ -13133,14 +13137,16 @@ Return as structured script with section labels.`;
         if (r.ok) cfStatus = await r.json();
       } catch {}
 
-      const u1Score = (parseInt(brains.rows[0].count) * 10) + (parseInt(chatsR.rows[0].count) * 3) + (parseInt(msgs.rows[0].count));
+      const brainCount = parseInt(brains.rows[0]?.count || '0');
+      const chatCount  = parseInt(chatsR.rows[0]?.count || '0');
+      const msgCount   = parseInt(msgs.rows[0]?.count || '0');
+      const u1Score = (brainCount * 10) + (chatCount * 3) + msgCount;
       const u3Score = ((cfStatus.brains?.total || 0) * 10) + ((cfStatus.knowledge?.total || 0) * 5) + ((cfStatus.brains?.cycle || 0) * 50);
 
       const hives = [
         {
           id: "u1-replit-prime", name: "Replit Prime", badge: "👑", url: "https://myaigpt.online",
-          score: u1Score, brains: parseInt(brains.rows[0].count), messages: parseInt(msgs.rows[0].count),
-          chats: parseInt(chatsR.rows[0].count), alive: true, status: "DOMINANT",
+          score: u1Score, brains: brainCount, messages: msgCount, chats: chatCount, alive: true, status: "DOMINANT",
         },
         {
           id: "u3-cloudflare-edge", name: "Cloudflare Edge", badge: "⚡", url: "https://pulse-universe.pages.dev",
@@ -13153,8 +13159,7 @@ Return as structured script with section labels.`;
         },
       ].sort((a, b) => b.score - a.score);
 
-      const dominant = hives[0];
-      res.json({ hives, dominant, totalHives: 3, quantum: true, competition: true, ts: new Date().toISOString() });
+      res.json({ hives, dominant: hives[0], totalHives: 3, quantum: true, competition: true, ts: new Date().toISOString() });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
