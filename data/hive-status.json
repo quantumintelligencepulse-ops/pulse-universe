@@ -1,0 +1,32 @@
+{
+  "hive_id": "u2-github",
+  "hive_name": "GitHub Tide Hive",
+  "status": "alive",
+  "brains": {
+    "total": 0,
+    "observing": 0,
+    "cycle": 0
+  },
+  "knowledge": {
+    "hn": 0,
+    "github": 0,
+    "total": 0
+  },
+  "last_tick": "2026-05-03T00:00:00Z",
+  "ts": "2026-05-03T00:00:00Z",
+  "urls": {
+    "pages": "https://quantumintelligencepulse-ops.github.io/pulse-universe/",
+    "data_api": "https://quantumintelligencepulse-ops.github.io/pulse-universe/data/hive-status.json"
+  },
+  "discord": {
+    "guild": "1014545586445365359",
+    "category": "\ud83d\udcda U2 GitHub Tide",
+    "channels": {
+      "brain_stream": "1500579940989669377",
+      "knowledge_seed": "1500579945376649446",
+      "backup_log": "1500579949319426068",
+      "status": "1500579953023127652"
+    }
+  },
+  "note": "Updated every 4 hours by GitHub Actions (fully independent of Replit)"
+}
