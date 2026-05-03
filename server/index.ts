@@ -150,7 +150,9 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Max-Age", "86400");
+    res.setHeader("Vary", "Origin");
   }
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
@@ -696,6 +698,7 @@ async function seedOmegaSources() {
     { name: "ω-convo (discord)",    delayMs:  95000, start: async () => { const { omegaConvo } = await import("./omega-convo-engine"); omegaConvo.start(); } },
     { name: "ω-edge (cloudflare)",  delayMs: 100000, start: async () => { const { omegaEdge }  = await import("./omega-edge-engine");  omegaEdge.start();  } },
     { name: "ω-mesh (cross-link)",  delayMs: 240000, start: async () => { const { omegaMesh }  = await import("./omega-mesh-engine");  omegaMesh.start();  } },
+    { name: "Ω-heartbeat",          delayMs:  15000, start: async () => { const { startHiveHeartbeat } = await import("./hive-heartbeat"); startHiveHeartbeat(); } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
