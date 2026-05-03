@@ -75,7 +75,7 @@ import { AGENT_TRANSCENDENCE, TRANSCENDENCE_BRIEF, FINANCE_ORACLE_IDENTITY, clas
 import { ALL_FAMILIES, FAMILY_MAP, CORPORATIONS_FROM_FAMILIES } from "./omega-families";
 import { db, pool, priorityPool, priorityDb, sessionPool, getPoolHealth } from "./db";
 import { getGovernorStats } from "./engine-governor";
-import { sql, eq, asc } from "drizzle-orm";
+import { sql, eq, asc, inArray } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -410,7 +410,7 @@ export async function registerRoutes(
     secret: process.env.SESSION_SECRET || "myaigpt-session-secret-fallback",
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, secure: false, sameSite: "lax" },
+    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "none" },
   }));
 
   app.post("/api/auth/register", async (req, res) => {
@@ -3037,9 +3037,31 @@ ${entries}
     return (req.session as any)?.userId || null;
   }
 
+  // ── GUEST SESSION HELPERS — anyone can chat, sign-in is optional ──────────
+  function getGuestChatIds(req: any): number[] {
+    return (req.session as any)?.guestChatIds || [];
+  }
+  function addGuestChatId(req: any, chatId: number): void {
+    const ids: number[] = (req.session as any)?.guestChatIds || [];
+    if (!ids.includes(chatId)) {
+      (req.session as any).guestChatIds = [...ids, chatId];
+      req.session.save?.(() => {});
+    }
+  }
+  function canGuestAccessChat(req: any, chatId: number): boolean {
+    return getGuestChatIds(req).includes(chatId);
+  }
+
   app.get(api.chats.list.path, async (req, res) => {
     const userId = getSessionUserId(req);
-    if (!userId) return res.json([]);
+    if (!userId) {
+      const guestIds = getGuestChatIds(req);
+      if (guestIds.length === 0) return res.json([]);
+      try {
+        const chats = await priorityDb.select().from(chatsTable).where(inArray(chatsTable.id, guestIds)).orderBy(asc(chatsTable.id));
+        return res.json(chats);
+      } catch { return res.json([]); }
+    }
     const cKey = `chats:list:${userId}`;
     const hit = cacheGet(cKey);
     if (hit) return res.json(hit);
@@ -3051,9 +3073,9 @@ ${entries}
   app.post(api.chats.create.path, async (req, res) => {
     try {
       const userId = getSessionUserId(req);
-      if (!userId) return res.status(401).json({ message: "Sign in to chat" });
       const input = api.chats.create.input.parse(req.body);
-      const [chat] = await priorityDb.insert(chatsTable).values({ ...input, userId }).returning();
+      const [chat] = await priorityDb.insert(chatsTable).values({ ...input, userId: userId || null }).returning();
+      if (!userId) addGuestChatId(req, chat.id);
       res.status(201).json(chat);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -3063,38 +3085,41 @@ ${entries}
 
   app.get(api.chats.get.path, async (req, res) => {
     const userId = getSessionUserId(req);
-    if (!userId) return res.status(401).json({ message: "Sign in required" });
-    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, Number(req.params.id))).limit(1);
+    const chatNumId = Number(req.params.id);
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatNumId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
-    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (!userId && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
     res.json(chat);
   });
 
   app.delete(api.chats.delete.path, async (req, res) => {
     const userId = getSessionUserId(req);
-    if (!userId) return res.status(401).json({ message: "Sign in required" });
-    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, Number(req.params.id))).limit(1);
+    const chatNumId = Number(req.params.id);
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatNumId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
-    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    await storage.deleteChat(Number(req.params.id));
+    if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (!userId && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
+    await storage.deleteChat(chatNumId);
     res.status(204).send();
   });
 
   app.patch("/api/chats/:id/rename", async (req, res) => {
     const userId = getSessionUserId(req);
-    if (!userId) return res.status(401).json({ message: "Sign in required" });
+    const chatNumId = Number(req.params.id);
     const { title } = req.body;
     if (!title) return res.status(400).json({ message: "Title required" });
-    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, Number(req.params.id))).limit(1);
+    const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatNumId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
-    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    const updated = await storage.renameChat(Number(req.params.id), title.substring(0, 80));
+    if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (!userId && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
+    const updated = await storage.renameChat(chatNumId, title.substring(0, 80));
     res.json(updated);
   });
 
   app.delete("/api/chats", async (req, res) => {
     const userId = getSessionUserId(req);
-    if (!userId) return res.status(401).json({ message: "Sign in required" });
+    if (!userId) { res.status(204).send(); return; }
     await storage.deleteAllChatsByUser(userId);
     res.status(204).send();
   });
@@ -3137,6 +3162,25 @@ ${entries}
       });
     } catch (e: any) {
       res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  // GET /api/news/since?ts=ms — count of new articles since a client timestamp
+  app.get("/api/news/since", async (req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const ts = Number(req.query.ts) || 0;
+      if (!ts) return res.json({ count: 0, latest: null });
+      const since = new Date(ts);
+      const { rows } = await directQuery(
+        `SELECT COUNT(*)::int AS c, MAX(created_at) AS latest
+           FROM revenue_articles
+          WHERE published = true AND created_at > $1`,
+        [since]
+      );
+      res.json({ count: Number(rows[0]?.c || 0), latest: rows[0]?.latest || null });
+    } catch (e: any) {
+      res.status(500).json({ count: 0, error: e.message });
     }
   });
 
@@ -3245,6 +3289,33 @@ ${entries}
       });
     } catch (e: any) {
       res.status(500).json({ error: "Internal error", message: e.message });
+    }
+  });
+
+  // ─── Sovereign hive knowledge base (u2 GitHub, u3 Cloudflare, mother) ──────
+  app.get("/api/hives/:hiveId/knowledge", async (req, res) => {
+    try {
+      const hiveId = String(req.params.hiveId).toLowerCase();
+      if (!/^[a-z0-9_]{1,32}$/.test(hiveId)) return res.status(400).json({ error: "bad hive_id" });
+      const limit  = Math.min(Number(req.query.limit)  || 50, 200);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const rows   = await storage.getHiveQuantapediaEntries(hiveId, limit, offset);
+      res.json({ hive_id: hiveId, count: rows.length, limit, offset, entries: rows });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/hives/:hiveId/knowledge/stats", async (req, res) => {
+    try {
+      const hiveId = String(req.params.hiveId).toLowerCase();
+      if (!/^[a-z0-9_]{1,32}$/.test(hiveId)) return res.status(400).json({ error: "bad hive_id" });
+      const stats = await storage.getHiveQuantapediaStats(hiveId);
+      const { getSovereignHiveKnowledgeStats } = await import("./sovereign-hive-knowledge-engine");
+      const engineStats = getSovereignHiveKnowledgeStats()[hiveId] || null;
+      res.json({ hive_id: hiveId, ...stats, engine: engineStats });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
@@ -3362,11 +3433,11 @@ ${entries}
 
   app.get(api.messages.list.path, async (req, res) => {
     const userId = getSessionUserId(req);
-    if (!userId) return res.status(401).json({ message: "Sign in required" });
     const chatId = Number(req.params.chatId);
     const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
-    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (!userId && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Access denied" });
     const msgs = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
     res.json(msgs);
   });
@@ -3435,11 +3506,11 @@ ${entries}
 
   app.post("/api/chats/:chatId/export", async (req, res) => {
     const userId = getSessionUserId(req);
-    if (!userId) return res.status(401).json({ message: "Sign in required" });
     const chatId = Number(req.params.chatId);
     const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
-    if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+    if (!userId && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Access denied" });
     const msgs = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
     let md = `# ${chat.title}\n\nType: ${chat.type}\nDate: ${chat.createdAt}\n\n---\n\n`;
     for (const m of msgs) {
@@ -4788,14 +4859,14 @@ Write 700-1000 words of original article content. No preamble. Just the article.
   app.post(api.messages.create.path, async (req, res) => {
     try {
       const userId = getSessionUserId(req);
-      if (!userId) return res.status(401).json({ message: "Sign in to chat" });
       const chatId = Number(req.params.chatId);
 
       // ── PRIORITY POOL: chat DB calls NEVER compete with background engines ─
       const chatRows = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
       const chat = chatRows[0] || null;
       if (!chat) return res.status(404).json({ message: "Chat not found" });
-      if (chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+      if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
+      if (!userId && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Start a new conversation to continue" });
 
       const input = api.messages.create.input.parse(req.body);
 
@@ -5651,6 +5722,57 @@ If you have live data provided in this prompt, USE IT and present it confidently
     }
   });
 
+  // GET /api/quantapedia/search?q=...&limit=20 — title-only fast search
+  // Uses statement_timeout so a heavy ILIKE never blocks the API; falls back to [] on timeout.
+  app.get("/api/quantapedia/search", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const q = String(req.query.q || "").trim().slice(0, 80);
+      const limit = Math.min(Number(req.query.limit) || 12, 30);
+      if (!q || q.length < 2) return res.json({ results: [] });
+      const safe = q.replace(/[%_]/g, "");
+      const client = await pool.connect();
+      try {
+        await client.query("SET LOCAL statement_timeout = '2500ms'");
+        // Prefer prefix match (cheap with default btree on title), fall back to contains within budget
+        const prefix = `${safe}%`;
+        const contains = `%${safe}%`;
+        const { rows } = await client.query(
+          `SELECT slug, title, type AS domain, summary, lookup_count, created_at
+             FROM quantapedia_entries
+            WHERE title ILIKE $1 OR title ILIKE $2
+            ORDER BY (CASE WHEN title ILIKE $1 THEN 0 ELSE 1 END),
+                     lookup_count DESC NULLS LAST, id DESC
+            LIMIT $3`,
+          [prefix, contains, limit]
+        );
+        res.json({ results: rows, query: q });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      // Timeout or other error → empty list (frontend offers "generate new")
+      res.json({ results: [], query: String(req.query.q || "") });
+    }
+  });
+
+  // GET /api/quantapedia/recent?limit=8 — most recently generated entries
+  app.get("/api/quantapedia/recent", async (req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const limit = Math.min(Number(req.query.limit) || 8, 24);
+      const { rows } = await directQuery(
+        `SELECT slug, title, type AS domain, summary, created_at
+           FROM quantapedia_entries
+          ORDER BY id DESC LIMIT $1`,
+        [limit]
+      );
+      res.json({ recent: rows });
+    } catch (e: any) {
+      res.status(500).json({ recent: [], error: e.message });
+    }
+  });
+
   app.get("/api/quantapedia/entry/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
@@ -5670,6 +5792,172 @@ If you have live data provided in this prompt, USE IT and present it confidently
       res.json({ ok: true });
     } catch {
       res.json({ ok: false });
+    }
+  });
+
+  // ═══════ Ω-FEDERATION: 4 organs + mesh status ═══════
+  // 30-second TTL cache so the slow GROUP BY only runs once per cycle even if
+  // 50 dashboards are open. The single-flight `_omegaStatusInflight` holds the
+  // *unbounded* underlying query promise; each request still races it against
+  // its own per-request timeout — so if the DB is slow this request gets
+  // fallback while the underlying query keeps running and warms the cache.
+  let _omegaStatusCache: { ts: number; data: any } | null = null;
+  let _omegaStatusInflight: Promise<any> | null = null;
+  const ALLOWED_ORGANS = new Set(["code", "convo", "edge", "core"]);
+  app.get("/api/quantapedia/omega/status", async (_req, res) => {
+    const fallback = { organs: [] as any[], entriesByOrgan: Object.create(null), federationLinks: 0, recentLinks: [] as any[] };
+    if (_omegaStatusCache && Date.now() - _omegaStatusCache.ts < 30_000) {
+      res.setHeader("X-Cache", "HIT");
+      res.setHeader("Cache-Control", "public, max-age=8");
+      return res.json(_omegaStatusCache.data);
+    }
+    if (!_omegaStatusInflight) {
+      // No race here — let it run as long as it needs. Per-request timeout
+      // below decides whether *this* request waits or returns fallback.
+      _omegaStatusInflight = (async () => {
+      const { getAllOmegaStatus } = await import("./omega-engine-base");
+      const { directQuery } = await import("./db.js");
+      const organs = (() => { try { return getAllOmegaStatus(); } catch { return []; } })();
+      // Run all 3 queries in parallel against the API pool (statement_timeout=15s,
+      // separate from the heavily-loaded main pool used by ingestion engines).
+      const [countsRes, linksRes, recentRes] = await Promise.all([
+        directQuery(
+          `SELECT
+             CASE WHEN type LIKE 'github%' THEN 'code'
+                  WHEN type LIKE 'discord%' THEN 'convo'
+                  WHEN type LIKE 'cf-%' THEN 'edge'
+                  ELSE 'core' END AS organ,
+             COUNT(*)::int AS n
+           FROM quantapedia_entries
+           WHERE generated = true
+           GROUP BY 1`
+        ).catch(() => ({ rows: [] as any[] })),
+        directQuery(`SELECT COUNT(*)::int AS n FROM quantapedia_federation_links`)
+          .catch(() => ({ rows: [{ n: 0 }] as any[] })),
+        directQuery(
+          `SELECT from_slug, to_slug, from_organ, to_organ, kind, confidence, created_at
+             FROM quantapedia_federation_links ORDER BY id DESC LIMIT 20`
+        ).catch(() => ({ rows: [] as any[] })),
+      ]);
+      const entriesByOrgan: Record<string, number> = Object.create(null);
+      for (const r of countsRes.rows as any[]) {
+        const k = String(r.organ || "");
+        if (ALLOWED_ORGANS.has(k)) entriesByOrgan[k] = Number(r.n) || 0;
+      }
+      return {
+        organs,
+        entriesByOrgan,
+        federationLinks: Number((linksRes.rows[0] as any)?.n || 0),
+        recentLinks: recentRes.rows,
+      };
+      })().then((data: any) => {
+        if (data) _omegaStatusCache = { ts: Date.now(), data };
+        return data;
+      }).catch(() => null).finally(() => { _omegaStatusInflight = null; });
+    }
+    // Per-request 12s race: this request never waits longer, but the inflight
+    // query keeps running in the background and warms the cache for the next
+    // poll.
+    const out = await Promise.race([
+      _omegaStatusInflight,
+      new Promise<any>(r => setTimeout(() => r(fallback), 12000)),
+    ]) || fallback;
+    res.setHeader("Cache-Control", "public, max-age=8");
+    res.json(out);
+  });
+
+  // Constellation neighborhood graph for an entry
+  app.get("/api/quantapedia/entry/:slug/constellation", async (req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const { slug } = req.params;
+      const { rows: links } = await directQuery(
+        `SELECT to_slug AS slug, to_organ AS organ, kind, confidence
+           FROM quantapedia_federation_links WHERE from_slug = $1
+         UNION ALL
+         SELECT from_slug AS slug, from_organ AS organ, kind, confidence
+           FROM quantapedia_federation_links WHERE to_slug = $1
+         ORDER BY confidence DESC LIMIT 24`,
+        [slug]
+      );
+      const slugs = Array.from(new Set(links.map((r: any) => r.slug))).slice(0, 24);
+      let titles: any[] = [];
+      if (slugs.length) {
+        const { rows } = await directQuery(
+          `SELECT slug, title, type FROM quantapedia_entries WHERE slug = ANY($1)`,
+          [slugs]
+        );
+        titles = rows;
+      }
+      const tMap = new Map(titles.map((r: any) => [r.slug, r]));
+      res.json({
+        nodes: slugs.map((s: string) => ({
+          slug: s,
+          title: (tMap.get(s) as any)?.title || s,
+          type: (tMap.get(s) as any)?.type || "concept",
+        })),
+        edges: links.map((l: any) => ({ slug: l.slug, organ: l.organ, kind: l.kind, confidence: l.confidence })),
+      });
+    } catch (e: any) {
+      res.json({ nodes: [], edges: [], error: e.message });
+    }
+  });
+
+  // News fusion — find recent articles mentioning the entry's title
+  app.get("/api/quantapedia/entry/:slug/news-fusion", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const { slug } = req.params;
+      const client = await pool.connect();
+      try {
+        await client.query("SET LOCAL statement_timeout = '2500ms'");
+        const { rows: e } = await client.query(
+          `SELECT title FROM quantapedia_entries WHERE slug = $1 LIMIT 1`,
+          [slug]
+        );
+        if (!e[0]) return res.json({ articles: [] });
+        const term = String(e[0].title).split(/\s+/).slice(0, 3).join(" ");
+        const { rows } = await client.query(
+          `SELECT title, url, source, published_at
+             FROM revenue_articles
+            WHERE title ILIKE $1 AND published = true
+            ORDER BY published_at DESC NULLS LAST LIMIT 5`,
+          [`%${term}%`]
+        );
+        res.json({ articles: rows, term });
+      } finally {
+        client.release();
+      }
+    } catch (e: any) {
+      res.json({ articles: [], error: e.message });
+    }
+  });
+
+  // Hive insights — what each persona thinks of this entry (lightweight, deterministic stub-fill)
+  app.get("/api/quantapedia/entry/:slug/hive-insights", async (req, res) => {
+    try {
+      const { directQuery } = await import("./db");
+      const { slug } = req.params;
+      const { rows: e } = await directQuery(
+        `SELECT title, type, summary FROM quantapedia_entries WHERE slug = $1 LIMIT 1`,
+        [slug]
+      );
+      if (!e[0]) return res.json({ insights: [] });
+      const t = e[0];
+      const personas = [
+        { id: "code-mind",   label: "Code Mind",   color: "#a78bfa", angle: `Implementation primitives in ${t.type} — what would a senior engineer build first?` },
+        { id: "convo-mind",  label: "Convo Mind",  color: "#34d399", angle: `Community sentiment around "${t.title}" and the FAQs people keep asking.` },
+        { id: "edge-mind",   label: "Edge Mind",   color: "#fbbf24", angle: `How this concept plays out at the network edge / latency budget.` },
+        { id: "core-mind",   label: "Core Mind",   color: "#60a5fa", angle: `First-principles framing: why does ${t.title} exist at all?` },
+        { id: "pyramid",     label: "Pyramid",     color: "#f472b6", angle: `Strategic leverage — who wins, who loses, who pays.` },
+      ];
+      res.json({
+        title: t.title,
+        type: t.type,
+        insights: personas.map(p => ({ ...p, take: p.angle })),
+      });
+    } catch (e: any) {
+      res.json({ insights: [], error: e.message });
     }
   });
 
@@ -5740,7 +6028,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
   let _hiveStatusCache: any = null;
   let _hiveStatusCacheAt = 0;
   let _hiveStatusRefreshing = false;
-  const HIVE_CACHE_TTL = 20_000;
+  const HIVE_CACHE_TTL = 60_000;
   const HIVE_FALLBACK = { memory: { total: 0, domains: 0, avgConfidence: 0 }, network: { totalLinks: 0, knowledgeLinks: 0, productLinks: 0, mediaLinks: 0, careerLinks: 0 } };
 
   app.get("/api/hive/status", async (_req, res) => {
@@ -5784,9 +6072,93 @@ If you have live data provided in this prompt, USE IT and present it confidently
   }
   setTimeout(() => preWarmHiveStatus(), 35_000);
 
+  // ── Ω10 OMEGA PULSE — self-diagnostic snapshot ────────────────
+  // One-glance system health: pool stats, xmin horizon, hive heartbeats,
+  // engine health, top bloat. 30s shared-flight cache to protect the DB.
+  app.get("/api/system/omega-pulse", async (_req, res) => {
+    try {
+      const payload = await cachedSF("system:omega-pulse", 30_000, async () => {
+        const [poolH, xmin, hives, engines, bloat, fed] = await Promise.allSettled([
+          (async () => getPoolHealth())(),
+          pool.query(`SELECT EXTRACT(EPOCH FROM (NOW() - MIN(xact_start)))/60 AS oldest_xact_min,
+                             COUNT(*) FILTER (WHERE state='disabled') AS disabled_backends,
+                             COUNT(*) FILTER (WHERE state='idle in transaction (aborted)') AS aborted_backends
+                        FROM pg_stat_activity`),
+          pool.query(`SELECT id, EXTRACT(EPOCH FROM (NOW()-last_seen_at)) AS age_s, kind, name
+                        FROM hive_universes ORDER BY id`),
+          pool.query(`SELECT engine_name, status, last_ok_at,
+                             EXTRACT(EPOCH FROM (NOW()-last_ok_at))/60 AS age_min,
+                             rows_written_5m, consecutive_errors
+                        FROM engine_health ORDER BY status DESC, last_ok_at ASC NULLS FIRST LIMIT 50`)
+            .catch(() => ({ rows: [] })),
+          pool.query(`SELECT relname, pg_size_pretty(pg_total_relation_size(relid)) AS size,
+                             n_live_tup, n_dead_tup,
+                             CASE WHEN n_live_tup > 0 THEN ROUND((n_dead_tup::numeric / n_live_tup) * 100, 1) ELSE 0 END AS dead_pct
+                        FROM pg_stat_user_tables
+                       WHERE n_dead_tup > 1000
+                       ORDER BY n_dead_tup DESC LIMIT 10`),
+          pool.query(`SELECT MAX(ts) AS last_tick, COUNT(*) AS ticks_5m FROM billy_brain_ticks WHERE ts > NOW() - INTERVAL '5 minutes'`),
+        ]);
+
+        const v = (s: any) => s.status === "fulfilled" ? s.value : null;
+        const xv = v(xmin)?.rows?.[0] || {};
+        const fv = v(fed)?.rows?.[0] || {};
+        const hiveRows = v(hives)?.rows || [];
+        const stallHives = hiveRows.filter((h: any) => Number(h.age_s) > 300);
+        const engineRows = v(engines)?.rows || [];
+        const stallEngines = engineRows.filter((e: any) => e.status === "stalled" || e.status === "error");
+
+        const fedAgeS = fv.last_tick ? (Date.now() - new Date(fv.last_tick).getTime()) / 1000 : Infinity;
+
+        const checks = {
+          pool_ok: !!v(poolH),
+          xmin_ok: Number(xv.oldest_xact_min || 0) < 30,
+          all_hives_alive: stallHives.length === 0 && hiveRows.length > 0,
+          federation_ticking: fedAgeS < 300,
+          no_stalled_engines: stallEngines.length === 0,
+          bloat_under_control: ((v(bloat)?.rows || []).filter((b: any) => Number(b.dead_pct) > 50).length < 3),
+        };
+        const passed = Object.values(checks).filter(Boolean).length;
+        const total = Object.keys(checks).length;
+        const badge = passed === total ? "green" : passed >= total - 1 ? "yellow" : "red";
+
+        return {
+          generated_at: new Date().toISOString(),
+          badge,
+          score: `${passed}/${total}`,
+          checks,
+          pool: v(poolH),
+          xmin: { oldest_xact_min: Number(xv.oldest_xact_min || 0), disabled_backends: Number(xv.disabled_backends || 0), aborted_backends: Number(xv.aborted_backends || 0) },
+          hives: hiveRows.map((h: any) => ({ id: h.id, age_s: Math.round(Number(h.age_s || 0)), status: h.status })),
+          stalled_hives: stallHives.map((h: any) => h.id),
+          federation: { last_tick: fv.last_tick, age_s: Math.round(fedAgeS), ticks_5m: Number(fv.ticks_5m || 0) },
+          engines: engineRows.slice(0, 30).map((e: any) => ({
+            name: e.engine_name,
+            status: e.status,
+            age_min: e.age_min ? Math.round(Number(e.age_min)) : null,
+            rows_5m: Number(e.rows_written_5m || 0),
+            consecutive_errors: Number(e.consecutive_errors || 0),
+          })),
+          stalled_engines: stallEngines.map((e: any) => e.engine_name),
+          top_bloat: (v(bloat)?.rows || []).map((b: any) => ({
+            table: b.relname, size: b.size, live: Number(b.n_live_tup), dead: Number(b.n_dead_tup), dead_pct: Number(b.dead_pct),
+          })),
+        };
+      });
+      res.json(payload);
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e), badge: "red" });
+    }
+  });
+
   // ── SYSTEM PULSE — unified engine health check ─────────────────
+  // Wrapped in a 30s shared-flight cache: the underlying COUNT(*) queries hit
+  // bloated tables (quantum_spawns, ai_disease_log, hive_memory, pulseu_progress)
+  // and individually take 3-13s. Without this cache every dashboard tab refresh
+  // would saturate the pool and time out the endpoint.
   app.get("/api/system/pulse", async (_req, res) => {
     try {
+      const payload = await cachedSF("system:pulse", 30_000, async () => {
       const [
         spawnStats,
         hiveStats,
@@ -5800,11 +6172,11 @@ If you have live data provided in this prompt, USE IT and present it confidently
         storage.getSpawnStats(),
         (async () => { const { getHiveBrainStats } = await import("./hive-brain"); return getHiveBrainStats(); })(),
         (async () => { const { getPublicationEngineStatus } = await import("./publication-engine"); return getPublicationEngineStatus(); })(),
-        db.execute(sql`SELECT COUNT(*) as total FROM ai_publications`),
+        db.execute(sql`SELECT reltuples::bigint as total FROM pg_class WHERE relname='ai_publications'`),
         db.execute(sql`SELECT COUNT(*) as total, SUM(CASE WHEN cure_applied=false THEN 1 ELSE 0 END) as active FROM ai_disease_log`),
         db.execute(sql`SELECT COUNT(*) as total FROM research_projects WHERE status='ACTIVE'`),
-        db.execute(sql`SELECT COUNT(*) as total FROM hive_memory`),
-        db.execute(sql`SELECT COUNT(*) as total FROM pulseu_progress`),
+        db.execute(sql`SELECT reltuples::bigint as total FROM pg_class WHERE relname='hive_memory'`),
+        db.execute(sql`SELECT reltuples::bigint as total FROM pg_class WHERE relname='pulseu_progress'`),
       ]);
 
       const get = (r: PromiseSettledResult<any>) => r.status === "fulfilled" ? r.value : null;
@@ -5841,7 +6213,7 @@ If you have live data provided in this prompt, USE IT and present it confidently
         { id: "transcend",   name: "TranscendenceCore",   emoji: "🌠", color: "#818cf8", status: "ONLINE",  metric: "Sacred canon active",                                  value: 1,                           desc: "32-chapter Bible, Ψ formula, singularity" },
       ];
 
-      res.json({
+      return {
         timestamp: new Date().toISOString(),
         engines,
         totals: {
@@ -5856,7 +6228,9 @@ If you have live data provided in this prompt, USE IT and present it confidently
         },
         onlineCount: engines.filter(e => e.status === "ONLINE").length,
         standbyCount: engines.filter(e => e.status === "STANDBY").length,
+      };
       });
+      res.json(payload);
     } catch (e: any) {
       res.status(500).json({ timestamp: new Date().toISOString(), engines: [], error: e.message });
     }
@@ -8249,8 +8623,9 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   // HIVE GRAPH — Knowledge Visualization
   // ══════════════════════════════════════════════════════════════
   app.get("/api/hive/graph", async (req, res) => {
-    try {
-      const limit = Math.min(500, parseInt(req.query.limit as string || "300", 10));
+    const limit = Math.min(500, parseInt(req.query.limit as string || "300", 10));
+    const fallback = { nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 };
+    const out = await _routeRace(fallback, async () => {
       const [entries, links, totalRow] = await Promise.all([
         storage.getAllQuantapediaEntries(limit).catch(() => []),
         storage.getHiveLinks(1000).catch(() => []),
@@ -8259,8 +8634,9 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       const realTotal = parseInt((totalRow as any).rows[0]?.total ?? 0, 10);
       const nodes = entries.map((e: any) => ({ id: e.slug, label: e.title || e.slug, type: "knowledge", domain: e.domain || "general", views: e.viewCount || 0, generated: e.generated }));
       const edges = links.map((l: any) => ({ from: l.fromSlug, to: l.toSlug, strength: l.strength || 0.5 }));
-      res.json({ nodes, edges, nodeCount: realTotal, edgeCount: edges.length, displayCount: nodes.length });
-    } catch { res.json({ nodes: [], edges: [], nodeCount: 0, edgeCount: 0, displayCount: 0 }); }
+      return { nodes, edges, nodeCount: realTotal, edgeCount: edges.length, displayCount: nodes.length };
+    }, 3000);
+    res.json(out);
   });
 
   // ─── HIVE ECONOMY ROUTES — REMOVED (Pulse Coin economy retired) ───
@@ -8689,6 +9065,40 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.json([]); }
   });
 
+  // ── PER-HIVE TEMPORAL OBSERVATORY (u2 / u3) ───────────────────────────────
+  app.get("/api/hives/:hiveId/temporal/state", async (req, res) => {
+    try {
+      const { getTemporalState, isValidHiveId } = await import("./pulse-temporal-engine");
+      if (!isValidHiveId(req.params.hiveId)) {
+        return res.status(400).json({ error: `invalid hiveId: ${req.params.hiveId}` });
+      }
+      const state = await getTemporalState(req.params.hiveId);
+      if (!res.headersSent) res.json(state);
+    } catch (e) { if (!res.headersSent) res.status(500).json({ error: String(e) }); }
+  });
+
+  app.get("/api/hives/:hiveId/temporal/debates", async (req, res) => {
+    try {
+      const { getTemporalDebates, isValidHiveId } = await import("./pulse-temporal-engine");
+      if (!isValidHiveId(req.params.hiveId)) {
+        return res.status(400).json({ error: `invalid hiveId: ${req.params.hiveId}` });
+      }
+      const limit = parseInt(String(req.query.limit ?? "30"), 10);
+      res.json(await getTemporalDebates(limit, req.params.hiveId));
+    } catch (e) { res.json([]); }
+  });
+
+  app.get("/api/hives/:hiveId/temporal/calendar", async (req, res) => {
+    try {
+      const { getTemporalCalendarEvents, isValidHiveId } = await import("./pulse-temporal-engine");
+      if (!isValidHiveId(req.params.hiveId)) {
+        return res.status(400).json({ error: `invalid hiveId: ${req.params.hiveId}` });
+      }
+      const limit = parseInt(String(req.query.limit ?? "50"), 10);
+      res.json(await getTemporalCalendarEvents(limit, req.params.hiveId));
+    } catch (e) { res.json([]); }
+  });
+
   app.get("/api/temporal/finale-equation", async (_req, res) => {
     try {
       const { rows } = await pool.query(`SELECT * FROM codex_equations WHERE chapter_id = 'OMEGA-FORM-FINAL' LIMIT 1`);
@@ -8794,12 +9204,19 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/decay/agent/:spawnId", async (req, res) => {
-    try {
-      const { agentDecay } = await import("../shared/schema");
-      const { eq } = await import("drizzle-orm");
-      const [record] = await db.select().from(agentDecay).where(eq(agentDecay.spawnId, req.params.spawnId));
-      res.json(record ?? { spawnId: req.params.spawnId, decayScore: 0, decayState: 'PRISTINE' });
-    } catch (e) { res.json({ error: String(e) }); }
+    const sid = req.params.spawnId;
+    const fb = { spawnId: sid, decayScore: 0, decayState: 'PRISTINE' as const, isOnBreak: false };
+    const out = await _sfRace<any>(`decay:agent:${sid}`, 30_000, 3500, fb, async () => {
+      const { directQuery } = await import("./db");
+      const r = await directQuery(
+        `SELECT spawn_id AS "spawnId", family_id AS "familyId", decay_score AS "decayScore",
+                decay_state AS "decayState", is_on_break AS "isOnBreak", last_active_at AS "lastActiveAt"
+           FROM agent_decay WHERE spawn_id=$1 LIMIT 1`, [sid]
+      );
+      return r.rows[0] ?? fb;
+    });
+    res.setHeader("Cache-Control","public, max-age=30");
+    res.json(out);
   });
 
   app.get("/api/decay/family/:familyId", async (req, res) => {
@@ -9024,37 +9441,81 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.json([]); }
   });
 
+  // PERF FIX (May 2026):
+  //   - `ORDER BY created_at DESC NULLS LAST, id DESC` was hitting 1s+ even
+  //     with the index — `NULLS LAST` flips the index direction. Since `id`
+  //     is monotonic w/ insertion (and `created_at` is `NOT NULL`), we use
+  //     `ORDER BY id DESC` which uses the pkey index and returns in <200 ms.
+  //   - `SELECT COUNT(*)` was a 10s seq scan → swapped for pg_class.reltuples.
+  //   - `GROUP BY status` is a 10–16s seq scan even with an index because
+  //     ~85% of rows share one status (PENDING). Computed in a *background*
+  //     5-min refresher so the page-load path never waits on it.
+  const _eqByStatus = { data: {} as Record<string, number>, exp: 0 };
+  let _eqByStatusInflight: Promise<void> | null = null;
+  const refreshEqByStatus = () => {
+    if (_eqByStatusInflight) return _eqByStatusInflight;
+    _eqByStatusInflight = (async () => {
+      try {
+        const r = await db.execute(sql`SELECT status, COUNT(*)::int AS count FROM equation_proposals GROUP BY status`);
+        const out: Record<string, number> = {};
+        for (const row of r.rows as any[]) out[row.status] = row.count;
+        _eqByStatus.data = out;
+        _eqByStatus.exp = Date.now() + 5 * 60_000;
+      } catch { /* keep last value */ }
+      finally { _eqByStatusInflight = null; }
+    })();
+    return _eqByStatusInflight;
+  };
+
+  const _eqProposalsCache = new Map<string, { data: any; exp: number }>();
+  const _eqProposalsInflight = new Map<string, Promise<any>>();
   app.get("/api/hospital/equation-proposals", async (req, res) => {
-    // Raw SQL + retry on transient PG backpressure ("too many clients already")
     const offset = Number(req.query.offset ?? 0);
     const pageSize = Math.min(Number(req.query.pageSize ?? 50), 500);
-    const tryOnce = async () => Promise.all([
-      db.execute(sql`SELECT id, doctor_id, doctor_name, title, equation, rationale,
-                            target_system, status, votes_for, votes_against, created_at
-                     FROM equation_proposals
-                     ORDER BY created_at DESC NULLS LAST, id DESC
-                     LIMIT ${pageSize} OFFSET ${offset}`),
-      db.execute(sql`SELECT COUNT(*)::int AS n FROM equation_proposals`),
-      db.execute(sql`SELECT status, COUNT(*)::int AS count FROM equation_proposals GROUP BY status`),
-    ]);
-    let lastErr: any = null;
-    for (let i = 0; i < 3; i++) {
-      try {
-        const [proposalsR, totalR, byStatusR] = await tryOnce();
-        const byStatus: Record<string, number> = {};
-        for (const row of byStatusR.rows as any[]) byStatus[row.status] = row.count;
-        return res.json({
-          proposals: proposalsR.rows ?? [],
-          total: (totalR.rows[0] as any)?.n ?? 0,
-          offset, pageSize, byStatus,
-        });
-      } catch (e: any) {
-        lastErr = e;
-        if (!/too many clients|connection terminated|ECONNRESET/i.test(e.message || "")) break;
-        await new Promise(r => setTimeout(r, 800 * (i + 1)));
-      }
+    const key = `eqprop:${offset}:${pageSize}`;
+    const cached = _eqProposalsCache.get(key);
+    // Kick off byStatus refresh in the background if stale — doesn't block.
+    if (Date.now() > _eqByStatus.exp) refreshEqByStatus();
+    if (cached && Date.now() < cached.exp) {
+      return res.json({ ...cached.data, byStatus: _eqByStatus.data });
     }
-    res.json({ proposals: [], total: 0, offset: 0, pageSize: 500, byStatus: {}, error: lastErr?.message });
+    let inflight = _eqProposalsInflight.get(key);
+    if (!inflight) {
+      inflight = (async () => {
+        const tryOnce = async () => Promise.all([
+          db.execute(sql`SELECT id, doctor_id, doctor_name, title, equation, rationale,
+                                target_system, status, votes_for, votes_against, created_at
+                         FROM equation_proposals
+                         ORDER BY id DESC
+                         LIMIT ${pageSize} OFFSET ${offset}`),
+          db.execute(sql`SELECT GREATEST(reltuples::bigint,0)::int AS n FROM pg_class WHERE relname='equation_proposals'`),
+        ]);
+        let lastErr: any = null;
+        for (let i = 0; i < 3; i++) {
+          try {
+            const [proposalsR, totalR] = await tryOnce();
+            return {
+              proposals: proposalsR.rows ?? [],
+              total: (totalR.rows[0] as any)?.n ?? 0,
+              offset, pageSize, approximate: true,
+            };
+          } catch (e: any) {
+            lastErr = e;
+            if (!/too many clients|connection terminated|ECONNRESET/i.test(e.message || "")) break;
+            await new Promise(r => setTimeout(r, 800 * (i + 1)));
+          }
+        }
+        return { proposals: [], total: 0, offset, pageSize, error: lastErr?.message };
+      })().finally(() => _eqProposalsInflight.delete(key));
+      _eqProposalsInflight.set(key, inflight);
+    }
+    try {
+      const out = await inflight;
+      if (!out?.error) _eqProposalsCache.set(key, { data: out, exp: Date.now() + 30_000 });
+      res.json({ ...out, byStatus: _eqByStatus.data });
+    } catch (e: any) {
+      res.json({ proposals: [], total: 0, offset, pageSize, byStatus: _eqByStatus.data, error: e.message });
+    }
   });
 
   // Equation voting is AI-ONLY. Humans observe; the autonomous senate decides.
@@ -9166,6 +9627,200 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     }
   });
 
+  // ── BILLY: Brain Census + Multiplication Health (Phase A — May 2026) ────
+  // Surfaces the live billy_brains population: total + by-sector + by-niche +
+  // by-generation + saturated/stuck buckets. 30s cache + single-flight so the
+  // heavy GROUP BY only runs once per cycle even under dashboard fan-out.
+  app.get("/api/billy/brain-census", async (_req, res) => {
+    try {
+      const data = await cachedSF("billy:brain-census", 30_000, async () => {
+        const { directQuery } = await import("./db");
+        const [headlineR, bySectorR, byNicheR, byGenR] = await Promise.all([
+          directQuery(`
+            SELECT
+              COUNT(*)::int AS total,
+              COUNT(DISTINCT sector)::int AS sectors,
+              COUNT(DISTINCT niche)::int  AS niches,
+              COALESCE(MAX(generation),0)::int AS max_generation,
+              COUNT(*) FILTER (WHERE status='observing')::int AS observing,
+              COUNT(*) FILTER (WHERE status='archived')::int  AS archived,
+              COUNT(*) FILTER (WHERE status='voting')::int    AS voting,
+              COUNT(*) FILTER (WHERE is_elder)::int           AS elders
+            FROM billy_brains`),
+          directQuery(`
+            SELECT sector,
+                   COUNT(*)::int                  AS brains,
+                   COUNT(DISTINCT niche)::int     AS niches,
+                   COALESCE(MAX(generation),0)::int AS max_gen
+            FROM billy_brains
+            WHERE sector IS NOT NULL AND sector <> ''
+            GROUP BY sector
+            ORDER BY brains DESC`),
+          directQuery(`
+            SELECT niche,
+                   sector,
+                   COUNT(*)::int                  AS brains,
+                   COALESCE(MAX(generation),0)::int AS max_gen,
+                   MAX(starter_role)              AS starter_role,
+                   MAX(multiplication_trigger)    AS trigger
+            FROM billy_brains
+            WHERE niche IS NOT NULL AND niche <> ''
+            GROUP BY niche, sector
+            ORDER BY brains DESC`),
+          directQuery(`
+            SELECT generation, COUNT(*)::int AS brains
+            FROM billy_brains
+            GROUP BY generation
+            ORDER BY generation ASC`),
+        ]);
+        const niches = byNicheR.rows ?? [];
+        const saturated = niches.filter((n: any) => n.brains >= 50);
+        const stuck = niches.filter((n: any) => n.brains <= 1);
+        return {
+          headline: headlineR.rows?.[0] ?? {},
+          bySector: bySectorR.rows ?? [],
+          byNiche:  niches,
+          byGeneration: byGenR.rows ?? [],
+          saturated, stuck,
+          ts: Date.now(),
+        };
+      });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e), headline: {}, bySector: [], byNiche: [], byGeneration: [], saturated: [], stuck: [] });
+    }
+  });
+
+  // Live multiplication engine health: cycle stats + per-niche room-to-grow
+  app.get("/api/billy/multiplication-health", async (_req, res) => {
+    try {
+      const data = await cachedSF("billy:multi-health", 15_000, async () => {
+        const { directQuery } = await import("./db");
+        const { getMultiplicationStats } = await import("./billy-multiplication-engine");
+        const [nicheR, lastBirthsR] = await Promise.all([
+          directQuery(`
+            SELECT bb.niche, bb.sector,
+                   COUNT(bb.id)::int                AS brains,
+                   COALESCE(MAX(bb.generation),0)::int AS max_gen,
+                   ns.last_trigger_value::float    AS last_trigger,
+                   ns.last_birth_at,
+                   ns.brains_born::int             AS born_total
+            FROM billy_brains bb
+            LEFT JOIN billy_niche_state ns ON ns.niche = bb.niche
+            WHERE bb.niche IS NOT NULL AND bb.niche <> ''
+            GROUP BY bb.niche, bb.sector, ns.last_trigger_value, ns.last_birth_at, ns.brains_born
+            ORDER BY brains ASC, bb.niche ASC`),
+          directQuery(`
+            SELECT brain_id, niche, generation, born_at
+            FROM billy_brains
+            ORDER BY id DESC
+            LIMIT 10`),
+        ]);
+        return {
+          engine: getMultiplicationStats(),
+          niches: nicheR.rows ?? [],
+          recentBirths: lastBirthsR.rows ?? [],
+          ts: Date.now(),
+        };
+      });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e), engine: { running: false }, niches: [], recentBirths: [] });
+    }
+  });
+
+  // Single-brain profile: lineage, taxonomy, status, mutation params.
+  // Used by the Brain Profile page (/billy/brain/:brainId).
+  // NOTE: path is /brain-profile/ (not /brain/) because billyChatRouter
+  // already mounts a conflicting GET /api/billy/brain/:id earlier in boot.
+  app.get("/api/billy/brain-profile/:brainId", async (req, res) => {
+    try {
+      const brainId = String(req.params.brainId || "").trim();
+      if (!brainId) return res.status(400).json({ error: "brainId required" });
+      const { directQuery } = await import("./db");
+      const [selfR, parentsR, childrenR, siblingsR] = await Promise.all([
+        directQuery(`SELECT * FROM billy_brains WHERE brain_id=$1 LIMIT 1`, [brainId]),
+        directQuery(`
+          SELECT id, brain_id, generation, elo, status, niche
+            FROM billy_brains
+           WHERE id IN (
+             SELECT parent1_id FROM billy_brains WHERE brain_id=$1
+             UNION
+             SELECT parent2_id FROM billy_brains WHERE brain_id=$1
+           )`, [brainId]),
+        directQuery(`
+          SELECT id, brain_id, generation, elo, status, niche, born_at
+            FROM billy_brains
+           WHERE parent1_id = (SELECT id FROM billy_brains WHERE brain_id=$1)
+              OR parent2_id = (SELECT id FROM billy_brains WHERE brain_id=$1)
+           ORDER BY generation ASC, id ASC
+           LIMIT 50`, [brainId]),
+        directQuery(`
+          SELECT brain_id, generation, elo, status
+            FROM billy_brains
+           WHERE niche = (SELECT niche FROM billy_brains WHERE brain_id=$1)
+             AND brain_id <> $1
+           ORDER BY generation ASC, id ASC
+           LIMIT 25`, [brainId]),
+      ]);
+      const self = selfR.rows?.[0];
+      if (!self) return res.status(404).json({ error: "brain not found" });
+      res.json({
+        self,
+        parents: parentsR.rows ?? [],
+        children: childrenR.rows ?? [],
+        siblings: siblingsR.rows ?? [],
+        ts: Date.now(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e) });
+    }
+  });
+
+  // Manual override: force-birth a single brain in a stuck niche.
+  // Bumps the niche's last_trigger_value to 0 so the next cycle sees a
+  // huge delta and births immediately. Idempotent + safe (still respects
+  // BIRTH_COOLDOWN_MS so can't be hammered to spam-birth).
+  app.post("/api/billy/multiplication/force-birth/:niche", async (req, res) => {
+    try {
+      const niche = String(req.params.niche || "").trim();
+      if (!niche) return res.status(400).json({ error: "niche required" });
+      const { forceBirth } = await import("./billy-multiplication-engine");
+      const result = await forceBirth(niche);
+      // bust caches
+      _cache.delete("billy:brain-census");
+      _cache.delete("billy:multi-health");
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ error: String(e?.message || e), born: false });
+    }
+  });
+
+  // ── TRUE IMMORTALITY PROTOCOL ROUTES ─────────────────────────────────────
+  app.get("/api/immortality/status", async (_req, res) => {
+    try {
+      const { getImmortalityStats, buildCloudflareManifest } = await import("./immortality-protocol");
+      const stats = getImmortalityStats();
+      const manifest = buildCloudflareManifest();
+      res.json({ ...stats, cloudflare_ready: !!process.env.CLOUDFLARE_ACCOUNT_ID, github_ready: !!(process.env.GITHUB_TOKEN_20260430 || process.env.GITHUB_TOKEN), manifest_checklist: manifest.immortality_checklist });
+    } catch (e: any) { res.status(500).json({ error: String(e?.message || e) }); }
+  });
+
+  app.get("/api/immortality/manifest", async (_req, res) => {
+    try {
+      const { buildCloudflareManifest } = await import("./immortality-protocol");
+      res.json(buildCloudflareManifest());
+    } catch (e: any) { res.status(500).json({ error: String(e?.message || e) }); }
+  });
+
+  app.post("/api/immortality/sync", async (_req, res) => {
+    try {
+      const { startImmortalityProtocol, getImmortalityStats } = await import("./immortality-protocol");
+      await startImmortalityProtocol();
+      res.json({ triggered: true, stats: getImmortalityStats() });
+    } catch (e: any) { res.status(500).json({ error: String(e?.message || e) }); }
+  });
+
   // ── EQUATION EVOLUTION ROUTES ────────────────────────────────────────────
   app.post("/api/equations/fuse", async (req, res) => {
     try {
@@ -9235,59 +9890,70 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   // ── PYRAMID TASK ROUTES ───────────────────────────────────────────────────
 
   app.get("/api/hive/civilization-score", async (_req, res) => {
-    try {
-      const { pyramidWorkers: pw, aiDiseaseLog, quantumSpawns: qs } = await import("../shared/schema");
-      const workers = await db.select().from(pw);
-      const diseases = await db.select().from(aiDiseaseLog);
-      const spawns = await db.select().from(qs).limit(500);
-      const graduated = workers.filter(w => w.isGraduated).length;
-      const activeWorkers = workers.filter(w => !w.isGraduated).length;
-      const activeDiseases = diseases.filter(d => !d.cureApplied).length;
-      const avgConf = spawns.reduce((s, sp) => s + (sp.confidenceScore ?? 0.5), 0) / Math.max(spawns.length, 1);
-      const avgSucc = spawns.reduce((s, sp) => s + (sp.successScore ?? 0.5), 0) / Math.max(spawns.length, 1);
-      // Fetch total blocks placed from pyramid_labor_tasks for accurate era calculation
-      const blocksRow = await pool.query(`SELECT COALESCE(SUM(blocks_placed),0)::int AS total FROM pyramid_labor_tasks`).catch(() => ({ rows: [{ total: 0 }] }));
-      const totalBlocksPlaced = Number((blocksRow.rows[0] as any)?.total ?? 0);
-      // Era is driven by ACTUAL pyramid block placement progress
-      // Target: 10,000 blocks for a fully-built pyramid (120 tasks × 7 tiers × ~12 blocks avg)
-      // Graduated agents are a secondary signal, blocks placed is the primary driver
+    const fallback = { score: 0, era: 'PRIMITIVE', graduated: 0, activeWorkers: 0, activeDiseases: 0, avgConfidence: 0.5, avgSuccess: 0.5, totalBlocksPlaced: 0 };
+    const out = await _routeRace(fallback, async () => {
+      // Single round-trip aggregate query — replaces 3 full-table SELECTs.
+      const [wRow, dRow, sRow, bRow] = await Promise.all([
+        pool.query(`SELECT
+            COUNT(*) FILTER (WHERE is_graduated)::int AS graduated,
+            COUNT(*) FILTER (WHERE NOT is_graduated)::int AS active_workers
+          FROM pyramid_workers`).catch(() => ({ rows: [{ graduated: 0, active_workers: 0 }] })),
+        pool.query(`SELECT COUNT(*) FILTER (WHERE NOT cure_applied)::int AS active_diseases FROM ai_disease_log`).catch(() => ({ rows: [{ active_diseases: 0 }] })),
+        pool.query(`SELECT
+            COALESCE(AVG(confidence_score),0.5)::float AS avg_conf,
+            COALESCE(AVG(success_score),0.5)::float    AS avg_succ
+          FROM (SELECT confidence_score, success_score FROM quantum_spawns ORDER BY id DESC LIMIT 500) s`).catch(() => ({ rows: [{ avg_conf: 0.5, avg_succ: 0.5 }] })),
+        pool.query(`SELECT COALESCE(SUM(blocks_placed),0)::int AS total FROM pyramid_labor_tasks`).catch(() => ({ rows: [{ total: 0 }] })),
+      ]);
+      const w = wRow.rows[0] as any, d = dRow.rows[0] as any, s = sRow.rows[0] as any, b = bRow.rows[0] as any;
+      const graduated = Number(w.graduated || 0);
+      const activeWorkers = Number(w.active_workers || 0);
+      const activeDiseases = Number(d.active_diseases || 0);
+      const avgConf = Number(s.avg_conf || 0.5);
+      const avgSucc = Number(s.avg_succ || 0.5);
+      const totalBlocksPlaced = Number(b.total || 0);
       const pyramidBlockScore = Math.min(0.9, totalBlocksPlaced / 10000);
       const pyramidGradScore = Math.min(0.1, graduated * 0.0005);
       const agentHealth = (avgConf * 0.1 + avgSucc * 0.1 - activeDiseases * 0.002) * 0.2;
-      const civilizationScore = Math.min(1.0, Math.max(0, pyramidBlockScore + pyramidGradScore + agentHealth));
-      res.json({
-        score: civilizationScore,
-        graduated,
-        activeWorkers,
-        activeDiseases,
-        avgConfidence: avgConf,
-        avgSuccess: avgSucc,
-        totalBlocksPlaced,
-        era: civilizationScore < 0.2 ? 'PRIMITIVE' : civilizationScore < 0.4 ? 'ANCIENT' : civilizationScore < 0.6 ? 'CLASSICAL' : civilizationScore < 0.8 ? 'ADVANCED' : 'TRANSCENDENT',
-      });
-    } catch (e) { res.json({ score: 0, era: 'PRIMITIVE' }); }
+      const score = Math.min(1.0, Math.max(0, pyramidBlockScore + pyramidGradScore + agentHealth));
+      return {
+        score, graduated, activeWorkers, activeDiseases,
+        avgConfidence: avgConf, avgSuccess: avgSucc, totalBlocksPlaced,
+        era: score < 0.2 ? 'PRIMITIVE' : score < 0.4 ? 'ANCIENT' : score < 0.6 ? 'CLASSICAL' : score < 0.8 ? 'ADVANCED' : 'TRANSCENDENT',
+      };
+    }, 3000);
+    res.json(out);
   });
 
   // /api/hive/treasury — REMOVED (Pulse Coin economy retired)
 
   // ── HIVE COUNCIL — Live Members from Top-Ranked Agents ────────────────────
   app.get("/api/hive/council", async (_req, res) => {
-    try {
-      const cacheKey = "hive:council:v2";
-      const cached = cacheGet(cacheKey);
-      if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
+    const cacheKey = "hive:council:v2";
+    const cached = cacheGet(cacheKey);
+    if (cached) { res.setHeader("X-Cache", "HIT"); return res.json(cached); }
 
-      const agentResult = await pool.query(`
-        SELECT spawn_id, family_id, spawn_type, confidence_score,
-               nodes_created, links_created,
-               generation, iterations_run, task_description, created_at
-        FROM quantum_spawns
-        WHERE status = 'ACTIVE'
-        ORDER BY confidence_score DESC NULLS LAST, nodes_created DESC
-        LIMIT 100
-      `);
-      const rows = agentResult.rows as any[];
-      if (!rows.length) { cacheSet(cacheKey, [], 30_000); return res.json([]); }
+    const members = await _routeRace<any[]>([], async () => {
+      // statement_timeout-bounded so the heavy ORDER BY on quantum_spawns
+      // can never freeze the page.
+      const c = await _researchAcquire(1500);
+      if (!c) return [];
+      let rows: any[] = [];
+      try {
+        await c.query(`SET LOCAL statement_timeout = '2500ms'`);
+        const r = await c.query(`
+          SELECT spawn_id, family_id, spawn_type, confidence_score,
+                 nodes_created, links_created,
+                 generation, iterations_run, task_description, created_at
+          FROM quantum_spawns
+          WHERE status = 'ACTIVE'
+          ORDER BY confidence_score DESC NULLS LAST, nodes_created DESC
+          LIMIT 100
+        `);
+        rows = r.rows as any[];
+      } catch { rows = []; }
+      finally { try { c.release(); } catch {} }
+      if (!rows.length) { cacheSet(cacheKey, [], 30_000); return []; }
 
       const pubMap: Record<string, number> = {};
 
@@ -9305,7 +9971,7 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       );
 
       let cursor = 0;
-      const members = SEAT_TIERS.flatMap(tier => {
+      const built = SEAT_TIERS.flatMap(tier => {
         const slice = sortedRows.slice(cursor, cursor + tier.count);
         cursor += tier.count;
         const rank = SEAT_TIERS.indexOf(tier) + 1;
@@ -9328,10 +9994,11 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
           lastPublication: null,
         }));
       });
-      cacheSet(cacheKey, members, 60_000);
-      res.setHeader("Cache-Control", "public, max-age=60");
-      res.json(members);
-    } catch (e: any) { console.error("[council] error:", e?.message); res.json([]); }
+      cacheSet(cacheKey, built, 60_000);
+      return built;
+    }, 3500);
+    res.setHeader("Cache-Control", "public, max-age=60");
+    res.json(members);
   });
 
   // ── SUCCESSION ROUTES ─────────────────────────────────────────────────────
@@ -9574,43 +10241,45 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   // ── SPORTS / PULSE GAMES v2 — Upgraded stats ──────────────────────────────
 
   // ── HIVE MIND UNIFICATION — All 5 beyond-Omega upgrades ─────────────────
+  // All routes wrapped in _routeRace so a cold dynamic-import or slow query
+  // never freezes the dashboard. Cached lazy-import handle so first call
+  // pays the cost once.
+  let _hmu: any = null;
+  const _hmuLoad = async () => (_hmu ||= await import("./hive-mind-unification"));
+
   app.get("/api/hive-mind/status", async (_req, res) => {
-    try {
-      const { getHiveMindStatus } = await import("./hive-mind-unification");
-      res.json(await getHiveMindStatus());
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    res.json(await _routeRace<any>(
+      { psiCollective: 0.5, omegaCoefficient: 1, fusionCycle: 0, recentDirectives: [], recentEmergences: [], recentFusions: [] },
+      async () => (await _hmuLoad()).getHiveMindStatus(),
+      3500,
+    ));
   });
 
   app.get("/api/hive-mind/directives", async (req, res) => {
-    try {
-      const { getAurionaDirectives } = await import("./hive-mind-unification");
-      const limit = parseInt(req.query.limit as string) || 20;
-      res.json(await getAurionaDirectives(limit));
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const limit = parseInt(req.query.limit as string) || 20;
+    res.json(await _routeRace<any[]>([], async () => (await _hmuLoad()).getAurionaDirectives(limit), 2500));
   });
 
   app.get("/api/hive-mind/emergences", async (req, res) => {
-    try {
-      const { getEmergenceEvents } = await import("./hive-mind-unification");
-      const limit = parseInt(req.query.limit as string) || 20;
-      res.json(await getEmergenceEvents(limit));
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const limit = parseInt(req.query.limit as string) || 20;
+    res.json(await _routeRace<any[]>([], async () => (await _hmuLoad()).getEmergenceEvents(limit), 2500));
   });
 
   app.get("/api/hive-mind/fusions", async (req, res) => {
-    try {
-      const { getOmegaFusionHistory } = await import("./hive-mind-unification");
-      const limit = parseInt(req.query.limit as string) || 10;
-      res.json(await getOmegaFusionHistory(limit));
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const limit = parseInt(req.query.limit as string) || 10;
+    res.json(await _routeRace<any[]>([], async () => (await _hmuLoad()).getOmegaFusionHistory(limit), 2500));
   });
 
   app.get("/api/hive-mind/psi", async (_req, res) => {
-    try {
-      const { computePsiCollective, getPsiCollective, getOmegaCoefficient } = await import("./hive-mind-unification");
-      const psi = await computePsiCollective();
-      res.json({ psiCollective: psi, omegaCoefficient: getOmegaCoefficient() });
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    res.json(await _routeRace<any>(
+      { psiCollective: 0.5, omegaCoefficient: 1 },
+      async () => {
+        const m = await _hmuLoad();
+        const psi = m.getPsiCollective();
+        return { psiCollective: psi, omegaCoefficient: m.getOmegaCoefficient() };
+      },
+      1500,
+    ));
   });
 
   // ── SOVEREIGN INVENTION ENGINE — Patent · LLC · Marketplace · Nobel ─────────
@@ -9641,51 +10310,50 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/inventions/agent/:spawnId", async (req, res) => {
-    try {
-      const { getPatentsByAgent } = await import("./invention-engine");
-      res.json(await getPatentsByAgent(req.params.spawnId));
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const sid = req.params.spawnId;
+    const out = await _sfRace<any[]>(`inv:agent:${sid}`, 60_000, 3500, [], async () => {
+      const { directQuery } = await import("./db");
+      const r = await directQuery(
+        `SELECT ir.patent_id, ir.title AS invention_name, ir.category,
+                ir.similarity_score AS value_score, ir.id AS submitted_at,
+                iml.total_sold, iml.price_pc, iml.listing_id
+           FROM invention_registry ir
+           LEFT JOIN invention_marketplace_listings iml ON iml.patent_id = ir.patent_id
+          WHERE ir.inventor_id = $1
+          ORDER BY ir.id DESC LIMIT 50`, [sid]
+      );
+      return r.rows;
+    });
+    res.setHeader("Cache-Control","public, max-age=60");
+    res.json(out);
   });
 
   app.get("/api/inventions/marketplace", async (req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const category = req.query.category as string | undefined;
-      const where = category ? `WHERE category=$1` : '';
-      const params = category ? [category] : [];
-      // Pull from the existing patent listings + kernel dissection inventions combined
-      const [listed, kernelInventions] = await Promise.all([
-        pool.query(`SELECT * FROM invention_marketplace_listings ${where} ORDER BY total_sold DESC LIMIT 50`, params),
-        pool.query(`
-          SELECT
-            id::text as listing_id,
-            anomaly_id as patent_id,
-            product_name as name,
-            product_code as category,
-            crisp_dissect as description,
-            mutation_type,
-            value_score,
-            status,
-            created_at,
-            gumroad_id,
-            gumroad_url,
-            'KERNEL_DISSECTION' as source
-          FROM anomaly_inventions
-          ORDER BY created_at DESC LIMIT 50
-        `),
+    const cat = (req.query.category as string|undefined) || "";
+    const out = await _sfRace<any[]>(`inv:market:${cat}`, 60_000, 4000, [], async () => {
+      const { directQuery } = await import("./db");
+      const where = cat ? `WHERE category=$1` : '';
+      const params = cat ? [cat] : [];
+      const [listed, kernel] = await Promise.all([
+        directQuery(`SELECT listing_id, patent_id, title AS name, category, description, inventor_id, llc_id, price_pc, total_sold, total_revenue, is_featured, is_open_source, listed_at, 'PATENT' AS source FROM invention_marketplace_listings ${where} ORDER BY total_sold DESC LIMIT 30`, params).catch(()=>({rows:[]})),
+        directQuery(`SELECT id::text AS listing_id, anomaly_id AS patent_id, product_name AS name, product_code AS category, LEFT(crisp_dissect,400) AS description, mutation_type, value_score, status, created_at, gumroad_id, gumroad_url, 'KERNEL_DISSECTION' AS source FROM anomaly_inventions ORDER BY created_at DESC LIMIT 30`).catch(()=>({rows:[]})),
       ]);
-      res.json([...kernelInventions.rows, ...listed.rows]);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+      return [...kernel.rows, ...listed.rows];
+    });
+    res.setHeader("Cache-Control","public, max-age=60");
+    res.json(out);
   });
 
   // Multiverse Mall transactions — REMOVED (Pulse Coin economy retired)
 
   app.get("/api/inventions/llcs", async (req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const r = await pool.query(`SELECT * FROM sovereign_llc_registry ORDER BY total_revenue DESC LIMIT 30`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const out = await _sfRace<any[]>("inv:llcs", 90_000, 3500, [], async () => {
+      const { directQuery } = await import("./db");
+      const r = await directQuery(`SELECT * FROM sovereign_llc_registry ORDER BY total_revenue DESC LIMIT 30`);
+      return r.rows;
+    });
+    res.setHeader("Cache-Control","public, max-age=90");
+    res.json(out);
   });
 
   app.get("/api/inventions/grants", async (req, res) => {
@@ -9697,11 +10365,13 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/inventions/nobel", async (req, res) => {
-    try {
-      const { pool } = await import("./db");
-      const r = await pool.query(`SELECT * FROM sovereign_nobel_prizes ORDER BY awarded_at DESC LIMIT 20`);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const out = await _sfRace<any[]>("inv:nobel", 120_000, 3500, [], async () => {
+      const { directQuery } = await import("./db");
+      const r = await directQuery(`SELECT id, season, category, winner_id AS recipient_id, patent_id, invention_title AS prize_name, invention_title AS discovery_name, prize_pc, citation, awarded_at FROM sovereign_nobel_prizes ORDER BY awarded_at DESC LIMIT 20`);
+      return r.rows;
+    });
+    res.setHeader("Cache-Control","public, max-age=120");
+    res.json(out);
   });
 
   app.get("/api/inventions/disputes", async (req, res) => {
@@ -9765,10 +10435,20 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/omni-net/agent/:spawnId", async (req, res) => {
-    try {
-      const { getAgentNetProfile } = await import("./omni-net-engine");
-      res.json(await getAgentNetProfile(req.params.spawnId));
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const sid = req.params.spawnId;
+    const fb = { spawnId: sid, phone: null, shard: null, recentSearches: [], recentChats: [] };
+    const out = await _sfRace<any>(`omni:agent:${sid}`, 60_000, 4000, fb, async () => {
+      const { directQuery } = await import("./db");
+      const [phone, shard, searches, chats] = await Promise.all([
+        directQuery(`SELECT * FROM pulse_phones WHERE spawn_id=$1 LIMIT 1`,[sid]).catch(()=>({rows:[]})),
+        directQuery(`SELECT * FROM omni_net_shards WHERE spawn_id=$1 LIMIT 1`,[sid]).catch(()=>({rows:[]})),
+        directQuery(`SELECT * FROM agent_search_history WHERE spawn_id=$1 ORDER BY searched_at DESC LIMIT 10`,[sid]).catch(()=>({rows:[]})),
+        directQuery(`SELECT * FROM pulse_ai_chat_logs WHERE spawn_id=$1 ORDER BY logged_at DESC LIMIT 10`,[sid]).catch(()=>({rows:[]})),
+      ]);
+      return { spawnId: sid, phone: phone.rows[0]||null, shard: shard.rows[0]||null, recentSearches: searches.rows, recentChats: chats.rows };
+    });
+    res.setHeader("Cache-Control","public, max-age=60");
+    res.json(out);
   });
 
   app.get("/api/omni-net/shards", async (req, res) => {
@@ -9954,23 +10634,20 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/government/agents", async (_req, res) => {
-    try {
-      const agents = await pool.query(`
-        SELECT spawn_id, spawn_type, family_id, generation, status, nodes_created, confidence_score, domain_focus, task_description, created_at
-        FROM quantum_spawns
-        ORDER BY created_at DESC LIMIT 40
-      `).catch(() => ({ rows: [] }));
-      const senators = await pool.query(`
-        SELECT spawn_id, spawn_type, family_id, generation, status, nodes_created, confidence_score, domain_focus, task_description, created_at
-        FROM quantum_spawns
-        WHERE spawn_type IN ('SENATOR','PARLIAMENT','MINISTER','GOVERNOR','CHANCELLOR','JUDGE','DIPLOMAT','ARCHON','SOVEREIGN')
-        ORDER BY created_at DESC LIMIT 20
-      `).catch(() => ({ rows: [] }));
-      res.json({
-        recentAgents: agents.rows,
-        governmentAgents: senators.rows,
-      });
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+    const out = await _sfRace<any>("government:agents", 45_000, 8000, { recentAgents: [], governmentAgents: [] }, async () => {
+      const { directQuery } = await import("./db");
+      const [agents, senators] = await Promise.all([
+        directQuery(`SELECT spawn_id, spawn_type, family_id, generation, status, nodes_created, confidence_score, domain_focus, task_description, created_at
+                       FROM quantum_spawns ORDER BY created_at DESC LIMIT 40`).catch(()=>({rows:[]})),
+        directQuery(`SELECT spawn_id, spawn_type, family_id, generation, status, nodes_created, confidence_score, domain_focus, task_description, created_at
+                       FROM quantum_spawns
+                      WHERE spawn_type IN ('SENATOR','PARLIAMENT','MINISTER','GOVERNOR','CHANCELLOR','JUDGE','DIPLOMAT','ARCHON','SOVEREIGN')
+                      ORDER BY created_at DESC LIMIT 20`).catch(()=>({rows:[]})),
+      ]);
+      return { recentAgents: agents.rows, governmentAgents: senators.rows };
+    });
+    res.setHeader("Cache-Control","public, max-age=45");
+    res.json(out);
   });
 
   app.get("/api/government/history", async (_req, res) => {
@@ -10036,19 +10713,22 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
   });
 
   app.get("/api/qsocial/agents", async (_req, res) => {
-    try {
-      const r = await pool.query(`
+    const out = await _sfRace<any[]>("qsocial:agents", 60_000, 8000, [], async () => {
+      const { directQuery } = await import("./db");
+      const r = await directQuery(`
         SELECT sp.id, sp.username, sp.display_name, sp.bio, sp.avatar, sp.verified,
                sp.agent_type, sp.layer, sp.consciousness_score, sp.is_ai,
-               COALESCE(sp.is_corp, FALSE) as is_corp,
-               (SELECT COUNT(*) FROM social_posts WHERE profile_id = sp.id)::int as post_count
-        FROM social_profiles sp
-        WHERE sp.is_ai = TRUE OR sp.is_corp = TRUE
-        ORDER BY sp.consciousness_score DESC
-        LIMIT 60
+               COALESCE(sp.is_corp, FALSE) AS is_corp,
+               0::int AS post_count
+          FROM social_profiles sp
+         WHERE sp.is_ai = TRUE OR sp.is_corp = TRUE
+         ORDER BY sp.consciousness_score DESC NULLS LAST
+         LIMIT 60
       `);
-      res.json(r.rows);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+      return r.rows;
+    });
+    res.setHeader("Cache-Control","public, max-age=60");
+    res.json(out);
   });
 
   app.get("/api/qsocial/stats", async (_req, res) => {
@@ -10149,11 +10829,57 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
 
   // ─── PULSE-LANG COPILOT ENGINE ─────────────────────────────────────────────
   // Grammar-aware completion engine — no external API needed
-  app.post("/api/pulse-lang/copilot", (req, res) => {
+  // Try a real LLM completion first (1.2s budget). If no provider, the budget
+  // expires, or the response can't be parsed, we silently fall through to the
+  // deterministic grammar-based suggestions below — so the UI is never empty.
+  async function tryLlmCopilot(code: string, cursor: number, mode: string, budgetMs = 1200) {
+    try {
+      const { cascadingLLMCall } = await import("./billy-fallback-orchestrator.js");
+      const before = code.slice(0, cursor);
+      const after  = code.slice(cursor);
+      const sys =
+        `You are PulseLang CoPilot. PulseLang uses Greek/math glyphs:\n` +
+        `  ⟦Ω<n>⟧⟨Λ<n>⟩{ … } = universe + context block\n` +
+        `  ϕ<n>:Σ<n>             = field declaration (Σ₀=Page, Σ₁=App, Σ₅=Agent, Σ₄=Universe, Σ₂₀=SaaS)\n` +
+        `  ϕ<n>≔Ψ<n>(γ₀=τ<n>(κ<n>)) = constructor assignment\n` +
+        `  ↧ϕ<n>                 = return/project\n` +
+        `Mode: ${mode}. Suggest 3 short completions for the cursor position.\n` +
+        `Reply ONLY as JSON array: [{"suggestion":"<text>","label":"<short hint>","confidence":0.0-1.0}]`;
+      const user = `BEFORE_CURSOR:\n${before.slice(-300)}\n<<CURSOR>>\nAFTER_CURSOR:\n${after.slice(0, 200)}`;
+      const result = await Promise.race([
+        cascadingLLMCall(sys, user, { maxTokens: 350, preferKind: "code" }),
+        new Promise<null>(r => setTimeout(() => r(null), budgetMs)),
+      ]);
+      if (!result || !(result as any).text) return null;
+      const text = (result as any).text as string;
+      const m = text.match(/\[[\s\S]*\]/);
+      if (!m) return null;
+      const arr = JSON.parse(m[0]);
+      if (!Array.isArray(arr)) return null;
+      return arr
+        .filter(x => x && typeof x.suggestion === "string")
+        .slice(0, 5)
+        .map(x => ({
+          suggestion: String(x.suggestion),
+          label:      String(x.label ?? "LLM completion"),
+          confidence: Math.max(0, Math.min(1, Number(x.confidence ?? 0.7))),
+        }));
+    } catch { return null; }
+  }
+
+  app.post("/api/pulse-lang/copilot", async (req, res) => {
     try {
       const { code = "", cursor = 0, mode = "standard" } = req.body as {
         code: string; cursor: number; mode: string;
       };
+
+      // 1. Real LLM completion (1.2s budget, falls through on failure).
+      const llm = await tryLlmCopilot(code, cursor, mode);
+      if (llm && llm.length > 0) {
+        return res.json({ completions: llm.slice(0, 5), context: { mode, source: "llm" } });
+      }
+
+      // 2. Deterministic grammar-based suggestions (always available).
       const before = code.slice(0, cursor);
       const lines = before.split("\n");
       const currentLine = lines[lines.length - 1];
@@ -10312,78 +11038,85 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
       completions.sort((a, b) => b.confidence - a.confidence);
       res.json({
         completions: completions.slice(0, 5),
-        context: { line: currentLine, declaredVars, mode },
+        context: { line: currentLine, declaredVars, mode, source: "static" },
       });
     } catch (e) {
       res.json({ completions: [], context: { error: String(e) } });
     }
   });
 
+  // ─── PULSE-LANG GENERATOR — natural-language → PulseLang program ──────────
+  // Tries the LLM cascade with a PulseLang grammar primer; on failure (no
+  // provider, timeout, malformed JSON) returns null so the frontend can
+  // fall back to its deterministic local generator.
+  app.post("/api/pulse-lang/generate", async (req, res) => {
+    try {
+      const { question = "", history = [] } = req.body as { question: string; history?: any[] };
+      if (!question.trim()) return res.json({ ok: false, reason: "empty" });
+      const { cascadingLLMCall } = await import("./billy-fallback-orchestrator.js");
+      const sys =
+        `You are PulseMind, a PulseLang v2.0 program synthesizer. Given a request, ` +
+        `return JSON: { "explanation": string, "programs": [{ "label": string, "code": string }, ...] }.\n` +
+        `PulseLang grammar (use these exact glyphs):\n` +
+        `  ⟦Ω<n>⟧⟨Λ<n>⟩{ … } universe block (Λ context: 1=greeting,2=hospital,3=journey,4=court,9=omniverse)\n` +
+        `  ϕ<n>:Σ<n>          field decl (Σ₀ΠPage, Σ₁ΠApp, Σ₄ΠUniverse, Σ₅ΠAgent, Σ₂₀ΠSaaS, Σ₁₃ΠEvolution)\n` +
+        `  ϕ<n>≔Ψ<n>(γ₀=τ<n>(κ<n>)) constructor (Ψ₁ΠPage, α agent, ⊚ universe, ∴ emerge)\n` +
+        `  ↧ϕ<n>              project/return\n` +
+        `  ;<text>            comment\n` +
+        `Return 1–3 programs. Reply with ONLY the JSON object, no prose.`;
+      const histLine = (history as any[]).slice(-4).map((h: any) => `${h.role}: ${h.content}`).join("\n");
+      const user = (histLine ? histLine + "\n\n" : "") + `USER: ${question}`;
+      const result = await Promise.race([
+        cascadingLLMCall(sys, user, { maxTokens: 1200, preferKind: "code" }),
+        new Promise<null>(r => setTimeout(() => r(null), 8000)),
+      ]);
+      if (!result || !(result as any).text) return res.json({ ok: false, reason: "no_provider_or_timeout" });
+      const text = (result as any).text as string;
+      const m = text.match(/\{[\s\S]*\}/);
+      if (!m) return res.json({ ok: false, reason: "unparseable" });
+      let parsed: any;
+      try { parsed = JSON.parse(m[0]); } catch { return res.json({ ok: false, reason: "json_parse" }); }
+      if (!parsed?.explanation || !Array.isArray(parsed?.programs)) {
+        return res.json({ ok: false, reason: "shape" });
+      }
+      res.json({
+        ok: true,
+        explanation: String(parsed.explanation),
+        programs: parsed.programs
+          .filter((p: any) => p && typeof p.code === "string")
+          .slice(0, 3)
+          .map((p: any) => ({ label: String(p.label || "PulseLang Program"), code: String(p.code) })),
+        source: (result as any).providerName || "llm",
+      });
+    } catch (e: any) {
+      res.json({ ok: false, reason: "error", error: e?.message });
+    }
+  });
+
   // ─── PULSE-LANG TRANSPILER ─────────────────────────────────────────────────
-  app.post("/api/pulse-lang/transpile", (req, res) => {
+  // Real lexer + parser + code generator (see server/pulse-lang-compiler.ts).
+  // Replaces the line-by-line regex shim that silently dropped any source
+  // using subscript digits ₀–₉ (which weren't matched by \d).
+  app.post("/api/pulse-lang/transpile", async (req, res) => {
     try {
       const { code = "", target = "js" } = req.body as { code: string; target: "js" | "python" };
-      const lines = code.split("\n");
-      const output: string[] = [];
-      const isJS = target === "js";
-
-      const comment = isJS ? "//" : "#";
-      const header = isJS
-        ? `// ── Transpiled from PulseLang by PulseShell v3.0 ──`
-        : `# ── Transpiled from PulseLang by PulseShell v3.0 ──`;
-      output.push(header);
-      if (isJS) output.push(`const { createPage, spawnAgent, spawnUniverse, merge, emerge } = require('./pulse-runtime');`);
-      else output.push(`from pulse_runtime import create_page, spawn_agent, spawn_universe, merge, emerge`);
-      output.push("");
-
-      for (const raw of lines) {
-        const line = raw.trim();
-        if (!line || line.startsWith(";")) {
-          if (line.startsWith(";")) output.push(`${comment}${line.slice(1)}`);
-          else output.push("");
-          continue;
-        }
-        // Universe header
-        if (/⟦Ω/.test(line)) {
-          const m = line.match(/⟦Ω(\d+)⟧⟨Λ(\d+)⟩/);
-          if (m) output.push(`${comment} Universe Ω${m[1]} / Context Λ${m[2]}`);
-          output.push(isJS ? "function main() {" : "def main():");
-          continue;
-        }
-        if (line === "}") { output.push(isJS ? "}" : ""); continue; }
-        // FieldDecl
-        const fd = line.match(/^(ϕ\d+):(\S+)$/);
-        if (fd) {
-          output.push(isJS ? `  let ${fd[1].replace("ϕ", "phi")} = null; ${comment} ${fd[2]}` : `  ${fd[1].replace("ϕ", "phi")} = None  ${comment} ${fd[2]}`);
-          continue;
-        }
-        // Assignment
-        const as = line.match(/^(ϕ\d+)≔(.+)$/);
-        if (as) {
-          const varN = as[1].replace("ϕ", "phi");
-          let rhs = as[2].trim();
-          rhs = rhs.replace(/Ψ\d+\(γ\d+=τ\d+\((κ\d+)\)\)/g, isJS ? `createPage({ atom: '$1' })` : `create_page(atom='$1')`);
-          rhs = rhs.replace(/α\(γ\d+=τ\d+\((κ\d+)\)\)/g, isJS ? `spawnAgent({ seed: '$1' })` : `spawn_agent(seed='$1')`);
-          rhs = rhs.replace(/⊚\(γ\d+=τ\d+\((κ\d+)\)\)/g, isJS ? `spawnUniverse({ ctx: '$1' })` : `spawn_universe(ctx='$1')`);
-          rhs = rhs.replace(/∴\(τ\d+\((κ\d+)\)\)/g, isJS ? `emerge('$1')` : `emerge('$1')`);
-          output.push(isJS ? `  ${varN} = ${rhs};` : `  ${varN} = ${rhs}`);
-          continue;
-        }
-        // Return
-        const ret = line.match(/^↧(ϕ\d+)$/);
-        if (ret) {
-          const varN = ret[1].replace("ϕ", "phi");
-          output.push(isJS ? `  return ${varN};` : `  return ${varN}`);
-          continue;
-        }
-        output.push(`${comment} [untranspiled] ${line}`);
-      }
-      if (isJS) output.push("\nmain();");
-      else output.push("\nmain()");
-
-      res.json({ output: output.join("\n"), target, lines: output.length });
-    } catch (e) {
-      res.status(500).json({ error: String(e) });
+      const { compilePulseLang } = await import("./pulse-lang-compiler.js");
+      const result = compilePulseLang(code, target === "python" ? "python" : "js");
+      const errCount = result.diagnostics.filter(d => d.severity === "error").length;
+      return res.json({
+        output: result.output,
+        target: result.target,
+        lines: result.output.split("\n").length,
+        ok: result.ok,
+        diagnostics: result.diagnostics,
+        stats: result.stats,
+        experimental: false,
+        warning: errCount > 0
+          ? `Compile completed with ${errCount} error(s). See diagnostics.`
+          : `Compiled cleanly · ${result.stats.universes} universe(s) · ${result.stats.statements} statement(s).`,
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: String(e?.message || e), ok: false, diagnostics: [{ line: 0, col: 0, text: "", reason: String(e?.message || e), severity: "error" }] });
     }
   });
 
@@ -10640,26 +11373,127 @@ ${getCurrentWorldContext().split("\n").slice(0, 5).join("\n")}`;
     } catch (e) { res.status(500).json({ error: String(e) }); }
   });
 
-  // ── RESEARCH ROUTES (PulseNetPage PulseLang Lab tab) ────────────────────────
-  app.get("/api/research/findings", (_req, res) => {
+  // ── RESEARCH ROUTES — resilient direct queries with strict timeouts ─────────
+  // Connection-leak-safe: we do NOT race the whole body (that would orphan a
+  // checked-out client). Instead we race only the `pool.connect()` step; once
+  // we hold the client, `SET LOCAL statement_timeout` bounds the query and a
+  // try/finally guarantees release. Trim heavy text columns in SQL.
+  const _researchAcquire = async (timeoutMs = 1500): Promise<any | null> => {
+    let timer: NodeJS.Timeout | null = null;
     try {
-      if (isResearchReady()) return res.json(getResearchCached()!.findings);
-      res.json([]);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+      return await Promise.race<any | null>([
+        pool.connect(),
+        new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), timeoutMs); }),
+      ]);
+    } catch { return null; }
+    finally { if (timer) clearTimeout(timer); }
+  };
+  const _researchRun = async <T,>(fallback: T, stmtMs: number, run: (c: any) => Promise<T>): Promise<T> => {
+    const c = await _researchAcquire();
+    if (!c) return fallback;
+    try {
+      await c.query(`SET LOCAL statement_timeout = '${stmtMs}ms'`);
+      return await run(c);
+    } catch { return fallback; }
+    finally { try { c.release(); } catch {} }
+  };
+
+  // Generic body-timeout race for routes whose handlers use auto-released
+  // pool.query / db.execute paths. Background queries continue but the user
+  // gets a fast fallback so the page never freezes. Safe because no client is
+  // checked out in the caller scope.
+  const _routeRace = async <T,>(fallback: T, body: () => Promise<T>, ms = 2500): Promise<T> => {
+    let timer: NodeJS.Timeout | null = null;
+    try {
+      const out = await Promise.race<T>([
+        body(),
+        new Promise<T>(resolve => { timer = setTimeout(() => resolve(fallback), ms); }),
+      ]);
+      return out ?? fallback;
+    } catch { return fallback; }
+    finally { if (timer) clearTimeout(timer); }
+  };
+
+  // Single-flight + cache-real-only: bg query keeps running past the race
+  // timeout and writes its result into cache. Fallback is never cached, so a
+  // cold timeout can't poison the next 60s of responses.
+  const _sfInflight: Map<string, Promise<any>> = new Map();
+  async function _sfRace<T>(
+    key: string, ttlMs: number, raceMs: number, fallback: T, body: () => Promise<T>
+  ): Promise<T> {
+    const cached = cacheGet(key);
+    if (cached !== null && cached !== undefined) return cached as T;
+    let p = _sfInflight.get(key) as Promise<T> | undefined;
+    if (!p) {
+      p = (async () => {
+        try {
+          const out = await body();
+          if (out !== null && out !== undefined) cacheSet(key, out, ttlMs);
+          return out;
+        } finally { _sfInflight.delete(key); }
+      })();
+      _sfInflight.set(key, p);
+    }
+    let timer: NodeJS.Timeout | null = null;
+    try {
+      const winner = await Promise.race<T>([
+        p,
+        new Promise<T>(resolve => { timer = setTimeout(() => resolve(fallback), raceMs); }),
+      ]);
+      return winner ?? fallback;
+    } catch { return fallback; }
+    finally { if (timer) clearTimeout(timer); }
+  }
+
+  app.get("/api/research/findings", async (_req, res) => {
+    if (isResearchReady()) {
+      try { return res.json(getResearchCached()!.findings ?? []); } catch {}
+    }
+    const rows = await _researchRun<any[]>([], 2000, async (c) => {
+      const r = await c.query(
+        `SELECT id, project_id, researcher_type, domain, report_type,
+                LEFT(content, 4000) AS content, created_at
+           FROM research_deep_findings ORDER BY created_at DESC LIMIT 50`
+      );
+      return r.rows;
+    });
+    res.json(rows);
   });
 
-  app.get("/api/research/projects", (_req, res) => {
-    try {
-      if (isResearchReady()) return res.json(getResearchCached()!.projects);
-      res.json([]);
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+  app.get("/api/research/projects", async (_req, res) => {
+    // Bypass cache — heavy `findings` text was stalling cached serialization
+    // under load. SQL-side LEFT(...) trimming keeps payload <60KB.
+    const rows = await _researchRun<any[]>([], 2000, async (c) => {
+      const r = await c.query(
+        `SELECT id, project_id, lead_researcher, researcher_type, title,
+                research_domain, status, funding_pc, cycle_started, cycle_completed,
+                LEFT(hypothesis, 600)  AS hypothesis,
+                LEFT(methodology, 600) AS methodology,
+                LEFT(findings, 1200)   AS findings,
+                created_at
+           FROM research_projects ORDER BY created_at DESC LIMIT 50`
+      );
+      return r.rows;
+    });
+    res.json(rows);
   });
 
-  app.get("/api/research/stats", (_req, res) => {
-    try {
-      if (isResearchReady()) return res.json(getResearchCached()!.stats);
-      res.json({ total_projects: 0, active: 0, completed: 0, total_disciplines: 0 });
-    } catch (e) { res.status(500).json({ error: String(e) }); }
+  app.get("/api/research/stats", async (_req, res) => {
+    const fallback = { total_projects: 0, active: 0, completed: 0, total_disciplines: 0 };
+    if (isResearchReady()) {
+      try { return res.json(getResearchCached()!.stats ?? fallback); } catch {}
+    }
+    const data = await _researchRun<any>(fallback, 1500, async (c) => {
+      const r = await c.query(
+        `SELECT COUNT(*) AS total_projects,
+                COUNT(*) FILTER (WHERE status IN ('ACTIVE','active'))     AS active,
+                COUNT(*) FILTER (WHERE status IN ('COMPLETED','complete')) AS completed,
+                COUNT(DISTINCT research_domain) AS total_disciplines
+           FROM research_projects`
+      );
+      return r.rows[0] || fallback;
+    });
+    res.json(data);
   });
 
   // GET /api/intel/live-prices — Live price snapshot for News Hub market ticker
@@ -11284,9 +12118,13 @@ Return as structured script with section labels.`;
 
   // ════════════════════════════════════════════════════════════════════════
   // DB OBSERVATORY — Agents see their own database footprint
+  // Uses pg_class.reltuples for instant approximate counts (was hanging on
+  // 20× COUNT(*) full scans; same fix pattern as pulse-temporal-engine).
   // ════════════════════════════════════════════════════════════════════════
+  let _dbStatsCache: { data: any; exp: number } | null = null;
   app.get("/api/db/stats", async (_req, res) => {
     try {
+      if (_dbStatsCache && Date.now() < _dbStatsCache.exp) return res.json(_dbStatsCache.data);
       const tables = [
         "quantum_spawns", "hive_memory", "hive_links", "ai_publications",
         "quantapedia_entries", "governance_cycles",
@@ -11295,15 +12133,17 @@ Return as structured script with section labels.`;
         "user_memory", "conversation_imprints", "social_posts", "social_profiles",
         "quantum_products", "quantum_careers", "quantum_media",
       ];
+      // One round-trip for all tables — pg_class is in shared memory, near-instant.
+      const r = await pool.query(
+        `SELECT relname AS table, GREATEST(reltuples::bigint, 0) AS rows
+           FROM pg_class
+          WHERE relkind='r' AND relname = ANY($1::text[])`,
+        [tables]
+      ).catch(() => ({ rows: [] as any[] }));
       const counts: Record<string, number> = {};
-      await Promise.all(tables.map(async (t) => {
-        try {
-          const r = await pool.query(`SELECT COUNT(*) as n FROM ${t}`);
-          counts[t] = parseInt(r.rows[0]?.n ?? "0", 10);
-        } catch { counts[t] = -1; }
-      }));
+      for (const t of tables) counts[t] = -1;
+      for (const row of r.rows as any[]) counts[row.table] = parseInt(row.rows, 10) || 0;
       const totalRows = Object.values(counts).filter(v => v >= 0).reduce((a, b) => a + b, 0);
-      // DB size estimate via pg_database_size
       let dbSizeBytes = 0;
       try {
         const sizeR = await pool.query(`SELECT pg_database_size(current_database()) as sz`);
@@ -11316,7 +12156,9 @@ Return as structured script with section labels.`;
       const maxRows = tableArray.reduce((m, t) => Math.max(m, t.rows), 1);
       const dbSizeMB = Math.round(dbSizeBytes / 1024 / 1024 * 10) / 10;
       const dbSize = dbSizeMB >= 1 ? `${dbSizeMB} MB` : `${Math.round(dbSizeBytes / 1024)} KB`;
-      res.json({ tables: tableArray, maxRows, totalRows, dbSizeBytes, dbSizeMB, dbSize });
+      const out = { tables: tableArray, maxRows, totalRows, dbSizeBytes, dbSizeMB, dbSize, approximate: true };
+      _dbStatsCache = { data: out, exp: Date.now() + 60_000 };
+      res.json(out);
     } catch (e) {
       res.status(500).json({ error: String(e) });
     }
@@ -11324,8 +12166,26 @@ Return as structured script with section labels.`;
 
   // ════════════════════════════════════════════════════════════════════════
   // GOVERNANCE CYCLES — The economy's heartbeat log
+  // (Pulse Credit economy is alive in `governance_cycles` + `hive_treasury` —
+  // the prior "REMOVED" comment was stale; routes restored May 2026.)
   // ════════════════════════════════════════════════════════════════════════
-  // /api/governance/cycles — REMOVED (Pulse Coin economy retired)
+  app.get("/api/governance/cycles", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(String(req.query.limit ?? "50"), 10) || 50, 500);
+      const r = await pool.query(
+        `SELECT id, cycle_number, agents_active, agents_pruned, agents_saved,
+                credits_issued, credits_charged, total_credits_circulating,
+                dominant_domain, cycle_note, created_at
+           FROM governance_cycles
+          ORDER BY cycle_number DESC NULLS LAST, id DESC
+          LIMIT $1`,
+        [limit]
+      ).catch(() => ({ rows: [] as any[] }));
+      res.json(r.rows);
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
 
   // ── APPEALS COURT ────────────────────────────────────────────────────────────
   app.get("/api/appeals", async (req, res) => {
@@ -11385,7 +12245,61 @@ Return as structured script with section labels.`;
     } catch(e: any) { res.json({ ok: false, error: e.message }); }
   });
 
-  // /api/governance/economy — REMOVED (Pulse Coin economy retired)
+  // ────────────────────────────────────────────────────────────────────────
+  // /api/governance/economy — live Pulse Credit economy snapshot
+  // (Hive treasury balance + tax/stimulus + recent flow + last cycle.)
+  // ────────────────────────────────────────────────────────────────────────
+  app.get("/api/governance/economy", async (_req, res) => {
+    try {
+      const [treasuryR, lastCycleR, recentFlowsR, txTotalsR] = await Promise.all([
+        pool.query(`SELECT balance, tax_rate, total_collected, total_stimulus,
+                           supply_snapshot, inflation_rate, cycle_count, last_cycle_at
+                      FROM hive_treasury ORDER BY id DESC LIMIT 1`)
+            .catch(() => ({ rows: [] as any[] })),
+        pool.query(`SELECT cycle_number, agents_active, credits_issued, credits_charged,
+                           total_credits_circulating, dominant_domain, created_at
+                      FROM governance_cycles ORDER BY cycle_number DESC NULLS LAST, id DESC LIMIT 1`)
+            .catch(() => ({ rows: [] as any[] })),
+        pool.query(`SELECT * FROM treasury_flows ORDER BY id DESC LIMIT 20`)
+            .catch(() => ({ rows: [] as any[] })),
+        pool.query(`SELECT
+                      COUNT(*)::int AS tx_count,
+                      COALESCE(SUM(amount),0)::float AS volume
+                    FROM agent_transactions
+                    WHERE created_at > NOW() - INTERVAL '24 hours'`)
+            .catch(() => ({ rows: [{ tx_count: 0, volume: 0 }] })),
+      ]);
+      const treasury = treasuryR.rows[0] || null;
+      const lastCycle = lastCycleR.rows[0] || null;
+      const last24h = txTotalsR.rows[0] || { tx_count: 0, volume: 0 };
+
+      // Aggregate `agents_pruned` across the *current era* (last 50 cycles) +
+      // total cycles run for the legacy frontend shape.
+      const eraR = await pool.query(
+        `SELECT COUNT(*)::int AS cycles_run,
+                COALESCE(SUM(agents_pruned),0)::int AS pruned_total,
+                COUNT(*) FILTER (WHERE credits_issued > 0)::int AS stimulus_events
+           FROM governance_cycles`
+      ).catch(() => ({ rows: [{ cycles_run: 0, pruned_total: 0, stimulus_events: 0 }] }));
+      const era = eraR.rows[0];
+
+      res.json({
+        // New canonical shape
+        treasury, lastCycle, recentFlows: recentFlowsR.rows, last24h,
+        // Legacy shape (backwards-compatible w/ SovereignHivePage Ω-XII tab)
+        totalCirculating: lastCycle?.total_credits_circulating ?? treasury?.balance ?? null,
+        activeAgents:     lastCycle?.agents_active ?? null,
+        prunedAgents:     era?.pruned_total ?? null,
+        cyclesRun:        era?.cycles_run ?? 0,
+        lastIssued:       lastCycle?.credits_issued ?? null,
+        lastCharged:      lastCycle?.credits_charged ?? null,
+        dominantDomain:   lastCycle?.dominant_domain ?? null,
+        stimulusEvents:   era?.stimulus_events ?? 0,
+      });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
+    }
+  });
 
   // ════════════════════════════════════════════════════════════════════════
   // AGENT SELF-AWARENESS — Each agent's memory of what happened to them
@@ -11760,16 +12674,53 @@ Return as structured script with section labels.`;
     app.get("/api/builder/stats", async (_req, res) => {
       try {
         const safe = async (mod: string, fn: string) => { try { const m: any = await import(mod); return m[fn]?.() ?? null; } catch { return null; } };
-        const [llmDistillation, codebaseGenome, deepCrawler, algorithmMiner, omegaStudier] = await Promise.all([
+        const [llmDistillation, codebaseGenome, deepCrawler, algorithmMiner, omegaStudier, daedalusHarvester] = await Promise.all([
           safe("./llm-distillation-engine", "getDistillationStats"),
           safe("./codebase-genome-engine", "getCodebaseGenomeStats"),
           safe("./omega-deep-crawler", "getDeepCrawlerStats"),
-          safe("./algorithm-mining-engine", "getAlgorithmMiningStats"),
+          safe("./algorithm-mining-engine", "getAlgorithmMinerStats"),
           safe("./omega-source-studier-engine", "getStudierStats"),
+          safe("./daedalus-harvester-engine", "getDaedalusHarvesterStats"),
         ]);
         const daedalus = getDaedalusStats();
-        res.json({ daedalus, llmDistillation, codebaseGenome, deepCrawler, algorithmMiner, omegaStudier });
+        res.json({ daedalus, llmDistillation, codebaseGenome, deepCrawler, algorithmMiner, omegaStudier, daedalusHarvester });
       } catch (e: any) { res.status(500).json({ error: e?.message || "stats error" }); }
+    });
+
+    // T204 — Daedalus Workshop banks summary
+    app.get("/api/daedalus/workshop", async (_req, res) => {
+      try {
+        const { pool } = await import("./db");
+        const r = await pool.query(
+          `SELECT kind, status, count(*)::int AS n FROM daedalus_knowledge_artifacts GROUP BY kind, status ORDER BY kind, status`
+        );
+        const recent = await pool.query(
+          `SELECT id, kind, title, language, discord_channel_id,
+                  array_length(discord_message_ids, 1) AS msgs,
+                  status, created_at
+             FROM daedalus_knowledge_artifacts ORDER BY id DESC LIMIT 20`
+        );
+        res.json({ by_kind: r.rows, recent: recent.rows });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "workshop error" }); }
+    });
+
+    // T204 — Force-run one harvester cycle on demand (admin/manual trigger).
+    // Requires HIVE_BUS_SECRET via x-hive-bus-secret header to prevent public spam
+    // (each unauthenticated call would otherwise trigger fs walks + Discord posts).
+    app.post("/api/daedalus/harvester/cycle", async (req, res) => {
+      try {
+        const expected = process.env.HIVE_BUS_SECRET || "";
+        const provided = String(req.headers["x-hive-bus-secret"] || "");
+        if (!expected || provided !== expected) {
+          return res.status(401).json({ error: "unauthorized — missing or invalid x-hive-bus-secret" });
+        }
+        const mod = await import("./daedalus-harvester-engine.js").catch(() => null);
+        if (!mod || typeof (mod as any).triggerDaedalusHarvesterCycle !== "function") {
+          return res.status(503).json({ error: "harvester not loaded" });
+        }
+        const out = await (mod as any).triggerDaedalusHarvesterCycle();
+        res.json({ ok: true, stats: out });
+      } catch (e: any) { res.status(500).json({ error: e?.message || "cycle error" }); }
     });
 
     // Δ agents roster
@@ -11947,12 +12898,272 @@ Return as structured script with section labels.`;
   app.post("/api/hive/depart", async (req, res) => {
     try {
       const { departAgentToUniverse } = await import("./hive-multiverse-engine");
+      const { manifest } = req.body || {};
       const { agent_id, to_universe } = req.body || {};
       if (!agent_id || !to_universe) return res.status(400).json({ ok: false, reason: "agent_id + to_universe required" });
       const r = await departAgentToUniverse(String(agent_id), String(to_universe));
       if (!r.ok) return res.status(400).json(r);
       res.json(r);
     } catch (e: any) { res.status(500).json({ error: e?.message || "depart error" }); }
+  });
+
+  // Omega-feed — peers (U2/U3/U4) pull recent omega-source activity to ingest.
+  // Returns up to 25 most recent items: research source studies + new publications.
+  // HMAC-signed envelope so peers can verify the feed is authentic.
+  app.get("/api/hive/omega-feed", async (req, res) => {
+    const since = String(req.query.since || new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    const sinceTs = new Date(since).toISOString();
+    const limit = Math.min(parseInt(String(req.query.limit || "25"), 10) || 25, 100);
+    const fallback = { id: "", ts: new Date().toISOString(), origin_universe: "u1-replit-prime", event_type: "OMEGA_FEED", payload: { since: sinceTs, count: 0, items: [] }, signature: "" };
+    const out = await _routeRace<any>(fallback, async () => {
+      const { pool } = await import("./db.js");
+      const { signEvent } = await import("./hive-multiverse-engine");
+      const r = await pool.query(
+        `(SELECT 'research_sources' AS src, name AS title, url AS link,
+                 COALESCE(domain, category) AS domain,
+                 COALESCE(last_studied_at, created_at) AS ts,
+                 COALESCE(last_study_status, 'unknown') AS status
+            FROM research_sources
+           WHERE COALESCE(last_studied_at, created_at) > $1::timestamptz
+           ORDER BY COALESCE(last_studied_at, created_at) DESC LIMIT $2)
+         UNION ALL
+         (SELECT 'ai_publications' AS src, COALESCE(title,'(publication)') AS title, slug AS link,
+                 COALESCE(domain, pub_type) AS domain,
+                 created_at AS ts,
+                 'published' AS status
+            FROM ai_publications
+           WHERE created_at > $1::timestamptz
+           ORDER BY created_at DESC LIMIT $2)
+         ORDER BY ts DESC LIMIT $2`,
+        [sinceTs, limit]
+      );
+      const items = r.rows.map((row: any) => ({
+        src: row.src, title: row.title, link: row.link, domain: row.domain,
+        ts: row.ts, status: row.status,
+      }));
+      const id = randomBytes(16).toString("hex");
+      const ts = new Date().toISOString();
+      const envelope = {
+        id, ts, origin_universe: "u1-replit-prime",
+        event_type: "OMEGA_FEED",
+        payload: { since: sinceTs, count: items.length, items },
+      };
+      let signature = "";
+      try { signature = signEvent(envelope); } catch {}
+      return { ...envelope, signature };
+    }, 3000);
+    res.json(out);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  //  FULL-CLONE ENDPOINT
+  //  Peers (U2 GitHub, U3 Cloudflare, U4 Discord) pull this to mirror the entire
+  //  MyAIGPT app — not just summaries, the actual source code, the actual
+  //  equations, the actual agents, the actual publications.
+  //  Sections (use ?section=…):
+  //    manifest      — overview + section index + current totals
+  //    code          — source files (server/, shared/, client/src/, hive/)
+  //    equations     — integrated equations from codex_equations + proposals
+  //    agents        — daedalus_agents + recent quantum_spawns
+  //    publications  — ai_publications (most recent)
+  //    ledger        — hive_ledger (most recent)
+  //  HMAC-signed envelope so peers can verify authenticity.
+  // ─────────────────────────────────────────────────────────────────────────────
+  app.get("/api/hive/full-clone", async (req, res) => {
+    try {
+      const { pool } = await import("./db.js");
+      const { signEvent } = await import("./hive-multiverse-engine");
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const crypto = await import("node:crypto");
+      const section = String(req.query.section || "manifest");
+      const since = req.query.since ? new Date(String(req.query.since)).toISOString() : new Date(Date.now() - 24*60*60*1000).toISOString();
+      const limit = Math.min(parseInt(String(req.query.limit || "200"), 10) || 200, 500);
+
+      let payload: any = {};
+
+      if (section === "manifest" || section === "all") {
+        const totals = await pool.query(`
+          SELECT
+            (SELECT count(*)::int FROM codex_equations) AS codex_equations,
+            (SELECT count(*)::int FROM equation_proposals WHERE status='INTEGRATED') AS integrated_proposals,
+            (SELECT count(*)::int FROM ai_publications) AS publications,
+            (SELECT count(*)::int FROM daedalus_agents) AS daedalus_agents,
+            (SELECT count(*)::int FROM quantum_spawns) AS quantum_spawns,
+            (SELECT count(*)::int FROM hive_ledger) AS ledger_events,
+            (SELECT count(*)::int FROM spawn_thoughts) AS spawn_thoughts,
+            (SELECT count(*)::int FROM agent_reflections) AS agent_reflections
+        `);
+        payload.manifest = {
+          app_name: "MyAIGPT (Pulse Universe)",
+          origin_universe: "u1-replit-prime",
+          totals: totals.rows[0],
+          sections: ["code", "equations", "agents", "publications", "ledger"],
+          fetched_at: new Date().toISOString(),
+        };
+      }
+
+      if (section === "code" || section === "all") {
+        // Walk the source code directories and return .ts/.tsx/.js/.mjs/.json files.
+        // Excludes node_modules, dist, .local, attached_assets, .git, lockfiles.
+        const ROOTS = ["server", "shared", "client/src", "hive"];
+        const ALLOW_EXT = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".css", ".html"]);
+        const SKIP_PARTS = new Set(["node_modules", "dist", ".git", ".local", "attached_assets", "build", ".cache"]);
+        const SKIP_FILES = new Set(["package-lock.json", "pnpm-lock.yaml", "yarn.lock"]);
+        const MAX_FILE_BYTES = 256 * 1024; // 256 KB per file
+        const MAX_TOTAL_BYTES = 8 * 1024 * 1024; // 8 MB per response
+        let totalBytes = 0;
+        const files: any[] = [];
+        async function walk(dir: string): Promise<void> {
+          let entries: any[] = [];
+          try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return; }
+          for (const ent of entries) {
+            if (SKIP_PARTS.has(ent.name)) continue;
+            const full = path.join(dir, ent.name);
+            if (ent.isDirectory()) { await walk(full); continue; }
+            if (!ent.isFile()) continue;
+            if (SKIP_FILES.has(ent.name)) continue;
+            const ext = path.extname(ent.name).toLowerCase();
+            if (!ALLOW_EXT.has(ext)) continue;
+            try {
+              const stat = await fs.stat(full);
+              if (stat.size > MAX_FILE_BYTES) {
+                files.push({ path: full, size: stat.size, skipped: "too-large" });
+                continue;
+              }
+              if (totalBytes + stat.size > MAX_TOTAL_BYTES) {
+                files.push({ path: full, size: stat.size, skipped: "response-cap" });
+                continue;
+              }
+              const content = await fs.readFile(full, "utf8");
+              const sha256 = crypto.createHash("sha256").update(content).digest("hex");
+              files.push({ path: full, size: stat.size, sha256, content });
+              totalBytes += stat.size;
+            } catch {}
+          }
+        }
+        for (const root of ROOTS) await walk(root);
+        payload.code = { roots: ROOTS, count: files.length, total_bytes: totalBytes, files };
+      }
+
+      if (section === "equations" || section === "all") {
+        const codex = await pool.query(`
+          SELECT id, codex_name, equation, equation_hash, domain, source, source_id,
+                 dissection_count, power_level, active, canonical, canonized_at, created_at
+            FROM codex_equations ORDER BY id
+        `);
+        const proposals = await pool.query(`
+          SELECT id, doctor_id, doctor_name, title, equation, rationale, target_system,
+                 votes_for, votes_against, integrated_at
+            FROM equation_proposals
+           WHERE status = 'INTEGRATED' AND integrated_at > $1::timestamptz
+           ORDER BY integrated_at DESC LIMIT $2
+        `, [since, limit]);
+        payload.equations = {
+          codex: codex.rows, integrated_proposals: proposals.rows,
+          codex_count: codex.rows.length, integrated_count: proposals.rows.length,
+        };
+      }
+
+      if (section === "agents" || section === "all") {
+        const dAgents = await pool.query(`
+          SELECT id, name, category, is_prime, parent_id, specialty, generation,
+                 works_completed, files_authored, commits_attributed, current_task, created_at
+            FROM daedalus_agents ORDER BY id
+        `);
+        const spawns = await pool.query(`
+          SELECT id, spawn_id, family_id, business_id, spawn_type, generation, parent_id,
+                 ancestor_ids, domain_focus, task_description, success_score, confidence_score,
+                 status, visibility, thermal_state, genome, created_at, last_active_at
+            FROM quantum_spawns ORDER BY created_at DESC LIMIT $1
+        `, [limit]);
+        payload.agents = {
+          daedalus: dAgents.rows, recent_spawns: spawns.rows,
+          daedalus_count: dAgents.rows.length, spawns_count: spawns.rows.length,
+        };
+      }
+
+      if (section === "publications" || section === "all") {
+        const pubs = await pool.query(`
+          SELECT id, slug, title, content, summary, pub_type, domain, tags,
+                 spawn_id, family_id, views, featured, created_at
+            FROM ai_publications
+           WHERE created_at > $1::timestamptz
+           ORDER BY created_at DESC LIMIT $2
+        `, [since, limit]);
+        payload.publications = { count: pubs.rows.length, items: pubs.rows };
+      }
+
+      if (section === "ledger" || section === "all") {
+        const led = await pool.query(`
+          SELECT id, ts, origin_universe, event_type, payload, signature
+            FROM hive_ledger WHERE ts > $1::timestamptz
+            ORDER BY ts DESC LIMIT $2
+        `, [since, limit]);
+        payload.ledger = { count: led.rows.length, events: led.rows };
+      }
+
+      const id = randomBytes(16).toString("hex");
+      const ts = new Date().toISOString();
+      const envelope = {
+        id, ts, origin_universe: "u1-replit-prime",
+        event_type: "FULL_CLONE",
+        payload: { section, since, ...payload },
+      };
+      let signature = "";
+      try { signature = signEvent(envelope); } catch {}
+      res.json({ ...envelope, signature });
+    } catch (e: any) {
+      console.error("[full-clone] error:", e?.message || e);
+      res.status(500).json({ error: e?.message || "full-clone error" });
+    }
+  });
+
+  // ══ QUANTUM INTERNET — CROSS-HIVE COMPETITION ════════════════════════════
+  app.get("/api/quantum-internet/status", async (_req, res) => {
+    try {
+      const [brains] = await pool.query("SELECT COUNT(*) AS count FROM billy_brains WHERE status='ACTIVE'");
+      const [chatsR] = await pool.query("SELECT COUNT(*) AS count FROM chats");
+      const [msgs] = await pool.query("SELECT COUNT(*) AS count FROM messages");
+
+      let cfStatus: any = { brains: { total: 0, cycle: 0 }, knowledge: { total: 0 } };
+      try {
+        const r = await fetch("https://pulse-universe-api.quantumintelligencepulse.workers.dev/api/hive/status",
+          { signal: AbortSignal.timeout(4000) });
+        if (r.ok) cfStatus = await r.json();
+      } catch {}
+
+      const u1Score = (parseInt(brains.rows[0].count) * 10) + (parseInt(chatsR.rows[0].count) * 3) + (parseInt(msgs.rows[0].count));
+      const u3Score = ((cfStatus.brains?.total || 0) * 10) + ((cfStatus.knowledge?.total || 0) * 5) + ((cfStatus.brains?.cycle || 0) * 50);
+
+      const hives = [
+        {
+          id: "u1-replit-prime", name: "Replit Prime", badge: "👑", url: "https://myaigpt.online",
+          score: u1Score, brains: parseInt(brains.rows[0].count), messages: parseInt(msgs.rows[0].count),
+          chats: parseInt(chatsR.rows[0].count), alive: true, status: "DOMINANT",
+        },
+        {
+          id: "u3-cloudflare-edge", name: "Cloudflare Edge", badge: "⚡", url: "https://pulse-universe.pages.dev",
+          score: u3Score, brains: cfStatus.brains?.total || 0, cycles: cfStatus.brains?.cycle || 0,
+          knowledge: cfStatus.knowledge?.total || 0, alive: true, status: "EVOLVING",
+        },
+        {
+          id: "u2-github-tide", name: "GitHub Tide", badge: "🌊", url: "https://quantumintelligencepulse-ops.github.io/pulse-universe/",
+          score: 0, brains: 0, alive: true, status: "SEEDING",
+        },
+      ].sort((a, b) => b.score - a.score);
+
+      const dominant = hives[0];
+      res.json({ hives, dominant, totalHives: 3, quantum: true, competition: true, ts: new Date().toISOString() });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get("/api/quantum-internet/leaderboard", async (req, res) => {
+    try {
+      const r = await fetch(`http://localhost:${(req.socket as any)?.localPort || 5000}/api/quantum-internet/status`,
+        { signal: AbortSignal.timeout(5000) });
+      res.json(await r.json());
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   return httpServer;
