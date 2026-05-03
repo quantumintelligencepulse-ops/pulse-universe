@@ -2,22 +2,12 @@ name = "pulse-universe-api"
 main = "worker.ts"
 compatibility_date = "2024-09-23"
 
-# Cron triggers — independent hive heartbeat every 30 min
 [triggers]
-crons = ["*/30 * * * *"]
+crons = ["*/30 * * * *", "*/5 * * * *"]
 
-# KV namespace — independent brain + knowledge storage
 [[kv_namespaces]]
 binding = "HIVE_KV"
 id = "e85dbed1748d45e58ef8da5c1b14c8f5"
 
-# Deploy:
-#   cd cloudflare && npx wrangler deploy
-#
-# Set these Worker secrets via `wrangler secret put`:
-#   DISCORD_BOT_TOKEN     — Discord bot token
-#   U3_BRAIN_CHANNEL      — #u3-brain-stream channel ID
-#   U3_STATUS_CHANNEL     — #u3-status channel ID
-#   U3_KNOWLEDGE_CHANNEL  — #u3-knowledge-seed channel ID
-#   U3_BACKUP_CHANNEL     — #u3-backup-log channel ID
-#   REPLIT_ORIGIN         — https://myaigpt.online (optional fallback)
+[ai]
+binding = "AI"
