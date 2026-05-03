@@ -44,6 +44,7 @@ jobs:
           cname: cf.myaigpt.online
 
       - name: Deploy to Cloudflare Pages
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_20260430 }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
