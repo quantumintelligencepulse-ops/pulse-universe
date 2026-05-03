@@ -1,0 +1,215 @@
+name: GitHub Hive — Independent Brain + Seeding
+
+# Runs every 4 hours — FULLY INDEPENDENT of Replit
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hive-tick:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      # Hardcoded channel IDs — not sensitive, just Discord channel snowflakes
+      U2_BRAIN_CHANNEL: "1500579940989669377"
+      U2_STATUS_CHANNEL: "1500579953023127652"
+      U2_KNOWLEDGE_CHANNEL: "1500579945376649446"
+      U2_BACKUP_CHANNEL: "1500579949319426068"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run GitHub Hive Brain Tick
+        run: |
+          node << 'JSEOF'
+          const fs = require('fs');
+          const https = require('https');
+
+          const HIVE_ID = 'u2-github';
+          fs.mkdirSync('data', { recursive: true });
+
+          // Load or init brain state
+          let state = { total: 0, observing: 0, brains: [], cycle: 0, last_tick: '' };
+          try { state = JSON.parse(fs.readFileSync('data/hive-state.json', 'utf8')); } catch {}
+
+          // Birth 2-4 new brains per tick
+          const niches = ['github-actions', 'open-source-ai', 'llm-tools', 'devops-automation',
+            'code-intelligence', 'api-design', 'database-optimization', 'edge-computing',
+            'security-research', 'ml-infra', 'observability', 'rust-ecosystem',
+            'typescript-tooling', 'wasm-runtime', 'distributed-tracing', 'vector-search'];
+          const birthCount = Math.floor(Math.random() * 3) + 2;
+          const births = [];
+          for (let i = 0; i < birthCount; i++) {
+            const niche = niches[Math.floor(Math.random() * niches.length)];
+            const brain = {
+              id: `gh-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+              niche,
+              generation: Math.floor(state.total / 10) + 1,
+              born_at: new Date().toISOString(),
+              strength: Math.random() * 0.6 + 0.4,
+            };
+            births.push(brain);
+            state.brains.push(brain);
+            state.total++;
+          }
+          if (state.brains.length > 200) {
+            state.brains.sort((a, b) => b.strength - a.strength);
+            state.brains = state.brains.slice(0, 180);
+          }
+          state.observing = state.brains.filter(b => b.strength > 0.6).length;
+          state.cycle++;
+          state.last_tick = new Date().toISOString();
+          fs.writeFileSync('data/hive-state.json', JSON.stringify(state, null, 2));
+          fs.writeFileSync('data/brain-census.json', JSON.stringify({
+            hive: HIVE_ID, total: state.total, observing: state.observing,
+            recent: state.brains.slice(-20), cycle: state.cycle, ts: new Date().toISOString(),
+          }, null, 2));
+          fs.writeFileSync('data/births.json', JSON.stringify(births, null, 2));
+
+          // Fetch GitHub trending
+          function httpsGet(opts) {
+            return new Promise((resolve) => {
+              const req = https.get(opts, res => {
+                let body = '';
+                res.on('data', d => body += d);
+                res.on('end', () => { try { resolve(JSON.parse(body)); } catch { resolve({}); } });
+              });
+              req.on('error', () => resolve({}));
+              req.setTimeout(8000, () => { req.destroy(); resolve({}); });
+            });
+          }
+
+          const [ghData, hnIds] = await Promise.all([
+            httpsGet({
+              hostname: 'api.github.com',
+              path: '/search/repositories?q=stars:>500+created:>2024-01-01&sort=stars&order=desc&per_page=10',
+              headers: { 'User-Agent': 'pulse-gh-hive/1.0', 'Accept': 'application/vnd.github.v3+json' },
+            }),
+            httpsGet({
+              hostname: 'hacker-news.firebaseio.com',
+              path: '/v0/topstories.json',
+              headers: { 'User-Agent': 'pulse-gh-hive/1.0' },
+            }),
+          ]);
+
+          const repos = (ghData.items || []).map(r => ({
+            name: r.full_name, desc: r.description || '',
+            stars: r.stargazers_count || 0, url: r.html_url, lang: r.language || '',
+          }));
+          const hnIdList = Array.isArray(hnIds) ? hnIds.slice(0, 20) : [];
+
+          // Merge with existing knowledge
+          let knowledge = { hn_ids: [], github_repos: [], updated_at: '' };
+          try { knowledge = JSON.parse(fs.readFileSync('data/knowledge.json', 'utf8')); } catch {}
+          const seenRepos = new Set();
+          const dedupRepos = [...repos, ...(knowledge.github_repos || [])].filter(r => {
+            if (seenRepos.has(r.name)) return false; seenRepos.add(r.name); return true;
+          }).slice(0, 80);
+          const allHN = [...new Set([...hnIdList, ...(knowledge.hn_ids || [])])].slice(0, 100);
+          knowledge = { hn_ids: allHN, github_repos: dedupRepos, updated_at: new Date().toISOString() };
+          fs.writeFileSync('data/knowledge.json', JSON.stringify(knowledge, null, 2));
+
+          // Full hive status
+          fs.writeFileSync('data/hive-status.json', JSON.stringify({
+            hive_id: HIVE_ID, hive_name: 'GitHub Tide Hive', status: 'alive',
+            brains: { total: state.total, observing: state.observing, cycle: state.cycle },
+            knowledge: { hn: allHN.length, github: dedupRepos.length, total: allHN.length + dedupRepos.length },
+            last_tick: state.last_tick, ts: new Date().toISOString(),
+            urls: {
+              pages: 'https://quantumintelligencepulse-ops.github.io/pulse-universe/',
+              repo: 'https://github.com/quantumintelligencepulse-ops/pulse-universe',
+              data_api: 'https://quantumintelligencepulse-ops.github.io/pulse-universe/data/hive-status.json',
+            },
+            discord: {
+              guild: '1014545586445365359',
+              category: '📚 U2 GitHub Tide',
+              channels: {
+                brain_stream: '1500579940989669377',
+                knowledge_seed: '1500579945376649446',
+                backup_log: '1500579949319426068',
+                status: '1500579953023127652',
+              },
+            },
+          }, null, 2));
+
+          console.log(`✅ Tick ${state.cycle}: ${state.total} brains (${births.length} born), ${allHN.length + dedupRepos.length} knowledge entries`);
+          JSEOF
+
+      - name: Post to Discord
+        if: env.DISCORD_TOKEN != ''
+        run: |
+          python3 << 'PYEOF'
+          import json, urllib.request, urllib.error, os
+
+          TOKEN = os.environ.get("DISCORD_TOKEN", "")
+          U2_BRAIN = os.environ.get("U2_BRAIN_CHANNEL", "")
+          U2_STATUS = os.environ.get("U2_STATUS_CHANNEL", "")
+          U2_KNOWLEDGE = os.environ.get("U2_KNOWLEDGE_CHANNEL", "")
+          U2_BACKUP = os.environ.get("U2_BACKUP_CHANNEL", "")
+
+          def post(channel_id, content):
+              if not channel_id or not TOKEN: return
+              try:
+                  req = urllib.request.Request(
+                      f"https://discord.com/api/v10/channels/{channel_id}/messages",
+                      data=json.dumps({"content": content[:2000]}).encode(),
+                      headers={"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"},
+                      method="POST"
+                  )
+                  urllib.request.urlopen(req, timeout=10)
+              except Exception as e:
+                  print(f"Discord: {e}")
+
+          try:
+              births = json.load(open("data/births.json"))
+              status = json.load(open("data/hive-status.json"))
+              knowledge = json.load(open("data/knowledge.json"))
+          except Exception as e:
+              print(f"Data read error: {e}"); exit(0)
+
+          if births and U2_BRAIN:
+              lines = [f"🌱 `{b['id'][-8:]}` niche:{b['niche']} gen:{b['generation']} str:{b['strength']:.2f}" for b in births]
+              post(U2_BRAIN, f"🐙 **GitHub Hive Brain Births** ({len(births)} new)\n" + "\n".join(lines))
+
+          if U2_KNOWLEDGE and knowledge.get("github_repos"):
+              repos = knowledge["github_repos"][:3]
+              lines = [f"• `{r['name']}` ⭐{r.get('stars',0)} {r.get('lang','')}" for r in repos]
+              post(U2_KNOWLEDGE, f"📡 **GitHub Hive Knowledge** (cycle {status['brains']['cycle']})\n"
+                   + "\n".join(lines) + f"\n📊 Total: {status['knowledge']['total']} entries")
+
+          if U2_STATUS:
+              post(U2_STATUS, f"✅ **GitHub Hive** alive · cycle {status['brains']['cycle']} · "
+                   f"{status['brains']['total']} brains · {status['ts']}")
+
+          if U2_BACKUP and status['brains']['cycle'] % 10 == 0:
+              post(U2_BACKUP, f"💾 **GitHub Hive Snapshot** · cycle {status['brains']['cycle']}\n"
+                   f"🧠 {status['brains']['total']} brains · {status['brains']['observing']} observing\n"
+                   f"📚 {status['knowledge']['total']} knowledge entries\n"
+                   f"🌐 https://quantumintelligencepulse-ops.github.io/pulse-universe/")
+          PYEOF
+
+      - name: Commit and push data files
+        run: |
+          git config user.email "daedalus@pulse.universe"
+          git config user.name "Daedalus [GitHub Hive]"
+          git add data/
+          git diff --staged --quiet && echo "No changes" || git commit -m "GH Hive tick · cycle $(python3 -c 'import json; print(json.load(open(\"data/hive-status.json\"))[\"brains\"][\"cycle\"])')"
+
+      - name: Push gh-pages
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          force: false

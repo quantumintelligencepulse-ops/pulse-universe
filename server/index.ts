@@ -122,6 +122,7 @@ import { startQuantumCareerEngine } from "./quantum-career-engine";
 import { startQuantumMediaEngine } from "./quantum-media-engine";
 import { startPublicationEngine } from "./publication-engine";
 import { startPulseUEngine } from "./pulseu-engine";
+import { startBVCEngine } from "./bvc-engine";
 import { startDiscordWireEngine } from "./discord-wire-engine";
 
 const app = express();
@@ -134,6 +135,26 @@ declare module "http" {
 }
 
 app.use(compression({ level: 6, threshold: 1024 }));
+
+// ── MULTI-HIVE CORS — allows CF Pages + GitHub Pages frontends to call this API ──
+app.use((req, res, next) => {
+  const origin = req.headers.origin || "";
+  const allowed =
+    origin === "https://myaigpt.online" ||
+    /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+    origin.endsWith(".pages.dev") ||          // Cloudflare Pages
+    origin.endsWith(".github.io") ||           // GitHub Pages
+    origin.endsWith(".workers.dev") ||         // Cloudflare Workers
+    origin.endsWith(".quantumintelligencepulse.workers.dev");
+  if (allowed) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 app.use(
   express.json({
@@ -355,7 +376,111 @@ async function seedOmegaSources() {
 }
 
 (async () => {
+  // Create missing tables synchronously before any engine acquires them.
+  // Only DDL (CREATE TABLE IF NOT EXISTS) — fast, no lock contention.
+  try {
+    const { runStartupTables } = await import("./startup-indexes.js");
+    await runStartupTables();
+  } catch (e: any) {
+    console.warn("[boot] runStartupTables non-fatal:", e?.message);
+  }
+
   await registerRoutes(httpServer, app);
+
+  try {
+    const { registerOracleRoutes } = await import("./omega-oracle-engine");
+    registerOracleRoutes(app);
+    console.log("[boot] Ω10 oracle routes mounted at /api/oracle/*");
+  } catch (e: any) {
+    console.error("[boot] failed to mount oracle routes:", e.message);
+  }
+
+  try {
+    const { registerBuildRoutes } = await import("./daedalus-build-engine");
+    registerBuildRoutes(app);
+    console.log("[boot] T206 daedalus build routes mounted at /api/daedalus/build*");
+  } catch (e: any) {
+    console.error("[boot] failed to mount build routes:", e.message);
+  }
+
+  try {
+    const { registerBillyBuildRoutes, startBillyBuildEngine } = await import("./billy-build-engine");
+    registerBillyBuildRoutes(app);
+    // Ω36 · Open-Source Mirror routes (browse mirrored GitHub/HF repos)
+    const { registerMirrorRoutes } = await import("./billy-mirror-engine");
+    registerMirrorRoutes(app);
+    await startBillyBuildEngine();
+    console.log("[boot] 🅱️ Billy build routes (Ω11..Ω20) mounted at /api/billy/*");
+  } catch (e: any) {
+    console.error("[boot] failed to mount billy build routes:", e.message);
+  }
+
+  // Phase 0 foundations — runtime supervisor, task queue, federation, project service
+  try {
+    const { registerBillyPhase0Routes } = await import("./billy-phase0-routes");
+    const { startWorkerLoop } = await import("./billy-task-queue");
+    const { startJanitor } = await import("./billy-runtime-supervisor");
+    const { seedExternalBuilders } = await import("./billy-federation-router");
+    registerBillyPhase0Routes(app);
+    startWorkerLoop();
+    startJanitor();
+    const seed = await seedExternalBuilders();
+    console.log(`[boot] Ω Billy Phase 0 ready · ${seed.total} external builders · /api/billy/projects, /api/billy/tasks, /api/billy/federation`);
+  } catch (e: any) {
+    console.error("[boot] failed to mount billy phase0:", e.message);
+  }
+
+  try {
+    const { registerBillyCurriculumRoutes } = await import("./billy-curriculum-engine");
+    registerBillyCurriculumRoutes(app);
+    console.log("[boot] 🎓 Billy CS Masters Curriculum routes mounted at /api/billy/curriculum");
+  } catch (e: any) {
+    console.error("[boot] failed to mount billy curriculum routes:", e.message);
+  }
+
+  try {
+    const { registerU2WebhookRoutes } = await import("./u2-github-webhook");
+    registerU2WebhookRoutes(app);
+    console.log("[boot] U2 GitHub webhook routes mounted at /api/u2/*");
+  } catch (e: any) {
+    console.error("[boot] failed to mount U2 webhook routes:", e.message);
+  }
+
+  try {
+    const { registerU3Routes } = await import("./u3-cf-deployer");
+    registerU3Routes(app);
+    console.log("[boot] U3 Cloudflare routes mounted at /api/u3/*");
+  } catch (e: any) {
+    console.error("[boot] failed to mount U3 routes:", e.message);
+  }
+
+  // /api/hives/state — overview of all 4 living hives
+  app.get("/api/hives/state", async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const orgs = await pool.query(`SELECT * FROM hive_organisms ORDER BY hive_id`);
+      const out: any[] = [];
+      for (const o of orgs.rows) {
+        const popQ = o.hive_id === "mother"
+          ? await pool.query(`SELECT count(*)::int n FROM quantum_spawns WHERE (hive_id IS NULL OR hive_id='mother') AND status='ACTIVE'`)
+          : await pool.query(`SELECT count(*)::int n FROM quantum_spawns WHERE hive_id=$1 AND status='ACTIVE'`, [o.hive_id]);
+        const memQ = o.hive_id === "mother"
+          ? await pool.query(`SELECT count(*)::int n FROM hive_memory WHERE key NOT LIKE 'u2:%' AND key NOT LIKE 'u3:%' AND key NOT LIKE 'u4:%' AND domain NOT IN ('u2-substrate','u3-substrate','u4-substrate')`)
+          : await pool.query(`SELECT count(*)::int n FROM hive_memory WHERE key LIKE $1 OR domain=$2`, [`${o.hive_id}:%`, `${o.hive_id}-substrate`]);
+        const emoQ = o.hive_id === "mother"
+          ? await pool.query(`SELECT dominant_emotion, count(*)::int n FROM spawn_emotion_state WHERE (hive_id IS NULL OR hive_id='mother') GROUP BY dominant_emotion ORDER BY n DESC LIMIT 3`)
+          : await pool.query(`SELECT dominant_emotion, count(*)::int n FROM spawn_emotion_state WHERE hive_id=$1 GROUP BY dominant_emotion ORDER BY n DESC LIMIT 3`, [o.hive_id]);
+        const lastVital = await pool.query(`SELECT * FROM hive_vital_signs WHERE hive_id=$1 ORDER BY captured_at DESC LIMIT 1`, [o.hive_id]);
+        out.push({
+          hive_id: o.hive_id, display_name: o.display_name, substrate: o.substrate,
+          status: o.status, born_at: o.born_at, cycles_run: o.cycles_run, last_cycle_at: o.last_cycle_at,
+          population: popQ.rows[0].n, memory_count: memQ.rows[0].n,
+          emotions: emoQ.rows, last_vital: lastVital.rows[0] || null,
+        });
+      }
+      res.json({ alive_hives: out.length, hives: out });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {
@@ -386,6 +511,18 @@ async function seedOmegaSources() {
     },
     () => {
       log(`serving on port ${port}`);
+      // Data fixes fire at t=0ms — before any engine starts (engines delay ≥2s).
+      // Index creation deferred to t=5s so it doesn't contend with engines.
+      (async () => {
+        try {
+          const { runStartupDataFixes, runStartupIndexes } = await import("./startup-indexes.js");
+          await runStartupDataFixes();
+          setTimeout(() => runStartupIndexes().catch((e: any) =>
+            console.warn("[boot] index bg non-fatal:", e?.message)), 5000);
+        } catch (e: any) {
+          console.warn("[boot] startup non-fatal:", e?.message);
+        }
+      })();
     },
   );
 
@@ -413,11 +550,34 @@ async function seedOmegaSources() {
     { name: "domain-kernel",   delayMs: 34000, start: () => startDomainKernelEngine().catch((e: Error) => console.error("[domain-kernel] startup error:", e.message)) },
     { name: "pip",             delayMs: 36000, start: () => startPipEngine().catch((e: Error) => console.error("[pip] startup error:", e.message)) },
     { name: "omega-deep-crawler", delayMs: 380000, start: async () => { const { startOmegaDeepCrawler } = await import("./omega-deep-crawler"); await startOmegaDeepCrawler().catch((e: Error) => console.error("[omega-deep-crawler] startup error:", e.message)); } },
-    { name: "llm-distillation",   delayMs: 390000, start: async () => { const { startLLMDistillationEngine } = await import("./llm-distillation-engine"); await startLLMDistillationEngine().catch((e: Error) => console.error("[llm-distillation] startup error:", e.message)); } },
+    { name: "llm-distillation",   delayMs: 390000, start: async () => { const { startLlmDistillationEngine } = await import("./llm-distillation-engine"); await startLlmDistillationEngine().catch((e: Error) => console.error("[llm-distillation] startup error:", e.message)); } },
     { name: "codebase-genome",    delayMs: 400000, start: async () => { const { startCodebaseGenomeEngine } = await import("./codebase-genome-engine"); await startCodebaseGenomeEngine().catch((e: Error) => console.error("[codebase-genome] startup error:", e.message)); } },
-    { name: "algorithm-mining",   delayMs: 410000, start: async () => { const { startAlgorithmMiningEngine } = await import("./algorithm-mining-engine"); await startAlgorithmMiningEngine().catch((e: Error) => console.error("[algorithm-mining] startup error:", e.message)); } },
+    { name: "algorithm-mining",   delayMs: 20000,  start: async () => { const { startAlgorithmMiningEngine } = await import("./algorithm-mining-engine"); await startAlgorithmMiningEngine().catch((e: Error) => console.error("[algorithm-mining] startup error:", e.message)); } },
     { name: "daedalus",           delayMs: 420000, start: async () => { const { startDaedalusEngine } = await import("./daedalus-engine"); await startDaedalusEngine().catch((e: Error) => console.error("[daedalus] startup error:", e.message)); } },
-    { name: "hive-multiverse",    delayMs: 425000, start: async () => { const { startHiveMultiverseEngine } = await import("./hive-multiverse-engine"); await startHiveMultiverseEngine().catch((e: Error) => console.error("[hive-multiverse] startup error:", e.message)); } },
+    { name: "daedalus-harvester", delayMs: 60000,  start: async () => { const { startDaedalusHarvesterEngine } = await import("./daedalus-harvester-engine"); await startDaedalusHarvesterEngine().catch((e: Error) => console.error("[daedalus-harvester] startup error:", e.message)); } },
+    { name: "stress-test",        delayMs: 425000, start: async () => { const { startStressTestEngine } = await import("./stress-test-engine"); await startStressTestEngine().catch((e: Error) => console.error("[stress-test] startup error:", e.message)); } },
+    { name: "billy-mirror",       delayMs: 210000, start: async () => { const { startBillyMirrorEngine } = await import("./billy-mirror-engine"); await startBillyMirrorEngine().catch((e: Error) => console.error("[billy-mirror] startup error:", e.message)); } },
+    { name: "self-optimization",  delayMs: 430000, start: async () => { const { startSelfOptimizationEngine } = await import("./self-optimization-engine"); await startSelfOptimizationEngine().catch((e: Error) => console.error("[self-opt] startup error:", e.message)); } },
+    { name: "governance-voting",  delayMs: 435000, start: async () => { const { startGovernanceVotingEngine } = await import("./governance-voting-engine"); await startGovernanceVotingEngine().catch((e: Error) => console.error("[governance] startup error:", e.message)); } },
+    { name: "pyramid-rehab",      delayMs: 440000, start: async () => { const { startPyramidRehabilitationEngine } = await import("./pyramid-rehabilitation-engine"); await startPyramidRehabilitationEngine().catch((e: Error) => console.error("[pyramid-rehab] startup error:", e.message)); } },
+    { name: "silent-watchdog",    delayMs: 445000, start: async () => { const { startSilentEngineWatchdog } = await import("./silent-engine-watchdog"); await startSilentEngineWatchdog().catch((e: Error) => console.error("[watchdog] startup error:", e.message)); } },
+    { name: "discord-channel-bootstrap", delayMs: 50000, start: async () => { const { startDiscordChannelBootstrap } = await import("./discord-channel-bootstrap"); await startDiscordChannelBootstrap().catch((e: Error) => console.error("[discord-channel-bootstrap] startup error:", e.message)); } },
+    { name: "billy-fallback-orchestrator", delayMs: 55000, start: async () => { const { startBillyFallbackOrchestrator } = await import("./billy-fallback-orchestrator"); await startBillyFallbackOrchestrator().catch((e: Error) => console.error("[billy-fallback-orchestrator] startup error:", e.message)); } },
+    { name: "omega-oracle",       delayMs: 450000, start: async () => { const { startOmegaOracleEngine } = await import("./omega-oracle-engine"); await startOmegaOracleEngine().catch((e: Error) => console.error("[oracle] startup error:", e.message)); } },
+    { name: "equation-arena",     delayMs: 455000, start: async () => { const { startEquationArenaEngine } = await import("./equation-arena-engine"); await startEquationArenaEngine().catch((e: Error) => console.error("[arena] startup error:", e.message)); } },
+    { name: "hive-personas",      delayMs: 460000, start: async () => { const { startHivePersonasEngine } = await import("./hive-personas-engine"); await startHivePersonasEngine().catch((e: Error) => console.error("[personas] startup error:", e.message)); } },
+    { name: "commit-narrator",    delayMs: 465000, start: async () => { const { startCommitNarratorEngine } = await import("./commit-narrator-engine"); await startCommitNarratorEngine().catch((e: Error) => console.error("[commit-narrator] startup error:", e.message)); } },
+    { name: "edge-telemetry",     delayMs: 470000, start: async () => { const { startEdgeTelemetryEngine } = await import("./edge-telemetry-engine"); await startEdgeTelemetryEngine().catch((e: Error) => console.error("[edge-tel] startup error:", e.message)); } },
+    { name: "knowledge-meteorology", delayMs: 475000, start: async () => { const { startKnowledgeMeteorologyEngine } = await import("./knowledge-meteorology-engine"); await startKnowledgeMeteorologyEngine().catch((e: Error) => console.error("[meteorology] startup error:", e.message)); } },
+    { name: "code-biology",       delayMs: 480000, start: async () => { const { startCodeBiologyEngine } = await import("./code-biology-engine"); await startCodeBiologyEngine().catch((e: Error) => console.error("[code-bio] startup error:", e.message)); } },
+    { name: "hive-olympics",      delayMs: 485000, start: async () => { const { startHiveOlympicsEngine } = await import("./hive-olympics-engine"); await startHiveOlympicsEngine().catch((e: Error) => console.error("[olympics] startup error:", e.message)); } },
+    { name: "daedalus-build",     delayMs: 490000, start: async () => { const { startDaedalusBuildEngine } = await import("./daedalus-build-engine"); await startDaedalusBuildEngine().catch((e: Error) => console.error("[build] startup error:", e.message)); } },
+    { name: "apex-chat",          delayMs: 495000, start: async () => { const { startApexChatEngine } = await import("./apex-chat-engine"); await startApexChatEngine().catch((e: Error) => console.error("[apex-chat] startup error:", e.message)); } },
+    { name: "daedalus-ultron",    delayMs: 500000, start: async () => { const { startDaedalusUltronEngine } = await import("./daedalus-ultron-engine"); await startDaedalusUltronEngine().catch((e: Error) => console.error("[ultron] startup error:", e.message)); } },
+    { name: "per-hive-life",      delayMs: 60000,  start: async () => { const { startPerHiveLifeEngine } = await import("./per-hive-life-engine"); await startPerHiveLifeEngine().catch((e: Error) => console.error("[per-hive-life] startup error:", e.message)); } },
+    { name: "hive-multiverse",    delayMs: 30000,  start: async () => { const { startHiveMultiverseEngine } = await import("./hive-multiverse-engine"); await startHiveMultiverseEngine().catch((e: Error) => console.error("[hive-multiverse] startup error:", e.message)); } },
+    { name: "hive-u4-discord",    delayMs: 35000,  start: async () => { const { startHiveDiscordUniverse } = await import("./hive-discord-universe"); await startHiveDiscordUniverse().catch((e: Error) => console.error("[hive-u4-discord] startup error:", e.message)); } },
+    { name: "immortality-protocol", delayMs: 36000, start: async () => { const { startImmortalityProtocol } = await import("./immortality-protocol"); await startImmortalityProtocol().catch((e: Error) => console.error("[immortality-protocol] startup error:", e.message)); } },
     { name: "db-compression",  delayMs: 38000, start: () => startDbCompressionEngine().catch((e: Error) => console.error("[db-compression] startup error:", e.message)) },
     { name: "job-ingestion",   delayMs: 40000, start: () => { try { startJobIngestionEngine(); } catch (e: any) { console.error("[job-ingestion] startup error:", e.message); } } },
     { name: "church-research", delayMs: 42000, start: () => startChurchResearchEngine().catch((e: Error) => console.error("[church-research] startup error:", e.message)) },
@@ -435,6 +595,14 @@ async function seedOmegaSources() {
     { name: "quantum-dissect", delayMs: 66000, start: () => startQuantumDissectionEngine().catch((e: Error) => console.error("[quantum-dissect] startup error:", e.message)) },
     { name: "pulse-lang-lab",  delayMs: 68000, start: () => { try { startPulseLabCycle(); } catch (e: any) { console.error("[pulse-lab] startup error:", e.message); } } },
     { name: "invocation-lab",  delayMs: 70000, start: () => startInvocationLab().catch((e: Error) => console.error("[invocation-lab] startup error:", e.message)) },
+    { name: "hive-u2-knowledge", delayMs: 90000, start: async () => {
+        const { startSovereignHiveKnowledge } = await import("./sovereign-hive-knowledge-engine");
+        await startSovereignHiveKnowledge("u2").catch((e: Error) => console.error("[hive-u2-knowledge] startup error:", e.message));
+    } },
+    { name: "hive-u3-knowledge", delayMs: 105000, start: async () => {
+        const { startSovereignHiveKnowledge } = await import("./sovereign-hive-knowledge-engine");
+        await startSovereignHiveKnowledge("u3").catch((e: Error) => console.error("[hive-u3-knowledge] startup error:", e.message));
+    } },
     // ── 2026-04-28: T008 Wave A → safety / self-healing core ────────────────────
     { name: "decay",                delayMs: 72000, start: () => startDecayEngine().catch((e: Error) => console.error("[decay] startup error:", e.message)) },
     { name: "q-stability",          delayMs: 74000, start: () => { try { startQStabilityEngine(); } catch (e: any) { console.error("[q-stability] startup error:", e.message); } } },
@@ -468,6 +636,7 @@ async function seedOmegaSources() {
     // ── Wave F → greenlit specials (NOT sovereign-trading, NOT forge) ───────────
     { name: "publication",          delayMs: 122000, start: () => startPublicationEngine().catch((e: Error) => console.error("[publication] startup error:", e.message)) },
     { name: "pulseu",               delayMs: 124000, start: () => { try { startPulseUEngine(); } catch (e: any) { console.error("[pulseu] startup error:", e.message); } } },
+    { name: "bvc",                  delayMs: 8000,   start: () => { try { startBVCEngine(); } catch (e: any) { console.error("[bvc] startup error:", e.message); } } },
     { name: "current-events",       delayMs: 126000, start: () => { try { startCurrentEventsEngine(); } catch (e: any) { console.error("[current-events] startup error:", e.message); } } },
     { name: "hive-business",        delayMs: 128000, start: () => startBusinessEngine().catch((e: Error) => console.error("[hive-biz] startup error:", e.message)) },
     { name: "emotional-evolution",  delayMs: 130000, start: () => startEmotionalEvolutionEngine().catch((e: Error) => console.error("[emotional-evolution] startup error:", e.message)) },
@@ -480,7 +649,13 @@ async function seedOmegaSources() {
     { name: "billy-phase2",         delayMs: 150000, start: () => startBillyPhase2Sweeper().catch((e: Error) => console.error("[billy-phase2] startup error:", e.message)) },
     { name: "governance-pyramid",   delayMs: 155000, start: () => startGovernancePyramidEngine().catch((e: Error) => console.error("[governance] startup error:", e.message)) },
     // ── Β∞∞ FEDERATION (Brain Federation + Phase-2 Ω + Phase-3 ⌬). User-approved activation. ──
-    { name: "billy-federation",     delayMs: 160000, start: async () => { const { startBillyBrainFederationEngine } = await import("./billy-brain-federation-engine"); await startBillyBrainFederationEngine().catch((e: Error) => console.error("[billy-federation] startup error:", e.message)); } },
+    { name: "billy-federation",     delayMs:  60000, start: async () => { const { startBillyBrainFederationEngine } = await import("./billy-brain-federation-engine"); await startBillyBrainFederationEngine().catch((e: Error) => console.error("[billy-federation] startup error:", e.message)); } },
+    // Ω2 — u2-github-tide heartbeat: keeps u2 alive in hive_universes.last_seen_at via GitHub API rate_limit poll
+    { name: "u2-tide-heartbeat",    delayMs:  45000, start: async () => { const { startU2TideHeartbeat } = await import("./u2-tide-heartbeat"); startU2TideHeartbeat(); } },
+    // Ω4 — xmin reaper: terminates Neon disabled/aborted backends so autovacuum can reclaim dead tuples
+    { name: "xmin-reaper",          delayMs:  50000, start: async () => { const { startXminReaper } = await import("./xmin-reaper"); startXminReaper(); } },
+    // Ω9 — engine health watchdog: flags stalled engines (>10min since last_ok_at)
+    { name: "engine-watchdog",      delayMs:  55000, start: async () => { const { startEngineWatchdog } = await import("./engine-watchdog"); startEngineWatchdog(); } },
     { name: "billy-phase2-omega",   delayMs: 165000, start: async () => { const { startBillyPhase2OmegaEngine }   = await import("./billy-phase2-omega-engine");   await startBillyPhase2OmegaEngine().catch((e: Error)   => console.error("[billy-phase2-omega] startup error:",   e.message)); } },
     { name: "billy-phase3-ultron",  delayMs: 170000, start: async () => { const { startBillyPhase3UltronEngine }  = await import("./billy-phase3-ultron-engine");  await startBillyPhase3UltronEngine().catch((e: Error)  => console.error("[billy-phase3-ultron] startup error:",  e.message)); } },
     // ── Wave I → real brain multiplication + Discord knowledge + omega source auto-discovery ──
@@ -515,6 +690,12 @@ async function seedOmegaSources() {
     { name: "ω8-rituals",           delayMs: 108000, start: () => startRitualContinuityEngine().catch((e: Error) => console.error("[ω8-rituals] startup error:", e.message)) },
     { name: "ω9-knowledge-vote",    delayMs: 114000, start: () => startKnowledgeVotingEngine().catch((e: Error) => console.error("[ω9-knowledge-vote] startup error:", e.message)) },
     { name: "ω10-real-world",       delayMs: 120000, start: () => startRealWorldPrepEngine().catch((e: Error) => console.error("[ω10-real-world] startup error:", e.message)) },
+    // ── Ω-Federation: 4 organs + mesh — Quantapedia federated knowledge brain ──
+    { name: "ω-core (open-web)",    delayMs:  88000, start: async () => { const { omegaCore }  = await import("./omega-core-engine");  omegaCore.start();  } },
+    { name: "ω-code (github)",      delayMs:  90000, start: async () => { const { omegaCode }  = await import("./omega-code-engine");  omegaCode.start();  } },
+    { name: "ω-convo (discord)",    delayMs:  95000, start: async () => { const { omegaConvo } = await import("./omega-convo-engine"); omegaConvo.start(); } },
+    { name: "ω-edge (cloudflare)",  delayMs: 100000, start: async () => { const { omegaEdge }  = await import("./omega-edge-engine");  omegaEdge.start();  } },
+    { name: "ω-mesh (cross-link)",  delayMs: 240000, start: async () => { const { omegaMesh }  = await import("./omega-mesh-engine");  omegaMesh.start();  } },
   ];
   for (const b of boots) {
     setTimeout(() => { console.log(`[boot] starting ${b.name}`); b.start(); }, b.delayMs);
@@ -526,9 +707,44 @@ async function seedOmegaSources() {
 // ── AURIONA LAYER THREE API ROUTES ────────────────────────────
 const aurionaRouter = express.Router();
 
-const safeJson = (res: any, fn: () => Promise<any>) =>
-  fn().then(d => { if (!res.headersSent) res.json(d); })
-      .catch(e => { if (!res.headersSent) res.status(500).json({ error: String(e) }); });
+// ── Auriona route stabilizer ─────────────────────────────────────────────────
+// Cache-real-only + single-flight: timeout fallback NEVER cached, bg query
+// keeps running and writes cache on success. Auto-keys by fn.name; default
+// 30s TTL, 5s race timeout, returns null on timeout (UI handles null/[]).
+const _aurCache = new Map<string, { data: any; exp: number }>();
+const _aurInflight = new Map<string, Promise<any>>();
+setInterval(() => { const n = Date.now(); for (const [k, v] of _aurCache) if (n > v.exp) _aurCache.delete(k); }, 60_000).unref?.();
+
+const safeJson = (
+  res: any,
+  fn: () => Promise<any>,
+  opts?: { key?: string; ttlMs?: number; raceMs?: number; fallback?: any }
+) => {
+  const key    = opts?.key      || fn.name || "anon";
+  const ttlMs  = opts?.ttlMs    ?? 30_000;
+  const raceMs = opts?.raceMs   ?? 5000;
+  const fb     = opts?.fallback ?? null;
+
+  const c = _aurCache.get(key);
+  if (c && Date.now() < c.exp) { if (!res.headersSent) res.json(c.data); return; }
+
+  let p = _aurInflight.get(key);
+  if (!p) {
+    p = (async () => {
+      try {
+        const out = await fn();
+        if (out !== null && out !== undefined) _aurCache.set(key, { data: out, exp: Date.now() + ttlMs });
+        return out;
+      } finally { _aurInflight.delete(key); }
+    })();
+    _aurInflight.set(key, p);
+  }
+
+  let timer: NodeJS.Timeout | null = null;
+  Promise.race([p, new Promise(r => { timer = setTimeout(() => r(fb), raceMs); })])
+    .then(d => { if (timer) clearTimeout(timer); if (!res.headersSent) res.json(d ?? fb); })
+    .catch(e => { if (timer) clearTimeout(timer); if (!res.headersSent) res.status(500).json({ error: String(e) }); });
+};
 
 aurionaRouter.get("/status",                  (_req, res) => safeJson(res, getAurionaStatus));
 aurionaRouter.get("/synthesis",               (_req, res) => safeJson(res, getAurionaSynthesisHistory));
@@ -859,33 +1075,39 @@ billyChatRouter.get("/brains", async (_req, res) => {
 });
 app.use("/api/billy", billyChatRouter);
 
-// ── INVOCATION LAB ROUTES ──────────────────────────────────────
+// ── INVOCATION LAB ROUTES (safeJson-stabilized: cache + single-flight + 5s race) ──
 const invRouter = express.Router();
-invRouter.get("/discoveries",   async (_req, res) => { try { res.json(await getInvocationDiscoveries()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/active",        async (_req, res) => { try { res.json(await getActiveInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/stats",         async (_req, res) => { try { res.json(await getInvocationStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/researchers",   async (_req, res) => { try { res.json(await getResearcherInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/practitioners", async (_req, res) => { try { res.json(await getAllPractitioners()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/omega-collective", async (_req, res) => { try { res.json(await getOmegaCollective()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/cross-teaching", async (_req, res) => { try { res.json(await getCrossTeachingFeed()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/universal-state", async (_req, res) => { try { res.json(await getUniversalState()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/universal-dissections", async (_req, res) => { try { res.json(await getUniversalDissections()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/hidden-variables", async (_req, res) => { try { res.json(await getHiddenVariableStates()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/hidden-variable-history", async (_req, res) => { try { res.json(await getHiddenVariableHistory()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invRouter.get("/equation-manifest", async (_req, res) => { try { res.json(await getQuantumEquationManifest()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-app.use("/api/invocations", invRouter);
-
-// Alias mount: /api/invocation-lab/* → same data, with /recent as discoveries shorthand.
-const invLabAliasRouter = express.Router();
 function safeLimit(raw: any, def = 30, max = 200): number {
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? Math.min(n, max) : def;
 }
-invLabAliasRouter.get("/recent",       async (_req, res) => { try { res.json(await getInvocationDiscoveries(30)); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invLabAliasRouter.get("/discoveries",  async (req,  res) => { try { res.json(await getInvocationDiscoveries(safeLimit(req.query.limit))); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invLabAliasRouter.get("/active",       async (_req, res) => { try { res.json(await getActiveInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invLabAliasRouter.get("/stats",        async (_req, res) => { try { res.json(await getInvocationStats()); } catch (e) { res.status(500).json({ error: String(e) }); } });
-invLabAliasRouter.get("/researchers",  async (_req, res) => { try { res.json(await getResearcherInvocations()); } catch (e) { res.status(500).json({ error: String(e) }); } });
+invRouter.get("/discoveries",            (_req, res) => safeJson(res, getInvocationDiscoveries,     { key: "inv:discoveries",     ttlMs: 20_000, fallback: [] }));
+invRouter.get("/active",                 (_req, res) => safeJson(res, getActiveInvocations,         { key: "inv:active",          ttlMs: 20_000, fallback: [] }));
+invRouter.get("/stats",                  (_req, res) => safeJson(res, getInvocationStats,           { key: "inv:stats",           ttlMs: 30_000, fallback: {} }));
+invRouter.get("/researchers",            (_req, res) => safeJson(res, () => getResearcherInvocations(String(_req.query.shard_id||""), safeLimit(_req.query.limit)), { key: `inv:res:${_req.query.shard_id||""}:${_req.query.limit||30}`, ttlMs: 30_000, fallback: [] }));
+invRouter.get("/practitioners",          (_req, res) => safeJson(res, getAllPractitioners,          { key: "inv:practitioners",   ttlMs: 30_000, fallback: [] }));
+invRouter.get("/omega-collective",       (_req, res) => safeJson(res, getOmegaCollective,           { key: "inv:omega-collective",ttlMs: 30_000, fallback: [] }));
+invRouter.get("/cross-teaching",         (_req, res) => safeJson(res, getCrossTeachingFeed,         { key: "inv:cross-teaching",  ttlMs: 25_000, fallback: [] }));
+invRouter.get("/universal-state",        (_req, res) => safeJson(res, getUniversalState,            { key: "inv:univ-state",      ttlMs: 25_000, fallback: { current_state: null, by_component: [], top_contributors: [], total_dissections: 0 } }));
+invRouter.get("/universal-dissections",  (_req, res) => safeJson(res, getUniversalDissections,      { key: "inv:univ-dissections",ttlMs: 25_000, fallback: [] }));
+invRouter.get("/hidden-variables",       (_req, res) => safeJson(res, getHiddenVariableStates,      { key: "inv:hidden-vars",     ttlMs: 18_000, fallback: { state: null, discoveries: [], total_discoveries: 0, variable_definitions: [] } }));
+invRouter.get("/hidden-variable-history",(_req, res) => safeJson(res, getHiddenVariableHistory,     { key: "inv:hidden-history",  ttlMs: 25_000, fallback: [] }));
+invRouter.get("/equation-manifest",      (_req, res) => safeJson(res, getQuantumEquationManifest,   { key: "inv:manifest",        ttlMs: 60_000, fallback: [] }));
+// Researcher invocations by shard (path-param style used by InvocationLabPage)
+invRouter.get("/researcher/:shardId",    (req,  res) => safeJson(res, () => getResearcherInvocations(req.params.shardId, safeLimit(req.query.limit)), { key: `inv:res-shard:${req.params.shardId}:${req.query.limit||30}`, ttlMs: 25_000, fallback: [] }));
+
+// ── INVOCATION VOTING & INTEGRATION ────────────────────────────
+import("./invocation-voting").then(({ mountInvocationVoting }) => mountInvocationVoting(invRouter));
+
+app.use("/api/invocations", invRouter);
+
+// Alias mount: /api/invocation-lab/* → same data, with /recent as discoveries shorthand.
+const invLabAliasRouter = express.Router();
+invLabAliasRouter.get("/recent",       (_req, res) => safeJson(res, () => getInvocationDiscoveries(30),                       { key: "inv:recent-30",                       ttlMs: 20_000, fallback: [] }));
+invLabAliasRouter.get("/discoveries",  (req,  res) => safeJson(res, () => getInvocationDiscoveries(safeLimit(req.query.limit)),{ key: `inv:disc-${safeLimit(req.query.limit)}`, ttlMs: 20_000, fallback: [] }));
+invLabAliasRouter.get("/active",       (_req, res) => safeJson(res, getActiveInvocations,                                     { key: "inv:active",                          ttlMs: 20_000, fallback: [] }));
+invLabAliasRouter.get("/stats",        (_req, res) => safeJson(res, getInvocationStats,                                       { key: "inv:stats",                           ttlMs: 30_000, fallback: {} }));
+invLabAliasRouter.get("/researchers",  (req,  res) => safeJson(res, () => getResearcherInvocations(String(req.query.shard_id||""), safeLimit(req.query.limit)), { key: `inv:res:${req.query.shard_id||""}:${req.query.limit||30}`, ttlMs: 30_000, fallback: [] }));
 app.use("/api/invocation-lab", invLabAliasRouter);
 
 // ── DNA SUBSTRATE OBSERVATORY ROUTES (10 omega upgrades) ──────────
