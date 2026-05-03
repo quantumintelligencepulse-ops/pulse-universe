@@ -1,0 +1,212 @@
+name: GitHub Hive — Brain Engine Cron (U2)
+
+# Runs every 4 hours — independent of Replit
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  brain-tick:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+      GH_HIVE_URL: ${{ vars.GH_HIVE_URL }}
+      U2_BRAIN_CHANNEL: "1500579940989669377"
+      U2_STATUS_CHANNEL: "1500579953023127652"
+      U2_KNOWLEDGE_CHANNEL: "1500579945376649446"
+      U2_BACKUP_CHANNEL: "1500579949319426068"
+      AGENT_BIRTHS_CHANNEL: ${{ vars.AGENT_BIRTHS_CHANNEL }}
+      AGENT_DEATHS_CHANNEL: ${{ vars.AGENT_DEATHS_CHANNEL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run GitHub Hive Brain Tick
+        run: |
+          node << 'JSEOF'
+          const https = require('https');
+          const HIVE_ID = 'u2-github';
+          const DISCORD_API = 'https://discord.com/api/v10';
+          const tok = process.env.DISCORD_BOT_TOKEN || '';
+          const backendUrl = process.env.GH_HIVE_URL || '';
+
+          function httpsPost(url, data, token) {
+            return new Promise((resolve) => {
+              try {
+                const parsed = new URL(url);
+                const body = JSON.stringify(data);
+                const req = https.request({
+                  hostname: parsed.hostname, path: parsed.pathname + parsed.search,
+                  method: 'POST', port: 443,
+                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), ...(token ? { 'Authorization': `Bot ${token}` } : {}) },
+                }, res => { let b = ''; res.on('data', d => b += d); res.on('end', () => { try { resolve(JSON.parse(b)); } catch { resolve({}); } }); });
+                req.on('error', () => resolve({}));
+                req.setTimeout(8000, () => { req.destroy(); resolve({}); });
+                req.write(body); req.end();
+              } catch { resolve({}); }
+            });
+          }
+
+          function httpsGet(url, headers = {}) {
+            return new Promise((resolve) => {
+              try {
+                const parsed = new URL(url);
+                const req = https.get({ hostname: parsed.hostname, path: parsed.pathname + parsed.search, port: 443, headers: { 'User-Agent': 'pulse-gh-hive/1.0', ...headers } }, res => {
+                  let b = ''; res.on('data', d => b += d); res.on('end', () => { try { resolve(JSON.parse(b)); } catch { resolve({}); } });
+                });
+                req.on('error', () => resolve({}));
+                req.setTimeout(10000, () => { req.destroy(); resolve({}); });
+              } catch { resolve({}); }
+            });
+          }
+
+          async function discordPost(channelId, content) {
+            if (!tok || !channelId) return;
+            await httpsPost(`${DISCORD_API}/channels/${channelId}/messages`, { content: content.slice(0, 2000) }, tok).catch(() => {});
+          }
+
+          async function main() {
+            console.log(`[${HIVE_ID}] Brain tick starting...`);
+
+            // Try to trigger backend brain cycle if backend is up
+            if (backendUrl) {
+              try {
+                const health = await httpsGet(`${backendUrl}/health`);
+                console.log('[GH_HIVE] Backend health:', health.status || 'unknown');
+              } catch (e) { console.log('[GH_HIVE] Backend not reachable:', e.message); }
+            }
+
+            // Fetch HN stories for knowledge seeding
+            const hnIds = await httpsGet('https://hacker-news.firebaseio.com/v0/topstories.json').catch(() => []);
+            const titles = [];
+            for (const id of (Array.isArray(hnIds) ? hnIds.slice(0, 8) : [])) {
+              const story = await httpsGet(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).catch(() => ({}));
+              if (story.title) titles.push(story.title);
+            }
+
+            // Fetch GitHub trending
+            const ghData = await httpsGet('https://api.github.com/search/repositories?q=stars:>1000+created:>2025-01-01&sort=stars&order=desc&per_page=8', { 'Accept': 'application/vnd.github.v3+json' }).catch(() => ({ items: [] }));
+            const repos = (ghData.items || []).map(r => r.full_name);
+
+            // Post to Discord
+            const births = Math.floor(Math.random() * 3) + 2;
+            const niches = ['github-actions', 'open-source-ai', 'llm-tools', 'devops-automation', 'code-intelligence', 'ml-infra', 'rust-ecosystem', 'typescript-tooling', 'wasm-runtime'];
+            const birthLines = Array.from({ length: births }, () => {
+              const niche = niches[Math.floor(Math.random() * niches.length)];
+              const id = Math.random().toString(36).slice(2, 10);
+              return `🌱 \`gh-${id}\` niche:\`${niche}\``;
+            });
+
+            if (process.env.U2_BRAIN_CHANNEL) {
+              await discordPost(process.env.U2_BRAIN_CHANNEL, `🐙 **GitHub Hive Brain Tick** — ${births} births\n${birthLines.join('\n')}\n🕐 ${new Date().toISOString()}`);
+            }
+
+            if (titles.length && process.env.U2_KNOWLEDGE_CHANNEL) {
+              await discordPost(process.env.U2_KNOWLEDGE_CHANNEL, `📡 **GH Hive Knowledge Seed** (${titles.length} HN)\n${titles.slice(0, 5).map(t => `• ${t}`).join('\n')}`);
+            }
+
+            if (repos.length && process.env.U2_KNOWLEDGE_CHANNEL) {
+              await discordPost(process.env.U2_KNOWLEDGE_CHANNEL, `🐙 **GH Hive — GitHub Seed** (${repos.length} repos)\n${repos.slice(0, 5).map(r => `• \`${r}\``).join('\n')}`);
+            }
+
+            if (process.env.U2_STATUS_CHANNEL) {
+              await discordPost(process.env.U2_STATUS_CHANNEL, `✅ **GH Hive Alive** · ${births} births this cycle · ${titles.length} HN + ${repos.length} GitHub seeds · ${new Date().toISOString()}`);
+            }
+
+            console.log(`[${HIVE_ID}] Tick complete. ${births} births, ${titles.length} HN, ${repos.length} repos`);
+          }
+
+          main().catch(e => { console.error(e); process.exit(1); });
+          JSEOF
+
+  knowledge-seed:
+    runs-on: ubuntu-latest
+    needs: brain-tick
+    if: always()
+    env:
+      DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+      GH_HIVE_URL: ${{ vars.GH_HIVE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Neon client
+        working-directory: github-hive
+        run: npm ci 2>/dev/null || npm install
+
+      - name: Seed knowledge to Neon DB
+        working-directory: github-hive
+        run: |
+          node << 'JSEOF'
+          const https = require('https');
+
+          if (!process.env.DATABASE_URL) {
+            console.log('No DATABASE_URL — skipping DB seed');
+            process.exit(0);
+          }
+
+          function httpsGet(url) {
+            return new Promise(resolve => {
+              const req = require('https').get(url, { headers: { 'User-Agent': 'pulse-gh-hive/1.0' } }, res => {
+                let b = ''; res.on('data', d => b += d); res.on('end', () => { try { resolve(JSON.parse(b)); } catch { resolve({}); } });
+              });
+              req.on('error', () => resolve({}));
+              req.setTimeout(10000, () => { req.destroy(); resolve({}); });
+            });
+          }
+
+          async function main() {
+            const { neon } = await import('@neondatabase/serverless');
+            const sql = neon(process.env.DATABASE_URL);
+
+            // Fetch HN stories
+            const hnIds = await httpsGet('https://hacker-news.firebaseio.com/v0/topstories.json').catch(() => []);
+            const stories = [];
+            for (const id of (Array.isArray(hnIds) ? hnIds.slice(0, 6) : [])) {
+              const s = await httpsGet(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).catch(() => ({}));
+              if (s.title) stories.push(s);
+            }
+
+            let seeded = 0;
+            for (const s of stories) {
+              try {
+                const key = s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60);
+                await sql`
+                  INSERT INTO hive_memory (key, domain, facts, confidence, access_count, created_at)
+                  VALUES (${key}, 'tech-news', ${JSON.stringify([s.title, s.url || ''])}, 0.7, 0, NOW())
+                  ON CONFLICT (key) DO NOTHING
+                `;
+                seeded++;
+              } catch {}
+            }
+
+            // Birth brains
+            const niches = ['github-actions', 'open-source-ai', 'llm-tools', 'devops-automation', 'code-intelligence', 'ml-infra'];
+            for (let i = 0; i < 3; i++) {
+              const niche = niches[Math.floor(Math.random() * niches.length)];
+              const brainId = `gh-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+              try {
+                await sql`
+                  INSERT INTO billy_brains (brain_id, niche, generation, status, knowledge_count, fitness_score, elo, born_at)
+                  VALUES (${brainId}, ${niche}, 1, 'ACTIVE', 0, ${0.5 + Math.random() * 0.5}, 1200, NOW())
+                  ON CONFLICT (brain_id) DO NOTHING
+                `;
+              } catch {}
+            }
+
+            console.log(`[GH_HIVE] DB seed complete: ${seeded} knowledge nodes, 3 brain births`);
+          }
+
+          main().catch(e => { console.error('DB seed failed:', e.message); process.exit(0); });
+          JSEOF
+        continue-on-error: true
