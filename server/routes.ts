@@ -3091,7 +3091,7 @@ ${entries}
     const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatNumId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    if (!userId && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
+    if (!userId && chat.userId !== null && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
     res.json(chat);
   });
 
@@ -3101,7 +3101,7 @@ ${entries}
     const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatNumId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    if (!userId && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
+    if (!userId && chat.userId !== null && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
     await storage.deleteChat(chatNumId);
     res.status(204).send();
   });
@@ -3114,7 +3114,7 @@ ${entries}
     const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatNumId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    if (!userId && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
+    if (!userId && chat.userId !== null && !canGuestAccessChat(req, chatNumId)) return res.status(403).json({ message: "Access denied" });
     const updated = await storage.renameChat(chatNumId, title.substring(0, 80));
     res.json(updated);
   });
@@ -3439,7 +3439,7 @@ ${entries}
     const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    if (!userId && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Access denied" });
+    if (!userId && chat.userId !== null && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Access denied" });
     const msgs = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
     res.json(msgs);
   });
@@ -3512,7 +3512,7 @@ ${entries}
     const [chat] = await priorityDb.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
     if (!chat) return res.status(404).json({ message: "Chat not found" });
     if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-    if (!userId && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Access denied" });
+    if (!userId && chat.userId !== null && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Access denied" });
     const msgs = await priorityDb.select().from(messagesTable).where(eq(messagesTable.chatId, chatId)).orderBy(asc(messagesTable.createdAt));
     let md = `# ${chat.title}\n\nType: ${chat.type}\nDate: ${chat.createdAt}\n\n---\n\n`;
     for (const m of msgs) {
@@ -4868,7 +4868,7 @@ Write 700-1000 words of original article content. No preamble. Just the article.
       const chat = chatRows[0] || null;
       if (!chat) return res.status(404).json({ message: "Chat not found" });
       if (userId && chat.userId !== userId) return res.status(403).json({ message: "Access denied" });
-      if (!userId && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Start a new conversation to continue" });
+      if (!userId && chat.userId !== null && !canGuestAccessChat(req, chatId)) return res.status(403).json({ message: "Start a new conversation to continue" });
 
       const input = api.messages.create.input.parse(req.body);
 
