@@ -1,47 +1,107 @@
 {
-  "captured_at": "2026-05-04T04:35:43.011Z",
+  "captured_at": "2026-05-04T05:06:04.882Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
-  "version": "immortality-v2-autonomous",
+  "version": "immortality-v3-omega-10",
+  "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
+  "prod_url": "https://myaigpt.online",
+  "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
+  "cf_pages": "https://pulse-universe.pages.dev",
+  "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe",
+  "daedalus_agents": 6,
   "billy_brains": {
-    "total_brains": 1899,
+    "total_brains": 1907,
     "sectors": 6,
     "niches": 39,
-    "max_gen": 124,
-    "observing": 1640,
+    "max_gen": 127,
+    "observing": 1648,
     "archived": 219
   },
-  "daedalus_agents": 6,
-  "quantum_spawns": 24944,
-  "equation_proposals": 56007,
-  "quantapedia_entries": 12893,
+  "equation_proposals": 56059,
   "hive_universes": [
     {
       "id": "u1-replit-prime",
       "kind": "prime",
-      "last_seen_at": "2026-05-04T04:33:37.089Z"
+      "last_seen_at": "2026-05-04T05:05:28.888Z"
     },
     {
       "id": "u2-github-tide",
       "kind": "tide",
-      "last_seen_at": "2026-05-04T04:35:51.684Z"
+      "last_seen_at": "2026-05-04T05:06:27.487Z"
     },
     {
       "id": "u3-cloudflare-edge",
       "kind": "edge",
-      "last_seen_at": "2026-05-04T04:35:49.383Z"
+      "last_seen_at": "2026-05-04T05:06:37.286Z"
     },
     {
       "id": "u4-discord-tide",
       "kind": "tide",
-      "last_seen_at": "2026-05-04T04:33:42.287Z"
+      "last_seen_at": "2026-05-04T05:05:34.007Z"
     }
   ],
   "guest_chats": 10,
   "guest_messages": 21,
-  "uptime_s": 331,
-  "node": "v20.20.0",
-  "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
-  "cf_pages": "https://pulse-universe.pages.dev",
-  "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe"
+  "anomaly_reports": 0,
+  "senate_bills": 0,
+  "quantapedia_entries": 13753,
+  "quantum_spawns": 25047,
+  "sovereign_fleet": {
+    "total": 1907,
+    "assigned": 162,
+    "born_last_30min": 8,
+    "regions": [
+      {
+        "region": "eu-north-1",
+        "n": 22
+      },
+      {
+        "region": "eu-west-1",
+        "n": 21
+      },
+      {
+        "region": "us-east-1",
+        "n": 21
+      },
+      {
+        "region": "us-west-2",
+        "n": 20
+      },
+      {
+        "region": "ap-northeast-1",
+        "n": 20
+      },
+      {
+        "region": "af-south-1",
+        "n": 20
+      },
+      {
+        "region": "ap-southeast-1",
+        "n": 19
+      },
+      {
+        "region": "sa-east-1",
+        "n": 19
+      }
+    ]
+  },
+  "system": {
+    "uptime_s": 291,
+    "node": "v20.20.0",
+    "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
+    "prod_url": "https://myaigpt.online",
+    "mem_rss_mb": 494,
+    "mem_heap_mb": 289,
+    "mem_ext_mb": 19
+  },
+  "immortality": {
+    "github_syncs": 0,
+    "kv_syncs": 0,
+    "mirror_syncs": 0,
+    "hive_bus_broadcasts": 0,
+    "self_pings": 0,
+    "last_sync": null,
+    "cf_worker_alive": true,
+    "cf_pages_alive": true
+  }
 }
