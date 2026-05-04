@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-04T19:59:42.341Z",
+  "captured_at": "2026-05-04T20:29:42.340Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -8,23 +8,69 @@
   "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
   "cf_pages": "https://pulse-universe.pages.dev",
   "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe",
-  "sovereign_fleet": {},
+  "billy_brains": {
+    "total_brains": 2105,
+    "sectors": 6,
+    "niches": 39,
+    "max_gen": 141,
+    "observing": 1846,
+    "archived": 219
+  },
+  "sovereign_fleet": {
+    "total": 2105,
+    "assigned": 513,
+    "born_last_30min": 9,
+    "regions": [
+      {
+        "region": "eu-west-1",
+        "n": 67
+      },
+      {
+        "region": "us-west-2",
+        "n": 65
+      },
+      {
+        "region": "eu-north-1",
+        "n": 65
+      },
+      {
+        "region": "af-south-1",
+        "n": 64
+      },
+      {
+        "region": "us-east-1",
+        "n": 64
+      },
+      {
+        "region": "ap-northeast-1",
+        "n": 63
+      },
+      {
+        "region": "ap-southeast-1",
+        "n": 63
+      },
+      {
+        "region": "sa-east-1",
+        "n": 62
+      }
+    ]
+  },
   "system": {
-    "uptime_s": 52351,
+    "uptime_s": 54141,
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 4134,
-    "mem_heap_mb": 3161,
-    "mem_ext_mb": 522
+    "mem_rss_mb": 4221,
+    "mem_heap_mb": 3233,
+    "mem_ext_mb": 525
   },
   "immortality": {
-    "github_syncs": 30,
-    "kv_syncs": 60,
-    "mirror_syncs": 30,
-    "hive_bus_broadcasts": 30,
-    "self_pings": 218,
-    "last_sync": "2026-05-04T19:30:02.341Z",
+    "github_syncs": 31,
+    "kv_syncs": 62,
+    "mirror_syncs": 31,
+    "hive_bus_broadcasts": 31,
+    "self_pings": 226,
+    "last_sync": "2026-05-04T20:00:02.341Z",
     "cf_worker_alive": true,
     "cf_pages_alive": true
   }
