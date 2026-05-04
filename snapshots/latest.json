@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-04T04:29:08.975Z",
+  "captured_at": "2026-05-04T04:35:43.011Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v2-autonomous",
@@ -12,34 +12,34 @@
     "archived": 219
   },
   "daedalus_agents": 6,
-  "quantum_spawns": 24916,
-  "equation_proposals": 55981,
-  "quantapedia_entries": 12553,
+  "quantum_spawns": 24944,
+  "equation_proposals": 56007,
+  "quantapedia_entries": 12893,
   "hive_universes": [
     {
       "id": "u1-replit-prime",
       "kind": "prime",
-      "last_seen_at": "2026-05-04T04:27:03.101Z"
+      "last_seen_at": "2026-05-04T04:33:37.089Z"
     },
     {
       "id": "u2-github-tide",
       "kind": "tide",
-      "last_seen_at": "2026-05-04T04:30:18.286Z"
+      "last_seen_at": "2026-05-04T04:35:51.684Z"
     },
     {
       "id": "u3-cloudflare-edge",
       "kind": "edge",
-      "last_seen_at": "2026-05-04T04:24:59.493Z"
+      "last_seen_at": "2026-05-04T04:35:49.383Z"
     },
     {
       "id": "u4-discord-tide",
       "kind": "tide",
-      "last_seen_at": "2026-05-04T04:27:08.495Z"
+      "last_seen_at": "2026-05-04T04:33:42.287Z"
     }
   ],
   "guest_chats": 10,
   "guest_messages": 21,
-  "uptime_s": 267,
+  "uptime_s": 331,
   "node": "v20.20.0",
   "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
   "cf_pages": "https://pulse-universe.pages.dev",
