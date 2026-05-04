@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-04T18:29:42.341Z",
+  "captured_at": "2026-05-04T18:59:42.341Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -9,56 +9,32 @@
   "cf_pages": "https://pulse-universe.pages.dev",
   "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe",
   "billy_brains": {
-    "total_brains": 2055,
+    "total_brains": 2060,
     "sectors": 6,
     "niches": 39,
     "max_gen": 138,
-    "observing": 1796,
+    "observing": 1801,
     "archived": 219
   },
   "daedalus_agents": 6,
-  "quantum_spawns": 27144,
-  "equation_proposals": 58336,
-  "quantapedia_entries": 30771,
-  "hive_universes": [
-    {
-      "id": "u1-replit-prime",
-      "kind": "prime",
-      "last_seen_at": "2026-05-04T05:28:06.387Z"
-    },
-    {
-      "id": "u2-github-tide",
-      "kind": "tide",
-      "last_seen_at": "2026-05-04T18:19:37.606Z"
-    },
-    {
-      "id": "u3-cloudflare-edge",
-      "kind": "edge",
-      "last_seen_at": "2026-05-04T18:18:34.397Z"
-    },
-    {
-      "id": "u4-discord-tide",
-      "kind": "tide",
-      "last_seen_at": "2026-05-04T05:28:12.984Z"
-    }
-  ],
+  "quantum_spawns": 27262,
   "sovereign_fleet": {},
   "system": {
-    "uptime_s": 46951,
+    "uptime_s": 48751,
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 3681,
-    "mem_heap_mb": 2801,
-    "mem_ext_mb": 478
+    "mem_rss_mb": 3810,
+    "mem_heap_mb": 2907,
+    "mem_ext_mb": 492
   },
   "immortality": {
-    "github_syncs": 27,
-    "kv_syncs": 54,
-    "mirror_syncs": 27,
-    "hive_bus_broadcasts": 27,
-    "self_pings": 196,
-    "last_sync": "2026-05-04T18:00:02.342Z",
+    "github_syncs": 28,
+    "kv_syncs": 56,
+    "mirror_syncs": 28,
+    "hive_bus_broadcasts": 28,
+    "self_pings": 203,
+    "last_sync": "2026-05-04T18:30:02.342Z",
     "cf_worker_alive": true,
     "cf_pages_alive": true
   }
