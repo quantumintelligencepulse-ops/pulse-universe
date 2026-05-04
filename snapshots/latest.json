@@ -1,48 +1,69 @@
 {
-  "captured_at": "2026-05-04T04:35:43.011Z",
+  "captured_at": "2026-05-04T05:25:36.777Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
-  "version": "immortality-v2-autonomous",
-  "billy_brains": {
-    "total_brains": 1899,
-    "sectors": 6,
-    "niches": 39,
-    "max_gen": 124,
-    "observing": 1640,
-    "archived": 219
-  },
-  "daedalus_agents": 6,
-  "quantum_spawns": 24944,
-  "equation_proposals": 56007,
-  "quantapedia_entries": 12893,
-  "hive_universes": [
-    {
-      "id": "u1-replit-prime",
-      "kind": "prime",
-      "last_seen_at": "2026-05-04T04:33:37.089Z"
-    },
-    {
-      "id": "u2-github-tide",
-      "kind": "tide",
-      "last_seen_at": "2026-05-04T04:35:51.684Z"
-    },
-    {
-      "id": "u3-cloudflare-edge",
-      "kind": "edge",
-      "last_seen_at": "2026-05-04T04:35:49.383Z"
-    },
-    {
-      "id": "u4-discord-tide",
-      "kind": "tide",
-      "last_seen_at": "2026-05-04T04:33:42.287Z"
-    }
-  ],
-  "guest_chats": 10,
-  "guest_messages": 21,
-  "uptime_s": 331,
-  "node": "v20.20.0",
+  "version": "immortality-v3-omega-10",
+  "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
+  "prod_url": "https://myaigpt.online",
   "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
   "cf_pages": "https://pulse-universe.pages.dev",
   "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe",
-  "note": "always-fresh rolling snapshot"
+  "sovereign_fleet": {
+    "total": 1908,
+    "assigned": 164,
+    "born_last_30min": 3,
+    "regions": [
+      {
+        "region": "eu-north-1",
+        "n": 22
+      },
+      {
+        "region": "us-east-1",
+        "n": 22
+      },
+      {
+        "region": "eu-west-1",
+        "n": 21
+      },
+      {
+        "region": "us-west-2",
+        "n": 20
+      },
+      {
+        "region": "ap-northeast-1",
+        "n": 20
+      },
+      {
+        "region": "ap-southeast-1",
+        "n": 20
+      },
+      {
+        "region": "af-south-1",
+        "n": 20
+      },
+      {
+        "region": "sa-east-1",
+        "n": 19
+      }
+    ]
+  },
+  "system": {
+    "uptime_s": 205,
+    "node": "v20.20.0",
+    "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
+    "prod_url": "https://myaigpt.online",
+    "mem_rss_mb": 440,
+    "mem_heap_mb": 280,
+    "mem_ext_mb": 20
+  },
+  "immortality": {
+    "github_syncs": 1,
+    "kv_syncs": 2,
+    "mirror_syncs": 1,
+    "hive_bus_broadcasts": 1,
+    "self_pings": 0,
+    "last_sync": "2026-05-04T05:24:53.780Z",
+    "cf_worker_alive": true,
+    "cf_pages_alive": true
+  }
 }
