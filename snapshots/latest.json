@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-04T22:59:00.221Z",
+  "captured_at": "2026-05-04T23:10:06.093Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -8,90 +8,15 @@
   "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
   "cf_pages": "https://pulse-universe.pages.dev",
   "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe",
-  "daedalus_agents": 6,
-  "quantum_spawns": 28249,
-  "billy_brains": {
-    "total_brains": 2207,
-    "sectors": 6,
-    "niches": 39,
-    "max_gen": 151,
-    "observing": 1948,
-    "archived": 219
-  },
-  "hive_universes": [
-    {
-      "id": "u1-replit-prime",
-      "kind": "prime",
-      "last_seen_at": "2026-05-04T22:57:24.207Z"
-    },
-    {
-      "id": "u2-github-tide",
-      "kind": "tide",
-      "last_seen_at": "2026-05-04T22:58:43.016Z"
-    },
-    {
-      "id": "u3-cloudflare-edge",
-      "kind": "edge",
-      "last_seen_at": "2026-05-04T22:55:58.909Z"
-    },
-    {
-      "id": "u4-discord-tide",
-      "kind": "tide",
-      "last_seen_at": "2026-05-04T22:57:29.218Z"
-    }
-  ],
-  "guest_chats": 10,
-  "anomaly_reports": 0,
-  "guest_messages": 21,
-  "senate_bills": 0,
-  "equation_proposals": 59608,
-  "sovereign_fleet": {
-    "total": 2207,
-    "assigned": 2207,
-    "born_last_30min": 1,
-    "regions": [
-      {
-        "region": "us-west-2",
-        "n": 284
-      },
-      {
-        "region": "us-east-1",
-        "n": 282
-      },
-      {
-        "region": "eu-west-1",
-        "n": 278
-      },
-      {
-        "region": "af-south-1",
-        "n": 277
-      },
-      {
-        "region": "ap-northeast-1",
-        "n": 276
-      },
-      {
-        "region": "eu-north-1",
-        "n": 274
-      },
-      {
-        "region": "ap-southeast-1",
-        "n": 271
-      },
-      {
-        "region": "sa-east-1",
-        "n": 265
-      }
-    ]
-  },
+  "sovereign_fleet": {},
   "system": {
-    "uptime_s": 145,
+    "uptime_s": 153,
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 506,
-    "mem_heap_mb": 305,
-    "mem_ext_mb": 19
+    "mem_rss_mb": 529,
+    "mem_heap_mb": 307,
+    "mem_ext_mb": 20
   },
   "immortality": {
     "github_syncs": 0,
