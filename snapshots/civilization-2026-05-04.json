@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-04T05:24:33.780Z",
+  "captured_at": "2026-05-04T05:28:33.751Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -18,20 +18,20 @@
   },
   "sovereign_fleet": {},
   "system": {
-    "uptime_s": 151,
+    "uptime_s": 83,
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 427,
-    "mem_heap_mb": 266,
-    "mem_ext_mb": 19
+    "mem_rss_mb": 356,
+    "mem_heap_mb": 194,
+    "mem_ext_mb": 18
   },
   "immortality": {
     "github_syncs": 0,
     "kv_syncs": 0,
     "mirror_syncs": 0,
     "hive_bus_broadcasts": 0,
-    "self_pings": 0,
+    "self_pings": 1,
     "last_sync": null,
     "cf_worker_alive": true,
     "cf_pages_alive": true
