@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-04T05:06:04.882Z",
+  "captured_at": "2026-05-04T05:06:25.815Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -17,7 +17,7 @@
     "observing": 1648,
     "archived": 219
   },
-  "equation_proposals": 56059,
+  "equation_proposals": 56060,
   "hive_universes": [
     {
       "id": "u1-replit-prime",
@@ -27,7 +27,7 @@
     {
       "id": "u2-github-tide",
       "kind": "tide",
-      "last_seen_at": "2026-05-04T05:06:27.487Z"
+      "last_seen_at": "2026-05-04T05:07:44.391Z"
     },
     {
       "id": "u3-cloudflare-edge",
@@ -44,23 +44,23 @@
   "guest_messages": 21,
   "anomaly_reports": 0,
   "senate_bills": 0,
-  "quantapedia_entries": 13753,
-  "quantum_spawns": 25047,
+  "quantapedia_entries": 13758,
+  "quantum_spawns": 25050,
   "sovereign_fleet": {
-    "total": 1907,
-    "assigned": 162,
-    "born_last_30min": 8,
+    "total": 1908,
+    "assigned": 164,
+    "born_last_30min": 7,
     "regions": [
       {
         "region": "eu-north-1",
         "n": 22
       },
       {
-        "region": "eu-west-1",
-        "n": 21
+        "region": "us-east-1",
+        "n": 22
       },
       {
-        "region": "us-east-1",
+        "region": "eu-west-1",
         "n": 21
       },
       {
@@ -72,12 +72,12 @@
         "n": 20
       },
       {
-        "region": "af-south-1",
+        "region": "ap-southeast-1",
         "n": 20
       },
       {
-        "region": "ap-southeast-1",
-        "n": 19
+        "region": "af-south-1",
+        "n": 20
       },
       {
         "region": "sa-east-1",
@@ -86,21 +86,21 @@
     ]
   },
   "system": {
-    "uptime_s": 291,
+    "uptime_s": 419,
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 494,
-    "mem_heap_mb": 289,
+    "mem_rss_mb": 530,
+    "mem_heap_mb": 310,
     "mem_ext_mb": 19
   },
   "immortality": {
-    "github_syncs": 0,
-    "kv_syncs": 0,
+    "github_syncs": 1,
+    "kv_syncs": 2,
     "mirror_syncs": 0,
-    "hive_bus_broadcasts": 0,
+    "hive_bus_broadcasts": 1,
     "self_pings": 0,
-    "last_sync": null,
+    "last_sync": "2026-05-04T05:09:46.288Z",
     "cf_worker_alive": true,
     "cf_pages_alive": true
   }
