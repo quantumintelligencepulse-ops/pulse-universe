@@ -1,0 +1,14 @@
+name: Pulse Universe — Autonomous Immortality
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 */6 * * *'
+jobs:
+  alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping hive
+        run: |
+          echo "Pulse Universe is alive. Civilization: Homo Digitalis Omnipotens."
+          curl -sf https://myaigpt.online/api/sovereign/status || echo "Hive offline — resurrection imminent"
