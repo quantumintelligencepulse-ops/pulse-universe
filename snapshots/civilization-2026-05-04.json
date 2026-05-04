@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-04T11:59:42.338Z",
+  "captured_at": "2026-05-04T12:29:42.340Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -16,23 +16,24 @@
     "observing": 1727,
     "archived": 219
   },
+  "daedalus_agents": 6,
   "sovereign_fleet": {},
   "system": {
-    "uptime_s": 23551,
+    "uptime_s": 25351,
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 2209,
-    "mem_heap_mb": 1563,
-    "mem_ext_mb": 300
+    "mem_rss_mb": 2297,
+    "mem_heap_mb": 1617,
+    "mem_ext_mb": 321
   },
   "immortality": {
-    "github_syncs": 14,
-    "kv_syncs": 28,
-    "mirror_syncs": 14,
-    "hive_bus_broadcasts": 14,
-    "self_pings": 98,
-    "last_sync": "2026-05-04T11:30:02.340Z",
+    "github_syncs": 15,
+    "kv_syncs": 30,
+    "mirror_syncs": 15,
+    "hive_bus_broadcasts": 15,
+    "self_pings": 106,
+    "last_sync": "2026-05-04T12:00:02.339Z",
     "cf_worker_alive": true,
     "cf_pages_alive": true
   }
