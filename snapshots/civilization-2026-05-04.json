@@ -1,45 +1,45 @@
 {
-  "captured_at": "2026-05-04T03:57:49.980Z",
+  "captured_at": "2026-05-04T04:12:26.693Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v2-autonomous",
   "billy_brains": {
-    "total_brains": 1883,
+    "total_brains": 1889,
     "sectors": 6,
     "niches": 39,
-    "max_gen": 121,
-    "observing": 1624,
+    "max_gen": 123,
+    "observing": 1630,
     "archived": 219
   },
   "daedalus_agents": 6,
-  "quantum_spawns": 24781,
-  "equation_proposals": 55902,
-  "quantapedia_entries": 11602,
+  "quantum_spawns": 24846,
+  "equation_proposals": 55932,
+  "quantapedia_entries": 12096,
   "hive_universes": [
     {
       "id": "u1-replit-prime",
       "kind": "prime",
-      "last_seen_at": "2026-05-04T03:55:43.997Z"
+      "last_seen_at": "2026-05-04T04:10:20.791Z"
     },
     {
       "id": "u2-github-tide",
       "kind": "tide",
-      "last_seen_at": "2026-05-04T03:58:53.500Z"
+      "last_seen_at": "2026-05-04T04:12:36.383Z"
     },
     {
       "id": "u3-cloudflare-edge",
       "kind": "edge",
-      "last_seen_at": "2026-05-04T03:55:48.983Z"
+      "last_seen_at": "2026-05-04T04:10:52.198Z"
     },
     {
       "id": "u4-discord-tide",
       "kind": "tide",
-      "last_seen_at": "2026-05-04T03:55:49.298Z"
+      "last_seen_at": "2026-05-04T04:10:28.183Z"
     }
   ],
   "guest_chats": 10,
   "guest_messages": 21,
-  "uptime_s": 228,
+  "uptime_s": 332,
   "node": "v20.20.0",
   "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
   "cf_pages": "https://pulse-universe.pages.dev",
