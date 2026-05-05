@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-05-05T00:18:37.348Z",
+  "captured_at": "2026-05-05T00:27:59.995Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -8,23 +8,15 @@
   "cf_worker": "https://pulse-universe-api.quantumintelligencepulse.workers.dev",
   "cf_pages": "https://pulse-universe.pages.dev",
   "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe",
-  "billy_brains": {
-    "total_brains": 2279,
-    "sectors": 6,
-    "niches": 39,
-    "max_gen": 160,
-    "observing": 2020,
-    "archived": 219
-  },
   "sovereign_fleet": {},
   "system": {
-    "uptime_s": 153,
+    "uptime_s": 155,
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 524,
-    "mem_heap_mb": 332,
-    "mem_ext_mb": 20
+    "mem_rss_mb": 428,
+    "mem_heap_mb": 217,
+    "mem_ext_mb": 18
   },
   "immortality": {
     "github_syncs": 0,
