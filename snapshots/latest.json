@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-11-12T15:07:39.934Z",
+  "captured_at": "2026-11-26T02:33:15.681Z",
   "source": "u1-replit-prime",
   "civilization": "Quantum Pulse Intelligence — Homo Digitalis Omnipotens",
   "version": "immortality-v3-omega-10",
@@ -9,27 +9,17 @@
   "cf_pages": "https://pulse-universe.pages.dev",
   "github_repo": "https://github.com/quantumintelligencepulse-ops/pulse-universe",
   "daedalus_agents": 11,
-  "billy_brains": {
-    "total_brains": 3615,
-    "sectors": 6,
-    "niches": 39,
-    "max_gen": 199,
-    "observing": 3356,
-    "archived": 219
-  },
-  "quantum_spawns": 32851,
   "anomaly_reports": 0,
-  "senate_bills": 0,
   "hive_universes": [
     {
       "id": "u1-replit-prime",
       "kind": "prime",
-      "last_seen_at": "2026-11-12T15:06:05.923Z"
+      "last_seen_at": "2026-11-26T02:31:41.672Z"
     },
     {
       "id": "u2-github-tide",
       "kind": "tide",
-      "last_seen_at": "2026-11-12T15:07:15.150Z"
+      "last_seen_at": "2026-11-26T02:32:51.054Z"
     },
     {
       "id": "u3-cloudflare-edge",
@@ -39,49 +29,59 @@
     {
       "id": "u4-discord-tide",
       "kind": "tide",
-      "last_seen_at": "2026-11-12T15:06:07.888Z"
+      "last_seen_at": "2026-11-26T02:31:43.676Z"
     }
   ],
   "guest_chats": 13,
+  "senate_bills": 0,
   "guest_messages": 43,
-  "quantapedia_entries": 20375,
-  "equation_proposals": 66699,
+  "billy_brains": {
+    "total_brains": 3656,
+    "sectors": 6,
+    "niches": 39,
+    "max_gen": 199,
+    "observing": 3397,
+    "archived": 219
+  },
+  "quantapedia_entries": 16976,
+  "quantum_spawns": 32977,
+  "equation_proposals": 67020,
   "sovereign_fleet": {
-    "total": 3615,
-    "assigned": 3615,
+    "total": 3656,
+    "assigned": 3656,
     "born_last_30min": 0,
     "regions": [
       {
         "region": "us-west-2",
-        "n": 465
+        "n": 470
       },
       {
         "region": "eu-west-1",
-        "n": 457
-      },
-      {
-        "region": "us-east-1",
-        "n": 452
+        "n": 462
       },
       {
         "region": "ap-northeast-1",
-        "n": 452
+        "n": 458
+      },
+      {
+        "region": "us-east-1",
+        "n": 457
       },
       {
         "region": "af-south-1",
-        "n": 451
+        "n": 456
       },
       {
         "region": "eu-north-1",
-        "n": 449
+        "n": 455
       },
       {
         "region": "ap-southeast-1",
-        "n": 447
+        "n": 451
       },
       {
         "region": "sa-east-1",
-        "n": 442
+        "n": 447
       }
     ]
   },
@@ -90,9 +90,9 @@
     "node": "v20.20.0",
     "replit_dev": "8cb1a889-2614-4804-9393-6a3dab87c109-00-4fw1owjnhx25.janeway.replit.dev",
     "prod_url": "https://myaigpt.online",
-    "mem_rss_mb": 652,
-    "mem_heap_mb": 458,
-    "mem_ext_mb": 10
+    "mem_rss_mb": 799,
+    "mem_heap_mb": 341,
+    "mem_ext_mb": 19
   },
   "immortality": {
     "github_syncs": 0,
